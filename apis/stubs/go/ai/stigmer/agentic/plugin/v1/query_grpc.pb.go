@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	PluginQueryController_Get_FullMethodName                    = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/get"
 	PluginQueryController_GetByReference_FullMethodName         = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/getByReference"
+	PluginQueryController_List_FullMethodName                   = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/list"
 	PluginQueryController_GetArtifact_FullMethodName            = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/getArtifact"
 	PluginQueryController_GetArtifactDownloadUrl_FullMethodName = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/getArtifactDownloadUrl"
 	PluginQueryController_ListVersions_FullMethodName           = "/ai.stigmer.agentic.plugin.v1.PluginQueryController/listVersions"
@@ -42,6 +43,11 @@ type PluginQueryControllerClient interface {
 	// - Tag name (the manifest version, e.g. "1.2.0") → Resolves to the version holding this tag
 	// - SHA-256 digest (64 hex chars) → Returns the exact immutable version
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Plugin, error)
+	// List an organization's plugins, newest first.
+	//
+	// Returns the plugins of the input org that the caller may view, one page
+	// at a time. Search finds plugins by their words; list browses them.
+	List(ctx context.Context, in *ListPluginsRequest, opts ...grpc.CallOption) (*PluginList, error)
 	// Download a plugin archive from storage by its storage key.
 	// Returns the ZIP file the plugin was installed from.
 	GetArtifact(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*GetArtifactResponse, error)
@@ -80,6 +86,16 @@ func (c *pluginQueryControllerClient) GetByReference(ctx context.Context, in *ap
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Plugin)
 	err := c.cc.Invoke(ctx, PluginQueryController_GetByReference_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pluginQueryControllerClient) List(ctx context.Context, in *ListPluginsRequest, opts ...grpc.CallOption) (*PluginList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PluginList)
+	err := c.cc.Invoke(ctx, PluginQueryController_List_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -131,6 +147,11 @@ type PluginQueryControllerServer interface {
 	// - Tag name (the manifest version, e.g. "1.2.0") → Resolves to the version holding this tag
 	// - SHA-256 digest (64 hex chars) → Returns the exact immutable version
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Plugin, error)
+	// List an organization's plugins, newest first.
+	//
+	// Returns the plugins of the input org that the caller may view, one page
+	// at a time. Search finds plugins by their words; list browses them.
+	List(context.Context, *ListPluginsRequest) (*PluginList, error)
 	// Download a plugin archive from storage by its storage key.
 	// Returns the ZIP file the plugin was installed from.
 	GetArtifact(context.Context, *GetArtifactRequest) (*GetArtifactResponse, error)
@@ -159,6 +180,9 @@ func (UnimplementedPluginQueryControllerServer) Get(context.Context, *PluginId) 
 }
 func (UnimplementedPluginQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*Plugin, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
+}
+func (UnimplementedPluginQueryControllerServer) List(context.Context, *ListPluginsRequest) (*PluginList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
 func (UnimplementedPluginQueryControllerServer) GetArtifact(context.Context, *GetArtifactRequest) (*GetArtifactResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetArtifact not implemented")
@@ -221,6 +245,24 @@ func _PluginQueryController_GetByReference_Handler(srv interface{}, ctx context.
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PluginQueryControllerServer).GetByReference(ctx, req.(*apiresource.ApiResourceReference))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PluginQueryController_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPluginsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PluginQueryControllerServer).List(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PluginQueryController_List_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PluginQueryControllerServer).List(ctx, req.(*ListPluginsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -293,6 +335,10 @@ var PluginQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getByReference",
 			Handler:    _PluginQueryController_GetByReference_Handler,
+		},
+		{
+			MethodName: "list",
+			Handler:    _PluginQueryController_List_Handler,
 		},
 		{
 			MethodName: "getArtifact",

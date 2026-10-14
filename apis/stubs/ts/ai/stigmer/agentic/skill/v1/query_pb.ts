@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { SkillSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_skill_v1_api } from "./api_pb.js";
-import type { GetArtifactRequestSchema, GetArtifactResponseSchema, ListSkillVersionsInputSchema, ListSkillVersionsResponseSchema, SkillArtifactDownloadUrlSchema, SkillIdSchema } from "./io_pb.js";
+import type { GetArtifactRequestSchema, GetArtifactResponseSchema, ListSkillsRequestSchema, ListSkillVersionsInputSchema, ListSkillVersionsResponseSchema, SkillArtifactDownloadUrlSchema, SkillIdSchema, SkillListSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_skill_v1_io } from "./io_pb.js";
 import type { ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/skill/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_skill_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MTKQBQoUU2tpbGxRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsSWQaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiKsK4GCYIARArIgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBza2lsbBJwCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbCIE0LgYARJ2CgtnZXRBcnRpZmFjdBIvLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5HZXRBcnRpZmFjdFJlcXVlc3QaMC5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuR2V0QXJ0aWZhY3RSZXNwb25zZSIE0LgYARKGAQoWZ2V0QXJ0aWZhY3REb3dubG9hZFVybBIvLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5HZXRBcnRpZmFjdFJlcXVlc3QaNS5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGxBcnRpZmFjdERvd25sb2FkVXJsIgTQuBgBEoEBCgxsaXN0VmVyc2lvbnMSMy5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuTGlzdFNraWxsVmVyc2lvbnNJbnB1dBo2LmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5MaXN0U2tpbGxWZXJzaW9uc1Jlc3BvbnNlIgTQuBgBGgSg/ysrYgZwcm90bzM", [file_ai_stigmer_agentic_skill_v1_api, file_ai_stigmer_agentic_skill_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MTL2BQoUU2tpbGxRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsSWQaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiKsK4GCYIARArIgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBza2lsbBJwCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbCIE0LgYARJkCgRsaXN0Ei4uYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLkxpc3RTa2lsbHNSZXF1ZXN0GiYuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsTGlzdCIE0LgYARJ2CgtnZXRBcnRpZmFjdBIvLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5HZXRBcnRpZmFjdFJlcXVlc3QaMC5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuR2V0QXJ0aWZhY3RSZXNwb25zZSIE0LgYARKGAQoWZ2V0QXJ0aWZhY3REb3dubG9hZFVybBIvLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5HZXRBcnRpZmFjdFJlcXVlc3QaNS5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGxBcnRpZmFjdERvd25sb2FkVXJsIgTQuBgBEoEBCgxsaXN0VmVyc2lvbnMSMy5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuTGlzdFNraWxsVmVyc2lvbnNJbnB1dBo2LmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5MaXN0U2tpbGxWZXJzaW9uc1Jlc3BvbnNlIgTQuBgBGgSg/ysrYgZwcm90bzM", [file_ai_stigmer_agentic_skill_v1_api, file_ai_stigmer_agentic_skill_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * SkillQueryController handles read operations for skills.
@@ -49,6 +49,19 @@ export const SkillQueryController: GenService<{
     methodKind: "unary";
     input: typeof ApiResourceReferenceSchema;
     output: typeof SkillSchema;
+  },
+  /**
+   * List an organization's skills, newest first.
+   *
+   * Returns the skills of the input org that the caller may view, one page
+   * at a time. Search finds skills by their words; list browses them.
+   *
+   * @generated from rpc ai.stigmer.agentic.skill.v1.SkillQueryController.list
+   */
+  list: {
+    methodKind: "unary";
+    input: typeof ListSkillsRequestSchema;
+    output: typeof SkillListSchema;
   },
   /**
    * Download skill artifact from storage by its storage key.

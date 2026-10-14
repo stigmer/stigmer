@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/plugin/v1/api.proto.
  */
 export const file_ai_stigmer_agentic_plugin_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL2FwaS5wcm90bxIcYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MSKbAgoGUGx1Z2luEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEhsKBGtpbmQYAiABKAlCDbpICnIICgZQbHVnaW4STQoIbWV0YWRhdGEYAyABKAsyMy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VNZXRhZGF0YUIGukgDyAEBEjYKBHNwZWMYBCABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpblNwZWMSOgoGc3RhdHVzGAUgASgLMiouYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QbHVnaW5TdGF0dXMiZAoKUGx1Z2luTGlzdBITCgthcGlfdmVyc2lvbhgBIAEoCRIMCgRraW5kGAIgASgJEjMKBWl0ZW1zGAMgAygLMiQuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QbHVnaW5iBnByb3RvMw", [file_ai_stigmer_agentic_plugin_v1_spec, file_ai_stigmer_agentic_plugin_v1_status, file_ai_stigmer_commons_apiresource_metadata, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL2FwaS5wcm90bxIcYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MSKbAgoGUGx1Z2luEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEhsKBGtpbmQYAiABKAlCDbpICnIICgZQbHVnaW4STQoIbWV0YWRhdGEYAyABKAsyMy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VNZXRhZGF0YUIGukgDyAEBEjYKBHNwZWMYBCABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpblNwZWMSOgoGc3RhdHVzGAUgASgLMiouYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QbHVnaW5TdGF0dXNiBnByb3RvMw", [file_ai_stigmer_agentic_plugin_v1_spec, file_ai_stigmer_agentic_plugin_v1_status, file_ai_stigmer_commons_apiresource_metadata, file_buf_validate_validate]);
 
 /**
  * Plugin is an installed Agent Plugins package: one thing holding skills,
@@ -75,39 +75,4 @@ export type Plugin = Message<"ai.stigmer.agentic.plugin.v1.Plugin"> & {
  */
 export const PluginSchema: GenMessage<Plugin> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_plugin_v1_api, 0);
-
-/**
- * PluginList represents a paginated list of plugins.
- *
- * @generated from message ai.stigmer.agentic.plugin.v1.PluginList
- */
-export type PluginList = Message<"ai.stigmer.agentic.plugin.v1.PluginList"> & {
-  /**
-   * API version for this list type.
-   *
-   * @generated from field: string api_version = 1;
-   */
-  apiVersion: string;
-
-  /**
-   * Resource kind identifier for the list.
-   *
-   * @generated from field: string kind = 2;
-   */
-  kind: string;
-
-  /**
-   * List of plugin resources.
-   *
-   * @generated from field: repeated ai.stigmer.agentic.plugin.v1.Plugin items = 3;
-   */
-  items: Plugin[];
-};
-
-/**
- * Describes the message ai.stigmer.agentic.plugin.v1.PluginList.
- * Use `create(PluginListSchema)` to create a new message.
- */
-export const PluginListSchema: GenMessage<PluginList> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_plugin_v1_api, 1);
 

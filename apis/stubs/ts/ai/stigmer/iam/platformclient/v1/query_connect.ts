@@ -6,7 +6,7 @@
 import { ApiResourceId, ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
 import { PlatformClient } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { ListPlatformClientsByOrgInput, PlatformClients } from "./io_pbjs";
+import { ListPlatformClientsInput, PlatformClients } from "./io_pbjs";
 
 /**
  * PlatformClientQueryController provides read operations for platform client resources.
@@ -42,16 +42,16 @@ export const PlatformClientQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * List all platform clients belonging to an organization.
+     * List the platform clients belonging to an organization.
      *
      * Returns the PlatformClients of the input org that the caller may view,
-     * newest first. Typically a small set per org, so results are not paginated.
+     * newest first, one page at a time.
      *
-     * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientQueryController.listByOrg
+     * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientQueryController.list
      */
-    listByOrg: {
-      name: "listByOrg",
-      I: ListPlatformClientsByOrgInput,
+    list: {
+      name: "list",
+      I: ListPlatformClientsInput,
       O: PlatformClients,
       kind: MethodKind.Unary,
     },

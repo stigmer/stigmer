@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ChannelConversationQueryController_ListConversations_FullMethodName   = "/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/listConversations"
+	ChannelConversationQueryController_List_FullMethodName                = "/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/list"
+	ChannelConversationQueryController_CountConversations_FullMethodName  = "/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/countConversations"
 	ChannelConversationQueryController_GetConversation_FullMethodName     = "/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getConversation"
-	ChannelConversationQueryController_GetTimeline_FullMethodName         = "/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getTimeline"
+	ChannelConversationQueryController_ListTimeline_FullMethodName        = "/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/listTimeline"
 	ChannelConversationQueryController_GetMediaDownloadUrl_FullMethodName = "/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getMediaDownloadUrl"
 )
 
@@ -38,7 +39,13 @@ type ChannelConversationQueryControllerClient interface {
 	// Returns conversations across all of the org's channels the caller can
 	// view, optionally filtered to one channel. Entries carry participation
 	// state and the customer's display name.
-	ListConversations(ctx context.Context, in *ListChannelConversationsInput, opts ...grpc.CallOption) (*ChannelConversationList, error)
+	List(ctx context.Context, in *ListChannelConversationsInput, opts ...grpc.CallOption) (*ChannelConversationList, error)
+	// Count an organization's channel conversations that match a filter.
+	//
+	// The number behind a badge such as the inbox's "needs you": the same
+	// predicate list applies, over the same channels, so the count and the
+	// list it opens never disagree.
+	CountConversations(ctx context.Context, in *CountChannelConversationsInput, opts ...grpc.CallOption) (*ChannelConversationCount, error)
 	// Get one conversation's identity and participation state.
 	//
 	// The single-row read behind a conversation detail view: who holds
@@ -46,13 +53,13 @@ type ChannelConversationQueryControllerClient interface {
 	// customer's display name, and the activity clocks. Answers NOT_FOUND
 	// until the customer's first message creates the conversation.
 	GetConversation(ctx context.Context, in *GetChannelConversationInput, opts ...grpc.CallOption) (*ChannelConversation, error)
-	// Get one conversation's timeline, newest first, cursor-paged.
+	// List one conversation's timeline, newest first, one page at a time.
 	//
 	// The timeline contains customer-visible items only: inbound customer
 	// messages (including non-text kinds the platform cannot render),
 	// delivered agent replies, and operator or platform sends. Run
 	// internals never appear.
-	GetTimeline(ctx context.Context, in *GetConversationTimelineInput, opts ...grpc.CallOption) (*ConversationTimeline, error)
+	ListTimeline(ctx context.Context, in *ListConversationTimelineInput, opts ...grpc.CallOption) (*ConversationTimeline, error)
 	// Mint a short-lived download URL for one inbound timeline item's
 	// media file (an image or document the customer sent).
 	//
@@ -70,10 +77,20 @@ func NewChannelConversationQueryControllerClient(cc grpc.ClientConnInterface) Ch
 	return &channelConversationQueryControllerClient{cc}
 }
 
-func (c *channelConversationQueryControllerClient) ListConversations(ctx context.Context, in *ListChannelConversationsInput, opts ...grpc.CallOption) (*ChannelConversationList, error) {
+func (c *channelConversationQueryControllerClient) List(ctx context.Context, in *ListChannelConversationsInput, opts ...grpc.CallOption) (*ChannelConversationList, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ChannelConversationList)
-	err := c.cc.Invoke(ctx, ChannelConversationQueryController_ListConversations_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ChannelConversationQueryController_List_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *channelConversationQueryControllerClient) CountConversations(ctx context.Context, in *CountChannelConversationsInput, opts ...grpc.CallOption) (*ChannelConversationCount, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ChannelConversationCount)
+	err := c.cc.Invoke(ctx, ChannelConversationQueryController_CountConversations_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -90,10 +107,10 @@ func (c *channelConversationQueryControllerClient) GetConversation(ctx context.C
 	return out, nil
 }
 
-func (c *channelConversationQueryControllerClient) GetTimeline(ctx context.Context, in *GetConversationTimelineInput, opts ...grpc.CallOption) (*ConversationTimeline, error) {
+func (c *channelConversationQueryControllerClient) ListTimeline(ctx context.Context, in *ListConversationTimelineInput, opts ...grpc.CallOption) (*ConversationTimeline, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ConversationTimeline)
-	err := c.cc.Invoke(ctx, ChannelConversationQueryController_GetTimeline_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ChannelConversationQueryController_ListTimeline_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +140,13 @@ type ChannelConversationQueryControllerServer interface {
 	// Returns conversations across all of the org's channels the caller can
 	// view, optionally filtered to one channel. Entries carry participation
 	// state and the customer's display name.
-	ListConversations(context.Context, *ListChannelConversationsInput) (*ChannelConversationList, error)
+	List(context.Context, *ListChannelConversationsInput) (*ChannelConversationList, error)
+	// Count an organization's channel conversations that match a filter.
+	//
+	// The number behind a badge such as the inbox's "needs you": the same
+	// predicate list applies, over the same channels, so the count and the
+	// list it opens never disagree.
+	CountConversations(context.Context, *CountChannelConversationsInput) (*ChannelConversationCount, error)
 	// Get one conversation's identity and participation state.
 	//
 	// The single-row read behind a conversation detail view: who holds
@@ -131,13 +154,13 @@ type ChannelConversationQueryControllerServer interface {
 	// customer's display name, and the activity clocks. Answers NOT_FOUND
 	// until the customer's first message creates the conversation.
 	GetConversation(context.Context, *GetChannelConversationInput) (*ChannelConversation, error)
-	// Get one conversation's timeline, newest first, cursor-paged.
+	// List one conversation's timeline, newest first, one page at a time.
 	//
 	// The timeline contains customer-visible items only: inbound customer
 	// messages (including non-text kinds the platform cannot render),
 	// delivered agent replies, and operator or platform sends. Run
 	// internals never appear.
-	GetTimeline(context.Context, *GetConversationTimelineInput) (*ConversationTimeline, error)
+	ListTimeline(context.Context, *ListConversationTimelineInput) (*ConversationTimeline, error)
 	// Mint a short-lived download URL for one inbound timeline item's
 	// media file (an image or document the customer sent).
 	//
@@ -154,14 +177,17 @@ type ChannelConversationQueryControllerServer interface {
 // pointer dereference when methods are called.
 type UnimplementedChannelConversationQueryControllerServer struct{}
 
-func (UnimplementedChannelConversationQueryControllerServer) ListConversations(context.Context, *ListChannelConversationsInput) (*ChannelConversationList, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListConversations not implemented")
+func (UnimplementedChannelConversationQueryControllerServer) List(context.Context, *ListChannelConversationsInput) (*ChannelConversationList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
+}
+func (UnimplementedChannelConversationQueryControllerServer) CountConversations(context.Context, *CountChannelConversationsInput) (*ChannelConversationCount, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CountConversations not implemented")
 }
 func (UnimplementedChannelConversationQueryControllerServer) GetConversation(context.Context, *GetChannelConversationInput) (*ChannelConversation, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetConversation not implemented")
 }
-func (UnimplementedChannelConversationQueryControllerServer) GetTimeline(context.Context, *GetConversationTimelineInput) (*ConversationTimeline, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetTimeline not implemented")
+func (UnimplementedChannelConversationQueryControllerServer) ListTimeline(context.Context, *ListConversationTimelineInput) (*ConversationTimeline, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListTimeline not implemented")
 }
 func (UnimplementedChannelConversationQueryControllerServer) GetMediaDownloadUrl(context.Context, *GetConversationMediaDownloadUrlInput) (*ConversationMediaDownloadUrl, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMediaDownloadUrl not implemented")
@@ -186,20 +212,38 @@ func RegisterChannelConversationQueryControllerServer(s grpc.ServiceRegistrar, s
 	s.RegisterService(&ChannelConversationQueryController_ServiceDesc, srv)
 }
 
-func _ChannelConversationQueryController_ListConversations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ChannelConversationQueryController_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListChannelConversationsInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ChannelConversationQueryControllerServer).ListConversations(ctx, in)
+		return srv.(ChannelConversationQueryControllerServer).List(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ChannelConversationQueryController_ListConversations_FullMethodName,
+		FullMethod: ChannelConversationQueryController_List_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChannelConversationQueryControllerServer).ListConversations(ctx, req.(*ListChannelConversationsInput))
+		return srv.(ChannelConversationQueryControllerServer).List(ctx, req.(*ListChannelConversationsInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChannelConversationQueryController_CountConversations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CountChannelConversationsInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChannelConversationQueryControllerServer).CountConversations(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChannelConversationQueryController_CountConversations_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChannelConversationQueryControllerServer).CountConversations(ctx, req.(*CountChannelConversationsInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -222,20 +266,20 @@ func _ChannelConversationQueryController_GetConversation_Handler(srv interface{}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ChannelConversationQueryController_GetTimeline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetConversationTimelineInput)
+func _ChannelConversationQueryController_ListTimeline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListConversationTimelineInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ChannelConversationQueryControllerServer).GetTimeline(ctx, in)
+		return srv.(ChannelConversationQueryControllerServer).ListTimeline(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ChannelConversationQueryController_GetTimeline_FullMethodName,
+		FullMethod: ChannelConversationQueryController_ListTimeline_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChannelConversationQueryControllerServer).GetTimeline(ctx, req.(*GetConversationTimelineInput))
+		return srv.(ChannelConversationQueryControllerServer).ListTimeline(ctx, req.(*ListConversationTimelineInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -266,16 +310,20 @@ var ChannelConversationQueryController_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*ChannelConversationQueryControllerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "listConversations",
-			Handler:    _ChannelConversationQueryController_ListConversations_Handler,
+			MethodName: "list",
+			Handler:    _ChannelConversationQueryController_List_Handler,
+		},
+		{
+			MethodName: "countConversations",
+			Handler:    _ChannelConversationQueryController_CountConversations_Handler,
 		},
 		{
 			MethodName: "getConversation",
 			Handler:    _ChannelConversationQueryController_GetConversation_Handler,
 		},
 		{
-			MethodName: "getTimeline",
-			Handler:    _ChannelConversationQueryController_GetTimeline_Handler,
+			MethodName: "listTimeline",
+			Handler:    _ChannelConversationQueryController_ListTimeline_Handler,
 		},
 		{
 			MethodName: "getMediaDownloadUrl",

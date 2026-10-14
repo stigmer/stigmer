@@ -15,15 +15,19 @@ class PluginEvalId(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class ListPluginEvalsByPluginRequest(_message.Message):
-    __slots__ = ("plugin_id",)
+    __slots__ = ("plugin_id", "page_size", "page_token")
     PLUGIN_ID_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     plugin_id: str
-    def __init__(self, plugin_id: _Optional[str] = ...) -> None: ...
+    page_size: int
+    page_token: str
+    def __init__(self, plugin_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class PluginEvalList(_message.Message):
-    __slots__ = ("total_count", "items")
-    TOTAL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    ITEMS_FIELD_NUMBER: _ClassVar[int]
-    total_count: int
-    items: _containers.RepeatedCompositeFieldContainer[_api_pb2.PluginEval]
-    def __init__(self, total_count: _Optional[int] = ..., items: _Optional[_Iterable[_Union[_api_pb2.PluginEval, _Mapping]]] = ...) -> None: ...
+    __slots__ = ("entries", "next_page_token")
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.PluginEval]
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.PluginEval, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...

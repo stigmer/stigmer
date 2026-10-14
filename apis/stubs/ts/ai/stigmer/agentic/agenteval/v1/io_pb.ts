@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agenteval/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agenteval_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRldmFsL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRldmFsLnYxIikKC0FnZW50RXZhbElkEhoKBXZhbHVlGAEgASgJQgu6SAjIAQFyAxiAASI8ChxMaXN0QWdlbnRFdmFsc0J5QWdlbnRSZXF1ZXN0EhwKCGFnZW50X2lkGAEgASgJQgq6SAdyBRABGIABIl8KDUFnZW50RXZhbExpc3QSEwoLdG90YWxfY291bnQYASABKAUSOQoFaXRlbXMYAiADKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRldmFsLnYxLkFnZW50RXZhbGIGcHJvdG8z", [file_ai_stigmer_agentic_agenteval_v1_api, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRldmFsL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRldmFsLnYxIikKC0FnZW50RXZhbElkEhoKBXZhbHVlGAEgASgJQgu6SAjIAQFyAxiAASJ2ChxMaXN0QWdlbnRFdmFsc0J5QWdlbnRSZXF1ZXN0EhwKCGFnZW50X2lkGAEgASgJQgq6SAdyBRABGIABEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACCJ4Cg1BZ2VudEV2YWxMaXN0EjsKB2VudHJpZXMYAiADKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRldmFsLnYxLkFnZW50RXZhbBIXCg9uZXh0X3BhZ2VfdG9rZW4YAyABKAlKBAgBEAJSC3RvdGFsX2NvdW50YgZwcm90bzM", [file_ai_stigmer_agentic_agenteval_v1_api, file_buf_validate_validate]);
 
 /**
  * AgentEvalId wraps an agent eval identifier.
@@ -48,6 +48,22 @@ export type ListAgentEvalsByAgentRequest = Message<"ai.stigmer.agentic.agenteval
    * @generated from field: string agent_id = 1;
    */
   agentId: string;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
 };
 
 /**
@@ -64,18 +80,19 @@ export const ListAgentEvalsByAgentRequestSchema: GenMessage<ListAgentEvalsByAgen
  */
 export type AgentEvalList = Message<"ai.stigmer.agentic.agenteval.v1.AgentEvalList"> & {
   /**
-   * Number of evals in the list.
-   *
-   * @generated from field: int32 total_count = 1;
-   */
-  totalCount: number;
-
-  /**
    * The evals, newest first.
    *
-   * @generated from field: repeated ai.stigmer.agentic.agenteval.v1.AgentEval items = 2;
+   * @generated from field: repeated ai.stigmer.agentic.agenteval.v1.AgentEval entries = 2;
    */
-  items: AgentEval[];
+  entries: AgentEval[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 3;
+   */
+  nextPageToken: string;
 };
 
 /**

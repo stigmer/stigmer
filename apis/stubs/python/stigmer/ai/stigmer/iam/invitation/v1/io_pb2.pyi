@@ -26,7 +26,7 @@ class Invitations(_message.Message):
     next_page_token: str
     def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.Invitation, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
-class ListInvitationsByOrgInput(_message.Message):
+class ListInvitationsInput(_message.Message):
     __slots__ = ("org", "page_size", "page_token")
     ORG_FIELD_NUMBER: _ClassVar[int]
     PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]

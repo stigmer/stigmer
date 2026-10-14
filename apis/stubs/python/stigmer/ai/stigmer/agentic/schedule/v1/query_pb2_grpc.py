@@ -27,9 +27,9 @@ class ScheduleQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2.Schedule.FromString,
                 _registered_method=True)
-        self.getByAgent = channel.unary_unary(
-                '/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/getByAgent',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.GetSchedulesByAgentRequest.SerializeToString,
+        self.listByAgent = channel.unary_unary(
+                '/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/listByAgent',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ListSchedulesByAgentRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleList.FromString,
                 _registered_method=True)
         self.list = channel.unary_unary(
@@ -62,8 +62,8 @@ class ScheduleQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def getByAgent(self, request, context):
-        """Get all schedules of a specific agent.
+    def listByAgent(self, request, context):
+        """List the schedules of a specific agent, newest first.
         Returns only schedules the caller has access to.
 
         This is how the agent's operational surfaces and CLI resolve an
@@ -105,9 +105,9 @@ def add_ScheduleQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2.Schedule.SerializeToString,
             ),
-            'getByAgent': grpc.unary_unary_rpc_method_handler(
-                    servicer.getByAgent,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.GetSchedulesByAgentRequest.FromString,
+            'listByAgent': grpc.unary_unary_rpc_method_handler(
+                    servicer.listByAgent,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ListSchedulesByAgentRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleList.SerializeToString,
             ),
             'list': grpc.unary_unary_rpc_method_handler(
@@ -187,7 +187,7 @@ class ScheduleQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def getByAgent(request,
+    def listByAgent(request,
             target,
             options=(),
             channel_credentials=None,
@@ -200,8 +200,8 @@ class ScheduleQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/getByAgent',
-            ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.GetSchedulesByAgentRequest.SerializeToString,
+            '/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/listByAgent',
+            ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ListSchedulesByAgentRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleList.FromString,
             options,
             channel_credentials,

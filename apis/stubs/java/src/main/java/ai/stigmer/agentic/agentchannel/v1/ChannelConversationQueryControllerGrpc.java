@@ -18,34 +18,65 @@ public final class ChannelConversationQueryControllerGrpc {
 
   // Static method descriptors that strictly reflect the proto.
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput,
-      ai.stigmer.agentic.agentchannel.v1.ChannelConversationList> getListConversationsMethod;
+      ai.stigmer.agentic.agentchannel.v1.ChannelConversationList> getListMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "listConversations",
+      fullMethodName = SERVICE_NAME + '/' + "list",
       requestType = ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput.class,
       responseType = ai.stigmer.agentic.agentchannel.v1.ChannelConversationList.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
   public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput,
-      ai.stigmer.agentic.agentchannel.v1.ChannelConversationList> getListConversationsMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput, ai.stigmer.agentic.agentchannel.v1.ChannelConversationList> getListConversationsMethod;
-    if ((getListConversationsMethod = ChannelConversationQueryControllerGrpc.getListConversationsMethod) == null) {
+      ai.stigmer.agentic.agentchannel.v1.ChannelConversationList> getListMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput, ai.stigmer.agentic.agentchannel.v1.ChannelConversationList> getListMethod;
+    if ((getListMethod = ChannelConversationQueryControllerGrpc.getListMethod) == null) {
       synchronized (ChannelConversationQueryControllerGrpc.class) {
-        if ((getListConversationsMethod = ChannelConversationQueryControllerGrpc.getListConversationsMethod) == null) {
-          ChannelConversationQueryControllerGrpc.getListConversationsMethod = getListConversationsMethod =
+        if ((getListMethod = ChannelConversationQueryControllerGrpc.getListMethod) == null) {
+          ChannelConversationQueryControllerGrpc.getListMethod = getListMethod =
               io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput, ai.stigmer.agentic.agentchannel.v1.ChannelConversationList>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listConversations"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "list"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.agentchannel.v1.ChannelConversationList.getDefaultInstance()))
-              .setSchemaDescriptor(new ChannelConversationQueryControllerMethodDescriptorSupplier("listConversations"))
+              .setSchemaDescriptor(new ChannelConversationQueryControllerMethodDescriptorSupplier("list"))
               .build();
         }
       }
     }
-    return getListConversationsMethod;
+    return getListMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput,
+      ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount> getCountConversationsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "countConversations",
+      requestType = ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput.class,
+      responseType = ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput,
+      ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount> getCountConversationsMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput, ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount> getCountConversationsMethod;
+    if ((getCountConversationsMethod = ChannelConversationQueryControllerGrpc.getCountConversationsMethod) == null) {
+      synchronized (ChannelConversationQueryControllerGrpc.class) {
+        if ((getCountConversationsMethod = ChannelConversationQueryControllerGrpc.getCountConversationsMethod) == null) {
+          ChannelConversationQueryControllerGrpc.getCountConversationsMethod = getCountConversationsMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput, ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "countConversations"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount.getDefaultInstance()))
+              .setSchemaDescriptor(new ChannelConversationQueryControllerMethodDescriptorSupplier("countConversations"))
+              .build();
+        }
+      }
+    }
+    return getCountConversationsMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput,
@@ -79,35 +110,35 @@ public final class ChannelConversationQueryControllerGrpc {
     return getGetConversationMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput,
-      ai.stigmer.agentic.agentchannel.v1.ConversationTimeline> getGetTimelineMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput,
+      ai.stigmer.agentic.agentchannel.v1.ConversationTimeline> getListTimelineMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "getTimeline",
-      requestType = ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput.class,
+      fullMethodName = SERVICE_NAME + '/' + "listTimeline",
+      requestType = ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput.class,
       responseType = ai.stigmer.agentic.agentchannel.v1.ConversationTimeline.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput,
-      ai.stigmer.agentic.agentchannel.v1.ConversationTimeline> getGetTimelineMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput, ai.stigmer.agentic.agentchannel.v1.ConversationTimeline> getGetTimelineMethod;
-    if ((getGetTimelineMethod = ChannelConversationQueryControllerGrpc.getGetTimelineMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput,
+      ai.stigmer.agentic.agentchannel.v1.ConversationTimeline> getListTimelineMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput, ai.stigmer.agentic.agentchannel.v1.ConversationTimeline> getListTimelineMethod;
+    if ((getListTimelineMethod = ChannelConversationQueryControllerGrpc.getListTimelineMethod) == null) {
       synchronized (ChannelConversationQueryControllerGrpc.class) {
-        if ((getGetTimelineMethod = ChannelConversationQueryControllerGrpc.getGetTimelineMethod) == null) {
-          ChannelConversationQueryControllerGrpc.getGetTimelineMethod = getGetTimelineMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput, ai.stigmer.agentic.agentchannel.v1.ConversationTimeline>newBuilder()
+        if ((getListTimelineMethod = ChannelConversationQueryControllerGrpc.getListTimelineMethod) == null) {
+          ChannelConversationQueryControllerGrpc.getListTimelineMethod = getListTimelineMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput, ai.stigmer.agentic.agentchannel.v1.ConversationTimeline>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getTimeline"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listTimeline"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput.getDefaultInstance()))
+                  ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.agentchannel.v1.ConversationTimeline.getDefaultInstance()))
-              .setSchemaDescriptor(new ChannelConversationQueryControllerMethodDescriptorSupplier("getTimeline"))
+              .setSchemaDescriptor(new ChannelConversationQueryControllerMethodDescriptorSupplier("listTimeline"))
               .build();
         }
       }
     }
-    return getGetTimelineMethod;
+    return getListTimelineMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput,
@@ -217,9 +248,22 @@ public final class ChannelConversationQueryControllerGrpc {
      * state and the customer's display name.
      * </pre>
      */
-    default void listConversations(ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput request,
+    default void list(ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ChannelConversationList> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListConversationsMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Count an organization's channel conversations that match a filter.
+     * The number behind a badge such as the inbox's "needs you": the same
+     * predicate list applies, over the same channels, so the count and the
+     * list it opens never disagree.
+     * </pre>
+     */
+    default void countConversations(ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCountConversationsMethod(), responseObserver);
     }
 
     /**
@@ -238,16 +282,16 @@ public final class ChannelConversationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get one conversation's timeline, newest first, cursor-paged.
+     * List one conversation's timeline, newest first, one page at a time.
      * The timeline contains customer-visible items only: inbound customer
      * messages (including non-text kinds the platform cannot render),
      * delivered agent replies, and operator or platform sends. Run
      * internals never appear.
      * </pre>
      */
-    default void getTimeline(ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput request,
+    default void listTimeline(ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ConversationTimeline> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetTimelineMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListTimelineMethod(), responseObserver);
     }
 
     /**
@@ -310,10 +354,24 @@ public final class ChannelConversationQueryControllerGrpc {
      * state and the customer's display name.
      * </pre>
      */
-    public void listConversations(ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput request,
+    public void list(ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ChannelConversationList> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getListConversationsMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getListMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Count an organization's channel conversations that match a filter.
+     * The number behind a badge such as the inbox's "needs you": the same
+     * predicate list applies, over the same channels, so the count and the
+     * list it opens never disagree.
+     * </pre>
+     */
+    public void countConversations(ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCountConversationsMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -333,17 +391,17 @@ public final class ChannelConversationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get one conversation's timeline, newest first, cursor-paged.
+     * List one conversation's timeline, newest first, one page at a time.
      * The timeline contains customer-visible items only: inbound customer
      * messages (including non-text kinds the platform cannot render),
      * delivered agent replies, and operator or platform sends. Run
      * internals never appear.
      * </pre>
      */
-    public void getTimeline(ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput request,
+    public void listTimeline(ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ConversationTimeline> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetTimelineMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getListTimelineMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -391,9 +449,22 @@ public final class ChannelConversationQueryControllerGrpc {
      * state and the customer's display name.
      * </pre>
      */
-    public ai.stigmer.agentic.agentchannel.v1.ChannelConversationList listConversations(ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.agentchannel.v1.ChannelConversationList list(ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getListConversationsMethod(), getCallOptions(), request);
+          getChannel(), getListMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Count an organization's channel conversations that match a filter.
+     * The number behind a badge such as the inbox's "needs you": the same
+     * predicate list applies, over the same channels, so the count and the
+     * list it opens never disagree.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount countConversations(ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getCountConversationsMethod(), getCallOptions(), request);
     }
 
     /**
@@ -412,16 +483,16 @@ public final class ChannelConversationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get one conversation's timeline, newest first, cursor-paged.
+     * List one conversation's timeline, newest first, one page at a time.
      * The timeline contains customer-visible items only: inbound customer
      * messages (including non-text kinds the platform cannot render),
      * delivered agent replies, and operator or platform sends. Run
      * internals never appear.
      * </pre>
      */
-    public ai.stigmer.agentic.agentchannel.v1.ConversationTimeline getTimeline(ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.agentchannel.v1.ConversationTimeline listTimeline(ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getGetTimelineMethod(), getCallOptions(), request);
+          getChannel(), getListTimelineMethod(), getCallOptions(), request);
     }
 
     /**
@@ -468,9 +539,22 @@ public final class ChannelConversationQueryControllerGrpc {
      * state and the customer's display name.
      * </pre>
      */
-    public ai.stigmer.agentic.agentchannel.v1.ChannelConversationList listConversations(ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput request) {
+    public ai.stigmer.agentic.agentchannel.v1.ChannelConversationList list(ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getListConversationsMethod(), getCallOptions(), request);
+          getChannel(), getListMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Count an organization's channel conversations that match a filter.
+     * The number behind a badge such as the inbox's "needs you": the same
+     * predicate list applies, over the same channels, so the count and the
+     * list it opens never disagree.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount countConversations(ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCountConversationsMethod(), getCallOptions(), request);
     }
 
     /**
@@ -489,16 +573,16 @@ public final class ChannelConversationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get one conversation's timeline, newest first, cursor-paged.
+     * List one conversation's timeline, newest first, one page at a time.
      * The timeline contains customer-visible items only: inbound customer
      * messages (including non-text kinds the platform cannot render),
      * delivered agent replies, and operator or platform sends. Run
      * internals never appear.
      * </pre>
      */
-    public ai.stigmer.agentic.agentchannel.v1.ConversationTimeline getTimeline(ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput request) {
+    public ai.stigmer.agentic.agentchannel.v1.ConversationTimeline listTimeline(ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetTimelineMethod(), getCallOptions(), request);
+          getChannel(), getListTimelineMethod(), getCallOptions(), request);
     }
 
     /**
@@ -545,10 +629,24 @@ public final class ChannelConversationQueryControllerGrpc {
      * state and the customer's display name.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentchannel.v1.ChannelConversationList> listConversations(
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentchannel.v1.ChannelConversationList> list(
         ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getListConversationsMethod(), getCallOptions()), request);
+          getChannel().newCall(getListMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Count an organization's channel conversations that match a filter.
+     * The number behind a badge such as the inbox's "needs you": the same
+     * predicate list applies, over the same channels, so the count and the
+     * list it opens never disagree.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount> countConversations(
+        ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCountConversationsMethod(), getCallOptions()), request);
     }
 
     /**
@@ -568,17 +666,17 @@ public final class ChannelConversationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get one conversation's timeline, newest first, cursor-paged.
+     * List one conversation's timeline, newest first, one page at a time.
      * The timeline contains customer-visible items only: inbound customer
      * messages (including non-text kinds the platform cannot render),
      * delivered agent replies, and operator or platform sends. Run
      * internals never appear.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentchannel.v1.ConversationTimeline> getTimeline(
-        ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentchannel.v1.ConversationTimeline> listTimeline(
+        ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetTimelineMethod(), getCallOptions()), request);
+          getChannel().newCall(getListTimelineMethod(), getCallOptions()), request);
     }
 
     /**
@@ -597,10 +695,11 @@ public final class ChannelConversationQueryControllerGrpc {
     }
   }
 
-  private static final int METHODID_LIST_CONVERSATIONS = 0;
-  private static final int METHODID_GET_CONVERSATION = 1;
-  private static final int METHODID_GET_TIMELINE = 2;
-  private static final int METHODID_GET_MEDIA_DOWNLOAD_URL = 3;
+  private static final int METHODID_LIST = 0;
+  private static final int METHODID_COUNT_CONVERSATIONS = 1;
+  private static final int METHODID_GET_CONVERSATION = 2;
+  private static final int METHODID_LIST_TIMELINE = 3;
+  private static final int METHODID_GET_MEDIA_DOWNLOAD_URL = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -619,16 +718,20 @@ public final class ChannelConversationQueryControllerGrpc {
     @java.lang.SuppressWarnings("unchecked")
     public void invoke(Req request, io.grpc.stub.StreamObserver<Resp> responseObserver) {
       switch (methodId) {
-        case METHODID_LIST_CONVERSATIONS:
-          serviceImpl.listConversations((ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput) request,
+        case METHODID_LIST:
+          serviceImpl.list((ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ChannelConversationList>) responseObserver);
+          break;
+        case METHODID_COUNT_CONVERSATIONS:
+          serviceImpl.countConversations((ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount>) responseObserver);
           break;
         case METHODID_GET_CONVERSATION:
           serviceImpl.getConversation((ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ChannelConversation>) responseObserver);
           break;
-        case METHODID_GET_TIMELINE:
-          serviceImpl.getTimeline((ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput) request,
+        case METHODID_LIST_TIMELINE:
+          serviceImpl.listTimeline((ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ConversationTimeline>) responseObserver);
           break;
         case METHODID_GET_MEDIA_DOWNLOAD_URL:
@@ -654,12 +757,19 @@ public final class ChannelConversationQueryControllerGrpc {
   public static final io.grpc.ServerServiceDefinition bindService(AsyncService service) {
     return io.grpc.ServerServiceDefinition.builder(getServiceDescriptor())
         .addMethod(
-          getListConversationsMethod(),
+          getListMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
               ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput,
               ai.stigmer.agentic.agentchannel.v1.ChannelConversationList>(
-                service, METHODID_LIST_CONVERSATIONS)))
+                service, METHODID_LIST)))
+        .addMethod(
+          getCountConversationsMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput,
+              ai.stigmer.agentic.agentchannel.v1.ChannelConversationCount>(
+                service, METHODID_COUNT_CONVERSATIONS)))
         .addMethod(
           getGetConversationMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -668,12 +778,12 @@ public final class ChannelConversationQueryControllerGrpc {
               ai.stigmer.agentic.agentchannel.v1.ChannelConversation>(
                 service, METHODID_GET_CONVERSATION)))
         .addMethod(
-          getGetTimelineMethod(),
+          getListTimelineMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput,
+              ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput,
               ai.stigmer.agentic.agentchannel.v1.ConversationTimeline>(
-                service, METHODID_GET_TIMELINE)))
+                service, METHODID_LIST_TIMELINE)))
         .addMethod(
           getGetMediaDownloadUrlMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -729,9 +839,10 @@ public final class ChannelConversationQueryControllerGrpc {
         if (result == null) {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new ChannelConversationQueryControllerFileDescriptorSupplier())
-              .addMethod(getListConversationsMethod())
+              .addMethod(getListMethod())
+              .addMethod(getCountConversationsMethod())
               .addMethod(getGetConversationMethod())
-              .addMethod(getGetTimelineMethod())
+              .addMethod(getListTimelineMethod())
               .addMethod(getGetMediaDownloadUrlMethod())
               .build();
         }

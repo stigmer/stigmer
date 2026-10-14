@@ -54,22 +54,6 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.run.v1.RunList.class, ai.stigmer.agentic.run.v1.RunList.Builder.class);
   }
 
-  public static final int TOTAL_PAGES_FIELD_NUMBER = 1;
-  private int totalPages_ = 0;
-  /**
-   * <pre>
-   * Not computed for this list: 1 when the response holds every run,
-   * 0 when next_page_token is set. Follow next_page_token instead.
-   * </pre>
-   *
-   * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
-   * @return The totalPages.
-   */
-  @java.lang.Override
-  public int getTotalPages() {
-    return totalPages_;
-  }
-
   public static final int ENTRIES_FIELD_NUMBER = 2;
   @SuppressWarnings("serial")
   private java.util.List<ai.stigmer.agentic.run.v1.Run> entries_;
@@ -136,10 +120,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object nextPageToken_ = "";
   /**
    * <pre>
-   * Set when more runs may follow: pass it as page_token to
-   * continue. A page may hold fewer runs than page_size, even none,
-   * and still carry a token. Empty when the list is complete, and always
-   * empty from listBySession, which returns a session's runs whole.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -160,10 +142,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Set when more runs may follow: pass it as page_token to
-   * continue. A page may hold fewer runs than page_size, even none,
-   * and still carry a token. Empty when the list is complete, and always
-   * empty from listBySession, which returns a session's runs whole.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -198,9 +178,6 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (totalPages_ != 0) {
-      output.writeInt32(1, totalPages_);
-    }
     for (int i = 0; i < entries_.size(); i++) {
       output.writeMessage(2, entries_.get(i));
     }
@@ -216,10 +193,6 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (totalPages_ != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(1, totalPages_);
-    }
 
         {
           final int count = entries_.size();
@@ -247,8 +220,6 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.agentic.run.v1.RunList other = (ai.stigmer.agentic.run.v1.RunList) obj;
 
-    if (getTotalPages()
-        != other.getTotalPages()) return false;
     if (!getEntriesList()
         .equals(other.getEntriesList())) return false;
     if (!getNextPageToken()
@@ -264,8 +235,6 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + TOTAL_PAGES_FIELD_NUMBER;
-    hash = (53 * hash) + getTotalPages();
     if (getEntriesCount() > 0) {
       hash = (37 * hash) + ENTRIES_FIELD_NUMBER;
       hash = (53 * hash) + getEntriesList().hashCode();
@@ -407,14 +376,13 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      totalPages_ = 0;
       if (entriesBuilder_ == null) {
         entries_ = java.util.Collections.emptyList();
       } else {
         entries_ = null;
         entriesBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000002);
+      bitField0_ = (bitField0_ & ~0x00000001);
       nextPageToken_ = "";
       return this;
     }
@@ -450,9 +418,9 @@ private static final long serialVersionUID = 0L;
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.run.v1.RunList result) {
       if (entriesBuilder_ == null) {
-        if (((bitField0_ & 0x00000002) != 0)) {
+        if (((bitField0_ & 0x00000001) != 0)) {
           entries_ = java.util.Collections.unmodifiableList(entries_);
-          bitField0_ = (bitField0_ & ~0x00000002);
+          bitField0_ = (bitField0_ & ~0x00000001);
         }
         result.entries_ = entries_;
       } else {
@@ -462,10 +430,7 @@ private static final long serialVersionUID = 0L;
 
     private void buildPartial0(ai.stigmer.agentic.run.v1.RunList result) {
       int from_bitField0_ = bitField0_;
-      if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.totalPages_ = totalPages_;
-      }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
+      if (((from_bitField0_ & 0x00000002) != 0)) {
         result.nextPageToken_ = nextPageToken_;
       }
     }
@@ -482,14 +447,11 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.agentic.run.v1.RunList other) {
       if (other == ai.stigmer.agentic.run.v1.RunList.getDefaultInstance()) return this;
-      if (other.getTotalPages() != 0) {
-        setTotalPages(other.getTotalPages());
-      }
       if (entriesBuilder_ == null) {
         if (!other.entries_.isEmpty()) {
           if (entries_.isEmpty()) {
             entries_ = other.entries_;
-            bitField0_ = (bitField0_ & ~0x00000002);
+            bitField0_ = (bitField0_ & ~0x00000001);
           } else {
             ensureEntriesIsMutable();
             entries_.addAll(other.entries_);
@@ -502,7 +464,7 @@ private static final long serialVersionUID = 0L;
             entriesBuilder_.dispose();
             entriesBuilder_ = null;
             entries_ = other.entries_;
-            bitField0_ = (bitField0_ & ~0x00000002);
+            bitField0_ = (bitField0_ & ~0x00000001);
             entriesBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetEntriesFieldBuilder() : null;
@@ -513,7 +475,7 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getNextPageToken().isEmpty()) {
         nextPageToken_ = other.nextPageToken_;
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000002;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -542,11 +504,6 @@ private static final long serialVersionUID = 0L;
             case 0:
               done = true;
               break;
-            case 8: {
-              totalPages_ = input.readInt32();
-              bitField0_ |= 0x00000001;
-              break;
-            } // case 8
             case 18: {
               ai.stigmer.agentic.run.v1.Run m =
                   input.readMessage(
@@ -562,7 +519,7 @@ private static final long serialVersionUID = 0L;
             } // case 18
             case 26: {
               nextPageToken_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000002;
               break;
             } // case 26
             default: {
@@ -582,59 +539,12 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private int totalPages_ ;
-    /**
-     * <pre>
-     * Not computed for this list: 1 when the response holds every run,
-     * 0 when next_page_token is set. Follow next_page_token instead.
-     * </pre>
-     *
-     * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
-     * @return The totalPages.
-     */
-    @java.lang.Override
-    public int getTotalPages() {
-      return totalPages_;
-    }
-    /**
-     * <pre>
-     * Not computed for this list: 1 when the response holds every run,
-     * 0 when next_page_token is set. Follow next_page_token instead.
-     * </pre>
-     *
-     * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
-     * @param value The totalPages to set.
-     * @return This builder for chaining.
-     */
-    public Builder setTotalPages(int value) {
-
-      totalPages_ = value;
-      bitField0_ |= 0x00000001;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Not computed for this list: 1 when the response holds every run,
-     * 0 when next_page_token is set. Follow next_page_token instead.
-     * </pre>
-     *
-     * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearTotalPages() {
-      bitField0_ = (bitField0_ & ~0x00000001);
-      totalPages_ = 0;
-      onChanged();
-      return this;
-    }
-
     private java.util.List<ai.stigmer.agentic.run.v1.Run> entries_ =
       java.util.Collections.emptyList();
     private void ensureEntriesIsMutable() {
-      if (!((bitField0_ & 0x00000002) != 0)) {
+      if (!((bitField0_ & 0x00000001) != 0)) {
         entries_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.Run>(entries_);
-        bitField0_ |= 0x00000002;
+        bitField0_ |= 0x00000001;
        }
     }
 
@@ -828,7 +738,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearEntries() {
       if (entriesBuilder_ == null) {
         entries_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000002);
+        bitField0_ = (bitField0_ & ~0x00000001);
         onChanged();
       } else {
         entriesBuilder_.clear();
@@ -933,7 +843,7 @@ private static final long serialVersionUID = 0L;
         entriesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.run.v1.Run, ai.stigmer.agentic.run.v1.Run.Builder, ai.stigmer.agentic.run.v1.RunOrBuilder>(
                 entries_,
-                ((bitField0_ & 0x00000002) != 0),
+                ((bitField0_ & 0x00000001) != 0),
                 getParentForChildren(),
                 isClean());
         entries_ = null;
@@ -944,10 +854,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object nextPageToken_ = "";
     /**
      * <pre>
-     * Set when more runs may follow: pass it as page_token to
-     * continue. A page may hold fewer runs than page_size, even none,
-     * and still carry a token. Empty when the list is complete, and always
-     * empty from listBySession, which returns a session's runs whole.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -967,10 +875,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Set when more runs may follow: pass it as page_token to
-     * continue. A page may hold fewer runs than page_size, even none,
-     * and still carry a token. Empty when the list is complete, and always
-     * empty from listBySession, which returns a session's runs whole.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -991,10 +897,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Set when more runs may follow: pass it as page_token to
-     * continue. A page may hold fewer runs than page_size, even none,
-     * and still carry a token. Empty when the list is complete, and always
-     * empty from listBySession, which returns a session's runs whole.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -1005,16 +909,14 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       nextPageToken_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Set when more runs may follow: pass it as page_token to
-     * continue. A page may hold fewer runs than page_size, even none,
-     * and still carry a token. Empty when the list is complete, and always
-     * empty from listBySession, which returns a session's runs whole.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -1022,16 +924,14 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearNextPageToken() {
       nextPageToken_ = getDefaultInstance().getNextPageToken();
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000002);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Set when more runs may follow: pass it as page_token to
-     * continue. A page may hold fewer runs than page_size, even none,
-     * and still carry a token. Empty when the list is complete, and always
-     * empty from listBySession, which returns a session's runs whole.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -1043,7 +943,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       nextPageToken_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }

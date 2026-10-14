@@ -8,14 +8,14 @@ import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../.
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 import type { InvitationSchema } from "./api_pb.js";
 import { file_ai_stigmer_iam_invitation_v1_api } from "./api_pb.js";
-import type { InvitationIdSchema, InvitationPreviewSchema, InvitationsSchema, InvitationTokenInputSchema, ListInvitationsByOrgInputSchema } from "./io_pb.js";
+import type { InvitationIdSchema, InvitationPreviewSchema, InvitationsSchema, InvitationTokenInputSchema, ListInvitationsInputSchema } from "./io_pb.js";
 import { file_ai_stigmer_iam_invitation_v1_io } from "./io_pb.js";
 
 /**
  * Describes the file ai/stigmer/iam/invitation/v1/query.proto.
  */
 export const file_ai_stigmer_iam_invitation_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2lhbS9pbnZpdGF0aW9uL3YxL3F1ZXJ5LnByb3RvEhxhaS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxMuIDChlJbnZpdGF0aW9uUXVlcnlDb250cm9sbGVyEo0BCgNnZXQSKi5haS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxLkludml0YXRpb25JZBooLmFpLnN0aWdtZXIuaWFtLmludml0YXRpb24udjEuSW52aXRhdGlvbiIwwrgYLAgBEBQiBXZhbHVlKh91bmF1dGhvcml6ZWQgdG8gdmlldyBpbnZpdGF0aW9uErUBCglsaXN0QnlPcmcSNy5haS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxLkxpc3RJbnZpdGF0aW9uc0J5T3JnSW5wdXQaKS5haS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxLkludml0YXRpb25zIkTCuBhACAUQHiIDb3JnKjV1bmF1dGhvcml6ZWQgdG8gbGlzdCBpbnZpdGF0aW9ucyBpbiB0aGlzIG9yZ2FuaXphdGlvbhJ3CgpnZXRCeVRva2VuEjIuYWkuc3RpZ21lci5pYW0uaW52aXRhdGlvbi52MS5JbnZpdGF0aW9uVG9rZW5JbnB1dBovLmFpLnN0aWdtZXIuaWFtLmludml0YXRpb24udjEuSW52aXRhdGlvblByZXZpZXciBMi4GAEaBKD/KxRiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_invitation_v1_api, file_ai_stigmer_iam_invitation_v1_io]);
+  fileDesc("CihhaS9zdGlnbWVyL2lhbS9pbnZpdGF0aW9uL3YxL3F1ZXJ5LnByb3RvEhxhaS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxMtgDChlJbnZpdGF0aW9uUXVlcnlDb250cm9sbGVyEo0BCgNnZXQSKi5haS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxLkludml0YXRpb25JZBooLmFpLnN0aWdtZXIuaWFtLmludml0YXRpb24udjEuSW52aXRhdGlvbiIwwrgYLAgBEBQiBXZhbHVlKh91bmF1dGhvcml6ZWQgdG8gdmlldyBpbnZpdGF0aW9uEqsBCgRsaXN0EjIuYWkuc3RpZ21lci5pYW0uaW52aXRhdGlvbi52MS5MaXN0SW52aXRhdGlvbnNJbnB1dBopLmFpLnN0aWdtZXIuaWFtLmludml0YXRpb24udjEuSW52aXRhdGlvbnMiRMK4GEAIBRAeIgNvcmcqNXVuYXV0aG9yaXplZCB0byBsaXN0IGludml0YXRpb25zIGluIHRoaXMgb3JnYW5pemF0aW9uEncKCmdldEJ5VG9rZW4SMi5haS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxLkludml0YXRpb25Ub2tlbklucHV0Gi8uYWkuc3RpZ21lci5pYW0uaW52aXRhdGlvbi52MS5JbnZpdGF0aW9uUHJldmlldyIEyLgYARoEoP8rFGIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_invitation_v1_api, file_ai_stigmer_iam_invitation_v1_io]);
 
 /**
  * InvitationQueryController handles read operations for invitations.
@@ -34,15 +34,15 @@ export const InvitationQueryController: GenService<{
     output: typeof InvitationSchema;
   },
   /**
-   * List all invitations belonging to an organization.
+   * List the invitations belonging to an organization.
    *
    * Returns invitations ordered by creation time (newest first).
    *
-   * @generated from rpc ai.stigmer.iam.invitation.v1.InvitationQueryController.listByOrg
+   * @generated from rpc ai.stigmer.iam.invitation.v1.InvitationQueryController.list
    */
-  listByOrg: {
+  list: {
     methodKind: "unary";
-    input: typeof ListInvitationsByOrgInputSchema;
+    input: typeof ListInvitationsInputSchema;
     output: typeof InvitationsSchema;
   },
   /**

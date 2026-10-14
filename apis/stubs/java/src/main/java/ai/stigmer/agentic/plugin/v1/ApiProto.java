@@ -31,11 +31,6 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_plugin_v1_Plugin_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_plugin_v1_PluginList_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_plugin_v1_PluginList_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -58,15 +53,12 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "ceMetadataB\006\272H\003\310\001\001R\010metadata\022<\n\004spec\030\004 \001" +
       "(\0132(.ai.stigmer.agentic.plugin.v1.Plugin" +
       "SpecR\004spec\022B\n\006status\030\005 \001(\0132*.ai.stigmer." +
-      "agentic.plugin.v1.PluginStatusR\006status\"}" +
-      "\n\nPluginList\022\037\n\013api_version\030\001 \001(\tR\napiVe" +
-      "rsion\022\022\n\004kind\030\002 \001(\tR\004kind\022:\n\005items\030\003 \003(\013" +
-      "2$.ai.stigmer.agentic.plugin.v1.PluginR\005" +
-      "itemsB\237\001B\010ApiProtoP\001\242\002\004ASAP\252\002\034Ai.Stigmer" +
-      ".Agentic.Plugin.V1\312\002\034Ai\\Stigmer\\Agentic\\" +
-      "Plugin\\V1\342\002(Ai\\Stigmer\\Agentic\\Plugin\\V1" +
-      "\\GPBMetadata\352\002 Ai::Stigmer::Agentic::Plu" +
-      "gin::V1b\006proto3"
+      "agentic.plugin.v1.PluginStatusR\006statusB\237" +
+      "\001B\010ApiProtoP\001\242\002\004ASAP\252\002\034Ai.Stigmer.Agenti" +
+      "c.Plugin.V1\312\002\034Ai\\Stigmer\\Agentic\\Plugin\\" +
+      "V1\342\002(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMet" +
+      "adata\352\002 Ai::Stigmer::Agentic::Plugin::V1" +
+      "b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -82,12 +74,6 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_plugin_v1_Plugin_descriptor,
         new java.lang.String[] { "ApiVersion", "Kind", "Metadata", "Spec", "Status", });
-    internal_static_ai_stigmer_agentic_plugin_v1_PluginList_descriptor =
-      getDescriptor().getMessageType(1);
-    internal_static_ai_stigmer_agentic_plugin_v1_PluginList_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_plugin_v1_PluginList_descriptor,
-        new java.lang.String[] { "ApiVersion", "Kind", "Items", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.plugin.v1.SpecProto.getDescriptor();
     ai.stigmer.agentic.plugin.v1.StatusProto.getDescriptor();

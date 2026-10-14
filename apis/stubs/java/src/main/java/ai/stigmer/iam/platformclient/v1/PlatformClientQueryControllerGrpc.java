@@ -77,35 +77,35 @@ public final class PlatformClientQueryControllerGrpc {
     return getGetByReferenceMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput,
-      ai.stigmer.iam.platformclient.v1.PlatformClients> getListByOrgMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput,
+      ai.stigmer.iam.platformclient.v1.PlatformClients> getListMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "listByOrg",
-      requestType = ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput.class,
+      fullMethodName = SERVICE_NAME + '/' + "list",
+      requestType = ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput.class,
       responseType = ai.stigmer.iam.platformclient.v1.PlatformClients.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput,
-      ai.stigmer.iam.platformclient.v1.PlatformClients> getListByOrgMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput, ai.stigmer.iam.platformclient.v1.PlatformClients> getListByOrgMethod;
-    if ((getListByOrgMethod = PlatformClientQueryControllerGrpc.getListByOrgMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput,
+      ai.stigmer.iam.platformclient.v1.PlatformClients> getListMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput, ai.stigmer.iam.platformclient.v1.PlatformClients> getListMethod;
+    if ((getListMethod = PlatformClientQueryControllerGrpc.getListMethod) == null) {
       synchronized (PlatformClientQueryControllerGrpc.class) {
-        if ((getListByOrgMethod = PlatformClientQueryControllerGrpc.getListByOrgMethod) == null) {
-          PlatformClientQueryControllerGrpc.getListByOrgMethod = getListByOrgMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput, ai.stigmer.iam.platformclient.v1.PlatformClients>newBuilder()
+        if ((getListMethod = PlatformClientQueryControllerGrpc.getListMethod) == null) {
+          PlatformClientQueryControllerGrpc.getListMethod = getListMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput, ai.stigmer.iam.platformclient.v1.PlatformClients>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listByOrg"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "list"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput.getDefaultInstance()))
+                  ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.iam.platformclient.v1.PlatformClients.getDefaultInstance()))
-              .setSchemaDescriptor(new PlatformClientQueryControllerMethodDescriptorSupplier("listByOrg"))
+              .setSchemaDescriptor(new PlatformClientQueryControllerMethodDescriptorSupplier("list"))
               .build();
         }
       }
     }
-    return getListByOrgMethod;
+    return getListMethod;
   }
 
   /**
@@ -198,14 +198,14 @@ public final class PlatformClientQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all platform clients belonging to an organization.
+     * List the platform clients belonging to an organization.
      * Returns the PlatformClients of the input org that the caller may view,
-     * newest first. Typically a small set per org, so results are not paginated.
+     * newest first, one page at a time.
      * </pre>
      */
-    default void listByOrg(ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput request,
+    default void list(ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.PlatformClients> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListByOrgMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListMethod(), responseObserver);
     }
   }
 
@@ -268,15 +268,15 @@ public final class PlatformClientQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all platform clients belonging to an organization.
+     * List the platform clients belonging to an organization.
      * Returns the PlatformClients of the input org that the caller may view,
-     * newest first. Typically a small set per org, so results are not paginated.
+     * newest first, one page at a time.
      * </pre>
      */
-    public void listByOrg(ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput request,
+    public void list(ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.PlatformClients> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getListByOrgMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getListMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -323,14 +323,14 @@ public final class PlatformClientQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all platform clients belonging to an organization.
+     * List the platform clients belonging to an organization.
      * Returns the PlatformClients of the input org that the caller may view,
-     * newest first. Typically a small set per org, so results are not paginated.
+     * newest first, one page at a time.
      * </pre>
      */
-    public ai.stigmer.iam.platformclient.v1.PlatformClients listByOrg(ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput request) throws io.grpc.StatusException {
+    public ai.stigmer.iam.platformclient.v1.PlatformClients list(ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getListByOrgMethod(), getCallOptions(), request);
+          getChannel(), getListMethod(), getCallOptions(), request);
     }
   }
 
@@ -377,14 +377,14 @@ public final class PlatformClientQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all platform clients belonging to an organization.
+     * List the platform clients belonging to an organization.
      * Returns the PlatformClients of the input org that the caller may view,
-     * newest first. Typically a small set per org, so results are not paginated.
+     * newest first, one page at a time.
      * </pre>
      */
-    public ai.stigmer.iam.platformclient.v1.PlatformClients listByOrg(ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput request) {
+    public ai.stigmer.iam.platformclient.v1.PlatformClients list(ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getListByOrgMethod(), getCallOptions(), request);
+          getChannel(), getListMethod(), getCallOptions(), request);
     }
   }
 
@@ -433,21 +433,21 @@ public final class PlatformClientQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all platform clients belonging to an organization.
+     * List the platform clients belonging to an organization.
      * Returns the PlatformClients of the input org that the caller may view,
-     * newest first. Typically a small set per org, so results are not paginated.
+     * newest first, one page at a time.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.PlatformClients> listByOrg(
-        ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.PlatformClients> list(
+        ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getListByOrgMethod(), getCallOptions()), request);
+          getChannel().newCall(getListMethod(), getCallOptions()), request);
     }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
-  private static final int METHODID_LIST_BY_ORG = 2;
+  private static final int METHODID_LIST = 2;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -474,8 +474,8 @@ public final class PlatformClientQueryControllerGrpc {
           serviceImpl.getByReference((ai.stigmer.commons.apiresource.ApiResourceReference) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.PlatformClient>) responseObserver);
           break;
-        case METHODID_LIST_BY_ORG:
-          serviceImpl.listByOrg((ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput) request,
+        case METHODID_LIST:
+          serviceImpl.list((ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.PlatformClients>) responseObserver);
           break;
         default:
@@ -511,12 +511,12 @@ public final class PlatformClientQueryControllerGrpc {
               ai.stigmer.iam.platformclient.v1.PlatformClient>(
                 service, METHODID_GET_BY_REFERENCE)))
         .addMethod(
-          getListByOrgMethod(),
+          getListMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput,
+              ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput,
               ai.stigmer.iam.platformclient.v1.PlatformClients>(
-                service, METHODID_LIST_BY_ORG)))
+                service, METHODID_LIST)))
         .build();
   }
 
@@ -567,7 +567,7 @@ public final class PlatformClientQueryControllerGrpc {
               .setSchemaDescriptor(new PlatformClientQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
               .addMethod(getGetByReferenceMethod())
-              .addMethod(getListByOrgMethod())
+              .addMethod(getListMethod())
               .build();
         }
       }

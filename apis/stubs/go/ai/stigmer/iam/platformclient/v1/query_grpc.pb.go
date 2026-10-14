@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	PlatformClientQueryController_Get_FullMethodName            = "/ai.stigmer.iam.platformclient.v1.PlatformClientQueryController/get"
 	PlatformClientQueryController_GetByReference_FullMethodName = "/ai.stigmer.iam.platformclient.v1.PlatformClientQueryController/getByReference"
-	PlatformClientQueryController_ListByOrg_FullMethodName      = "/ai.stigmer.iam.platformclient.v1.PlatformClientQueryController/listByOrg"
+	PlatformClientQueryController_List_FullMethodName           = "/ai.stigmer.iam.platformclient.v1.PlatformClientQueryController/list"
 )
 
 // PlatformClientQueryControllerClient is the client API for PlatformClientQueryController service.
@@ -38,11 +38,11 @@ type PlatformClientQueryControllerClient interface {
 	// Resolves a human-readable reference like "acme/acme-dashboard" to the full
 	// PlatformClient resource.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*PlatformClient, error)
-	// List all platform clients belonging to an organization.
+	// List the platform clients belonging to an organization.
 	//
 	// Returns the PlatformClients of the input org that the caller may view,
-	// newest first. Typically a small set per org, so results are not paginated.
-	ListByOrg(ctx context.Context, in *ListPlatformClientsByOrgInput, opts ...grpc.CallOption) (*PlatformClients, error)
+	// newest first, one page at a time.
+	List(ctx context.Context, in *ListPlatformClientsInput, opts ...grpc.CallOption) (*PlatformClients, error)
 }
 
 type platformClientQueryControllerClient struct {
@@ -73,10 +73,10 @@ func (c *platformClientQueryControllerClient) GetByReference(ctx context.Context
 	return out, nil
 }
 
-func (c *platformClientQueryControllerClient) ListByOrg(ctx context.Context, in *ListPlatformClientsByOrgInput, opts ...grpc.CallOption) (*PlatformClients, error) {
+func (c *platformClientQueryControllerClient) List(ctx context.Context, in *ListPlatformClientsInput, opts ...grpc.CallOption) (*PlatformClients, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PlatformClients)
-	err := c.cc.Invoke(ctx, PlatformClientQueryController_ListByOrg_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, PlatformClientQueryController_List_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -96,11 +96,11 @@ type PlatformClientQueryControllerServer interface {
 	// Resolves a human-readable reference like "acme/acme-dashboard" to the full
 	// PlatformClient resource.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*PlatformClient, error)
-	// List all platform clients belonging to an organization.
+	// List the platform clients belonging to an organization.
 	//
 	// Returns the PlatformClients of the input org that the caller may view,
-	// newest first. Typically a small set per org, so results are not paginated.
-	ListByOrg(context.Context, *ListPlatformClientsByOrgInput) (*PlatformClients, error)
+	// newest first, one page at a time.
+	List(context.Context, *ListPlatformClientsInput) (*PlatformClients, error)
 }
 
 // UnimplementedPlatformClientQueryControllerServer should be embedded to have
@@ -116,8 +116,8 @@ func (UnimplementedPlatformClientQueryControllerServer) Get(context.Context, *ap
 func (UnimplementedPlatformClientQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*PlatformClient, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
 }
-func (UnimplementedPlatformClientQueryControllerServer) ListByOrg(context.Context, *ListPlatformClientsByOrgInput) (*PlatformClients, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListByOrg not implemented")
+func (UnimplementedPlatformClientQueryControllerServer) List(context.Context, *ListPlatformClientsInput) (*PlatformClients, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
 func (UnimplementedPlatformClientQueryControllerServer) testEmbeddedByValue() {}
 
@@ -175,20 +175,20 @@ func _PlatformClientQueryController_GetByReference_Handler(srv interface{}, ctx 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PlatformClientQueryController_ListByOrg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListPlatformClientsByOrgInput)
+func _PlatformClientQueryController_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPlatformClientsInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PlatformClientQueryControllerServer).ListByOrg(ctx, in)
+		return srv.(PlatformClientQueryControllerServer).List(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: PlatformClientQueryController_ListByOrg_FullMethodName,
+		FullMethod: PlatformClientQueryController_List_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PlatformClientQueryControllerServer).ListByOrg(ctx, req.(*ListPlatformClientsByOrgInput))
+		return srv.(PlatformClientQueryControllerServer).List(ctx, req.(*ListPlatformClientsInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -209,8 +209,8 @@ var PlatformClientQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PlatformClientQueryController_GetByReference_Handler,
 		},
 		{
-			MethodName: "listByOrg",
-			Handler:    _PlatformClientQueryController_ListByOrg_Handler,
+			MethodName: "list",
+			Handler:    _PlatformClientQueryController_List_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

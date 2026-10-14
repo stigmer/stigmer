@@ -121,8 +121,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object nextPageToken_ = "";
   /**
    * <pre>
-   * Set when more invitations may follow: pass it as page_token to
-   * continue. A page may be short, even empty, and still carry a token.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -143,8 +143,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Set when more invitations may follow: pass it as page_token to
-   * continue. A page may be short, even empty, and still carry a token.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -856,8 +856,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object nextPageToken_ = "";
     /**
      * <pre>
-     * Set when more invitations may follow: pass it as page_token to
-     * continue. A page may be short, even empty, and still carry a token.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -877,8 +877,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Set when more invitations may follow: pass it as page_token to
-     * continue. A page may be short, even empty, and still carry a token.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -899,8 +899,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Set when more invitations may follow: pass it as page_token to
-     * continue. A page may be short, even empty, and still carry a token.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -917,8 +917,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Set when more invitations may follow: pass it as page_token to
-     * continue. A page may be short, even empty, and still carry a token.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -932,8 +932,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Set when more invitations may follow: pass it as page_token to
-     * continue. A page may be short, even empty, and still carry a token.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>

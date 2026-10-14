@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ChannelAppSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_channelapp_v1_api } from "./api_pb.js";
-import type { ChannelAppsSchema, ListChannelAppsByOrgInputSchema } from "./io_pb.js";
+import type { ChannelAppsSchema, ListChannelAppsInputSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_channelapp_v1_io } from "./io_pb.js";
 import type { ApiResourceIdSchema, ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/channelapp/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_channelapp_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvY2hhbm5lbGFwcC92MS9xdWVyeS5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmNoYW5uZWxhcHAudjEy9gMKGUNoYW5uZWxBcHBRdWVyeUNvbnRyb2xsZXISlQEKA2dldBItLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUlkGiwuYWkuc3RpZ21lci5hZ2VudGljLmNoYW5uZWxhcHAudjEuQ2hhbm5lbEFwcCIxwrgYLQgBEDAiBXZhbHVlKiB1bmF1dGhvcml6ZWQgdG8gdmlldyBjaGFubmVsIGFwcBJ6Cg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRosLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHAiBNC4GAESvgEKCWxpc3RCeU9yZxI7LmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkxpc3RDaGFubmVsQXBwc0J5T3JnSW5wdXQaLS5haS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MS5DaGFubmVsQXBwcyJFwrgYQQgBEB4iA29yZyo2dW5hdXRob3JpemVkIHRvIGxpc3QgY2hhbm5lbCBhcHBzIGluIHRoaXMgb3JnYW5pemF0aW9uGgSg/yswYgZwcm90bzM", [file_ai_stigmer_agentic_channelapp_v1_api, file_ai_stigmer_agentic_channelapp_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvY2hhbm5lbGFwcC92MS9xdWVyeS5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmNoYW5uZWxhcHAudjEy7AMKGUNoYW5uZWxBcHBRdWVyeUNvbnRyb2xsZXISlQEKA2dldBItLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUlkGiwuYWkuc3RpZ21lci5hZ2VudGljLmNoYW5uZWxhcHAudjEuQ2hhbm5lbEFwcCIxwrgYLQgBEDAiBXZhbHVlKiB1bmF1dGhvcml6ZWQgdG8gdmlldyBjaGFubmVsIGFwcBJ6Cg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRosLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHAiBNC4GAEStAEKBGxpc3QSNi5haS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MS5MaXN0Q2hhbm5lbEFwcHNJbnB1dBotLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHBzIkXCuBhBCAEQHiIDb3JnKjZ1bmF1dGhvcml6ZWQgdG8gbGlzdCBjaGFubmVsIGFwcHMgaW4gdGhpcyBvcmdhbml6YXRpb24aBKD/KzBiBnByb3RvMw", [file_ai_stigmer_agentic_channelapp_v1_api, file_ai_stigmer_agentic_channelapp_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * ChannelAppQueryController handles read operations for channel apps.
@@ -50,17 +50,16 @@ export const ChannelAppQueryController: GenService<{
     output: typeof ChannelAppSchema;
   },
   /**
-   * List all channel apps belonging to an organization.
+   * List the channel apps belonging to an organization.
    *
    * Returns the ChannelApps of the input org that the caller may view,
-   * newest first, with secret fields redacted. Typically a small set, so
-   * results are not paginated.
+   * newest first, one page at a time, with secret fields redacted.
    *
-   * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.listByOrg
+   * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.list
    */
-  listByOrg: {
+  list: {
     methodKind: "unary";
-    input: typeof ListChannelAppsByOrgInputSchema;
+    input: typeof ListChannelAppsInputSchema;
     output: typeof ChannelAppsSchema;
   },
 }> = /*@__PURE__*/

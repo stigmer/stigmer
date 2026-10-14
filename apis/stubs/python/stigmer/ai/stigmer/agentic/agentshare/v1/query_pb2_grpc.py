@@ -27,9 +27,9 @@ class AgentShareQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_api__pb2.AgentShare.FromString,
                 _registered_method=True)
-        self.getByAgent = channel.unary_unary(
-                '/ai.stigmer.agentic.agentshare.v1.AgentShareQueryController/getByAgent',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_io__pb2.GetAgentSharesByAgentRequest.SerializeToString,
+        self.listByAgent = channel.unary_unary(
+                '/ai.stigmer.agentic.agentshare.v1.AgentShareQueryController/listByAgent',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_io__pb2.ListAgentSharesByAgentRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_io__pb2.AgentShareList.FromString,
                 _registered_method=True)
         self.list = channel.unary_unary(
@@ -67,8 +67,8 @@ class AgentShareQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def getByAgent(self, request, context):
-        """Get all shares of a specific agent.
+    def listByAgent(self, request, context):
+        """List the shares of a specific agent, newest first.
         Returns only shares the caller has access to, optionally scoped to
         one organization via the request's org field.
 
@@ -143,9 +143,9 @@ def add_AgentShareQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_api__pb2.AgentShare.SerializeToString,
             ),
-            'getByAgent': grpc.unary_unary_rpc_method_handler(
-                    servicer.getByAgent,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_io__pb2.GetAgentSharesByAgentRequest.FromString,
+            'listByAgent': grpc.unary_unary_rpc_method_handler(
+                    servicer.listByAgent,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_io__pb2.ListAgentSharesByAgentRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_io__pb2.AgentShareList.SerializeToString,
             ),
             'list': grpc.unary_unary_rpc_method_handler(
@@ -230,7 +230,7 @@ class AgentShareQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def getByAgent(request,
+    def listByAgent(request,
             target,
             options=(),
             channel_credentials=None,
@@ -243,8 +243,8 @@ class AgentShareQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.agentic.agentshare.v1.AgentShareQueryController/getByAgent',
-            ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_io__pb2.GetAgentSharesByAgentRequest.SerializeToString,
+            '/ai.stigmer.agentic.agentshare.v1.AgentShareQueryController/listByAgent',
+            ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_io__pb2.ListAgentSharesByAgentRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_io__pb2.AgentShareList.FromString,
             options,
             channel_credentials,

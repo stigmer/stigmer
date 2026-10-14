@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ExternalSubLookup, IdentityAccountEmail, IdentityAccountId, IdentityAccountsList, IdpId, ListWithIdentityOrg } from "./io_pbjs";
+import { ExternalSubLookup, IdentityAccountEmail, IdentityAccountId, IdentityAccountsList, IdpId, ListServiceAccountsInput } from "./io_pbjs";
 import { IdentityAccount } from "./api_pbjs";
 import { Empty, MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceAuditActor } from "../../../commons/apiresource/status_pbjs";
@@ -102,7 +102,7 @@ export const IdentityAccountQueryController = {
      */
     listServiceAccounts: {
       name: "listServiceAccounts",
-      I: ListWithIdentityOrg,
+      I: ListServiceAccountsInput,
       O: IdentityAccountsList,
       kind: MethodKind.Unary,
     },

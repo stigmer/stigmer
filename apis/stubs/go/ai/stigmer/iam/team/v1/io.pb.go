@@ -27,7 +27,10 @@ const (
 type Teams struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Team entries.
-	Entries       []*Team `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	Entries []*Team `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -69,29 +72,42 @@ func (x *Teams) GetEntries() []*Team {
 	return nil
 }
 
-// ListTeamsByOrgInput names the organization whose teams are listed.
-type ListTeamsByOrgInput struct {
+func (x *Teams) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+// ListTeamsInput names the organization whose teams are listed.
+type ListTeamsInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization slug to list teams for.
-	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ListTeamsByOrgInput) Reset() {
-	*x = ListTeamsByOrgInput{}
+func (x *ListTeamsInput) Reset() {
+	*x = ListTeamsInput{}
 	mi := &file_ai_stigmer_iam_team_v1_io_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ListTeamsByOrgInput) String() string {
+func (x *ListTeamsInput) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListTeamsByOrgInput) ProtoMessage() {}
+func (*ListTeamsInput) ProtoMessage() {}
 
-func (x *ListTeamsByOrgInput) ProtoReflect() protoreflect.Message {
+func (x *ListTeamsInput) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_iam_team_v1_io_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -103,14 +119,28 @@ func (x *ListTeamsByOrgInput) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListTeamsByOrgInput.ProtoReflect.Descriptor instead.
-func (*ListTeamsByOrgInput) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListTeamsInput.ProtoReflect.Descriptor instead.
+func (*ListTeamsInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_iam_team_v1_io_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ListTeamsByOrgInput) GetOrg() string {
+func (x *ListTeamsInput) GetOrg() string {
 	if x != nil {
 		return x.Org
+	}
+	return ""
+}
+
+func (x *ListTeamsInput) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListTeamsInput) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
 	}
 	return ""
 }
@@ -179,11 +209,15 @@ var File_ai_stigmer_iam_team_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_team_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"\x1fai/stigmer/iam/team/v1/io.proto\x12\x16ai.stigmer.iam.team.v1\x1a ai/stigmer/iam/team/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"?\n" +
+	"\x1fai/stigmer/iam/team/v1/io.proto\x12\x16ai.stigmer.iam.team.v1\x1a ai/stigmer/iam/team/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"g\n" +
 	"\x05Teams\x126\n" +
-	"\aentries\x18\x01 \x03(\v2\x1c.ai.stigmer.iam.team.v1.TeamR\aentries\"0\n" +
-	"\x13ListTeamsByOrgInput\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\xd7\x02\n" +
+	"\aentries\x18\x01 \x03(\v2\x1c.ai.stigmer.iam.team.v1.TeamR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"z\n" +
+	"\x0eListTeamsInput\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\xd7\x02\n" +
 	"\x0fUpdateTeamInput\x12@\n" +
 	"\bresource\x18\x01 \x01(\v2\x1c.ai.stigmer.iam.team.v1.TeamB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
@@ -206,7 +240,7 @@ func file_ai_stigmer_iam_team_v1_io_proto_rawDescGZIP() []byte {
 var file_ai_stigmer_iam_team_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_iam_team_v1_io_proto_goTypes = []any{
 	(*Teams)(nil),                 // 0: ai.stigmer.iam.team.v1.Teams
-	(*ListTeamsByOrgInput)(nil),   // 1: ai.stigmer.iam.team.v1.ListTeamsByOrgInput
+	(*ListTeamsInput)(nil),        // 1: ai.stigmer.iam.team.v1.ListTeamsInput
 	(*UpdateTeamInput)(nil),       // 2: ai.stigmer.iam.team.v1.UpdateTeamInput
 	(*Team)(nil),                  // 3: ai.stigmer.iam.team.v1.Team
 	(*fieldmaskpb.FieldMask)(nil), // 4: google.protobuf.FieldMask

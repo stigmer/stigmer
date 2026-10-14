@@ -164,15 +164,18 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\001R\007modelId\022\"\n\010provider\030\002 \001(\tB\006\272H\003\310\001\001R\010pr" +
       "ovider\022 \n\007harness\030\003 \001(\tB\006\272H\003\310\001\001R\007harness" +
       "\022-\n\rrevision_note\030\004 \001(\tB\010\272H\005r\003\030\200\010R\014revis" +
-      "ionNote\"I\n\036ListModelPricingBaselinesInpu" +
-      "t\022\'\n\017include_history\030\001 \001(\010R\016includeHisto" +
-      "ry\"j\n\035ModelPricingBaselinesResponse\022I\n\tb" +
-      "aselines\030\001 \003(\0132+.ai.stigmer.billing.v1.M" +
-      "odelPricingBaselineR\tbaselinesB\200\001B\007IoPro" +
-      "toP\001\242\002\003ASB\252\002\025Ai.Stigmer.Billing.V1\312\002\025Ai\\" +
-      "Stigmer\\Billing\\V1\342\002!Ai\\Stigmer\\Billing\\" +
-      "V1\\GPBMetadata\352\002\030Ai::Stigmer::Billing::V" +
-      "1b\006proto3"
+      "ionNote\"\230\001\n\036ListModelPricingBaselinesInp" +
+      "ut\022\'\n\017include_history\030\001 \001(\010R\016includeHist" +
+      "ory\022$\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(\000R\010pageSiz" +
+      "e\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageTok" +
+      "en\"\216\001\n\035ModelPricingBaselinesResponse\022E\n\007" +
+      "entries\030\001 \003(\0132+.ai.stigmer.billing.v1.Mo" +
+      "delPricingBaselineR\007entries\022&\n\017next_page" +
+      "_token\030\002 \001(\tR\rnextPageTokenB\200\001B\007IoProtoP" +
+      "\001\242\002\003ASB\252\002\025Ai.Stigmer.Billing.V1\312\002\025Ai\\Sti" +
+      "gmer\\Billing\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\" +
+      "GPBMetadata\352\002\030Ai::Stigmer::Billing::V1b\006" +
+      "proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -253,13 +256,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_billing_v1_ListModelPricingBaselinesInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_ListModelPricingBaselinesInput_descriptor,
-        new java.lang.String[] { "IncludeHistory", });
+        new java.lang.String[] { "IncludeHistory", "PageSize", "PageToken", });
     internal_static_ai_stigmer_billing_v1_ModelPricingBaselinesResponse_descriptor =
       getDescriptor().getMessageType(12);
     internal_static_ai_stigmer_billing_v1_ModelPricingBaselinesResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_ModelPricingBaselinesResponse_descriptor,
-        new java.lang.String[] { "Baselines", });
+        new java.lang.String[] { "Entries", "NextPageToken", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.run.v1.EnumProto.getDescriptor();
     ai.stigmer.agentic.run.v1.UsageProto.getDescriptor();

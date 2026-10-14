@@ -46,66 +46,35 @@ public final class OrganizationQueryControllerGrpc {
     return getGetMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.FindApiResourcesRequest,
-      ai.stigmer.tenancy.organization.v1.OrganizationList> getFindMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput,
+      ai.stigmer.tenancy.organization.v1.Organizations> getListMineMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "find",
-      requestType = ai.stigmer.commons.apiresource.FindApiResourcesRequest.class,
-      responseType = ai.stigmer.tenancy.organization.v1.OrganizationList.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.FindApiResourcesRequest,
-      ai.stigmer.tenancy.organization.v1.OrganizationList> getFindMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.FindApiResourcesRequest, ai.stigmer.tenancy.organization.v1.OrganizationList> getFindMethod;
-    if ((getFindMethod = OrganizationQueryControllerGrpc.getFindMethod) == null) {
-      synchronized (OrganizationQueryControllerGrpc.class) {
-        if ((getFindMethod = OrganizationQueryControllerGrpc.getFindMethod) == null) {
-          OrganizationQueryControllerGrpc.getFindMethod = getFindMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.commons.apiresource.FindApiResourcesRequest, ai.stigmer.tenancy.organization.v1.OrganizationList>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "find"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.commons.apiresource.FindApiResourcesRequest.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.tenancy.organization.v1.OrganizationList.getDefaultInstance()))
-              .setSchemaDescriptor(new OrganizationQueryControllerMethodDescriptorSupplier("find"))
-              .build();
-        }
-      }
-    }
-    return getFindMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<com.google.protobuf.Empty,
-      ai.stigmer.tenancy.organization.v1.Organizations> getFindMyOrganizationsMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "findMyOrganizations",
-      requestType = com.google.protobuf.Empty.class,
+      fullMethodName = SERVICE_NAME + '/' + "listMine",
+      requestType = ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput.class,
       responseType = ai.stigmer.tenancy.organization.v1.Organizations.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<com.google.protobuf.Empty,
-      ai.stigmer.tenancy.organization.v1.Organizations> getFindMyOrganizationsMethod() {
-    io.grpc.MethodDescriptor<com.google.protobuf.Empty, ai.stigmer.tenancy.organization.v1.Organizations> getFindMyOrganizationsMethod;
-    if ((getFindMyOrganizationsMethod = OrganizationQueryControllerGrpc.getFindMyOrganizationsMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput,
+      ai.stigmer.tenancy.organization.v1.Organizations> getListMineMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput, ai.stigmer.tenancy.organization.v1.Organizations> getListMineMethod;
+    if ((getListMineMethod = OrganizationQueryControllerGrpc.getListMineMethod) == null) {
       synchronized (OrganizationQueryControllerGrpc.class) {
-        if ((getFindMyOrganizationsMethod = OrganizationQueryControllerGrpc.getFindMyOrganizationsMethod) == null) {
-          OrganizationQueryControllerGrpc.getFindMyOrganizationsMethod = getFindMyOrganizationsMethod =
-              io.grpc.MethodDescriptor.<com.google.protobuf.Empty, ai.stigmer.tenancy.organization.v1.Organizations>newBuilder()
+        if ((getListMineMethod = OrganizationQueryControllerGrpc.getListMineMethod) == null) {
+          OrganizationQueryControllerGrpc.getListMineMethod = getListMineMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput, ai.stigmer.tenancy.organization.v1.Organizations>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "findMyOrganizations"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listMine"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.google.protobuf.Empty.getDefaultInstance()))
+                  ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.tenancy.organization.v1.Organizations.getDefaultInstance()))
-              .setSchemaDescriptor(new OrganizationQueryControllerMethodDescriptorSupplier("findMyOrganizations"))
+              .setSchemaDescriptor(new OrganizationQueryControllerMethodDescriptorSupplier("listMine"))
               .build();
         }
       }
     }
-    return getFindMyOrganizationsMethod;
+    return getListMineMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup,
@@ -248,23 +217,13 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * List organizations with pagination and filtering.
-     * </pre>
-     */
-    default void find(ai.stigmer.commons.apiresource.FindApiResourcesRequest request,
-        io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.OrganizationList> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getFindMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Find organizations the authenticated user is a member of.
+     * List the organizations the authenticated caller is a member of.
      * Returns only organizations the caller has access to.
      * </pre>
      */
-    default void findMyOrganizations(com.google.protobuf.Empty request,
+    default void listMine(ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organizations> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getFindMyOrganizationsMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListMineMethod(), responseObserver);
     }
 
     /**
@@ -336,25 +295,14 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * List organizations with pagination and filtering.
-     * </pre>
-     */
-    public void find(ai.stigmer.commons.apiresource.FindApiResourcesRequest request,
-        io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.OrganizationList> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getFindMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Find organizations the authenticated user is a member of.
+     * List the organizations the authenticated caller is a member of.
      * Returns only organizations the caller has access to.
      * </pre>
      */
-    public void findMyOrganizations(com.google.protobuf.Empty request,
+    public void listMine(ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organizations> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getFindMyOrganizationsMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getListMineMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -413,23 +361,13 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * List organizations with pagination and filtering.
-     * </pre>
-     */
-    public ai.stigmer.tenancy.organization.v1.OrganizationList find(ai.stigmer.commons.apiresource.FindApiResourcesRequest request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getFindMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Find organizations the authenticated user is a member of.
+     * List the organizations the authenticated caller is a member of.
      * Returns only organizations the caller has access to.
      * </pre>
      */
-    public ai.stigmer.tenancy.organization.v1.Organizations findMyOrganizations(com.google.protobuf.Empty request) throws io.grpc.StatusException {
+    public ai.stigmer.tenancy.organization.v1.Organizations listMine(ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getFindMyOrganizationsMethod(), getCallOptions(), request);
+          getChannel(), getListMineMethod(), getCallOptions(), request);
     }
 
     /**
@@ -486,23 +424,13 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * List organizations with pagination and filtering.
-     * </pre>
-     */
-    public ai.stigmer.tenancy.organization.v1.OrganizationList find(ai.stigmer.commons.apiresource.FindApiResourcesRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getFindMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Find organizations the authenticated user is a member of.
+     * List the organizations the authenticated caller is a member of.
      * Returns only organizations the caller has access to.
      * </pre>
      */
-    public ai.stigmer.tenancy.organization.v1.Organizations findMyOrganizations(com.google.protobuf.Empty request) {
+    public ai.stigmer.tenancy.organization.v1.Organizations listMine(ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getFindMyOrganizationsMethod(), getCallOptions(), request);
+          getChannel(), getListMineMethod(), getCallOptions(), request);
     }
 
     /**
@@ -560,25 +488,14 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * List organizations with pagination and filtering.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.OrganizationList> find(
-        ai.stigmer.commons.apiresource.FindApiResourcesRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getFindMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
-     * Find organizations the authenticated user is a member of.
+     * List the organizations the authenticated caller is a member of.
      * Returns only organizations the caller has access to.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organizations> findMyOrganizations(
-        com.google.protobuf.Empty request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organizations> listMine(
+        ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getFindMyOrganizationsMethod(), getCallOptions()), request);
+          getChannel().newCall(getListMineMethod(), getCallOptions()), request);
     }
 
     /**
@@ -607,10 +524,9 @@ public final class OrganizationQueryControllerGrpc {
   }
 
   private static final int METHODID_GET = 0;
-  private static final int METHODID_FIND = 1;
-  private static final int METHODID_FIND_MY_ORGANIZATIONS = 2;
-  private static final int METHODID_GET_BY_EXTERNAL_ID = 3;
-  private static final int METHODID_LIST_CHILD_ORGS = 4;
+  private static final int METHODID_LIST_MINE = 1;
+  private static final int METHODID_GET_BY_EXTERNAL_ID = 2;
+  private static final int METHODID_LIST_CHILD_ORGS = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -633,12 +549,8 @@ public final class OrganizationQueryControllerGrpc {
           serviceImpl.get((ai.stigmer.tenancy.organization.v1.OrganizationId) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organization>) responseObserver);
           break;
-        case METHODID_FIND:
-          serviceImpl.find((ai.stigmer.commons.apiresource.FindApiResourcesRequest) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.OrganizationList>) responseObserver);
-          break;
-        case METHODID_FIND_MY_ORGANIZATIONS:
-          serviceImpl.findMyOrganizations((com.google.protobuf.Empty) request,
+        case METHODID_LIST_MINE:
+          serviceImpl.listMine((ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organizations>) responseObserver);
           break;
         case METHODID_GET_BY_EXTERNAL_ID:
@@ -675,19 +587,12 @@ public final class OrganizationQueryControllerGrpc {
               ai.stigmer.tenancy.organization.v1.Organization>(
                 service, METHODID_GET)))
         .addMethod(
-          getFindMethod(),
+          getListMineMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.commons.apiresource.FindApiResourcesRequest,
-              ai.stigmer.tenancy.organization.v1.OrganizationList>(
-                service, METHODID_FIND)))
-        .addMethod(
-          getFindMyOrganizationsMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              com.google.protobuf.Empty,
+              ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput,
               ai.stigmer.tenancy.organization.v1.Organizations>(
-                service, METHODID_FIND_MY_ORGANIZATIONS)))
+                service, METHODID_LIST_MINE)))
         .addMethod(
           getGetByExternalIdMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -751,8 +656,7 @@ public final class OrganizationQueryControllerGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new OrganizationQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
-              .addMethod(getFindMethod())
-              .addMethod(getFindMyOrganizationsMethod())
+              .addMethod(getListMineMethod())
               .addMethod(getGetByExternalIdMethod())
               .addMethod(getListChildOrgsMethod())
               .build();

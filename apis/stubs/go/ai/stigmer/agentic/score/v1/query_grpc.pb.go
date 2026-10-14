@@ -34,9 +34,9 @@ const (
 type ScoreQueryControllerClient interface {
 	// Get a single score by ID.
 	Get(ctx context.Context, in *ScoreId, opts ...grpc.CallOption) (*Score, error)
-	// List every score of a run.
+	// List the scores of a run, newest first.
 	ListByRun(ctx context.Context, in *ListScoresByRunRequest, opts ...grpc.CallOption) (*ScoreList, error)
-	// List every score of every run in a session.
+	// List the scores of every run in a session, newest first.
 	ListBySession(ctx context.Context, in *ListScoresBySessionRequest, opts ...grpc.CallOption) (*ScoreList, error)
 	// Get how one agent's runs in an organization went: grades counted in
 	// total, per day and per agent version.
@@ -119,9 +119,9 @@ func (c *scoreQueryControllerClient) ListFlaggedByAgent(ctx context.Context, in 
 type ScoreQueryControllerServer interface {
 	// Get a single score by ID.
 	Get(context.Context, *ScoreId) (*Score, error)
-	// List every score of a run.
+	// List the scores of a run, newest first.
 	ListByRun(context.Context, *ListScoresByRunRequest) (*ScoreList, error)
-	// List every score of every run in a session.
+	// List the scores of every run in a session, newest first.
 	ListBySession(context.Context, *ListScoresBySessionRequest) (*ScoreList, error)
 	// Get how one agent's runs in an organization went: grades counted in
 	// total, per day and per agent version.

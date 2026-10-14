@@ -32,37 +32,34 @@ public interface ListRunsBySessionRequestOrBuilder extends
 
   /**
    * <pre>
-   * Not read: a session's runs are returned whole.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    * </pre>
    *
-   * <code>int32 page_size = 2 [json_name = "pageSize", deprecated = true];</code>
-   * @deprecated ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.page_size is deprecated.
-   *     See ai/stigmer/agentic/run/v1/io.proto;l=75
+   * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
    * @return The pageSize.
    */
-  @java.lang.Deprecated int getPageSize();
+  int getPageSize();
 
   /**
    * <pre>
-   * Not read: a session's runs are returned whole.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
-   * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
-   * @deprecated ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.page_token is deprecated.
-   *     See ai/stigmer/agentic/run/v1/io.proto;l=78
+   * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
    * @return The pageToken.
    */
-  @java.lang.Deprecated java.lang.String getPageToken();
+  java.lang.String getPageToken();
   /**
    * <pre>
-   * Not read: a session's runs are returned whole.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
-   * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
-   * @deprecated ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.page_token is deprecated.
-   *     See ai/stigmer/agentic/run/v1/io.proto;l=78
+   * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
    * @return The bytes for pageToken.
    */
-  @java.lang.Deprecated com.google.protobuf.ByteString
+  com.google.protobuf.ByteString
       getPageTokenBytes();
 }

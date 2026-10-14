@@ -52,33 +52,6 @@ public interface ListChannelConversationsInputOrBuilder extends
 
   /**
    * <pre>
-   * Pagination options. Conversations are returned newest activity first.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
-   * @return Whether the pageInfo field is set.
-   */
-  boolean hasPageInfo();
-  /**
-   * <pre>
-   * Pagination options. Conversations are returned newest activity first.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
-   * @return The pageInfo.
-   */
-  ai.stigmer.commons.rpc.PageInfo getPageInfo();
-  /**
-   * <pre>
-   * Pagination options. Conversations are returned newest activity first.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
-   */
-  ai.stigmer.commons.rpc.PageInfoOrBuilder getPageInfoOrBuilder();
-
-  /**
-   * <pre>
    * Optional filter: narrow the list to a server-evaluated predicate.
    * Unspecified lists every conversation on the authorized channels.
    * </pre>
@@ -97,4 +70,37 @@ public interface ListChannelConversationsInputOrBuilder extends
    * @return The filter.
    */
   ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter getFilter();
+
+  /**
+   * <pre>
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   * </pre>
+   *
+   * <code>int32 page_size = 5 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
+   * @return The pageSize.
+   */
+  int getPageSize();
+
+  /**
+   * <pre>
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   * </pre>
+   *
+   * <code>string page_token = 6 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+   * @return The pageToken.
+   */
+  java.lang.String getPageToken();
+  /**
+   * <pre>
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   * </pre>
+   *
+   * <code>string page_token = 6 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for pageToken.
+   */
+  com.google.protobuf.ByteString
+      getPageTokenBytes();
 }

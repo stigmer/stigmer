@@ -32,7 +32,7 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private ListAgentVersionsResponse() {
-    versions_ = java.util.Collections.emptyList();
+    entries_ = java.util.Collections.emptyList();
     nextPageToken_ = "";
   }
 
@@ -54,65 +54,65 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse.class, ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse.Builder.class);
   }
 
-  public static final int VERSIONS_FIELD_NUMBER = 1;
+  public static final int ENTRIES_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.agent.v1.AgentVersionEntry> versions_;
+  private java.util.List<ai.stigmer.agentic.agent.v1.AgentVersionEntry> entries_;
   /**
    * <pre>
    * Ordered list of versions (newest first).
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.agent.v1.AgentVersionEntry> getVersionsList() {
-    return versions_;
+  public java.util.List<ai.stigmer.agentic.agent.v1.AgentVersionEntry> getEntriesList() {
+    return entries_;
   }
   /**
    * <pre>
    * Ordered list of versions (newest first).
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
   public java.util.List<? extends ai.stigmer.agentic.agent.v1.AgentVersionEntryOrBuilder> 
-      getVersionsOrBuilderList() {
-    return versions_;
+      getEntriesOrBuilderList() {
+    return entries_;
   }
   /**
    * <pre>
    * Ordered list of versions (newest first).
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public int getVersionsCount() {
-    return versions_.size();
+  public int getEntriesCount() {
+    return entries_.size();
   }
   /**
    * <pre>
    * Ordered list of versions (newest first).
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agent.v1.AgentVersionEntry getVersions(int index) {
-    return versions_.get(index);
+  public ai.stigmer.agentic.agent.v1.AgentVersionEntry getEntries(int index) {
+    return entries_.get(index);
   }
   /**
    * <pre>
    * Ordered list of versions (newest first).
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+   * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agent.v1.AgentVersionEntryOrBuilder getVersionsOrBuilder(
+  public ai.stigmer.agentic.agent.v1.AgentVersionEntryOrBuilder getEntriesOrBuilder(
       int index) {
-    return versions_.get(index);
+    return entries_.get(index);
   }
 
   public static final int NEXT_PAGE_TOKEN_FIELD_NUMBER = 2;
@@ -120,7 +120,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object nextPageToken_ = "";
   /**
    * <pre>
-   * Token for fetching the next page. Empty when no more pages exist.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -141,7 +142,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Token for fetching the next page. Empty when no more pages exist.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -162,21 +164,6 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int TOTAL_COUNT_FIELD_NUMBER = 3;
-  private int totalCount_ = 0;
-  /**
-   * <pre>
-   * Total number of versions across all pages.
-   * </pre>
-   *
-   * <code>int32 total_count = 3 [json_name = "totalCount"];</code>
-   * @return The totalCount.
-   */
-  @java.lang.Override
-  public int getTotalCount() {
-    return totalCount_;
-  }
-
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -191,14 +178,11 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    for (int i = 0; i < versions_.size(); i++) {
-      output.writeMessage(1, versions_.get(i));
+    for (int i = 0; i < entries_.size(); i++) {
+      output.writeMessage(1, entries_.get(i));
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(nextPageToken_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, nextPageToken_);
-    }
-    if (totalCount_ != 0) {
-      output.writeInt32(3, totalCount_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -211,19 +195,15 @@ private static final long serialVersionUID = 0L;
     size = 0;
 
         {
-          final int count = versions_.size();
+          final int count = entries_.size();
           for (int i = 0; i < count; i++) {
             size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(versions_.get(i));
+              .computeMessageSizeNoTag(entries_.get(i));
           }
           size += 1 * count;
         }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(nextPageToken_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, nextPageToken_);
-    }
-    if (totalCount_ != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(3, totalCount_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -240,12 +220,10 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse other = (ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse) obj;
 
-    if (!getVersionsList()
-        .equals(other.getVersionsList())) return false;
+    if (!getEntriesList()
+        .equals(other.getEntriesList())) return false;
     if (!getNextPageToken()
         .equals(other.getNextPageToken())) return false;
-    if (getTotalCount()
-        != other.getTotalCount()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -257,14 +235,12 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    if (getVersionsCount() > 0) {
-      hash = (37 * hash) + VERSIONS_FIELD_NUMBER;
-      hash = (53 * hash) + getVersionsList().hashCode();
+    if (getEntriesCount() > 0) {
+      hash = (37 * hash) + ENTRIES_FIELD_NUMBER;
+      hash = (53 * hash) + getEntriesList().hashCode();
     }
     hash = (37 * hash) + NEXT_PAGE_TOKEN_FIELD_NUMBER;
     hash = (53 * hash) + getNextPageToken().hashCode();
-    hash = (37 * hash) + TOTAL_COUNT_FIELD_NUMBER;
-    hash = (53 * hash) + getTotalCount();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -400,15 +376,14 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      if (versionsBuilder_ == null) {
-        versions_ = java.util.Collections.emptyList();
+      if (entriesBuilder_ == null) {
+        entries_ = java.util.Collections.emptyList();
       } else {
-        versions_ = null;
-        versionsBuilder_.clear();
+        entries_ = null;
+        entriesBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000001);
       nextPageToken_ = "";
-      totalCount_ = 0;
       return this;
     }
 
@@ -442,14 +417,14 @@ private static final long serialVersionUID = 0L;
     }
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse result) {
-      if (versionsBuilder_ == null) {
+      if (entriesBuilder_ == null) {
         if (((bitField0_ & 0x00000001) != 0)) {
-          versions_ = java.util.Collections.unmodifiableList(versions_);
+          entries_ = java.util.Collections.unmodifiableList(entries_);
           bitField0_ = (bitField0_ & ~0x00000001);
         }
-        result.versions_ = versions_;
+        result.entries_ = entries_;
       } else {
-        result.versions_ = versionsBuilder_.build();
+        result.entries_ = entriesBuilder_.build();
       }
     }
 
@@ -457,9 +432,6 @@ private static final long serialVersionUID = 0L;
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.nextPageToken_ = nextPageToken_;
-      }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.totalCount_ = totalCount_;
       }
     }
 
@@ -475,29 +447,29 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse other) {
       if (other == ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse.getDefaultInstance()) return this;
-      if (versionsBuilder_ == null) {
-        if (!other.versions_.isEmpty()) {
-          if (versions_.isEmpty()) {
-            versions_ = other.versions_;
+      if (entriesBuilder_ == null) {
+        if (!other.entries_.isEmpty()) {
+          if (entries_.isEmpty()) {
+            entries_ = other.entries_;
             bitField0_ = (bitField0_ & ~0x00000001);
           } else {
-            ensureVersionsIsMutable();
-            versions_.addAll(other.versions_);
+            ensureEntriesIsMutable();
+            entries_.addAll(other.entries_);
           }
           onChanged();
         }
       } else {
-        if (!other.versions_.isEmpty()) {
-          if (versionsBuilder_.isEmpty()) {
-            versionsBuilder_.dispose();
-            versionsBuilder_ = null;
-            versions_ = other.versions_;
+        if (!other.entries_.isEmpty()) {
+          if (entriesBuilder_.isEmpty()) {
+            entriesBuilder_.dispose();
+            entriesBuilder_ = null;
+            entries_ = other.entries_;
             bitField0_ = (bitField0_ & ~0x00000001);
-            versionsBuilder_ = 
+            entriesBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetVersionsFieldBuilder() : null;
+                 internalGetEntriesFieldBuilder() : null;
           } else {
-            versionsBuilder_.addAllMessages(other.versions_);
+            entriesBuilder_.addAllMessages(other.entries_);
           }
         }
       }
@@ -505,9 +477,6 @@ private static final long serialVersionUID = 0L;
         nextPageToken_ = other.nextPageToken_;
         bitField0_ |= 0x00000002;
         onChanged();
-      }
-      if (other.getTotalCount() != 0) {
-        setTotalCount(other.getTotalCount());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -540,11 +509,11 @@ private static final long serialVersionUID = 0L;
                   input.readMessage(
                       ai.stigmer.agentic.agent.v1.AgentVersionEntry.parser(),
                       extensionRegistry);
-              if (versionsBuilder_ == null) {
-                ensureVersionsIsMutable();
-                versions_.add(m);
+              if (entriesBuilder_ == null) {
+                ensureEntriesIsMutable();
+                entries_.add(m);
               } else {
-                versionsBuilder_.addMessage(m);
+                entriesBuilder_.addMessage(m);
               }
               break;
             } // case 10
@@ -553,11 +522,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
-            case 24: {
-              totalCount_ = input.readInt32();
-              bitField0_ |= 0x00000004;
-              break;
-            } // case 24
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -575,30 +539,30 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.util.List<ai.stigmer.agentic.agent.v1.AgentVersionEntry> versions_ =
+    private java.util.List<ai.stigmer.agentic.agent.v1.AgentVersionEntry> entries_ =
       java.util.Collections.emptyList();
-    private void ensureVersionsIsMutable() {
+    private void ensureEntriesIsMutable() {
       if (!((bitField0_ & 0x00000001) != 0)) {
-        versions_ = new java.util.ArrayList<ai.stigmer.agentic.agent.v1.AgentVersionEntry>(versions_);
+        entries_ = new java.util.ArrayList<ai.stigmer.agentic.agent.v1.AgentVersionEntry>(entries_);
         bitField0_ |= 0x00000001;
        }
     }
 
     private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.agent.v1.AgentVersionEntry, ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder, ai.stigmer.agentic.agent.v1.AgentVersionEntryOrBuilder> versionsBuilder_;
+        ai.stigmer.agentic.agent.v1.AgentVersionEntry, ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder, ai.stigmer.agentic.agent.v1.AgentVersionEntryOrBuilder> entriesBuilder_;
 
     /**
      * <pre>
      * Ordered list of versions (newest first).
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
      */
-    public java.util.List<ai.stigmer.agentic.agent.v1.AgentVersionEntry> getVersionsList() {
-      if (versionsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(versions_);
+    public java.util.List<ai.stigmer.agentic.agent.v1.AgentVersionEntry> getEntriesList() {
+      if (entriesBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(entries_);
       } else {
-        return versionsBuilder_.getMessageList();
+        return entriesBuilder_.getMessageList();
       }
     }
     /**
@@ -606,13 +570,13 @@ private static final long serialVersionUID = 0L;
      * Ordered list of versions (newest first).
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
      */
-    public int getVersionsCount() {
-      if (versionsBuilder_ == null) {
-        return versions_.size();
+    public int getEntriesCount() {
+      if (entriesBuilder_ == null) {
+        return entries_.size();
       } else {
-        return versionsBuilder_.getCount();
+        return entriesBuilder_.getCount();
       }
     }
     /**
@@ -620,13 +584,13 @@ private static final long serialVersionUID = 0L;
      * Ordered list of versions (newest first).
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.agent.v1.AgentVersionEntry getVersions(int index) {
-      if (versionsBuilder_ == null) {
-        return versions_.get(index);
+    public ai.stigmer.agentic.agent.v1.AgentVersionEntry getEntries(int index) {
+      if (entriesBuilder_ == null) {
+        return entries_.get(index);
       } else {
-        return versionsBuilder_.getMessage(index);
+        return entriesBuilder_.getMessage(index);
       }
     }
     /**
@@ -634,19 +598,19 @@ private static final long serialVersionUID = 0L;
      * Ordered list of versions (newest first).
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
      */
-    public Builder setVersions(
+    public Builder setEntries(
         int index, ai.stigmer.agentic.agent.v1.AgentVersionEntry value) {
-      if (versionsBuilder_ == null) {
+      if (entriesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureVersionsIsMutable();
-        versions_.set(index, value);
+        ensureEntriesIsMutable();
+        entries_.set(index, value);
         onChanged();
       } else {
-        versionsBuilder_.setMessage(index, value);
+        entriesBuilder_.setMessage(index, value);
       }
       return this;
     }
@@ -655,16 +619,16 @@ private static final long serialVersionUID = 0L;
      * Ordered list of versions (newest first).
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
      */
-    public Builder setVersions(
+    public Builder setEntries(
         int index, ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder builderForValue) {
-      if (versionsBuilder_ == null) {
-        ensureVersionsIsMutable();
-        versions_.set(index, builderForValue.build());
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.set(index, builderForValue.build());
         onChanged();
       } else {
-        versionsBuilder_.setMessage(index, builderForValue.build());
+        entriesBuilder_.setMessage(index, builderForValue.build());
       }
       return this;
     }
@@ -673,18 +637,18 @@ private static final long serialVersionUID = 0L;
      * Ordered list of versions (newest first).
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addVersions(ai.stigmer.agentic.agent.v1.AgentVersionEntry value) {
-      if (versionsBuilder_ == null) {
+    public Builder addEntries(ai.stigmer.agentic.agent.v1.AgentVersionEntry value) {
+      if (entriesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureVersionsIsMutable();
-        versions_.add(value);
+        ensureEntriesIsMutable();
+        entries_.add(value);
         onChanged();
       } else {
-        versionsBuilder_.addMessage(value);
+        entriesBuilder_.addMessage(value);
       }
       return this;
     }
@@ -693,19 +657,19 @@ private static final long serialVersionUID = 0L;
      * Ordered list of versions (newest first).
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addVersions(
+    public Builder addEntries(
         int index, ai.stigmer.agentic.agent.v1.AgentVersionEntry value) {
-      if (versionsBuilder_ == null) {
+      if (entriesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureVersionsIsMutable();
-        versions_.add(index, value);
+        ensureEntriesIsMutable();
+        entries_.add(index, value);
         onChanged();
       } else {
-        versionsBuilder_.addMessage(index, value);
+        entriesBuilder_.addMessage(index, value);
       }
       return this;
     }
@@ -714,16 +678,16 @@ private static final long serialVersionUID = 0L;
      * Ordered list of versions (newest first).
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addVersions(
+    public Builder addEntries(
         ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder builderForValue) {
-      if (versionsBuilder_ == null) {
-        ensureVersionsIsMutable();
-        versions_.add(builderForValue.build());
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.add(builderForValue.build());
         onChanged();
       } else {
-        versionsBuilder_.addMessage(builderForValue.build());
+        entriesBuilder_.addMessage(builderForValue.build());
       }
       return this;
     }
@@ -732,16 +696,16 @@ private static final long serialVersionUID = 0L;
      * Ordered list of versions (newest first).
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addVersions(
+    public Builder addEntries(
         int index, ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder builderForValue) {
-      if (versionsBuilder_ == null) {
-        ensureVersionsIsMutable();
-        versions_.add(index, builderForValue.build());
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.add(index, builderForValue.build());
         onChanged();
       } else {
-        versionsBuilder_.addMessage(index, builderForValue.build());
+        entriesBuilder_.addMessage(index, builderForValue.build());
       }
       return this;
     }
@@ -750,17 +714,17 @@ private static final long serialVersionUID = 0L;
      * Ordered list of versions (newest first).
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addAllVersions(
+    public Builder addAllEntries(
         java.lang.Iterable<? extends ai.stigmer.agentic.agent.v1.AgentVersionEntry> values) {
-      if (versionsBuilder_ == null) {
-        ensureVersionsIsMutable();
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, versions_);
+            values, entries_);
         onChanged();
       } else {
-        versionsBuilder_.addAllMessages(values);
+        entriesBuilder_.addAllMessages(values);
       }
       return this;
     }
@@ -769,15 +733,15 @@ private static final long serialVersionUID = 0L;
      * Ordered list of versions (newest first).
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
      */
-    public Builder clearVersions() {
-      if (versionsBuilder_ == null) {
-        versions_ = java.util.Collections.emptyList();
+    public Builder clearEntries() {
+      if (entriesBuilder_ == null) {
+        entries_ = java.util.Collections.emptyList();
         bitField0_ = (bitField0_ & ~0x00000001);
         onChanged();
       } else {
-        versionsBuilder_.clear();
+        entriesBuilder_.clear();
       }
       return this;
     }
@@ -786,15 +750,15 @@ private static final long serialVersionUID = 0L;
      * Ordered list of versions (newest first).
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
      */
-    public Builder removeVersions(int index) {
-      if (versionsBuilder_ == null) {
-        ensureVersionsIsMutable();
-        versions_.remove(index);
+    public Builder removeEntries(int index) {
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.remove(index);
         onChanged();
       } else {
-        versionsBuilder_.remove(index);
+        entriesBuilder_.remove(index);
       }
       return this;
     }
@@ -803,24 +767,24 @@ private static final long serialVersionUID = 0L;
      * Ordered list of versions (newest first).
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder getVersionsBuilder(
+    public ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder getEntriesBuilder(
         int index) {
-      return internalGetVersionsFieldBuilder().getBuilder(index);
+      return internalGetEntriesFieldBuilder().getBuilder(index);
     }
     /**
      * <pre>
      * Ordered list of versions (newest first).
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.agent.v1.AgentVersionEntryOrBuilder getVersionsOrBuilder(
+    public ai.stigmer.agentic.agent.v1.AgentVersionEntryOrBuilder getEntriesOrBuilder(
         int index) {
-      if (versionsBuilder_ == null) {
-        return versions_.get(index);  } else {
-        return versionsBuilder_.getMessageOrBuilder(index);
+      if (entriesBuilder_ == null) {
+        return entries_.get(index);  } else {
+        return entriesBuilder_.getMessageOrBuilder(index);
       }
     }
     /**
@@ -828,14 +792,14 @@ private static final long serialVersionUID = 0L;
      * Ordered list of versions (newest first).
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<? extends ai.stigmer.agentic.agent.v1.AgentVersionEntryOrBuilder> 
-         getVersionsOrBuilderList() {
-      if (versionsBuilder_ != null) {
-        return versionsBuilder_.getMessageOrBuilderList();
+         getEntriesOrBuilderList() {
+      if (entriesBuilder_ != null) {
+        return entriesBuilder_.getMessageOrBuilderList();
       } else {
-        return java.util.Collections.unmodifiableList(versions_);
+        return java.util.Collections.unmodifiableList(entries_);
       }
     }
     /**
@@ -843,10 +807,10 @@ private static final long serialVersionUID = 0L;
      * Ordered list of versions (newest first).
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder addVersionsBuilder() {
-      return internalGetVersionsFieldBuilder().addBuilder(
+    public ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder addEntriesBuilder() {
+      return internalGetEntriesFieldBuilder().addBuilder(
           ai.stigmer.agentic.agent.v1.AgentVersionEntry.getDefaultInstance());
     }
     /**
@@ -854,11 +818,11 @@ private static final long serialVersionUID = 0L;
      * Ordered list of versions (newest first).
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder addVersionsBuilder(
+    public ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder addEntriesBuilder(
         int index) {
-      return internalGetVersionsFieldBuilder().addBuilder(
+      return internalGetEntriesFieldBuilder().addBuilder(
           index, ai.stigmer.agentic.agent.v1.AgentVersionEntry.getDefaultInstance());
     }
     /**
@@ -866,31 +830,32 @@ private static final long serialVersionUID = 0L;
      * Ordered list of versions (newest first).
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry versions = 1 [json_name = "versions"];</code>
+     * <code>repeated .ai.stigmer.agentic.agent.v1.AgentVersionEntry entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder> 
-         getVersionsBuilderList() {
-      return internalGetVersionsFieldBuilder().getBuilderList();
+         getEntriesBuilderList() {
+      return internalGetEntriesFieldBuilder().getBuilderList();
     }
     private com.google.protobuf.RepeatedFieldBuilder<
         ai.stigmer.agentic.agent.v1.AgentVersionEntry, ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder, ai.stigmer.agentic.agent.v1.AgentVersionEntryOrBuilder> 
-        internalGetVersionsFieldBuilder() {
-      if (versionsBuilder_ == null) {
-        versionsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+        internalGetEntriesFieldBuilder() {
+      if (entriesBuilder_ == null) {
+        entriesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agent.v1.AgentVersionEntry, ai.stigmer.agentic.agent.v1.AgentVersionEntry.Builder, ai.stigmer.agentic.agent.v1.AgentVersionEntryOrBuilder>(
-                versions_,
+                entries_,
                 ((bitField0_ & 0x00000001) != 0),
                 getParentForChildren(),
                 isClean());
-        versions_ = null;
+        entries_ = null;
       }
-      return versionsBuilder_;
+      return entriesBuilder_;
     }
 
     private java.lang.Object nextPageToken_ = "";
     /**
      * <pre>
-     * Token for fetching the next page. Empty when no more pages exist.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -910,7 +875,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Token for fetching the next page. Empty when no more pages exist.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -931,7 +897,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Token for fetching the next page. Empty when no more pages exist.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -948,7 +915,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Token for fetching the next page. Empty when no more pages exist.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -962,7 +930,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Token for fetching the next page. Empty when no more pages exist.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -975,50 +944,6 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       nextPageToken_ = value;
       bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-
-    private int totalCount_ ;
-    /**
-     * <pre>
-     * Total number of versions across all pages.
-     * </pre>
-     *
-     * <code>int32 total_count = 3 [json_name = "totalCount"];</code>
-     * @return The totalCount.
-     */
-    @java.lang.Override
-    public int getTotalCount() {
-      return totalCount_;
-    }
-    /**
-     * <pre>
-     * Total number of versions across all pages.
-     * </pre>
-     *
-     * <code>int32 total_count = 3 [json_name = "totalCount"];</code>
-     * @param value The totalCount to set.
-     * @return This builder for chaining.
-     */
-    public Builder setTotalCount(int value) {
-
-      totalCount_ = value;
-      bitField0_ |= 0x00000004;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Total number of versions across all pages.
-     * </pre>
-     *
-     * <code>int32 total_count = 3 [json_name = "totalCount"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearTotalCount() {
-      bitField0_ = (bitField0_ & ~0x00000004);
-      totalCount_ = 0;
       onChanged();
       return this;
     }

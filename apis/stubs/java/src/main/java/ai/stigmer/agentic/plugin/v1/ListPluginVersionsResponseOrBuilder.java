@@ -15,48 +15,49 @@ public interface ListPluginVersionsResponseOrBuilder extends
    * Versions, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginVersionEntry versions = 1 [json_name = "versions"];</code>
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginVersionEntry entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<ai.stigmer.agentic.plugin.v1.PluginVersionEntry> 
-      getVersionsList();
+      getEntriesList();
   /**
    * <pre>
    * Versions, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginVersionEntry versions = 1 [json_name = "versions"];</code>
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginVersionEntry entries = 1 [json_name = "entries"];</code>
    */
-  ai.stigmer.agentic.plugin.v1.PluginVersionEntry getVersions(int index);
+  ai.stigmer.agentic.plugin.v1.PluginVersionEntry getEntries(int index);
   /**
    * <pre>
    * Versions, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginVersionEntry versions = 1 [json_name = "versions"];</code>
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginVersionEntry entries = 1 [json_name = "entries"];</code>
    */
-  int getVersionsCount();
+  int getEntriesCount();
   /**
    * <pre>
    * Versions, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginVersionEntry versions = 1 [json_name = "versions"];</code>
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginVersionEntry entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<? extends ai.stigmer.agentic.plugin.v1.PluginVersionEntryOrBuilder> 
-      getVersionsOrBuilderList();
+      getEntriesOrBuilderList();
   /**
    * <pre>
    * Versions, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginVersionEntry versions = 1 [json_name = "versions"];</code>
+   * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginVersionEntry entries = 1 [json_name = "entries"];</code>
    */
-  ai.stigmer.agentic.plugin.v1.PluginVersionEntryOrBuilder getVersionsOrBuilder(
+  ai.stigmer.agentic.plugin.v1.PluginVersionEntryOrBuilder getEntriesOrBuilder(
       int index);
 
   /**
    * <pre>
-   * Token for the next page. Empty when no more pages exist.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -65,7 +66,8 @@ public interface ListPluginVersionsResponseOrBuilder extends
   java.lang.String getNextPageToken();
   /**
    * <pre>
-   * Token for the next page. Empty when no more pages exist.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -73,14 +75,4 @@ public interface ListPluginVersionsResponseOrBuilder extends
    */
   com.google.protobuf.ByteString
       getNextPageTokenBytes();
-
-  /**
-   * <pre>
-   * Total number of versions across all pages.
-   * </pre>
-   *
-   * <code>int32 total_count = 3 [json_name = "totalCount"];</code>
-   * @return The totalCount.
-   */
-  int getTotalCount();
 }

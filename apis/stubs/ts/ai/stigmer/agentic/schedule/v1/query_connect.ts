@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetSchedulesByAgentRequest, ListScheduleFiresRequest, ListSchedulesRequest, ScheduleFireList, ScheduleId, ScheduleList } from "./io_pbjs";
+import { ListScheduleFiresRequest, ListSchedulesByAgentRequest, ListSchedulesRequest, ScheduleFireList, ScheduleId, ScheduleList } from "./io_pbjs";
 import { Schedule } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -39,17 +39,17 @@ export const ScheduleQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Get all schedules of a specific agent.
+     * List the schedules of a specific agent, newest first.
      * Returns only schedules the caller has access to.
      *
      * This is how the agent's operational surfaces and CLI resolve an
      * agent's existing schedules regardless of slug.
      *
-     * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleQueryController.getByAgent
+     * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleQueryController.listByAgent
      */
-    getByAgent: {
-      name: "getByAgent",
-      I: GetSchedulesByAgentRequest,
+    listByAgent: {
+      name: "listByAgent",
+      I: ListSchedulesByAgentRequest,
       O: ScheduleList,
       kind: MethodKind.Unary,
     },

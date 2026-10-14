@@ -9,8 +9,6 @@ import { file_ai_stigmer_agentic_agentshare_v1_api } from "./api_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
 import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
-import type { PageInfo } from "../../../commons/rpc/pagination_pb.js";
-import { file_ai_stigmer_commons_rpc_pagination } from "../../../commons/rpc/pagination_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { FieldMask } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
@@ -20,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentshare/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agentshare_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9pby5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEiKgoMQWdlbnRTaGFyZUlkEhoKBXZhbHVlGAEgASgJQgu6SAjIAQFyAxiAASJ6ChxHZXRBZ2VudFNoYXJlc0J5QWdlbnRSZXF1ZXN0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESMwoJcGFnZV9pbmZvGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxILCgNvcmcYAyABKAkiYgoOQWdlbnRTaGFyZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSOwoFaXRlbXMYAiADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlIugBChZMaXN0QWdlbnRTaGFyZXNSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARJUCgZsYWJlbHMYAiADKAsyRC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5MaXN0QWdlbnRTaGFyZXNSZXF1ZXN0LkxhYmVsc0VudHJ5EjMKCXBhZ2VfaW5mbxgDIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8aLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASIzChRSb3RhdGVTaGFyZUxpbmtJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBIm0KF0dldFNoYXJlZFByb2ZpbGVSZXF1ZXN0Eh0KCHNoYXJlX2lkGAQgASgJQgu6SAjIAQFyAxiAARIcCgpsaW5rX3Rva2VuGAMgASgJQgi6SAVyAxiAAUoECAEQAkoECAIQA1IDb3JnUgRzbHVnIs4BChJTaGFyZWRBZ2VudFByb2ZpbGUSCwoDb3JnGAEgASgJEgwKBHNsdWcYAiABKAkSDAoEbmFtZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIQCghpY29uX3VybBgFIAEoCRJNCglhZ2VudF9yZWYYByABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLChKBAgGEAdSE2RlZmF1bHRfaW5zdGFuY2VfaWQi3gIKFVVwZGF0ZUFnZW50U2hhcmVJbnB1dBJGCghyZXNvdXJjZRgBIAEoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmVCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATrDAbpIvwEavAEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EktyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBhZ2VudCBzaGFyZSBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_agentic_agentshare_v1_api, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9pby5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEiKgoMQWdlbnRTaGFyZUlkEhoKBXZhbHVlGAEgASgJQgu6SAjIAQFyAxiAASKRAQodTGlzdEFnZW50U2hhcmVzQnlBZ2VudFJlcXVlc3QSGAoIYWdlbnRfaWQYASABKAlCBrpIA8gBARILCgNvcmcYAyABKAkSGgoJcGFnZV9zaXplGAQgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YBSABKAlCCLpIBXIDGIAISgQIAhADUglwYWdlX2luZm8iewoOQWdlbnRTaGFyZUxpc3QSPQoHZW50cmllcxgCIAMoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmUSFwoPbmV4dF9wYWdlX3Rva2VuGAMgASgJSgQIARACUgt0b3RhbF9jb3VudCL+AQoWTGlzdEFnZW50U2hhcmVzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESVAoGbGFiZWxzGAIgAygLMkQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuTGlzdEFnZW50U2hhcmVzUmVxdWVzdC5MYWJlbHNFbnRyeRIaCglwYWdlX3NpemUYBCABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgFIAEoCUIIukgFcgMYgAgaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AUoECAMQBFIJcGFnZV9pbmZvIjMKFFJvdGF0ZVNoYXJlTGlua0lucHV0EhsKC3Jlc291cmNlX2lkGAEgASgJQga6SAPIAQEibQoXR2V0U2hhcmVkUHJvZmlsZVJlcXVlc3QSHQoIc2hhcmVfaWQYBCABKAlCC7pICMgBAXIDGIABEhwKCmxpbmtfdG9rZW4YAyABKAlCCLpIBXIDGIABSgQIARACSgQIAhADUgNvcmdSBHNsdWcizgEKElNoYXJlZEFnZW50UHJvZmlsZRILCgNvcmcYASABKAkSDAoEc2x1ZxgCIAEoCRIMCgRuYW1lGAMgASgJEhMKC2Rlc2NyaXB0aW9uGAQgASgJEhAKCGljb25fdXJsGAUgASgJEk0KCWFnZW50X3JlZhgHIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsKEoECAYQB1ITZGVmYXVsdF9pbnN0YW5jZV9pZCLeAgoVVXBkYXRlQWdlbnRTaGFyZUlucHV0EkYKCHJlc291cmNlGAEgASgLMiwuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZUIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOsMBuki/ARq8AQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSS3Jlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIGFnZW50IHNoYXJlIGJ5IGl0cyBpZBpUaGFzKHRoaXMucmVzb3VyY2UpICYmIGhhcyh0aGlzLnJlc291cmNlLm1ldGFkYXRhKSAmJiB0aGlzLnJlc291cmNlLm1ldGFkYXRhLmlkICE9ICcnYgZwcm90bzM", [file_ai_stigmer_agentic_agentshare_v1_api, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * AgentShareId wraps an agent share identifier.
@@ -46,22 +44,15 @@ export const AgentShareIdSchema: GenMessage<AgentShareId> = /*@__PURE__*/
 /**
  * Input for retrieving all shares of a specific agent.
  *
- * @generated from message ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest
+ * @generated from message ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest
  */
-export type GetAgentSharesByAgentRequest = Message<"ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest"> & {
+export type ListAgentSharesByAgentRequest = Message<"ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest"> & {
   /**
    * Identifier of the agent whose shares to retrieve.
    *
    * @generated from field: string agent_id = 1;
    */
   agentId: string;
-
-  /**
-   * Pagination options.
-   *
-   * @generated from field: ai.stigmer.commons.rpc.PageInfo page_info = 2;
-   */
-  pageInfo?: PageInfo;
 
   /**
    * Organization slug to scope the results to.
@@ -74,13 +65,29 @@ export type GetAgentSharesByAgentRequest = Message<"ai.stigmer.agentic.agentshar
    * @generated from field: string org = 3;
    */
   org: string;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 4;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 5;
+   */
+  pageToken: string;
 };
 
 /**
- * Describes the message ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest.
- * Use `create(GetAgentSharesByAgentRequestSchema)` to create a new message.
+ * Describes the message ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest.
+ * Use `create(ListAgentSharesByAgentRequestSchema)` to create a new message.
  */
-export const GetAgentSharesByAgentRequestSchema: GenMessage<GetAgentSharesByAgentRequest> = /*@__PURE__*/
+export const ListAgentSharesByAgentRequestSchema: GenMessage<ListAgentSharesByAgentRequest> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentshare_v1_io, 1);
 
 /**
@@ -90,18 +97,19 @@ export const GetAgentSharesByAgentRequestSchema: GenMessage<GetAgentSharesByAgen
  */
 export type AgentShareList = Message<"ai.stigmer.agentic.agentshare.v1.AgentShareList"> & {
   /**
-   * Total number of agent shares matching the query.
-   *
-   * @generated from field: int32 total_count = 1;
-   */
-  totalCount: number;
-
-  /**
    * Agent shares in the current page.
    *
-   * @generated from field: repeated ai.stigmer.agentic.agentshare.v1.AgentShare items = 2;
+   * @generated from field: repeated ai.stigmer.agentic.agentshare.v1.AgentShare entries = 2;
    */
-  items: AgentShare[];
+  entries: AgentShare[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 3;
+   */
+  nextPageToken: string;
 };
 
 /**
@@ -132,11 +140,20 @@ export type ListAgentSharesRequest = Message<"ai.stigmer.agentic.agentshare.v1.L
   labels: { [key: string]: string };
 
   /**
-   * Pagination options.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    *
-   * @generated from field: ai.stigmer.commons.rpc.PageInfo page_info = 3;
+   * @generated from field: int32 page_size = 4;
    */
-  pageInfo?: PageInfo;
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 5;
+   */
+  pageToken: string;
 };
 
 /**

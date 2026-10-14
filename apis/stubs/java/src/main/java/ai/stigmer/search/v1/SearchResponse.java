@@ -38,6 +38,7 @@ private static final long serialVersionUID = 0L;
   }
   private SearchResponse() {
     entries_ = java.util.Collections.emptyList();
+    nextPageToken_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -287,40 +288,53 @@ private static final long serialVersionUID = 0L;
     return map.get(key);
   }
 
-  public static final int TOTAL_COUNT_FIELD_NUMBER = 3;
-  private int totalCount_ = 0;
+  public static final int NEXT_PAGE_TOKEN_FIELD_NUMBER = 5;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object nextPageToken_ = "";
   /**
    * <pre>
-   * Total count of matching resources across all kinds.
-   *
-   * This is the sum of all counts_by_kind values.
-   * Used for displaying "Showing X of Y results".
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
-   * <code>int32 total_count = 3 [json_name = "totalCount"];</code>
-   * @return The totalCount.
+   * <code>string next_page_token = 5 [json_name = "nextPageToken"];</code>
+   * @return The nextPageToken.
    */
   @java.lang.Override
-  public int getTotalCount() {
-    return totalCount_;
+  public java.lang.String getNextPageToken() {
+    java.lang.Object ref = nextPageToken_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      nextPageToken_ = s;
+      return s;
+    }
   }
-
-  public static final int TOTAL_PAGES_FIELD_NUMBER = 4;
-  private int totalPages_ = 0;
   /**
    * <pre>
-   * Total number of pages based on current page size.
-   *
-   * Calculated as: ceil(total_count / page.size)
-   * Used for pagination controls.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
-   * <code>int32 total_pages = 4 [json_name = "totalPages"];</code>
-   * @return The totalPages.
+   * <code>string next_page_token = 5 [json_name = "nextPageToken"];</code>
+   * @return The bytes for nextPageToken.
    */
   @java.lang.Override
-  public int getTotalPages() {
-    return totalPages_;
+  public com.google.protobuf.ByteString
+      getNextPageTokenBytes() {
+    java.lang.Object ref = nextPageToken_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      nextPageToken_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
   }
 
   private byte memoizedIsInitialized = -1;
@@ -346,11 +360,8 @@ private static final long serialVersionUID = 0L;
         internalGetCountsByKind(),
         CountsByKindDefaultEntryHolder.defaultEntry,
         2);
-    if (totalCount_ != 0) {
-      output.writeInt32(3, totalCount_);
-    }
-    if (totalPages_ != 0) {
-      output.writeInt32(4, totalPages_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(nextPageToken_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 5, nextPageToken_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -380,13 +391,8 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(2, countsByKind__);
     }
-    if (totalCount_ != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(3, totalCount_);
-    }
-    if (totalPages_ != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(4, totalPages_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(nextPageToken_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(5, nextPageToken_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -407,10 +413,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getEntriesList())) return false;
     if (!internalGetCountsByKind().equals(
         other.internalGetCountsByKind())) return false;
-    if (getTotalCount()
-        != other.getTotalCount()) return false;
-    if (getTotalPages()
-        != other.getTotalPages()) return false;
+    if (!getNextPageToken()
+        .equals(other.getNextPageToken())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -430,10 +434,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + COUNTS_BY_KIND_FIELD_NUMBER;
       hash = (53 * hash) + internalGetCountsByKind().hashCode();
     }
-    hash = (37 * hash) + TOTAL_COUNT_FIELD_NUMBER;
-    hash = (53 * hash) + getTotalCount();
-    hash = (37 * hash) + TOTAL_PAGES_FIELD_NUMBER;
-    hash = (53 * hash) + getTotalPages();
+    hash = (37 * hash) + NEXT_PAGE_TOKEN_FIELD_NUMBER;
+    hash = (53 * hash) + getNextPageToken().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -604,8 +606,7 @@ private static final long serialVersionUID = 0L;
       }
       bitField0_ = (bitField0_ & ~0x00000001);
       internalGetMutableCountsByKind().clear();
-      totalCount_ = 0;
-      totalPages_ = 0;
+      nextPageToken_ = "";
       return this;
     }
 
@@ -657,10 +658,7 @@ private static final long serialVersionUID = 0L;
         result.countsByKind_.makeImmutable();
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.totalCount_ = totalCount_;
-      }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.totalPages_ = totalPages_;
+        result.nextPageToken_ = nextPageToken_;
       }
     }
 
@@ -705,11 +703,10 @@ private static final long serialVersionUID = 0L;
       internalGetMutableCountsByKind().mergeFrom(
           other.internalGetCountsByKind());
       bitField0_ |= 0x00000002;
-      if (other.getTotalCount() != 0) {
-        setTotalCount(other.getTotalCount());
-      }
-      if (other.getTotalPages() != 0) {
-        setTotalPages(other.getTotalPages());
+      if (!other.getNextPageToken().isEmpty()) {
+        nextPageToken_ = other.nextPageToken_;
+        bitField0_ |= 0x00000004;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -759,16 +756,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
-            case 24: {
-              totalCount_ = input.readInt32();
+            case 42: {
+              nextPageToken_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000004;
               break;
-            } // case 24
-            case 32: {
-              totalPages_ = input.readInt32();
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 32
+            } // case 42
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1426,108 +1418,99 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private int totalCount_ ;
+    private java.lang.Object nextPageToken_ = "";
     /**
      * <pre>
-     * Total count of matching resources across all kinds.
-     *
-     * This is the sum of all counts_by_kind values.
-     * Used for displaying "Showing X of Y results".
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
-     * <code>int32 total_count = 3 [json_name = "totalCount"];</code>
-     * @return The totalCount.
+     * <code>string next_page_token = 5 [json_name = "nextPageToken"];</code>
+     * @return The nextPageToken.
      */
-    @java.lang.Override
-    public int getTotalCount() {
-      return totalCount_;
+    public java.lang.String getNextPageToken() {
+      java.lang.Object ref = nextPageToken_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        nextPageToken_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
     }
     /**
      * <pre>
-     * Total count of matching resources across all kinds.
-     *
-     * This is the sum of all counts_by_kind values.
-     * Used for displaying "Showing X of Y results".
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
-     * <code>int32 total_count = 3 [json_name = "totalCount"];</code>
-     * @param value The totalCount to set.
+     * <code>string next_page_token = 5 [json_name = "nextPageToken"];</code>
+     * @return The bytes for nextPageToken.
+     */
+    public com.google.protobuf.ByteString
+        getNextPageTokenBytes() {
+      java.lang.Object ref = nextPageToken_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        nextPageToken_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
+     * </pre>
+     *
+     * <code>string next_page_token = 5 [json_name = "nextPageToken"];</code>
+     * @param value The nextPageToken to set.
      * @return This builder for chaining.
      */
-    public Builder setTotalCount(int value) {
-
-      totalCount_ = value;
+    public Builder setNextPageToken(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      nextPageToken_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Total count of matching resources across all kinds.
-     *
-     * This is the sum of all counts_by_kind values.
-     * Used for displaying "Showing X of Y results".
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
-     * <code>int32 total_count = 3 [json_name = "totalCount"];</code>
+     * <code>string next_page_token = 5 [json_name = "nextPageToken"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearTotalCount() {
+    public Builder clearNextPageToken() {
+      nextPageToken_ = getDefaultInstance().getNextPageToken();
       bitField0_ = (bitField0_ & ~0x00000004);
-      totalCount_ = 0;
-      onChanged();
-      return this;
-    }
-
-    private int totalPages_ ;
-    /**
-     * <pre>
-     * Total number of pages based on current page size.
-     *
-     * Calculated as: ceil(total_count / page.size)
-     * Used for pagination controls.
-     * </pre>
-     *
-     * <code>int32 total_pages = 4 [json_name = "totalPages"];</code>
-     * @return The totalPages.
-     */
-    @java.lang.Override
-    public int getTotalPages() {
-      return totalPages_;
-    }
-    /**
-     * <pre>
-     * Total number of pages based on current page size.
-     *
-     * Calculated as: ceil(total_count / page.size)
-     * Used for pagination controls.
-     * </pre>
-     *
-     * <code>int32 total_pages = 4 [json_name = "totalPages"];</code>
-     * @param value The totalPages to set.
-     * @return This builder for chaining.
-     */
-    public Builder setTotalPages(int value) {
-
-      totalPages_ = value;
-      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Total number of pages based on current page size.
-     *
-     * Calculated as: ceil(total_count / page.size)
-     * Used for pagination controls.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
-     * <code>int32 total_pages = 4 [json_name = "totalPages"];</code>
+     * <code>string next_page_token = 5 [json_name = "nextPageToken"];</code>
+     * @param value The bytes for nextPageToken to set.
      * @return This builder for chaining.
      */
-    public Builder clearTotalPages() {
-      bitField0_ = (bitField0_ & ~0x00000008);
-      totalPages_ = 0;
+    public Builder setNextPageTokenBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      nextPageToken_ = value;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }

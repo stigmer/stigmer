@@ -33,7 +33,7 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private ConversationTimeline() {
-    items_ = java.util.Collections.emptyList();
+    entries_ = java.util.Collections.emptyList();
     nextPageToken_ = "";
   }
 
@@ -55,65 +55,65 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.agentchannel.v1.ConversationTimeline.class, ai.stigmer.agentic.agentchannel.v1.ConversationTimeline.Builder.class);
   }
 
-  public static final int ITEMS_FIELD_NUMBER = 1;
+  public static final int ENTRIES_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem> items_;
+  private java.util.List<ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem> entries_;
   /**
    * <pre>
    * Timeline items in the current page, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem> getItemsList() {
-    return items_;
+  public java.util.List<ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem> getEntriesList() {
+    return entries_;
   }
   /**
    * <pre>
    * Timeline items in the current page, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
   public java.util.List<? extends ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItemOrBuilder> 
-      getItemsOrBuilderList() {
-    return items_;
+      getEntriesOrBuilderList() {
+    return entries_;
   }
   /**
    * <pre>
    * Timeline items in the current page, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public int getItemsCount() {
-    return items_.size();
+  public int getEntriesCount() {
+    return entries_.size();
   }
   /**
    * <pre>
    * Timeline items in the current page, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem getItems(int index) {
-    return items_.get(index);
+  public ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem getEntries(int index) {
+    return entries_.get(index);
   }
   /**
    * <pre>
    * Timeline items in the current page, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItemOrBuilder getItemsOrBuilder(
+  public ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItemOrBuilder getEntriesOrBuilder(
       int index) {
-    return items_.get(index);
+    return entries_.get(index);
   }
 
   public static final int NEXT_PAGE_TOKEN_FIELD_NUMBER = 2;
@@ -121,7 +121,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object nextPageToken_ = "";
   /**
    * <pre>
-   * Cursor for the next (older) page. Empty when no more items exist.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -142,7 +143,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Cursor for the next (older) page. Empty when no more items exist.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -177,8 +179,8 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    for (int i = 0; i < items_.size(); i++) {
-      output.writeMessage(1, items_.get(i));
+    for (int i = 0; i < entries_.size(); i++) {
+      output.writeMessage(1, entries_.get(i));
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(nextPageToken_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, nextPageToken_);
@@ -194,10 +196,10 @@ private static final long serialVersionUID = 0L;
     size = 0;
 
         {
-          final int count = items_.size();
+          final int count = entries_.size();
           for (int i = 0; i < count; i++) {
             size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(items_.get(i));
+              .computeMessageSizeNoTag(entries_.get(i));
           }
           size += 1 * count;
         }
@@ -219,8 +221,8 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.agentic.agentchannel.v1.ConversationTimeline other = (ai.stigmer.agentic.agentchannel.v1.ConversationTimeline) obj;
 
-    if (!getItemsList()
-        .equals(other.getItemsList())) return false;
+    if (!getEntriesList()
+        .equals(other.getEntriesList())) return false;
     if (!getNextPageToken()
         .equals(other.getNextPageToken())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -234,9 +236,9 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    if (getItemsCount() > 0) {
-      hash = (37 * hash) + ITEMS_FIELD_NUMBER;
-      hash = (53 * hash) + getItemsList().hashCode();
+    if (getEntriesCount() > 0) {
+      hash = (37 * hash) + ENTRIES_FIELD_NUMBER;
+      hash = (53 * hash) + getEntriesList().hashCode();
     }
     hash = (37 * hash) + NEXT_PAGE_TOKEN_FIELD_NUMBER;
     hash = (53 * hash) + getNextPageToken().hashCode();
@@ -376,11 +378,11 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      if (itemsBuilder_ == null) {
-        items_ = java.util.Collections.emptyList();
+      if (entriesBuilder_ == null) {
+        entries_ = java.util.Collections.emptyList();
       } else {
-        items_ = null;
-        itemsBuilder_.clear();
+        entries_ = null;
+        entriesBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000001);
       nextPageToken_ = "";
@@ -417,14 +419,14 @@ private static final long serialVersionUID = 0L;
     }
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.agentchannel.v1.ConversationTimeline result) {
-      if (itemsBuilder_ == null) {
+      if (entriesBuilder_ == null) {
         if (((bitField0_ & 0x00000001) != 0)) {
-          items_ = java.util.Collections.unmodifiableList(items_);
+          entries_ = java.util.Collections.unmodifiableList(entries_);
           bitField0_ = (bitField0_ & ~0x00000001);
         }
-        result.items_ = items_;
+        result.entries_ = entries_;
       } else {
-        result.items_ = itemsBuilder_.build();
+        result.entries_ = entriesBuilder_.build();
       }
     }
 
@@ -447,29 +449,29 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.agentic.agentchannel.v1.ConversationTimeline other) {
       if (other == ai.stigmer.agentic.agentchannel.v1.ConversationTimeline.getDefaultInstance()) return this;
-      if (itemsBuilder_ == null) {
-        if (!other.items_.isEmpty()) {
-          if (items_.isEmpty()) {
-            items_ = other.items_;
+      if (entriesBuilder_ == null) {
+        if (!other.entries_.isEmpty()) {
+          if (entries_.isEmpty()) {
+            entries_ = other.entries_;
             bitField0_ = (bitField0_ & ~0x00000001);
           } else {
-            ensureItemsIsMutable();
-            items_.addAll(other.items_);
+            ensureEntriesIsMutable();
+            entries_.addAll(other.entries_);
           }
           onChanged();
         }
       } else {
-        if (!other.items_.isEmpty()) {
-          if (itemsBuilder_.isEmpty()) {
-            itemsBuilder_.dispose();
-            itemsBuilder_ = null;
-            items_ = other.items_;
+        if (!other.entries_.isEmpty()) {
+          if (entriesBuilder_.isEmpty()) {
+            entriesBuilder_.dispose();
+            entriesBuilder_ = null;
+            entries_ = other.entries_;
             bitField0_ = (bitField0_ & ~0x00000001);
-            itemsBuilder_ = 
+            entriesBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetItemsFieldBuilder() : null;
+                 internalGetEntriesFieldBuilder() : null;
           } else {
-            itemsBuilder_.addAllMessages(other.items_);
+            entriesBuilder_.addAllMessages(other.entries_);
           }
         }
       }
@@ -509,11 +511,11 @@ private static final long serialVersionUID = 0L;
                   input.readMessage(
                       ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.parser(),
                       extensionRegistry);
-              if (itemsBuilder_ == null) {
-                ensureItemsIsMutable();
-                items_.add(m);
+              if (entriesBuilder_ == null) {
+                ensureEntriesIsMutable();
+                entries_.add(m);
               } else {
-                itemsBuilder_.addMessage(m);
+                entriesBuilder_.addMessage(m);
               }
               break;
             } // case 10
@@ -539,30 +541,30 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.util.List<ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem> items_ =
+    private java.util.List<ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem> entries_ =
       java.util.Collections.emptyList();
-    private void ensureItemsIsMutable() {
+    private void ensureEntriesIsMutable() {
       if (!((bitField0_ & 0x00000001) != 0)) {
-        items_ = new java.util.ArrayList<ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem>(items_);
+        entries_ = new java.util.ArrayList<ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem>(entries_);
         bitField0_ |= 0x00000001;
        }
     }
 
     private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem, ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.Builder, ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItemOrBuilder> itemsBuilder_;
+        ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem, ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.Builder, ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItemOrBuilder> entriesBuilder_;
 
     /**
      * <pre>
      * Timeline items in the current page, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
      */
-    public java.util.List<ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem> getItemsList() {
-      if (itemsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(items_);
+    public java.util.List<ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem> getEntriesList() {
+      if (entriesBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(entries_);
       } else {
-        return itemsBuilder_.getMessageList();
+        return entriesBuilder_.getMessageList();
       }
     }
     /**
@@ -570,13 +572,13 @@ private static final long serialVersionUID = 0L;
      * Timeline items in the current page, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
      */
-    public int getItemsCount() {
-      if (itemsBuilder_ == null) {
-        return items_.size();
+    public int getEntriesCount() {
+      if (entriesBuilder_ == null) {
+        return entries_.size();
       } else {
-        return itemsBuilder_.getCount();
+        return entriesBuilder_.getCount();
       }
     }
     /**
@@ -584,13 +586,13 @@ private static final long serialVersionUID = 0L;
      * Timeline items in the current page, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem getItems(int index) {
-      if (itemsBuilder_ == null) {
-        return items_.get(index);
+    public ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem getEntries(int index) {
+      if (entriesBuilder_ == null) {
+        return entries_.get(index);
       } else {
-        return itemsBuilder_.getMessage(index);
+        return entriesBuilder_.getMessage(index);
       }
     }
     /**
@@ -598,19 +600,19 @@ private static final long serialVersionUID = 0L;
      * Timeline items in the current page, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
      */
-    public Builder setItems(
+    public Builder setEntries(
         int index, ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem value) {
-      if (itemsBuilder_ == null) {
+      if (entriesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureItemsIsMutable();
-        items_.set(index, value);
+        ensureEntriesIsMutable();
+        entries_.set(index, value);
         onChanged();
       } else {
-        itemsBuilder_.setMessage(index, value);
+        entriesBuilder_.setMessage(index, value);
       }
       return this;
     }
@@ -619,16 +621,16 @@ private static final long serialVersionUID = 0L;
      * Timeline items in the current page, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
      */
-    public Builder setItems(
+    public Builder setEntries(
         int index, ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.Builder builderForValue) {
-      if (itemsBuilder_ == null) {
-        ensureItemsIsMutable();
-        items_.set(index, builderForValue.build());
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.set(index, builderForValue.build());
         onChanged();
       } else {
-        itemsBuilder_.setMessage(index, builderForValue.build());
+        entriesBuilder_.setMessage(index, builderForValue.build());
       }
       return this;
     }
@@ -637,18 +639,18 @@ private static final long serialVersionUID = 0L;
      * Timeline items in the current page, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addItems(ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem value) {
-      if (itemsBuilder_ == null) {
+    public Builder addEntries(ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem value) {
+      if (entriesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureItemsIsMutable();
-        items_.add(value);
+        ensureEntriesIsMutable();
+        entries_.add(value);
         onChanged();
       } else {
-        itemsBuilder_.addMessage(value);
+        entriesBuilder_.addMessage(value);
       }
       return this;
     }
@@ -657,19 +659,19 @@ private static final long serialVersionUID = 0L;
      * Timeline items in the current page, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addItems(
+    public Builder addEntries(
         int index, ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem value) {
-      if (itemsBuilder_ == null) {
+      if (entriesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureItemsIsMutable();
-        items_.add(index, value);
+        ensureEntriesIsMutable();
+        entries_.add(index, value);
         onChanged();
       } else {
-        itemsBuilder_.addMessage(index, value);
+        entriesBuilder_.addMessage(index, value);
       }
       return this;
     }
@@ -678,16 +680,16 @@ private static final long serialVersionUID = 0L;
      * Timeline items in the current page, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addItems(
+    public Builder addEntries(
         ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.Builder builderForValue) {
-      if (itemsBuilder_ == null) {
-        ensureItemsIsMutable();
-        items_.add(builderForValue.build());
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.add(builderForValue.build());
         onChanged();
       } else {
-        itemsBuilder_.addMessage(builderForValue.build());
+        entriesBuilder_.addMessage(builderForValue.build());
       }
       return this;
     }
@@ -696,16 +698,16 @@ private static final long serialVersionUID = 0L;
      * Timeline items in the current page, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addItems(
+    public Builder addEntries(
         int index, ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.Builder builderForValue) {
-      if (itemsBuilder_ == null) {
-        ensureItemsIsMutable();
-        items_.add(index, builderForValue.build());
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.add(index, builderForValue.build());
         onChanged();
       } else {
-        itemsBuilder_.addMessage(index, builderForValue.build());
+        entriesBuilder_.addMessage(index, builderForValue.build());
       }
       return this;
     }
@@ -714,17 +716,17 @@ private static final long serialVersionUID = 0L;
      * Timeline items in the current page, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addAllItems(
+    public Builder addAllEntries(
         java.lang.Iterable<? extends ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem> values) {
-      if (itemsBuilder_ == null) {
-        ensureItemsIsMutable();
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, items_);
+            values, entries_);
         onChanged();
       } else {
-        itemsBuilder_.addAllMessages(values);
+        entriesBuilder_.addAllMessages(values);
       }
       return this;
     }
@@ -733,15 +735,15 @@ private static final long serialVersionUID = 0L;
      * Timeline items in the current page, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
      */
-    public Builder clearItems() {
-      if (itemsBuilder_ == null) {
-        items_ = java.util.Collections.emptyList();
+    public Builder clearEntries() {
+      if (entriesBuilder_ == null) {
+        entries_ = java.util.Collections.emptyList();
         bitField0_ = (bitField0_ & ~0x00000001);
         onChanged();
       } else {
-        itemsBuilder_.clear();
+        entriesBuilder_.clear();
       }
       return this;
     }
@@ -750,15 +752,15 @@ private static final long serialVersionUID = 0L;
      * Timeline items in the current page, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
      */
-    public Builder removeItems(int index) {
-      if (itemsBuilder_ == null) {
-        ensureItemsIsMutable();
-        items_.remove(index);
+    public Builder removeEntries(int index) {
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.remove(index);
         onChanged();
       } else {
-        itemsBuilder_.remove(index);
+        entriesBuilder_.remove(index);
       }
       return this;
     }
@@ -767,24 +769,24 @@ private static final long serialVersionUID = 0L;
      * Timeline items in the current page, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.Builder getItemsBuilder(
+    public ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.Builder getEntriesBuilder(
         int index) {
-      return internalGetItemsFieldBuilder().getBuilder(index);
+      return internalGetEntriesFieldBuilder().getBuilder(index);
     }
     /**
      * <pre>
      * Timeline items in the current page, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItemOrBuilder getItemsOrBuilder(
+    public ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItemOrBuilder getEntriesOrBuilder(
         int index) {
-      if (itemsBuilder_ == null) {
-        return items_.get(index);  } else {
-        return itemsBuilder_.getMessageOrBuilder(index);
+      if (entriesBuilder_ == null) {
+        return entries_.get(index);  } else {
+        return entriesBuilder_.getMessageOrBuilder(index);
       }
     }
     /**
@@ -792,14 +794,14 @@ private static final long serialVersionUID = 0L;
      * Timeline items in the current page, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<? extends ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItemOrBuilder> 
-         getItemsOrBuilderList() {
-      if (itemsBuilder_ != null) {
-        return itemsBuilder_.getMessageOrBuilderList();
+         getEntriesOrBuilderList() {
+      if (entriesBuilder_ != null) {
+        return entriesBuilder_.getMessageOrBuilderList();
       } else {
-        return java.util.Collections.unmodifiableList(items_);
+        return java.util.Collections.unmodifiableList(entries_);
       }
     }
     /**
@@ -807,10 +809,10 @@ private static final long serialVersionUID = 0L;
      * Timeline items in the current page, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.Builder addItemsBuilder() {
-      return internalGetItemsFieldBuilder().addBuilder(
+    public ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.Builder addEntriesBuilder() {
+      return internalGetEntriesFieldBuilder().addBuilder(
           ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.getDefaultInstance());
     }
     /**
@@ -818,11 +820,11 @@ private static final long serialVersionUID = 0L;
      * Timeline items in the current page, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.Builder addItemsBuilder(
+    public ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.Builder addEntriesBuilder(
         int index) {
-      return internalGetItemsFieldBuilder().addBuilder(
+      return internalGetEntriesFieldBuilder().addBuilder(
           index, ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.getDefaultInstance());
     }
     /**
@@ -830,31 +832,32 @@ private static final long serialVersionUID = 0L;
      * Timeline items in the current page, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.Builder> 
-         getItemsBuilderList() {
-      return internalGetItemsFieldBuilder().getBuilderList();
+         getEntriesBuilderList() {
+      return internalGetEntriesFieldBuilder().getBuilderList();
     }
     private com.google.protobuf.RepeatedFieldBuilder<
         ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem, ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.Builder, ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItemOrBuilder> 
-        internalGetItemsFieldBuilder() {
-      if (itemsBuilder_ == null) {
-        itemsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+        internalGetEntriesFieldBuilder() {
+      if (entriesBuilder_ == null) {
+        entriesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem, ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.Builder, ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItemOrBuilder>(
-                items_,
+                entries_,
                 ((bitField0_ & 0x00000001) != 0),
                 getParentForChildren(),
                 isClean());
-        items_ = null;
+        entries_ = null;
       }
-      return itemsBuilder_;
+      return entriesBuilder_;
     }
 
     private java.lang.Object nextPageToken_ = "";
     /**
      * <pre>
-     * Cursor for the next (older) page. Empty when no more items exist.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -874,7 +877,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Cursor for the next (older) page. Empty when no more items exist.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -895,7 +899,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Cursor for the next (older) page. Empty when no more items exist.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -912,7 +917,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Cursor for the next (older) page. Empty when no more items exist.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -926,7 +932,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Cursor for the next (older) page. Empty when no more items exist.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>

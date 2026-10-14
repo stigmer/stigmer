@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AgentChannelId, AgentChannelList, GetAgentChannelsByAgentRequest, ListAgentChannelsRequest } from "./io_pbjs";
+import { AgentChannelId, AgentChannelList, ListAgentChannelsByAgentRequest, ListAgentChannelsRequest } from "./io_pbjs";
 import { AgentChannel } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -39,17 +39,17 @@ export const AgentChannelQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Get all channels of a specific agent.
+     * List the channels of a specific agent, newest first.
      * Returns only channels the caller has access to.
      *
      * This is how the agent's integrations surface and CLI resolve an
      * agent's existing channels regardless of slug.
      *
-     * @generated from rpc ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.getByAgent
+     * @generated from rpc ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.listByAgent
      */
-    getByAgent: {
-      name: "getByAgent",
-      I: GetAgentChannelsByAgentRequest,
+    listByAgent: {
+      name: "listByAgent",
+      I: ListAgentChannelsByAgentRequest,
       O: AgentChannelList,
       kind: MethodKind.Unary,
     },

@@ -28,7 +28,7 @@ from ai.stigmer.commons.apiresource import metadata_pb2 as ai_dot_stigmer_dot_co
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/plugin/v1/api.proto\x12\x1c\x61i.stigmer.agentic.plugin.v1\x1a\'ai/stigmer/agentic/plugin/v1/spec.proto\x1a)ai/stigmer/agentic/plugin/v1/status.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a\x1b\x62uf/validate/validate.proto\"\xc5\x02\n\x06Plugin\x12=\n\x0b\x61pi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n\x15\x61gentic.stigmer.ai/v1R\napiVersion\x12!\n\x04kind\x18\x02 \x01(\tB\r\xbaH\nr\x08\n\x06PluginR\x04kind\x12W\n\x08metadata\x18\x03 \x01(\x0b\x32\x33.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\x08metadata\x12<\n\x04spec\x18\x04 \x01(\x0b\x32(.ai.stigmer.agentic.plugin.v1.PluginSpecR\x04spec\x12\x42\n\x06status\x18\x05 \x01(\x0b\x32*.ai.stigmer.agentic.plugin.v1.PluginStatusR\x06status\"}\n\nPluginList\x12\x1f\n\x0b\x61pi_version\x18\x01 \x01(\tR\napiVersion\x12\x12\n\x04kind\x18\x02 \x01(\tR\x04kind\x12:\n\x05items\x18\x03 \x03(\x0b\x32$.ai.stigmer.agentic.plugin.v1.PluginR\x05itemsB\xc1\x01\n com.ai.stigmer.agentic.plugin.v1B\x08\x41piProtoP\x01\xa2\x02\x04\x41SAP\xaa\x02\x1c\x41i.Stigmer.Agentic.Plugin.V1\xca\x02\x1c\x41i\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/plugin/v1/api.proto\x12\x1c\x61i.stigmer.agentic.plugin.v1\x1a\'ai/stigmer/agentic/plugin/v1/spec.proto\x1a)ai/stigmer/agentic/plugin/v1/status.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a\x1b\x62uf/validate/validate.proto\"\xc5\x02\n\x06Plugin\x12=\n\x0b\x61pi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n\x15\x61gentic.stigmer.ai/v1R\napiVersion\x12!\n\x04kind\x18\x02 \x01(\tB\r\xbaH\nr\x08\n\x06PluginR\x04kind\x12W\n\x08metadata\x18\x03 \x01(\x0b\x32\x33.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\x08metadata\x12<\n\x04spec\x18\x04 \x01(\x0b\x32(.ai.stigmer.agentic.plugin.v1.PluginSpecR\x04spec\x12\x42\n\x06status\x18\x05 \x01(\x0b\x32*.ai.stigmer.agentic.plugin.v1.PluginStatusR\x06statusB\xc1\x01\n com.ai.stigmer.agentic.plugin.v1B\x08\x41piProtoP\x01\xa2\x02\x04\x41SAP\xaa\x02\x1c\x41i.Stigmer.Agentic.Plugin.V1\xca\x02\x1c\x41i\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -44,6 +44,4 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_PLUGIN'].fields_by_name['metadata']._serialized_options = b'\272H\003\310\001\001'
   _globals['_PLUGIN']._serialized_start=233
   _globals['_PLUGIN']._serialized_end=558
-  _globals['_PLUGINLIST']._serialized_start=560
-  _globals['_PLUGINLIST']._serialized_end=685
 # @@protoc_insertion_point(module_scope)

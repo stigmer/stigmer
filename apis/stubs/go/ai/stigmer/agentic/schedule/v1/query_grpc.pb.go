@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	ScheduleQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/get"
 	ScheduleQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/getByReference"
-	ScheduleQueryController_GetByAgent_FullMethodName     = "/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/getByAgent"
+	ScheduleQueryController_ListByAgent_FullMethodName    = "/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/listByAgent"
 	ScheduleQueryController_List_FullMethodName           = "/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/list"
 	ScheduleQueryController_ListFires_FullMethodName      = "/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/listFires"
 )
@@ -37,12 +37,12 @@ type ScheduleQueryControllerClient interface {
 	Get(ctx context.Context, in *ScheduleId, opts ...grpc.CallOption) (*Schedule, error)
 	// Get a schedule by its organization-scoped reference (org/slug).
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Schedule, error)
-	// Get all schedules of a specific agent.
+	// List the schedules of a specific agent, newest first.
 	// Returns only schedules the caller has access to.
 	//
 	// This is how the agent's operational surfaces and CLI resolve an
 	// agent's existing schedules regardless of slug.
-	GetByAgent(ctx context.Context, in *GetSchedulesByAgentRequest, opts ...grpc.CallOption) (*ScheduleList, error)
+	ListByAgent(ctx context.Context, in *ListSchedulesByAgentRequest, opts ...grpc.CallOption) (*ScheduleList, error)
 	// List schedules with optional label filtering.
 	List(ctx context.Context, in *ListSchedulesRequest, opts ...grpc.CallOption) (*ScheduleList, error)
 	// List a schedule's fire history, newest first.
@@ -82,10 +82,10 @@ func (c *scheduleQueryControllerClient) GetByReference(ctx context.Context, in *
 	return out, nil
 }
 
-func (c *scheduleQueryControllerClient) GetByAgent(ctx context.Context, in *GetSchedulesByAgentRequest, opts ...grpc.CallOption) (*ScheduleList, error) {
+func (c *scheduleQueryControllerClient) ListByAgent(ctx context.Context, in *ListSchedulesByAgentRequest, opts ...grpc.CallOption) (*ScheduleList, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ScheduleList)
-	err := c.cc.Invoke(ctx, ScheduleQueryController_GetByAgent_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ScheduleQueryController_ListByAgent_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -122,12 +122,12 @@ type ScheduleQueryControllerServer interface {
 	Get(context.Context, *ScheduleId) (*Schedule, error)
 	// Get a schedule by its organization-scoped reference (org/slug).
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Schedule, error)
-	// Get all schedules of a specific agent.
+	// List the schedules of a specific agent, newest first.
 	// Returns only schedules the caller has access to.
 	//
 	// This is how the agent's operational surfaces and CLI resolve an
 	// agent's existing schedules regardless of slug.
-	GetByAgent(context.Context, *GetSchedulesByAgentRequest) (*ScheduleList, error)
+	ListByAgent(context.Context, *ListSchedulesByAgentRequest) (*ScheduleList, error)
 	// List schedules with optional label filtering.
 	List(context.Context, *ListSchedulesRequest) (*ScheduleList, error)
 	// List a schedule's fire history, newest first.
@@ -152,8 +152,8 @@ func (UnimplementedScheduleQueryControllerServer) Get(context.Context, *Schedule
 func (UnimplementedScheduleQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*Schedule, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
 }
-func (UnimplementedScheduleQueryControllerServer) GetByAgent(context.Context, *GetSchedulesByAgentRequest) (*ScheduleList, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetByAgent not implemented")
+func (UnimplementedScheduleQueryControllerServer) ListByAgent(context.Context, *ListSchedulesByAgentRequest) (*ScheduleList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListByAgent not implemented")
 }
 func (UnimplementedScheduleQueryControllerServer) List(context.Context, *ListSchedulesRequest) (*ScheduleList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
@@ -217,20 +217,20 @@ func _ScheduleQueryController_GetByReference_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ScheduleQueryController_GetByAgent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetSchedulesByAgentRequest)
+func _ScheduleQueryController_ListByAgent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSchedulesByAgentRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ScheduleQueryControllerServer).GetByAgent(ctx, in)
+		return srv.(ScheduleQueryControllerServer).ListByAgent(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ScheduleQueryController_GetByAgent_FullMethodName,
+		FullMethod: ScheduleQueryController_ListByAgent_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ScheduleQueryControllerServer).GetByAgent(ctx, req.(*GetSchedulesByAgentRequest))
+		return srv.(ScheduleQueryControllerServer).ListByAgent(ctx, req.(*ListSchedulesByAgentRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -287,8 +287,8 @@ var ScheduleQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ScheduleQueryController_GetByReference_Handler,
 		},
 		{
-			MethodName: "getByAgent",
-			Handler:    _ScheduleQueryController_GetByAgent_Handler,
+			MethodName: "listByAgent",
+			Handler:    _ScheduleQueryController_ListByAgent_Handler,
 		},
 		{
 			MethodName: "list",

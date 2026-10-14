@@ -27,7 +27,7 @@ from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1f\x61i/stigmer/iam/team/v1/io.proto\x12\x16\x61i.stigmer.iam.team.v1\x1a ai/stigmer/iam/team/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"?\n\x05Teams\x12\x36\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x1c.ai.stigmer.iam.team.v1.TeamR\x07\x65ntries\"0\n\x13ListTeamsByOrgInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"\xd7\x02\n\x0fUpdateTeamInput\x12@\n\x08resource\x18\x01 \x01(\x0b\x32\x1c.ai.stigmer.iam.team.v1.TeamB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xbc\x01\xbaH\xb8\x01\x1a\xb5\x01\n\x17update_names_its_target\x12\x44resource.metadata.id is required: an update names the team by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xa2\x01\n\x1a\x63om.ai.stigmer.iam.team.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SIT\xaa\x02\x16\x41i.Stigmer.Iam.Team.V1\xca\x02\x16\x41i\\Stigmer\\Iam\\Team\\V1\xe2\x02\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetadata\xea\x02\x1a\x41i::Stigmer::Iam::Team::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1f\x61i/stigmer/iam/team/v1/io.proto\x12\x16\x61i.stigmer.iam.team.v1\x1a ai/stigmer/iam/team/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"g\n\x05Teams\x12\x36\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x1c.ai.stigmer.iam.team.v1.TeamR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"z\n\x0eListTeamsInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\"\xd7\x02\n\x0fUpdateTeamInput\x12@\n\x08resource\x18\x01 \x01(\x0b\x32\x1c.ai.stigmer.iam.team.v1.TeamB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xbc\x01\xbaH\xb8\x01\x1a\xb5\x01\n\x17update_names_its_target\x12\x44resource.metadata.id is required: an update names the team by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xa2\x01\n\x1a\x63om.ai.stigmer.iam.team.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SIT\xaa\x02\x16\x41i.Stigmer.Iam.Team.V1\xca\x02\x16\x41i\\Stigmer\\Iam\\Team\\V1\xe2\x02\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetadata\xea\x02\x1a\x41i::Stigmer::Iam::Team::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,8 +35,12 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ai.stigmer.iam.team.v1.io_p
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\032com.ai.stigmer.iam.team.v1B\007IoProtoP\001\242\002\004ASIT\252\002\026Ai.Stigmer.Iam.Team.V1\312\002\026Ai\\Stigmer\\Iam\\Team\\V1\342\002\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetadata\352\002\032Ai::Stigmer::Iam::Team::V1'
-  _globals['_LISTTEAMSBYORGINPUT'].fields_by_name['org']._loaded_options = None
-  _globals['_LISTTEAMSBYORGINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_LISTTEAMSINPUT'].fields_by_name['org']._loaded_options = None
+  _globals['_LISTTEAMSINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_LISTTEAMSINPUT'].fields_by_name['page_size']._loaded_options = None
+  _globals['_LISTTEAMSINPUT'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
+  _globals['_LISTTEAMSINPUT'].fields_by_name['page_token']._loaded_options = None
+  _globals['_LISTTEAMSINPUT'].fields_by_name['page_token']._serialized_options = b'\272H\005r\003\030\200\010'
   _globals['_UPDATETEAMINPUT'].fields_by_name['resource']._loaded_options = None
   _globals['_UPDATETEAMINPUT'].fields_by_name['resource']._serialized_options = b'\272H\003\330\001\003'
   _globals['_UPDATETEAMINPUT'].fields_by_name['update_mask']._loaded_options = None
@@ -44,9 +48,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_UPDATETEAMINPUT']._loaded_options = None
   _globals['_UPDATETEAMINPUT']._serialized_options = b'\272H\270\001\032\265\001\n\027update_names_its_target\022Dresource.metadata.id is required: an update names the team by its id\032Thas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\''
   _globals['_TEAMS']._serialized_start=156
-  _globals['_TEAMS']._serialized_end=219
-  _globals['_LISTTEAMSBYORGINPUT']._serialized_start=221
-  _globals['_LISTTEAMSBYORGINPUT']._serialized_end=269
-  _globals['_UPDATETEAMINPUT']._serialized_start=272
-  _globals['_UPDATETEAMINPUT']._serialized_end=615
+  _globals['_TEAMS']._serialized_end=259
+  _globals['_LISTTEAMSINPUT']._serialized_start=261
+  _globals['_LISTTEAMSINPUT']._serialized_end=383
+  _globals['_UPDATETEAMINPUT']._serialized_start=386
+  _globals['_UPDATETEAMINPUT']._serialized_end=729
 # @@protoc_insertion_point(module_scope)

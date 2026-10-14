@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	ChannelAppQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController/get"
 	ChannelAppQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController/getByReference"
-	ChannelAppQueryController_ListByOrg_FullMethodName      = "/ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController/listByOrg"
+	ChannelAppQueryController_List_FullMethodName           = "/ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController/list"
 )
 
 // ChannelAppQueryControllerClient is the client API for ChannelAppQueryController service.
@@ -39,12 +39,11 @@ type ChannelAppQueryControllerClient interface {
 	//
 	// Secret fields are redacted in the response.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*ChannelApp, error)
-	// List all channel apps belonging to an organization.
+	// List the channel apps belonging to an organization.
 	//
 	// Returns the ChannelApps of the input org that the caller may view,
-	// newest first, with secret fields redacted. Typically a small set, so
-	// results are not paginated.
-	ListByOrg(ctx context.Context, in *ListChannelAppsByOrgInput, opts ...grpc.CallOption) (*ChannelApps, error)
+	// newest first, one page at a time, with secret fields redacted.
+	List(ctx context.Context, in *ListChannelAppsInput, opts ...grpc.CallOption) (*ChannelApps, error)
 }
 
 type channelAppQueryControllerClient struct {
@@ -75,10 +74,10 @@ func (c *channelAppQueryControllerClient) GetByReference(ctx context.Context, in
 	return out, nil
 }
 
-func (c *channelAppQueryControllerClient) ListByOrg(ctx context.Context, in *ListChannelAppsByOrgInput, opts ...grpc.CallOption) (*ChannelApps, error) {
+func (c *channelAppQueryControllerClient) List(ctx context.Context, in *ListChannelAppsInput, opts ...grpc.CallOption) (*ChannelApps, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ChannelApps)
-	err := c.cc.Invoke(ctx, ChannelAppQueryController_ListByOrg_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ChannelAppQueryController_List_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -99,12 +98,11 @@ type ChannelAppQueryControllerServer interface {
 	//
 	// Secret fields are redacted in the response.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*ChannelApp, error)
-	// List all channel apps belonging to an organization.
+	// List the channel apps belonging to an organization.
 	//
 	// Returns the ChannelApps of the input org that the caller may view,
-	// newest first, with secret fields redacted. Typically a small set, so
-	// results are not paginated.
-	ListByOrg(context.Context, *ListChannelAppsByOrgInput) (*ChannelApps, error)
+	// newest first, one page at a time, with secret fields redacted.
+	List(context.Context, *ListChannelAppsInput) (*ChannelApps, error)
 }
 
 // UnimplementedChannelAppQueryControllerServer should be embedded to have
@@ -120,8 +118,8 @@ func (UnimplementedChannelAppQueryControllerServer) Get(context.Context, *apires
 func (UnimplementedChannelAppQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*ChannelApp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
 }
-func (UnimplementedChannelAppQueryControllerServer) ListByOrg(context.Context, *ListChannelAppsByOrgInput) (*ChannelApps, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListByOrg not implemented")
+func (UnimplementedChannelAppQueryControllerServer) List(context.Context, *ListChannelAppsInput) (*ChannelApps, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
 func (UnimplementedChannelAppQueryControllerServer) testEmbeddedByValue() {}
 
@@ -179,20 +177,20 @@ func _ChannelAppQueryController_GetByReference_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ChannelAppQueryController_ListByOrg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListChannelAppsByOrgInput)
+func _ChannelAppQueryController_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListChannelAppsInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ChannelAppQueryControllerServer).ListByOrg(ctx, in)
+		return srv.(ChannelAppQueryControllerServer).List(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ChannelAppQueryController_ListByOrg_FullMethodName,
+		FullMethod: ChannelAppQueryController_List_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChannelAppQueryControllerServer).ListByOrg(ctx, req.(*ListChannelAppsByOrgInput))
+		return srv.(ChannelAppQueryControllerServer).List(ctx, req.(*ListChannelAppsInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -213,8 +211,8 @@ var ChannelAppQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ChannelAppQueryController_GetByReference_Handler,
 		},
 		{
-			MethodName: "listByOrg",
-			Handler:    _ChannelAppQueryController_ListByOrg_Handler,
+			MethodName: "list",
+			Handler:    _ChannelAppQueryController_List_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

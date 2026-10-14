@@ -1,6 +1,5 @@
 from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
-from ai.stigmer.commons.rpc import pagination_pb2 as _pagination_pb2
 from ai.stigmer.iam.identityaccount.v1 import api_pb2 as _api_pb2
 from ai.stigmer.iam.v1 import enum_pb2 as _enum_pb2
 from buf.validate import validate_pb2 as _validate_pb2
@@ -37,29 +36,23 @@ class IdpId(_message.Message):
     value: str
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
-class ListWithIdentityAccountIdReq(_message.Message):
-    __slots__ = ("identity_account_id", "page")
-    IDENTITY_ACCOUNT_ID_FIELD_NUMBER: _ClassVar[int]
-    PAGE_FIELD_NUMBER: _ClassVar[int]
-    identity_account_id: str
-    page: _pagination_pb2.PageInfo
-    def __init__(self, identity_account_id: _Optional[str] = ..., page: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ...) -> None: ...
-
 class IdentityAccountsList(_message.Message):
-    __slots__ = ("total_pages", "entries")
-    TOTAL_PAGES_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("entries", "next_page_token")
     ENTRIES_FIELD_NUMBER: _ClassVar[int]
-    total_pages: int
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.IdentityAccount]
-    def __init__(self, total_pages: _Optional[int] = ..., entries: _Optional[_Iterable[_Union[_api_pb2.IdentityAccount, _Mapping]]] = ...) -> None: ...
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.IdentityAccount, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
-class ListWithIdentityOrg(_message.Message):
-    __slots__ = ("org", "page")
+class ListServiceAccountsInput(_message.Message):
+    __slots__ = ("org", "page_size", "page_token")
     ORG_FIELD_NUMBER: _ClassVar[int]
-    PAGE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     org: str
-    page: _pagination_pb2.PageInfo
-    def __init__(self, org: _Optional[str] = ..., page: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ...) -> None: ...
+    page_size: int
+    page_token: str
+    def __init__(self, org: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class ExternalSubLookup(_message.Message):
     __slots__ = ("org", "identity_provider_ref", "external_sub")

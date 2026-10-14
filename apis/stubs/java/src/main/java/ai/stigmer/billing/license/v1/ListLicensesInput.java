@@ -33,6 +33,7 @@ private static final long serialVersionUID = 0L;
   }
   private ListLicensesInput() {
     customerId_ = "";
+    pageToken_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -102,6 +103,71 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int PAGE_SIZE_FIELD_NUMBER = 2;
+  private int pageSize_ = 0;
+  /**
+   * <pre>
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   * </pre>
+   *
+   * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
+   * @return The pageSize.
+   */
+  @java.lang.Override
+  public int getPageSize() {
+    return pageSize_;
+  }
+
+  public static final int PAGE_TOKEN_FIELD_NUMBER = 3;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object pageToken_ = "";
+  /**
+   * <pre>
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   * </pre>
+   *
+   * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+   * @return The pageToken.
+   */
+  @java.lang.Override
+  public java.lang.String getPageToken() {
+    java.lang.Object ref = pageToken_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      pageToken_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   * </pre>
+   *
+   * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for pageToken.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPageTokenBytes() {
+    java.lang.Object ref = pageToken_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      pageToken_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -119,6 +185,12 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(customerId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 1, customerId_);
     }
+    if (pageSize_ != 0) {
+      output.writeInt32(2, pageSize_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pageToken_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, pageToken_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -130,6 +202,13 @@ private static final long serialVersionUID = 0L;
     size = 0;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(customerId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(1, customerId_);
+    }
+    if (pageSize_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(2, pageSize_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pageToken_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, pageToken_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -148,6 +227,10 @@ private static final long serialVersionUID = 0L;
 
     if (!getCustomerId()
         .equals(other.getCustomerId())) return false;
+    if (getPageSize()
+        != other.getPageSize()) return false;
+    if (!getPageToken()
+        .equals(other.getPageToken())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -161,6 +244,10 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + CUSTOMER_ID_FIELD_NUMBER;
     hash = (53 * hash) + getCustomerId().hashCode();
+    hash = (37 * hash) + PAGE_SIZE_FIELD_NUMBER;
+    hash = (53 * hash) + getPageSize();
+    hash = (37 * hash) + PAGE_TOKEN_FIELD_NUMBER;
+    hash = (53 * hash) + getPageToken().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -297,6 +384,8 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       customerId_ = "";
+      pageSize_ = 0;
+      pageToken_ = "";
       return this;
     }
 
@@ -333,6 +422,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000001) != 0)) {
         result.customerId_ = customerId_;
       }
+      if (((from_bitField0_ & 0x00000002) != 0)) {
+        result.pageSize_ = pageSize_;
+      }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.pageToken_ = pageToken_;
+      }
     }
 
     @java.lang.Override
@@ -350,6 +445,14 @@ private static final long serialVersionUID = 0L;
       if (!other.getCustomerId().isEmpty()) {
         customerId_ = other.customerId_;
         bitField0_ |= 0x00000001;
+        onChanged();
+      }
+      if (other.getPageSize() != 0) {
+        setPageSize(other.getPageSize());
+      }
+      if (!other.getPageToken().isEmpty()) {
+        pageToken_ = other.pageToken_;
+        bitField0_ |= 0x00000004;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -383,6 +486,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000001;
               break;
             } // case 10
+            case 16: {
+              pageSize_ = input.readInt32();
+              bitField0_ |= 0x00000002;
+              break;
+            } // case 16
+            case 26: {
+              pageToken_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 26
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -493,6 +606,150 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       customerId_ = value;
       bitField0_ |= 0x00000001;
+      onChanged();
+      return this;
+    }
+
+    private int pageSize_ ;
+    /**
+     * <pre>
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100.
+     * </pre>
+     *
+     * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
+     * @return The pageSize.
+     */
+    @java.lang.Override
+    public int getPageSize() {
+      return pageSize_;
+    }
+    /**
+     * <pre>
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100.
+     * </pre>
+     *
+     * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
+     * @param value The pageSize to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPageSize(int value) {
+
+      pageSize_ = value;
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100.
+     * </pre>
+     *
+     * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPageSize() {
+      bitField0_ = (bitField0_ & ~0x00000002);
+      pageSize_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object pageToken_ = "";
+    /**
+     * <pre>
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
+     * </pre>
+     *
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+     * @return The pageToken.
+     */
+    public java.lang.String getPageToken() {
+      java.lang.Object ref = pageToken_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        pageToken_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
+     * </pre>
+     *
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for pageToken.
+     */
+    public com.google.protobuf.ByteString
+        getPageTokenBytes() {
+      java.lang.Object ref = pageToken_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        pageToken_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
+     * </pre>
+     *
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+     * @param value The pageToken to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPageToken(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      pageToken_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
+     * </pre>
+     *
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPageToken() {
+      pageToken_ = getDefaultInstance().getPageToken();
+      bitField0_ = (bitField0_ & ~0x00000004);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
+     * </pre>
+     *
+     * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for pageToken to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPageTokenBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      pageToken_ = value;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }

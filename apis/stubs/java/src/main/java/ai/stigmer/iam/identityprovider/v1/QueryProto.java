@@ -43,7 +43,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ons/rpc/method_options.proto\032,ai/stigmer" +
       "/iam/identityprovider/v1/api.proto\032+ai/s" +
       "tigmer/iam/identityprovider/v1/io.proto2" +
-      "\251\004\n\037IdentityProviderQueryController\022\243\001\n\003" +
+      "\237\004\n\037IdentityProviderQueryController\022\243\001\n\003" +
       "get\022-.ai.stigmer.commons.apiresource.Api" +
       "ResourceId\0324.ai.stigmer.iam.identityprov" +
       "ider.v1.IdentityProvider\"7\302\270\0303\010\001\020\025\"\005valu" +
@@ -51,17 +51,17 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "r\022\202\001\n\016getByReference\0224.ai.stigmer.common" +
       "s.apiresource.ApiResourceReference\0324.ai." +
       "stigmer.iam.identityprovider.v1.Identity" +
-      "Provider\"\004\320\270\030\001\022\324\001\n\tlistByOrg\022C.ai.stigme" +
-      "r.iam.identityprovider.v1.ListIdentityPr" +
-      "ovidersByOrgInput\0325.ai.stigmer.iam.ident" +
-      "ityprovider.v1.IdentityProviders\"K\302\270\030G\010\001" +
-      "\020\036\"\003org*<unauthorized to list identity p" +
-      "roviders in this organization\032\004\240\377+\025B\271\001B\n" +
-      "QueryProtoP\001\242\002\004ASII\252\002\"Ai.Stigmer.Iam.Ide" +
-      "ntityprovider.V1\312\002\"Ai\\Stigmer\\Iam\\Identi" +
-      "typrovider\\V1\342\002.Ai\\Stigmer\\Iam\\Identityp" +
-      "rovider\\V1\\GPBMetadata\352\002&Ai::Stigmer::Ia" +
-      "m::Identityprovider::V1b\006proto3"
+      "Provider\"\004\320\270\030\001\022\312\001\n\004list\022>.ai.stigmer.iam" +
+      ".identityprovider.v1.ListIdentityProvide" +
+      "rsInput\0325.ai.stigmer.iam.identityprovide" +
+      "r.v1.IdentityProviders\"K\302\270\030G\010\001\020\036\"\003org*<u" +
+      "nauthorized to list identity providers i" +
+      "n this organization\032\004\240\377+\025B\271\001B\nQueryProto" +
+      "P\001\242\002\004ASII\252\002\"Ai.Stigmer.Iam.Identityprovi" +
+      "der.V1\312\002\"Ai\\Stigmer\\Iam\\Identityprovider" +
+      "\\V1\342\002.Ai\\Stigmer\\Iam\\Identityprovider\\V1" +
+      "\\GPBMetadata\352\002&Ai::Stigmer::Iam::Identit" +
+      "yprovider::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

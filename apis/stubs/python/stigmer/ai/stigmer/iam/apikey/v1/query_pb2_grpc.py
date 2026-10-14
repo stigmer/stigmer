@@ -4,7 +4,6 @@ import grpc
 
 from ai.stigmer.iam.apikey.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2
 from ai.stigmer.iam.apikey.v1 import io_pb2 as ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2
-from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
 class ApiKeyQueryControllerStub(object):
@@ -27,14 +26,14 @@ class ApiKeyQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeyHash.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2.ApiKey.FromString,
                 _registered_method=True)
-        self.findAll = channel.unary_unary(
-                '/ai.stigmer.iam.apikey.v1.ApiKeyQueryController/findAll',
-                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+        self.list = channel.unary_unary(
+                '/ai.stigmer.iam.apikey.v1.ApiKeyQueryController/list',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ListApiKeysInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeys.FromString,
                 _registered_method=True)
-        self.findByAccount = channel.unary_unary(
-                '/ai.stigmer.iam.apikey.v1.ApiKeyQueryController/findByAccount',
-                request_serializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeyAccountId.SerializeToString,
+        self.listByAccount = channel.unary_unary(
+                '/ai.stigmer.iam.apikey.v1.ApiKeyQueryController/listByAccount',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ListApiKeysByAccountInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeys.FromString,
                 _registered_method=True)
 
@@ -57,17 +56,17 @@ class ApiKeyQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def findAll(self, request, context):
+    def list(self, request, context):
         """List all API keys belonging to the authenticated user.
 
         Returns only the keys that speak for the identity account in the auth
-        header; a service account's keys are listed with findByAccount.
+        header; a service account's keys are listed with listByAccount.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def findByAccount(self, request, context):
+    def listByAccount(self, request, context):
         """List the API keys that speak for an identity account.
 
         An organization's admins list a service account's keys with it; a person
@@ -92,14 +91,14 @@ def add_ApiKeyQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeyHash.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2.ApiKey.SerializeToString,
             ),
-            'findAll': grpc.unary_unary_rpc_method_handler(
-                    servicer.findAll,
-                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            'list': grpc.unary_unary_rpc_method_handler(
+                    servicer.list,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ListApiKeysInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeys.SerializeToString,
             ),
-            'findByAccount': grpc.unary_unary_rpc_method_handler(
-                    servicer.findByAccount,
-                    request_deserializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeyAccountId.FromString,
+            'listByAccount': grpc.unary_unary_rpc_method_handler(
+                    servicer.listByAccount,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ListApiKeysByAccountInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeys.SerializeToString,
             ),
     }
@@ -169,7 +168,7 @@ class ApiKeyQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def findAll(request,
+    def list(request,
             target,
             options=(),
             channel_credentials=None,
@@ -182,8 +181,8 @@ class ApiKeyQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.iam.apikey.v1.ApiKeyQueryController/findAll',
-            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            '/ai.stigmer.iam.apikey.v1.ApiKeyQueryController/list',
+            ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ListApiKeysInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeys.FromString,
             options,
             channel_credentials,
@@ -196,7 +195,7 @@ class ApiKeyQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def findByAccount(request,
+    def listByAccount(request,
             target,
             options=(),
             channel_credentials=None,
@@ -209,8 +208,8 @@ class ApiKeyQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.iam.apikey.v1.ApiKeyQueryController/findByAccount',
-            ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeyAccountId.SerializeToString,
+            '/ai.stigmer.iam.apikey.v1.ApiKeyQueryController/listByAccount',
+            ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ListApiKeysByAccountInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.ApiKeys.FromString,
             options,
             channel_credentials,

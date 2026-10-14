@@ -17,19 +17,24 @@ class ChannelConversationQueryControllerStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.listConversations = channel.unary_unary(
-                '/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/listConversations',
+        self.list = channel.unary_unary(
+                '/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/list',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ListChannelConversationsInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ChannelConversationList.FromString,
+                _registered_method=True)
+        self.countConversations = channel.unary_unary(
+                '/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/countConversations',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.CountChannelConversationsInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ChannelConversationCount.FromString,
                 _registered_method=True)
         self.getConversation = channel.unary_unary(
                 '/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getConversation',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.GetChannelConversationInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ChannelConversation.FromString,
                 _registered_method=True)
-        self.getTimeline = channel.unary_unary(
-                '/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getTimeline',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.GetConversationTimelineInput.SerializeToString,
+        self.listTimeline = channel.unary_unary(
+                '/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/listTimeline',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ListConversationTimelineInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ConversationTimeline.FromString,
                 _registered_method=True)
         self.getMediaDownloadUrl = channel.unary_unary(
@@ -45,12 +50,23 @@ class ChannelConversationQueryControllerServicer(object):
     customer-visible timeline.
     """
 
-    def listConversations(self, request, context):
+    def list(self, request, context):
         """List an organization's channel conversations, newest activity first.
 
         Returns conversations across all of the org's channels the caller can
         view, optionally filtered to one channel. Entries carry participation
         state and the customer's display name.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def countConversations(self, request, context):
+        """Count an organization's channel conversations that match a filter.
+
+        The number behind a badge such as the inbox's "needs you": the same
+        predicate list applies, over the same channels, so the count and the
+        list it opens never disagree.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -68,8 +84,8 @@ class ChannelConversationQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def getTimeline(self, request, context):
-        """Get one conversation's timeline, newest first, cursor-paged.
+    def listTimeline(self, request, context):
+        """List one conversation's timeline, newest first, one page at a time.
 
         The timeline contains customer-visible items only: inbound customer
         messages (including non-text kinds the platform cannot render),
@@ -95,19 +111,24 @@ class ChannelConversationQueryControllerServicer(object):
 
 def add_ChannelConversationQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'listConversations': grpc.unary_unary_rpc_method_handler(
-                    servicer.listConversations,
+            'list': grpc.unary_unary_rpc_method_handler(
+                    servicer.list,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ListChannelConversationsInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ChannelConversationList.SerializeToString,
+            ),
+            'countConversations': grpc.unary_unary_rpc_method_handler(
+                    servicer.countConversations,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.CountChannelConversationsInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ChannelConversationCount.SerializeToString,
             ),
             'getConversation': grpc.unary_unary_rpc_method_handler(
                     servicer.getConversation,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.GetChannelConversationInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ChannelConversation.SerializeToString,
             ),
-            'getTimeline': grpc.unary_unary_rpc_method_handler(
-                    servicer.getTimeline,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.GetConversationTimelineInput.FromString,
+            'listTimeline': grpc.unary_unary_rpc_method_handler(
+                    servicer.listTimeline,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ListConversationTimelineInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ConversationTimeline.SerializeToString,
             ),
             'getMediaDownloadUrl': grpc.unary_unary_rpc_method_handler(
@@ -130,7 +151,7 @@ class ChannelConversationQueryController(object):
     """
 
     @staticmethod
-    def listConversations(request,
+    def list(request,
             target,
             options=(),
             channel_credentials=None,
@@ -143,9 +164,36 @@ class ChannelConversationQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/listConversations',
+            '/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/list',
             ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ListChannelConversationsInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ChannelConversationList.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def countConversations(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/countConversations',
+            ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.CountChannelConversationsInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ChannelConversationCount.FromString,
             options,
             channel_credentials,
             insecure,
@@ -184,7 +232,7 @@ class ChannelConversationQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def getTimeline(request,
+    def listTimeline(request,
             target,
             options=(),
             channel_credentials=None,
@@ -197,8 +245,8 @@ class ChannelConversationQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getTimeline',
-            ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.GetConversationTimelineInput.SerializeToString,
+            '/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/listTimeline',
+            ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ListConversationTimelineInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ConversationTimeline.FromString,
             options,
             channel_credentials,

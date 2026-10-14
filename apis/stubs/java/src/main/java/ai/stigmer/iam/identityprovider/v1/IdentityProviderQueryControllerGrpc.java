@@ -77,35 +77,35 @@ public final class IdentityProviderQueryControllerGrpc {
     return getGetByReferenceMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput,
-      ai.stigmer.iam.identityprovider.v1.IdentityProviders> getListByOrgMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput,
+      ai.stigmer.iam.identityprovider.v1.IdentityProviders> getListMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "listByOrg",
-      requestType = ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput.class,
+      fullMethodName = SERVICE_NAME + '/' + "list",
+      requestType = ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput.class,
       responseType = ai.stigmer.iam.identityprovider.v1.IdentityProviders.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput,
-      ai.stigmer.iam.identityprovider.v1.IdentityProviders> getListByOrgMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput, ai.stigmer.iam.identityprovider.v1.IdentityProviders> getListByOrgMethod;
-    if ((getListByOrgMethod = IdentityProviderQueryControllerGrpc.getListByOrgMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput,
+      ai.stigmer.iam.identityprovider.v1.IdentityProviders> getListMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput, ai.stigmer.iam.identityprovider.v1.IdentityProviders> getListMethod;
+    if ((getListMethod = IdentityProviderQueryControllerGrpc.getListMethod) == null) {
       synchronized (IdentityProviderQueryControllerGrpc.class) {
-        if ((getListByOrgMethod = IdentityProviderQueryControllerGrpc.getListByOrgMethod) == null) {
-          IdentityProviderQueryControllerGrpc.getListByOrgMethod = getListByOrgMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput, ai.stigmer.iam.identityprovider.v1.IdentityProviders>newBuilder()
+        if ((getListMethod = IdentityProviderQueryControllerGrpc.getListMethod) == null) {
+          IdentityProviderQueryControllerGrpc.getListMethod = getListMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput, ai.stigmer.iam.identityprovider.v1.IdentityProviders>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listByOrg"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "list"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput.getDefaultInstance()))
+                  ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.iam.identityprovider.v1.IdentityProviders.getDefaultInstance()))
-              .setSchemaDescriptor(new IdentityProviderQueryControllerMethodDescriptorSupplier("listByOrg"))
+              .setSchemaDescriptor(new IdentityProviderQueryControllerMethodDescriptorSupplier("list"))
               .build();
         }
       }
     }
-    return getListByOrgMethod;
+    return getListMethod;
   }
 
   /**
@@ -200,13 +200,12 @@ public final class IdentityProviderQueryControllerGrpc {
      * <pre>
      * List the identity providers of an organization that the caller may view.
      * Returns the IdentityProviders whose metadata.org matches the input org and
-     * that the caller could get by id. Typically a small set (1-3 per org), so
-     * results are not paginated.
+     * that the caller could get by id, newest first, one page at a time.
      * </pre>
      */
-    default void listByOrg(ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput request,
+    default void list(ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.identityprovider.v1.IdentityProviders> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListByOrgMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListMethod(), responseObserver);
     }
   }
 
@@ -271,14 +270,13 @@ public final class IdentityProviderQueryControllerGrpc {
      * <pre>
      * List the identity providers of an organization that the caller may view.
      * Returns the IdentityProviders whose metadata.org matches the input org and
-     * that the caller could get by id. Typically a small set (1-3 per org), so
-     * results are not paginated.
+     * that the caller could get by id, newest first, one page at a time.
      * </pre>
      */
-    public void listByOrg(ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput request,
+    public void list(ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.identityprovider.v1.IdentityProviders> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getListByOrgMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getListMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -327,13 +325,12 @@ public final class IdentityProviderQueryControllerGrpc {
      * <pre>
      * List the identity providers of an organization that the caller may view.
      * Returns the IdentityProviders whose metadata.org matches the input org and
-     * that the caller could get by id. Typically a small set (1-3 per org), so
-     * results are not paginated.
+     * that the caller could get by id, newest first, one page at a time.
      * </pre>
      */
-    public ai.stigmer.iam.identityprovider.v1.IdentityProviders listByOrg(ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput request) throws io.grpc.StatusException {
+    public ai.stigmer.iam.identityprovider.v1.IdentityProviders list(ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getListByOrgMethod(), getCallOptions(), request);
+          getChannel(), getListMethod(), getCallOptions(), request);
     }
   }
 
@@ -382,13 +379,12 @@ public final class IdentityProviderQueryControllerGrpc {
      * <pre>
      * List the identity providers of an organization that the caller may view.
      * Returns the IdentityProviders whose metadata.org matches the input org and
-     * that the caller could get by id. Typically a small set (1-3 per org), so
-     * results are not paginated.
+     * that the caller could get by id, newest first, one page at a time.
      * </pre>
      */
-    public ai.stigmer.iam.identityprovider.v1.IdentityProviders listByOrg(ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput request) {
+    public ai.stigmer.iam.identityprovider.v1.IdentityProviders list(ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getListByOrgMethod(), getCallOptions(), request);
+          getChannel(), getListMethod(), getCallOptions(), request);
     }
   }
 
@@ -439,20 +435,19 @@ public final class IdentityProviderQueryControllerGrpc {
      * <pre>
      * List the identity providers of an organization that the caller may view.
      * Returns the IdentityProviders whose metadata.org matches the input org and
-     * that the caller could get by id. Typically a small set (1-3 per org), so
-     * results are not paginated.
+     * that the caller could get by id, newest first, one page at a time.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.IdentityProviders> listByOrg(
-        ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.IdentityProviders> list(
+        ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getListByOrgMethod(), getCallOptions()), request);
+          getChannel().newCall(getListMethod(), getCallOptions()), request);
     }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
-  private static final int METHODID_LIST_BY_ORG = 2;
+  private static final int METHODID_LIST = 2;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -479,8 +474,8 @@ public final class IdentityProviderQueryControllerGrpc {
           serviceImpl.getByReference((ai.stigmer.commons.apiresource.ApiResourceReference) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityprovider.v1.IdentityProvider>) responseObserver);
           break;
-        case METHODID_LIST_BY_ORG:
-          serviceImpl.listByOrg((ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput) request,
+        case METHODID_LIST:
+          serviceImpl.list((ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityprovider.v1.IdentityProviders>) responseObserver);
           break;
         default:
@@ -516,12 +511,12 @@ public final class IdentityProviderQueryControllerGrpc {
               ai.stigmer.iam.identityprovider.v1.IdentityProvider>(
                 service, METHODID_GET_BY_REFERENCE)))
         .addMethod(
-          getListByOrgMethod(),
+          getListMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput,
+              ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersInput,
               ai.stigmer.iam.identityprovider.v1.IdentityProviders>(
-                service, METHODID_LIST_BY_ORG)))
+                service, METHODID_LIST)))
         .build();
   }
 
@@ -572,7 +567,7 @@ public final class IdentityProviderQueryControllerGrpc {
               .setSchemaDescriptor(new IdentityProviderQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
               .addMethod(getGetByReferenceMethod())
-              .addMethod(getListByOrgMethod())
+              .addMethod(getListMethod())
               .build();
         }
       }

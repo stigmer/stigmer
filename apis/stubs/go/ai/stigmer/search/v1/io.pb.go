@@ -10,7 +10,6 @@ import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	rpc "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -68,13 +67,12 @@ type SearchRequest struct {
 	// - Empty: Search all organizations the caller has access to
 	// - Non-empty: Search only within the specified organization
 	Org string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
-	// Pagination parameters.
-	//
-	// - num: Page number (1-indexed). Default: 1
-	// - size: Items per page. Default: 20, Maximum: 100
-	//
-	// If not provided, defaults to page 1 with 20 items.
-	Page          *rpc.PageInfo `protobuf:"bytes,5,opt,name=page,proto3" json:"page,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,7,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,8,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -130,11 +128,18 @@ func (x *SearchRequest) GetOrg() string {
 	return ""
 }
 
-func (x *SearchRequest) GetPage() *rpc.PageInfo {
+func (x *SearchRequest) GetPageSize() int32 {
 	if x != nil {
-		return x.Page
+		return x.PageSize
 	}
-	return nil
+	return 0
+}
+
+func (x *SearchRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
 }
 
 // SearchResponse contains paginated search results with metadata.
@@ -163,16 +168,9 @@ type SearchResponse struct {
 	// Useful for rendering UI tabs or filter badges showing counts.
 	// Example: {"agent": 5, "skill": 12, "plugin": 3}
 	CountsByKind map[string]int32 `protobuf:"bytes,2,rep,name=counts_by_kind,json=countsByKind,proto3" json:"counts_by_kind,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
-	// Total count of matching resources across all kinds.
-	//
-	// This is the sum of all counts_by_kind values.
-	// Used for displaying "Showing X of Y results".
-	TotalCount int32 `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
-	// Total number of pages based on current page size.
-	//
-	// Calculated as: ceil(total_count / page.size)
-	// Used for pagination controls.
-	TotalPages    int32 `protobuf:"varint,4,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,5,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -221,18 +219,11 @@ func (x *SearchResponse) GetCountsByKind() map[string]int32 {
 	return nil
 }
 
-func (x *SearchResponse) GetTotalCount() int32 {
+func (x *SearchResponse) GetNextPageToken() string {
 	if x != nil {
-		return x.TotalCount
+		return x.NextPageToken
 	}
-	return 0
-}
-
-func (x *SearchResponse) GetTotalPages() int32 {
-	if x != nil {
-		return x.TotalPages
-	}
-	return 0
+	return ""
 }
 
 // SearchResult is a lightweight summary of an API resource returned by search.
@@ -435,23 +426,22 @@ var File_ai_stigmer_search_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_search_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"\x1dai/stigmer/search/v1/io.proto\x12\x14ai.stigmer.search.v1\x1aFai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xbd\x02\n" +
+	"\x1dai/stigmer/search/v1/io.proto\x12\x14ai.stigmer.search.v1\x1aFai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe2\x02\n" +
 	"\rSearchRequest\x12d\n" +
 	"\x05kinds\x18\x01 \x03(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindB\r\xbaH\n" +
 	"\x92\x01\a\"\x05\x82\x01\x02\x10\x01R\x05kinds\x12\x1e\n" +
 	"\x05query\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\xf4\x03R\x05query\x12B\n" +
-	"\x03org\x18\x03 \x01(\tB0\xbaH-r+\x18?2'^$|^[a-z][a-z0-9-]*$|^org_[0-9a-z]{26}$R\x03org\x124\n" +
-	"\x04page\x18\x05 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\x04pageJ\x04\b\x04\x10\x05J\x04\b\x06\x10\aR\x0eexclude_publicR\x10cross_org_public\"\xaf\x02\n" +
+	"\x03org\x18\x03 \x01(\tB0\xbaH-r+\x18?2'^$|^[a-z][a-z0-9-]*$|^org_[0-9a-z]{26}$R\x03org\x12$\n" +
+	"\tpage_size\x18\a \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\b \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageTokenJ\x04\b\x04\x10\x05J\x04\b\x06\x10\aJ\x04\b\x05\x10\x06R\x0eexclude_publicR\x10cross_org_publicR\x04page\"\xbb\x02\n" +
 	"\x0eSearchResponse\x12<\n" +
 	"\aentries\x18\x01 \x03(\v2\".ai.stigmer.search.v1.SearchResultR\aentries\x12\\\n" +
-	"\x0ecounts_by_kind\x18\x02 \x03(\v26.ai.stigmer.search.v1.SearchResponse.CountsByKindEntryR\fcountsByKind\x12\x1f\n" +
-	"\vtotal_count\x18\x03 \x01(\x05R\n" +
-	"totalCount\x12\x1f\n" +
-	"\vtotal_pages\x18\x04 \x01(\x05R\n" +
-	"totalPages\x1a?\n" +
+	"\x0ecounts_by_kind\x18\x02 \x03(\v26.ai.stigmer.search.v1.SearchResponse.CountsByKindEntryR\fcountsByKind\x12&\n" +
+	"\x0fnext_page_token\x18\x05 \x01(\tR\rnextPageToken\x1a?\n" +
 	"\x11CountsByKindEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"\x88\x04\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01J\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\vtotal_countR\vtotal_pages\"\x88\x04\n" +
 	"\fSearchResult\x12S\n" +
 	"\x04kind\x18\x01 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x12\n" +
@@ -492,24 +482,22 @@ var file_ai_stigmer_search_v1_io_proto_goTypes = []any{
 	(*SearchResult)(nil),                   // 2: ai.stigmer.search.v1.SearchResult
 	nil,                                    // 3: ai.stigmer.search.v1.SearchResponse.CountsByKindEntry
 	(apiresourcekind.ApiResourceKind)(0),   // 4: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
-	(*rpc.PageInfo)(nil),                   // 5: ai.stigmer.commons.rpc.PageInfo
-	(apiresource.ApiResourceVisibility)(0), // 6: ai.stigmer.commons.apiresource.ApiResourceVisibility
-	(*timestamppb.Timestamp)(nil),          // 7: google.protobuf.Timestamp
+	(apiresource.ApiResourceVisibility)(0), // 5: ai.stigmer.commons.apiresource.ApiResourceVisibility
+	(*timestamppb.Timestamp)(nil),          // 6: google.protobuf.Timestamp
 }
 var file_ai_stigmer_search_v1_io_proto_depIdxs = []int32{
 	4, // 0: ai.stigmer.search.v1.SearchRequest.kinds:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
-	5, // 1: ai.stigmer.search.v1.SearchRequest.page:type_name -> ai.stigmer.commons.rpc.PageInfo
-	2, // 2: ai.stigmer.search.v1.SearchResponse.entries:type_name -> ai.stigmer.search.v1.SearchResult
-	3, // 3: ai.stigmer.search.v1.SearchResponse.counts_by_kind:type_name -> ai.stigmer.search.v1.SearchResponse.CountsByKindEntry
-	4, // 4: ai.stigmer.search.v1.SearchResult.kind:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
-	6, // 5: ai.stigmer.search.v1.SearchResult.visibility:type_name -> ai.stigmer.commons.apiresource.ApiResourceVisibility
-	7, // 6: ai.stigmer.search.v1.SearchResult.created_at:type_name -> google.protobuf.Timestamp
-	7, // 7: ai.stigmer.search.v1.SearchResult.updated_at:type_name -> google.protobuf.Timestamp
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	2, // 1: ai.stigmer.search.v1.SearchResponse.entries:type_name -> ai.stigmer.search.v1.SearchResult
+	3, // 2: ai.stigmer.search.v1.SearchResponse.counts_by_kind:type_name -> ai.stigmer.search.v1.SearchResponse.CountsByKindEntry
+	4, // 3: ai.stigmer.search.v1.SearchResult.kind:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
+	5, // 4: ai.stigmer.search.v1.SearchResult.visibility:type_name -> ai.stigmer.commons.apiresource.ApiResourceVisibility
+	6, // 5: ai.stigmer.search.v1.SearchResult.created_at:type_name -> google.protobuf.Timestamp
+	6, // 6: ai.stigmer.search.v1.SearchResult.updated_at:type_name -> google.protobuf.Timestamp
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_search_v1_io_proto_init() }

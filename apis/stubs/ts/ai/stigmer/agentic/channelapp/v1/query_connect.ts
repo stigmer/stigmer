@@ -6,7 +6,7 @@
 import { ApiResourceId, ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
 import { ChannelApp } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { ChannelApps, ListChannelAppsByOrgInput } from "./io_pbjs";
+import { ChannelApps, ListChannelAppsInput } from "./io_pbjs";
 
 /**
  * ChannelAppQueryController handles read operations for channel apps.
@@ -43,17 +43,16 @@ export const ChannelAppQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * List all channel apps belonging to an organization.
+     * List the channel apps belonging to an organization.
      *
      * Returns the ChannelApps of the input org that the caller may view,
-     * newest first, with secret fields redacted. Typically a small set, so
-     * results are not paginated.
+     * newest first, one page at a time, with secret fields redacted.
      *
-     * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.listByOrg
+     * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.list
      */
-    listByOrg: {
-      name: "listByOrg",
-      I: ListChannelAppsByOrgInput,
+    list: {
+      name: "list",
+      I: ListChannelAppsInput,
       O: ChannelApps,
       kind: MethodKind.Unary,
     },

@@ -11,7 +11,6 @@ import (
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 	unsafe "unsafe"
 )
@@ -27,32 +26,33 @@ var File_ai_stigmer_iam_apikey_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_apikey_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/iam/apikey/v1/query.proto\x12\x18ai.stigmer.iam.apikey.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\"ai/stigmer/iam/apikey/v1/api.proto\x1a!ai/stigmer/iam/apikey/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xe2\x03\n" +
+	"$ai/stigmer/iam/apikey/v1/query.proto\x12\x18ai.stigmer.iam.apikey.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\"ai/stigmer/iam/apikey/v1/api.proto\x1a!ai/stigmer/iam/apikey/v1/io.proto2\x82\x04\n" +
 	"\x15ApiKeyQueryController\x12z\n" +
 	"\x03get\x12\".ai.stigmer.iam.apikey.v1.ApiKeyId\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"-¸\x18)\b\x01\x10\f\"\x05value*\x1cunauthorized to view api key\x12\\\n" +
-	"\fgetByKeyHash\x12$.ai.stigmer.iam.apikey.v1.ApiKeyHash\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"\x04и\x18\x01\x12J\n" +
-	"\afindAll\x12\x16.google.protobuf.Empty\x1a!.ai.stigmer.iam.apikey.v1.ApiKeys\"\x04и\x18\x01\x12\x9c\x01\n" +
-	"\rfindByAccount\x12).ai.stigmer.iam.apikey.v1.ApiKeyAccountId\x1a!.ai.stigmer.iam.apikey.v1.ApiKeys\"=¸\x189\b\x01\x10\v\"\x05value*,unauthorized to list this account's api keys\x1a\x04\xa0\xff+\fB\xfb\x01\n" +
+	"\fgetByKeyHash\x12$.ai.stigmer.iam.apikey.v1.ApiKeyHash\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"\x04и\x18\x01\x12[\n" +
+	"\x04list\x12*.ai.stigmer.iam.apikey.v1.ListApiKeysInput\x1a!.ai.stigmer.iam.apikey.v1.ApiKeys\"\x04и\x18\x01\x12\xab\x01\n" +
+	"\rlistByAccount\x123.ai.stigmer.iam.apikey.v1.ListApiKeysByAccountInput\x1a!.ai.stigmer.iam.apikey.v1.ApiKeys\"B¸\x18>\b\x01\x10\v\"\n" +
+	"account_id*,unauthorized to list this account's api keys\x1a\x04\xa0\xff+\fB\xfb\x01\n" +
 	"\x1ccom.ai.stigmer.iam.apikey.v1B\n" +
 	"QueryProtoP\x01ZJgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"
 
 var file_ai_stigmer_iam_apikey_v1_query_proto_goTypes = []any{
-	(*ApiKeyId)(nil),        // 0: ai.stigmer.iam.apikey.v1.ApiKeyId
-	(*ApiKeyHash)(nil),      // 1: ai.stigmer.iam.apikey.v1.ApiKeyHash
-	(*emptypb.Empty)(nil),   // 2: google.protobuf.Empty
-	(*ApiKeyAccountId)(nil), // 3: ai.stigmer.iam.apikey.v1.ApiKeyAccountId
-	(*ApiKey)(nil),          // 4: ai.stigmer.iam.apikey.v1.ApiKey
-	(*ApiKeys)(nil),         // 5: ai.stigmer.iam.apikey.v1.ApiKeys
+	(*ApiKeyId)(nil),                  // 0: ai.stigmer.iam.apikey.v1.ApiKeyId
+	(*ApiKeyHash)(nil),                // 1: ai.stigmer.iam.apikey.v1.ApiKeyHash
+	(*ListApiKeysInput)(nil),          // 2: ai.stigmer.iam.apikey.v1.ListApiKeysInput
+	(*ListApiKeysByAccountInput)(nil), // 3: ai.stigmer.iam.apikey.v1.ListApiKeysByAccountInput
+	(*ApiKey)(nil),                    // 4: ai.stigmer.iam.apikey.v1.ApiKey
+	(*ApiKeys)(nil),                   // 5: ai.stigmer.iam.apikey.v1.ApiKeys
 }
 var file_ai_stigmer_iam_apikey_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.iam.apikey.v1.ApiKeyQueryController.get:input_type -> ai.stigmer.iam.apikey.v1.ApiKeyId
 	1, // 1: ai.stigmer.iam.apikey.v1.ApiKeyQueryController.getByKeyHash:input_type -> ai.stigmer.iam.apikey.v1.ApiKeyHash
-	2, // 2: ai.stigmer.iam.apikey.v1.ApiKeyQueryController.findAll:input_type -> google.protobuf.Empty
-	3, // 3: ai.stigmer.iam.apikey.v1.ApiKeyQueryController.findByAccount:input_type -> ai.stigmer.iam.apikey.v1.ApiKeyAccountId
+	2, // 2: ai.stigmer.iam.apikey.v1.ApiKeyQueryController.list:input_type -> ai.stigmer.iam.apikey.v1.ListApiKeysInput
+	3, // 3: ai.stigmer.iam.apikey.v1.ApiKeyQueryController.listByAccount:input_type -> ai.stigmer.iam.apikey.v1.ListApiKeysByAccountInput
 	4, // 4: ai.stigmer.iam.apikey.v1.ApiKeyQueryController.get:output_type -> ai.stigmer.iam.apikey.v1.ApiKey
 	4, // 5: ai.stigmer.iam.apikey.v1.ApiKeyQueryController.getByKeyHash:output_type -> ai.stigmer.iam.apikey.v1.ApiKey
-	5, // 6: ai.stigmer.iam.apikey.v1.ApiKeyQueryController.findAll:output_type -> ai.stigmer.iam.apikey.v1.ApiKeys
-	5, // 7: ai.stigmer.iam.apikey.v1.ApiKeyQueryController.findByAccount:output_type -> ai.stigmer.iam.apikey.v1.ApiKeys
+	5, // 6: ai.stigmer.iam.apikey.v1.ApiKeyQueryController.list:output_type -> ai.stigmer.iam.apikey.v1.ApiKeys
+	5, // 7: ai.stigmer.iam.apikey.v1.ApiKeyQueryController.listByAccount:output_type -> ai.stigmer.iam.apikey.v1.ApiKeys
 	4, // [4:8] is the sub-list for method output_type
 	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

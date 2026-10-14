@@ -178,27 +178,23 @@ public interface SearchResponseOrBuilder extends
 
   /**
    * <pre>
-   * Total count of matching resources across all kinds.
-   *
-   * This is the sum of all counts_by_kind values.
-   * Used for displaying "Showing X of Y results".
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
-   * <code>int32 total_count = 3 [json_name = "totalCount"];</code>
-   * @return The totalCount.
+   * <code>string next_page_token = 5 [json_name = "nextPageToken"];</code>
+   * @return The nextPageToken.
    */
-  int getTotalCount();
-
+  java.lang.String getNextPageToken();
   /**
    * <pre>
-   * Total number of pages based on current page size.
-   *
-   * Calculated as: ceil(total_count / page.size)
-   * Used for pagination controls.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
-   * <code>int32 total_pages = 4 [json_name = "totalPages"];</code>
-   * @return The totalPages.
+   * <code>string next_page_token = 5 [json_name = "nextPageToken"];</code>
+   * @return The bytes for nextPageToken.
    */
-  int getTotalPages();
+  com.google.protobuf.ByteString
+      getNextPageTokenBytes();
 }

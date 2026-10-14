@@ -16,24 +16,22 @@ class IdentityProviderId(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class IdentityProviders(_message.Message):
-    __slots__ = ("entries",)
+    __slots__ = ("entries", "next_page_token")
     ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.IdentityProvider]
-    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.IdentityProvider, _Mapping]]] = ...) -> None: ...
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.IdentityProvider, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
-class IdentityProviderList(_message.Message):
-    __slots__ = ("total_pages", "entries")
-    TOTAL_PAGES_FIELD_NUMBER: _ClassVar[int]
-    ENTRIES_FIELD_NUMBER: _ClassVar[int]
-    total_pages: int
-    entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.IdentityProvider]
-    def __init__(self, total_pages: _Optional[int] = ..., entries: _Optional[_Iterable[_Union[_api_pb2.IdentityProvider, _Mapping]]] = ...) -> None: ...
-
-class ListIdentityProvidersByOrgInput(_message.Message):
-    __slots__ = ("org",)
+class ListIdentityProvidersInput(_message.Message):
+    __slots__ = ("org", "page_size", "page_token")
     ORG_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     org: str
-    def __init__(self, org: _Optional[str] = ...) -> None: ...
+    page_size: int
+    page_token: str
+    def __init__(self, org: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class UpdateIdentityProviderInput(_message.Message):
     __slots__ = ("resource", "update_mask")

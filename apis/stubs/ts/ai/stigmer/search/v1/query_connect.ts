@@ -40,8 +40,9 @@ export const SearchService = {
      * - Without query: Results sorted by created_at (descending, newer first)
      *
      * Pagination:
-     * Use page.num (1-indexed) and page.size to paginate results.
-     * Response includes total_count and total_pages for pagination controls.
+     * page_size and page_token page the results as every list does; a token
+     * continues the same query in the same order. counts_by_kind counts the
+     * matches per kind across every page.
      *
      * @generated from rpc ai.stigmer.search.v1.SearchService.search
      */

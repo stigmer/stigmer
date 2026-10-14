@@ -34,7 +34,8 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private ModelPricingBaselinesResponse() {
-    baselines_ = java.util.Collections.emptyList();
+    entries_ = java.util.Collections.emptyList();
+    nextPageToken_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -55,45 +56,94 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.billing.v1.ModelPricingBaselinesResponse.class, ai.stigmer.billing.v1.ModelPricingBaselinesResponse.Builder.class);
   }
 
-  public static final int BASELINES_FIELD_NUMBER = 1;
+  public static final int ENTRIES_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.billing.v1.ModelPricingBaseline> baselines_;
+  private java.util.List<ai.stigmer.billing.v1.ModelPricingBaseline> entries_;
   /**
-   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public java.util.List<ai.stigmer.billing.v1.ModelPricingBaseline> getBaselinesList() {
-    return baselines_;
+  public java.util.List<ai.stigmer.billing.v1.ModelPricingBaseline> getEntriesList() {
+    return entries_;
   }
   /**
-   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
   public java.util.List<? extends ai.stigmer.billing.v1.ModelPricingBaselineOrBuilder> 
-      getBaselinesOrBuilderList() {
-    return baselines_;
+      getEntriesOrBuilderList() {
+    return entries_;
   }
   /**
-   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public int getBaselinesCount() {
-    return baselines_.size();
+  public int getEntriesCount() {
+    return entries_.size();
   }
   /**
-   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.billing.v1.ModelPricingBaseline getBaselines(int index) {
-    return baselines_.get(index);
+  public ai.stigmer.billing.v1.ModelPricingBaseline getEntries(int index) {
+    return entries_.get(index);
   }
   /**
-   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.billing.v1.ModelPricingBaselineOrBuilder getBaselinesOrBuilder(
+  public ai.stigmer.billing.v1.ModelPricingBaselineOrBuilder getEntriesOrBuilder(
       int index) {
-    return baselines_.get(index);
+    return entries_.get(index);
+  }
+
+  public static final int NEXT_PAGE_TOKEN_FIELD_NUMBER = 2;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object nextPageToken_ = "";
+  /**
+   * <pre>
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   * </pre>
+   *
+   * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+   * @return The nextPageToken.
+   */
+  @java.lang.Override
+  public java.lang.String getNextPageToken() {
+    java.lang.Object ref = nextPageToken_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      nextPageToken_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   * </pre>
+   *
+   * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+   * @return The bytes for nextPageToken.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getNextPageTokenBytes() {
+    java.lang.Object ref = nextPageToken_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      nextPageToken_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
   }
 
   private byte memoizedIsInitialized = -1;
@@ -110,8 +160,11 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    for (int i = 0; i < baselines_.size(); i++) {
-      output.writeMessage(1, baselines_.get(i));
+    for (int i = 0; i < entries_.size(); i++) {
+      output.writeMessage(1, entries_.get(i));
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(nextPageToken_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 2, nextPageToken_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -124,13 +177,16 @@ private static final long serialVersionUID = 0L;
     size = 0;
 
         {
-          final int count = baselines_.size();
+          final int count = entries_.size();
           for (int i = 0; i < count; i++) {
             size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(baselines_.get(i));
+              .computeMessageSizeNoTag(entries_.get(i));
           }
           size += 1 * count;
         }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(nextPageToken_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, nextPageToken_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -146,8 +202,10 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.billing.v1.ModelPricingBaselinesResponse other = (ai.stigmer.billing.v1.ModelPricingBaselinesResponse) obj;
 
-    if (!getBaselinesList()
-        .equals(other.getBaselinesList())) return false;
+    if (!getEntriesList()
+        .equals(other.getEntriesList())) return false;
+    if (!getNextPageToken()
+        .equals(other.getNextPageToken())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -159,10 +217,12 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    if (getBaselinesCount() > 0) {
-      hash = (37 * hash) + BASELINES_FIELD_NUMBER;
-      hash = (53 * hash) + getBaselinesList().hashCode();
+    if (getEntriesCount() > 0) {
+      hash = (37 * hash) + ENTRIES_FIELD_NUMBER;
+      hash = (53 * hash) + getEntriesList().hashCode();
     }
+    hash = (37 * hash) + NEXT_PAGE_TOKEN_FIELD_NUMBER;
+    hash = (53 * hash) + getNextPageToken().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -300,13 +360,14 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      if (baselinesBuilder_ == null) {
-        baselines_ = java.util.Collections.emptyList();
+      if (entriesBuilder_ == null) {
+        entries_ = java.util.Collections.emptyList();
       } else {
-        baselines_ = null;
-        baselinesBuilder_.clear();
+        entries_ = null;
+        entriesBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000001);
+      nextPageToken_ = "";
       return this;
     }
 
@@ -340,19 +401,22 @@ private static final long serialVersionUID = 0L;
     }
 
     private void buildPartialRepeatedFields(ai.stigmer.billing.v1.ModelPricingBaselinesResponse result) {
-      if (baselinesBuilder_ == null) {
+      if (entriesBuilder_ == null) {
         if (((bitField0_ & 0x00000001) != 0)) {
-          baselines_ = java.util.Collections.unmodifiableList(baselines_);
+          entries_ = java.util.Collections.unmodifiableList(entries_);
           bitField0_ = (bitField0_ & ~0x00000001);
         }
-        result.baselines_ = baselines_;
+        result.entries_ = entries_;
       } else {
-        result.baselines_ = baselinesBuilder_.build();
+        result.entries_ = entriesBuilder_.build();
       }
     }
 
     private void buildPartial0(ai.stigmer.billing.v1.ModelPricingBaselinesResponse result) {
       int from_bitField0_ = bitField0_;
+      if (((from_bitField0_ & 0x00000002) != 0)) {
+        result.nextPageToken_ = nextPageToken_;
+      }
     }
 
     @java.lang.Override
@@ -367,31 +431,36 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.billing.v1.ModelPricingBaselinesResponse other) {
       if (other == ai.stigmer.billing.v1.ModelPricingBaselinesResponse.getDefaultInstance()) return this;
-      if (baselinesBuilder_ == null) {
-        if (!other.baselines_.isEmpty()) {
-          if (baselines_.isEmpty()) {
-            baselines_ = other.baselines_;
+      if (entriesBuilder_ == null) {
+        if (!other.entries_.isEmpty()) {
+          if (entries_.isEmpty()) {
+            entries_ = other.entries_;
             bitField0_ = (bitField0_ & ~0x00000001);
           } else {
-            ensureBaselinesIsMutable();
-            baselines_.addAll(other.baselines_);
+            ensureEntriesIsMutable();
+            entries_.addAll(other.entries_);
           }
           onChanged();
         }
       } else {
-        if (!other.baselines_.isEmpty()) {
-          if (baselinesBuilder_.isEmpty()) {
-            baselinesBuilder_.dispose();
-            baselinesBuilder_ = null;
-            baselines_ = other.baselines_;
+        if (!other.entries_.isEmpty()) {
+          if (entriesBuilder_.isEmpty()) {
+            entriesBuilder_.dispose();
+            entriesBuilder_ = null;
+            entries_ = other.entries_;
             bitField0_ = (bitField0_ & ~0x00000001);
-            baselinesBuilder_ = 
+            entriesBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetBaselinesFieldBuilder() : null;
+                 internalGetEntriesFieldBuilder() : null;
           } else {
-            baselinesBuilder_.addAllMessages(other.baselines_);
+            entriesBuilder_.addAllMessages(other.entries_);
           }
         }
+      }
+      if (!other.getNextPageToken().isEmpty()) {
+        nextPageToken_ = other.nextPageToken_;
+        bitField0_ |= 0x00000002;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -424,14 +493,19 @@ private static final long serialVersionUID = 0L;
                   input.readMessage(
                       ai.stigmer.billing.v1.ModelPricingBaseline.parser(),
                       extensionRegistry);
-              if (baselinesBuilder_ == null) {
-                ensureBaselinesIsMutable();
-                baselines_.add(m);
+              if (entriesBuilder_ == null) {
+                ensureEntriesIsMutable();
+                entries_.add(m);
               } else {
-                baselinesBuilder_.addMessage(m);
+                entriesBuilder_.addMessage(m);
               }
               break;
             } // case 10
+            case 18: {
+              nextPageToken_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000002;
+              break;
+            } // case 18
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -449,244 +523,341 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.util.List<ai.stigmer.billing.v1.ModelPricingBaseline> baselines_ =
+    private java.util.List<ai.stigmer.billing.v1.ModelPricingBaseline> entries_ =
       java.util.Collections.emptyList();
-    private void ensureBaselinesIsMutable() {
+    private void ensureEntriesIsMutable() {
       if (!((bitField0_ & 0x00000001) != 0)) {
-        baselines_ = new java.util.ArrayList<ai.stigmer.billing.v1.ModelPricingBaseline>(baselines_);
+        entries_ = new java.util.ArrayList<ai.stigmer.billing.v1.ModelPricingBaseline>(entries_);
         bitField0_ |= 0x00000001;
        }
     }
 
     private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.billing.v1.ModelPricingBaseline, ai.stigmer.billing.v1.ModelPricingBaseline.Builder, ai.stigmer.billing.v1.ModelPricingBaselineOrBuilder> baselinesBuilder_;
+        ai.stigmer.billing.v1.ModelPricingBaseline, ai.stigmer.billing.v1.ModelPricingBaseline.Builder, ai.stigmer.billing.v1.ModelPricingBaselineOrBuilder> entriesBuilder_;
 
     /**
-     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
      */
-    public java.util.List<ai.stigmer.billing.v1.ModelPricingBaseline> getBaselinesList() {
-      if (baselinesBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(baselines_);
+    public java.util.List<ai.stigmer.billing.v1.ModelPricingBaseline> getEntriesList() {
+      if (entriesBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(entries_);
       } else {
-        return baselinesBuilder_.getMessageList();
+        return entriesBuilder_.getMessageList();
       }
     }
     /**
-     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
      */
-    public int getBaselinesCount() {
-      if (baselinesBuilder_ == null) {
-        return baselines_.size();
+    public int getEntriesCount() {
+      if (entriesBuilder_ == null) {
+        return entries_.size();
       } else {
-        return baselinesBuilder_.getCount();
+        return entriesBuilder_.getCount();
       }
     }
     /**
-     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.billing.v1.ModelPricingBaseline getBaselines(int index) {
-      if (baselinesBuilder_ == null) {
-        return baselines_.get(index);
+    public ai.stigmer.billing.v1.ModelPricingBaseline getEntries(int index) {
+      if (entriesBuilder_ == null) {
+        return entries_.get(index);
       } else {
-        return baselinesBuilder_.getMessage(index);
+        return entriesBuilder_.getMessage(index);
       }
     }
     /**
-     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
      */
-    public Builder setBaselines(
+    public Builder setEntries(
         int index, ai.stigmer.billing.v1.ModelPricingBaseline value) {
-      if (baselinesBuilder_ == null) {
+      if (entriesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureBaselinesIsMutable();
-        baselines_.set(index, value);
+        ensureEntriesIsMutable();
+        entries_.set(index, value);
         onChanged();
       } else {
-        baselinesBuilder_.setMessage(index, value);
+        entriesBuilder_.setMessage(index, value);
       }
       return this;
     }
     /**
-     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
      */
-    public Builder setBaselines(
+    public Builder setEntries(
         int index, ai.stigmer.billing.v1.ModelPricingBaseline.Builder builderForValue) {
-      if (baselinesBuilder_ == null) {
-        ensureBaselinesIsMutable();
-        baselines_.set(index, builderForValue.build());
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.set(index, builderForValue.build());
         onChanged();
       } else {
-        baselinesBuilder_.setMessage(index, builderForValue.build());
+        entriesBuilder_.setMessage(index, builderForValue.build());
       }
       return this;
     }
     /**
-     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addBaselines(ai.stigmer.billing.v1.ModelPricingBaseline value) {
-      if (baselinesBuilder_ == null) {
+    public Builder addEntries(ai.stigmer.billing.v1.ModelPricingBaseline value) {
+      if (entriesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureBaselinesIsMutable();
-        baselines_.add(value);
+        ensureEntriesIsMutable();
+        entries_.add(value);
         onChanged();
       } else {
-        baselinesBuilder_.addMessage(value);
+        entriesBuilder_.addMessage(value);
       }
       return this;
     }
     /**
-     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addBaselines(
+    public Builder addEntries(
         int index, ai.stigmer.billing.v1.ModelPricingBaseline value) {
-      if (baselinesBuilder_ == null) {
+      if (entriesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureBaselinesIsMutable();
-        baselines_.add(index, value);
+        ensureEntriesIsMutable();
+        entries_.add(index, value);
         onChanged();
       } else {
-        baselinesBuilder_.addMessage(index, value);
+        entriesBuilder_.addMessage(index, value);
       }
       return this;
     }
     /**
-     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addBaselines(
+    public Builder addEntries(
         ai.stigmer.billing.v1.ModelPricingBaseline.Builder builderForValue) {
-      if (baselinesBuilder_ == null) {
-        ensureBaselinesIsMutable();
-        baselines_.add(builderForValue.build());
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.add(builderForValue.build());
         onChanged();
       } else {
-        baselinesBuilder_.addMessage(builderForValue.build());
+        entriesBuilder_.addMessage(builderForValue.build());
       }
       return this;
     }
     /**
-     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addBaselines(
+    public Builder addEntries(
         int index, ai.stigmer.billing.v1.ModelPricingBaseline.Builder builderForValue) {
-      if (baselinesBuilder_ == null) {
-        ensureBaselinesIsMutable();
-        baselines_.add(index, builderForValue.build());
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.add(index, builderForValue.build());
         onChanged();
       } else {
-        baselinesBuilder_.addMessage(index, builderForValue.build());
+        entriesBuilder_.addMessage(index, builderForValue.build());
       }
       return this;
     }
     /**
-     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addAllBaselines(
+    public Builder addAllEntries(
         java.lang.Iterable<? extends ai.stigmer.billing.v1.ModelPricingBaseline> values) {
-      if (baselinesBuilder_ == null) {
-        ensureBaselinesIsMutable();
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, baselines_);
+            values, entries_);
         onChanged();
       } else {
-        baselinesBuilder_.addAllMessages(values);
+        entriesBuilder_.addAllMessages(values);
       }
       return this;
     }
     /**
-     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
      */
-    public Builder clearBaselines() {
-      if (baselinesBuilder_ == null) {
-        baselines_ = java.util.Collections.emptyList();
+    public Builder clearEntries() {
+      if (entriesBuilder_ == null) {
+        entries_ = java.util.Collections.emptyList();
         bitField0_ = (bitField0_ & ~0x00000001);
         onChanged();
       } else {
-        baselinesBuilder_.clear();
+        entriesBuilder_.clear();
       }
       return this;
     }
     /**
-     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
      */
-    public Builder removeBaselines(int index) {
-      if (baselinesBuilder_ == null) {
-        ensureBaselinesIsMutable();
-        baselines_.remove(index);
+    public Builder removeEntries(int index) {
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.remove(index);
         onChanged();
       } else {
-        baselinesBuilder_.remove(index);
+        entriesBuilder_.remove(index);
       }
       return this;
     }
     /**
-     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.billing.v1.ModelPricingBaseline.Builder getBaselinesBuilder(
+    public ai.stigmer.billing.v1.ModelPricingBaseline.Builder getEntriesBuilder(
         int index) {
-      return internalGetBaselinesFieldBuilder().getBuilder(index);
+      return internalGetEntriesFieldBuilder().getBuilder(index);
     }
     /**
-     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.billing.v1.ModelPricingBaselineOrBuilder getBaselinesOrBuilder(
+    public ai.stigmer.billing.v1.ModelPricingBaselineOrBuilder getEntriesOrBuilder(
         int index) {
-      if (baselinesBuilder_ == null) {
-        return baselines_.get(index);  } else {
-        return baselinesBuilder_.getMessageOrBuilder(index);
+      if (entriesBuilder_ == null) {
+        return entries_.get(index);  } else {
+        return entriesBuilder_.getMessageOrBuilder(index);
       }
     }
     /**
-     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<? extends ai.stigmer.billing.v1.ModelPricingBaselineOrBuilder> 
-         getBaselinesOrBuilderList() {
-      if (baselinesBuilder_ != null) {
-        return baselinesBuilder_.getMessageOrBuilderList();
+         getEntriesOrBuilderList() {
+      if (entriesBuilder_ != null) {
+        return entriesBuilder_.getMessageOrBuilderList();
       } else {
-        return java.util.Collections.unmodifiableList(baselines_);
+        return java.util.Collections.unmodifiableList(entries_);
       }
     }
     /**
-     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.billing.v1.ModelPricingBaseline.Builder addBaselinesBuilder() {
-      return internalGetBaselinesFieldBuilder().addBuilder(
+    public ai.stigmer.billing.v1.ModelPricingBaseline.Builder addEntriesBuilder() {
+      return internalGetEntriesFieldBuilder().addBuilder(
           ai.stigmer.billing.v1.ModelPricingBaseline.getDefaultInstance());
     }
     /**
-     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.billing.v1.ModelPricingBaseline.Builder addBaselinesBuilder(
+    public ai.stigmer.billing.v1.ModelPricingBaseline.Builder addEntriesBuilder(
         int index) {
-      return internalGetBaselinesFieldBuilder().addBuilder(
+      return internalGetEntriesFieldBuilder().addBuilder(
           index, ai.stigmer.billing.v1.ModelPricingBaseline.getDefaultInstance());
     }
     /**
-     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+     * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<ai.stigmer.billing.v1.ModelPricingBaseline.Builder> 
-         getBaselinesBuilderList() {
-      return internalGetBaselinesFieldBuilder().getBuilderList();
+         getEntriesBuilderList() {
+      return internalGetEntriesFieldBuilder().getBuilderList();
     }
     private com.google.protobuf.RepeatedFieldBuilder<
         ai.stigmer.billing.v1.ModelPricingBaseline, ai.stigmer.billing.v1.ModelPricingBaseline.Builder, ai.stigmer.billing.v1.ModelPricingBaselineOrBuilder> 
-        internalGetBaselinesFieldBuilder() {
-      if (baselinesBuilder_ == null) {
-        baselinesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+        internalGetEntriesFieldBuilder() {
+      if (entriesBuilder_ == null) {
+        entriesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.billing.v1.ModelPricingBaseline, ai.stigmer.billing.v1.ModelPricingBaseline.Builder, ai.stigmer.billing.v1.ModelPricingBaselineOrBuilder>(
-                baselines_,
+                entries_,
                 ((bitField0_ & 0x00000001) != 0),
                 getParentForChildren(),
                 isClean());
-        baselines_ = null;
+        entries_ = null;
       }
-      return baselinesBuilder_;
+      return entriesBuilder_;
+    }
+
+    private java.lang.Object nextPageToken_ = "";
+    /**
+     * <pre>
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
+     * </pre>
+     *
+     * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+     * @return The nextPageToken.
+     */
+    public java.lang.String getNextPageToken() {
+      java.lang.Object ref = nextPageToken_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        nextPageToken_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
+     * </pre>
+     *
+     * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+     * @return The bytes for nextPageToken.
+     */
+    public com.google.protobuf.ByteString
+        getNextPageTokenBytes() {
+      java.lang.Object ref = nextPageToken_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        nextPageToken_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
+     * </pre>
+     *
+     * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+     * @param value The nextPageToken to set.
+     * @return This builder for chaining.
+     */
+    public Builder setNextPageToken(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      nextPageToken_ = value;
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
+     * </pre>
+     *
+     * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearNextPageToken() {
+      nextPageToken_ = getDefaultInstance().getNextPageToken();
+      bitField0_ = (bitField0_ & ~0x00000002);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
+     * </pre>
+     *
+     * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+     * @param value The bytes for nextPageToken to set.
+     * @return This builder for chaining.
+     */
+    public Builder setNextPageTokenBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      nextPageToken_ = value;
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.billing.v1.ModelPricingBaselinesResponse)

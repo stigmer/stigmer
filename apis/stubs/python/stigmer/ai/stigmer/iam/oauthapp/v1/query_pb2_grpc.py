@@ -27,9 +27,9 @@ class OAuthAppQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_api__pb2.OAuthApp.FromString,
                 _registered_method=True)
-        self.listByOrg = channel.unary_unary(
-                '/ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController/listByOrg',
-                request_serializer=ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_io__pb2.ListOAuthAppsByOrgInput.SerializeToString,
+        self.list = channel.unary_unary(
+                '/ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController/list',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_io__pb2.ListOAuthAppsInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_io__pb2.OAuthApps.FromString,
                 _registered_method=True)
 
@@ -55,11 +55,11 @@ class OAuthAppQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def listByOrg(self, request, context):
-        """List all OAuth apps belonging to an organization.
+    def list(self, request, context):
+        """List the OAuth apps belonging to an organization.
 
         Returns the OAuthApps of the input org that the caller may view, newest
-        first. Typically a small set (1-5 per org), so results are not paginated.
+        first, one page at a time.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -78,9 +78,9 @@ def add_OAuthAppQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_api__pb2.OAuthApp.SerializeToString,
             ),
-            'listByOrg': grpc.unary_unary_rpc_method_handler(
-                    servicer.listByOrg,
-                    request_deserializer=ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_io__pb2.ListOAuthAppsByOrgInput.FromString,
+            'list': grpc.unary_unary_rpc_method_handler(
+                    servicer.list,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_io__pb2.ListOAuthAppsInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_io__pb2.OAuthApps.SerializeToString,
             ),
     }
@@ -150,7 +150,7 @@ class OAuthAppQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def listByOrg(request,
+    def list(request,
             target,
             options=(),
             channel_credentials=None,
@@ -163,8 +163,8 @@ class OAuthAppQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController/listByOrg',
-            ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_io__pb2.ListOAuthAppsByOrgInput.SerializeToString,
+            '/ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController/list',
+            ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_io__pb2.ListOAuthAppsInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_io__pb2.OAuthApps.FromString,
             options,
             channel_credentials,

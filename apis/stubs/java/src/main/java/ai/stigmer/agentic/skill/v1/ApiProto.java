@@ -31,11 +31,6 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_skill_v1_Skill_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_skill_v1_SkillList_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_skill_v1_SkillList_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -58,14 +53,11 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "dataB\006\272H\003\310\001\001R\010metadata\022:\n\004spec\030\004 \001(\0132&.a" +
       "i.stigmer.agentic.skill.v1.SkillSpecR\004sp" +
       "ec\022@\n\006status\030\005 \001(\0132(.ai.stigmer.agentic." +
-      "skill.v1.SkillStatusR\006status\"z\n\tSkillLis" +
-      "t\022\037\n\013api_version\030\001 \001(\tR\napiVersion\022\022\n\004ki" +
-      "nd\030\002 \001(\tR\004kind\0228\n\005items\030\003 \003(\0132\".ai.stigm" +
-      "er.agentic.skill.v1.SkillR\005itemsB\233\001B\010Api" +
-      "ProtoP\001\242\002\004ASAS\252\002\033Ai.Stigmer.Agentic.Skil" +
-      "l.V1\312\002\033Ai\\Stigmer\\Agentic\\Skill\\V1\342\002\'Ai\\" +
-      "Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\352\002\037A" +
-      "i::Stigmer::Agentic::Skill::V1b\006proto3"
+      "skill.v1.SkillStatusR\006statusB\233\001B\010ApiProt" +
+      "oP\001\242\002\004ASAS\252\002\033Ai.Stigmer.Agentic.Skill.V1" +
+      "\312\002\033Ai\\Stigmer\\Agentic\\Skill\\V1\342\002\'Ai\\Stig" +
+      "mer\\Agentic\\Skill\\V1\\GPBMetadata\352\002\037Ai::S" +
+      "tigmer::Agentic::Skill::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -81,12 +73,6 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_skill_v1_Skill_descriptor,
         new java.lang.String[] { "ApiVersion", "Kind", "Metadata", "Spec", "Status", });
-    internal_static_ai_stigmer_agentic_skill_v1_SkillList_descriptor =
-      getDescriptor().getMessageType(1);
-    internal_static_ai_stigmer_agentic_skill_v1_SkillList_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_skill_v1_SkillList_descriptor,
-        new java.lang.String[] { "ApiVersion", "Kind", "Items", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.skill.v1.SpecProto.getDescriptor();
     ai.stigmer.agentic.skill.v1.StatusProto.getDescriptor();

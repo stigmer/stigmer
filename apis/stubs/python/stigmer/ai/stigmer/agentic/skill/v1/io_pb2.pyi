@@ -1,5 +1,6 @@
 import datetime
 
+from ai.stigmer.agentic.skill.v1 import api_pb2 as _api_pb2
 from ai.stigmer.agentic.skill.v1 import status_pb2 as _status_pb2
 from ai.stigmer.commons.apiresource import status_pb2 as _status_pb2_1
 from buf.validate import validate_pb2 as _validate_pb2
@@ -128,11 +129,27 @@ class SkillVersionEntry(_message.Message):
     def __init__(self, version_hash: _Optional[str] = ..., pushed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., pushed_by: _Optional[_Union[_status_pb2_1.ApiResourceAuditActor, _Mapping]] = ..., tag: _Optional[str] = ..., is_current: bool = ..., git_provenance: _Optional[_Union[_status_pb2.GitProvenance, _Mapping]] = ..., message: _Optional[str] = ..., artifact_storage_key: _Optional[str] = ...) -> None: ...
 
 class ListSkillVersionsResponse(_message.Message):
-    __slots__ = ("versions", "next_page_token", "total_count")
-    VERSIONS_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("entries", "next_page_token")
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
     NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
-    TOTAL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    versions: _containers.RepeatedCompositeFieldContainer[SkillVersionEntry]
+    entries: _containers.RepeatedCompositeFieldContainer[SkillVersionEntry]
     next_page_token: str
-    total_count: int
-    def __init__(self, versions: _Optional[_Iterable[_Union[SkillVersionEntry, _Mapping]]] = ..., next_page_token: _Optional[str] = ..., total_count: _Optional[int] = ...) -> None: ...
+    def __init__(self, entries: _Optional[_Iterable[_Union[SkillVersionEntry, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
+
+class ListSkillsRequest(_message.Message):
+    __slots__ = ("org", "page_size", "page_token")
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    page_size: int
+    page_token: str
+    def __init__(self, org: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+
+class SkillList(_message.Message):
+    __slots__ = ("entries", "next_page_token")
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.Skill]
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.Skill, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...

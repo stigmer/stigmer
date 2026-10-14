@@ -69,13 +69,17 @@ func (x *ScoreId) GetValue() string {
 	return ""
 }
 
-// ListScoresByRunRequest lists every score of one run.
-//
-// A run's scores are returned whole: a run has a handful.
+// ListScoresByRunRequest lists the scores of one run, newest first.
 type ListScoresByRunRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the run whose scores to list.
-	RunId         string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -117,14 +121,32 @@ func (x *ListScoresByRunRequest) GetRunId() string {
 	return ""
 }
 
-// ListScoresBySessionRequest lists every score of every run in a session.
-//
-// A session's scores are returned whole, as its runs are: a conversation
-// is read as one.
+func (x *ListScoresByRunRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListScoresByRunRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+// ListScoresBySessionRequest lists the scores of every run in a session,
+// newest first.
 type ListScoresBySessionRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the session whose runs' scores to list.
-	SessionId     string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -166,18 +188,27 @@ func (x *ListScoresBySessionRequest) GetSessionId() string {
 	return ""
 }
 
+func (x *ListScoresBySessionRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListScoresBySessionRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
 // ScoreList is a list of scores.
 type ScoreList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Number of scores in this response. On a paged list it counts this page
-	// only; follow next_page_token for the rest.
-	TotalCount int32 `protobuf:"varint,1,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	// The scores, newest first.
-	Items []*Score `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
-	// Set when more scores may follow: pass it as page_token to continue. A
-	// page may hold fewer scores than page_size, even none, and still carry a
-	// token. Empty when the list is complete, and always empty on the lists
-	// of one run or one session, which are returned whole.
+	Entries []*Score `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
 	NextPageToken string `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -213,16 +244,9 @@ func (*ScoreList) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *ScoreList) GetTotalCount() int32 {
+func (x *ScoreList) GetEntries() []*Score {
 	if x != nil {
-		return x.TotalCount
-	}
-	return 0
-}
-
-func (x *ScoreList) GetItems() []*Score {
-	if x != nil {
-		return x.Items
+		return x.Entries
 	}
 	return nil
 }
@@ -931,8 +955,8 @@ type ListFlaggedScoresByAgentRequest struct {
 	// How many days to look back, ending today, from 1 to 90. Zero looks back
 	// 30. Days are UTC.
 	Days int32 `protobuf:"varint,3,opt,name=days,proto3" json:"days,omitempty"`
-	// The most scores to return, at most 100; zero returns a page of 100.
-	// Follow next_page_token for the rest.
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
 	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
@@ -1072,17 +1096,21 @@ const file_ai_stigmer_agentic_score_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"$ai/stigmer/agentic/score/v1/io.proto\x12\x1bai.stigmer.agentic.score.v1\x1a%ai/stigmer/agentic/score/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"'\n" +
 	"\aScoreId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"8\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x87\x01\n" +
 	"\x16ListScoresByRunRequest\x12\x1e\n" +
-	"\x06run_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05runId\"D\n" +
+	"\x06run_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05runId\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x93\x01\n" +
 	"\x1aListScoresBySessionRequest\x12&\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tsessionId\"\x8e\x01\n" +
-	"\tScoreList\x12\x1f\n" +
-	"\vtotal_count\x18\x01 \x01(\x05R\n" +
-	"totalCount\x128\n" +
-	"\x05items\x18\x02 \x03(\v2\".ai.stigmer.agentic.score.v1.ScoreR\x05items\x12&\n" +
-	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"|\n" +
+	"session_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tsessionId\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x84\x01\n" +
+	"\tScoreList\x12<\n" +
+	"\aentries\x18\x02 \x03(\v2\".ai.stigmer.agentic.score.v1.ScoreR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_count\"|\n" +
 	"\x1cGetAgentQualityReportRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12\"\n" +
 	"\bagent_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aagentId\x12\x1d\n" +
@@ -1131,14 +1159,14 @@ const file_ai_stigmer_agentic_score_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"first_date\x18\x02 \x01(\tR\tfirstDate\x12\x1b\n" +
 	"\tlast_date\x18\x03 \x01(\tR\blastDate\x12E\n" +
-	"\asummary\x18\x04 \x01(\v2+.ai.stigmer.agentic.score.v1.QualitySummaryR\asummary\"\xc4\x01\n" +
+	"\asummary\x18\x04 \x01(\v2+.ai.stigmer.agentic.score.v1.QualitySummaryR\asummary\"\xce\x01\n" +
 	"\x1fListFlaggedScoresByAgentRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12\"\n" +
 	"\bagent_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aagentId\x12\x1d\n" +
 	"\x04days\x18\x03 \x01(\x05B\t\xbaH\x06\x1a\x04\x18Z(\x00R\x04days\x12$\n" +
-	"\tpage_size\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12\x1d\n" +
+	"\tpage_size\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x05 \x01(\tR\tpageToken\"\xdf\x02\n" +
+	"page_token\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\xdf\x02\n" +
 	"\x10UpdateScoreInput\x12F\n" +
 	"\bresource\x18\x01 \x01(\v2\".ai.stigmer.agentic.score.v1.ScoreB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
@@ -1179,7 +1207,7 @@ var file_ai_stigmer_agentic_score_v1_io_proto_goTypes = []any{
 	(*fieldmaskpb.FieldMask)(nil),           // 16: google.protobuf.FieldMask
 }
 var file_ai_stigmer_agentic_score_v1_io_proto_depIdxs = []int32{
-	15, // 0: ai.stigmer.agentic.score.v1.ScoreList.items:type_name -> ai.stigmer.agentic.score.v1.Score
+	15, // 0: ai.stigmer.agentic.score.v1.ScoreList.entries:type_name -> ai.stigmer.agentic.score.v1.Score
 	8,  // 1: ai.stigmer.agentic.score.v1.AgentQualityReport.total:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
 	11, // 2: ai.stigmer.agentic.score.v1.AgentQualityReport.days:type_name -> ai.stigmer.agentic.score.v1.QualityDay
 	12, // 3: ai.stigmer.agentic.score.v1.AgentQualityReport.versions:type_name -> ai.stigmer.agentic.score.v1.QualityVersion

@@ -135,13 +135,19 @@ class RetireModelPricingBaselineInput(_message.Message):
     def __init__(self, model_id: _Optional[str] = ..., provider: _Optional[str] = ..., harness: _Optional[str] = ..., revision_note: _Optional[str] = ...) -> None: ...
 
 class ListModelPricingBaselinesInput(_message.Message):
-    __slots__ = ("include_history",)
+    __slots__ = ("include_history", "page_size", "page_token")
     INCLUDE_HISTORY_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     include_history: bool
-    def __init__(self, include_history: bool = ...) -> None: ...
+    page_size: int
+    page_token: str
+    def __init__(self, include_history: bool = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class ModelPricingBaselinesResponse(_message.Message):
-    __slots__ = ("baselines",)
-    BASELINES_FIELD_NUMBER: _ClassVar[int]
-    baselines: _containers.RepeatedCompositeFieldContainer[_model_pricing_baseline_pb2.ModelPricingBaseline]
-    def __init__(self, baselines: _Optional[_Iterable[_Union[_model_pricing_baseline_pb2.ModelPricingBaseline, _Mapping]]] = ...) -> None: ...
+    __slots__ = ("entries", "next_page_token")
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    entries: _containers.RepeatedCompositeFieldContainer[_model_pricing_baseline_pb2.ModelPricingBaseline]
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[_model_pricing_baseline_pb2.ModelPricingBaseline, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...

@@ -16,46 +16,68 @@ public interface ListProviderKeysOutputOrBuilder extends
    * parent organization's key, in provider order.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<ai.stigmer.billing.providerkey.v1.ProviderKey> 
-      getKeysList();
+      getEntriesList();
   /**
    * <pre>
    * One row per provider the organization is served on its own or its
    * parent organization's key, in provider order.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
    */
-  ai.stigmer.billing.providerkey.v1.ProviderKey getKeys(int index);
+  ai.stigmer.billing.providerkey.v1.ProviderKey getEntries(int index);
   /**
    * <pre>
    * One row per provider the organization is served on its own or its
    * parent organization's key, in provider order.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
    */
-  int getKeysCount();
+  int getEntriesCount();
   /**
    * <pre>
    * One row per provider the organization is served on its own or its
    * parent organization's key, in provider order.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<? extends ai.stigmer.billing.providerkey.v1.ProviderKeyOrBuilder> 
-      getKeysOrBuilderList();
+      getEntriesOrBuilderList();
   /**
    * <pre>
    * One row per provider the organization is served on its own or its
    * parent organization's key, in provider order.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
    */
-  ai.stigmer.billing.providerkey.v1.ProviderKeyOrBuilder getKeysOrBuilder(
+  ai.stigmer.billing.providerkey.v1.ProviderKeyOrBuilder getEntriesOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   * </pre>
+   *
+   * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+   * @return The nextPageToken.
+   */
+  java.lang.String getNextPageToken();
+  /**
+   * <pre>
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   * </pre>
+   *
+   * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+   * @return The bytes for nextPageToken.
+   */
+  com.google.protobuf.ByteString
+      getNextPageTokenBytes();
 }

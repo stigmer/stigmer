@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { AgentSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_api } from "./api_pb.js";
-import type { AgentIdSchema } from "./io_pb.js";
+import type { AgentIdSchema, AgentListSchema, ListAgentsRequestSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_io } from "./io_pb.js";
 import type { AgentVersionEntrySchema, GetAgentVersionInputSchema, ListAgentVersionsInputSchema, ListAgentVersionsResponseSchema } from "./version_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_version } from "./version_pb.js";
@@ -19,7 +19,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agent/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MTK4BAoUQWdlbnRRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50SWQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiKsK4GCYIARAoIgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBhZ2VudBJwCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIE0LgYARKBAQoMbGlzdFZlcnNpb25zEjMuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkxpc3RBZ2VudFZlcnNpb25zSW5wdXQaNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuTGlzdEFnZW50VmVyc2lvbnNSZXNwb25zZSIE0LgYARKmAQoKZ2V0VmVyc2lvbhIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5HZXRBZ2VudFZlcnNpb25JbnB1dBouLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFZlcnNpb25FbnRyeSI1wrgYMQgBECgiCGFnZW50X2lkKiF1bmF1dGhvcml6ZWQgdG8gZ2V0IGFnZW50IHZlcnNpb24aBKD/KyhiBnByb3RvMw", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_agentic_agent_v1_version, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MTKeBQoUQWdlbnRRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50SWQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiKsK4GCYIARAoIgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBhZ2VudBJwCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIE0LgYARJkCgRsaXN0Ei4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkxpc3RBZ2VudHNSZXF1ZXN0GiYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50TGlzdCIE0LgYARKBAQoMbGlzdFZlcnNpb25zEjMuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkxpc3RBZ2VudFZlcnNpb25zSW5wdXQaNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuTGlzdEFnZW50VmVyc2lvbnNSZXNwb25zZSIE0LgYARKmAQoKZ2V0VmVyc2lvbhIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5HZXRBZ2VudFZlcnNpb25JbnB1dBouLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFZlcnNpb25FbnRyeSI1wrgYMQgBECgiCGFnZW50X2lkKiF1bmF1dGhvcml6ZWQgdG8gZ2V0IGFnZW50IHZlcnNpb24aBKD/KyhiBnByb3RvMw", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_agentic_agent_v1_version, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * AgentQueryController handles read operations for AI agents.
@@ -52,6 +52,19 @@ export const AgentQueryController: GenService<{
     methodKind: "unary";
     input: typeof ApiResourceReferenceSchema;
     output: typeof AgentSchema;
+  },
+  /**
+   * List an organization's agents, newest first.
+   *
+   * Returns the agents of the input org that the caller may view, one page
+   * at a time. Search finds agents by their words; list browses them.
+   *
+   * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.list
+   */
+  list: {
+    methodKind: "unary";
+    input: typeof ListAgentsRequestSchema;
+    output: typeof AgentListSchema;
   },
   /**
    * List version history for an agent.

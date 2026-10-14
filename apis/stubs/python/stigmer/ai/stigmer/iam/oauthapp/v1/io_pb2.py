@@ -27,7 +27,7 @@ from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n#ai/stigmer/iam/oauthapp/v1/io.proto\x12\x1a\x61i.stigmer.iam.oauthapp.v1\x1a$ai/stigmer/iam/oauthapp/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"-\n\nOAuthAppId\x12\x1f\n\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"K\n\tOAuthApps\x12>\n\x07\x65ntries\x18\x01 \x03(\x0b\x32$.ai.stigmer.iam.oauthapp.v1.OAuthAppR\x07\x65ntries\"4\n\x17ListOAuthAppsByOrgInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"\xe8\x02\n\x13UpdateOAuthAppInput\x12H\n\x08resource\x18\x01 \x01(\x0b\x32$.ai.stigmer.iam.oauthapp.v1.OAuthAppB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xc1\x01\xbaH\xbd\x01\x1a\xba\x01\n\x17update_names_its_target\x12Iresource.metadata.id is required: an update names the OAuth app by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xb6\x01\n\x1e\x63om.ai.stigmer.iam.oauthapp.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SIO\xaa\x02\x1a\x41i.Stigmer.Iam.Oauthapp.V1\xca\x02\x1a\x41i\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1e\x41i::Stigmer::Iam::Oauthapp::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n#ai/stigmer/iam/oauthapp/v1/io.proto\x12\x1a\x61i.stigmer.iam.oauthapp.v1\x1a$ai/stigmer/iam/oauthapp/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"-\n\nOAuthAppId\x12\x1f\n\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"s\n\tOAuthApps\x12>\n\x07\x65ntries\x18\x01 \x03(\x0b\x32$.ai.stigmer.iam.oauthapp.v1.OAuthAppR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"~\n\x12ListOAuthAppsInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\"\xe8\x02\n\x13UpdateOAuthAppInput\x12H\n\x08resource\x18\x01 \x01(\x0b\x32$.ai.stigmer.iam.oauthapp.v1.OAuthAppB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xc1\x01\xbaH\xbd\x01\x1a\xba\x01\n\x17update_names_its_target\x12Iresource.metadata.id is required: an update names the OAuth app by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xb6\x01\n\x1e\x63om.ai.stigmer.iam.oauthapp.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SIO\xaa\x02\x1a\x41i.Stigmer.Iam.Oauthapp.V1\xca\x02\x1a\x41i\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1e\x41i::Stigmer::Iam::Oauthapp::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -37,8 +37,12 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n\036com.ai.stigmer.iam.oauthapp.v1B\007IoProtoP\001\242\002\004ASIO\252\002\032Ai.Stigmer.Iam.Oauthapp.V1\312\002\032Ai\\Stigmer\\Iam\\Oauthapp\\V1\342\002&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\352\002\036Ai::Stigmer::Iam::Oauthapp::V1'
   _globals['_OAUTHAPPID'].fields_by_name['value']._loaded_options = None
   _globals['_OAUTHAPPID'].fields_by_name['value']._serialized_options = b'\272H\006r\004\020\001\030@'
-  _globals['_LISTOAUTHAPPSBYORGINPUT'].fields_by_name['org']._loaded_options = None
-  _globals['_LISTOAUTHAPPSBYORGINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_LISTOAUTHAPPSINPUT'].fields_by_name['org']._loaded_options = None
+  _globals['_LISTOAUTHAPPSINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_LISTOAUTHAPPSINPUT'].fields_by_name['page_size']._loaded_options = None
+  _globals['_LISTOAUTHAPPSINPUT'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
+  _globals['_LISTOAUTHAPPSINPUT'].fields_by_name['page_token']._loaded_options = None
+  _globals['_LISTOAUTHAPPSINPUT'].fields_by_name['page_token']._serialized_options = b'\272H\005r\003\030\200\010'
   _globals['_UPDATEOAUTHAPPINPUT'].fields_by_name['resource']._loaded_options = None
   _globals['_UPDATEOAUTHAPPINPUT'].fields_by_name['resource']._serialized_options = b'\272H\003\330\001\003'
   _globals['_UPDATEOAUTHAPPINPUT'].fields_by_name['update_mask']._loaded_options = None
@@ -48,9 +52,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_OAUTHAPPID']._serialized_start=168
   _globals['_OAUTHAPPID']._serialized_end=213
   _globals['_OAUTHAPPS']._serialized_start=215
-  _globals['_OAUTHAPPS']._serialized_end=290
-  _globals['_LISTOAUTHAPPSBYORGINPUT']._serialized_start=292
-  _globals['_LISTOAUTHAPPSBYORGINPUT']._serialized_end=344
-  _globals['_UPDATEOAUTHAPPINPUT']._serialized_start=347
-  _globals['_UPDATEOAUTHAPPINPUT']._serialized_end=707
+  _globals['_OAUTHAPPS']._serialized_end=330
+  _globals['_LISTOAUTHAPPSINPUT']._serialized_start=332
+  _globals['_LISTOAUTHAPPSINPUT']._serialized_end=458
+  _globals['_UPDATEOAUTHAPPINPUT']._serialized_start=461
+  _globals['_UPDATEOAUTHAPPINPUT']._serialized_end=821
 # @@protoc_insertion_point(module_scope)

@@ -6,8 +6,6 @@ import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1"
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { Schedule } from "./api_pb.js";
 import { file_ai_stigmer_agentic_schedule_v1_api } from "./api_pb.js";
-import type { PageInfo } from "../../../commons/rpc/pagination_pb.js";
-import { file_ai_stigmer_commons_rpc_pagination } from "../../../commons/rpc/pagination_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { FieldMask, Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_field_mask, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
@@ -17,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/schedule/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_schedule_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvaW8ucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MSIjCgpTY2hlZHVsZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEieAoaR2V0U2NoZWR1bGVzQnlBZ2VudFJlcXVlc3QSGAoIYWdlbnRfaWQYASABKAlCBrpIA8gBARIzCglwYWdlX2luZm8YAiABKAsyIC5haS5zdGlnbWVyLmNvbW1vbnMucnBjLlBhZ2VJbmZvEgsKA29yZxgDIAEoCSJcCgxTY2hlZHVsZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSNwoFaXRlbXMYAiADKAsyKC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGUi4gEKFExpc3RTY2hlZHVsZXNSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARJQCgZsYWJlbHMYAiADKAsyQC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuTGlzdFNjaGVkdWxlc1JlcXVlc3QuTGFiZWxzRW50cnkSMwoJcGFnZV9pbmZvGAMgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIsEBChVTY2hlZHVsZVRyaWdnZXJSZXN1bHQSOgoIc2NoZWR1bGUYASABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGUSRAoHb3V0Y29tZRgCIAEoDjIzLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUZpcmVPdXRjb21lEg4KBnJ1bl9pZBgDIAEoCRIWCg5yZWZ1c2FsX3JlYXNvbhgEIAEoCSL0AgoMU2NoZWR1bGVGaXJlEhMKC3NjaGVkdWxlX2lkGAEgASgJEgsKA29yZxgCIAEoCRI1ChFub21pbmFsX2ZpcmVfdGltZRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASQgoGb3JpZ2luGAQgASgOMjIuYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlRmlyZU9yaWdpbhJECgdvdXRjb21lGAUgASgOMjMuYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlRmlyZU91dGNvbWUSDgoGcmVhc29uGAYgASgJEg4KBnJ1bl9pZBgHIAEoCRIvCgtyZWNvcmRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMAoMY29tcGxldGVkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJsChhMaXN0U2NoZWR1bGVGaXJlc1JlcXVlc3QSGwoLc2NoZWR1bGVfaWQYASABKAlCBrpIA8gBARIzCglwYWdlX2luZm8YAiABKAsyIC5haS5zdGlnbWVyLmNvbW1vbnMucnBjLlBhZ2VJbmZvImQKEFNjaGVkdWxlRmlyZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSOwoFaXRlbXMYAiADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGVGaXJlItUCChNVcGRhdGVTY2hlZHVsZUlucHV0EkIKCHJlc291cmNlGAEgASgLMiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlQga6SAPYAQMSNwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrQga6SAPIAQE6wAG6SLwBGrkBChd1cGRhdGVfbmFtZXNfaXRzX3RhcmdldBJIcmVzb3VyY2UubWV0YWRhdGEuaWQgaXMgcmVxdWlyZWQ6IGFuIHVwZGF0ZSBuYW1lcyB0aGUgc2NoZWR1bGUgYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJycqegoSU2NoZWR1bGVGaXJlT3JpZ2luEiQKIFNDSEVEVUxFX0ZJUkVfT1JJR0lOX1VOU1BFQ0lGSUVEEAASHQoZU0NIRURVTEVfRklSRV9PUklHSU5fQ1JPThABEh8KG1NDSEVEVUxFX0ZJUkVfT1JJR0lOX01BTlVBTBACKrsCChNTY2hlZHVsZUZpcmVPdXRjb21lEiUKIVNDSEVEVUxFX0ZJUkVfT1VUQ09NRV9VTlNQRUNJRklFRBAAEiEKHVNDSEVEVUxFX0ZJUkVfT1VUQ09NRV9TVEFSVEVEEAESIQodU0NIRURVTEVfRklSRV9PVVRDT01FX1JFRlVTRUQQAhIoCiRTQ0hFRFVMRV9GSVJFX09VVENPTUVfVEFSR0VUX01JU1NJTkcQAxIhCh1TQ0hFRFVMRV9GSVJFX09VVENPTUVfU0tJUFBFRBAEEiMKH1NDSEVEVUxFX0ZJUkVfT1VUQ09NRV9DT01QTEVURUQQBRIgChxTQ0hFRFVMRV9GSVJFX09VVENPTUVfRkFJTEVEEAYSIwofU0NIRURVTEVfRklSRV9PVVRDT01FX1RJTUVEX09VVBAHYgZwcm90bzM", [file_ai_stigmer_agentic_schedule_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_field_mask, file_google_protobuf_timestamp]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvaW8ucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MSIjCgpTY2hlZHVsZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEijwEKG0xpc3RTY2hlZHVsZXNCeUFnZW50UmVxdWVzdBIYCghhZ2VudF9pZBgBIAEoCUIGukgDyAEBEgsKA29yZxgDIAEoCRIaCglwYWdlX3NpemUYBCABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgFIAEoCUIIukgFcgMYgAhKBAgCEANSCXBhZ2VfaW5mbyJ1CgxTY2hlZHVsZUxpc3QSOQoHZW50cmllcxgCIAMoCzIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZRIXCg9uZXh0X3BhZ2VfdG9rZW4YAyABKAlKBAgBEAJSC3RvdGFsX2NvdW50IvgBChRMaXN0U2NoZWR1bGVzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESUAoGbGFiZWxzGAIgAygLMkAuYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLkxpc3RTY2hlZHVsZXNSZXF1ZXN0LkxhYmVsc0VudHJ5EhoKCXBhZ2Vfc2l6ZRgEIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAUgASgJQgi6SAVyAxiACBotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBSgQIAxAEUglwYWdlX2luZm8iwQEKFVNjaGVkdWxlVHJpZ2dlclJlc3VsdBI6CghzY2hlZHVsZRgBIAEoCzIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZRJECgdvdXRjb21lGAIgASgOMjMuYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlRmlyZU91dGNvbWUSDgoGcnVuX2lkGAMgASgJEhYKDnJlZnVzYWxfcmVhc29uGAQgASgJIvQCCgxTY2hlZHVsZUZpcmUSEwoLc2NoZWR1bGVfaWQYASABKAkSCwoDb3JnGAIgASgJEjUKEW5vbWluYWxfZmlyZV90aW1lGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBJCCgZvcmlnaW4YBCABKA4yMi5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGVGaXJlT3JpZ2luEkQKB291dGNvbWUYBSABKA4yMy5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGVGaXJlT3V0Y29tZRIOCgZyZWFzb24YBiABKAkSDgoGcnVuX2lkGAcgASgJEi8KC3JlY29yZGVkX2F0GAggASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxjb21wbGV0ZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIoIBChhMaXN0U2NoZWR1bGVGaXJlc1JlcXVlc3QSGwoLc2NoZWR1bGVfaWQYASABKAlCBrpIA8gBARIaCglwYWdlX3NpemUYAyABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgEIAEoCUIIukgFcgMYgAhKBAgCEANSCXBhZ2VfaW5mbyJ9ChBTY2hlZHVsZUZpcmVMaXN0Ej0KB2VudHJpZXMYAiADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGVGaXJlEhcKD25leHRfcGFnZV90b2tlbhgDIAEoCUoECAEQAlILdG90YWxfY291bnQi1QIKE1VwZGF0ZVNjaGVkdWxlSW5wdXQSQgoIcmVzb3VyY2UYASABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGVCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATrAAbpIvAEauQEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EkhyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBzY2hlZHVsZSBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJyp6ChJTY2hlZHVsZUZpcmVPcmlnaW4SJAogU0NIRURVTEVfRklSRV9PUklHSU5fVU5TUEVDSUZJRUQQABIdChlTQ0hFRFVMRV9GSVJFX09SSUdJTl9DUk9OEAESHwobU0NIRURVTEVfRklSRV9PUklHSU5fTUFOVUFMEAIquwIKE1NjaGVkdWxlRmlyZU91dGNvbWUSJQohU0NIRURVTEVfRklSRV9PVVRDT01FX1VOU1BFQ0lGSUVEEAASIQodU0NIRURVTEVfRklSRV9PVVRDT01FX1NUQVJURUQQARIhCh1TQ0hFRFVMRV9GSVJFX09VVENPTUVfUkVGVVNFRBACEigKJFNDSEVEVUxFX0ZJUkVfT1VUQ09NRV9UQVJHRVRfTUlTU0lORxADEiEKHVNDSEVEVUxFX0ZJUkVfT1VUQ09NRV9TS0lQUEVEEAQSIwofU0NIRURVTEVfRklSRV9PVVRDT01FX0NPTVBMRVRFRBAFEiAKHFNDSEVEVUxFX0ZJUkVfT1VUQ09NRV9GQUlMRUQQBhIjCh9TQ0hFRFVMRV9GSVJFX09VVENPTUVfVElNRURfT1VUEAdiBnByb3RvMw", [file_ai_stigmer_agentic_schedule_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask, file_google_protobuf_timestamp]);
 
 /**
  * ScheduleId wraps a schedule identifier.
@@ -43,22 +41,15 @@ export const ScheduleIdSchema: GenMessage<ScheduleId> = /*@__PURE__*/
 /**
  * Input for retrieving all schedules of a specific agent.
  *
- * @generated from message ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest
+ * @generated from message ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest
  */
-export type GetSchedulesByAgentRequest = Message<"ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest"> & {
+export type ListSchedulesByAgentRequest = Message<"ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest"> & {
   /**
    * Identifier of the agent whose schedules to retrieve.
    *
    * @generated from field: string agent_id = 1;
    */
   agentId: string;
-
-  /**
-   * Pagination options.
-   *
-   * @generated from field: ai.stigmer.commons.rpc.PageInfo page_info = 2;
-   */
-  pageInfo?: PageInfo;
 
   /**
    * Organization slug to scope the results to.
@@ -71,13 +62,29 @@ export type GetSchedulesByAgentRequest = Message<"ai.stigmer.agentic.schedule.v1
    * @generated from field: string org = 3;
    */
   org: string;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 4;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 5;
+   */
+  pageToken: string;
 };
 
 /**
- * Describes the message ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest.
- * Use `create(GetSchedulesByAgentRequestSchema)` to create a new message.
+ * Describes the message ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest.
+ * Use `create(ListSchedulesByAgentRequestSchema)` to create a new message.
  */
-export const GetSchedulesByAgentRequestSchema: GenMessage<GetSchedulesByAgentRequest> = /*@__PURE__*/
+export const ListSchedulesByAgentRequestSchema: GenMessage<ListSchedulesByAgentRequest> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_schedule_v1_io, 1);
 
 /**
@@ -87,18 +94,19 @@ export const GetSchedulesByAgentRequestSchema: GenMessage<GetSchedulesByAgentReq
  */
 export type ScheduleList = Message<"ai.stigmer.agentic.schedule.v1.ScheduleList"> & {
   /**
-   * Total number of schedules matching the query.
-   *
-   * @generated from field: int32 total_count = 1;
-   */
-  totalCount: number;
-
-  /**
    * Schedules in the current page.
    *
-   * @generated from field: repeated ai.stigmer.agentic.schedule.v1.Schedule items = 2;
+   * @generated from field: repeated ai.stigmer.agentic.schedule.v1.Schedule entries = 2;
    */
-  items: Schedule[];
+  entries: Schedule[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 3;
+   */
+  nextPageToken: string;
 };
 
 /**
@@ -129,11 +137,20 @@ export type ListSchedulesRequest = Message<"ai.stigmer.agentic.schedule.v1.ListS
   labels: { [key: string]: string };
 
   /**
-   * Pagination options.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    *
-   * @generated from field: ai.stigmer.commons.rpc.PageInfo page_info = 3;
+   * @generated from field: int32 page_size = 4;
    */
-  pageInfo?: PageInfo;
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 5;
+   */
+  pageToken: string;
 };
 
 /**
@@ -287,11 +304,20 @@ export type ListScheduleFiresRequest = Message<"ai.stigmer.agentic.schedule.v1.L
   scheduleId: string;
 
   /**
-   * Pagination options. Fires are returned newest first.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    *
-   * @generated from field: ai.stigmer.commons.rpc.PageInfo page_info = 2;
+   * @generated from field: int32 page_size = 3;
    */
-  pageInfo?: PageInfo;
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 4;
+   */
+  pageToken: string;
 };
 
 /**
@@ -308,18 +334,19 @@ export const ListScheduleFiresRequestSchema: GenMessage<ListScheduleFiresRequest
  */
 export type ScheduleFireList = Message<"ai.stigmer.agentic.schedule.v1.ScheduleFireList"> & {
   /**
-   * Total number of recorded fires for the schedule.
-   *
-   * @generated from field: int32 total_count = 1;
-   */
-  totalCount: number;
-
-  /**
    * Fires in the current page.
    *
-   * @generated from field: repeated ai.stigmer.agentic.schedule.v1.ScheduleFire items = 2;
+   * @generated from field: repeated ai.stigmer.agentic.schedule.v1.ScheduleFire entries = 2;
    */
-  items: ScheduleFire[];
+  entries: ScheduleFire[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 3;
+   */
+  nextPageToken: string;
 };
 
 /**

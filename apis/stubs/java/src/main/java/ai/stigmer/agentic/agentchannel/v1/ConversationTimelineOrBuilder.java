@@ -15,48 +15,49 @@ public interface ConversationTimelineOrBuilder extends
    * Timeline items in the current page, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem> 
-      getItemsList();
+      getEntriesList();
   /**
    * <pre>
    * Timeline items in the current page, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
    */
-  ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem getItems(int index);
+  ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem getEntries(int index);
   /**
    * <pre>
    * Timeline items in the current page, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
    */
-  int getItemsCount();
+  int getEntriesCount();
   /**
    * <pre>
    * Timeline items in the current page, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<? extends ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItemOrBuilder> 
-      getItemsOrBuilderList();
+      getEntriesOrBuilderList();
   /**
    * <pre>
    * Timeline items in the current page, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem items = 1 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem entries = 1 [json_name = "entries"];</code>
    */
-  ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItemOrBuilder getItemsOrBuilder(
+  ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItemOrBuilder getEntriesOrBuilder(
       int index);
 
   /**
    * <pre>
-   * Cursor for the next (older) page. Empty when no more items exist.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -65,7 +66,8 @@ public interface ConversationTimelineOrBuilder extends
   java.lang.String getNextPageToken();
   /**
    * <pre>
-   * Cursor for the next (older) page. Empty when no more items exist.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>

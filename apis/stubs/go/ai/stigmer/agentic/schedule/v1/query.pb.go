@@ -26,12 +26,11 @@ var File_ai_stigmer_agentic_schedule_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_schedule_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/schedule/v1/query.proto\x12\x1eai.stigmer.agentic.schedule.v1\x1a(ai/stigmer/agentic/schedule/v1/api.proto\x1a'ai/stigmer/agentic/schedule/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xca\x05\n" +
+	"*ai/stigmer/agentic/schedule/v1/query.proto\x12\x1eai.stigmer.agentic.schedule.v1\x1a(ai/stigmer/agentic/schedule/v1/api.proto\x1a'ai/stigmer/agentic/schedule/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xcc\x05\n" +
 	"\x17ScheduleQueryController\x12\x8a\x01\n" +
 	"\x03get\x12*.ai.stigmer.agentic.schedule.v1.ScheduleId\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\"-¸\x18)\b\x01\x108\"\x05value*\x1cunauthorized to get schedule\x12v\n" +
-	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\"\x04и\x18\x01\x12|\n" +
-	"\n" +
-	"getByAgent\x12:.ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest\x1a,.ai.stigmer.agentic.schedule.v1.ScheduleList\"\x04и\x18\x01\x12p\n" +
+	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\"\x04и\x18\x01\x12~\n" +
+	"\vlistByAgent\x12;.ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest\x1a,.ai.stigmer.agentic.schedule.v1.ScheduleList\"\x04и\x18\x01\x12p\n" +
 	"\x04list\x124.ai.stigmer.agentic.schedule.v1.ListSchedulesRequest\x1a,.ai.stigmer.agentic.schedule.v1.ScheduleList\"\x04и\x18\x01\x12\xb3\x01\n" +
 	"\tlistFires\x128.ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest\x1a0.ai.stigmer.agentic.schedule.v1.ScheduleFireList\":¸\x186\b\x01\x108\"\vschedule_id*#unauthorized to list schedule fires\x1a\x04\xa0\xff+8B\xa1\x02\n" +
 	"\"com.ai.stigmer.agentic.schedule.v1B\n" +
@@ -40,7 +39,7 @@ const file_ai_stigmer_agentic_schedule_v1_query_proto_rawDesc = "" +
 var file_ai_stigmer_agentic_schedule_v1_query_proto_goTypes = []any{
 	(*ScheduleId)(nil),                       // 0: ai.stigmer.agentic.schedule.v1.ScheduleId
 	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*GetSchedulesByAgentRequest)(nil),       // 2: ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest
+	(*ListSchedulesByAgentRequest)(nil),      // 2: ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest
 	(*ListSchedulesRequest)(nil),             // 3: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest
 	(*ListScheduleFiresRequest)(nil),         // 4: ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest
 	(*Schedule)(nil),                         // 5: ai.stigmer.agentic.schedule.v1.Schedule
@@ -50,12 +49,12 @@ var file_ai_stigmer_agentic_schedule_v1_query_proto_goTypes = []any{
 var file_ai_stigmer_agentic_schedule_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.schedule.v1.ScheduleQueryController.get:input_type -> ai.stigmer.agentic.schedule.v1.ScheduleId
 	1, // 1: ai.stigmer.agentic.schedule.v1.ScheduleQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // 2: ai.stigmer.agentic.schedule.v1.ScheduleQueryController.getByAgent:input_type -> ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest
+	2, // 2: ai.stigmer.agentic.schedule.v1.ScheduleQueryController.listByAgent:input_type -> ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest
 	3, // 3: ai.stigmer.agentic.schedule.v1.ScheduleQueryController.list:input_type -> ai.stigmer.agentic.schedule.v1.ListSchedulesRequest
 	4, // 4: ai.stigmer.agentic.schedule.v1.ScheduleQueryController.listFires:input_type -> ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest
 	5, // 5: ai.stigmer.agentic.schedule.v1.ScheduleQueryController.get:output_type -> ai.stigmer.agentic.schedule.v1.Schedule
 	5, // 6: ai.stigmer.agentic.schedule.v1.ScheduleQueryController.getByReference:output_type -> ai.stigmer.agentic.schedule.v1.Schedule
-	6, // 7: ai.stigmer.agentic.schedule.v1.ScheduleQueryController.getByAgent:output_type -> ai.stigmer.agentic.schedule.v1.ScheduleList
+	6, // 7: ai.stigmer.agentic.schedule.v1.ScheduleQueryController.listByAgent:output_type -> ai.stigmer.agentic.schedule.v1.ScheduleList
 	6, // 8: ai.stigmer.agentic.schedule.v1.ScheduleQueryController.list:output_type -> ai.stigmer.agentic.schedule.v1.ScheduleList
 	7, // 9: ai.stigmer.agentic.schedule.v1.ScheduleQueryController.listFires:output_type -> ai.stigmer.agentic.schedule.v1.ScheduleFireList
 	5, // [5:10] is the sub-list for method output_type

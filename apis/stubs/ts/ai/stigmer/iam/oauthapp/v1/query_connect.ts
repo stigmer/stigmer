@@ -6,7 +6,7 @@
 import { ApiResourceId, ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
 import { OAuthApp } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { ListOAuthAppsByOrgInput, OAuthApps } from "./io_pbjs";
+import { ListOAuthAppsInput, OAuthApps } from "./io_pbjs";
 
 /**
  * OAuthAppQueryController provides read operations for OAuth app resources.
@@ -42,16 +42,16 @@ export const OAuthAppQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * List all OAuth apps belonging to an organization.
+     * List the OAuth apps belonging to an organization.
      *
      * Returns the OAuthApps of the input org that the caller may view, newest
-     * first. Typically a small set (1-5 per org), so results are not paginated.
+     * first, one page at a time.
      *
-     * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController.listByOrg
+     * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController.list
      */
-    listByOrg: {
-      name: "listByOrg",
-      I: ListOAuthAppsByOrgInput,
+    list: {
+      name: "list",
+      I: ListOAuthAppsInput,
       O: OAuthApps,
       kind: MethodKind.Unary,
     },

@@ -43,14 +43,12 @@ class ListAgentVersionsInput(_message.Message):
     def __init__(self, org: _Optional[str] = ..., slug: _Optional[str] = ..., page_token: _Optional[str] = ..., page_size: _Optional[int] = ...) -> None: ...
 
 class ListAgentVersionsResponse(_message.Message):
-    __slots__ = ("versions", "next_page_token", "total_count")
-    VERSIONS_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("entries", "next_page_token")
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
     NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
-    TOTAL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    versions: _containers.RepeatedCompositeFieldContainer[AgentVersionEntry]
+    entries: _containers.RepeatedCompositeFieldContainer[AgentVersionEntry]
     next_page_token: str
-    total_count: int
-    def __init__(self, versions: _Optional[_Iterable[_Union[AgentVersionEntry, _Mapping]]] = ..., next_page_token: _Optional[str] = ..., total_count: _Optional[int] = ...) -> None: ...
+    def __init__(self, entries: _Optional[_Iterable[_Union[AgentVersionEntry, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
 class GetAgentVersionInput(_message.Message):
     __slots__ = ("agent_id", "version_hash")

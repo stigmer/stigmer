@@ -6,8 +6,6 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { Memory } from "./api_pb.js";
 import { file_ai_stigmer_agentic_memory_v1_api } from "./api_pb.js";
-import type { PageInfo } from "../../../commons/rpc/pagination_pb.js";
-import { file_ai_stigmer_commons_rpc_pagination } from "../../../commons/rpc/pagination_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { FieldMask } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
@@ -17,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/memory/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_memory_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvbWVtb3J5L3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMubWVtb3J5LnYxIiEKCE1lbW9yeUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiYAoTTGlzdE1lbW9yaWVzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESMwoJcGFnZV9pbmZvGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbyJWCgpNZW1vcnlMaXN0EhMKC3RvdGFsX2NvdW50GAEgASgFEjMKBWl0ZW1zGAIgAygLMiQuYWkuc3RpZ21lci5hZ2VudGljLm1lbW9yeS52MS5NZW1vcnkizQIKEVVwZGF0ZU1lbW9yeUlucHV0Ej4KCHJlc291cmNlGAEgASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLm1lbW9yeS52MS5NZW1vcnlCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATq+AbpIugEatwEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EkZyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBtZW1vcnkgYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJydiBnByb3RvMw", [file_ai_stigmer_agentic_memory_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvbWVtb3J5L3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMubWVtb3J5LnYxIiEKCE1lbW9yeUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEidgoTTGlzdE1lbW9yaWVzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESGgoJcGFnZV9zaXplGAMgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YBCABKAlCCLpIBXIDGIAISgQIAhADUglwYWdlX2luZm8ibwoKTWVtb3J5TGlzdBI1CgdlbnRyaWVzGAIgAygLMiQuYWkuc3RpZ21lci5hZ2VudGljLm1lbW9yeS52MS5NZW1vcnkSFwoPbmV4dF9wYWdlX3Rva2VuGAMgASgJSgQIARACUgt0b3RhbF9jb3VudCLNAgoRVXBkYXRlTWVtb3J5SW5wdXQSPgoIcmVzb3VyY2UYASABKAsyJC5haS5zdGlnbWVyLmFnZW50aWMubWVtb3J5LnYxLk1lbW9yeUIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOr4Buki6ARq3AQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSRnJlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIG1lbW9yeSBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_agentic_memory_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * MemoryId wraps a memory identifier.
@@ -54,11 +52,20 @@ export type ListMemoriesRequest = Message<"ai.stigmer.agentic.memory.v1.ListMemo
   org: string;
 
   /**
-   * Pagination options.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    *
-   * @generated from field: ai.stigmer.commons.rpc.PageInfo page_info = 2;
+   * @generated from field: int32 page_size = 3;
    */
-  pageInfo?: PageInfo;
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 4;
+   */
+  pageToken: string;
 };
 
 /**
@@ -75,18 +82,19 @@ export const ListMemoriesRequestSchema: GenMessage<ListMemoriesRequest> = /*@__P
  */
 export type MemoryList = Message<"ai.stigmer.agentic.memory.v1.MemoryList"> & {
   /**
-   * Total number of memories matching the query.
-   *
-   * @generated from field: int32 total_count = 1;
-   */
-  totalCount: number;
-
-  /**
    * Memories in the current page.
    *
-   * @generated from field: repeated ai.stigmer.agentic.memory.v1.Memory items = 2;
+   * @generated from field: repeated ai.stigmer.agentic.memory.v1.Memory entries = 2;
    */
-  items: Memory[];
+  entries: Memory[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 3;
+   */
+  nextPageToken: string;
 };
 
 /**

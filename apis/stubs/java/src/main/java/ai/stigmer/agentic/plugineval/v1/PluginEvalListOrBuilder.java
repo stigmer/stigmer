@@ -12,55 +12,67 @@ public interface PluginEvalListOrBuilder extends
 
   /**
    * <pre>
-   * Number of evals in the list.
+   * The evals, newest first.
    * </pre>
    *
-   * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
-   * @return The totalCount.
+   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEval entries = 2 [json_name = "entries"];</code>
    */
-  int getTotalCount();
+  java.util.List<ai.stigmer.agentic.plugineval.v1.PluginEval> 
+      getEntriesList();
+  /**
+   * <pre>
+   * The evals, newest first.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEval entries = 2 [json_name = "entries"];</code>
+   */
+  ai.stigmer.agentic.plugineval.v1.PluginEval getEntries(int index);
+  /**
+   * <pre>
+   * The evals, newest first.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEval entries = 2 [json_name = "entries"];</code>
+   */
+  int getEntriesCount();
+  /**
+   * <pre>
+   * The evals, newest first.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEval entries = 2 [json_name = "entries"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.plugineval.v1.PluginEvalOrBuilder> 
+      getEntriesOrBuilderList();
+  /**
+   * <pre>
+   * The evals, newest first.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEval entries = 2 [json_name = "entries"];</code>
+   */
+  ai.stigmer.agentic.plugineval.v1.PluginEvalOrBuilder getEntriesOrBuilder(
+      int index);
 
   /**
    * <pre>
-   * The evals, newest first.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEval items = 2 [json_name = "items"];</code>
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The nextPageToken.
    */
-  java.util.List<ai.stigmer.agentic.plugineval.v1.PluginEval> 
-      getItemsList();
+  java.lang.String getNextPageToken();
   /**
    * <pre>
-   * The evals, newest first.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEval items = 2 [json_name = "items"];</code>
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The bytes for nextPageToken.
    */
-  ai.stigmer.agentic.plugineval.v1.PluginEval getItems(int index);
-  /**
-   * <pre>
-   * The evals, newest first.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEval items = 2 [json_name = "items"];</code>
-   */
-  int getItemsCount();
-  /**
-   * <pre>
-   * The evals, newest first.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEval items = 2 [json_name = "items"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.plugineval.v1.PluginEvalOrBuilder> 
-      getItemsOrBuilderList();
-  /**
-   * <pre>
-   * The evals, newest first.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEval items = 2 [json_name = "items"];</code>
-   */
-  ai.stigmer.agentic.plugineval.v1.PluginEvalOrBuilder getItemsOrBuilder(
-      int index);
+  com.google.protobuf.ByteString
+      getNextPageTokenBytes();
 }

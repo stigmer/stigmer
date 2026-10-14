@@ -6,7 +6,7 @@
 import { ApiResourceId, ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
 import { IdentityProvider } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { IdentityProviders, ListIdentityProvidersByOrgInput } from "./io_pbjs";
+import { IdentityProviders, ListIdentityProvidersInput } from "./io_pbjs";
 
 /**
  * IdentityProviderQueryController provides read operations for identity providers.
@@ -45,14 +45,13 @@ export const IdentityProviderQueryController = {
      * List the identity providers of an organization that the caller may view.
      *
      * Returns the IdentityProviders whose metadata.org matches the input org and
-     * that the caller could get by id. Typically a small set (1-3 per org), so
-     * results are not paginated.
+     * that the caller could get by id, newest first, one page at a time.
      *
-     * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.listByOrg
+     * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.list
      */
-    listByOrg: {
-      name: "listByOrg",
-      I: ListIdentityProvidersByOrgInput,
+    list: {
+      name: "list",
+      I: ListIdentityProvidersInput,
       O: IdentityProviders,
       kind: MethodKind.Unary,
     },

@@ -105,8 +105,8 @@ private static final long serialVersionUID = 0L;
   private int pageSize_ = 0;
   /**
    * <pre>
-   * The most children to return; 0 returns every child and no token. A
-   * positive size is capped at 100.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    * </pre>
    *
    * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -122,7 +122,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object pageToken_ = "";
   /**
    * <pre>
-   * The previous response's next_page_token, to continue that list.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
@@ -143,7 +144,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The previous response's next_page_token, to continue that list.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
@@ -604,8 +606,8 @@ private static final long serialVersionUID = 0L;
     private int pageSize_ ;
     /**
      * <pre>
-     * The most children to return; 0 returns every child and no token. A
-     * positive size is capped at 100.
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100.
      * </pre>
      *
      * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -617,8 +619,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The most children to return; 0 returns every child and no token. A
-     * positive size is capped at 100.
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100.
      * </pre>
      *
      * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -634,8 +636,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The most children to return; 0 returns every child and no token. A
-     * positive size is capped at 100.
+     * The most entries to return: 0 asks for the default page of 50, and a
+     * size above 100 is read as 100.
      * </pre>
      *
      * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -651,7 +653,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object pageToken_ = "";
     /**
      * <pre>
-     * The previous response's next_page_token, to continue that list.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
@@ -671,7 +674,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The previous response's next_page_token, to continue that list.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
@@ -692,7 +696,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The previous response's next_page_token, to continue that list.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
@@ -709,7 +714,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The previous response's next_page_token, to continue that list.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
@@ -723,7 +729,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The previous response's next_page_token, to continue that list.
+     * The previous response's next_page_token, to continue that list; every
+     * other field must equal that request's, or the call is refused.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>

@@ -8,8 +8,6 @@ import type { ApiResourceKind } from "../../commons/apiresource/apiresourcekind/
 import { file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind } from "../../commons/apiresource/apiresourcekind/api_resource_kind_pb.js";
 import type { ApiResourceVisibility } from "../../commons/apiresource/enum_pb.js";
 import { file_ai_stigmer_commons_apiresource_enum } from "../../commons/apiresource/enum_pb.js";
-import type { PageInfo } from "../../commons/rpc/pagination_pb.js";
-import { file_ai_stigmer_commons_rpc_pagination } from "../../commons/rpc/pagination_pb.js";
 import { file_buf_validate_validate } from "../../../../buf/validate/validate_pb.js";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
@@ -19,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/search/v1/io.proto.
  */
 export const file_ai_stigmer_search_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("Ch1haS9zdGlnbWVyL3NlYXJjaC92MS9pby5wcm90bxIUYWkuc3RpZ21lci5zZWFyY2gudjEipAIKDVNlYXJjaFJlcXVlc3QSXQoFa2luZHMYASADKA4yPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlS2luZEINukgKkgEHIgWCAQIQARIXCgVxdWVyeRgCIAEoCUIIukgFcgMY9AMSPQoDb3JnGAMgASgJQjC6SC1yKxg/MideJHxeW2Etel1bYS16MC05LV0qJHxeb3JnX1swLTlhLXpdezI2fSQSLgoEcGFnZRgFIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm9KBAgEEAVKBAgGEAdSDmV4Y2x1ZGVfcHVibGljUhBjcm9zc19vcmdfcHVibGljIvQBCg5TZWFyY2hSZXNwb25zZRIzCgdlbnRyaWVzGAEgAygLMiIuYWkuc3RpZ21lci5zZWFyY2gudjEuU2VhcmNoUmVzdWx0Ek4KDmNvdW50c19ieV9raW5kGAIgAygLMjYuYWkuc3RpZ21lci5zZWFyY2gudjEuU2VhcmNoUmVzcG9uc2UuQ291bnRzQnlLaW5kRW50cnkSEwoLdG90YWxfY291bnQYAyABKAUSEwoLdG90YWxfcGFnZXMYBCABKAUaMwoRQ291bnRzQnlLaW5kRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgFOgI4ASKZAwoMU2VhcmNoUmVzdWx0Ek0KBGtpbmQYASABKA4yPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlS2luZBIKCgJpZBgCIAEoCRIMCgRuYW1lGAMgASgJEgwKBHNsdWcYBCABKAkSFgoOcXVhbGlmaWVkX3NsdWcYBSABKAkSCwoDb3JnGAYgASgJEhMKC2Rlc2NyaXB0aW9uGAcgASgJEkkKCnZpc2liaWxpdHkYCCABKA4yNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VWaXNpYmlsaXR5EgwKBHRhZ3MYCSADKAkSLgoKY3JlYXRlZF9hdBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFc2NvcmUYDCABKAISEAoIaWNvbl91cmwYDSABKAliBnByb3RvMw", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_commons_apiresource_enum, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("Ch1haS9zdGlnbWVyL3NlYXJjaC92MS9pby5wcm90bxIUYWkuc3RpZ21lci5zZWFyY2gudjEiugIKDVNlYXJjaFJlcXVlc3QSXQoFa2luZHMYASADKA4yPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlS2luZEINukgKkgEHIgWCAQIQARIXCgVxdWVyeRgCIAEoCUIIukgFcgMY9AMSPQoDb3JnGAMgASgJQjC6SC1yKxg/MideJHxeW2Etel1bYS16MC05LV0qJHxeb3JnX1swLTlhLXpdezI2fSQSGgoJcGFnZV9zaXplGAcgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YCCABKAlCCLpIBXIDGIAISgQIBBAFSgQIBhAHSgQIBRAGUg5leGNsdWRlX3B1YmxpY1IQY3Jvc3Nfb3JnX3B1YmxpY1IEcGFnZSKJAgoOU2VhcmNoUmVzcG9uc2USMwoHZW50cmllcxgBIAMoCzIiLmFpLnN0aWdtZXIuc2VhcmNoLnYxLlNlYXJjaFJlc3VsdBJOCg5jb3VudHNfYnlfa2luZBgCIAMoCzI2LmFpLnN0aWdtZXIuc2VhcmNoLnYxLlNlYXJjaFJlc3BvbnNlLkNvdW50c0J5S2luZEVudHJ5EhcKD25leHRfcGFnZV90b2tlbhgFIAEoCRozChFDb3VudHNCeUtpbmRFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAU6AjgBSgQIAxAESgQIBBAFUgt0b3RhbF9jb3VudFILdG90YWxfcGFnZXMimQMKDFNlYXJjaFJlc3VsdBJNCgRraW5kGAEgASgOMj8uYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5BcGlSZXNvdXJjZUtpbmQSCgoCaWQYAiABKAkSDAoEbmFtZRgDIAEoCRIMCgRzbHVnGAQgASgJEhYKDnF1YWxpZmllZF9zbHVnGAUgASgJEgsKA29yZxgGIAEoCRITCgtkZXNjcmlwdGlvbhgHIAEoCRJJCgp2aXNpYmlsaXR5GAggASgOMjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlVmlzaWJpbGl0eRIMCgR0YWdzGAkgAygJEi4KCmNyZWF0ZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYCyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg0KBXNjb3JlGAwgASgCEhAKCGljb25fdXJsGA0gASgJYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_commons_apiresource_enum, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * SearchRequest specifies criteria for searching API resources.
@@ -82,16 +80,20 @@ export type SearchRequest = Message<"ai.stigmer.search.v1.SearchRequest"> & {
   org: string;
 
   /**
-   * Pagination parameters.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    *
-   * - num: Page number (1-indexed). Default: 1
-   * - size: Items per page. Default: 20, Maximum: 100
-   *
-   * If not provided, defaults to page 1 with 20 items.
-   *
-   * @generated from field: ai.stigmer.commons.rpc.PageInfo page = 5;
+   * @generated from field: int32 page_size = 7;
    */
-  page?: PageInfo;
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 8;
+   */
+  pageToken: string;
 };
 
 /**
@@ -141,24 +143,12 @@ export type SearchResponse = Message<"ai.stigmer.search.v1.SearchResponse"> & {
   countsByKind: { [key: string]: number };
 
   /**
-   * Total count of matching resources across all kinds.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    *
-   * This is the sum of all counts_by_kind values.
-   * Used for displaying "Showing X of Y results".
-   *
-   * @generated from field: int32 total_count = 3;
+   * @generated from field: string next_page_token = 5;
    */
-  totalCount: number;
-
-  /**
-   * Total number of pages based on current page size.
-   *
-   * Calculated as: ceil(total_count / page.size)
-   * Used for pagination controls.
-   *
-   * @generated from field: int32 total_pages = 4;
-   */
-  totalPages: number;
+  nextPageToken: string;
 };
 
 /**

@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetArtifactRequest, GetArtifactResponse, ListSkillVersionsInput, ListSkillVersionsResponse, SkillArtifactDownloadUrl, SkillId } from "./io_pbjs";
+import { GetArtifactRequest, GetArtifactResponse, ListSkillsRequest, ListSkillVersionsInput, ListSkillVersionsResponse, SkillArtifactDownloadUrl, SkillId, SkillList } from "./io_pbjs";
 import { Skill } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -41,6 +41,20 @@ export const SkillQueryController = {
       name: "getByReference",
       I: ApiResourceReference,
       O: Skill,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List an organization's skills, newest first.
+     *
+     * Returns the skills of the input org that the caller may view, one page
+     * at a time. Search finds skills by their words; list browses them.
+     *
+     * @generated from rpc ai.stigmer.agentic.skill.v1.SkillQueryController.list
+     */
+    list: {
+      name: "list",
+      I: ListSkillsRequest,
+      O: SkillList,
       kind: MethodKind.Unary,
     },
     /**

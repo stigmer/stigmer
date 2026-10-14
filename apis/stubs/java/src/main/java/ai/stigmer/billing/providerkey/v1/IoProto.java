@@ -70,16 +70,19 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       " \'cursor\' || this.base_url == \'\'\"q\n\026Dele" +
       "teProviderKeyInput\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001" +
       "R\003org\022<\n\010provider\030\002 \001(\tB \272H\035r\033R\tanthropi" +
-      "cR\006openaiR\006cursorR\010provider\"2\n\025ListProvi" +
-      "derKeysInput\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\"" +
-      "\\\n\026ListProviderKeysOutput\022B\n\004keys\030\001 \003(\0132" +
-      "..ai.stigmer.billing.providerkey.v1.Prov" +
-      "iderKeyR\004keysB\262\001B\007IoProtoP\001\242\002\004ASBP\252\002!Ai." +
-      "Stigmer.Billing.Providerkey.V1\312\002!Ai\\Stig" +
-      "mer\\Billing\\Providerkey\\V1\342\002-Ai\\Stigmer\\" +
-      "Billing\\Providerkey\\V1\\GPBMetadata\352\002%Ai:" +
-      ":Stigmer::Billing::Providerkey::V1b\006prot" +
-      "o3"
+      "cR\006openaiR\006cursorR\010provider\"\201\001\n\025ListProv" +
+      "iderKeysInput\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org" +
+      "\022$\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'" +
+      "\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\"" +
+      "\212\001\n\026ListProviderKeysOutput\022H\n\007entries\030\001 " +
+      "\003(\0132..ai.stigmer.billing.providerkey.v1." +
+      "ProviderKeyR\007entries\022&\n\017next_page_token\030" +
+      "\002 \001(\tR\rnextPageTokenB\262\001B\007IoProtoP\001\242\002\004ASB" +
+      "P\252\002!Ai.Stigmer.Billing.Providerkey.V1\312\002!" +
+      "Ai\\Stigmer\\Billing\\Providerkey\\V1\342\002-Ai\\S" +
+      "tigmer\\Billing\\Providerkey\\V1\\GPBMetadat" +
+      "a\352\002%Ai::Stigmer::Billing::Providerkey::V" +
+      "1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -104,13 +107,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_billing_providerkey_v1_ListProviderKeysInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_providerkey_v1_ListProviderKeysInput_descriptor,
-        new java.lang.String[] { "Org", });
+        new java.lang.String[] { "Org", "PageSize", "PageToken", });
     internal_static_ai_stigmer_billing_providerkey_v1_ListProviderKeysOutput_descriptor =
       getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_billing_providerkey_v1_ListProviderKeysOutput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_providerkey_v1_ListProviderKeysOutput_descriptor,
-        new java.lang.String[] { "Keys", });
+        new java.lang.String[] { "Entries", "NextPageToken", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.billing.providerkey.v1.ApiProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

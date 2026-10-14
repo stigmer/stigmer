@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	OAuthAppQueryController_Get_FullMethodName            = "/ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController/get"
 	OAuthAppQueryController_GetByReference_FullMethodName = "/ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController/getByReference"
-	OAuthAppQueryController_ListByOrg_FullMethodName      = "/ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController/listByOrg"
+	OAuthAppQueryController_List_FullMethodName           = "/ai.stigmer.iam.oauthapp.v1.OAuthAppQueryController/list"
 )
 
 // OAuthAppQueryControllerClient is the client API for OAuthAppQueryController service.
@@ -38,11 +38,11 @@ type OAuthAppQueryControllerClient interface {
 	// Resolves a human-readable reference like "acme/slack-oauth" to the full
 	// OAuthApp resource.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*OAuthApp, error)
-	// List all OAuth apps belonging to an organization.
+	// List the OAuth apps belonging to an organization.
 	//
 	// Returns the OAuthApps of the input org that the caller may view, newest
-	// first. Typically a small set (1-5 per org), so results are not paginated.
-	ListByOrg(ctx context.Context, in *ListOAuthAppsByOrgInput, opts ...grpc.CallOption) (*OAuthApps, error)
+	// first, one page at a time.
+	List(ctx context.Context, in *ListOAuthAppsInput, opts ...grpc.CallOption) (*OAuthApps, error)
 }
 
 type oAuthAppQueryControllerClient struct {
@@ -73,10 +73,10 @@ func (c *oAuthAppQueryControllerClient) GetByReference(ctx context.Context, in *
 	return out, nil
 }
 
-func (c *oAuthAppQueryControllerClient) ListByOrg(ctx context.Context, in *ListOAuthAppsByOrgInput, opts ...grpc.CallOption) (*OAuthApps, error) {
+func (c *oAuthAppQueryControllerClient) List(ctx context.Context, in *ListOAuthAppsInput, opts ...grpc.CallOption) (*OAuthApps, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(OAuthApps)
-	err := c.cc.Invoke(ctx, OAuthAppQueryController_ListByOrg_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, OAuthAppQueryController_List_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -96,11 +96,11 @@ type OAuthAppQueryControllerServer interface {
 	// Resolves a human-readable reference like "acme/slack-oauth" to the full
 	// OAuthApp resource.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*OAuthApp, error)
-	// List all OAuth apps belonging to an organization.
+	// List the OAuth apps belonging to an organization.
 	//
 	// Returns the OAuthApps of the input org that the caller may view, newest
-	// first. Typically a small set (1-5 per org), so results are not paginated.
-	ListByOrg(context.Context, *ListOAuthAppsByOrgInput) (*OAuthApps, error)
+	// first, one page at a time.
+	List(context.Context, *ListOAuthAppsInput) (*OAuthApps, error)
 }
 
 // UnimplementedOAuthAppQueryControllerServer should be embedded to have
@@ -116,8 +116,8 @@ func (UnimplementedOAuthAppQueryControllerServer) Get(context.Context, *apiresou
 func (UnimplementedOAuthAppQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*OAuthApp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
 }
-func (UnimplementedOAuthAppQueryControllerServer) ListByOrg(context.Context, *ListOAuthAppsByOrgInput) (*OAuthApps, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListByOrg not implemented")
+func (UnimplementedOAuthAppQueryControllerServer) List(context.Context, *ListOAuthAppsInput) (*OAuthApps, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
 func (UnimplementedOAuthAppQueryControllerServer) testEmbeddedByValue() {}
 
@@ -175,20 +175,20 @@ func _OAuthAppQueryController_GetByReference_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
-func _OAuthAppQueryController_ListByOrg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListOAuthAppsByOrgInput)
+func _OAuthAppQueryController_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListOAuthAppsInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(OAuthAppQueryControllerServer).ListByOrg(ctx, in)
+		return srv.(OAuthAppQueryControllerServer).List(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: OAuthAppQueryController_ListByOrg_FullMethodName,
+		FullMethod: OAuthAppQueryController_List_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OAuthAppQueryControllerServer).ListByOrg(ctx, req.(*ListOAuthAppsByOrgInput))
+		return srv.(OAuthAppQueryControllerServer).List(ctx, req.(*ListOAuthAppsInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -209,8 +209,8 @@ var OAuthAppQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _OAuthAppQueryController_GetByReference_Handler,
 		},
 		{
-			MethodName: "listByOrg",
-			Handler:    _OAuthAppQueryController_ListByOrg_Handler,
+			MethodName: "list",
+			Handler:    _OAuthAppQueryController_List_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

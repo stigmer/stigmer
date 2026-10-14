@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/platformclient/v1/io.proto.
  */
 export const file_ai_stigmer_iam_platformclient_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9pby5wcm90bxIgYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEiLAoQUGxhdGZvcm1DbGllbnRJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIlQKD1BsYXRmb3JtQ2xpZW50cxJBCgdlbnRyaWVzGAEgAygLMjAuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuUGxhdGZvcm1DbGllbnQiNQodTGlzdFBsYXRmb3JtQ2xpZW50c0J5T3JnSW5wdXQSFAoDb3JnGAEgASgJQge6SARyAhABIoABChxQbGF0Zm9ybUNsaWVudENyZWF0ZVJlc3BvbnNlEkkKD3BsYXRmb3JtX2NsaWVudBgBIAEoCzIwLmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLlBsYXRmb3JtQ2xpZW50EhUKDWNsaWVudF9zZWNyZXQYAiABKAki6gIKGVVwZGF0ZVBsYXRmb3JtQ2xpZW50SW5wdXQSSgoIcmVzb3VyY2UYASABKAsyMC5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5QbGF0Zm9ybUNsaWVudEIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOscBukjDARrAAQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQST3Jlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIHBsYXRmb3JtIGNsaWVudCBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_iam_platformclient_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("CilhaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9pby5wcm90bxIgYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEiLAoQUGxhdGZvcm1DbGllbnRJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIm0KD1BsYXRmb3JtQ2xpZW50cxJBCgdlbnRyaWVzGAEgAygLMjAuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuUGxhdGZvcm1DbGllbnQSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJImoKGExpc3RQbGF0Zm9ybUNsaWVudHNJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YAyABKAlCCLpIBXIDGIAIIoABChxQbGF0Zm9ybUNsaWVudENyZWF0ZVJlc3BvbnNlEkkKD3BsYXRmb3JtX2NsaWVudBgBIAEoCzIwLmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLlBsYXRmb3JtQ2xpZW50EhUKDWNsaWVudF9zZWNyZXQYAiABKAki6gIKGVVwZGF0ZVBsYXRmb3JtQ2xpZW50SW5wdXQSSgoIcmVzb3VyY2UYASABKAsyMC5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5QbGF0Zm9ybUNsaWVudEIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOscBukjDARrAAQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQST3Jlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIHBsYXRmb3JtIGNsaWVudCBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_iam_platformclient_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * PlatformClientId identifies a platform client by its unique identifier.
@@ -50,6 +50,14 @@ export type PlatformClients = Message<"ai.stigmer.iam.platformclient.v1.Platform
    * @generated from field: repeated ai.stigmer.iam.platformclient.v1.PlatformClient entries = 1;
    */
   entries: PlatformClient[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
 };
 
 /**
@@ -60,25 +68,41 @@ export const PlatformClientsSchema: GenMessage<PlatformClients> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_platformclient_v1_io, 1);
 
 /**
- * ListPlatformClientsByOrgInput specifies the organization whose platform
+ * ListPlatformClientsInput specifies the organization whose platform
  * clients should be returned.
  *
- * @generated from message ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput
+ * @generated from message ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput
  */
-export type ListPlatformClientsByOrgInput = Message<"ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput"> & {
+export type ListPlatformClientsInput = Message<"ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput"> & {
   /**
    * Organization slug to list platform clients for.
    *
    * @generated from field: string org = 1;
    */
   org: string;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
 };
 
 /**
- * Describes the message ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput.
- * Use `create(ListPlatformClientsByOrgInputSchema)` to create a new message.
+ * Describes the message ai.stigmer.iam.platformclient.v1.ListPlatformClientsInput.
+ * Use `create(ListPlatformClientsInputSchema)` to create a new message.
  */
-export const ListPlatformClientsByOrgInputSchema: GenMessage<ListPlatformClientsByOrgInput> = /*@__PURE__*/
+export const ListPlatformClientsInputSchema: GenMessage<ListPlatformClientsInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_platformclient_v1_io, 2);
 
 /**

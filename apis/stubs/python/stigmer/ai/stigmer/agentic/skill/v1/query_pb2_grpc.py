@@ -27,6 +27,11 @@ class SkillQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
                 _registered_method=True)
+        self.list = channel.unary_unary(
+                '/ai.stigmer.agentic.skill.v1.SkillQueryController/list',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.ListSkillsRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillList.FromString,
+                _registered_method=True)
         self.getArtifact = channel.unary_unary(
                 '/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifact',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactRequest.SerializeToString,
@@ -62,6 +67,16 @@ class SkillQueryControllerServicer(object):
         - Empty/"latest" → Returns the current version
         - Tag name (e.g., "stable", "v1.0") → Resolves to the version with this tag
         - SHA256 hash (64 hex chars) → Returns the exact immutable version
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def list(self, request, context):
+        """List an organization's skills, newest first.
+
+        Returns the skills of the input org that the caller may view, one page
+        at a time. Search finds skills by their words; list browses them.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -110,6 +125,11 @@ def add_SkillQueryControllerServicer_to_server(servicer, server):
                     servicer.getByReference,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
+            ),
+            'list': grpc.unary_unary_rpc_method_handler(
+                    servicer.list,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.ListSkillsRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillList.SerializeToString,
             ),
             'getArtifact': grpc.unary_unary_rpc_method_handler(
                     servicer.getArtifact,
@@ -182,6 +202,33 @@ class SkillQueryController(object):
             '/ai.stigmer.agentic.skill.v1.SkillQueryController/getByReference',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def list(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.skill.v1.SkillQueryController/list',
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.ListSkillsRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillList.FromString,
             options,
             channel_credentials,
             insecure,

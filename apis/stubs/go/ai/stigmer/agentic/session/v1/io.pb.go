@@ -117,14 +117,10 @@ func (x *AgentId) GetValue() string {
 // SessionList contains one page of sessions, newest first.
 type SessionList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Not computed for this list: 1 when the response holds every session,
-	// 0 when next_page_token is set. Follow next_page_token instead.
-	TotalPages int32 `protobuf:"varint,1,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
 	// Sessions in this page, newest first.
 	Entries []*Session `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
-	// Set when more sessions may follow: pass it as page_token to continue.
-	// A page may hold fewer sessions than page_size, even none, and still
-	// carry a token. Empty when the list is complete.
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
 	NextPageToken string `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -160,13 +156,6 @@ func (*SessionList) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *SessionList) GetTotalPages() int32 {
-	if x != nil {
-		return x.TotalPages
-	}
-	return 0
-}
-
 func (x *SessionList) GetEntries() []*Session {
 	if x != nil {
 		return x.Entries
@@ -184,7 +173,8 @@ func (x *SessionList) GetNextPageToken() string {
 // ListSessionsRequest specifies parameters for listing sessions.
 type ListSessionsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The most sessions to return, at most 100; zero returns them all.
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
 	PageSize int32 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
@@ -266,7 +256,8 @@ type ListSessionsByAgentRequest struct {
 	// ID of the agent whose conversations to list: the sessions whose
 	// status.agent_id names it, whichever version each runs.
 	AgentId string `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
-	// The most sessions to return, at most 100; zero returns them all.
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
@@ -331,7 +322,8 @@ type ListSessionsByChannelRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Agent channel ID to filter by.
 	ChannelId string `protobuf:"bytes,1,opt,name=channel_id,json=channelId,proto3" json:"channel_id,omitempty"`
-	// The most sessions to return, at most 100; zero returns them all.
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
@@ -1685,29 +1677,27 @@ const file_ai_stigmer_agentic_session_v1_io_proto_rawDesc = "" +
 	"\tSessionId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"'\n" +
 	"\aAgentId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x98\x01\n" +
-	"\vSessionList\x12\x1f\n" +
-	"\vtotal_pages\x18\x01 \x01(\x05R\n" +
-	"totalPages\x12@\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x8a\x01\n" +
+	"\vSessionList\x12@\n" +
 	"\aentries\x18\x02 \x03(\v2&.ai.stigmer.agentic.session.v1.SessionR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"\x80\x01\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_pages\"\x8a\x01\n" +
 	"\x13ListSessionsRequest\x12$\n" +
-	"\tpage_size\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12\x1d\n" +
+	"\tpage_size\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x12\n" +
+	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12\x12\n" +
 	"\x04tags\x18\x03 \x03(\tR\x04tags\x12\x10\n" +
-	"\x03org\x18\x04 \x01(\tR\x03org\"\x84\x01\n" +
+	"\x03org\x18\x04 \x01(\tR\x03org\"\x8e\x01\n" +
 	"\x1aListSessionsByAgentRequest\x12!\n" +
 	"\bagent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aagentId\x12$\n" +
-	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12\x1d\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tR\tpageToken\"\x8a\x01\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x94\x01\n" +
 	"\x1cListSessionsByChannelRequest\x12%\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tchannelId\x12$\n" +
-	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12\x1d\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tR\tpageToken\"O\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"O\n" +
 	"\x1bUpdateSessionSubjectRequest\x12\x16\n" +
 	"\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\"\x90\x04\n" +

@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MSIgCgdBZ2VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiyQIKEFVwZGF0ZUFnZW50SW5wdXQSPAoIcmVzb3VyY2UYASABKAsyIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATq9AbpIuQEatgEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EkVyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBhZ2VudCBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_agentic_agent_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MSIgCgdBZ2VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiyQIKEFVwZGF0ZUFnZW50SW5wdXQSPAoIcmVzb3VyY2UYASABKAsyIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATq9AbpIuQEatgEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EkVyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBhZ2VudCBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJyJjChFMaXN0QWdlbnRzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YAyABKAlCCLpIBXIDGIAIIlkKCUFnZW50TGlzdBIzCgdlbnRyaWVzGAEgAygLMiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agent_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * AgentId wraps an agent identifier.
@@ -68,4 +68,70 @@ export type UpdateAgentInput = Message<"ai.stigmer.agentic.agent.v1.UpdateAgentI
  */
 export const UpdateAgentInputSchema: GenMessage<UpdateAgentInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_io, 1);
+
+/**
+ * Input for listing an organization's agents, newest first.
+ *
+ * @generated from message ai.stigmer.agentic.agent.v1.ListAgentsRequest
+ */
+export type ListAgentsRequest = Message<"ai.stigmer.agentic.agent.v1.ListAgentsRequest"> & {
+  /**
+   * Organization whose agents to list, by id or slug.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agent.v1.ListAgentsRequest.
+ * Use `create(ListAgentsRequestSchema)` to create a new message.
+ */
+export const ListAgentsRequestSchema: GenMessage<ListAgentsRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agent_v1_io, 2);
+
+/**
+ * One page of an organization's agents.
+ *
+ * @generated from message ai.stigmer.agentic.agent.v1.AgentList
+ */
+export type AgentList = Message<"ai.stigmer.agentic.agent.v1.AgentList"> & {
+  /**
+   * The agents in this page, newest first.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.agent.v1.Agent entries = 1;
+   */
+  entries: Agent[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agent.v1.AgentList.
+ * Use `create(AgentListSchema)` to create a new message.
+ */
+export const AgentListSchema: GenMessage<AgentList> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agent_v1_io, 3);
 

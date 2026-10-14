@@ -20,7 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	InvitationQueryController_Get_FullMethodName        = "/ai.stigmer.iam.invitation.v1.InvitationQueryController/get"
-	InvitationQueryController_ListByOrg_FullMethodName  = "/ai.stigmer.iam.invitation.v1.InvitationQueryController/listByOrg"
+	InvitationQueryController_List_FullMethodName       = "/ai.stigmer.iam.invitation.v1.InvitationQueryController/list"
 	InvitationQueryController_GetByToken_FullMethodName = "/ai.stigmer.iam.invitation.v1.InvitationQueryController/getByToken"
 )
 
@@ -32,10 +32,10 @@ const (
 type InvitationQueryControllerClient interface {
 	// Get an invitation by its unique identifier.
 	Get(ctx context.Context, in *InvitationId, opts ...grpc.CallOption) (*Invitation, error)
-	// List all invitations belonging to an organization.
+	// List the invitations belonging to an organization.
 	//
 	// Returns invitations ordered by creation time (newest first).
-	ListByOrg(ctx context.Context, in *ListInvitationsByOrgInput, opts ...grpc.CallOption) (*Invitations, error)
+	List(ctx context.Context, in *ListInvitationsInput, opts ...grpc.CallOption) (*Invitations, error)
 	// Get a preview of an invitation by its shareable token.
 	//
 	// Returns a safe projection (InvitationPreview) containing only the
@@ -68,10 +68,10 @@ func (c *invitationQueryControllerClient) Get(ctx context.Context, in *Invitatio
 	return out, nil
 }
 
-func (c *invitationQueryControllerClient) ListByOrg(ctx context.Context, in *ListInvitationsByOrgInput, opts ...grpc.CallOption) (*Invitations, error) {
+func (c *invitationQueryControllerClient) List(ctx context.Context, in *ListInvitationsInput, opts ...grpc.CallOption) (*Invitations, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Invitations)
-	err := c.cc.Invoke(ctx, InvitationQueryController_ListByOrg_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, InvitationQueryController_List_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -96,10 +96,10 @@ func (c *invitationQueryControllerClient) GetByToken(ctx context.Context, in *In
 type InvitationQueryControllerServer interface {
 	// Get an invitation by its unique identifier.
 	Get(context.Context, *InvitationId) (*Invitation, error)
-	// List all invitations belonging to an organization.
+	// List the invitations belonging to an organization.
 	//
 	// Returns invitations ordered by creation time (newest first).
-	ListByOrg(context.Context, *ListInvitationsByOrgInput) (*Invitations, error)
+	List(context.Context, *ListInvitationsInput) (*Invitations, error)
 	// Get a preview of an invitation by its shareable token.
 	//
 	// Returns a safe projection (InvitationPreview) containing only the
@@ -124,8 +124,8 @@ type UnimplementedInvitationQueryControllerServer struct{}
 func (UnimplementedInvitationQueryControllerServer) Get(context.Context, *InvitationId) (*Invitation, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
 }
-func (UnimplementedInvitationQueryControllerServer) ListByOrg(context.Context, *ListInvitationsByOrgInput) (*Invitations, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListByOrg not implemented")
+func (UnimplementedInvitationQueryControllerServer) List(context.Context, *ListInvitationsInput) (*Invitations, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
 func (UnimplementedInvitationQueryControllerServer) GetByToken(context.Context, *InvitationTokenInput) (*InvitationPreview, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByToken not implemented")
@@ -168,20 +168,20 @@ func _InvitationQueryController_Get_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _InvitationQueryController_ListByOrg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListInvitationsByOrgInput)
+func _InvitationQueryController_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListInvitationsInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InvitationQueryControllerServer).ListByOrg(ctx, in)
+		return srv.(InvitationQueryControllerServer).List(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: InvitationQueryController_ListByOrg_FullMethodName,
+		FullMethod: InvitationQueryController_List_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InvitationQueryControllerServer).ListByOrg(ctx, req.(*ListInvitationsByOrgInput))
+		return srv.(InvitationQueryControllerServer).List(ctx, req.(*ListInvitationsInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -216,8 +216,8 @@ var InvitationQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _InvitationQueryController_Get_Handler,
 		},
 		{
-			MethodName: "listByOrg",
-			Handler:    _InvitationQueryController_ListByOrg_Handler,
+			MethodName: "list",
+			Handler:    _InvitationQueryController_List_Handler,
 		},
 		{
 			MethodName: "getByToken",

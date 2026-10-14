@@ -12,17 +12,6 @@ public interface SessionListOrBuilder extends
 
   /**
    * <pre>
-   * Not computed for this list: 1 when the response holds every session,
-   * 0 when next_page_token is set. Follow next_page_token instead.
-   * </pre>
-   *
-   * <code>int32 total_pages = 1 [json_name = "totalPages"];</code>
-   * @return The totalPages.
-   */
-  int getTotalPages();
-
-  /**
-   * <pre>
    * Sessions in this page, newest first.
    * </pre>
    *
@@ -67,9 +56,8 @@ public interface SessionListOrBuilder extends
 
   /**
    * <pre>
-   * Set when more sessions may follow: pass it as page_token to continue.
-   * A page may hold fewer sessions than page_size, even none, and still
-   * carry a token. Empty when the list is complete.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -78,9 +66,8 @@ public interface SessionListOrBuilder extends
   java.lang.String getNextPageToken();
   /**
    * <pre>
-   * Set when more sessions may follow: pass it as page_token to continue.
-   * A page may hold fewer sessions than page_size, even none, and still
-   * carry a token. Empty when the list is complete.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>

@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/oauthapp/v1/io.proto.
  */
 export const file_ai_stigmer_iam_oauthapp_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiNhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9pby5wcm90bxIaYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEiJgoKT0F1dGhBcHBJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIkIKCU9BdXRoQXBwcxI1CgdlbnRyaWVzGAEgAygLMiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHAiLwoXTGlzdE9BdXRoQXBwc0J5T3JnSW5wdXQSFAoDb3JnGAEgASgJQge6SARyAhABItICChNVcGRhdGVPQXV0aEFwcElucHV0Ej4KCHJlc291cmNlGAEgASgLMiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHBCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATrBAbpIvQEaugEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EklyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBPQXV0aCBhcHAgYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJydiBnByb3RvMw", [file_ai_stigmer_iam_oauthapp_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("CiNhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9pby5wcm90bxIaYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEiJgoKT0F1dGhBcHBJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIlsKCU9BdXRoQXBwcxI1CgdlbnRyaWVzGAEgAygLMiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHASFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJImQKEkxpc3RPQXV0aEFwcHNJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YAyABKAlCCLpIBXIDGIAIItICChNVcGRhdGVPQXV0aEFwcElucHV0Ej4KCHJlc291cmNlGAEgASgLMiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHBCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATrBAbpIvQEaugEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EklyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBPQXV0aCBhcHAgYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJydiBnByb3RvMw", [file_ai_stigmer_iam_oauthapp_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * OAuthAppId identifies an OAuth app by its unique identifier.
@@ -50,6 +50,14 @@ export type OAuthApps = Message<"ai.stigmer.iam.oauthapp.v1.OAuthApps"> & {
    * @generated from field: repeated ai.stigmer.iam.oauthapp.v1.OAuthApp entries = 1;
    */
   entries: OAuthApp[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
 };
 
 /**
@@ -60,25 +68,41 @@ export const OAuthAppsSchema: GenMessage<OAuthApps> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_oauthapp_v1_io, 1);
 
 /**
- * ListOAuthAppsByOrgInput specifies the organization whose OAuth apps
+ * ListOAuthAppsInput specifies the organization whose OAuth apps
  * should be returned.
  *
- * @generated from message ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput
+ * @generated from message ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput
  */
-export type ListOAuthAppsByOrgInput = Message<"ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput"> & {
+export type ListOAuthAppsInput = Message<"ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput"> & {
   /**
    * Organization slug to list OAuth apps for.
    *
    * @generated from field: string org = 1;
    */
   org: string;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
 };
 
 /**
- * Describes the message ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput.
- * Use `create(ListOAuthAppsByOrgInputSchema)` to create a new message.
+ * Describes the message ai.stigmer.iam.oauthapp.v1.ListOAuthAppsInput.
+ * Use `create(ListOAuthAppsInputSchema)` to create a new message.
  */
-export const ListOAuthAppsByOrgInputSchema: GenMessage<ListOAuthAppsByOrgInput> = /*@__PURE__*/
+export const ListOAuthAppsInputSchema: GenMessage<ListOAuthAppsInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_oauthapp_v1_io, 2);
 
 /**

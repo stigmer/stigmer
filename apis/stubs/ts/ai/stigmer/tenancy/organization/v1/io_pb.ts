@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/tenancy/organization/v1/io.proto.
  */
 export const file_ai_stigmer_tenancy_organization_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxIlIKDU9yZ2FuaXphdGlvbnMSQQoHZW50cmllcxgBIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uImoKEE9yZ2FuaXphdGlvbkxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSQQoHZW50cmllcxgCIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uIioKDk9yZ2FuaXphdGlvbklkEhgKBXZhbHVlGAEgASgJQgm6SAZyBBABGEAieQoaT3JnYW5pemF0aW9uRXh0ZXJuYWxMb29rdXASHwoLZXh0ZXJuYWxfaWQYAiABKAlCCrpIB3IFEAEYgAISHQoKcGFyZW50X29yZxgDIAEoCUIJukgGcgQQARhASgQIARACUhVpZGVudGl0eV9wcm92aWRlcl9yZWYiZgoSTGlzdENoaWxkT3Jnc0lucHV0EhYKA29yZxgBIAEoCUIJukgGcgQQARhAEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACCJqCgxDaGlsZE9yZ0xpc3QSQQoHZW50cmllcxgBIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSKQAQofVXBkYXRlT3JnYW5pemF0aW9uUG9saWNpZXNJbnB1dBIZCgZvcmdfaWQYASABKAlCCbpIBnIEEAEYQBJSCghwb2xpY2llcxgCIAEoCzI4LmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uUG9saWNpZXNCBrpIA8gBASLlAgoXVXBkYXRlT3JnYW5pemF0aW9uSW5wdXQSSgoIcmVzb3VyY2UYASABKAsyMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbkIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOsQBukjAARq9AQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSTHJlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIG9yZ2FuaXphdGlvbiBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_tenancy_organization_v1_api, file_ai_stigmer_tenancy_organization_v1_spec, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("CithaS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxImsKDU9yZ2FuaXphdGlvbnMSQQoHZW50cmllcxgBIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSJUChhMaXN0TXlPcmdhbml6YXRpb25zSW5wdXQSGgoJcGFnZV9zaXplGAEgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YAiABKAlCCLpIBXIDGIAIIioKDk9yZ2FuaXphdGlvbklkEhgKBXZhbHVlGAEgASgJQgm6SAZyBBABGEAieQoaT3JnYW5pemF0aW9uRXh0ZXJuYWxMb29rdXASHwoLZXh0ZXJuYWxfaWQYAiABKAlCCrpIB3IFEAEYgAISHQoKcGFyZW50X29yZxgDIAEoCUIJukgGcgQQARhASgQIARACUhVpZGVudGl0eV9wcm92aWRlcl9yZWYiZgoSTGlzdENoaWxkT3Jnc0lucHV0EhYKA29yZxgBIAEoCUIJukgGcgQQARhAEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACCJqCgxDaGlsZE9yZ0xpc3QSQQoHZW50cmllcxgBIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSKQAQofVXBkYXRlT3JnYW5pemF0aW9uUG9saWNpZXNJbnB1dBIZCgZvcmdfaWQYASABKAlCCbpIBnIEEAEYQBJSCghwb2xpY2llcxgCIAEoCzI4LmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uUG9saWNpZXNCBrpIA8gBASLlAgoXVXBkYXRlT3JnYW5pemF0aW9uSW5wdXQSSgoIcmVzb3VyY2UYASABKAsyMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbkIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOsQBukjAARq9AQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSTHJlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIG9yZ2FuaXphdGlvbiBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_tenancy_organization_v1_api, file_ai_stigmer_tenancy_organization_v1_spec, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * List of organizations.
@@ -31,6 +31,14 @@ export type Organizations = Message<"ai.stigmer.tenancy.organization.v1.Organiza
    * @generated from field: repeated ai.stigmer.tenancy.organization.v1.Organization entries = 1;
    */
   entries: Organization[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
 };
 
 /**
@@ -41,31 +49,33 @@ export const OrganizationsSchema: GenMessage<Organizations> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_tenancy_organization_v1_io, 0);
 
 /**
- * Response for a paginated organization list query.
+ * Input for listing the organizations the caller is a member of.
  *
- * @generated from message ai.stigmer.tenancy.organization.v1.OrganizationList
+ * @generated from message ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput
  */
-export type OrganizationList = Message<"ai.stigmer.tenancy.organization.v1.OrganizationList"> & {
+export type ListMyOrganizationsInput = Message<"ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput"> & {
   /**
-   * Total number of pages.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    *
-   * @generated from field: int32 total_pages = 1;
+   * @generated from field: int32 page_size = 1;
    */
-  totalPages: number;
+  pageSize: number;
 
   /**
-   * Organizations in the current page.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    *
-   * @generated from field: repeated ai.stigmer.tenancy.organization.v1.Organization entries = 2;
+   * @generated from field: string page_token = 2;
    */
-  entries: Organization[];
+  pageToken: string;
 };
 
 /**
- * Describes the message ai.stigmer.tenancy.organization.v1.OrganizationList.
- * Use `create(OrganizationListSchema)` to create a new message.
+ * Describes the message ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput.
+ * Use `create(ListMyOrganizationsInputSchema)` to create a new message.
  */
-export const OrganizationListSchema: GenMessage<OrganizationList> = /*@__PURE__*/
+export const ListMyOrganizationsInputSchema: GenMessage<ListMyOrganizationsInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_tenancy_organization_v1_io, 1);
 
 /**
@@ -132,15 +142,16 @@ export type ListChildOrgsInput = Message<"ai.stigmer.tenancy.organization.v1.Lis
   org: string;
 
   /**
-   * The most children to return; 0 returns every child and no token. A
-   * positive size is capped at 100.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    *
    * @generated from field: int32 page_size = 2;
    */
   pageSize: number;
 
   /**
-   * The previous response's next_page_token, to continue that list.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    *
    * @generated from field: string page_token = 3;
    */
@@ -168,7 +179,8 @@ export type ChildOrgList = Message<"ai.stigmer.tenancy.organization.v1.ChildOrgL
   entries: Organization[];
 
   /**
-   * Set when more children may follow: pass it as page_token to continue.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    *
    * @generated from field: string next_page_token = 2;
    */

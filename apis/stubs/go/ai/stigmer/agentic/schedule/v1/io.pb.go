@@ -8,7 +8,6 @@ package schedulev1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	rpc "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
@@ -199,37 +198,41 @@ func (x *ScheduleId) GetValue() string {
 }
 
 // Input for retrieving all schedules of a specific agent.
-type GetSchedulesByAgentRequest struct {
+type ListSchedulesByAgentRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Identifier of the agent whose schedules to retrieve.
 	AgentId string `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
-	// Pagination options.
-	PageInfo *rpc.PageInfo `protobuf:"bytes,2,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
 	// Organization slug to scope the results to.
 	//
 	// When set, only schedules whose metadata.org matches are returned —
 	// the org-context view a console tab needs. When empty, results are
 	// bounded only by the caller's view permissions, which for a member of
 	// several organizations spans all of them.
-	Org           string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
+	Org string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetSchedulesByAgentRequest) Reset() {
-	*x = GetSchedulesByAgentRequest{}
+func (x *ListSchedulesByAgentRequest) Reset() {
+	*x = ListSchedulesByAgentRequest{}
 	mi := &file_ai_stigmer_agentic_schedule_v1_io_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetSchedulesByAgentRequest) String() string {
+func (x *ListSchedulesByAgentRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetSchedulesByAgentRequest) ProtoMessage() {}
+func (*ListSchedulesByAgentRequest) ProtoMessage() {}
 
-func (x *GetSchedulesByAgentRequest) ProtoReflect() protoreflect.Message {
+func (x *ListSchedulesByAgentRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_agentic_schedule_v1_io_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -241,28 +244,35 @@ func (x *GetSchedulesByAgentRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetSchedulesByAgentRequest.ProtoReflect.Descriptor instead.
-func (*GetSchedulesByAgentRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListSchedulesByAgentRequest.ProtoReflect.Descriptor instead.
+func (*ListSchedulesByAgentRequest) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_schedule_v1_io_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *GetSchedulesByAgentRequest) GetAgentId() string {
+func (x *ListSchedulesByAgentRequest) GetAgentId() string {
 	if x != nil {
 		return x.AgentId
 	}
 	return ""
 }
 
-func (x *GetSchedulesByAgentRequest) GetPageInfo() *rpc.PageInfo {
-	if x != nil {
-		return x.PageInfo
-	}
-	return nil
-}
-
-func (x *GetSchedulesByAgentRequest) GetOrg() string {
+func (x *ListSchedulesByAgentRequest) GetOrg() string {
 	if x != nil {
 		return x.Org
+	}
+	return ""
+}
+
+func (x *ListSchedulesByAgentRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListSchedulesByAgentRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
 	}
 	return ""
 }
@@ -270,10 +280,11 @@ func (x *GetSchedulesByAgentRequest) GetOrg() string {
 // Response containing a paginated list of schedules.
 type ScheduleList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Total number of schedules matching the query.
-	TotalCount int32 `protobuf:"varint,1,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	// Schedules in the current page.
-	Items         []*Schedule `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	Entries []*Schedule `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -308,18 +319,18 @@ func (*ScheduleList) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_schedule_v1_io_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *ScheduleList) GetTotalCount() int32 {
+func (x *ScheduleList) GetEntries() []*Schedule {
 	if x != nil {
-		return x.TotalCount
-	}
-	return 0
-}
-
-func (x *ScheduleList) GetItems() []*Schedule {
-	if x != nil {
-		return x.Items
+		return x.Entries
 	}
 	return nil
+}
+
+func (x *ScheduleList) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
 }
 
 // Input for listing schedules within an organization.
@@ -329,8 +340,12 @@ type ListSchedulesRequest struct {
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Filter by metadata labels. AND semantics: all labels must match.
 	Labels map[string]string `protobuf:"bytes,2,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Pagination options.
-	PageInfo      *rpc.PageInfo `protobuf:"bytes,3,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -379,11 +394,18 @@ func (x *ListSchedulesRequest) GetLabels() map[string]string {
 	return nil
 }
 
-func (x *ListSchedulesRequest) GetPageInfo() *rpc.PageInfo {
+func (x *ListSchedulesRequest) GetPageSize() int32 {
 	if x != nil {
-		return x.PageInfo
+		return x.PageSize
 	}
-	return nil
+	return 0
+}
+
+func (x *ListSchedulesRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
 }
 
 // Result of manually triggering a schedule.
@@ -593,8 +615,12 @@ type ListScheduleFiresRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Schedule whose fires to list.
 	ScheduleId string `protobuf:"bytes,1,opt,name=schedule_id,json=scheduleId,proto3" json:"schedule_id,omitempty"`
-	// Pagination options. Fires are returned newest first.
-	PageInfo      *rpc.PageInfo `protobuf:"bytes,2,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -636,20 +662,28 @@ func (x *ListScheduleFiresRequest) GetScheduleId() string {
 	return ""
 }
 
-func (x *ListScheduleFiresRequest) GetPageInfo() *rpc.PageInfo {
+func (x *ListScheduleFiresRequest) GetPageSize() int32 {
 	if x != nil {
-		return x.PageInfo
+		return x.PageSize
 	}
-	return nil
+	return 0
+}
+
+func (x *ListScheduleFiresRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
 }
 
 // Response containing a paginated list of schedule fires, newest first.
 type ScheduleFireList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Total number of recorded fires for the schedule.
-	TotalCount int32 `protobuf:"varint,1,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	// Fires in the current page.
-	Items         []*ScheduleFire `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	Entries []*ScheduleFire `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -684,18 +718,18 @@ func (*ScheduleFireList) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_schedule_v1_io_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *ScheduleFireList) GetTotalCount() int32 {
+func (x *ScheduleFireList) GetEntries() []*ScheduleFire {
 	if x != nil {
-		return x.TotalCount
-	}
-	return 0
-}
-
-func (x *ScheduleFireList) GetItems() []*ScheduleFire {
-	if x != nil {
-		return x.Items
+		return x.Entries
 	}
 	return nil
+}
+
+func (x *ScheduleFireList) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
 }
 
 // The changes an update makes to a schedule: the fields update_mask names,
@@ -762,25 +796,28 @@ var File_ai_stigmer_agentic_schedule_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_schedule_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/agentic/schedule/v1/io.proto\x12\x1eai.stigmer.agentic.schedule.v1\x1a(ai/stigmer/agentic/schedule/v1/api.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"*\n" +
+	"'ai/stigmer/agentic/schedule/v1/io.proto\x12\x1eai.stigmer.agentic.schedule.v1\x1a(ai/stigmer/agentic/schedule/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"*\n" +
 	"\n" +
 	"ScheduleId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x90\x01\n" +
-	"\x1aGetSchedulesByAgentRequest\x12!\n" +
-	"\bagent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aagentId\x12=\n" +
-	"\tpage_info\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\x12\x10\n" +
-	"\x03org\x18\x03 \x01(\tR\x03org\"o\n" +
-	"\fScheduleList\x12\x1f\n" +
-	"\vtotal_count\x18\x01 \x01(\x05R\n" +
-	"totalCount\x12>\n" +
-	"\x05items\x18\x02 \x03(\v2(.ai.stigmer.agentic.schedule.v1.ScheduleR\x05items\"\x85\x02\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xb2\x01\n" +
+	"\x1bListSchedulesByAgentRequest\x12!\n" +
+	"\bagent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aagentId\x12\x10\n" +
+	"\x03org\x18\x03 \x01(\tR\x03org\x12$\n" +
+	"\tpage_size\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageTokenJ\x04\b\x02\x10\x03R\tpage_info\"\x8d\x01\n" +
+	"\fScheduleList\x12B\n" +
+	"\aentries\x18\x02 \x03(\v2(.ai.stigmer.agentic.schedule.v1.ScheduleR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_count\"\xa6\x02\n" +
 	"\x14ListSchedulesRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12X\n" +
-	"\x06labels\x18\x02 \x03(\v2@.ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.LabelsEntryR\x06labels\x12=\n" +
-	"\tpage_info\x18\x03 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\x1a9\n" +
+	"\x06labels\x18\x02 \x03(\v2@.ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.LabelsEntryR\x06labels\x12$\n" +
+	"\tpage_size\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xea\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x03\x10\x04R\tpage_info\"\xea\x01\n" +
 	"\x15ScheduleTriggerResult\x12D\n" +
 	"\bschedule\x18\x01 \x01(\v2(.ai.stigmer.agentic.schedule.v1.ScheduleR\bschedule\x12M\n" +
 	"\aoutcome\x18\x02 \x01(\x0e23.ai.stigmer.agentic.schedule.v1.ScheduleFireOutcomeR\aoutcome\x12\x15\n" +
@@ -797,15 +834,16 @@ const file_ai_stigmer_agentic_schedule_v1_io_proto_rawDesc = "" +
 	"\x06run_id\x18\a \x01(\tR\x05runId\x12;\n" +
 	"\vrecorded_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"recordedAt\x12=\n" +
-	"\fcompleted_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"\x82\x01\n" +
+	"\fcompleted_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"\xa3\x01\n" +
 	"\x18ListScheduleFiresRequest\x12'\n" +
 	"\vschedule_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
-	"scheduleId\x12=\n" +
-	"\tpage_info\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\"w\n" +
-	"\x10ScheduleFireList\x12\x1f\n" +
-	"\vtotal_count\x18\x01 \x01(\x05R\n" +
-	"totalCount\x12B\n" +
-	"\x05items\x18\x02 \x03(\v2,.ai.stigmer.agentic.schedule.v1.ScheduleFireR\x05items\"\xeb\x02\n" +
+	"scheduleId\x12$\n" +
+	"\tpage_size\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageTokenJ\x04\b\x02\x10\x03R\tpage_info\"\x95\x01\n" +
+	"\x10ScheduleFireList\x12F\n" +
+	"\aentries\x18\x02 \x03(\v2,.ai.stigmer.agentic.schedule.v1.ScheduleFireR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_count\"\xeb\x02\n" +
 	"\x13UpdateScheduleInput\x12L\n" +
 	"\bresource\x18\x01 \x01(\v2(.ai.stigmer.agentic.schedule.v1.ScheduleB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
@@ -841,44 +879,40 @@ func file_ai_stigmer_agentic_schedule_v1_io_proto_rawDescGZIP() []byte {
 var file_ai_stigmer_agentic_schedule_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_ai_stigmer_agentic_schedule_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_ai_stigmer_agentic_schedule_v1_io_proto_goTypes = []any{
-	(ScheduleFireOrigin)(0),            // 0: ai.stigmer.agentic.schedule.v1.ScheduleFireOrigin
-	(ScheduleFireOutcome)(0),           // 1: ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome
-	(*ScheduleId)(nil),                 // 2: ai.stigmer.agentic.schedule.v1.ScheduleId
-	(*GetSchedulesByAgentRequest)(nil), // 3: ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest
-	(*ScheduleList)(nil),               // 4: ai.stigmer.agentic.schedule.v1.ScheduleList
-	(*ListSchedulesRequest)(nil),       // 5: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest
-	(*ScheduleTriggerResult)(nil),      // 6: ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult
-	(*ScheduleFire)(nil),               // 7: ai.stigmer.agentic.schedule.v1.ScheduleFire
-	(*ListScheduleFiresRequest)(nil),   // 8: ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest
-	(*ScheduleFireList)(nil),           // 9: ai.stigmer.agentic.schedule.v1.ScheduleFireList
-	(*UpdateScheduleInput)(nil),        // 10: ai.stigmer.agentic.schedule.v1.UpdateScheduleInput
-	nil,                                // 11: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.LabelsEntry
-	(*rpc.PageInfo)(nil),               // 12: ai.stigmer.commons.rpc.PageInfo
-	(*Schedule)(nil),                   // 13: ai.stigmer.agentic.schedule.v1.Schedule
-	(*timestamppb.Timestamp)(nil),      // 14: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),      // 15: google.protobuf.FieldMask
+	(ScheduleFireOrigin)(0),             // 0: ai.stigmer.agentic.schedule.v1.ScheduleFireOrigin
+	(ScheduleFireOutcome)(0),            // 1: ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome
+	(*ScheduleId)(nil),                  // 2: ai.stigmer.agentic.schedule.v1.ScheduleId
+	(*ListSchedulesByAgentRequest)(nil), // 3: ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest
+	(*ScheduleList)(nil),                // 4: ai.stigmer.agentic.schedule.v1.ScheduleList
+	(*ListSchedulesRequest)(nil),        // 5: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest
+	(*ScheduleTriggerResult)(nil),       // 6: ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult
+	(*ScheduleFire)(nil),                // 7: ai.stigmer.agentic.schedule.v1.ScheduleFire
+	(*ListScheduleFiresRequest)(nil),    // 8: ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest
+	(*ScheduleFireList)(nil),            // 9: ai.stigmer.agentic.schedule.v1.ScheduleFireList
+	(*UpdateScheduleInput)(nil),         // 10: ai.stigmer.agentic.schedule.v1.UpdateScheduleInput
+	nil,                                 // 11: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.LabelsEntry
+	(*Schedule)(nil),                    // 12: ai.stigmer.agentic.schedule.v1.Schedule
+	(*timestamppb.Timestamp)(nil),       // 13: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),       // 14: google.protobuf.FieldMask
 }
 var file_ai_stigmer_agentic_schedule_v1_io_proto_depIdxs = []int32{
-	12, // 0: ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	13, // 1: ai.stigmer.agentic.schedule.v1.ScheduleList.items:type_name -> ai.stigmer.agentic.schedule.v1.Schedule
-	11, // 2: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.labels:type_name -> ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.LabelsEntry
-	12, // 3: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	13, // 4: ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult.schedule:type_name -> ai.stigmer.agentic.schedule.v1.Schedule
-	1,  // 5: ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult.outcome:type_name -> ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome
-	14, // 6: ai.stigmer.agentic.schedule.v1.ScheduleFire.nominal_fire_time:type_name -> google.protobuf.Timestamp
-	0,  // 7: ai.stigmer.agentic.schedule.v1.ScheduleFire.origin:type_name -> ai.stigmer.agentic.schedule.v1.ScheduleFireOrigin
-	1,  // 8: ai.stigmer.agentic.schedule.v1.ScheduleFire.outcome:type_name -> ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome
-	14, // 9: ai.stigmer.agentic.schedule.v1.ScheduleFire.recorded_at:type_name -> google.protobuf.Timestamp
-	14, // 10: ai.stigmer.agentic.schedule.v1.ScheduleFire.completed_at:type_name -> google.protobuf.Timestamp
-	12, // 11: ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	7,  // 12: ai.stigmer.agentic.schedule.v1.ScheduleFireList.items:type_name -> ai.stigmer.agentic.schedule.v1.ScheduleFire
-	13, // 13: ai.stigmer.agentic.schedule.v1.UpdateScheduleInput.resource:type_name -> ai.stigmer.agentic.schedule.v1.Schedule
-	15, // 14: ai.stigmer.agentic.schedule.v1.UpdateScheduleInput.update_mask:type_name -> google.protobuf.FieldMask
-	15, // [15:15] is the sub-list for method output_type
-	15, // [15:15] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	12, // 0: ai.stigmer.agentic.schedule.v1.ScheduleList.entries:type_name -> ai.stigmer.agentic.schedule.v1.Schedule
+	11, // 1: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.labels:type_name -> ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.LabelsEntry
+	12, // 2: ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult.schedule:type_name -> ai.stigmer.agentic.schedule.v1.Schedule
+	1,  // 3: ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult.outcome:type_name -> ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome
+	13, // 4: ai.stigmer.agentic.schedule.v1.ScheduleFire.nominal_fire_time:type_name -> google.protobuf.Timestamp
+	0,  // 5: ai.stigmer.agentic.schedule.v1.ScheduleFire.origin:type_name -> ai.stigmer.agentic.schedule.v1.ScheduleFireOrigin
+	1,  // 6: ai.stigmer.agentic.schedule.v1.ScheduleFire.outcome:type_name -> ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome
+	13, // 7: ai.stigmer.agentic.schedule.v1.ScheduleFire.recorded_at:type_name -> google.protobuf.Timestamp
+	13, // 8: ai.stigmer.agentic.schedule.v1.ScheduleFire.completed_at:type_name -> google.protobuf.Timestamp
+	7,  // 9: ai.stigmer.agentic.schedule.v1.ScheduleFireList.entries:type_name -> ai.stigmer.agentic.schedule.v1.ScheduleFire
+	12, // 10: ai.stigmer.agentic.schedule.v1.UpdateScheduleInput.resource:type_name -> ai.stigmer.agentic.schedule.v1.Schedule
+	14, // 11: ai.stigmer.agentic.schedule.v1.UpdateScheduleInput.update_mask:type_name -> google.protobuf.FieldMask
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_schedule_v1_io_proto_init() }

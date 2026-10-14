@@ -3,7 +3,6 @@ import datetime
 from ai.stigmer.agentic.agentchannel.v1 import delivery_pb2 as _delivery_pb2
 from ai.stigmer.agentic.agentchannel.v1 import message_io_pb2 as _message_io_pb2
 from ai.stigmer.agentic.agentchannel.v1 import outbound_pb2 as _outbound_pb2
-from ai.stigmer.commons.rpc import pagination_pb2 as _pagination_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
@@ -128,24 +127,42 @@ class ConversationMediaRef(_message.Message):
     def __init__(self, filename: _Optional[str] = ..., content_type: _Optional[str] = ..., size_bytes: _Optional[int] = ...) -> None: ...
 
 class ListChannelConversationsInput(_message.Message):
-    __slots__ = ("org", "agent_channel_id", "page_info", "filter")
+    __slots__ = ("org", "agent_channel_id", "filter", "page_size", "page_token")
     ORG_FIELD_NUMBER: _ClassVar[int]
     AGENT_CHANNEL_ID_FIELD_NUMBER: _ClassVar[int]
-    PAGE_INFO_FIELD_NUMBER: _ClassVar[int]
+    FILTER_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    agent_channel_id: str
+    filter: ChannelConversationListFilter
+    page_size: int
+    page_token: str
+    def __init__(self, org: _Optional[str] = ..., agent_channel_id: _Optional[str] = ..., filter: _Optional[_Union[ChannelConversationListFilter, str]] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+
+class ChannelConversationList(_message.Message):
+    __slots__ = ("entries", "next_page_token")
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    entries: _containers.RepeatedCompositeFieldContainer[ChannelConversation]
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[ChannelConversation, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
+
+class CountChannelConversationsInput(_message.Message):
+    __slots__ = ("org", "agent_channel_id", "filter")
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    AGENT_CHANNEL_ID_FIELD_NUMBER: _ClassVar[int]
     FILTER_FIELD_NUMBER: _ClassVar[int]
     org: str
     agent_channel_id: str
-    page_info: _pagination_pb2.PageInfo
     filter: ChannelConversationListFilter
-    def __init__(self, org: _Optional[str] = ..., agent_channel_id: _Optional[str] = ..., page_info: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ..., filter: _Optional[_Union[ChannelConversationListFilter, str]] = ...) -> None: ...
+    def __init__(self, org: _Optional[str] = ..., agent_channel_id: _Optional[str] = ..., filter: _Optional[_Union[ChannelConversationListFilter, str]] = ...) -> None: ...
 
-class ChannelConversationList(_message.Message):
-    __slots__ = ("total_count", "items")
-    TOTAL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    ITEMS_FIELD_NUMBER: _ClassVar[int]
-    total_count: int
-    items: _containers.RepeatedCompositeFieldContainer[ChannelConversation]
-    def __init__(self, total_count: _Optional[int] = ..., items: _Optional[_Iterable[_Union[ChannelConversation, _Mapping]]] = ...) -> None: ...
+class ChannelConversationCount(_message.Message):
+    __slots__ = ("count",)
+    COUNT_FIELD_NUMBER: _ClassVar[int]
+    count: int
+    def __init__(self, count: _Optional[int] = ...) -> None: ...
 
 class GetChannelConversationInput(_message.Message):
     __slots__ = ("agent_channel_id", "conversation_key")
@@ -155,7 +172,7 @@ class GetChannelConversationInput(_message.Message):
     conversation_key: str
     def __init__(self, agent_channel_id: _Optional[str] = ..., conversation_key: _Optional[str] = ...) -> None: ...
 
-class GetConversationTimelineInput(_message.Message):
+class ListConversationTimelineInput(_message.Message):
     __slots__ = ("agent_channel_id", "conversation_key", "page_size", "page_token")
     AGENT_CHANNEL_ID_FIELD_NUMBER: _ClassVar[int]
     CONVERSATION_KEY_FIELD_NUMBER: _ClassVar[int]
@@ -168,12 +185,12 @@ class GetConversationTimelineInput(_message.Message):
     def __init__(self, agent_channel_id: _Optional[str] = ..., conversation_key: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class ConversationTimeline(_message.Message):
-    __slots__ = ("items", "next_page_token")
-    ITEMS_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("entries", "next_page_token")
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
     NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
-    items: _containers.RepeatedCompositeFieldContainer[ConversationTimelineItem]
+    entries: _containers.RepeatedCompositeFieldContainer[ConversationTimelineItem]
     next_page_token: str
-    def __init__(self, items: _Optional[_Iterable[_Union[ConversationTimelineItem, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
+    def __init__(self, entries: _Optional[_Iterable[_Union[ConversationTimelineItem, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
 class GetConversationMediaDownloadUrlInput(_message.Message):
     __slots__ = ("agent_channel_id", "conversation_key", "item_id")

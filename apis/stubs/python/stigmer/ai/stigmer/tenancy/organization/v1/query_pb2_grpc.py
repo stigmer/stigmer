@@ -2,10 +2,8 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from ai.stigmer.tenancy.organization.v1 import api_pb2 as ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_api__pb2
 from ai.stigmer.tenancy.organization.v1 import io_pb2 as ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2
-from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
 class OrganizationQueryControllerStub(object):
@@ -23,14 +21,9 @@ class OrganizationQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.OrganizationId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_api__pb2.Organization.FromString,
                 _registered_method=True)
-        self.find = channel.unary_unary(
-                '/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/find',
-                request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.FindApiResourcesRequest.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.OrganizationList.FromString,
-                _registered_method=True)
-        self.findMyOrganizations = channel.unary_unary(
-                '/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/findMyOrganizations',
-                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+        self.listMine = channel.unary_unary(
+                '/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/listMine',
+                request_serializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.ListMyOrganizationsInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.Organizations.FromString,
                 _registered_method=True)
         self.getByExternalId = channel.unary_unary(
@@ -56,15 +49,8 @@ class OrganizationQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def find(self, request, context):
-        """List organizations with pagination and filtering.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def findMyOrganizations(self, request, context):
-        """Find organizations the authenticated user is a member of.
+    def listMine(self, request, context):
+        """List the organizations the authenticated caller is a member of.
         Returns only organizations the caller has access to.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -95,14 +81,9 @@ def add_OrganizationQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.OrganizationId.FromString,
                     response_serializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_api__pb2.Organization.SerializeToString,
             ),
-            'find': grpc.unary_unary_rpc_method_handler(
-                    servicer.find,
-                    request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.FindApiResourcesRequest.FromString,
-                    response_serializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.OrganizationList.SerializeToString,
-            ),
-            'findMyOrganizations': grpc.unary_unary_rpc_method_handler(
-                    servicer.findMyOrganizations,
-                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            'listMine': grpc.unary_unary_rpc_method_handler(
+                    servicer.listMine,
+                    request_deserializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.ListMyOrganizationsInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.Organizations.SerializeToString,
             ),
             'getByExternalId': grpc.unary_unary_rpc_method_handler(
@@ -155,7 +136,7 @@ class OrganizationQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def find(request,
+    def listMine(request,
             target,
             options=(),
             channel_credentials=None,
@@ -168,35 +149,8 @@ class OrganizationQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/find',
-            ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.FindApiResourcesRequest.SerializeToString,
-            ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.OrganizationList.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def findMyOrganizations(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/findMyOrganizations',
-            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            '/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/listMine',
+            ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.ListMyOrganizationsInput.SerializeToString,
             ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.Organizations.FromString,
             options,
             channel_credentials,

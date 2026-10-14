@@ -46,35 +46,35 @@ public final class InvitationQueryControllerGrpc {
     return getGetMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput,
-      ai.stigmer.iam.invitation.v1.Invitations> getListByOrgMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.invitation.v1.ListInvitationsInput,
+      ai.stigmer.iam.invitation.v1.Invitations> getListMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "listByOrg",
-      requestType = ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput.class,
+      fullMethodName = SERVICE_NAME + '/' + "list",
+      requestType = ai.stigmer.iam.invitation.v1.ListInvitationsInput.class,
       responseType = ai.stigmer.iam.invitation.v1.Invitations.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput,
-      ai.stigmer.iam.invitation.v1.Invitations> getListByOrgMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput, ai.stigmer.iam.invitation.v1.Invitations> getListByOrgMethod;
-    if ((getListByOrgMethod = InvitationQueryControllerGrpc.getListByOrgMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.invitation.v1.ListInvitationsInput,
+      ai.stigmer.iam.invitation.v1.Invitations> getListMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.invitation.v1.ListInvitationsInput, ai.stigmer.iam.invitation.v1.Invitations> getListMethod;
+    if ((getListMethod = InvitationQueryControllerGrpc.getListMethod) == null) {
       synchronized (InvitationQueryControllerGrpc.class) {
-        if ((getListByOrgMethod = InvitationQueryControllerGrpc.getListByOrgMethod) == null) {
-          InvitationQueryControllerGrpc.getListByOrgMethod = getListByOrgMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput, ai.stigmer.iam.invitation.v1.Invitations>newBuilder()
+        if ((getListMethod = InvitationQueryControllerGrpc.getListMethod) == null) {
+          InvitationQueryControllerGrpc.getListMethod = getListMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.invitation.v1.ListInvitationsInput, ai.stigmer.iam.invitation.v1.Invitations>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listByOrg"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "list"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput.getDefaultInstance()))
+                  ai.stigmer.iam.invitation.v1.ListInvitationsInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.iam.invitation.v1.Invitations.getDefaultInstance()))
-              .setSchemaDescriptor(new InvitationQueryControllerMethodDescriptorSupplier("listByOrg"))
+              .setSchemaDescriptor(new InvitationQueryControllerMethodDescriptorSupplier("list"))
               .build();
         }
       }
     }
-    return getListByOrgMethod;
+    return getListMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.invitation.v1.InvitationTokenInput,
@@ -186,13 +186,13 @@ public final class InvitationQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all invitations belonging to an organization.
+     * List the invitations belonging to an organization.
      * Returns invitations ordered by creation time (newest first).
      * </pre>
      */
-    default void listByOrg(ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput request,
+    default void list(ai.stigmer.iam.invitation.v1.ListInvitationsInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.invitation.v1.Invitations> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListByOrgMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListMethod(), responseObserver);
     }
 
     /**
@@ -260,14 +260,14 @@ public final class InvitationQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all invitations belonging to an organization.
+     * List the invitations belonging to an organization.
      * Returns invitations ordered by creation time (newest first).
      * </pre>
      */
-    public void listByOrg(ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput request,
+    public void list(ai.stigmer.iam.invitation.v1.ListInvitationsInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.invitation.v1.Invitations> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getListByOrgMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getListMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -321,13 +321,13 @@ public final class InvitationQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all invitations belonging to an organization.
+     * List the invitations belonging to an organization.
      * Returns invitations ordered by creation time (newest first).
      * </pre>
      */
-    public ai.stigmer.iam.invitation.v1.Invitations listByOrg(ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput request) throws io.grpc.StatusException {
+    public ai.stigmer.iam.invitation.v1.Invitations list(ai.stigmer.iam.invitation.v1.ListInvitationsInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getListByOrgMethod(), getCallOptions(), request);
+          getChannel(), getListMethod(), getCallOptions(), request);
     }
 
     /**
@@ -380,13 +380,13 @@ public final class InvitationQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all invitations belonging to an organization.
+     * List the invitations belonging to an organization.
      * Returns invitations ordered by creation time (newest first).
      * </pre>
      */
-    public ai.stigmer.iam.invitation.v1.Invitations listByOrg(ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput request) {
+    public ai.stigmer.iam.invitation.v1.Invitations list(ai.stigmer.iam.invitation.v1.ListInvitationsInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getListByOrgMethod(), getCallOptions(), request);
+          getChannel(), getListMethod(), getCallOptions(), request);
     }
 
     /**
@@ -440,14 +440,14 @@ public final class InvitationQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all invitations belonging to an organization.
+     * List the invitations belonging to an organization.
      * Returns invitations ordered by creation time (newest first).
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.invitation.v1.Invitations> listByOrg(
-        ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.invitation.v1.Invitations> list(
+        ai.stigmer.iam.invitation.v1.ListInvitationsInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getListByOrgMethod(), getCallOptions()), request);
+          getChannel().newCall(getListMethod(), getCallOptions()), request);
     }
 
     /**
@@ -471,7 +471,7 @@ public final class InvitationQueryControllerGrpc {
   }
 
   private static final int METHODID_GET = 0;
-  private static final int METHODID_LIST_BY_ORG = 1;
+  private static final int METHODID_LIST = 1;
   private static final int METHODID_GET_BY_TOKEN = 2;
 
   private static final class MethodHandlers<Req, Resp> implements
@@ -495,8 +495,8 @@ public final class InvitationQueryControllerGrpc {
           serviceImpl.get((ai.stigmer.iam.invitation.v1.InvitationId) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.invitation.v1.Invitation>) responseObserver);
           break;
-        case METHODID_LIST_BY_ORG:
-          serviceImpl.listByOrg((ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput) request,
+        case METHODID_LIST:
+          serviceImpl.list((ai.stigmer.iam.invitation.v1.ListInvitationsInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.invitation.v1.Invitations>) responseObserver);
           break;
         case METHODID_GET_BY_TOKEN:
@@ -529,12 +529,12 @@ public final class InvitationQueryControllerGrpc {
               ai.stigmer.iam.invitation.v1.Invitation>(
                 service, METHODID_GET)))
         .addMethod(
-          getListByOrgMethod(),
+          getListMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput,
+              ai.stigmer.iam.invitation.v1.ListInvitationsInput,
               ai.stigmer.iam.invitation.v1.Invitations>(
-                service, METHODID_LIST_BY_ORG)))
+                service, METHODID_LIST)))
         .addMethod(
           getGetByTokenMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -591,7 +591,7 @@ public final class InvitationQueryControllerGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new InvitationQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
-              .addMethod(getListByOrgMethod())
+              .addMethod(getListMethod())
               .addMethod(getGetByTokenMethod())
               .build();
         }

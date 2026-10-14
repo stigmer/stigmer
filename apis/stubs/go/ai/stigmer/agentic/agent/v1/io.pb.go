@@ -128,6 +128,128 @@ func (x *UpdateAgentInput) GetUpdateMask() *fieldmaskpb.FieldMask {
 	return nil
 }
 
+// Input for listing an organization's agents, newest first.
+type ListAgentsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization whose agents to list, by id or slug.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// The most entries to return: 0 asks for the default page of 50, and a
+	// size above 100 is read as 100.
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAgentsRequest) Reset() {
+	*x = ListAgentsRequest{}
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAgentsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAgentsRequest) ProtoMessage() {}
+
+func (x *ListAgentsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAgentsRequest.ProtoReflect.Descriptor instead.
+func (*ListAgentsRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agent_v1_io_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ListAgentsRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *ListAgentsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListAgentsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+// One page of an organization's agents.
+type AgentList struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The agents in this page, newest first.
+	Entries []*Agent `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more entries may follow: pass it as page_token to continue.
+	// A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AgentList) Reset() {
+	*x = AgentList{}
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgentList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentList) ProtoMessage() {}
+
+func (x *AgentList) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentList.ProtoReflect.Descriptor instead.
+func (*AgentList) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agent_v1_io_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *AgentList) GetEntries() []*Agent {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *AgentList) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_agent_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_io_proto_rawDesc = "" +
@@ -139,7 +261,15 @@ const file_ai_stigmer_agentic_agent_v1_io_proto_rawDesc = "" +
 	"\bresource\x18\x01 \x01(\v2\".ai.stigmer.agentic.agent.v1.AgentB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"updateMask:\xbd\x01\xbaH\xb9\x01\x1a\xb6\x01\n" +
-	"\x17update_names_its_target\x12Eresource.metadata.id is required: an update names the agent by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\x89\x02\n" +
+	"\x17update_names_its_target\x12Eresource.metadata.id is required: an update names the agent by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''\"}\n" +
+	"\x11ListAgentsRequest\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"q\n" +
+	"\tAgentList\x12<\n" +
+	"\aentries\x18\x01 \x03(\v2\".ai.stigmer.agentic.agent.v1.AgentR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\x89\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.agent.v1B\aIoProtoP\x01ZLgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 
 var (
@@ -154,21 +284,24 @@ func file_ai_stigmer_agentic_agent_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agent_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_agentic_agent_v1_io_proto_goTypes = []any{
 	(*AgentId)(nil),               // 0: ai.stigmer.agentic.agent.v1.AgentId
 	(*UpdateAgentInput)(nil),      // 1: ai.stigmer.agentic.agent.v1.UpdateAgentInput
-	(*Agent)(nil),                 // 2: ai.stigmer.agentic.agent.v1.Agent
-	(*fieldmaskpb.FieldMask)(nil), // 3: google.protobuf.FieldMask
+	(*ListAgentsRequest)(nil),     // 2: ai.stigmer.agentic.agent.v1.ListAgentsRequest
+	(*AgentList)(nil),             // 3: ai.stigmer.agentic.agent.v1.AgentList
+	(*Agent)(nil),                 // 4: ai.stigmer.agentic.agent.v1.Agent
+	(*fieldmaskpb.FieldMask)(nil), // 5: google.protobuf.FieldMask
 }
 var file_ai_stigmer_agentic_agent_v1_io_proto_depIdxs = []int32{
-	2, // 0: ai.stigmer.agentic.agent.v1.UpdateAgentInput.resource:type_name -> ai.stigmer.agentic.agent.v1.Agent
-	3, // 1: ai.stigmer.agentic.agent.v1.UpdateAgentInput.update_mask:type_name -> google.protobuf.FieldMask
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	4, // 0: ai.stigmer.agentic.agent.v1.UpdateAgentInput.resource:type_name -> ai.stigmer.agentic.agent.v1.Agent
+	5, // 1: ai.stigmer.agentic.agent.v1.UpdateAgentInput.update_mask:type_name -> google.protobuf.FieldMask
+	4, // 2: ai.stigmer.agentic.agent.v1.AgentList.entries:type_name -> ai.stigmer.agentic.agent.v1.Agent
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agent_v1_io_proto_init() }
@@ -183,7 +316,7 @@ func file_ai_stigmer_agentic_agent_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agent_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_agent_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

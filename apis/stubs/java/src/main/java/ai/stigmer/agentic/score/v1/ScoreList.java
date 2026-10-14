@@ -32,7 +32,7 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private ScoreList() {
-    items_ = java.util.Collections.emptyList();
+    entries_ = java.util.Collections.emptyList();
     nextPageToken_ = "";
   }
 
@@ -54,81 +54,65 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.score.v1.ScoreList.class, ai.stigmer.agentic.score.v1.ScoreList.Builder.class);
   }
 
-  public static final int TOTAL_COUNT_FIELD_NUMBER = 1;
-  private int totalCount_ = 0;
-  /**
-   * <pre>
-   * Number of scores in this response. On a paged list it counts this page
-   * only; follow next_page_token for the rest.
-   * </pre>
-   *
-   * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
-   * @return The totalCount.
-   */
-  @java.lang.Override
-  public int getTotalCount() {
-    return totalCount_;
-  }
-
-  public static final int ITEMS_FIELD_NUMBER = 2;
+  public static final int ENTRIES_FIELD_NUMBER = 2;
   @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.score.v1.Score> items_;
+  private java.util.List<ai.stigmer.agentic.score.v1.Score> entries_;
   /**
    * <pre>
    * The scores, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.score.v1.Score> getItemsList() {
-    return items_;
+  public java.util.List<ai.stigmer.agentic.score.v1.Score> getEntriesList() {
+    return entries_;
   }
   /**
    * <pre>
    * The scores, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
    */
   @java.lang.Override
   public java.util.List<? extends ai.stigmer.agentic.score.v1.ScoreOrBuilder> 
-      getItemsOrBuilderList() {
-    return items_;
+      getEntriesOrBuilderList() {
+    return entries_;
   }
   /**
    * <pre>
    * The scores, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public int getItemsCount() {
-    return items_.size();
+  public int getEntriesCount() {
+    return entries_.size();
   }
   /**
    * <pre>
    * The scores, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.score.v1.Score getItems(int index) {
-    return items_.get(index);
+  public ai.stigmer.agentic.score.v1.Score getEntries(int index) {
+    return entries_.get(index);
   }
   /**
    * <pre>
    * The scores, newest first.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+   * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.score.v1.ScoreOrBuilder getItemsOrBuilder(
+  public ai.stigmer.agentic.score.v1.ScoreOrBuilder getEntriesOrBuilder(
       int index) {
-    return items_.get(index);
+    return entries_.get(index);
   }
 
   public static final int NEXT_PAGE_TOKEN_FIELD_NUMBER = 3;
@@ -136,10 +120,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object nextPageToken_ = "";
   /**
    * <pre>
-   * Set when more scores may follow: pass it as page_token to continue. A
-   * page may hold fewer scores than page_size, even none, and still carry a
-   * token. Empty when the list is complete, and always empty on the lists
-   * of one run or one session, which are returned whole.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -160,10 +142,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Set when more scores may follow: pass it as page_token to continue. A
-   * page may hold fewer scores than page_size, even none, and still carry a
-   * token. Empty when the list is complete, and always empty on the lists
-   * of one run or one session, which are returned whole.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -198,11 +178,8 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (totalCount_ != 0) {
-      output.writeInt32(1, totalCount_);
-    }
-    for (int i = 0; i < items_.size(); i++) {
-      output.writeMessage(2, items_.get(i));
+    for (int i = 0; i < entries_.size(); i++) {
+      output.writeMessage(2, entries_.get(i));
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(nextPageToken_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, nextPageToken_);
@@ -216,16 +193,12 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (totalCount_ != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(1, totalCount_);
-    }
 
         {
-          final int count = items_.size();
+          final int count = entries_.size();
           for (int i = 0; i < count; i++) {
             size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(items_.get(i));
+              .computeMessageSizeNoTag(entries_.get(i));
           }
           size += 1 * count;
         }
@@ -247,10 +220,8 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.agentic.score.v1.ScoreList other = (ai.stigmer.agentic.score.v1.ScoreList) obj;
 
-    if (getTotalCount()
-        != other.getTotalCount()) return false;
-    if (!getItemsList()
-        .equals(other.getItemsList())) return false;
+    if (!getEntriesList()
+        .equals(other.getEntriesList())) return false;
     if (!getNextPageToken()
         .equals(other.getNextPageToken())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -264,11 +235,9 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + TOTAL_COUNT_FIELD_NUMBER;
-    hash = (53 * hash) + getTotalCount();
-    if (getItemsCount() > 0) {
-      hash = (37 * hash) + ITEMS_FIELD_NUMBER;
-      hash = (53 * hash) + getItemsList().hashCode();
+    if (getEntriesCount() > 0) {
+      hash = (37 * hash) + ENTRIES_FIELD_NUMBER;
+      hash = (53 * hash) + getEntriesList().hashCode();
     }
     hash = (37 * hash) + NEXT_PAGE_TOKEN_FIELD_NUMBER;
     hash = (53 * hash) + getNextPageToken().hashCode();
@@ -407,14 +376,13 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      totalCount_ = 0;
-      if (itemsBuilder_ == null) {
-        items_ = java.util.Collections.emptyList();
+      if (entriesBuilder_ == null) {
+        entries_ = java.util.Collections.emptyList();
       } else {
-        items_ = null;
-        itemsBuilder_.clear();
+        entries_ = null;
+        entriesBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000002);
+      bitField0_ = (bitField0_ & ~0x00000001);
       nextPageToken_ = "";
       return this;
     }
@@ -449,23 +417,20 @@ private static final long serialVersionUID = 0L;
     }
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.score.v1.ScoreList result) {
-      if (itemsBuilder_ == null) {
-        if (((bitField0_ & 0x00000002) != 0)) {
-          items_ = java.util.Collections.unmodifiableList(items_);
-          bitField0_ = (bitField0_ & ~0x00000002);
+      if (entriesBuilder_ == null) {
+        if (((bitField0_ & 0x00000001) != 0)) {
+          entries_ = java.util.Collections.unmodifiableList(entries_);
+          bitField0_ = (bitField0_ & ~0x00000001);
         }
-        result.items_ = items_;
+        result.entries_ = entries_;
       } else {
-        result.items_ = itemsBuilder_.build();
+        result.entries_ = entriesBuilder_.build();
       }
     }
 
     private void buildPartial0(ai.stigmer.agentic.score.v1.ScoreList result) {
       int from_bitField0_ = bitField0_;
-      if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.totalCount_ = totalCount_;
-      }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
+      if (((from_bitField0_ & 0x00000002) != 0)) {
         result.nextPageToken_ = nextPageToken_;
       }
     }
@@ -482,38 +447,35 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.agentic.score.v1.ScoreList other) {
       if (other == ai.stigmer.agentic.score.v1.ScoreList.getDefaultInstance()) return this;
-      if (other.getTotalCount() != 0) {
-        setTotalCount(other.getTotalCount());
-      }
-      if (itemsBuilder_ == null) {
-        if (!other.items_.isEmpty()) {
-          if (items_.isEmpty()) {
-            items_ = other.items_;
-            bitField0_ = (bitField0_ & ~0x00000002);
+      if (entriesBuilder_ == null) {
+        if (!other.entries_.isEmpty()) {
+          if (entries_.isEmpty()) {
+            entries_ = other.entries_;
+            bitField0_ = (bitField0_ & ~0x00000001);
           } else {
-            ensureItemsIsMutable();
-            items_.addAll(other.items_);
+            ensureEntriesIsMutable();
+            entries_.addAll(other.entries_);
           }
           onChanged();
         }
       } else {
-        if (!other.items_.isEmpty()) {
-          if (itemsBuilder_.isEmpty()) {
-            itemsBuilder_.dispose();
-            itemsBuilder_ = null;
-            items_ = other.items_;
-            bitField0_ = (bitField0_ & ~0x00000002);
-            itemsBuilder_ = 
+        if (!other.entries_.isEmpty()) {
+          if (entriesBuilder_.isEmpty()) {
+            entriesBuilder_.dispose();
+            entriesBuilder_ = null;
+            entries_ = other.entries_;
+            bitField0_ = (bitField0_ & ~0x00000001);
+            entriesBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetItemsFieldBuilder() : null;
+                 internalGetEntriesFieldBuilder() : null;
           } else {
-            itemsBuilder_.addAllMessages(other.items_);
+            entriesBuilder_.addAllMessages(other.entries_);
           }
         }
       }
       if (!other.getNextPageToken().isEmpty()) {
         nextPageToken_ = other.nextPageToken_;
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000002;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -542,27 +504,22 @@ private static final long serialVersionUID = 0L;
             case 0:
               done = true;
               break;
-            case 8: {
-              totalCount_ = input.readInt32();
-              bitField0_ |= 0x00000001;
-              break;
-            } // case 8
             case 18: {
               ai.stigmer.agentic.score.v1.Score m =
                   input.readMessage(
                       ai.stigmer.agentic.score.v1.Score.parser(),
                       extensionRegistry);
-              if (itemsBuilder_ == null) {
-                ensureItemsIsMutable();
-                items_.add(m);
+              if (entriesBuilder_ == null) {
+                ensureEntriesIsMutable();
+                entries_.add(m);
               } else {
-                itemsBuilder_.addMessage(m);
+                entriesBuilder_.addMessage(m);
               }
               break;
             } // case 18
             case 26: {
               nextPageToken_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000002;
               break;
             } // case 26
             default: {
@@ -582,77 +539,30 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private int totalCount_ ;
-    /**
-     * <pre>
-     * Number of scores in this response. On a paged list it counts this page
-     * only; follow next_page_token for the rest.
-     * </pre>
-     *
-     * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
-     * @return The totalCount.
-     */
-    @java.lang.Override
-    public int getTotalCount() {
-      return totalCount_;
-    }
-    /**
-     * <pre>
-     * Number of scores in this response. On a paged list it counts this page
-     * only; follow next_page_token for the rest.
-     * </pre>
-     *
-     * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
-     * @param value The totalCount to set.
-     * @return This builder for chaining.
-     */
-    public Builder setTotalCount(int value) {
-
-      totalCount_ = value;
-      bitField0_ |= 0x00000001;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Number of scores in this response. On a paged list it counts this page
-     * only; follow next_page_token for the rest.
-     * </pre>
-     *
-     * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearTotalCount() {
-      bitField0_ = (bitField0_ & ~0x00000001);
-      totalCount_ = 0;
-      onChanged();
-      return this;
-    }
-
-    private java.util.List<ai.stigmer.agentic.score.v1.Score> items_ =
+    private java.util.List<ai.stigmer.agentic.score.v1.Score> entries_ =
       java.util.Collections.emptyList();
-    private void ensureItemsIsMutable() {
-      if (!((bitField0_ & 0x00000002) != 0)) {
-        items_ = new java.util.ArrayList<ai.stigmer.agentic.score.v1.Score>(items_);
-        bitField0_ |= 0x00000002;
+    private void ensureEntriesIsMutable() {
+      if (!((bitField0_ & 0x00000001) != 0)) {
+        entries_ = new java.util.ArrayList<ai.stigmer.agentic.score.v1.Score>(entries_);
+        bitField0_ |= 0x00000001;
        }
     }
 
     private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.score.v1.Score, ai.stigmer.agentic.score.v1.Score.Builder, ai.stigmer.agentic.score.v1.ScoreOrBuilder> itemsBuilder_;
+        ai.stigmer.agentic.score.v1.Score, ai.stigmer.agentic.score.v1.Score.Builder, ai.stigmer.agentic.score.v1.ScoreOrBuilder> entriesBuilder_;
 
     /**
      * <pre>
      * The scores, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
      */
-    public java.util.List<ai.stigmer.agentic.score.v1.Score> getItemsList() {
-      if (itemsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(items_);
+    public java.util.List<ai.stigmer.agentic.score.v1.Score> getEntriesList() {
+      if (entriesBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(entries_);
       } else {
-        return itemsBuilder_.getMessageList();
+        return entriesBuilder_.getMessageList();
       }
     }
     /**
@@ -660,13 +570,13 @@ private static final long serialVersionUID = 0L;
      * The scores, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
      */
-    public int getItemsCount() {
-      if (itemsBuilder_ == null) {
-        return items_.size();
+    public int getEntriesCount() {
+      if (entriesBuilder_ == null) {
+        return entries_.size();
       } else {
-        return itemsBuilder_.getCount();
+        return entriesBuilder_.getCount();
       }
     }
     /**
@@ -674,13 +584,13 @@ private static final long serialVersionUID = 0L;
      * The scores, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.score.v1.Score getItems(int index) {
-      if (itemsBuilder_ == null) {
-        return items_.get(index);
+    public ai.stigmer.agentic.score.v1.Score getEntries(int index) {
+      if (entriesBuilder_ == null) {
+        return entries_.get(index);
       } else {
-        return itemsBuilder_.getMessage(index);
+        return entriesBuilder_.getMessage(index);
       }
     }
     /**
@@ -688,19 +598,19 @@ private static final long serialVersionUID = 0L;
      * The scores, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
      */
-    public Builder setItems(
+    public Builder setEntries(
         int index, ai.stigmer.agentic.score.v1.Score value) {
-      if (itemsBuilder_ == null) {
+      if (entriesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureItemsIsMutable();
-        items_.set(index, value);
+        ensureEntriesIsMutable();
+        entries_.set(index, value);
         onChanged();
       } else {
-        itemsBuilder_.setMessage(index, value);
+        entriesBuilder_.setMessage(index, value);
       }
       return this;
     }
@@ -709,16 +619,16 @@ private static final long serialVersionUID = 0L;
      * The scores, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
      */
-    public Builder setItems(
+    public Builder setEntries(
         int index, ai.stigmer.agentic.score.v1.Score.Builder builderForValue) {
-      if (itemsBuilder_ == null) {
-        ensureItemsIsMutable();
-        items_.set(index, builderForValue.build());
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.set(index, builderForValue.build());
         onChanged();
       } else {
-        itemsBuilder_.setMessage(index, builderForValue.build());
+        entriesBuilder_.setMessage(index, builderForValue.build());
       }
       return this;
     }
@@ -727,18 +637,18 @@ private static final long serialVersionUID = 0L;
      * The scores, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
      */
-    public Builder addItems(ai.stigmer.agentic.score.v1.Score value) {
-      if (itemsBuilder_ == null) {
+    public Builder addEntries(ai.stigmer.agentic.score.v1.Score value) {
+      if (entriesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureItemsIsMutable();
-        items_.add(value);
+        ensureEntriesIsMutable();
+        entries_.add(value);
         onChanged();
       } else {
-        itemsBuilder_.addMessage(value);
+        entriesBuilder_.addMessage(value);
       }
       return this;
     }
@@ -747,19 +657,19 @@ private static final long serialVersionUID = 0L;
      * The scores, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
      */
-    public Builder addItems(
+    public Builder addEntries(
         int index, ai.stigmer.agentic.score.v1.Score value) {
-      if (itemsBuilder_ == null) {
+      if (entriesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureItemsIsMutable();
-        items_.add(index, value);
+        ensureEntriesIsMutable();
+        entries_.add(index, value);
         onChanged();
       } else {
-        itemsBuilder_.addMessage(index, value);
+        entriesBuilder_.addMessage(index, value);
       }
       return this;
     }
@@ -768,16 +678,16 @@ private static final long serialVersionUID = 0L;
      * The scores, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
      */
-    public Builder addItems(
+    public Builder addEntries(
         ai.stigmer.agentic.score.v1.Score.Builder builderForValue) {
-      if (itemsBuilder_ == null) {
-        ensureItemsIsMutable();
-        items_.add(builderForValue.build());
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.add(builderForValue.build());
         onChanged();
       } else {
-        itemsBuilder_.addMessage(builderForValue.build());
+        entriesBuilder_.addMessage(builderForValue.build());
       }
       return this;
     }
@@ -786,16 +696,16 @@ private static final long serialVersionUID = 0L;
      * The scores, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
      */
-    public Builder addItems(
+    public Builder addEntries(
         int index, ai.stigmer.agentic.score.v1.Score.Builder builderForValue) {
-      if (itemsBuilder_ == null) {
-        ensureItemsIsMutable();
-        items_.add(index, builderForValue.build());
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.add(index, builderForValue.build());
         onChanged();
       } else {
-        itemsBuilder_.addMessage(index, builderForValue.build());
+        entriesBuilder_.addMessage(index, builderForValue.build());
       }
       return this;
     }
@@ -804,17 +714,17 @@ private static final long serialVersionUID = 0L;
      * The scores, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
      */
-    public Builder addAllItems(
+    public Builder addAllEntries(
         java.lang.Iterable<? extends ai.stigmer.agentic.score.v1.Score> values) {
-      if (itemsBuilder_ == null) {
-        ensureItemsIsMutable();
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, items_);
+            values, entries_);
         onChanged();
       } else {
-        itemsBuilder_.addAllMessages(values);
+        entriesBuilder_.addAllMessages(values);
       }
       return this;
     }
@@ -823,15 +733,15 @@ private static final long serialVersionUID = 0L;
      * The scores, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
      */
-    public Builder clearItems() {
-      if (itemsBuilder_ == null) {
-        items_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000002);
+    public Builder clearEntries() {
+      if (entriesBuilder_ == null) {
+        entries_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000001);
         onChanged();
       } else {
-        itemsBuilder_.clear();
+        entriesBuilder_.clear();
       }
       return this;
     }
@@ -840,15 +750,15 @@ private static final long serialVersionUID = 0L;
      * The scores, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
      */
-    public Builder removeItems(int index) {
-      if (itemsBuilder_ == null) {
-        ensureItemsIsMutable();
-        items_.remove(index);
+    public Builder removeEntries(int index) {
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.remove(index);
         onChanged();
       } else {
-        itemsBuilder_.remove(index);
+        entriesBuilder_.remove(index);
       }
       return this;
     }
@@ -857,24 +767,24 @@ private static final long serialVersionUID = 0L;
      * The scores, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.score.v1.Score.Builder getItemsBuilder(
+    public ai.stigmer.agentic.score.v1.Score.Builder getEntriesBuilder(
         int index) {
-      return internalGetItemsFieldBuilder().getBuilder(index);
+      return internalGetEntriesFieldBuilder().getBuilder(index);
     }
     /**
      * <pre>
      * The scores, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.score.v1.ScoreOrBuilder getItemsOrBuilder(
+    public ai.stigmer.agentic.score.v1.ScoreOrBuilder getEntriesOrBuilder(
         int index) {
-      if (itemsBuilder_ == null) {
-        return items_.get(index);  } else {
-        return itemsBuilder_.getMessageOrBuilder(index);
+      if (entriesBuilder_ == null) {
+        return entries_.get(index);  } else {
+        return entriesBuilder_.getMessageOrBuilder(index);
       }
     }
     /**
@@ -882,14 +792,14 @@ private static final long serialVersionUID = 0L;
      * The scores, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
      */
     public java.util.List<? extends ai.stigmer.agentic.score.v1.ScoreOrBuilder> 
-         getItemsOrBuilderList() {
-      if (itemsBuilder_ != null) {
-        return itemsBuilder_.getMessageOrBuilderList();
+         getEntriesOrBuilderList() {
+      if (entriesBuilder_ != null) {
+        return entriesBuilder_.getMessageOrBuilderList();
       } else {
-        return java.util.Collections.unmodifiableList(items_);
+        return java.util.Collections.unmodifiableList(entries_);
       }
     }
     /**
@@ -897,10 +807,10 @@ private static final long serialVersionUID = 0L;
      * The scores, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.score.v1.Score.Builder addItemsBuilder() {
-      return internalGetItemsFieldBuilder().addBuilder(
+    public ai.stigmer.agentic.score.v1.Score.Builder addEntriesBuilder() {
+      return internalGetEntriesFieldBuilder().addBuilder(
           ai.stigmer.agentic.score.v1.Score.getDefaultInstance());
     }
     /**
@@ -908,11 +818,11 @@ private static final long serialVersionUID = 0L;
      * The scores, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
      */
-    public ai.stigmer.agentic.score.v1.Score.Builder addItemsBuilder(
+    public ai.stigmer.agentic.score.v1.Score.Builder addEntriesBuilder(
         int index) {
-      return internalGetItemsFieldBuilder().addBuilder(
+      return internalGetEntriesFieldBuilder().addBuilder(
           index, ai.stigmer.agentic.score.v1.Score.getDefaultInstance());
     }
     /**
@@ -920,34 +830,32 @@ private static final long serialVersionUID = 0L;
      * The scores, newest first.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.score.v1.Score items = 2 [json_name = "items"];</code>
+     * <code>repeated .ai.stigmer.agentic.score.v1.Score entries = 2 [json_name = "entries"];</code>
      */
     public java.util.List<ai.stigmer.agentic.score.v1.Score.Builder> 
-         getItemsBuilderList() {
-      return internalGetItemsFieldBuilder().getBuilderList();
+         getEntriesBuilderList() {
+      return internalGetEntriesFieldBuilder().getBuilderList();
     }
     private com.google.protobuf.RepeatedFieldBuilder<
         ai.stigmer.agentic.score.v1.Score, ai.stigmer.agentic.score.v1.Score.Builder, ai.stigmer.agentic.score.v1.ScoreOrBuilder> 
-        internalGetItemsFieldBuilder() {
-      if (itemsBuilder_ == null) {
-        itemsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+        internalGetEntriesFieldBuilder() {
+      if (entriesBuilder_ == null) {
+        entriesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.score.v1.Score, ai.stigmer.agentic.score.v1.Score.Builder, ai.stigmer.agentic.score.v1.ScoreOrBuilder>(
-                items_,
-                ((bitField0_ & 0x00000002) != 0),
+                entries_,
+                ((bitField0_ & 0x00000001) != 0),
                 getParentForChildren(),
                 isClean());
-        items_ = null;
+        entries_ = null;
       }
-      return itemsBuilder_;
+      return entriesBuilder_;
     }
 
     private java.lang.Object nextPageToken_ = "";
     /**
      * <pre>
-     * Set when more scores may follow: pass it as page_token to continue. A
-     * page may hold fewer scores than page_size, even none, and still carry a
-     * token. Empty when the list is complete, and always empty on the lists
-     * of one run or one session, which are returned whole.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -967,10 +875,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Set when more scores may follow: pass it as page_token to continue. A
-     * page may hold fewer scores than page_size, even none, and still carry a
-     * token. Empty when the list is complete, and always empty on the lists
-     * of one run or one session, which are returned whole.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -991,10 +897,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Set when more scores may follow: pass it as page_token to continue. A
-     * page may hold fewer scores than page_size, even none, and still carry a
-     * token. Empty when the list is complete, and always empty on the lists
-     * of one run or one session, which are returned whole.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -1005,16 +909,14 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       nextPageToken_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Set when more scores may follow: pass it as page_token to continue. A
-     * page may hold fewer scores than page_size, even none, and still carry a
-     * token. Empty when the list is complete, and always empty on the lists
-     * of one run or one session, which are returned whole.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -1022,16 +924,14 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearNextPageToken() {
       nextPageToken_ = getDefaultInstance().getNextPageToken();
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000002);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Set when more scores may follow: pass it as page_token to continue. A
-     * page may hold fewer scores than page_size, even none, and still carry a
-     * token. Empty when the list is complete, and always empty on the lists
-     * of one run or one session, which are returned whole.
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
      * </pre>
      *
      * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -1043,7 +943,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       nextPageToken_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }

@@ -4,6 +4,8 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { Skill } from "./api_pb.js";
+import { file_ai_stigmer_agentic_skill_v1_api } from "./api_pb.js";
 import type { GitProvenance } from "./status_pb.js";
 import { file_ai_stigmer_agentic_skill_v1_status } from "./status_pb.js";
 import type { ApiResourceAuditActor } from "../../../commons/apiresource/status_pb.js";
@@ -17,7 +19,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/skill/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_skill_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MSIgCgdTa2lsbElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEijgQKEFB1c2hTa2lsbFJlcXVlc3QSEwoDb3JnGAEgASgJQga6SAPIAQESEAoIYXJ0aWZhY3QYAiABKAwSKAoDdGFnGAMgASgJQhu6SBhyFjIUXiR8XlthLXpBLVowLTkuXy1dKyQSQgoOZ2l0X3Byb3ZlbmFuY2UYBCABKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuR2l0UHJvdmVuYW5jZRIPCgdtZXNzYWdlGAYgASgJEhsKE2FydGlmYWN0X3VwbG9hZF9yZWYYByABKAkSSQoGbGFiZWxzGAggAygLMjkuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlB1c2hTa2lsbFJlcXVlc3QuTGFiZWxzRW50cnkaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ATq2AbpIsgEarwEKInB1c2hfc2tpbGxfcmVxdWVzdC5hcnRpZmFjdF9zb3VyY2USSWV4YWN0bHkgb25lIG9mIGFydGlmYWN0IChpbmxpbmUgYnl0ZXMpIG9yIGFydGlmYWN0X3VwbG9hZF9yZWYgbXVzdCBiZSBzZXQaPih0aGlzLmFydGlmYWN0LnNpemUoKSA+IDApICE9ICh0aGlzLmFydGlmYWN0X3VwbG9hZF9yZWYgIT0gJycpSgQIBRAGIlcKI0NyZWF0ZVNraWxsQXJ0aWZhY3RVcGxvYWRVcmxSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEhsKCnNpemVfYnl0ZXMYAiABKANCB7pIBCICIAAiVwoWU2tpbGxBcnRpZmFjdFVwbG9hZFVybBILCgN1cmwYASABKAkSGwoTYXJ0aWZhY3RfdXBsb2FkX3JlZhgCIAEoCRITCgt0dGxfc2Vjb25kcxgDIAEoBSJQChhTa2lsbEFydGlmYWN0RG93bmxvYWRVcmwSCwoDdXJsGAEgASgJEhMKC3R0bF9zZWNvbmRzGAIgASgFEhIKCnNpemVfYnl0ZXMYAyABKAMilwEKH1B1c2hTa2lsbEZyb21SdW5BcnRpZmFjdFJlcXVlc3QSEwoDb3JnGAEgASgJQga6SAPIAQESFwoGcnVuX2lkGAIgASgJQge6SARyAhABEhwKC3N0b3JhZ2Vfa2V5GAMgASgJQge6SARyAhABEigKA3RhZxgEIAEoCUIbukgYchYyFF4kfF5bYS16QS1aMC05Ll8tXSskIjoKEkdldEFydGlmYWN0UmVxdWVzdBIkChRhcnRpZmFjdF9zdG9yYWdlX2tleRgBIAEoCUIGukgDyAEBIicKE0dldEFydGlmYWN0UmVzcG9uc2USEAoIYXJ0aWZhY3QYASABKAwiagoWTGlzdFNraWxsVmVyc2lvbnNJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIUCgRzbHVnGAIgASgJQga6SAPIAQESEgoKcGFnZV90b2tlbhgDIAEoCRIRCglwYWdlX3NpemUYBCABKAUitgIKEVNraWxsVmVyc2lvbkVudHJ5EhQKDHZlcnNpb25faGFzaBgBIAEoCRItCglwdXNoZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEkgKCXB1c2hlZF9ieRgDIAEoCzI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0QWN0b3ISCwoDdGFnGAQgASgJEhIKCmlzX2N1cnJlbnQYBSABKAgSQgoOZ2l0X3Byb3ZlbmFuY2UYBiABKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuR2l0UHJvdmVuYW5jZRIPCgdtZXNzYWdlGAcgASgJEhwKFGFydGlmYWN0X3N0b3JhZ2Vfa2V5GAggASgJIosBChlMaXN0U2tpbGxWZXJzaW9uc1Jlc3BvbnNlEkAKCHZlcnNpb25zGAEgAygLMi4uYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsVmVyc2lvbkVudHJ5EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCRITCgt0b3RhbF9jb3VudBgDIAEoBWIGcHJvdG8z", [file_ai_stigmer_agentic_skill_v1_status, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MSIgCgdTa2lsbElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEijgQKEFB1c2hTa2lsbFJlcXVlc3QSEwoDb3JnGAEgASgJQga6SAPIAQESEAoIYXJ0aWZhY3QYAiABKAwSKAoDdGFnGAMgASgJQhu6SBhyFjIUXiR8XlthLXpBLVowLTkuXy1dKyQSQgoOZ2l0X3Byb3ZlbmFuY2UYBCABKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuR2l0UHJvdmVuYW5jZRIPCgdtZXNzYWdlGAYgASgJEhsKE2FydGlmYWN0X3VwbG9hZF9yZWYYByABKAkSSQoGbGFiZWxzGAggAygLMjkuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlB1c2hTa2lsbFJlcXVlc3QuTGFiZWxzRW50cnkaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ATq2AbpIsgEarwEKInB1c2hfc2tpbGxfcmVxdWVzdC5hcnRpZmFjdF9zb3VyY2USSWV4YWN0bHkgb25lIG9mIGFydGlmYWN0IChpbmxpbmUgYnl0ZXMpIG9yIGFydGlmYWN0X3VwbG9hZF9yZWYgbXVzdCBiZSBzZXQaPih0aGlzLmFydGlmYWN0LnNpemUoKSA+IDApICE9ICh0aGlzLmFydGlmYWN0X3VwbG9hZF9yZWYgIT0gJycpSgQIBRAGIlcKI0NyZWF0ZVNraWxsQXJ0aWZhY3RVcGxvYWRVcmxSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEhsKCnNpemVfYnl0ZXMYAiABKANCB7pIBCICIAAiVwoWU2tpbGxBcnRpZmFjdFVwbG9hZFVybBILCgN1cmwYASABKAkSGwoTYXJ0aWZhY3RfdXBsb2FkX3JlZhgCIAEoCRITCgt0dGxfc2Vjb25kcxgDIAEoBSJQChhTa2lsbEFydGlmYWN0RG93bmxvYWRVcmwSCwoDdXJsGAEgASgJEhMKC3R0bF9zZWNvbmRzGAIgASgFEhIKCnNpemVfYnl0ZXMYAyABKAMilwEKH1B1c2hTa2lsbEZyb21SdW5BcnRpZmFjdFJlcXVlc3QSEwoDb3JnGAEgASgJQga6SAPIAQESFwoGcnVuX2lkGAIgASgJQge6SARyAhABEhwKC3N0b3JhZ2Vfa2V5GAMgASgJQge6SARyAhABEigKA3RhZxgEIAEoCUIbukgYchYyFF4kfF5bYS16QS1aMC05Ll8tXSskIjoKEkdldEFydGlmYWN0UmVxdWVzdBIkChRhcnRpZmFjdF9zdG9yYWdlX2tleRgBIAEoCUIGukgDyAEBIicKE0dldEFydGlmYWN0UmVzcG9uc2USEAoIYXJ0aWZhY3QYASABKAwifQoWTGlzdFNraWxsVmVyc2lvbnNJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIUCgRzbHVnGAIgASgJQga6SAPIAQESHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgSGgoJcGFnZV9zaXplGAQgASgFQge6SAQaAigAIrYCChFTa2lsbFZlcnNpb25FbnRyeRIUCgx2ZXJzaW9uX2hhc2gYASABKAkSLQoJcHVzaGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBJICglwdXNoZWRfYnkYAyABKAsyNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdEFjdG9yEgsKA3RhZxgEIAEoCRISCgppc19jdXJyZW50GAUgASgIEkIKDmdpdF9wcm92ZW5hbmNlGAYgASgLMiouYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLkdpdFByb3ZlbmFuY2USDwoHbWVzc2FnZRgHIAEoCRIcChRhcnRpZmFjdF9zdG9yYWdlX2tleRgIIAEoCSKIAQoZTGlzdFNraWxsVmVyc2lvbnNSZXNwb25zZRI/CgdlbnRyaWVzGAEgAygLMi4uYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsVmVyc2lvbkVudHJ5EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCUoECAMQBFILdG90YWxfY291bnQiYwoRTGlzdFNraWxsc1JlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACCJZCglTa2lsbExpc3QSMwoHZW50cmllcxgBIAMoCzIiLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbBIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAliBnByb3RvMw", [file_ai_stigmer_agentic_skill_v1_api, file_ai_stigmer_agentic_skill_v1_status, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * SkillId wraps a skill identifier.
@@ -357,16 +359,16 @@ export type ListSkillVersionsInput = Message<"ai.stigmer.agentic.skill.v1.ListSk
   slug: string;
 
   /**
-   * Opaque token for cursor-based pagination.
-   * Empty string or omitted for the first page.
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
    *
    * @generated from field: string page_token = 3;
    */
   pageToken: string;
 
   /**
-   * Maximum number of versions to return per page.
-   * Server may return fewer. Default is 50.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    *
    * @generated from field: int32 page_size = 4;
    */
@@ -465,23 +467,17 @@ export type ListSkillVersionsResponse = Message<"ai.stigmer.agentic.skill.v1.Lis
   /**
    * Ordered list of versions (newest first).
    *
-   * @generated from field: repeated ai.stigmer.agentic.skill.v1.SkillVersionEntry versions = 1;
+   * @generated from field: repeated ai.stigmer.agentic.skill.v1.SkillVersionEntry entries = 1;
    */
-  versions: SkillVersionEntry[];
+  entries: SkillVersionEntry[];
 
   /**
-   * Token for fetching the next page. Empty when no more pages exist.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    *
    * @generated from field: string next_page_token = 2;
    */
   nextPageToken: string;
-
-  /**
-   * Total number of versions across all pages.
-   *
-   * @generated from field: int32 total_count = 3;
-   */
-  totalCount: number;
 };
 
 /**
@@ -490,4 +486,70 @@ export type ListSkillVersionsResponse = Message<"ai.stigmer.agentic.skill.v1.Lis
  */
 export const ListSkillVersionsResponseSchema: GenMessage<ListSkillVersionsResponse> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_skill_v1_io, 10);
+
+/**
+ * Input for listing an organization's skills, newest first.
+ *
+ * @generated from message ai.stigmer.agentic.skill.v1.ListSkillsRequest
+ */
+export type ListSkillsRequest = Message<"ai.stigmer.agentic.skill.v1.ListSkillsRequest"> & {
+  /**
+   * Organization whose skills to list, by id or slug.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.skill.v1.ListSkillsRequest.
+ * Use `create(ListSkillsRequestSchema)` to create a new message.
+ */
+export const ListSkillsRequestSchema: GenMessage<ListSkillsRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 11);
+
+/**
+ * One page of an organization's skills.
+ *
+ * @generated from message ai.stigmer.agentic.skill.v1.SkillList
+ */
+export type SkillList = Message<"ai.stigmer.agentic.skill.v1.SkillList"> & {
+  /**
+   * The skills in this page, newest first.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.skill.v1.Skill entries = 1;
+   */
+  entries: Skill[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.skill.v1.SkillList.
+ * Use `create(SkillListSchema)` to create a new message.
+ */
+export const SkillListSchema: GenMessage<SkillList> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 12);
 

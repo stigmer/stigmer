@@ -32,7 +32,8 @@ public interface ListSessionsByChannelRequestOrBuilder extends
 
   /**
    * <pre>
-   * The most sessions to return, at most 100; zero returns them all.
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
    * </pre>
    *
    * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -46,7 +47,7 @@ public interface ListSessionsByChannelRequestOrBuilder extends
    * other field must equal that request's, or the call is refused.
    * </pre>
    *
-   * <code>string page_token = 3 [json_name = "pageToken"];</code>
+   * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
    * @return The pageToken.
    */
   java.lang.String getPageToken();
@@ -56,7 +57,7 @@ public interface ListSessionsByChannelRequestOrBuilder extends
    * other field must equal that request's, or the call is refused.
    * </pre>
    *
-   * <code>string page_token = 3 [json_name = "pageToken"];</code>
+   * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
    * @return The bytes for pageToken.
    */
   com.google.protobuf.ByteString

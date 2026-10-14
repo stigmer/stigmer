@@ -55,16 +55,19 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "i/stigmer/agentic/plugineval/v1/api.prot" +
       "o\032\033buf/validate/validate.proto\"1\n\014Plugin" +
       "EvalId\022!\n\005value\030\001 \001(\tB\013\272H\010r\003\030\200\001\310\001\001R\005valu" +
-      "e\"I\n\036ListPluginEvalsByPluginRequest\022\'\n\tp" +
-      "lugin_id\030\001 \001(\tB\n\272H\007r\005\020\001\030\200\001R\010pluginId\"u\n\016" +
-      "PluginEvalList\022\037\n\013total_count\030\001 \001(\005R\ntot" +
-      "alCount\022B\n\005items\030\002 \003(\0132,.ai.stigmer.agen" +
-      "tic.plugineval.v1.PluginEvalR\005itemsB\256\001B\007" +
-      "IoProtoP\001\242\002\004ASAP\252\002 Ai.Stigmer.Agentic.Pl" +
-      "ugineval.V1\312\002 Ai\\Stigmer\\Agentic\\Plugine" +
-      "val\\V1\342\002,Ai\\Stigmer\\Agentic\\Plugineval\\V" +
-      "1\\GPBMetadata\352\002$Ai::Stigmer::Agentic::Pl" +
-      "ugineval::V1b\006proto3"
+      "e\"\230\001\n\036ListPluginEvalsByPluginRequest\022\'\n\t" +
+      "plugin_id\030\001 \001(\tB\n\272H\007r\005\020\001\030\200\001R\010pluginId\022$\n" +
+      "\tpage_size\030\002 \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\np" +
+      "age_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\"\223\001\n" +
+      "\016PluginEvalList\022F\n\007entries\030\002 \003(\0132,.ai.st" +
+      "igmer.agentic.plugineval.v1.PluginEvalR\007" +
+      "entries\022&\n\017next_page_token\030\003 \001(\tR\rnextPa" +
+      "geTokenJ\004\010\001\020\002R\013total_countB\256\001B\007IoProtoP\001" +
+      "\242\002\004ASAP\252\002 Ai.Stigmer.Agentic.Plugineval." +
+      "V1\312\002 Ai\\Stigmer\\Agentic\\Plugineval\\V1\342\002," +
+      "Ai\\Stigmer\\Agentic\\Plugineval\\V1\\GPBMeta" +
+      "data\352\002$Ai::Stigmer::Agentic::Plugineval:" +
+      ":V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -83,13 +86,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_plugineval_v1_ListPluginEvalsByPluginRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_plugineval_v1_ListPluginEvalsByPluginRequest_descriptor,
-        new java.lang.String[] { "PluginId", });
+        new java.lang.String[] { "PluginId", "PageSize", "PageToken", });
     internal_static_ai_stigmer_agentic_plugineval_v1_PluginEvalList_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_plugineval_v1_PluginEvalList_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_plugineval_v1_PluginEvalList_descriptor,
-        new java.lang.String[] { "TotalCount", "Items", });
+        new java.lang.String[] { "Entries", "NextPageToken", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.plugineval.v1.ApiProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

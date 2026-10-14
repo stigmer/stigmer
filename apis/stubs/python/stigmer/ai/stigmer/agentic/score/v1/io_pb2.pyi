@@ -16,26 +16,32 @@ class ScoreId(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class ListScoresByRunRequest(_message.Message):
-    __slots__ = ("run_id",)
+    __slots__ = ("run_id", "page_size", "page_token")
     RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     run_id: str
-    def __init__(self, run_id: _Optional[str] = ...) -> None: ...
+    page_size: int
+    page_token: str
+    def __init__(self, run_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class ListScoresBySessionRequest(_message.Message):
-    __slots__ = ("session_id",)
+    __slots__ = ("session_id", "page_size", "page_token")
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     session_id: str
-    def __init__(self, session_id: _Optional[str] = ...) -> None: ...
+    page_size: int
+    page_token: str
+    def __init__(self, session_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class ScoreList(_message.Message):
-    __slots__ = ("total_count", "items", "next_page_token")
-    TOTAL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    ITEMS_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("entries", "next_page_token")
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
     NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
-    total_count: int
-    items: _containers.RepeatedCompositeFieldContainer[_api_pb2.Score]
+    entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.Score]
     next_page_token: str
-    def __init__(self, total_count: _Optional[int] = ..., items: _Optional[_Iterable[_Union[_api_pb2.Score, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
+    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.Score, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
 class GetAgentQualityReportRequest(_message.Message):
     __slots__ = ("org", "agent_id", "days")

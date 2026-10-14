@@ -11,18 +11,20 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class Organizations(_message.Message):
-    __slots__ = ("entries",)
+    __slots__ = ("entries", "next_page_token")
     ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.Organization]
-    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.Organization, _Mapping]]] = ...) -> None: ...
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.Organization, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
-class OrganizationList(_message.Message):
-    __slots__ = ("total_pages", "entries")
-    TOTAL_PAGES_FIELD_NUMBER: _ClassVar[int]
-    ENTRIES_FIELD_NUMBER: _ClassVar[int]
-    total_pages: int
-    entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.Organization]
-    def __init__(self, total_pages: _Optional[int] = ..., entries: _Optional[_Iterable[_Union[_api_pb2.Organization, _Mapping]]] = ...) -> None: ...
+class ListMyOrganizationsInput(_message.Message):
+    __slots__ = ("page_size", "page_token")
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    page_size: int
+    page_token: str
+    def __init__(self, page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class OrganizationId(_message.Message):
     __slots__ = ("value",)

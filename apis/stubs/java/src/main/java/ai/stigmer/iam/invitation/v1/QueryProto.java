@@ -41,23 +41,23 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ions.proto\032+ai/stigmer/commons/rpc/metho" +
       "d_options.proto\032&ai/stigmer/iam/invitati" +
       "on/v1/api.proto\032%ai/stigmer/iam/invitati" +
-      "on/v1/io.proto2\342\003\n\031InvitationQueryContro" +
+      "on/v1/io.proto2\330\003\n\031InvitationQueryContro" +
       "ller\022\215\001\n\003get\022*.ai.stigmer.iam.invitation" +
       ".v1.InvitationId\032(.ai.stigmer.iam.invita" +
       "tion.v1.Invitation\"0\302\270\030,\010\001\020\024\"\005value*\037una" +
-      "uthorized to view invitation\022\265\001\n\tlistByO" +
-      "rg\0227.ai.stigmer.iam.invitation.v1.ListIn" +
-      "vitationsByOrgInput\032).ai.stigmer.iam.inv" +
-      "itation.v1.Invitations\"D\302\270\030@\010\005\020\036\"\003org*5u" +
-      "nauthorized to list invitations in this " +
-      "organization\022w\n\ngetByToken\0222.ai.stigmer." +
-      "iam.invitation.v1.InvitationTokenInput\032/" +
-      ".ai.stigmer.iam.invitation.v1.Invitation" +
-      "Preview\"\004\310\270\030\001\032\004\240\377+\024B\241\001B\nQueryProtoP\001\242\002\004A" +
-      "SII\252\002\034Ai.Stigmer.Iam.Invitation.V1\312\002\034Ai\\" +
-      "Stigmer\\Iam\\Invitation\\V1\342\002(Ai\\Stigmer\\I" +
-      "am\\Invitation\\V1\\GPBMetadata\352\002 Ai::Stigm" +
-      "er::Iam::Invitation::V1b\006proto3"
+      "uthorized to view invitation\022\253\001\n\004list\0222." +
+      "ai.stigmer.iam.invitation.v1.ListInvitat" +
+      "ionsInput\032).ai.stigmer.iam.invitation.v1" +
+      ".Invitations\"D\302\270\030@\010\005\020\036\"\003org*5unauthorize" +
+      "d to list invitations in this organizati" +
+      "on\022w\n\ngetByToken\0222.ai.stigmer.iam.invita" +
+      "tion.v1.InvitationTokenInput\032/.ai.stigme" +
+      "r.iam.invitation.v1.InvitationPreview\"\004\310" +
+      "\270\030\001\032\004\240\377+\024B\241\001B\nQueryProtoP\001\242\002\004ASII\252\002\034Ai.S" +
+      "tigmer.Iam.Invitation.V1\312\002\034Ai\\Stigmer\\Ia" +
+      "m\\Invitation\\V1\342\002(Ai\\Stigmer\\Iam\\Invitat" +
+      "ion\\V1\\GPBMetadata\352\002 Ai::Stigmer::Iam::I" +
+      "nvitation::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

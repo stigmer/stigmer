@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ScheduleSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_schedule_v1_api } from "./api_pb.js";
-import type { GetSchedulesByAgentRequestSchema, ListScheduleFiresRequestSchema, ListSchedulesRequestSchema, ScheduleFireListSchema, ScheduleIdSchema, ScheduleListSchema } from "./io_pb.js";
+import type { ListScheduleFiresRequestSchema, ListSchedulesByAgentRequestSchema, ListSchedulesRequestSchema, ScheduleFireListSchema, ScheduleIdSchema, ScheduleListSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_schedule_v1_io } from "./io_pb.js";
 import type { ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/schedule/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_schedule_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvcXVlcnkucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MTLKBQoXU2NoZWR1bGVRdWVyeUNvbnRyb2xsZXISigEKA2dldBIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUlkGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIi3CuBgpCAEQOCIFdmFsdWUqHHVuYXV0aG9yaXplZCB0byBnZXQgc2NoZWR1bGUSdgoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaKC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGUiBNC4GAESfAoKZ2V0QnlBZ2VudBI6LmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5HZXRTY2hlZHVsZXNCeUFnZW50UmVxdWVzdBosLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUxpc3QiBNC4GAEScAoEbGlzdBI0LmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5MaXN0U2NoZWR1bGVzUmVxdWVzdBosLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUxpc3QiBNC4GAESswEKCWxpc3RGaXJlcxI4LmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5MaXN0U2NoZWR1bGVGaXJlc1JlcXVlc3QaMC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGVGaXJlTGlzdCI6wrgYNggBEDgiC3NjaGVkdWxlX2lkKiN1bmF1dGhvcml6ZWQgdG8gbGlzdCBzY2hlZHVsZSBmaXJlcxoEoP8rOGIGcHJvdG8z", [file_ai_stigmer_agentic_schedule_v1_api, file_ai_stigmer_agentic_schedule_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvcXVlcnkucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MTLMBQoXU2NoZWR1bGVRdWVyeUNvbnRyb2xsZXISigEKA2dldBIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUlkGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIi3CuBgpCAEQOCIFdmFsdWUqHHVuYXV0aG9yaXplZCB0byBnZXQgc2NoZWR1bGUSdgoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaKC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGUiBNC4GAESfgoLbGlzdEJ5QWdlbnQSOy5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuTGlzdFNjaGVkdWxlc0J5QWdlbnRSZXF1ZXN0GiwuYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlTGlzdCIE0LgYARJwCgRsaXN0EjQuYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLkxpc3RTY2hlZHVsZXNSZXF1ZXN0GiwuYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlTGlzdCIE0LgYARKzAQoJbGlzdEZpcmVzEjguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLkxpc3RTY2hlZHVsZUZpcmVzUmVxdWVzdBowLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUZpcmVMaXN0IjrCuBg2CAEQOCILc2NoZWR1bGVfaWQqI3VuYXV0aG9yaXplZCB0byBsaXN0IHNjaGVkdWxlIGZpcmVzGgSg/ys4YgZwcm90bzM", [file_ai_stigmer_agentic_schedule_v1_api, file_ai_stigmer_agentic_schedule_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * ScheduleQueryController handles read operations for schedules.
@@ -46,17 +46,17 @@ export const ScheduleQueryController: GenService<{
     output: typeof ScheduleSchema;
   },
   /**
-   * Get all schedules of a specific agent.
+   * List the schedules of a specific agent, newest first.
    * Returns only schedules the caller has access to.
    *
    * This is how the agent's operational surfaces and CLI resolve an
    * agent's existing schedules regardless of slug.
    *
-   * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleQueryController.getByAgent
+   * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleQueryController.listByAgent
    */
-  getByAgent: {
+  listByAgent: {
     methodKind: "unary";
-    input: typeof GetSchedulesByAgentRequestSchema;
+    input: typeof ListSchedulesByAgentRequestSchema;
     output: typeof ScheduleListSchema;
   },
   /**

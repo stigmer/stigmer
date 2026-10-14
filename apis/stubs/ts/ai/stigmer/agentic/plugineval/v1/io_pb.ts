@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/plugineval/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_plugineval_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luZXZhbC92MS9pby5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEiKgoMUGx1Z2luRXZhbElkEhoKBXZhbHVlGAEgASgJQgu6SAjIAQFyAxiAASI/Ch5MaXN0UGx1Z2luRXZhbHNCeVBsdWdpblJlcXVlc3QSHQoJcGx1Z2luX2lkGAEgASgJQgq6SAdyBRABGIABImIKDlBsdWdpbkV2YWxMaXN0EhMKC3RvdGFsX2NvdW50GAEgASgFEjsKBWl0ZW1zGAIgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEuUGx1Z2luRXZhbGIGcHJvdG8z", [file_ai_stigmer_agentic_plugineval_v1_api, file_buf_validate_validate]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luZXZhbC92MS9pby5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEiKgoMUGx1Z2luRXZhbElkEhoKBXZhbHVlGAEgASgJQgu6SAjIAQFyAxiAASJ5Ch5MaXN0UGx1Z2luRXZhbHNCeVBsdWdpblJlcXVlc3QSHQoJcGx1Z2luX2lkGAEgASgJQgq6SAdyBRABGIABEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACCJ7Cg5QbHVnaW5FdmFsTGlzdBI9CgdlbnRyaWVzGAIgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEuUGx1Z2luRXZhbBIXCg9uZXh0X3BhZ2VfdG9rZW4YAyABKAlKBAgBEAJSC3RvdGFsX2NvdW50YgZwcm90bzM", [file_ai_stigmer_agentic_plugineval_v1_api, file_buf_validate_validate]);
 
 /**
  * PluginEvalId wraps a plugin eval identifier.
@@ -48,6 +48,22 @@ export type ListPluginEvalsByPluginRequest = Message<"ai.stigmer.agentic.plugine
    * @generated from field: string plugin_id = 1;
    */
   pluginId: string;
+
+  /**
+   * The most entries to return: 0 asks for the default page of 50, and a
+   * size above 100 is read as 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
 };
 
 /**
@@ -64,18 +80,19 @@ export const ListPluginEvalsByPluginRequestSchema: GenMessage<ListPluginEvalsByP
  */
 export type PluginEvalList = Message<"ai.stigmer.agentic.plugineval.v1.PluginEvalList"> & {
   /**
-   * Number of evals in the list.
-   *
-   * @generated from field: int32 total_count = 1;
-   */
-  totalCount: number;
-
-  /**
    * The evals, newest first.
    *
-   * @generated from field: repeated ai.stigmer.agentic.plugineval.v1.PluginEval items = 2;
+   * @generated from field: repeated ai.stigmer.agentic.plugineval.v1.PluginEval entries = 2;
    */
-  items: PluginEval[];
+  entries: PluginEval[];
+
+  /**
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 3;
+   */
+  nextPageToken: string;
 };
 
 /**

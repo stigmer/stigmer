@@ -26,7 +26,7 @@ from ai.stigmer.agentic.plugineval.v1 import api_pb2 as ai_dot_stigmer_dot_agent
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/plugineval/v1/io.proto\x12 ai.stigmer.agentic.plugineval.v1\x1a*ai/stigmer/agentic/plugineval/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\"1\n\x0cPluginEvalId\x12!\n\x05value\x18\x01 \x01(\tB\x0b\xbaH\x08r\x03\x18\x80\x01\xc8\x01\x01R\x05value\"I\n\x1eListPluginEvalsByPluginRequest\x12\'\n\tplugin_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x08pluginId\"u\n\x0ePluginEvalList\x12\x1f\n\x0btotal_count\x18\x01 \x01(\x05R\ntotalCount\x12\x42\n\x05items\x18\x02 \x03(\x0b\x32,.ai.stigmer.agentic.plugineval.v1.PluginEvalR\x05itemsB\xd4\x01\n$com.ai.stigmer.agentic.plugineval.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAP\xaa\x02 Ai.Stigmer.Agentic.Plugineval.V1\xca\x02 Ai\\Stigmer\\Agentic\\Plugineval\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Plugineval\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Plugineval::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/plugineval/v1/io.proto\x12 ai.stigmer.agentic.plugineval.v1\x1a*ai/stigmer/agentic/plugineval/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\"1\n\x0cPluginEvalId\x12!\n\x05value\x18\x01 \x01(\tB\x0b\xbaH\x08r\x03\x18\x80\x01\xc8\x01\x01R\x05value\"\x98\x01\n\x1eListPluginEvalsByPluginRequest\x12\'\n\tplugin_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x08pluginId\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\"\x93\x01\n\x0ePluginEvalList\x12\x46\n\x07\x65ntries\x18\x02 \x03(\x0b\x32,.ai.stigmer.agentic.plugineval.v1.PluginEvalR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\x08\x01\x10\x02R\x0btotal_countB\xd4\x01\n$com.ai.stigmer.agentic.plugineval.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAP\xaa\x02 Ai.Stigmer.Agentic.Plugineval.V1\xca\x02 Ai\\Stigmer\\Agentic\\Plugineval\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Plugineval\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Plugineval::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -38,10 +38,14 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_PLUGINEVALID'].fields_by_name['value']._serialized_options = b'\272H\010r\003\030\200\001\310\001\001'
   _globals['_LISTPLUGINEVALSBYPLUGINREQUEST'].fields_by_name['plugin_id']._loaded_options = None
   _globals['_LISTPLUGINEVALSBYPLUGINREQUEST'].fields_by_name['plugin_id']._serialized_options = b'\272H\007r\005\020\001\030\200\001'
+  _globals['_LISTPLUGINEVALSBYPLUGINREQUEST'].fields_by_name['page_size']._loaded_options = None
+  _globals['_LISTPLUGINEVALSBYPLUGINREQUEST'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
+  _globals['_LISTPLUGINEVALSBYPLUGINREQUEST'].fields_by_name['page_token']._loaded_options = None
+  _globals['_LISTPLUGINEVALSBYPLUGINREQUEST'].fields_by_name['page_token']._serialized_options = b'\272H\005r\003\030\200\010'
   _globals['_PLUGINEVALID']._serialized_start=152
   _globals['_PLUGINEVALID']._serialized_end=201
-  _globals['_LISTPLUGINEVALSBYPLUGINREQUEST']._serialized_start=203
-  _globals['_LISTPLUGINEVALSBYPLUGINREQUEST']._serialized_end=276
-  _globals['_PLUGINEVALLIST']._serialized_start=278
-  _globals['_PLUGINEVALLIST']._serialized_end=395
+  _globals['_LISTPLUGINEVALSBYPLUGINREQUEST']._serialized_start=204
+  _globals['_LISTPLUGINEVALSBYPLUGINREQUEST']._serialized_end=356
+  _globals['_PLUGINEVALLIST']._serialized_start=359
+  _globals['_PLUGINEVALLIST']._serialized_end=506
 # @@protoc_insertion_point(module_scope)

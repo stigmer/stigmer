@@ -12,55 +12,67 @@ public interface MemoryListOrBuilder extends
 
   /**
    * <pre>
-   * Total number of memories matching the query.
+   * Memories in the current page.
    * </pre>
    *
-   * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
-   * @return The totalCount.
+   * <code>repeated .ai.stigmer.agentic.memory.v1.Memory entries = 2 [json_name = "entries"];</code>
    */
-  int getTotalCount();
+  java.util.List<ai.stigmer.agentic.memory.v1.Memory> 
+      getEntriesList();
+  /**
+   * <pre>
+   * Memories in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.memory.v1.Memory entries = 2 [json_name = "entries"];</code>
+   */
+  ai.stigmer.agentic.memory.v1.Memory getEntries(int index);
+  /**
+   * <pre>
+   * Memories in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.memory.v1.Memory entries = 2 [json_name = "entries"];</code>
+   */
+  int getEntriesCount();
+  /**
+   * <pre>
+   * Memories in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.memory.v1.Memory entries = 2 [json_name = "entries"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.memory.v1.MemoryOrBuilder> 
+      getEntriesOrBuilderList();
+  /**
+   * <pre>
+   * Memories in the current page.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.memory.v1.Memory entries = 2 [json_name = "entries"];</code>
+   */
+  ai.stigmer.agentic.memory.v1.MemoryOrBuilder getEntriesOrBuilder(
+      int index);
 
   /**
    * <pre>
-   * Memories in the current page.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.memory.v1.Memory items = 2 [json_name = "items"];</code>
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The nextPageToken.
    */
-  java.util.List<ai.stigmer.agentic.memory.v1.Memory> 
-      getItemsList();
+  java.lang.String getNextPageToken();
   /**
    * <pre>
-   * Memories in the current page.
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.memory.v1.Memory items = 2 [json_name = "items"];</code>
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The bytes for nextPageToken.
    */
-  ai.stigmer.agentic.memory.v1.Memory getItems(int index);
-  /**
-   * <pre>
-   * Memories in the current page.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.memory.v1.Memory items = 2 [json_name = "items"];</code>
-   */
-  int getItemsCount();
-  /**
-   * <pre>
-   * Memories in the current page.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.memory.v1.Memory items = 2 [json_name = "items"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.memory.v1.MemoryOrBuilder> 
-      getItemsOrBuilderList();
-  /**
-   * <pre>
-   * Memories in the current page.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.memory.v1.Memory items = 2 [json_name = "items"];</code>
-   */
-  ai.stigmer.agentic.memory.v1.MemoryOrBuilder getItemsOrBuilder(
-      int index);
+  com.google.protobuf.ByteString
+      getNextPageTokenBytes();
 }

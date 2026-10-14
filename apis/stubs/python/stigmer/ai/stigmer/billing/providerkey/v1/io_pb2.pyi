@@ -29,13 +29,19 @@ class DeleteProviderKeyInput(_message.Message):
     def __init__(self, org: _Optional[str] = ..., provider: _Optional[str] = ...) -> None: ...
 
 class ListProviderKeysInput(_message.Message):
-    __slots__ = ("org",)
+    __slots__ = ("org", "page_size", "page_token")
     ORG_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     org: str
-    def __init__(self, org: _Optional[str] = ...) -> None: ...
+    page_size: int
+    page_token: str
+    def __init__(self, org: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class ListProviderKeysOutput(_message.Message):
-    __slots__ = ("keys",)
-    KEYS_FIELD_NUMBER: _ClassVar[int]
-    keys: _containers.RepeatedCompositeFieldContainer[_api_pb2.ProviderKey]
-    def __init__(self, keys: _Optional[_Iterable[_Union[_api_pb2.ProviderKey, _Mapping]]] = ...) -> None: ...
+    __slots__ = ("entries", "next_page_token")
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.ProviderKey]
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.ProviderKey, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...

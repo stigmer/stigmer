@@ -28,7 +28,8 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private ListProviderKeysOutput() {
-    keys_ = java.util.Collections.emptyList();
+    entries_ = java.util.Collections.emptyList();
+    nextPageToken_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -49,20 +50,20 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput.class, ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput.Builder.class);
   }
 
-  public static final int KEYS_FIELD_NUMBER = 1;
+  public static final int ENTRIES_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.billing.providerkey.v1.ProviderKey> keys_;
+  private java.util.List<ai.stigmer.billing.providerkey.v1.ProviderKey> entries_;
   /**
    * <pre>
    * One row per provider the organization is served on its own or its
    * parent organization's key, in provider order.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public java.util.List<ai.stigmer.billing.providerkey.v1.ProviderKey> getKeysList() {
-    return keys_;
+  public java.util.List<ai.stigmer.billing.providerkey.v1.ProviderKey> getEntriesList() {
+    return entries_;
   }
   /**
    * <pre>
@@ -70,12 +71,12 @@ private static final long serialVersionUID = 0L;
    * parent organization's key, in provider order.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
   public java.util.List<? extends ai.stigmer.billing.providerkey.v1.ProviderKeyOrBuilder> 
-      getKeysOrBuilderList() {
-    return keys_;
+      getEntriesOrBuilderList() {
+    return entries_;
   }
   /**
    * <pre>
@@ -83,11 +84,11 @@ private static final long serialVersionUID = 0L;
    * parent organization's key, in provider order.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public int getKeysCount() {
-    return keys_.size();
+  public int getEntriesCount() {
+    return entries_.size();
   }
   /**
    * <pre>
@@ -95,11 +96,11 @@ private static final long serialVersionUID = 0L;
    * parent organization's key, in provider order.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.billing.providerkey.v1.ProviderKey getKeys(int index) {
-    return keys_.get(index);
+  public ai.stigmer.billing.providerkey.v1.ProviderKey getEntries(int index) {
+    return entries_.get(index);
   }
   /**
    * <pre>
@@ -107,12 +108,61 @@ private static final long serialVersionUID = 0L;
    * parent organization's key, in provider order.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+   * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.billing.providerkey.v1.ProviderKeyOrBuilder getKeysOrBuilder(
+  public ai.stigmer.billing.providerkey.v1.ProviderKeyOrBuilder getEntriesOrBuilder(
       int index) {
-    return keys_.get(index);
+    return entries_.get(index);
+  }
+
+  public static final int NEXT_PAGE_TOKEN_FIELD_NUMBER = 2;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object nextPageToken_ = "";
+  /**
+   * <pre>
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   * </pre>
+   *
+   * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+   * @return The nextPageToken.
+   */
+  @java.lang.Override
+  public java.lang.String getNextPageToken() {
+    java.lang.Object ref = nextPageToken_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      nextPageToken_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   * </pre>
+   *
+   * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+   * @return The bytes for nextPageToken.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getNextPageTokenBytes() {
+    java.lang.Object ref = nextPageToken_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      nextPageToken_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
   }
 
   private byte memoizedIsInitialized = -1;
@@ -129,8 +179,11 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    for (int i = 0; i < keys_.size(); i++) {
-      output.writeMessage(1, keys_.get(i));
+    for (int i = 0; i < entries_.size(); i++) {
+      output.writeMessage(1, entries_.get(i));
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(nextPageToken_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 2, nextPageToken_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -143,13 +196,16 @@ private static final long serialVersionUID = 0L;
     size = 0;
 
         {
-          final int count = keys_.size();
+          final int count = entries_.size();
           for (int i = 0; i < count; i++) {
             size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(keys_.get(i));
+              .computeMessageSizeNoTag(entries_.get(i));
           }
           size += 1 * count;
         }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(nextPageToken_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, nextPageToken_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -165,8 +221,10 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput other = (ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput) obj;
 
-    if (!getKeysList()
-        .equals(other.getKeysList())) return false;
+    if (!getEntriesList()
+        .equals(other.getEntriesList())) return false;
+    if (!getNextPageToken()
+        .equals(other.getNextPageToken())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -178,10 +236,12 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    if (getKeysCount() > 0) {
-      hash = (37 * hash) + KEYS_FIELD_NUMBER;
-      hash = (53 * hash) + getKeysList().hashCode();
+    if (getEntriesCount() > 0) {
+      hash = (37 * hash) + ENTRIES_FIELD_NUMBER;
+      hash = (53 * hash) + getEntriesList().hashCode();
     }
+    hash = (37 * hash) + NEXT_PAGE_TOKEN_FIELD_NUMBER;
+    hash = (53 * hash) + getNextPageToken().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -313,13 +373,14 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      if (keysBuilder_ == null) {
-        keys_ = java.util.Collections.emptyList();
+      if (entriesBuilder_ == null) {
+        entries_ = java.util.Collections.emptyList();
       } else {
-        keys_ = null;
-        keysBuilder_.clear();
+        entries_ = null;
+        entriesBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000001);
+      nextPageToken_ = "";
       return this;
     }
 
@@ -353,19 +414,22 @@ private static final long serialVersionUID = 0L;
     }
 
     private void buildPartialRepeatedFields(ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput result) {
-      if (keysBuilder_ == null) {
+      if (entriesBuilder_ == null) {
         if (((bitField0_ & 0x00000001) != 0)) {
-          keys_ = java.util.Collections.unmodifiableList(keys_);
+          entries_ = java.util.Collections.unmodifiableList(entries_);
           bitField0_ = (bitField0_ & ~0x00000001);
         }
-        result.keys_ = keys_;
+        result.entries_ = entries_;
       } else {
-        result.keys_ = keysBuilder_.build();
+        result.entries_ = entriesBuilder_.build();
       }
     }
 
     private void buildPartial0(ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput result) {
       int from_bitField0_ = bitField0_;
+      if (((from_bitField0_ & 0x00000002) != 0)) {
+        result.nextPageToken_ = nextPageToken_;
+      }
     }
 
     @java.lang.Override
@@ -380,31 +444,36 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput other) {
       if (other == ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput.getDefaultInstance()) return this;
-      if (keysBuilder_ == null) {
-        if (!other.keys_.isEmpty()) {
-          if (keys_.isEmpty()) {
-            keys_ = other.keys_;
+      if (entriesBuilder_ == null) {
+        if (!other.entries_.isEmpty()) {
+          if (entries_.isEmpty()) {
+            entries_ = other.entries_;
             bitField0_ = (bitField0_ & ~0x00000001);
           } else {
-            ensureKeysIsMutable();
-            keys_.addAll(other.keys_);
+            ensureEntriesIsMutable();
+            entries_.addAll(other.entries_);
           }
           onChanged();
         }
       } else {
-        if (!other.keys_.isEmpty()) {
-          if (keysBuilder_.isEmpty()) {
-            keysBuilder_.dispose();
-            keysBuilder_ = null;
-            keys_ = other.keys_;
+        if (!other.entries_.isEmpty()) {
+          if (entriesBuilder_.isEmpty()) {
+            entriesBuilder_.dispose();
+            entriesBuilder_ = null;
+            entries_ = other.entries_;
             bitField0_ = (bitField0_ & ~0x00000001);
-            keysBuilder_ = 
+            entriesBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetKeysFieldBuilder() : null;
+                 internalGetEntriesFieldBuilder() : null;
           } else {
-            keysBuilder_.addAllMessages(other.keys_);
+            entriesBuilder_.addAllMessages(other.entries_);
           }
         }
+      }
+      if (!other.getNextPageToken().isEmpty()) {
+        nextPageToken_ = other.nextPageToken_;
+        bitField0_ |= 0x00000002;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -437,14 +506,19 @@ private static final long serialVersionUID = 0L;
                   input.readMessage(
                       ai.stigmer.billing.providerkey.v1.ProviderKey.parser(),
                       extensionRegistry);
-              if (keysBuilder_ == null) {
-                ensureKeysIsMutable();
-                keys_.add(m);
+              if (entriesBuilder_ == null) {
+                ensureEntriesIsMutable();
+                entries_.add(m);
               } else {
-                keysBuilder_.addMessage(m);
+                entriesBuilder_.addMessage(m);
               }
               break;
             } // case 10
+            case 18: {
+              nextPageToken_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000002;
+              break;
+            } // case 18
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -462,17 +536,17 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.util.List<ai.stigmer.billing.providerkey.v1.ProviderKey> keys_ =
+    private java.util.List<ai.stigmer.billing.providerkey.v1.ProviderKey> entries_ =
       java.util.Collections.emptyList();
-    private void ensureKeysIsMutable() {
+    private void ensureEntriesIsMutable() {
       if (!((bitField0_ & 0x00000001) != 0)) {
-        keys_ = new java.util.ArrayList<ai.stigmer.billing.providerkey.v1.ProviderKey>(keys_);
+        entries_ = new java.util.ArrayList<ai.stigmer.billing.providerkey.v1.ProviderKey>(entries_);
         bitField0_ |= 0x00000001;
        }
     }
 
     private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.billing.providerkey.v1.ProviderKey, ai.stigmer.billing.providerkey.v1.ProviderKey.Builder, ai.stigmer.billing.providerkey.v1.ProviderKeyOrBuilder> keysBuilder_;
+        ai.stigmer.billing.providerkey.v1.ProviderKey, ai.stigmer.billing.providerkey.v1.ProviderKey.Builder, ai.stigmer.billing.providerkey.v1.ProviderKeyOrBuilder> entriesBuilder_;
 
     /**
      * <pre>
@@ -480,13 +554,13 @@ private static final long serialVersionUID = 0L;
      * parent organization's key, in provider order.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
      */
-    public java.util.List<ai.stigmer.billing.providerkey.v1.ProviderKey> getKeysList() {
-      if (keysBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(keys_);
+    public java.util.List<ai.stigmer.billing.providerkey.v1.ProviderKey> getEntriesList() {
+      if (entriesBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(entries_);
       } else {
-        return keysBuilder_.getMessageList();
+        return entriesBuilder_.getMessageList();
       }
     }
     /**
@@ -495,13 +569,13 @@ private static final long serialVersionUID = 0L;
      * parent organization's key, in provider order.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
      */
-    public int getKeysCount() {
-      if (keysBuilder_ == null) {
-        return keys_.size();
+    public int getEntriesCount() {
+      if (entriesBuilder_ == null) {
+        return entries_.size();
       } else {
-        return keysBuilder_.getCount();
+        return entriesBuilder_.getCount();
       }
     }
     /**
@@ -510,13 +584,13 @@ private static final long serialVersionUID = 0L;
      * parent organization's key, in provider order.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.billing.providerkey.v1.ProviderKey getKeys(int index) {
-      if (keysBuilder_ == null) {
-        return keys_.get(index);
+    public ai.stigmer.billing.providerkey.v1.ProviderKey getEntries(int index) {
+      if (entriesBuilder_ == null) {
+        return entries_.get(index);
       } else {
-        return keysBuilder_.getMessage(index);
+        return entriesBuilder_.getMessage(index);
       }
     }
     /**
@@ -525,19 +599,19 @@ private static final long serialVersionUID = 0L;
      * parent organization's key, in provider order.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
      */
-    public Builder setKeys(
+    public Builder setEntries(
         int index, ai.stigmer.billing.providerkey.v1.ProviderKey value) {
-      if (keysBuilder_ == null) {
+      if (entriesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureKeysIsMutable();
-        keys_.set(index, value);
+        ensureEntriesIsMutable();
+        entries_.set(index, value);
         onChanged();
       } else {
-        keysBuilder_.setMessage(index, value);
+        entriesBuilder_.setMessage(index, value);
       }
       return this;
     }
@@ -547,16 +621,16 @@ private static final long serialVersionUID = 0L;
      * parent organization's key, in provider order.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
      */
-    public Builder setKeys(
+    public Builder setEntries(
         int index, ai.stigmer.billing.providerkey.v1.ProviderKey.Builder builderForValue) {
-      if (keysBuilder_ == null) {
-        ensureKeysIsMutable();
-        keys_.set(index, builderForValue.build());
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.set(index, builderForValue.build());
         onChanged();
       } else {
-        keysBuilder_.setMessage(index, builderForValue.build());
+        entriesBuilder_.setMessage(index, builderForValue.build());
       }
       return this;
     }
@@ -566,18 +640,18 @@ private static final long serialVersionUID = 0L;
      * parent organization's key, in provider order.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addKeys(ai.stigmer.billing.providerkey.v1.ProviderKey value) {
-      if (keysBuilder_ == null) {
+    public Builder addEntries(ai.stigmer.billing.providerkey.v1.ProviderKey value) {
+      if (entriesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureKeysIsMutable();
-        keys_.add(value);
+        ensureEntriesIsMutable();
+        entries_.add(value);
         onChanged();
       } else {
-        keysBuilder_.addMessage(value);
+        entriesBuilder_.addMessage(value);
       }
       return this;
     }
@@ -587,19 +661,19 @@ private static final long serialVersionUID = 0L;
      * parent organization's key, in provider order.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addKeys(
+    public Builder addEntries(
         int index, ai.stigmer.billing.providerkey.v1.ProviderKey value) {
-      if (keysBuilder_ == null) {
+      if (entriesBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureKeysIsMutable();
-        keys_.add(index, value);
+        ensureEntriesIsMutable();
+        entries_.add(index, value);
         onChanged();
       } else {
-        keysBuilder_.addMessage(index, value);
+        entriesBuilder_.addMessage(index, value);
       }
       return this;
     }
@@ -609,16 +683,16 @@ private static final long serialVersionUID = 0L;
      * parent organization's key, in provider order.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addKeys(
+    public Builder addEntries(
         ai.stigmer.billing.providerkey.v1.ProviderKey.Builder builderForValue) {
-      if (keysBuilder_ == null) {
-        ensureKeysIsMutable();
-        keys_.add(builderForValue.build());
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.add(builderForValue.build());
         onChanged();
       } else {
-        keysBuilder_.addMessage(builderForValue.build());
+        entriesBuilder_.addMessage(builderForValue.build());
       }
       return this;
     }
@@ -628,16 +702,16 @@ private static final long serialVersionUID = 0L;
      * parent organization's key, in provider order.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addKeys(
+    public Builder addEntries(
         int index, ai.stigmer.billing.providerkey.v1.ProviderKey.Builder builderForValue) {
-      if (keysBuilder_ == null) {
-        ensureKeysIsMutable();
-        keys_.add(index, builderForValue.build());
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.add(index, builderForValue.build());
         onChanged();
       } else {
-        keysBuilder_.addMessage(index, builderForValue.build());
+        entriesBuilder_.addMessage(index, builderForValue.build());
       }
       return this;
     }
@@ -647,17 +721,17 @@ private static final long serialVersionUID = 0L;
      * parent organization's key, in provider order.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
      */
-    public Builder addAllKeys(
+    public Builder addAllEntries(
         java.lang.Iterable<? extends ai.stigmer.billing.providerkey.v1.ProviderKey> values) {
-      if (keysBuilder_ == null) {
-        ensureKeysIsMutable();
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, keys_);
+            values, entries_);
         onChanged();
       } else {
-        keysBuilder_.addAllMessages(values);
+        entriesBuilder_.addAllMessages(values);
       }
       return this;
     }
@@ -667,15 +741,15 @@ private static final long serialVersionUID = 0L;
      * parent organization's key, in provider order.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
      */
-    public Builder clearKeys() {
-      if (keysBuilder_ == null) {
-        keys_ = java.util.Collections.emptyList();
+    public Builder clearEntries() {
+      if (entriesBuilder_ == null) {
+        entries_ = java.util.Collections.emptyList();
         bitField0_ = (bitField0_ & ~0x00000001);
         onChanged();
       } else {
-        keysBuilder_.clear();
+        entriesBuilder_.clear();
       }
       return this;
     }
@@ -685,15 +759,15 @@ private static final long serialVersionUID = 0L;
      * parent organization's key, in provider order.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
      */
-    public Builder removeKeys(int index) {
-      if (keysBuilder_ == null) {
-        ensureKeysIsMutable();
-        keys_.remove(index);
+    public Builder removeEntries(int index) {
+      if (entriesBuilder_ == null) {
+        ensureEntriesIsMutable();
+        entries_.remove(index);
         onChanged();
       } else {
-        keysBuilder_.remove(index);
+        entriesBuilder_.remove(index);
       }
       return this;
     }
@@ -703,11 +777,11 @@ private static final long serialVersionUID = 0L;
      * parent organization's key, in provider order.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.billing.providerkey.v1.ProviderKey.Builder getKeysBuilder(
+    public ai.stigmer.billing.providerkey.v1.ProviderKey.Builder getEntriesBuilder(
         int index) {
-      return internalGetKeysFieldBuilder().getBuilder(index);
+      return internalGetEntriesFieldBuilder().getBuilder(index);
     }
     /**
      * <pre>
@@ -715,13 +789,13 @@ private static final long serialVersionUID = 0L;
      * parent organization's key, in provider order.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.billing.providerkey.v1.ProviderKeyOrBuilder getKeysOrBuilder(
+    public ai.stigmer.billing.providerkey.v1.ProviderKeyOrBuilder getEntriesOrBuilder(
         int index) {
-      if (keysBuilder_ == null) {
-        return keys_.get(index);  } else {
-        return keysBuilder_.getMessageOrBuilder(index);
+      if (entriesBuilder_ == null) {
+        return entries_.get(index);  } else {
+        return entriesBuilder_.getMessageOrBuilder(index);
       }
     }
     /**
@@ -730,14 +804,14 @@ private static final long serialVersionUID = 0L;
      * parent organization's key, in provider order.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<? extends ai.stigmer.billing.providerkey.v1.ProviderKeyOrBuilder> 
-         getKeysOrBuilderList() {
-      if (keysBuilder_ != null) {
-        return keysBuilder_.getMessageOrBuilderList();
+         getEntriesOrBuilderList() {
+      if (entriesBuilder_ != null) {
+        return entriesBuilder_.getMessageOrBuilderList();
       } else {
-        return java.util.Collections.unmodifiableList(keys_);
+        return java.util.Collections.unmodifiableList(entries_);
       }
     }
     /**
@@ -746,10 +820,10 @@ private static final long serialVersionUID = 0L;
      * parent organization's key, in provider order.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.billing.providerkey.v1.ProviderKey.Builder addKeysBuilder() {
-      return internalGetKeysFieldBuilder().addBuilder(
+    public ai.stigmer.billing.providerkey.v1.ProviderKey.Builder addEntriesBuilder() {
+      return internalGetEntriesFieldBuilder().addBuilder(
           ai.stigmer.billing.providerkey.v1.ProviderKey.getDefaultInstance());
     }
     /**
@@ -758,11 +832,11 @@ private static final long serialVersionUID = 0L;
      * parent organization's key, in provider order.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
      */
-    public ai.stigmer.billing.providerkey.v1.ProviderKey.Builder addKeysBuilder(
+    public ai.stigmer.billing.providerkey.v1.ProviderKey.Builder addEntriesBuilder(
         int index) {
-      return internalGetKeysFieldBuilder().addBuilder(
+      return internalGetEntriesFieldBuilder().addBuilder(
           index, ai.stigmer.billing.providerkey.v1.ProviderKey.getDefaultInstance());
     }
     /**
@@ -771,25 +845,122 @@ private static final long serialVersionUID = 0L;
      * parent organization's key, in provider order.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey keys = 1 [json_name = "keys"];</code>
+     * <code>repeated .ai.stigmer.billing.providerkey.v1.ProviderKey entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<ai.stigmer.billing.providerkey.v1.ProviderKey.Builder> 
-         getKeysBuilderList() {
-      return internalGetKeysFieldBuilder().getBuilderList();
+         getEntriesBuilderList() {
+      return internalGetEntriesFieldBuilder().getBuilderList();
     }
     private com.google.protobuf.RepeatedFieldBuilder<
         ai.stigmer.billing.providerkey.v1.ProviderKey, ai.stigmer.billing.providerkey.v1.ProviderKey.Builder, ai.stigmer.billing.providerkey.v1.ProviderKeyOrBuilder> 
-        internalGetKeysFieldBuilder() {
-      if (keysBuilder_ == null) {
-        keysBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+        internalGetEntriesFieldBuilder() {
+      if (entriesBuilder_ == null) {
+        entriesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.billing.providerkey.v1.ProviderKey, ai.stigmer.billing.providerkey.v1.ProviderKey.Builder, ai.stigmer.billing.providerkey.v1.ProviderKeyOrBuilder>(
-                keys_,
+                entries_,
                 ((bitField0_ & 0x00000001) != 0),
                 getParentForChildren(),
                 isClean());
-        keys_ = null;
+        entries_ = null;
       }
-      return keysBuilder_;
+      return entriesBuilder_;
+    }
+
+    private java.lang.Object nextPageToken_ = "";
+    /**
+     * <pre>
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
+     * </pre>
+     *
+     * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+     * @return The nextPageToken.
+     */
+    public java.lang.String getNextPageToken() {
+      java.lang.Object ref = nextPageToken_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        nextPageToken_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
+     * </pre>
+     *
+     * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+     * @return The bytes for nextPageToken.
+     */
+    public com.google.protobuf.ByteString
+        getNextPageTokenBytes() {
+      java.lang.Object ref = nextPageToken_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        nextPageToken_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
+     * </pre>
+     *
+     * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+     * @param value The nextPageToken to set.
+     * @return This builder for chaining.
+     */
+    public Builder setNextPageToken(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      nextPageToken_ = value;
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
+     * </pre>
+     *
+     * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearNextPageToken() {
+      nextPageToken_ = getDefaultInstance().getNextPageToken();
+      bitField0_ = (bitField0_ & ~0x00000002);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Set when more entries may follow: pass it as page_token to continue.
+     * A page may be short, even empty, and still carry a token.
+     * </pre>
+     *
+     * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+     * @param value The bytes for nextPageToken to set.
+     * @return This builder for chaining.
+     */
+    public Builder setNextPageTokenBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      nextPageToken_ = value;
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput)

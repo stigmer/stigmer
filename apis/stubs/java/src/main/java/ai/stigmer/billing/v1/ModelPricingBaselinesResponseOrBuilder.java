@@ -11,26 +11,48 @@ public interface ModelPricingBaselinesResponseOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<ai.stigmer.billing.v1.ModelPricingBaseline> 
-      getBaselinesList();
+      getEntriesList();
   /**
-   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
    */
-  ai.stigmer.billing.v1.ModelPricingBaseline getBaselines(int index);
+  ai.stigmer.billing.v1.ModelPricingBaseline getEntries(int index);
   /**
-   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
    */
-  int getBaselinesCount();
+  int getEntriesCount();
   /**
-   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<? extends ai.stigmer.billing.v1.ModelPricingBaselineOrBuilder> 
-      getBaselinesOrBuilderList();
+      getEntriesOrBuilderList();
   /**
-   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline baselines = 1 [json_name = "baselines"];</code>
+   * <code>repeated .ai.stigmer.billing.v1.ModelPricingBaseline entries = 1 [json_name = "entries"];</code>
    */
-  ai.stigmer.billing.v1.ModelPricingBaselineOrBuilder getBaselinesOrBuilder(
+  ai.stigmer.billing.v1.ModelPricingBaselineOrBuilder getEntriesOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   * </pre>
+   *
+   * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+   * @return The nextPageToken.
+   */
+  java.lang.String getNextPageToken();
+  /**
+   * <pre>
+   * Set when more entries may follow: pass it as page_token to continue.
+   * A page may be short, even empty, and still carry a token.
+   * </pre>
+   *
+   * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+   * @return The bytes for nextPageToken.
+   */
+  com.google.protobuf.ByteString
+      getNextPageTokenBytes();
 }
