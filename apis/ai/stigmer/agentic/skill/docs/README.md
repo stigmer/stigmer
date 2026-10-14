@@ -73,4 +73,4 @@ Use Stigmer's own MCP server (`stigmer mcp-server`) to discover existing skills:
 | `search` | Full-text search across skills and agents |
 | `get_skill` | Get a specific skill by org and slug |
 
-When authoring an agent that references skills, always query first. Never guess a skill slug — a reference to a nonexistent skill fails silently at configuration time and loudly at runtime.
+When authoring an agent that references skills, always query first. Never guess a skill slug — a reference to a nonexistent skill is refused when the agent is saved, naming the reference.
