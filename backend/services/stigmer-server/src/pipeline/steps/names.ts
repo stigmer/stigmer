@@ -143,8 +143,7 @@ export const NAMED_KINDS: Readonly<Record<ApiResourceKind, NamedKind>> = {
   [ApiResourceKind.vault]: CLAIMS,
   [ApiResourceKind.score]: CLAIMS,
   [ApiResourceKind.evaluator]: CLAIMS,
-  [ApiResourceKind.plugin_eval]: CLAIMS,
-  [ApiResourceKind.agent_eval]: CLAIMS,
+  [ApiResourceKind.eval_run]: CLAIMS,
   [ApiResourceKind.plan]: {
     claims: false,
     reason:

@@ -18,10 +18,10 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { AgentEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
 import { AgentEvalPluginSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/status_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
-import { PluginEvalSpecSchema, PluginEvalTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
-import type { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
-import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunSpecSchema, EvalRunTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import type { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
 import {
   RunSchema,
   RunStatusSchema,
@@ -36,7 +36,7 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import type { EvalModelCatalog } from "../../../domain/plugin-eval/matrix.js";
+import type { EvalModelCatalog } from "../../../domain/eval-run/matrix.js";
 import { sessionIdOf } from "../../../domain/run/target.js";
 import type {
   JudgeSessionDeleter,
@@ -51,12 +51,12 @@ import {
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { Store } from "../../../store/interface.js";
-import type { EvalSuiteSource } from "../../../domain/plugin-eval/suite.js";
-import type { PluginEvalTryLane } from "../ports.js";
+import type { EvalSuiteSource } from "../../../domain/eval-run/suite.js";
+import type { EvalRunTryLane } from "../ports.js";
 
 export const ORG = "acme";
 export const PLUGIN_ID = "plg_1";
-export const EVAL_ID = "pev_1";
+export const EVAL_ID = "evr_1";
 export const DIGEST = "d".repeat(64);
 export const MODEL = "claude-sonnet-4-6";
 
@@ -133,21 +133,21 @@ export async function seedEval(
   spec: {
     readonly runs?: number;
     readonly maxCostUsd?: number;
-    readonly ablation?: PluginEvalAblation;
+    readonly ablation?: EvalRunAblation;
     readonly concurrency?: number;
     readonly judgeModel?: string;
     readonly threshold?: number;
     readonly allowTools?: string[];
   } = {},
-  phase: PluginEvalPhase = PluginEvalPhase.pending,
+  phase: EvalRunPhase = EvalRunPhase.pending,
 ): Promise<void> {
   await store.saveResource(
-    ApiResourceKind.plugin_eval,
+    ApiResourceKind.eval_run,
     EVAL_ID,
-    PluginEvalSchema,
-    create(PluginEvalSchema, {
+    EvalRunSchema,
+    create(EvalRunSchema, {
       metadata: { id: EVAL_ID, org: ORG, name: EVAL_ID },
-      spec: create(PluginEvalSpecSchema, {
+      spec: create(EvalRunSpecSchema, {
         pluginId: PLUGIN_ID,
         pluginDigest: DIGEST,
         maxCostUsd: 5,
@@ -161,9 +161,9 @@ export async function seedEval(
 
 export async function readEval(store: Store) {
   return store.getResource(
-    ApiResourceKind.plugin_eval,
+    ApiResourceKind.eval_run,
     EVAL_ID,
-    PluginEvalSchema,
+    EvalRunSchema,
   );
 }
 
@@ -200,7 +200,7 @@ export async function seedAgentEval(
     readonly targets?: ReadonlyArray<{ readonly harness: Harness; readonly modelName: string }>;
     readonly pluginDigest?: string;
     readonly threshold?: number;
-    readonly phase?: PluginEvalPhase;
+    readonly phase?: EvalRunPhase;
   } = {},
 ): Promise<void> {
   await store.saveResource(
@@ -215,10 +215,10 @@ export async function seedAgentEval(
         runs: 1,
         maxCostUsd: 5,
         ...(options.threshold !== undefined && { threshold: options.threshold }),
-        targets: (options.targets ?? []).map((target) => create(PluginEvalTargetSchema, target)),
+        targets: (options.targets ?? []).map((target) => create(EvalRunTargetSchema, target)),
       },
       status: {
-        phase: options.phase ?? PluginEvalPhase.pending,
+        phase: options.phase ?? EvalRunPhase.pending,
         agentVersionHash: AGENT_HASH,
         plugins: [
           create(AgentEvalPluginSchema, {
@@ -252,7 +252,7 @@ export interface LaneRecord {
 }
 
 export function lane(store: Store): {
-  lane: PluginEvalTryLane;
+  lane: EvalRunTryLane;
   sessions: JudgeSessionDeleter;
   record: LaneRecord;
 } {

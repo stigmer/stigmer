@@ -29,7 +29,7 @@ import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
+import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Authorizer } from "../../../extensions/authorizer.js";
@@ -38,7 +38,7 @@ import { RequestContext } from "../../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 
 import { EMBEDDING_VAULT_ATTACHMENTS } from "../../organization/embedding.js";
-import { PLUGIN_EVAL_VAULT_ATTACHMENTS } from "../../plugin-eval/vault-attachments.js";
+import { EVAL_RUN_VAULT_ATTACHMENTS } from "../../eval-run/vault-attachments.js";
 import { SCHEDULE_VAULT_ATTACHMENTS } from "../../schedule/vault-attachments.js";
 import { resolveReferences } from "../../../pipeline/steps/references.js";
 import { myVaultLockRefusal, myVaultRefusal, newVaultAttachmentsStep } from "../attachments.js";
@@ -227,14 +227,14 @@ describe("a My vault", () => {
     const mine = ref((await rig.vaults.findById(anasId))!.metadata!.slug);
     const failure = await refusalOf(
       run(
-        PluginEvalSchema,
-        ApiResourceKind.plugin_eval,
-        create(PluginEvalSchema, {
-          metadata: { id: "pev_1", org: ORG },
+        EvalRunSchema,
+        ApiResourceKind.eval_run,
+        create(EvalRunSchema, {
+          metadata: { id: "evr_1", org: ORG },
           spec: { vaults: [mine] },
           status: { audit: { specAudit: { createdBy: { id: "ida_ana" } } } },
         }),
-        PLUGIN_EVAL_VAULT_ATTACHMENTS,
+        EVAL_RUN_VAULT_ATTACHMENTS,
         { writer: "ida_ana" },
       ),
     );

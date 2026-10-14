@@ -18,10 +18,10 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import { EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
-import { DEFAULT_THRESHOLD } from "../../../domain/plugin-eval/scoring.js";
+import { DEFAULT_THRESHOLD } from "../../../domain/eval-run/scoring.js";
 import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
@@ -85,9 +85,9 @@ async function seeded(options: Parameters<typeof seedAgentEval>[1] = {}): Promis
 
 describe("the agent status book's read", () => {
   it("answers the phase and the threshold, the default when the spec names none", async () => {
-    await seeded({ phase: PluginEvalPhase.running });
+    await seeded({ phase: EvalRunPhase.running });
     expect(await agentStatusBook.read(temp.store, AGENT_EVAL_ID)).toEqual({
-      phase: PluginEvalPhase.running,
+      phase: EvalRunPhase.running,
       threshold: DEFAULT_THRESHOLD,
     });
   });
@@ -106,7 +106,7 @@ describe("the agent status book's write", () => {
     await seeded();
     const before = await readAgentEval(temp.store);
     await agentStatusBook.write(temp.store, AGENT_EVAL_ID, ({ status }) => {
-      status.phase = PluginEvalPhase.failed;
+      status.phase = EvalRunPhase.failed;
       return SKIP_WRITE;
     });
     expect(await readAgentEval(temp.store)).toEqual(before);
@@ -115,7 +115,7 @@ describe("the agent status book's write", () => {
   it("writes nothing to a row gone, and throws any other store fault", async () => {
     await expect(
       agentStatusBook.write(temp.store, AGENT_EVAL_ID, ({ status }) => {
-        status.phase = PluginEvalPhase.failed;
+        status.phase = EvalRunPhase.failed;
       }),
     ).resolves.toBeUndefined();
     await seeded();
@@ -135,7 +135,7 @@ describe("the agent status book's write", () => {
     });
     expect(planned).toEqual([false, true]);
     const status = (await readAgentEval(temp.store)).status;
-    expect(status?.phase).toBe(PluginEvalPhase.running);
+    expect(status?.phase).toBe(EvalRunPhase.running);
     expect(status?.plugins[0]?.cases.map((evalCase) => evalCase.caseName)).toEqual(["first-case", "other-plugin"]);
   });
 });

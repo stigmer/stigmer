@@ -84,7 +84,7 @@ import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { RunValueDeclarerKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { AgentEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
-import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
+import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { RunCredentialsSchema, RunSchema, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { ExecutionValues } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
@@ -112,7 +112,7 @@ import {
 import type { Authorizer } from "../../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
-import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
+import { EVAL_RUN_LABEL } from "../../eval-run/constants.js";
 import type { RunSubagent } from "../../run/run-subagents.js";
 import { newSignInFreshener } from "../sign-in/refresh.js";
 
@@ -770,17 +770,17 @@ describe("which vaults a run uses", () => {
   it("a plugin eval's vaults reach its tries, checked against their attacher", async () => {
     const keys = await seedSharedVault(rig.store, ORG, "eval-keys", { secrets: { A: "from-eval" } });
     await rig.store.saveResource(
-      ApiResourceKind.plugin_eval,
-      "pev_nightly",
-      PluginEvalSchema,
-      create(PluginEvalSchema, {
-        metadata: { id: "pev_nightly", name: "thermos run", org: ORG },
+      ApiResourceKind.eval_run,
+      "evr_nightly",
+      EvalRunSchema,
+      create(EvalRunSchema, {
+        metadata: { id: "evr_nightly", name: "thermos run", org: ORG },
         spec: { pluginId: "plg_thermos", vaults: [vaultRef("eval-keys")] },
         status: { vaultAttachers: { [keys.metadata!.id]: ADMIN } },
       }),
     );
     const evalTry = {
-      run: runOf({ labels: { [PLUGIN_EVAL_LABEL]: "pev_nightly" } }),
+      run: runOf({ labels: { [EVAL_RUN_LABEL]: "evr_nightly" } }),
       session: sessionOf({ includeMyVault: false }),
       agentSpec: agent({ A: KEY }),
     };
@@ -797,7 +797,7 @@ describe("which vaults a run uses", () => {
     mayUse.add(`${ANA}:vlt_acme_chat_keys`);
     expect(
       await resolve({
-        run: runOf({ person: ANA, labels: { [PLUGIN_EVAL_LABEL]: "pev_nightly" } }),
+        run: runOf({ person: ANA, labels: { [EVAL_RUN_LABEL]: "evr_nightly" } }),
         session: sessionOf({ vaults: ["chat-keys"], includeMyVault: false }),
         agentSpec: agent({ A: KEY, B: KEY }),
       }),
@@ -807,20 +807,20 @@ describe("which vaults a run uses", () => {
   it("a plugin eval that is gone, or of another organization, contributes no vaults to its tries", async () => {
     await seedSharedVault(rig.store, "rival", "rival-keys", { secrets: { API_KEY: "rival" } });
     await rig.store.saveResource(
-      ApiResourceKind.plugin_eval,
-      "pev_rival",
-      PluginEvalSchema,
-      create(PluginEvalSchema, {
-        metadata: { id: "pev_rival", name: "rival", org: "rival" },
+      ApiResourceKind.eval_run,
+      "evr_rival",
+      EvalRunSchema,
+      create(EvalRunSchema, {
+        metadata: { id: "evr_rival", name: "rival", org: "rival" },
         spec: { pluginId: "plg_rival", vaults: [{ kind: ApiResourceKind.vault, org: "rival", slug: "rival-keys" }] },
         status: { vaultAttachers: { "vlt_rival_rival_keys": ADMIN } },
       }),
     );
     mayUse.add(`${ADMIN}:vlt_rival_rival_keys`);
-    for (const evalId of ["pev_gone", "pev_rival"]) {
+    for (const evalId of ["evr_gone", "evr_rival"]) {
       expect(
         await resolve({
-          run: runOf({ labels: { [PLUGIN_EVAL_LABEL]: evalId } }),
+          run: runOf({ labels: { [EVAL_RUN_LABEL]: evalId } }),
           agentSpec: agent({ API_KEY: { isSecret: true, optional: true } }),
         }),
       ).toEqual({});
@@ -840,7 +840,7 @@ describe("which vaults a run uses", () => {
       }),
     );
     const evalTry = {
-      run: runOf({ labels: { [PLUGIN_EVAL_LABEL]: "aev_nightly" } }),
+      run: runOf({ labels: { [EVAL_RUN_LABEL]: "aev_nightly" } }),
       session: sessionOf({ includeMyVault: false }),
       agentSpec: agent({ A: KEY }),
     };
@@ -868,7 +868,7 @@ describe("which vaults a run uses", () => {
     for (const label of ["aev_gone", "aev_rival", "agt_not_an_eval"]) {
       expect(
         await resolve({
-          run: runOf({ labels: { [PLUGIN_EVAL_LABEL]: label } }),
+          run: runOf({ labels: { [EVAL_RUN_LABEL]: label } }),
           agentSpec: agent({ API_KEY: { isSecret: true, optional: true } }),
         }),
       ).toEqual({});

@@ -34,12 +34,12 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { ApplicationFailure } from "@temporalio/common";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
+import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import {
-  PluginEvalPartialReason,
-  PluginEvalPhase,
-  PluginEvalTryState,
-} from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+  EvalRunPartialReason,
+  EvalRunPhase,
+  EvalRunTryState,
+} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
@@ -51,12 +51,12 @@ import {
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import { PLUGIN_EVAL_LABEL } from "../../../domain/plugin-eval/constants.js";
-import { newPatternPool } from "../../../domain/plugin-eval/graders/patterns.js";
+import { EVAL_RUN_LABEL } from "../../../domain/eval-run/constants.js";
+import { newPatternPool } from "../../../domain/eval-run/graders/patterns.js";
 import { GRADES_RUN_LABEL } from "../../../domain/score/judge/judge-run.js";
 import { listRunScores } from "../../../domain/score/queries.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
-import { PluginEvalCallerRefusedError } from "../../../extensions/plugin-eval-caller.js";
+import { EvalRunCallerRefusedError } from "../../../extensions/eval-run-caller.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { createCaseActivities } from "../case-activities.js";
@@ -66,7 +66,7 @@ import {
   FINISH_EVAL_ACTIVITY_NAME,
   GRADE_TRY_ACTIVITY_NAME,
   LOAD_SUITE_ACTIVITY_NAME,
-  PLUGIN_EVAL_BUSY_FAILURE_TYPE,
+  EVAL_RUN_BUSY_FAILURE_TYPE,
   POLL_RUN_ACTIVITY_NAME,
   READ_VOTE_ACTIVITY_NAME,
   RECORD_SCORE_ACTIVITY_NAME,
@@ -144,11 +144,11 @@ function build(
     recorder: () => chain.recorder,
     deleter: () => chain.deleter,
     readArtifact: undefined,
-    pluginEvalCaller: {
-      async mintPluginEvalCaller(org, evalId) {
+    evalRunCaller: {
+      async mintEvalRunCaller(org, evalId) {
         minted.push({ org, evalId });
         if (options.refuseCaller === true) {
-          throw new PluginEvalCallerRefusedError("the creator left");
+          throw new EvalRunCallerRefusedError("the creator left");
         }
         return CALLER;
       },
@@ -219,7 +219,7 @@ describe("load-suite", () => {
     expect(plan).toMatchObject({ org: ORG, maxCostUsd: 5, concurrency: 1 });
 
     const status = (await readEval(temp.store)).status!;
-    expect(status.phase).toBe(PluginEvalPhase.running);
+    expect(status.phase).toBe(EvalRunPhase.running);
     expect(status.triesTotal).toBe(4);
     expect(status.provisionalDelta).toBe(false);
     expect(status.startedAt).toBeDefined();
@@ -235,15 +235,15 @@ describe("load-suite", () => {
     expect(
       first.targets[0]?.withPlugin?.tries.map((t) => [t.index, t.state]),
     ).toEqual([
-      [1, PluginEvalTryState.pending],
-      [2, PluginEvalTryState.pending],
+      [1, EvalRunTryState.pending],
+      [2, EvalRunTryState.pending],
     ]);
     expect(first.targets[0]?.withoutPlugin?.tries).toHaveLength(2);
     expect(status.aggregates?.casesNotRun).toBe(1);
   });
 
   it("plans without a comparison under ablation none", async () => {
-    await seeded({ ablation: PluginEvalAblation.none, concurrency: 3 });
+    await seeded({ ablation: EvalRunAblation.none, concurrency: 3 });
     const plan = await build().suite[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID);
     expect(plan).toMatchObject({ kind: "run", concurrency: 3 });
     expect(
@@ -261,7 +261,7 @@ describe("load-suite", () => {
     expect(
       (await readEval(temp.store)).status?.cases[0]?.targets[0]?.withPlugin
         ?.tries[0]?.state,
-    ).toBe(PluginEvalTryState.graded);
+    ).toBe(EvalRunTryState.graded);
   });
 
   it("plans nothing for an eval gone or ended", async () => {
@@ -270,7 +270,7 @@ describe("load-suite", () => {
       kind: "stop",
     });
     await seedPlugin(temp.store);
-    await seedEval(temp.store, {}, PluginEvalPhase.partial);
+    await seedEval(temp.store, {}, EvalRunPhase.partial);
     expect(await suite[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID)).toEqual({
       kind: "stop",
     });
@@ -289,7 +289,7 @@ describe("load-suite", () => {
       ),
     ).toEqual({ kind: "stop" });
     const status = (await readEval(temp.store)).status!;
-    expect(status.phase).toBe(PluginEvalPhase.failed);
+    expect(status.phase).toBe(EvalRunPhase.failed);
     expect(status.error).toBe(SUITE_UNREADABLE_ERROR);
   });
 });
@@ -345,7 +345,7 @@ describe("record-try and finish-eval", () => {
       durationSeconds: 3,
     });
     expect(target.withoutPlugin?.tries[0]).toMatchObject({
-      state: PluginEvalTryState.not_graded,
+      state: EvalRunTryState.not_graded,
       notGradedReason: "platform busy",
     });
     expect(target.withoutPlugin?.score).toBeUndefined();
@@ -362,12 +362,12 @@ describe("record-try and finish-eval", () => {
       reason: "cost_ceiling",
     });
     let status = (await readEval(temp.store)).status!;
-    expect(status.phase).toBe(PluginEvalPhase.partial);
-    expect(status.partialReason).toBe(PluginEvalPartialReason.cost_ceiling);
+    expect(status.phase).toBe(EvalRunPhase.partial);
+    expect(status.partialReason).toBe(EvalRunPartialReason.cost_ceiling);
     expect(status.finishedAt).toBeDefined();
     await suite[FINISH_EVAL_ACTIVITY_NAME](EVAL_ID, { phase: "completed" });
     status = (await readEval(temp.store)).status!;
-    expect(status.phase).toBe(PluginEvalPhase.partial);
+    expect(status.phase).toBe(EvalRunPhase.partial);
   });
 
   it("ends completed with no partial reason", async () => {
@@ -376,8 +376,8 @@ describe("record-try and finish-eval", () => {
     await suite[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID);
     await suite[FINISH_EVAL_ACTIVITY_NAME](EVAL_ID, { phase: "completed" });
     expect((await readEval(temp.store)).status).toMatchObject({
-      phase: PluginEvalPhase.completed,
-      partialReason: PluginEvalPartialReason.unspecified,
+      phase: EvalRunPhase.completed,
+      partialReason: EvalRunPartialReason.unspecified,
     });
   });
 });
@@ -396,7 +396,7 @@ describe("start-try", () => {
     const session = record.sessions[0]!;
     expect(session.caller).toBe(CALLER);
     expect(session.session.metadata?.labels).toEqual({
-      [PLUGIN_EVAL_LABEL]: EVAL_ID,
+      [EVAL_RUN_LABEL]: EVAL_ID,
     });
     expect(session.session.spec?.subject).toBe("first-case");
     expect(session.session.spec?.harness).toBe(Harness.NATIVE);
@@ -453,7 +453,7 @@ describe("start-try", () => {
     );
     expect(failure).toBeInstanceOf(ApplicationFailure);
     expect((failure as ApplicationFailure).type).toBe(
-      PLUGIN_EVAL_BUSY_FAILURE_TYPE,
+      EVAL_RUN_BUSY_FAILURE_TYPE,
     );
   });
 
@@ -624,14 +624,14 @@ describe("grading a try", () => {
     const voteRun = record.runs[1]!.run;
     expect(voteRun.metadata?.labels).toEqual({
       [GRADES_RUN_LABEL]: start.runId,
-      [PLUGIN_EVAL_LABEL]: EVAL_ID,
+      [EVAL_RUN_LABEL]: EVAL_ID,
     });
     expect(voteRun.spec?.message).toContain(
       "PASS if the message names the rename.",
     );
     expect(voteRun.spec?.runConfig?.maxCostUsd).toBe(0.25);
     expect(record.sessions[1]?.session.metadata?.labels).toEqual({
-      [PLUGIN_EVAL_LABEL]: EVAL_ID,
+      [EVAL_RUN_LABEL]: EVAL_ID,
     });
 
     expect(

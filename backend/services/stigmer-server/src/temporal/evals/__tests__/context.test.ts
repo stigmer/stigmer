@@ -18,8 +18,8 @@ import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { EvalGrader, EvalGraderCheck } from "@stigmer/plugin-package";
-import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
-import { PluginEvalSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
+import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Store } from "../../../store/interface.js";
@@ -56,12 +56,12 @@ function loader(
 /** An eval of the seeded plugin pinned to `digest`. */
 async function seedEvalAt(id: string, digest: string): Promise<void> {
   await temp.store.saveResource(
-    ApiResourceKind.plugin_eval,
+    ApiResourceKind.eval_run,
     id,
-    PluginEvalSchema,
-    create(PluginEvalSchema, {
+    EvalRunSchema,
+    create(EvalRunSchema, {
       metadata: { id, org: ORG, name: id },
-      spec: create(PluginEvalSpecSchema, {
+      spec: create(EvalRunSpecSchema, {
         pluginId: PLUGIN_ID,
         pluginDigest: digest,
         runs: 1,
@@ -93,10 +93,10 @@ describe("the eval context loader", () => {
   it("answers undefined for an eval stored with no spec", async () => {
     await seedPlugin(temp.store);
     await temp.store.saveResource(
-      ApiResourceKind.plugin_eval,
+      ApiResourceKind.eval_run,
       EVAL_ID,
-      PluginEvalSchema,
-      create(PluginEvalSchema, {
+      EvalRunSchema,
+      create(EvalRunSchema, {
         metadata: { id: EVAL_ID, org: ORG, name: EVAL_ID },
       }),
     );
@@ -126,25 +126,25 @@ describe("the eval context loader", () => {
       String(index + 1).repeat(64),
     );
     for (const [index, digest] of digests.entries()) {
-      await seedEvalAt(`pev_${index + 1}`, digest);
+      await seedEvalAt(`evr_${index + 1}`, digest);
     }
     const source = suiteSource();
     const load = loader(source);
 
     for (let index = 1; index <= 8; index++) {
-      const context = await load(`pev_${index}`);
+      const context = await load(`evr_${index}`);
       expect(context?.kind === "plugin" ? context.digest : undefined).toBe(digests[index - 1]);
     }
     expect(source.reads).toBe(8);
 
-    await load("pev_9");
+    await load("evr_9");
     expect(source.reads).toBe(9);
-    await load("pev_9");
-    await load("pev_2");
+    await load("evr_9");
+    await load("evr_2");
     expect(source.reads, "the newest and the second digest stay cached").toBe(
       9,
     );
-    await load("pev_1");
+    await load("evr_1");
     expect(source.reads, "the first digest was evicted").toBe(10);
   });
 });

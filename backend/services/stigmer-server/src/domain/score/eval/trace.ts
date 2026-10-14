@@ -33,7 +33,7 @@
  *     engines. The input is the
  *     engine's own arguments, which `input_match` patterns read by value;
  *   - the mock calls: each call to a server the try's case mocked (the
- *     run's own `spec.plugin_eval_case.mocks`, by the name the run gave
+ *     run's own `spec.eval_case.mocks`, by the name the run gave
  *     the server), one JSON line each, `{"server", "tool", "input",
  *     "answer"}`, the server by its key in the plugin and the answer the
  *     mock gave, an error's text included;
@@ -44,7 +44,7 @@
  *     the run's artifact store when the runner offloaded them. A path no
  *     change set touched (a file a case's scaffold wrote and the try left
  *     alone) is read from the files the runner returned for the graders
- *     (`status.plugin_eval_files`); without them it is absent. A try with
+ *     (`status.eval_files`); without them it is absent. A try with
  *     no scaffold starts in an empty non-git directory, so the record holds
  *     a change set only where the install has artifact storage; with none,
  *     the files are `not-recorded` and a file grader leaves the try not
@@ -76,7 +76,7 @@ import type { ToolEngine } from "@stigmer/tool-vocabulary";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { PluginEvalFile } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
+import type { EvalFile } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { eventIdOf } from "@stigmer/session-log";
 import type { ToolUse } from "@stigmer/session-log";
@@ -177,7 +177,7 @@ export async function evalTraceOf(
   const traceLines: string[] = [];
   const mockCalls: string[] = [];
   const mockedServers = new Map(
-    (run.spec?.pluginEvalCase?.mocks ?? []).map((mock) => [mock.segment, mock.server] as const),
+    (run.spec?.evalCase?.mocks ?? []).map((mock) => [mock.segment, mock.server] as const),
   );
   traceLines.push(
     line({
@@ -346,7 +346,7 @@ async function filesOf(run: Run, deps: EvalTraceDeps): Promise<EvalFiles> {
     }
   }
   const reported = new Map(
-    (run.status?.pluginEvalFiles?.files ?? []).map((file) => [normalise(file.path), file] as const),
+    (run.status?.evalFiles?.files ?? []).map((file) => [normalise(file.path), file] as const),
   );
   const contents = new Map<string, EvalFileContent>();
   for (const wanted of deps.wantedFiles) {
@@ -361,7 +361,7 @@ async function contentOf(
   changes: ReadonlyArray<CapturedFileChange>,
   path: string,
   deps: EvalTraceDeps,
-  reported: PluginEvalFile | undefined,
+  reported: EvalFile | undefined,
 ): Promise<EvalFileContent> {
   let last: CapturedFileChange | undefined;
   for (const change of changes) {
@@ -413,7 +413,7 @@ async function contentOf(
 }
 
 /** A file no change set touched, as the runner returned it for the graders; absent when it returned none. */
-function reportedContent(file: PluginEvalFile | undefined): EvalFileContent {
+function reportedContent(file: EvalFile | undefined): EvalFileContent {
   switch (file?.content.case) {
     case "text":
       return { kind: "text", text: file.content.value };

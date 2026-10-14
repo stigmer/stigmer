@@ -39,7 +39,7 @@ import { EXISTING_RESOURCE_KEY } from "../load-existing.js";
 import { newPermissiveSingleTeamAuthorizer } from "../authorize.js";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { GRADES_RUN_LABEL } from "../../../domain/score/judge/judge-run.js";
-import { PLUGIN_EVAL_LABEL } from "../../../domain/plugin-eval/constants.js";
+import { EVAL_RUN_LABEL } from "../../../domain/eval-run/constants.js";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 
 const USER: CallerIdentity = {
@@ -247,7 +247,7 @@ describe("GuardReservedLabels", () => {
   });
 
   it("a client cannot mark a conversation or a run as a plugin eval's try; the eval's own requests do", async () => {
-    const labels = { [PLUGIN_EVAL_LABEL]: "pev_someone_elses" };
+    const labels = { [EVAL_RUN_LABEL]: "evr_someone_elses" };
     const session = (caller: CallerIdentity) =>
       new RequestContext(
         SessionSchema,

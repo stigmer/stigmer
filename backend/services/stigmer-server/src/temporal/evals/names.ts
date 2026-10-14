@@ -1,66 +1,51 @@
 /**
- * Evals' Temporal wire identifiers, a plugin eval's and an agent eval's,
- * which share every activity and the case workflow. Every value is a
- * byte-pinned wire constant from its first commit: a workflow in flight
- * across a release is addressed by these exact strings, and a rename
- * strands it.
+ * Eval runs' Temporal wire identifiers. Every value is a byte-pinned wire
+ * constant from its first commit: a workflow in flight across a release is
+ * addressed by these exact strings, and a rename strands it. (The types
+ * `stigmer/evals/run-plugin-eval`, `stigmer/evals/run-agent-eval` and
+ * `stigmer/evals/run-case`, with the id prefixes `plugin-eval` and
+ * `agent-eval`, went with the two kinds EvalRun replaced; a workflow of
+ * theirs still open finds no worker and ends at its execution timeout.)
  *
  * Imported by BOTH the workflow bundle and host code: no node built-ins,
  * no framework imports (the workflow-bundle import discipline,
  * temporal/README.md).
  */
 
-/** The suite workflow's registered type: one PluginEval, run whole. */
-export const RUN_PLUGIN_EVAL_WORKFLOW_TYPE = "stigmer/evals/run-plugin-eval";
+/** The suite workflow's registered type: one EvalRun, run whole. */
+export const RUN_EVAL_RUN_WORKFLOW_TYPE = "stigmer/evals/eval-run";
+
+/** The prefix of an eval run's workflow ids, its suite's and its tries'. */
+export const EVAL_RUN_WORKFLOW_PREFIX = "eval-run";
 
 /**
- * The suite workflow's id, `plugin-eval/<eval id>`. Create starts it under
- * this id, so a retried start finds the workflow already running.
+ * The suite workflow's id, `eval-run/<eval run id>`. Create starts it
+ * under this id, so a retried start finds the workflow already running.
  */
-export function runPluginEvalWorkflowId(evalId: string): string {
-  return `plugin-eval/${evalId}`;
+export function runEvalRunWorkflowId(evalRunId: string): string {
+  return `${EVAL_RUN_WORKFLOW_PREFIX}/${evalRunId}`;
 }
 
-/** The suite workflow's input: the eval to run. */
-export interface RunPluginEvalInput {
+/** The suite workflow's input: the eval run to run. */
+export interface RunEvalRunInput {
   readonly evalId: string;
 }
 
-/**
- * An agent eval's suite workflow's registered type: one AgentEval, run
- * whole. The same workflow function as a plugin eval's, registered under a
- * second type (workflows/index.ts) so the engine's history says what runs.
- */
-export const RUN_AGENT_EVAL_WORKFLOW_TYPE = "stigmer/evals/run-agent-eval";
-
-/** An agent eval's suite workflow id, `agent-eval/<eval id>`. */
-export function runAgentEvalWorkflowId(evalId: string): string {
-  return `${AGENT_EVAL_CASE_WORKFLOW_PREFIX}/${evalId}`;
-}
-
-/** The prefix of a plugin eval's workflow ids, its suite's and its tries'. */
-export const PLUGIN_EVAL_CASE_WORKFLOW_PREFIX = "plugin-eval";
-
-/** The prefix of an agent eval's workflow ids, its suite's and its tries'. */
-export const AGENT_EVAL_CASE_WORKFLOW_PREFIX = "agent-eval";
-
 /** The case workflow's registered type: one try, started, polled, graded. */
-export const RUN_CASE_WORKFLOW_TYPE = "stigmer/evals/run-case";
+export const RUN_CASE_WORKFLOW_TYPE = "stigmer/evals/eval-run-case";
 
 /**
- * A try's workflow id, unique per eval and cell:
- * `<prefix>/<eval id>/<case index>/<target index>/<arm>/<try index>`, the
- * prefix `plugin-eval` or `agent-eval` (the suite's plan names it).
+ * A try's workflow id, unique per eval run and cell:
+ * `eval-run/<eval run id>/<case index>/<target index>/<arm>/<try index>`.
  */
 export function runCaseWorkflowId(
-  evalId: string,
+  evalRunId: string,
   caseIndex: number,
   targetIndex: number,
   arm: "with" | "without",
   tryIndex: number,
-  prefix: string = PLUGIN_EVAL_CASE_WORKFLOW_PREFIX,
 ): string {
-  return `${prefix}/${evalId}/${caseIndex}/${targetIndex}/${arm}/${tryIndex}`;
+  return `${EVAL_RUN_WORKFLOW_PREFIX}/${evalRunId}/${caseIndex}/${targetIndex}/${arm}/${tryIndex}`;
 }
 
 /**
@@ -115,7 +100,7 @@ export const TRY_SPEND_ACTIVITY_NAME = "stigmer/evals/try-spend";
  * try or a vote for capacity, so the workflow tells "busy" from every
  * other failure once the retries are spent.
  */
-export const PLUGIN_EVAL_BUSY_FAILURE_TYPE = "PluginEvalBusy";
+export const EVAL_RUN_BUSY_FAILURE_TYPE = "EvalRunBusy";
 
 /**
  * The failure type the case workflow fails with on an error of its own
@@ -123,10 +108,10 @@ export const PLUGIN_EVAL_BUSY_FAILURE_TYPE = "PluginEvalBusy";
  * workflow fails and its suite records the try, where a plain error would
  * fail only the workflow task and retry it until the execution timeout.
  */
-export const PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE = "PluginEvalCaseFailed";
+export const EVAL_RUN_CASE_FAILED_FAILURE_TYPE = "EvalRunCaseFailed";
 
 /**
- * The details a PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE failure carries: what
+ * The details a EVAL_RUN_CASE_FAILED_FAILURE_TYPE failure carries: what
  * the votes the try read spent. Their sessions, and so their runs, are
  * deleted, so the suite's spend read cannot find that cost; it adds it.
  */
@@ -141,7 +126,7 @@ export interface CaseFailureDetails {
  * the workflow task and retry it until the execution timeout, the eval
  * shown running.
  */
-export const PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE = "PluginEvalSuiteFailed";
+export const EVAL_RUN_SUITE_FAILED_FAILURE_TYPE = "EvalRunSuiteFailed";
 
 /** The not-graded reasons the workflows give without an activity. */
 export const PLATFORM_BUSY_REASON = "platform busy";
@@ -165,7 +150,7 @@ export const TRY_CANCELLED_REASON = "cancelled";
 /** The failed eval's error when the suite workflow could not plan it (its load past every retry). */
 export const EVAL_NOT_PLANNED_ERROR = "the eval could not be planned";
 
-/** The failed eval's error when the suite workflow met an error of its own (PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE). */
+/** The failed eval's error when the suite workflow met an error of its own (EVAL_RUN_SUITE_FAILED_FAILURE_TYPE). */
 export const EVAL_WORKFLOW_FAILED_ERROR = "the eval's workflow failed";
 
 /** The failed eval's error when a finished try could not be recorded past every retry. */
@@ -199,12 +184,6 @@ export type SuitePlan =
       readonly cells: ReadonlyArray<SuiteCell>;
       readonly maxCostUsd: number;
       readonly concurrency: number;
-      /**
-       * The prefix of the tries' workflow ids (runCaseWorkflowId). Absent in
-       * a plan recorded before agent evals, which the workflow reads as a
-       * plugin eval's, so a replayed history computes the same ids.
-       */
-      readonly caseWorkflowPrefix?: string;
     }
   | { readonly kind: "stop" };
 

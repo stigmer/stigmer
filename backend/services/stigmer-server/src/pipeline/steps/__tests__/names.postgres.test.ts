@@ -103,7 +103,7 @@ const CLAIMING_KINDS = [
   ApiResourceKind.vault,
   ApiResourceKind.score,
   ApiResourceKind.evaluator,
-  ApiResourceKind.plugin_eval,
+  ApiResourceKind.eval_run,
   ApiResourceKind.agent_eval,
 ];
 

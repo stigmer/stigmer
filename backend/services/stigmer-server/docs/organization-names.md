@@ -121,7 +121,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| PluginEvalCommandController.create | `metadata.org`, `spec.vaults.org` |
+| EvalRunCommandController.create | `metadata.org`, `spec.vaults.org` |
 
 ## `ai.stigmer.agentic.schedule.v1`
 

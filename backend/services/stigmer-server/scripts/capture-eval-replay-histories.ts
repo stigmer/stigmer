@@ -117,7 +117,7 @@ async function main(): Promise<void> {
 
   if (ONLY === undefined || ONLY === "plugin") {
     plan = { kind: "run", org: "acme", cells: CELLS, maxCostUsd: 10, concurrency: 1 };
-    await capture("plugin-eval-completed", "stigmer/evals/run-plugin-eval", "plugin-eval/pev_replay", "pev_replay");
+    await capture("plugin-eval-completed", "stigmer/evals/run-plugin-eval", "plugin-eval/evr_replay", "evr_replay");
   }
   if (ONLY === undefined || ONLY === "agent") {
     plan = { kind: "run", org: "acme", cells: CELLS, maxCostUsd: 10, concurrency: 1, caseWorkflowPrefix: "agent-eval" };

@@ -6,19 +6,19 @@
  * copies). The workflows register under their byte-pinned types through
  * the barrel's export names; the activities under their names as the
  * activities object's keys. The worker owns one pattern pool for its
- * graders, reused across activities (domain/plugin-eval/graders/patterns.ts).
+ * graders, reused across activities (domain/eval-run/graders/patterns.ts).
  */
 import type { Logger } from "../../boot/logger.js";
-import type { EvalModelCatalog } from "../../domain/plugin-eval/matrix.js";
-import type { PatternRunner } from "../../domain/plugin-eval/graders/patterns.js";
-import { newPatternPool } from "../../domain/plugin-eval/graders/patterns.js";
-import type { EvalSuiteSource } from "../../domain/plugin-eval/suite.js";
+import type { EvalModelCatalog } from "../../domain/eval-run/matrix.js";
+import type { PatternRunner } from "../../domain/eval-run/graders/patterns.js";
+import { newPatternPool } from "../../domain/eval-run/graders/patterns.js";
+import type { EvalSuiteSource } from "../../domain/eval-run/suite.js";
 import type {
   JudgeSessionDeleter,
   ScoreDeleter,
   ScoreRecorder,
 } from "../../domain/score/ports.js";
-import type { PluginEvalCallerMint } from "../../extensions/plugin-eval-caller.js";
+import type { EvalRunCallerMint } from "../../extensions/eval-run-caller.js";
 import type { Store } from "../../store/interface.js";
 import type { WorkerFactory } from "../manager.js";
 import { resolveWorkflowSource } from "../workflow-source.js";
@@ -28,16 +28,16 @@ import {
 } from "./case-activities.js";
 import type { EvalsTemporalConfig } from "./config.js";
 import { newEvalContextLoader } from "./context.js";
-import type { PluginEvalTryLane } from "./ports.js";
+import type { EvalRunTryLane } from "./ports.js";
 import { createSuiteActivities } from "./suite-activities.js";
 
 export interface EvalsWorkerDeps {
   readonly store: Store;
   readonly config: EvalsTemporalConfig;
-  /** The plugin archive reader (domain/plugin-eval/suite.ts newPluginArchiveReader). */
+  /** The plugin archive reader (domain/eval-run/suite.ts newPluginArchiveReader). */
   readonly suites: EvalSuiteSource;
   readonly catalog: EvalModelCatalog;
-  readonly tries: () => PluginEvalTryLane;
+  readonly tries: () => EvalRunTryLane;
   /** The try and vote sessions' delete (the judge session's deleter). */
   readonly sessions: () => JudgeSessionDeleter;
   readonly recorder: () => ScoreRecorder;
@@ -47,7 +47,7 @@ export interface EvalsWorkerDeps {
     | ((storageKey: string) => Promise<Uint8Array>)
     | undefined;
   /** The composed caller; undefined = tries act as the server. */
-  readonly pluginEvalCaller: PluginEvalCallerMint | undefined;
+  readonly evalRunCaller: EvalRunCallerMint | undefined;
   /** The graders' pattern engine; default a pool of this worker's own. */
   readonly patterns?: PatternRunner;
   readonly logger: Logger;
@@ -76,7 +76,7 @@ export function newEvalsWorkerFactory(deps: EvalsWorkerDeps): WorkerFactory {
         recorder: deps.recorder,
         deleter: deps.deleter,
         readArtifact: deps.readArtifact,
-        pluginEvalCaller: deps.pluginEvalCaller,
+        evalRunCaller: deps.evalRunCaller,
         patterns,
       }),
       ...createSpendActivities({ store: deps.store }),

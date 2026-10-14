@@ -23,7 +23,7 @@
  *
  * A judge run (domain/score/judge/judge-run.ts) is never graded: grading
  * the grader would spend a judge on every judge. Nor is a plugin eval's
- * run (domain/plugin-eval/plugin-eval-run.ts): the eval grades its own
+ * run (domain/eval-run/plugin-eval-run.ts): the eval grades its own
  * tries, by the plugin's own checks. Nor is a reconcile turn
  * (`spec.reconcile_file_review`): it runs no model and has no message, so
  * there is no answer to judge.
@@ -45,7 +45,7 @@ import {
   gradeRunWorkflowId,
 } from "../../temporal/grading/names.js";
 import { GRADING_NOT_STARTED_REASON } from "./constants.js";
-import { isPluginEvalRun } from "../plugin-eval/plugin-eval-run.js";
+import { isEvalRun } from "../eval-run/run-label.js";
 import { isJudgeRun } from "./judge/judge-run.js";
 import type { ScoreRecorder } from "./ports.js";
 import { notGradedRunHealthScore } from "./run-health.js";
@@ -84,7 +84,7 @@ export function newGradingObserver(
     if (
       newPhase !== RunPhase.RUN_COMPLETED ||
       isJudgeRun(run) ||
-      isPluginEvalRun(run) ||
+      isEvalRun(run) ||
       run.spec?.reconcileFileReview === true
     ) {
       return;

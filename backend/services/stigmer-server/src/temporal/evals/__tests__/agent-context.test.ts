@@ -25,7 +25,7 @@ import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { newEvalContextLoader, otherServersOf } from "../context.js";
-import { tryToolsOf } from "../../../domain/plugin-eval/try-run.js";
+import { tryToolsOf } from "../../../domain/eval-run/try-run.js";
 import {
   AGENT_EVAL_ID,
   AGENT_HASH,

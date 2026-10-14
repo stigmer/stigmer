@@ -27,16 +27,16 @@ import { MockActivityEnvironment } from "@temporalio/testing";
 import { DefaultLogger } from "@temporalio/worker";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
-import { PluginEvalSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
+import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import {
-  PluginEvalPartialReason,
-  PluginEvalPhase,
-  PluginEvalTryState,
-} from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+  EvalRunPartialReason,
+  EvalRunPhase,
+  EvalRunTryState,
+} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import type { EvalSuiteSource } from "../../../domain/plugin-eval/suite.js";
+import type { EvalSuiteSource } from "../../../domain/eval-run/suite.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
@@ -154,12 +154,12 @@ describe("load-suite at Temporal's attempt", () => {
       "the archive is unreadable",
     );
     expect((await readEval(temp.store)).status?.phase).toBe(
-      PluginEvalPhase.pending,
+      EvalRunPhase.pending,
     );
 
     expect(await atAttempt(3).run(load, EVAL_ID)).toEqual({ kind: "stop" });
     const status = (await readEval(temp.store)).status;
-    expect(status?.phase).toBe(PluginEvalPhase.failed);
+    expect(status?.phase).toBe(EvalRunPhase.failed);
     expect(status?.error).toBe(SUITE_UNREADABLE_ERROR);
     expect(status?.finishedAt).toBeDefined();
   });
@@ -172,19 +172,19 @@ describe("load-suite", () => {
       kind: "stop",
     });
     const status = (await readEval(temp.store)).status;
-    expect(status?.phase).toBe(PluginEvalPhase.pending);
+    expect(status?.phase).toBe(EvalRunPhase.pending);
     expect(status?.cases).toEqual([]);
   });
 
   it("plans an eval stored with no status, writing its skeleton", async () => {
     await seedPlugin(temp.store);
     await temp.store.saveResource(
-      ApiResourceKind.plugin_eval,
+      ApiResourceKind.eval_run,
       EVAL_ID,
-      PluginEvalSchema,
-      create(PluginEvalSchema, {
+      EvalRunSchema,
+      create(EvalRunSchema, {
         metadata: { id: EVAL_ID, org: ORG, name: EVAL_ID },
-        spec: create(PluginEvalSpecSchema, {
+        spec: create(EvalRunSpecSchema, {
           pluginId: PLUGIN_ID,
           pluginDigest: DIGEST,
           maxCostUsd: 5,
@@ -197,7 +197,7 @@ describe("load-suite", () => {
     const plan = await activities()[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID);
     expect(plan).toMatchObject({ kind: "run", org: ORG, concurrency: 1 });
     const status = (await readEval(temp.store)).status;
-    expect(status?.phase).toBe(PluginEvalPhase.running);
+    expect(status?.phase).toBe(EvalRunPhase.running);
     expect(status?.triesTotal).toBe(2);
     expect(status?.cases.map((planned) => planned.caseName)).toEqual([
       "first-case",
@@ -225,11 +225,11 @@ describe("load-suite against an eval that ends while it reads", () => {
     return {
       async readArchive() {
         await temp.store.updateResource(
-          ApiResourceKind.plugin_eval,
+          ApiResourceKind.eval_run,
           EVAL_ID,
-          PluginEvalSchema,
+          EvalRunSchema,
           (live) => {
-            live.status!.phase = PluginEvalPhase.failed;
+            live.status!.phase = EvalRunPhase.failed;
             live.status!.error = "the eval's workflow could not be started";
           },
         );
@@ -251,7 +251,7 @@ describe("load-suite against an eval that ends while it reads", () => {
       ](EVAL_ID),
     ).toEqual({ kind: "stop" });
     const status = (await readEval(temp.store)).status;
-    expect(status?.phase).toBe(PluginEvalPhase.failed);
+    expect(status?.phase).toBe(EvalRunPhase.failed);
     expect(status?.error).toBe("the eval's workflow could not be started");
     expect(status?.cases).toEqual([]);
   });
@@ -312,8 +312,8 @@ describe("record-try", () => {
     await seedPlugin(temp.store);
     await seedEval(temp.store);
     const deleting = replacing(temp.store, "updateResource", async () => {
-      await temp.store.deleteResource(ApiResourceKind.plugin_eval, EVAL_ID);
-      throw new ResourceNotFoundError(`plugin_eval ${EVAL_ID}`);
+      await temp.store.deleteResource(ApiResourceKind.eval_run, EVAL_ID);
+      throw new ResourceNotFoundError(`eval_run ${EVAL_ID}`);
     });
     await expect(
       activities({ store: deleting })[RECORD_TRY_ACTIVITY_NAME](
@@ -349,7 +349,7 @@ describe("finish-eval", () => {
     await seedEval(temp.store);
     await activities()[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID);
     // The plugin's delete removed the eval before its cancelled workflow ended.
-    await temp.store.deleteResource(ApiResourceKind.plugin_eval, EVAL_ID);
+    await temp.store.deleteResource(ApiResourceKind.eval_run, EVAL_ID);
     await expect(
       activities()[FINISH_EVAL_ACTIVITY_NAME](EVAL_ID, { phase: "partial", reason: "cancelled" }),
     ).resolves.toBeUndefined();
@@ -365,7 +365,7 @@ describe("finish-eval", () => {
       error: "a try's result could not be recorded: the store is down",
     });
     const status = (await readEval(temp.store)).status;
-    expect(status?.phase).toBe(PluginEvalPhase.failed);
+    expect(status?.phase).toBe(EvalRunPhase.failed);
     expect(status?.error).toBe(
       "a try's result could not be recorded: the store is down",
     );
@@ -378,16 +378,16 @@ describe("finish-eval", () => {
     await activities()[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID);
     const runningRead = await readEval(temp.store);
     await temp.store.updateResource(
-      ApiResourceKind.plugin_eval,
+      ApiResourceKind.eval_run,
       EVAL_ID,
-      PluginEvalSchema,
+      EvalRunSchema,
       (live) => {
-        live.status!.phase = PluginEvalPhase.failed;
+        live.status!.phase = EvalRunPhase.failed;
         live.status!.error = "ended elsewhere";
       },
     );
     const staleRead = replacing(temp.store, "getResource", (...args) =>
-      args[0] === ApiResourceKind.plugin_eval
+      args[0] === ApiResourceKind.eval_run
         ? Promise.resolve(runningRead)
         : (Reflect.apply(
             temp.store.getResource,
@@ -401,13 +401,13 @@ describe("finish-eval", () => {
     });
 
     const status = (await readEval(temp.store)).status;
-    expect(status?.phase).toBe(PluginEvalPhase.failed);
+    expect(status?.phase).toBe(EvalRunPhase.failed);
     expect(status?.error).toBe("ended elsewhere");
-    expect(status?.partialReason).toBe(PluginEvalPartialReason.unspecified);
+    expect(status?.partialReason).toBe(EvalRunPartialReason.unspecified);
     expect(status?.finishedAt).toBeUndefined();
     expect(
       status?.cases[0]?.targets[0]?.withPlugin?.tries[0]?.state,
       "the tries are left as the other writer left them",
-    ).toBe(PluginEvalTryState.pending);
+    ).toBe(EvalRunTryState.pending);
   });
 });

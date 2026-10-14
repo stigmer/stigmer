@@ -14,7 +14,7 @@ export const RUN_HEALTH_METRIC = "run-health";
 /** An AI judge's verdict on a completed run (judge/). */
 export const JUDGE_METRIC = "judge";
 
-/** A plugin eval's checks on one try of one of its cases (domain/plugin-eval/). */
+/** A plugin eval's checks on one try of one of its cases (domain/eval-run/). */
 export const EVAL_METRIC = "eval";
 
 /** The refusal of a person's source from anyone but a first-party person. */

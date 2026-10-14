@@ -40,7 +40,7 @@ import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
-import { PLUGIN_EVAL_LABEL } from "../../domain/plugin-eval/constants.js";
+import { EVAL_RUN_LABEL } from "../../domain/eval-run/constants.js";
 import { sessionListIndex } from "../../domain/session/list-index.js";
 import type { Store } from "../../store/interface.js";
 
@@ -77,7 +77,7 @@ export const RUNTIME_ORIGIN_LABELS: readonly string[] = [
   "stigmer.ai/share-id",
   "stigmer.ai/guest-cookie-id",
   "stigmer.ai/schedule-id",
-  PLUGIN_EVAL_LABEL,
+  EVAL_RUN_LABEL,
 ];
 
 /** Answers ActivityQueryController.listRecentActivity against the store. */

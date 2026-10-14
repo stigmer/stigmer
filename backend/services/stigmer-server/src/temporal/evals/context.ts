@@ -1,80 +1,71 @@
 /**
- * What every eval activity reads first: the eval, the plugin suites its
- * cases come from at the versions it stamped, and the planned matrix. An
- * eval id names its kind (domain/plugin-eval/plugin-eval-run.ts
- * evalKindOf), so one loader serves both:
+ * What every eval run activity reads first: the eval run; its agent at the
+ * version it stamped (none on an eval run of a plugin, whose tries run the
+ * built-in assistant), read through the version ladder so a save during
+ * the eval run changes nothing; every plugin it stamped on its status, each
+ * as of the digest its tries run (its servers and skills are that
+ * version's, not the head's); the compared plugin, if any; each evaluated
+ * plugin's suite at its digest; and one matrix over all their cases, in
+ * plugin order, so a case's index is flat and the same on every read.
  *
- *   - a plugin eval: the eval, its plugin, the suite at the eval's stamped
- *     digest, the matrix, and whether it compares with and without the
- *     plugin;
- *   - an agent eval (agent-context.ts): the eval, the agent at its stamped
- *     version, every plugin it attaches at its stamped digest, each
- *     evaluated plugin's suite, and one matrix over all their cases, in
- *     plugin order.
+ * The default target, on an agent with no target named, is the agent as
+ * it runs: its engine (native when it names none, as a conversation runs
+ * it), and its model as the label, the try naming no model (matrix.ts
+ * runsAgentModel). The matrix plans the without arm exactly when a plugin
+ * is compared and the ablation is not none (domain/eval-run/steps.ts
+ * matrixSpecOf), the rule create counted tries by.
  *
  * The matrix is re-planned from the same suites and spec on each read,
- * which is the planner's promise (domain/plugin-eval/matrix.ts: pure, so a
+ * which is the planner's promise (domain/eval-run/matrix.ts: pure, so a
  * retried activity and the load agree on every index). A suite is read
  * from the archive once per worker and digest and kept for the next
  * activities (a small cache, by digest, since a digest's bytes never
  * change).
  *
  * The activities read a case's plugin, files and suite through sourceOf,
- * its spec through specOf, and what its try attaches through
- * attachmentOf, so they never ask which kind of eval they run.
+ * its spec through specOf, and what its try lists and leaves out through
+ * attachmentOf (domain/eval-run/arm.ts), so they never ask what the eval
+ * run is about.
  *
- * Proven by __tests__/context.test.ts and __tests__/agent-context.test.ts.
+ * Undefined when the eval run, its spec, its agent version or one of its
+ * stamped plugin versions is gone: a try then has nothing it may run as
+ * stamped. A store fault, or a suite that cannot be read, throws.
+ *
+ * Proven by __tests__/context.test.ts.
  */
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 
 import type { EvalCase, EvalSuite, PluginFiles } from "@stigmer/plugin-package";
-import type { AgentEval } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
-import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import type { EvalRunSpec } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
-import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
-import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
-import type { PluginEvalSpec } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import { agentAttachment, armAttachment, pluginAttachmentFacts } from "../../domain/plugin-eval/arm.js";
-import type { AgentAttachmentFacts, ArmAttachment, EvalArm, PluginAttachmentFacts } from "../../domain/plugin-eval/arm.js";
-import type {
-  EvalMatrix,
-  EvalModelCatalog,
-  PlannedTarget,
-} from "../../domain/plugin-eval/matrix.js";
-import { planMatrix } from "../../domain/plugin-eval/matrix.js";
-import { evalKindOf } from "../../domain/plugin-eval/plugin-eval-run.js";
-import type { EvalSuiteSource, LoadedEvalSuite } from "../../domain/plugin-eval/suite.js";
-import { loadEvalSuite } from "../../domain/plugin-eval/suite.js";
-import type { PluginServer, TrySpec } from "../../domain/plugin-eval/try-run.js";
-import { pluginServersOf } from "../../domain/plugin-eval/try-run.js";
+import { agentVersionBinding } from "../../domain/agent/versions.js";
+import { pluginAttachmentFacts, tryAttachment } from "../../domain/eval-run/arm.js";
+import type { AgentAttachmentFacts, ArmAttachment, EvalArm, PluginAttachmentFacts } from "../../domain/eval-run/arm.js";
+import type { EvalMatrix, EvalModelCatalog, PlannedTarget } from "../../domain/eval-run/matrix.js";
+import { isComparing, matrixSpecOf, planMatrix } from "../../domain/eval-run/matrix.js";
+import { subjectOf } from "../../domain/eval-run/subject.js";
+import type { EvalSuiteSource, LoadedEvalSuite } from "../../domain/eval-run/suite.js";
+import { loadEvalSuite, pluginVersionedBinding } from "../../domain/eval-run/suite.js";
+import { agentTargetOf } from "../../domain/eval-run/target.js";
+import type { PluginServer, TrySpec } from "../../domain/eval-run/try-run.js";
+import { pluginServersOf } from "../../domain/eval-run/try-run.js";
+import { writtenServerNames } from "../../domain/eval-run/written-servers.js";
+import { loadVersion } from "../../pipeline/steps/version-history.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
-import { loadAgentEvalContext } from "./agent-context.js";
-import { AGENT_EVAL_CASE_WORKFLOW_PREFIX, PLUGIN_EVAL_CASE_WORKFLOW_PREFIX } from "./names.js";
 
 /** Suites a worker keeps, by archive digest. */
 const SUITE_CACHE_SIZE = 8;
 
-/** A plugin eval's context. */
-export interface PluginEvalContext {
-  readonly kind: "plugin";
-  readonly pluginEval: PluginEval;
-  readonly plugin: Plugin;
-  /** The archive digest the eval runs. */
-  readonly digest: string;
-  readonly files: PluginFiles;
-  readonly suite: EvalSuite;
-  readonly matrix: EvalMatrix;
-  /** Whether the eval compares with and without the plugin. */
-  readonly twoArms: boolean;
-}
-
-/** One plugin's suite in an eval: the plugin as of the digest its tries run, and its files and cases. */
+/** One plugin's suite in an eval run: the plugin as of the digest its tries run, and its files and cases. */
 export interface EvalCaseSource {
   readonly plugin: Plugin;
   readonly digest: string;
@@ -82,36 +73,36 @@ export interface EvalCaseSource {
   readonly suite: EvalSuite;
 }
 
-/** One plugin an agent eval's tries attach, as they attach it. */
+/** One plugin an eval run's tries list, as they list it. */
 export interface AttachedPlugin {
   readonly facts: PluginAttachmentFacts;
   /** Its MCP servers as a try names them. */
   readonly servers: ReadonlyArray<PluginServer>;
 }
 
-/** An agent eval's context (agent-context.ts). */
-export interface AgentEvalContext {
-  readonly kind: "agent";
-  readonly agentEval: AgentEval;
-  /** The agent at the version the eval stamped. */
-  readonly agent: AgentAttachmentFacts;
-  /** Every plugin the agent version attaches, in the eval's status order. */
-  readonly attached: ReadonlyArray<AttachedPlugin>;
+/** An eval run's context (the module header). */
+export interface EvalContext {
+  readonly evalRun: EvalRun;
+  /** The agent at the version the eval run stamped; undefined on an eval run of a plugin. */
+  readonly agent: AgentAttachmentFacts | undefined;
+  /** Every plugin a try lists, in the eval run's status order. */
+  readonly loaded: ReadonlyArray<AttachedPlugin>;
+  /** The plugin each case runs with and without; undefined when none is compared. */
+  readonly comparedPluginId: string | undefined;
   /** The MCP servers the agent version and its subagents write themselves, as a try names them (`mcp__<name>`). */
   readonly ownServers: ReadonlyArray<PluginServer>;
-  /** The plugins whose cases run, each with its index into `attached` (and the status's plugins). */
+  /** The plugins whose cases run, each with its index into `loaded` (and the status's plugins). */
   readonly sources: ReadonlyArray<EvalCaseSource & { readonly pluginIndex: number }>;
   /** Each planned case's index into `sources`, by case index. */
   readonly caseSources: ReadonlyArray<number>;
   /** One matrix over every source's cases, in source order. */
   readonly matrix: EvalMatrix;
-  readonly twoArms: false;
+  /** Whether each case also runs without the compared plugin. */
+  readonly twoArms: boolean;
 }
 
-export type EvalContext = PluginEvalContext | AgentEvalContext;
-
-/** The spec fields every activity reads, which both kinds' specs share by name. */
-export type EvalSpecKnobs = TrySpec & Pick<PluginEvalSpec, "maxCostUsd" | "concurrency" | "threshold">;
+/** The spec fields every activity reads. */
+export type EvalSpecKnobs = TrySpec & Pick<EvalRunSpec, "maxCostUsd" | "concurrency" | "threshold">;
 
 export interface EvalContextDeps {
   readonly store: Store;
@@ -119,18 +110,12 @@ export interface EvalContextDeps {
   readonly catalog: EvalModelCatalog;
 }
 
-export type EvalContextLoader = (
-  evalId: string,
-) => Promise<EvalContext | undefined>;
+export type EvalContextLoader = (evalRunId: string) => Promise<EvalContext | undefined>;
 
 /** A suite read once per worker and digest (the module header). */
 export type CachedSuiteReader = (pluginId: string, digest: string) => Promise<LoadedEvalSuite>;
 
-/**
- * The loader: undefined when the eval, its plugin or its agent is gone, or
- * the id names no eval. A suite that cannot be read throws, and the caller
- * decides what that means.
- */
+/** The loader (the module header). */
 export function newEvalContextLoader(deps: EvalContextDeps): EvalContextLoader {
   const cache = new Map<string, LoadedEvalSuite>();
   const readSuite: CachedSuiteReader = async (pluginId, digest) => {
@@ -147,45 +132,99 @@ export function newEvalContextLoader(deps: EvalContextDeps): EvalContextLoader {
     }
     return loaded;
   };
-  return async (evalId) => {
-    if (evalKindOf(evalId) === "agent") {
-      return loadAgentEvalContext(deps, readSuite, evalId);
-    }
-    const pluginEval = await loadOrUndefined(
-      deps.store,
-      ApiResourceKind.plugin_eval,
-      evalId,
-      PluginEvalSchema,
+  return (evalRunId) => loadEvalContext(deps, readSuite, evalRunId);
+}
+
+async function loadEvalContext(
+  deps: EvalContextDeps,
+  readSuite: CachedSuiteReader,
+  evalRunId: string,
+): Promise<EvalContext | undefined> {
+  const evalRun = await loadOrUndefined(deps.store, ApiResourceKind.eval_run, evalRunId, EvalRunSchema);
+  const spec = evalRun?.spec;
+  const subject = subjectOf(spec);
+  if (evalRun === undefined || spec === undefined || subject === undefined) {
+    return undefined;
+  }
+  let agent: AgentAttachmentFacts | undefined;
+  let agentSpec;
+  if (subject.kind === "agent") {
+    const version = await versionOrUndefined(() =>
+      loadVersion(deps.store, agentVersionBinding, subject.id, spec.agentVersion),
     );
-    const spec = pluginEval?.spec;
-    if (pluginEval === undefined || spec === undefined) {
+    if (version === undefined) {
       return undefined;
     }
-    const plugin = await loadOrUndefined(
-      deps.store,
-      ApiResourceKind.plugin,
-      spec.pluginId,
-      PluginSchema,
+    agentSpec = version.resource.spec;
+    agent = {
+      org: version.resource.metadata?.org ?? "",
+      id: version.resource.metadata?.id ?? "",
+      slug: version.resource.metadata?.slug ?? "",
+      versionHash: spec.agentVersion,
+    };
+  }
+  const stamped = evalRun.status?.plugins ?? [];
+  const plugins: Plugin[] = [];
+  for (const entry of stamped) {
+    const plugin = await versionOrUndefined(() =>
+      loadVersion(deps.store, pluginVersionedBinding, entry.pluginId, entry.pluginDigest),
     );
     if (plugin === undefined) {
       return undefined;
     }
-    const digest =
-      spec.pluginDigest !== ""
-        ? spec.pluginDigest
-        : (plugin.status?.digest ?? "");
-    const loaded = await readSuite(spec.pluginId, digest);
-    return {
-      kind: "plugin",
-      pluginEval,
-      plugin,
-      digest,
+    plugins.push(plugin.resource);
+  }
+  const agentTarget = subject.kind === "agent" ? agentTargetOf(agentSpec) : undefined;
+  const planSpec = matrixSpecOf(spec);
+  const sources: Array<EvalCaseSource & { readonly pluginIndex: number }> = [];
+  const caseSources: number[] = [];
+  const matrix: EvalMatrix = { cases: [], cells: [] };
+  for (const [pluginIndex, entry] of stamped.entries()) {
+    if (entry.notRunReason !== "") {
+      continue;
+    }
+    const loaded = await readSuite(entry.pluginId, entry.pluginDigest);
+    const sourceIndex = sources.length;
+    sources.push({
+      plugin: plugins[pluginIndex]!,
+      digest: entry.pluginDigest,
       files: loaded.files,
       suite: loaded.suite,
-      matrix: planMatrix(loaded.suite, spec, deps.catalog),
-      twoArms: spec.ablation !== PluginEvalAblation.none,
-    };
+      pluginIndex,
+    });
+    const planned = planMatrix(loaded.suite, planSpec, deps.catalog, agentTarget);
+    const offset = matrix.cases.length;
+    matrix.cases.push(...planned.cases);
+    matrix.cells.push(...planned.cells.map((cell) => ({ ...cell, caseIndex: cell.caseIndex + offset })));
+    caseSources.push(...planned.cases.map(() => sourceIndex));
+  }
+  const compared = stamped.find((entry) => entry.compared);
+  return {
+    evalRun,
+    agent,
+    loaded: stamped.map((entry, index) => attachedPluginOf(plugins[index]!, entry.pluginDigest)),
+    comparedPluginId: compared?.pluginId,
+    ownServers:
+      agentSpec === undefined
+        ? []
+        : (await writtenServerNames(deps.store, agentSpec, agent?.org ?? "")).map((name) => ({ slug: name, key: name })),
+    sources,
+    caseSources,
+    matrix,
+    twoArms: isComparing(spec) && spec.ablation !== EvalRunAblation.none,
   };
+}
+
+/** A version read, or undefined when the resource or the version is gone. */
+async function versionOrUndefined<T>(read: () => Promise<T>): Promise<T | undefined> {
+  try {
+    return await read();
+  } catch (error) {
+    if (error instanceof ConnectError && error.code === Code.NotFound) {
+      return undefined;
+    }
+    throw error;
+  }
 }
 
 /** One cell's case and target, or undefined when the plan has no such cell. */
@@ -204,55 +243,48 @@ export function cellOf(
 
 /** The plugin a case comes from, with its files and suite; undefined when the plan has no such case. */
 export function sourceOf(context: EvalContext, caseIndex: number): EvalCaseSource | undefined {
-  if (context.kind === "plugin") {
-    return { plugin: context.plugin, digest: context.digest, files: context.files, suite: context.suite };
-  }
   const index = context.caseSources[caseIndex];
   return index === undefined ? undefined : context.sources[index];
 }
 
-/** The eval's spec; undefined when the stored row carries none. */
+/** The eval run's spec; undefined when the stored row carries none. */
 export function specOf(context: EvalContext): EvalSpecKnobs | undefined {
-  return context.kind === "plugin" ? context.pluginEval.spec : context.agentEval.spec;
+  return context.evalRun.spec;
 }
 
-/** The organization the eval runs in. */
+/** The organization the eval run runs in. */
 export function orgOf(context: EvalContext): string {
-  return (context.kind === "plugin" ? context.pluginEval.metadata?.org : context.agentEval.metadata?.org) ?? "";
+  return context.evalRun.metadata?.org ?? "";
 }
 
-/** The prefix of the eval's tries' workflow ids. */
-export function caseWorkflowPrefixOf(context: EvalContext): string {
-  return context.kind === "plugin" ? PLUGIN_EVAL_CASE_WORKFLOW_PREFIX : AGENT_EVAL_CASE_WORKFLOW_PREFIX;
-}
-
-/** What a try of the case attaches in its arm (domain/plugin-eval/arm.ts). */
-export function attachmentOf(context: EvalContext, arm: EvalArm, source: EvalCaseSource): ArmAttachment {
-  if (context.kind === "plugin") {
-    return armAttachment(arm, pluginAttachmentFacts(source.plugin, source.digest));
-  }
-  return agentAttachment(context.agent, context.attached.map((plugin) => plugin.facts));
+/** What a try lists and leaves out in its arm (domain/eval-run/arm.ts). */
+export function attachmentOf(context: EvalContext, arm: EvalArm): ArmAttachment {
+  return tryAttachment(
+    {
+      agent: context.agent,
+      plugins: context.loaded.map((plugin) => plugin.facts),
+      comparedPluginId: context.comparedPluginId,
+    },
+    arm,
+  );
 }
 
 /**
  * The MCP servers a try runs beside the case's own plugin's, which the try
- * turns off unless the eval runs real servers (domain/plugin-eval/try-run.ts
- * tryToolsOf): none in a plugin eval; in an agent eval the servers the
- * agent and its subagents write themselves, which no case mocks, and every
- * other attached plugin's.
+ * turns off unless the eval run runs real servers (domain/eval-run/
+ * try-run.ts tryToolsOf): every other plugin's a try lists, which the case
+ * cannot mock, and the servers the agent and its subagents write
+ * themselves.
  */
 export function otherServersOf(context: EvalContext, caseIndex: number): PluginServer[] {
-  if (context.kind === "plugin") {
-    return [];
-  }
   const own = context.sources[context.caseSources[caseIndex] ?? -1]?.pluginIndex;
   return [
     ...context.ownServers,
-    ...context.attached.flatMap((plugin, index) => (index === own ? [] : [...plugin.servers])),
+    ...context.loaded.flatMap((plugin, index) => (index === own ? [] : [...plugin.servers])),
   ];
 }
 
-/** The attached plugin's servers as a try names them. */
+/** A listed plugin's facts and servers as a try names them. */
 export function attachedPluginOf(plugin: Plugin, digest: string): AttachedPlugin {
   return { facts: pluginAttachmentFacts(plugin, digest), servers: pluginServersOf(plugin) };
 }
@@ -264,12 +296,9 @@ export function pluginNameOf(plugin: Plugin): string {
 }
 
 /** The workspace paths a case's graders read the content of; a try's run returns them too. */
-export { wantedFilesOf } from "../../domain/plugin-eval/graders/verdict.js";
+export { wantedFilesOf } from "../../domain/eval-run/graders/verdict.js";
 
-export async function loadRun(
-  store: Store,
-  runId: string,
-): Promise<Run | undefined> {
+export async function loadRun(store: Store, runId: string): Promise<Run | undefined> {
   return loadOrUndefined(store, ApiResourceKind.run, runId, RunSchema);
 }
 

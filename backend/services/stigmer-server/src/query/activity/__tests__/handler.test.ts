@@ -164,7 +164,7 @@ describe("listRecentActivity (Go handler_test.go)", () => {
       ["ses_share", "stigmer.ai/share-id"],
       ["ses_guest", "stigmer.ai/guest-cookie-id"],
       ["ses_schedule", "stigmer.ai/schedule-id"],
-      ["ses_plugin_eval_try", "stigmer.ai/plugin-eval"],
+      ["ses_eval_run_try", "stigmer.ai/eval-run"],
     ];
     for (const [id, key] of labeled) {
       await seedSession(id, {

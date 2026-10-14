@@ -582,7 +582,7 @@ function agentScoresQuery(
   return {
     org,
     anyKey: [{ name: "agent", value: agentId }],
-    withoutKeys: ["plugin_eval"],
+    withoutKeys: ["eval_run"],
     createdAtOrAfter: window.since,
   };
 }

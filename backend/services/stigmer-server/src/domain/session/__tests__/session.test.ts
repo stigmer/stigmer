@@ -87,7 +87,7 @@ import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
-import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
+import { EVAL_RUN_LABEL } from "../../eval-run/constants.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 import { ResourceNotFoundError, type Store } from "../../../store/interface.js";
 import {
@@ -514,7 +514,7 @@ describe("session list — a plugin eval's tries", () => {
       evalTry.metadata!.id,
       SessionSchema,
     );
-    stored.metadata!.labels[PLUGIN_EVAL_LABEL] = "pev_sessiontest";
+    stored.metadata!.labels[EVAL_RUN_LABEL] = "evr_sessiontest";
     await namingSaves(server.store).saveResource(
       ApiResourceKind.session,
       evalTry.metadata!.id,
@@ -528,7 +528,7 @@ describe("session list — a plugin eval's tries", () => {
     expect(listed).toContain(chat.metadata!.id);
     expect(listed).not.toContain(evalTry.metadata!.id);
     const fetched = await query.get({ value: evalTry.metadata!.id });
-    expect(fetched.metadata?.labels[PLUGIN_EVAL_LABEL]).toBe("pev_sessiontest");
+    expect(fetched.metadata?.labels[EVAL_RUN_LABEL]).toBe("evr_sessiontest");
 
     for (const session of [chat, evalTry]) {
       await command.delete({ value: session.metadata!.id });
@@ -605,7 +605,7 @@ describe("session listByAgent", () => {
       evalTry.metadata!.id,
       SessionSchema,
     );
-    stored.metadata!.labels[PLUGIN_EVAL_LABEL] = "pev_sessiontest";
+    stored.metadata!.labels[EVAL_RUN_LABEL] = "evr_sessiontest";
     await namingSaves(server.store).saveResource(
       ApiResourceKind.session,
       evalTry.metadata!.id,

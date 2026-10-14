@@ -39,7 +39,7 @@
  *
  * Any other error the workflow meets (one of its own, not an activity's)
  * fails it outright, as a non-retryable ApplicationFailure of type
- * PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE: Temporal fails only the workflow
+ * EVAL_RUN_CASE_FAILED_FAILURE_TYPE: Temporal fails only the workflow
  * task on a plain error, and would retry that task until the execution
  * timeout, so the suite records such a try as a failed child instead. The
  * failure's details carry what the votes already read spent
@@ -89,8 +89,8 @@ import {
   GRADE_TRY_ACTIVITY_NAME,
   GRADING_FAILED_REASON,
   PLATFORM_BUSY_REASON,
-  PLUGIN_EVAL_BUSY_FAILURE_TYPE,
-  PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
+  EVAL_RUN_BUSY_FAILURE_TYPE,
+  EVAL_RUN_CASE_FAILED_FAILURE_TYPE,
   POLL_RUN_ACTIVITY_NAME,
   READ_VOTE_ACTIVITY_NAME,
   RECORD_SCORE_ACTIVITY_NAME,
@@ -233,7 +233,7 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
     const details: CaseFailureDetails = { voteCostUsd: known.voteCostUsd };
     throw ApplicationFailure.create({
       message: error instanceof Error ? error.message : String(error),
-      type: PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
+      type: EVAL_RUN_CASE_FAILED_FAILURE_TYPE,
       nonRetryable: true,
       details: [details],
     });
@@ -666,7 +666,7 @@ function isBusy(error: unknown): boolean {
   while (cause instanceof Error) {
     if (
       cause instanceof ApplicationFailure &&
-      cause.type === PLUGIN_EVAL_BUSY_FAILURE_TYPE
+      cause.type === EVAL_RUN_BUSY_FAILURE_TYPE
     ) {
       return true;
     }

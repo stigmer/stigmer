@@ -3,10 +3,11 @@
  * poll and stop runs, grade the try, run its votes, record its score; and
  * the spend activity both workflows read a try's cost through.
  *
- *   - start-try: the try's session, then its run (domain/plugin-eval/
+ *   - start-try: the try's session, then its run (domain/eval-run/
  *     try-run.ts, arm.ts), the run capped at the budget the suite workflow
- *     hands the try (its share of what the eval has left), both as the eval's caller, minted per
- *     try (extensions/plugin-eval-caller.ts; none composed: the server).
+ *     hands the try (its share of what the eval run has left), both as the
+ *     eval run's caller, minted per try (extensions/eval-run-caller.ts;
+ *     none composed: the server).
  *     Every attempt first looks for the run an earlier one created (the
  *     eval's label and the try's run name), before it mints the caller, so
  *     a start whose answer was lost is adopted, never created twice nor
@@ -14,20 +15,22 @@
  *     reports; should it find two (a start that raced its own
  *     retry), it adopts the earliest created and stops the other. The
  *     session's create and the run's are refused alike: a capacity
- *     refusal is thrown as PLUGIN_EVAL_BUSY_FAILURE_TYPE for the
+ *     refusal is thrown as EVAL_RUN_BUSY_FAILURE_TYPE for the
  *     workflow's thirty minutes of retries; any other refusal is the
  *     try's not-graded reason in its own words (an organization with no
  *     key for the target's model reads admission's FAILED_PRECONDITION
  *     copy on each try); a session left by a refused run is deleted. A
  *     caller the seam refuses is "cannot-act", with the refusal's own
- *     not-graded reason when it names one. A plugin eval's
- *     try whose plugin has moved past the eval's digest is not started: the
- *     with-plugin arm runs the plugin as installed now, so it would grade
- *     a newer plugin against the eval's suite (PLUGIN_UPDATED_REASON). An
- *     agent eval's try runs the agent at its stamped version with every
- *     plugin at its stamped digest, the case's own plugin and the others
- *     (context.ts attachmentOf), whatever moved since; the other plugins'
- *     servers are off (otherServersOf). Its default target names no model.
+ *     not-graded reason when it names one. On an eval run of a plugin, a
+ *     try whose plugin has moved past the stamped digest is not started:
+ *     the eval run evaluates the plugin as installed when it was created,
+ *     so it would grade a newer plugin against its suite
+ *     (PLUGIN_UPDATED_REASON). Every other try runs the agent at its
+ *     stamped version (none on an eval run of a plugin) with every plugin
+ *     listed at its stamped digest, the same session in both arms, the
+ *     without arm's run leaving out the compared plugin (context.ts
+ *     attachmentOf), whatever moved since; the other plugins' servers are
+ *     off (otherServersOf). An agent's default target names no model.
  *   - poll-run, stop-run: whether a run is still waiting for a runner,
  *     running (with its start stamp), or ended; stop one, a run already
  *     ended or gone being fine. A stop the run's lifecycle refuses is
@@ -35,7 +38,7 @@
  *     approval, is not stopped, and the refusal is thrown.
  *   - grade-try: the try's trace (domain/score/eval/trace.ts, read from the
  *     try's session events and the files on its run), every code
- *     grader (domain/plugin-eval/graders/), and for each AI-graded check
+ *     grader (domain/eval-run/graders/), and for each AI-graded check
  *     either the verdict its evidence already decides (a missing file, a
  *     binary one) or the rubric its votes answer. An AI-graded indicator
  *     (a check the two-arm comparison does not score) casts no votes in
@@ -61,12 +64,12 @@
  *     vote's run is still stored. (A refused run's session, by contrast,
  *     is deleted on a best effort, its failure logged.)
  *   - try-spend: what a try's run and its stored votes spent, found by
- *     the eval's label (the run list index's `plugin_eval` key) and the
+ *     the eval's label (the run list index's `eval_run` key) and the
  *     try's run name, for the workflows to count a try whose own workflow
  *     could not report it.
  *   - record-score: the votes tallied, the try scored
- *     (domain/plugin-eval/scoring.ts), and its Score written on the run
- *     (domain/plugin-eval/score-writer.ts). A scored grader left not graded
+ *     (domain/eval-run/scoring.ts), and its Score written on the run
+ *     (domain/eval-run/score-writer.ts). A scored grader left not graded
  *     leaves the try not graded with that reason; an indicator left not
  *     graded is reported on its own criterion only, since it counts toward
  *     no score.
@@ -81,13 +84,15 @@ import { Context } from "@temporalio/activity";
 
 import { parseTryStop } from "@stigmer/eval-runtime";
 import type { EvalGrader } from "@stigmer/plugin-package";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import { gradeChecks } from "../../domain/plugin-eval/graders/grade.js";
+import { gradeChecks } from "../../domain/eval-run/graders/grade.js";
 import {
   describeVoteAnswer,
   isJudgedGrader,
@@ -99,18 +104,18 @@ import {
   voteMessage,
   voteRubricName,
   voteSchema,
-} from "../../domain/plugin-eval/graders/llm.js";
-import { patternsFor } from "../../domain/plugin-eval/graders/patterns.js";
-import type { PatternRunner } from "../../domain/plugin-eval/graders/patterns.js";
-import type { GraderVerdict } from "../../domain/plugin-eval/graders/verdict.js";
-import { isNotGraded } from "../../domain/plugin-eval/graders/verdict.js";
+} from "../../domain/eval-run/graders/llm.js";
+import { patternsFor } from "../../domain/eval-run/graders/patterns.js";
+import type { PatternRunner } from "../../domain/eval-run/graders/patterns.js";
+import type { GraderVerdict } from "../../domain/eval-run/graders/verdict.js";
+import { isNotGraded } from "../../domain/eval-run/graders/verdict.js";
 import {
   gradedEvalScore,
   notGradedEvalScore,
   stoppedEvalScore,
   writeEvalScore,
-} from "../../domain/plugin-eval/score-writer.js";
-import { scoringOf, tryScore } from "../../domain/plugin-eval/scoring.js";
+} from "../../domain/eval-run/score-writer.js";
+import { scoringOf, tryScore } from "../../domain/eval-run/scoring.js";
 import {
   tryRunName,
   pluginServersOf,
@@ -118,7 +123,7 @@ import {
   trySessionRequest,
   voteRunRequest,
   voteSessionRequest,
-} from "../../domain/plugin-eval/try-run.js";
+} from "../../domain/eval-run/try-run.js";
 import { agentExecutionListIndex } from "../../domain/run/list-index.js";
 import {
   isActiveExecutionPhase,
@@ -143,14 +148,15 @@ import type {
   ScoreDeleter,
   ScoreRecorder,
 } from "../../domain/score/ports.js";
-import type { PluginEvalCallerMint } from "../../extensions/plugin-eval-caller.js";
-import { PluginEvalCallerRefusedError } from "../../extensions/plugin-eval-caller.js";
+import type { EvalRunCallerMint } from "../../extensions/eval-run-caller.js";
+import { EvalRunCallerRefusedError } from "../../extensions/eval-run-caller.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { Store } from "../../store/interface.js";
 import type { EvalCaseSource, EvalContextLoader } from "./context.js";
 import {
   attachmentOf,
   cellOf,
+  loadOrUndefined,
   loadRun,
   otherServersOf,
   pluginNameOf,
@@ -162,7 +168,7 @@ import {
   CANNOT_ACT_REASON,
   DELETE_VOTE_ACTIVITY_NAME,
   GRADE_TRY_ACTIVITY_NAME,
-  PLUGIN_EVAL_BUSY_FAILURE_TYPE,
+  EVAL_RUN_BUSY_FAILURE_TYPE,
   PLUGIN_UPDATED_REASON,
   POLL_RUN_ACTIVITY_NAME,
   READ_VOTE_ACTIVITY_NAME,
@@ -188,7 +194,7 @@ import type {
   VoteStart,
   WireOutcome,
 } from "./names.js";
-import type { PluginEvalTryLane } from "./ports.js";
+import type { EvalRunTryLane } from "./ports.js";
 
 /** The longest refusal a try quotes, as a criterion's reason is bounded. */
 const REASON_MAX_LENGTH = 500;
@@ -215,7 +221,7 @@ export interface CaseActivityDeps {
   readonly logger: Logger;
   readonly contexts: EvalContextLoader;
   /** Resolved at call time: the in-process clients are wired after the routes. */
-  readonly tries: () => PluginEvalTryLane;
+  readonly tries: () => EvalRunTryLane;
   /** A vote's (or a refused try's) session delete, as the server. */
   readonly sessions: () => JudgeSessionDeleter;
   readonly recorder: () => ScoreRecorder;
@@ -225,7 +231,7 @@ export interface CaseActivityDeps {
     | ((storageKey: string) => Promise<Uint8Array>)
     | undefined;
   /** The composed caller; undefined = tries act as the server. */
-  readonly pluginEvalCaller: PluginEvalCallerMint | undefined;
+  readonly evalRunCaller: EvalRunCallerMint | undefined;
   readonly patterns: PatternRunner;
   /** The activity's attempt number; tests pin it. */
   readonly attempt?: () => number;
@@ -239,13 +245,13 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
     org: string,
     evalId: string,
   ): Promise<CallerIdentity | undefined | { readonly cannotAct: string }> => {
-    if (deps.pluginEvalCaller === undefined) {
+    if (deps.evalRunCaller === undefined) {
       return undefined;
     }
     try {
-      return await deps.pluginEvalCaller.mintPluginEvalCaller(org, evalId);
+      return await deps.evalRunCaller.mintEvalRunCaller(org, evalId);
     } catch (error) {
-      if (error instanceof PluginEvalCallerRefusedError) {
+      if (error instanceof EvalRunCallerRefusedError) {
         deps.logger.warn("the eval cannot act for anyone", {
           evalId,
           reason: error.message,
@@ -320,13 +326,14 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           reason: TRY_UNPLANNED_REASON,
         };
       }
-      if (context.kind === "plugin" && (context.plugin.status?.digest ?? "") !== context.digest) {
+      if (context.agent === undefined && (await pluginMoved(deps.store, source))) {
         return {
           kind: "refused",
           failure: "not-started",
           reason: PLUGIN_UPDATED_REASON,
         };
       }
+      const attachment = attachmentOf(context, input.arm);
       let session;
       try {
         session = await deps.tries().createSession(
@@ -337,7 +344,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
             attempt: attempt(),
             caseName: cell.evalCase.name,
             harness: cell.target.target.harness,
-            attachment: attachmentOf(context, input.arm, source),
+            attachment,
           }),
           caller,
         );
@@ -359,7 +366,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         budgetUsd: input.budgetUsd,
         pluginServers: pluginServersOf(source.plugin),
         otherServers: otherServersOf(context, input.caseIndex),
-        arm: input.arm,
+        attachment,
         source: {
           pluginId: source.plugin.metadata?.id ?? "",
           pluginName: source.plugin.metadata?.name ?? "",
@@ -771,14 +778,14 @@ function refusalOf(
     case Code.ResourceExhausted:
       throw ApplicationFailure.retryable(
         error.rawMessage,
-        PLUGIN_EVAL_BUSY_FAILURE_TYPE,
+        EVAL_RUN_BUSY_FAILURE_TYPE,
       );
     case Code.FailedPrecondition:
     case Code.PermissionDenied:
     case Code.NotFound:
     case Code.InvalidArgument:
     case Code.Unauthenticated: {
-      deps.logger.warn("a plugin eval's run was refused", {
+      deps.logger.warn("an eval run's try was refused", {
         evalId,
         code: Code[error.code],
         reason: error.rawMessage,
@@ -841,16 +848,22 @@ const EXTRA_TRY_RUN_REASON = "a second run of the same try";
  * the earliest created first (its id breaking a tie), so the start's
  * adoption and every spend read pick the same one. More than one is a
  * start that raced its own retry; start-try stops the rest. The eval's
- * runs are read through the run list index's `plugin_eval` key, so only
+ * runs are read through the run list index's `eval_run` key, so only
  * they are decoded, never every run of the platform.
  */
+/** Whether a plugin's head has moved past the digest the eval run stamped for it; a plugin gone has moved. */
+async function pluginMoved(store: Store, source: EvalCaseSource): Promise<boolean> {
+  const head = await loadOrUndefined(store, ApiResourceKind.plugin, source.plugin.metadata?.id ?? "", PluginSchema);
+  return (head?.status?.digest ?? "") !== source.digest;
+}
+
 async function findLabelledRuns(
   store: Store,
   evalId: string,
   name: string,
 ): Promise<Run[]> {
   const rows = await store.queryResources(agentExecutionListIndex, {
-    anyKey: [{ name: "plugin_eval", value: evalId }],
+    anyKey: [{ name: "eval_run", value: evalId }],
   });
   const runs = rows
     .map((row) => fromBinary(RunSchema, row.data))
@@ -950,7 +963,7 @@ async function deleteSession(
       return;
     }
     deps.logger.error(
-      "a plugin eval's session could not be deleted; it is left",
+      "an eval run's session could not be deleted; it is left",
       {
         sessionId,
         reason: error instanceof Error ? error.message : String(error),

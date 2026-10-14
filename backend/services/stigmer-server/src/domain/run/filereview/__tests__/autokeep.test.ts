@@ -27,7 +27,7 @@ import type { LogFields, Logger } from "../../../../boot/logger.js";
 import { capturedSet, reviewableChange } from "../../__tests__/file-review-seed.js";
 import { toolUseEventId } from "../../../session/events/ids.js";
 import type { ActionWord, ScopeWord } from "../../../session/filereview/words.js";
-import { autoKeepApprovedCommandSets, autoKeepPluginEvalTrySets, keepOutdatedSets } from "../autokeep.js";
+import { autoKeepApprovedCommandSets, autoKeepEvalRunTrySets, keepOutdatedSets } from "../autokeep.js";
 import { fileReviewDecidedEventId } from "../decided.js";
 import { aggregateDigest, fileDigest } from "../digest.js";
 import { EMPTY_RUN_REVIEW_LOG, withDecisions } from "../logged.js";
@@ -200,11 +200,11 @@ describe("autoKeepApprovedCommandSets", () => {
   });
 });
 
-describe("autoKeepPluginEvalTrySets", () => {
+describe("autoKeepEvalRunTrySets", () => {
   it("keeps a try's undecided change set by its own rule, once", () => {
     const { logger } = capturingLogger();
     const set = capturedSet(CHANGE_SET_ID);
-    const first = autoKeepPluginEvalTrySets([set], RUN_ID, true, logger, logWith());
+    const first = autoKeepEvalRunTrySets([set], RUN_ID, true, logger, logWith());
     expect(decided(first).map((d) => [d.origin, d.reason, d.decidedBy])).toEqual([
       [
         "eval_try",
@@ -213,7 +213,7 @@ describe("autoKeepPluginEvalTrySets", () => {
       ],
     ]);
     expect(
-      autoKeepPluginEvalTrySets([set], RUN_ID, true, logger, withDecisions(logWith(), first)),
+      autoKeepEvalRunTrySets([set], RUN_ID, true, logger, withDecisions(logWith(), first)),
       "a decided set is left alone",
     ).toEqual([]);
   });
@@ -221,14 +221,14 @@ describe("autoKeepPluginEvalTrySets", () => {
   it("leaves a set that cannot be kept whole to the try's timeout, and says so", () => {
     const { logger, lines } = capturingLogger();
 
-    expect(autoKeepPluginEvalTrySets([blockedSet()], RUN_ID, true, logger, logWith())).toEqual([]);
+    expect(autoKeepEvalRunTrySets([blockedSet()], RUN_ID, true, logger, logWith())).toEqual([]);
     expect(lines.map((l) => [l.level, l.message, l.fields?.["changeSetId"]])).toEqual([
       ["warn", "Eval try keep skipped: set cannot be approved whole", CHANGE_SET_ID],
     ]);
   });
 
   it("keeps nothing for a run that is not a try", () => {
-    expect(autoKeepPluginEvalTrySets([capturedSet(CHANGE_SET_ID)], RUN_ID, false, capturingLogger().logger, logWith())).toEqual([]);
+    expect(autoKeepEvalRunTrySets([capturedSet(CHANGE_SET_ID)], RUN_ID, false, capturingLogger().logger, logWith())).toEqual([]);
   });
 });
 

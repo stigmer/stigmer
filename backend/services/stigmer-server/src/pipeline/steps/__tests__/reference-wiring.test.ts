@@ -79,7 +79,7 @@ const WRITE_CHAINS: Readonly<Record<string, ReadonlyArray<string>>> = {
   "domain/agentchannel/controller.ts": ["agent-channel-create", "agent-channel-update"],
   "domain/agentshare/controller.ts": ["agent-share-create", "agent-share-update"],
   "domain/organization/controller.ts": ["organization-update-embedding"],
-  "domain/plugin-eval/controller.ts": ["plugin-eval-create"],
+  "domain/eval-run/controller.ts": ["plugin-eval-create"],
   "domain/run/controller.ts": ["agent-execution-create", "agent-execution-update"],
   "domain/schedule/controller.ts": ["schedule-create", "schedule-update"],
   "domain/session/controller.ts": ["session-create", "session-update"],

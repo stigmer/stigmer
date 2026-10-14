@@ -42,22 +42,22 @@ const PINNED: Readonly<
   run: {
     revision: 7,
     fingerprint:
-      "run{agent=field:status.agent_id,grades=label:stigmer.ai/grades-run,plugin_eval=label:stigmer.ai/plugin-eval,schedule=label:stigmer.ai/schedule-id,session=field:spec.session_id,waiting_session=fieldWhen:spec.session_id?status.phase=6,working_session=fieldWhen:spec.session_id?status.phase=1|2}",
+      "run{agent=field:status.agent_id,grades=label:stigmer.ai/grades-run,eval_run=label:stigmer.ai/eval-run,schedule=label:stigmer.ai/schedule-id,session=field:spec.session_id,waiting_session=fieldWhen:spec.session_id?status.phase=6,working_session=fieldWhen:spec.session_id?status.phase=1|2}",
   },
   // Revision 2 added the agent's key and the plugin eval label's, which an
   // agent's quality report and flagged list read.
   score: {
     revision: 2,
     fingerprint:
-      "score{agent=field:status.agent_id,plugin_eval=label:stigmer.ai/plugin-eval,run=field:spec.run_id,session=field:spec.session_id}",
+      "score{agent=field:status.agent_id,eval_run=label:stigmer.ai/eval-run,run=field:spec.run_id,session=field:spec.session_id}",
   },
   evaluator: {
     revision: 1,
     fingerprint: "evaluator{agent=field:spec.agent_id}",
   },
-  plugin_eval: {
+  eval_run: {
     revision: 1,
-    fingerprint: "plugin_eval{plugin=field:spec.plugin_id}",
+    fingerprint: "eval_run{plugin=field:spec.plugin_id}",
   },
   agent_eval: {
     revision: 1,
@@ -67,7 +67,7 @@ const PINNED: Readonly<
   session: {
     revision: 3,
     fingerprint:
-      "session{agent=field:status.agent_id,channel=label:stigmer.ai/channel-id,plugin_eval=label:stigmer.ai/plugin-eval}",
+      "session{agent=field:status.agent_id,channel=label:stigmer.ai/channel-id,eval_run=label:stigmer.ai/eval-run}",
   },
   vault: {
     revision: 1,

@@ -16,7 +16,7 @@
  *     once its set is captured;
  *   - the agent a turn ran (status.agent_id, agent_version_hash) is the
  *     create pipeline's stamp alone; the files a plugin-eval try's graders
- *     read (plugin_eval_files) are kept on a try's run only; and what a run
+ *     read (eval_files) are kept on a try's run only; and what a run
  *     loaded (loaded_versions) is merged by union over (id, version), never
  *     replaced, an entry with no id refused by the shared validator before
  *     any merge.
@@ -243,7 +243,7 @@ describe("the policy keeps in the write that captures", () => {
 
   it("keeps a plugin eval's try's set by the try's rule, and only once with the outdated close", () => {
     const tryRun = create(RunSchema, {
-      metadata: { id: "exec-guard", labels: { "stigmer.ai/plugin-eval": "true" } },
+      metadata: { id: "exec-guard", labels: { "stigmer.ai/eval-run": "true" } },
       spec: {},
       status: { phase: RunPhase.RUN_IN_PROGRESS },
     });
@@ -255,7 +255,7 @@ describe("the policy keeps in the write that captures", () => {
   });
 });
 
-describe("the files a plugin-eval try's graders read (plugin_eval_files)", () => {
+describe("the files a plugin-eval try's graders read (eval_files)", () => {
   const files = {
     files: [{ path: "app.txt", content: { case: "text" as const, value: "version = 1\n" } }],
   };
@@ -263,20 +263,20 @@ describe("the files a plugin-eval try's graders read (plugin_eval_files)", () =>
   it("keeps the runner's files on a try's run, and across a write without them", () => {
     const existing = existingWith(RunPhase.RUN_IN_PROGRESS);
     existing.spec = create(RunSchema, {
-      spec: { pluginEvalCase: { pluginId: "plg_1", pluginDigest: "a".repeat(64), suiteDir: "evals", caseDir: "evals/fix" } },
+      spec: { evalCase: { pluginId: "plg_1", pluginDigest: "a".repeat(64), suiteDir: "evals", caseDir: "evals/fix" } },
     }).spec;
-    const merged = runBuildStep(existing, { phase: RunPhase.RUN_COMPLETED, pluginEvalFiles: files });
-    expect(merged.status?.pluginEvalFiles?.files.map((f) => [f.path, f.content.value])).toEqual([["app.txt", "version = 1\n"]]);
+    const merged = runBuildStep(existing, { phase: RunPhase.RUN_COMPLETED, evalFiles: files });
+    expect(merged.status?.evalFiles?.files.map((f) => [f.path, f.content.value])).toEqual([["app.txt", "version = 1\n"]]);
     const again = runBuildStep(merged, { phase: RunPhase.RUN_COMPLETED });
-    expect(again.status?.pluginEvalFiles?.files).toHaveLength(1);
+    expect(again.status?.evalFiles?.files).toHaveLength(1);
   });
 
   it("drops them on any other run", () => {
     const merged = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS), {
       phase: RunPhase.RUN_COMPLETED,
-      pluginEvalFiles: files,
+      evalFiles: files,
     });
-    expect(merged.status?.pluginEvalFiles).toBeUndefined();
+    expect(merged.status?.evalFiles).toBeUndefined();
   });
 });
 

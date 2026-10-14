@@ -30,7 +30,7 @@ const run = create(RunSchema, {
     target: { case: "sessionId", value: "ses_1" },
     message: "Fix the failing test.",
     structuredOutputSchema: { type: "object" },
-    pluginEvalCase: {
+    evalCase: {
       mocks: [{ segment: "plugin_thermos_github", server: "github" }],
     },
   },

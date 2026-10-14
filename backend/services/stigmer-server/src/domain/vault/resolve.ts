@@ -35,7 +35,7 @@
  *      through, found from server-stamped facts: the minting platform
  *      client (the run's audit), its schedule (the run's
  *      stigmer.ai/schedule-id), its plugin eval (the run's
- *      stigmer.ai/plugin-eval), its share or channel (the session's
+ *      stigmer.ai/eval-run), its share or channel (the session's
  *      stigmer.ai/share-id or stigmer.ai/channel-id). A surface of another
  *      organization than the run's contributes nothing. A plugin eval's
  *      vaults also serve a try that acts as a person (open source acts as
@@ -144,8 +144,7 @@ import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchan
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { McpServerEntry, PluginStatus } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
-import { AgentEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
+import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { RunValueSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run, RunValueDeclarer, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
@@ -195,7 +194,7 @@ import type { Store } from "../../store/interface.js";
 import { runServers } from "../run/run-servers.js";
 import type { RunServer } from "../run/run-servers.js";
 import type { RunSubagent } from "../run/run-subagents.js";
-import { evalOfRun } from "../plugin-eval/plugin-eval-run.js";
+import { evalRunOfRun } from "../eval-run/run-label.js";
 import { SCHEDULE_ID_LABEL_KEY } from "../schedule/labels.js";
 import type { IdentityAccountStore } from "../identityaccount/store.js";
 import { sessionIdOf } from "../run/target.js";
@@ -1115,7 +1114,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
         });
       }
     }
-    const evalSurface = await pluginEvalSurfaceOf(execution);
+    const evalSurface = await evalRunSurfaceOf(execution);
     if (evalSurface !== undefined) {
       surfaces.push(evalSurface);
     }
@@ -1171,37 +1170,31 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
   }
 
   /**
-   * The eval a try belongs to (the run's stigmer.ai/plugin-eval, which only
-   * the eval's workflow stamps), a plugin eval's or an agent eval's by the
-   * id's kind (domain/plugin-eval/plugin-eval-run.ts evalOfRun), as a
-   * surface; undefined when the run is no try, or its eval is gone or of
-   * another organization. Both kinds name their vaults and attachers alike.
+   * The eval run a try belongs to (the run's stigmer.ai/eval-run, which
+   * only the eval run's workflow stamps; domain/eval-run/run-label.ts
+   * evalRunOfRun), as a surface; undefined when the run is no try, or its
+   * eval run is gone or of another organization.
    */
-  async function pluginEvalSurfaceOf(execution: Run): Promise<RunSurface | undefined> {
-    const named = evalOfRun(execution);
-    if (named === undefined) {
+  async function evalRunSurfaceOf(execution: Run): Promise<RunSurface | undefined> {
+    const evalRunId = evalRunOfRun(execution);
+    if (evalRunId === undefined) {
       return undefined;
     }
-    const evalId = named.id;
     const executionOrg = execution.metadata?.org ?? "";
-    const row =
-      named.kind === "agent"
-        ? await loadOptional(ApiResourceKind.agent_eval, evalId, AgentEvalSchema)
-        : await loadOptional(ApiResourceKind.plugin_eval, evalId, PluginEvalSchema);
+    const row = await loadOptional(ApiResourceKind.eval_run, evalRunId, EvalRunSchema);
     if (row === undefined) {
       return undefined;
     }
-    const noun = named.kind === "agent" ? "agent eval" : "plugin eval";
     if ((row.metadata?.org ?? "") !== executionOrg) {
       logger.warn("A run's surface belongs to another organization; its vaults are not used", {
-        kind: noun,
-        id: evalId,
+        kind: "eval run",
+        id: evalRunId,
         executionId: execution.metadata?.id ?? "",
       });
       return undefined;
     }
     return {
-      what: `${noun} '${row.metadata?.name ?? evalId}'`,
+      what: `eval run '${row.metadata?.name ?? evalRunId}'`,
       refs: row.spec?.vaults ?? [],
       attachers: row.status?.vaultAttachers ?? {},
       org: executionOrg,
@@ -1298,7 +1291,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
       sources.push(...(await namedSources(named, person, RunValueOrigin.VAULT)));
       // A plugin eval's try acting as its creator: the eval's vaults serve it
       // after the conversation's, checked against who attached each.
-      const evalSurface = await pluginEvalSurfaceOf(execution);
+      const evalSurface = await evalRunSurfaceOf(execution);
       if (evalSurface !== undefined) {
         sources.push(
           ...(await namedSources(await namedOf([evalSurface]), person, RunValueOrigin.SURFACE_VAULT)),
@@ -1358,7 +1351,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
         if (person !== undefined) {
           // A plugin eval's try acting as its creator: the eval's vaults are
           // the run's, as the plan found them.
-          const evalSurface = await pluginEvalSurfaceOf(execution);
+          const evalSurface = await evalRunSurfaceOf(execution);
           if (evalSurface !== undefined) {
             await add(await namedOf([evalSurface]), RunValueOrigin.SURFACE_VAULT);
           }

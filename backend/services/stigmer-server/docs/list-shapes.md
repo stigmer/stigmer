@@ -62,7 +62,7 @@ Rows read `| \`package.Service.method\` | class |`.
 | `ai.stigmer.agentic.plugin.v1.PluginCommandController.listTools` | exempt: computed, the tools one server of a plugin offers, asked of the server through a runner |
 | `ai.stigmer.agentic.plugin.v1.PluginQueryController.list` | paged |
 | `ai.stigmer.agentic.plugin.v1.PluginQueryController.listVersions` | paged |
-| `ai.stigmer.agentic.plugineval.v1.PluginEvalQueryController.listByPlugin` | paged |
+| `ai.stigmer.agentic.plugineval.v1.EvalRunQueryController.listByPlugin` | paged |
 | `ai.stigmer.agentic.run.v1.RunQueryController.list` | paged |
 | `ai.stigmer.agentic.run.v1.RunQueryController.listBySession` | paged |
 | `ai.stigmer.agentic.schedule.v1.ScheduleQueryController.list` | paged |

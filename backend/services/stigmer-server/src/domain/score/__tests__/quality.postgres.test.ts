@@ -47,7 +47,7 @@ import {
   type TestDatabase,
 } from "../../../store/postgres/__tests__/support.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
-import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
+import { EVAL_RUN_LABEL } from "../../eval-run/constants.js";
 import {
   FLAGGED_SCORES_KEY,
   QUALITY_REPORT_BATCH,
@@ -141,7 +141,7 @@ async function seedScore(store: Store, seed: Seed): Promise<string> {
         name: id,
         slug: id,
         org: seed.org ?? "org_a",
-        labels: seed.evalTry === true ? { [PLUGIN_EVAL_LABEL]: "pev_x" } : {},
+        labels: seed.evalTry === true ? { [EVAL_RUN_LABEL]: "evr_x" } : {},
       },
       spec: {
         runId: seed.runId ?? `run_quality${seq}`,

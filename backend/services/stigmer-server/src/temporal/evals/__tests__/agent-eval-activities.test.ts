@@ -27,12 +27,12 @@ import { AgentEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1
 import { AgentEvalSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/spec_pb";
 import { AgentEvalPluginSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/status_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginEvalPhase, PluginEvalTryState } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import { EvalRunPhase, EvalRunTryState } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import { PLUGIN_EVAL_LABEL } from "../../../domain/plugin-eval/constants.js";
-import { newPatternPool } from "../../../domain/plugin-eval/graders/patterns.js";
+import { EVAL_RUN_LABEL } from "../../../domain/eval-run/constants.js";
+import { newPatternPool } from "../../../domain/eval-run/graders/patterns.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { createCaseActivities } from "../case-activities.js";
@@ -113,7 +113,7 @@ async function seedAgentEval(spec: { readonly targets?: Array<{ harness: Harness
         targets: spec.targets ?? [],
       }),
       status: {
-        phase: PluginEvalPhase.pending,
+        phase: EvalRunPhase.pending,
         agentVersionHash: AGENT_HASH,
         plugins: [
           create(AgentEvalPluginSchema, { pluginId: PLUGIN_ID, pluginSlug: "thermos", pluginDigest: DIGEST }),
@@ -151,7 +151,7 @@ function build() {
     recorder: () => chain.recorder,
     deleter: () => chain.deleter,
     readArtifact: undefined,
-    pluginEvalCaller: undefined,
+    evalRunCaller: undefined,
     patterns: pool,
     attempt: () => 1,
   });
@@ -174,7 +174,7 @@ describe("an agent eval through the shared activities", () => {
     ]);
 
     const status = (await readAgentEval()).status!;
-    expect(status.phase).toBe(PluginEvalPhase.running);
+    expect(status.phase).toBe(EvalRunPhase.running);
     expect(status.triesTotal).toBe(2);
     const [thermos, refunds, style] = status.plugins;
     expect(thermos?.cases.map((evalCase) => evalCase.caseName)).toEqual(["first-case", "other-plugin"]);
@@ -204,7 +204,7 @@ describe("an agent eval through the shared activities", () => {
     expect(await cases[START_TRY_ACTIVITY_NAME](input)).toMatchObject({ kind: "started" });
 
     const session = record.sessions[0]!.session;
-    expect(session.metadata?.labels[PLUGIN_EVAL_LABEL]).toBe(EVAL_ID);
+    expect(session.metadata?.labels[EVAL_RUN_LABEL]).toBe(EVAL_ID);
     expect(session.spec?.agentRef).toMatchObject({ org: ORG, id: AGENT_ID, slug: "", version: AGENT_HASH });
     expect(session.spec?.plugins.map((ref) => [ref.id, ref.version])).toEqual([
       [PLUGIN_ID, DIGEST],
@@ -255,8 +255,8 @@ describe("an agent eval through the shared activities", () => {
     await suite[FINISH_EVAL_ACTIVITY_NAME](EVAL_ID, { phase: "completed" });
 
     const status = (await readAgentEval()).status!;
-    expect(status.phase).toBe(PluginEvalPhase.completed);
-    expect(status.plugins[0]?.cases[0]?.targets[0]?.withPlugin?.tries[0]?.state).toBe(PluginEvalTryState.graded);
+    expect(status.phase).toBe(EvalRunPhase.completed);
+    expect(status.plugins[0]?.cases[0]?.targets[0]?.withPlugin?.tries[0]?.state).toBe(EvalRunTryState.graded);
     expect(status.plugins[1]?.cases[0]?.targets[0]?.withPlugin?.tries[0]?.score).toBe(0.5);
     expect(status.plugins[0]?.aggregates).toMatchObject({ overallScore: 1, casesPassed: 1, casesTotal: 1 });
     expect(status.plugins[1]?.aggregates).toMatchObject({ overallScore: 0.5, casesPassed: 0, casesTotal: 1 });
@@ -272,7 +272,7 @@ describe("an agent eval through the shared activities", () => {
     const { suite } = build();
     expect(await suite[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID)).toEqual({ kind: "stop" });
     const status = (await readAgentEval()).status!;
-    expect(status.phase).toBe(PluginEvalPhase.failed);
+    expect(status.phase).toBe(EvalRunPhase.failed);
     expect(status.error).toBe(EVAL_SUBJECT_GONE_ERROR);
     expect(status.finishedAt).toBeDefined();
   });
@@ -285,7 +285,7 @@ describe("an agent eval through the shared activities", () => {
       // A cancel lands between the load's first read and its write.
       contexts: async () => {
         await temp.store.updateResource(ApiResourceKind.agent_eval, EVAL_ID, AgentEvalSchema, (live) => {
-          live.status!.phase = PluginEvalPhase.partial;
+          live.status!.phase = EvalRunPhase.partial;
         });
         return undefined;
       },
@@ -293,7 +293,7 @@ describe("an agent eval through the shared activities", () => {
     });
     expect(await suite[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID)).toEqual({ kind: "stop" });
     const status = (await readAgentEval()).status!;
-    expect(status.phase).toBe(PluginEvalPhase.partial);
+    expect(status.phase).toBe(EvalRunPhase.partial);
     expect(status.error).toBe("");
   });
 

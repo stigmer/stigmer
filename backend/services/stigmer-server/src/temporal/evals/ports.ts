@@ -7,7 +7,7 @@
  * through the judge session's deleter (domain/score/ports.ts), the same
  * one an eval's delete removes its tries' sessions with. The session is
  * created first and on its own so it may carry the reserved
- * `stigmer.ai/plugin-eval` label: an in-process, server-composed request
+ * `stigmer.ai/eval-run` label: an in-process, server-composed request
  * may stamp it (pipeline/steps/guard-reserved-labels.ts), a session born
  * inline from a run's create carries none of the run's labels.
  */
@@ -16,7 +16,7 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 
 import type { CallerIdentity } from "../../extensions/identity.js";
 
-export interface PluginEvalTryLane {
+export interface EvalRunTryLane {
   createSession(
     session: Session,
     caller: CallerIdentity | undefined,

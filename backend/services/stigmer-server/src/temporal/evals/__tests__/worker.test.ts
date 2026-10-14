@@ -8,7 +8,7 @@
 import type { Worker } from "@temporalio/worker";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { newPatternPool } from "../../../domain/plugin-eval/graders/patterns.js";
+import { newPatternPool } from "../../../domain/eval-run/graders/patterns.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { CreateWorkerOptions, WorkerFactoryDeps } from "../../manager.js";
@@ -67,7 +67,7 @@ describe("the plugin-eval worker factory", () => {
         recorder: () => ({ record: (score) => Promise.resolve(score) }),
         deleter: () => ({ delete: () => Promise.resolve() }),
         readArtifact: undefined,
-        pluginEvalCaller: undefined,
+        evalRunCaller: undefined,
         patterns,
         logger: silentLogger,
       })(deps);

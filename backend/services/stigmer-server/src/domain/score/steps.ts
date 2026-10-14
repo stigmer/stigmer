@@ -96,7 +96,7 @@ import {
   runNotCompletedMessage,
   scoreOrgMismatchMessage,
 } from "./constants.js";
-import { PLUGIN_EVAL_LABEL } from "../plugin-eval/constants.js";
+import { EVAL_RUN_LABEL } from "../eval-run/constants.js";
 import { isTerminalExecutionPhase } from "../run/phases.js";
 import { sessionIdOf } from "../run/target.js";
 import { scoreListIndex } from "./list-index.js";
@@ -474,9 +474,9 @@ export function newStampScoredRunStep(): PipelineStep<typeof ScoreSchema> {
       status.agentId = run.status?.agentId ?? "";
       status.agentVersionHash = run.status?.agentVersionHash ?? "";
       score.status = status;
-      const evalLabel = run.metadata?.labels[PLUGIN_EVAL_LABEL];
+      const evalLabel = run.metadata?.labels[EVAL_RUN_LABEL];
       if (evalLabel !== undefined && score.metadata !== undefined) {
-        score.metadata.labels[PLUGIN_EVAL_LABEL] = evalLabel;
+        score.metadata.labels[EVAL_RUN_LABEL] = evalLabel;
       }
     },
   };

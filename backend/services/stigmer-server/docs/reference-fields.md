@@ -96,11 +96,11 @@ Rows read `| \`Message.field\` | class |`.
 
 | Field | Class |
 |---|---|
-| `ai.stigmer.agentic.plugineval.v1.ListPluginEvalsByPluginRequest.plugin_id` | stamped id |
-| `ai.stigmer.agentic.plugineval.v1.PluginEvalSpec.plugin_id` | stamped id |
-| `ai.stigmer.agentic.plugineval.v1.PluginEvalSpec.vaults` | manifest reference |
-| `ai.stigmer.agentic.plugineval.v1.PluginEvalTry.run_id` | stamped id |
-| `ai.stigmer.agentic.plugineval.v1.PluginEvalTry.session_id` | stamped id |
+| `ai.stigmer.agentic.plugineval.v1.ListEvalRunsByPluginRequest.plugin_id` | stamped id |
+| `ai.stigmer.agentic.plugineval.v1.EvalRunSpec.plugin_id` | stamped id |
+| `ai.stigmer.agentic.plugineval.v1.EvalRunSpec.vaults` | manifest reference |
+| `ai.stigmer.agentic.plugineval.v1.EvalRunTry.run_id` | stamped id |
+| `ai.stigmer.agentic.plugineval.v1.EvalRunTry.session_id` | stamped id |
 
 ## `ai.stigmer.agentic.run.v1`
 
@@ -120,7 +120,7 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.session_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.LoadedVersions.plugins` | stamped reference |
 | `ai.stigmer.agentic.run.v1.LoadedVersions.skills` | stamped reference |
-| `ai.stigmer.agentic.run.v1.PluginEvalCaseContext.plugin_id` | stamped id |
+| `ai.stigmer.agentic.run.v1.EvalCaseContext.plugin_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RecalledMemoryFact.memory_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RunSpec.session_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RunStatus.agent_id` | stamped id |

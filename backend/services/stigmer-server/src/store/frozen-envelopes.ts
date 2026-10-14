@@ -12,13 +12,14 @@
  * `agent_instance`, `workflow_instance`, `workflow`, `workflow_execution`,
  * `environment`, `artifact` and `mcp_server` among their kinds, and they
  * and the name backfill (resource-names-backfill.ts) and the reference
- * rewrite (references-by-id.ts) list `platform_client`. Those kinds have since been removed
+ * rewrite (references-by-id.ts) list `platform_client`, `plugin_eval` and
+ * `agent_eval`. Those kinds have since been removed
  * from the contract, so their generated schemas no longer exist, but a
  * store that replays the migration chain from an old version still holds
  * their rows when those two steps run (the later migrations that remove the
  * rows, agent-instance-retired.ts, workflow-instance-retired.ts,
- * workflow-retired.ts, environment-retired.ts, mcp-server-retired.ts and
- * platform-client-retired.ts, run after them). Both steps read and edit `metadata`
+ * workflow-retired.ts, environment-retired.ts, mcp-server-retired.ts,
+ * platform-client-retired.ts and eval-kinds-retired.ts, run after them). Both steps read and edit `metadata`
  * only, through reflection, so an envelope is exactly what they need:
  * protobuf-es keeps the fields it does not declare (spec = 4, status = 5)
  * as unknown fields through `fromBinary` and writes them back verbatim in
@@ -80,6 +81,16 @@ export const FrozenMcpServerEnvelopeSchema = frozenEnvelope(
 /** The envelope of a retired PlatformClient row. */
 export const FrozenPlatformClientEnvelopeSchema = frozenEnvelope(
   "ai.stigmer.iam.platformclient.v1.PlatformClient",
+);
+
+/** The envelope of a retired PluginEval row. */
+export const FrozenPluginEvalEnvelopeSchema = frozenEnvelope(
+  "ai.stigmer.agentic.plugineval.v1.PluginEval",
+);
+
+/** The envelope of a retired AgentEval row. */
+export const FrozenAgentEvalEnvelopeSchema = frozenEnvelope(
+  "ai.stigmer.agentic.agenteval.v1.AgentEval",
 );
 
 /** The envelope's schema under `typeName`, a retired message's full name (the module header). */
