@@ -27,7 +27,7 @@
  * __tests__/agentchannel.test.ts and __tests__/store-faults.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
@@ -84,6 +84,7 @@ import {
   sortedLabels,
 } from "../../pipeline/steps/helpers.js";
 import {
+  decodeOrSkip,
   listPageFingerprint,
   readListPage,
 } from "../../pipeline/steps/list-page.js";
@@ -634,10 +635,6 @@ function newLoadChannelsByAgentStep(
       >,
     ): Promise<void> {
       const req = ctx.input;
-      if (req.agentId === "") {
-        ctx.set(CHANNEL_LIST_KEY, create(AgentChannelListSchema));
-        return;
-      }
       // The org and agent filters are indexed predicates in both editions;
       // the scope narrows the agent's channels last (the scope is the last
       // per-row predicate).
@@ -758,13 +755,7 @@ async function readChannelPage(
     query: lane.query,
     request,
     fingerprint: listPageFingerprint(lane.fingerprint),
-    decode: (data) => {
-      try {
-        return fromBinary(AgentChannelSchema, data);
-      } catch {
-        return undefined;
-      }
-    },
+    decode: decodeOrSkip(AgentChannelSchema),
     ...(lane.keep === undefined ? {} : { keep: lane.keep }),
     scope: (channels) =>
       restrictListByReadScope(

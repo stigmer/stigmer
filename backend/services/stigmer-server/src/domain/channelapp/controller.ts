@@ -29,7 +29,7 @@
  * and __tests__/channelapp.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
@@ -102,6 +102,7 @@ import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js"
 import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import {
+  decodeOrSkip,
   listPageFingerprint,
   readListPage,
 } from "../../pipeline/steps/list-page.js";
@@ -520,16 +521,10 @@ function newListStep(
           pageToken: ctx.input.pageToken,
         },
         fingerprint: listPageFingerprint({ org }),
-        decode: (data) => {
-          try {
-            return fromBinary(ChannelAppSchema, data);
-          } catch (error) {
-            logger.warn("Failed to unmarshal ChannelApp, skipping", {
-              error: error instanceof Error ? error.message : String(error),
-            });
-            return undefined;
-          }
-        },
+        decode: decodeOrSkip<ChannelApp>(ChannelAppSchema, {
+          logger,
+          message: "Failed to unmarshal ChannelApp, skipping",
+        }),
         keep: (app) => (app.metadata?.org ?? "") === org,
         scope: (rows) =>
           restrictListByReadScope(

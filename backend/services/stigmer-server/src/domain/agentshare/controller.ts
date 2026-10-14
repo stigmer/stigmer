@@ -28,7 +28,7 @@
  * __tests__/agentshare.test.ts and __tests__/store-faults.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
@@ -85,6 +85,7 @@ import {
   sortedLabels,
 } from "../../pipeline/steps/helpers.js";
 import {
+  decodeOrSkip,
   listPageFingerprint,
   readListPage,
 } from "../../pipeline/steps/list-page.js";
@@ -647,10 +648,6 @@ function newLoadSharesByAgentStep(
       >,
     ): Promise<void> {
       const req = ctx.input;
-      if (req.agentId === "") {
-        ctx.set(SHARE_LIST_KEY, create(AgentShareListSchema));
-        return;
-      }
       // The org and agent filters are indexed predicates in both editions;
       // the scope narrows the agent's shares last (the scope is the last
       // per-row predicate).
@@ -779,14 +776,10 @@ async function readSharePage(
     query: lane.query,
     request,
     fingerprint: listPageFingerprint(lane.fingerprint),
-    decode: (data) => {
-      try {
-        return fromBinary(AgentShareSchema, data);
-      } catch {
-        logger.warn("Failed to unmarshal agent share, skipping");
-        return undefined;
-      }
-    },
+    decode: decodeOrSkip(AgentShareSchema, {
+      logger,
+      message: "Failed to unmarshal agent share, skipping",
+    }),
     ...(lane.keep === undefined ? {} : { keep: lane.keep }),
     scope: (shares) =>
       restrictListByReadScope(

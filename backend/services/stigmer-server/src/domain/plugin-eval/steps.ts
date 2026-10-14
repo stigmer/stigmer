@@ -21,7 +21,7 @@
  * __tests__/plugin-eval.test.ts (the composed lanes).
  */
 import { ConnectError } from "@connectrpc/connect";
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import { timestampMs, timestampNow } from "@bufbuild/protobuf/wkt";
 
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -66,6 +66,7 @@ import { evaluateAuthorizer } from "../../pipeline/steps/authorize.js";
 import { assignServerId, generateId } from "../../pipeline/steps/defaults.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import {
+  decodeOrSkip,
   listPageFingerprint,
   readListPage,
 } from "../../pipeline/steps/list-page.js";
@@ -677,17 +678,11 @@ export function newListPluginEvalsByPluginStep(
           lane: "pluginEval.listByPlugin",
           pluginId,
         }),
-        decode: (data) => {
-          try {
-            return fromBinary(PluginEvalSchema, data);
-          } catch (error) {
-            logger.warn("skipped a plugin eval row that does not decode", {
-              pluginId,
-              error: error instanceof Error ? error.message : String(error),
-            });
-            return undefined;
-          }
-        },
+        decode: decodeOrSkip<PluginEval>(PluginEvalSchema, {
+          logger,
+          message: "skipped a plugin eval row that does not decode",
+          fields: { pluginId },
+        }),
         keep: (pluginEval) => pluginEval.spec?.pluginId === pluginId,
         scope: async (evals) => {
           if (isServerComposedRequest(ctx.callerIdentity)) {

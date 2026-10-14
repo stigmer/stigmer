@@ -26,7 +26,7 @@
  * __tests__/agent-eval.test.ts (the composed lanes).
  */
 import { ConnectError } from "@connectrpc/connect";
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import { timestampNow } from "@bufbuild/protobuf/wkt";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -73,6 +73,7 @@ import { evaluateAuthorizer } from "../../pipeline/steps/authorize.js";
 import { assignServerId, generateId } from "../../pipeline/steps/defaults.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import {
+  decodeOrSkip,
   listPageFingerprint,
   readListPage,
 } from "../../pipeline/steps/list-page.js";
@@ -621,17 +622,11 @@ export function newListAgentEvalsByAgentStep(
           lane: "agentEval.listByAgent",
           agentId,
         }),
-        decode: (data) => {
-          try {
-            return fromBinary(AgentEvalSchema, data);
-          } catch (error) {
-            logger.warn("skipped an agent eval row that does not decode", {
-              agentId,
-              error: error instanceof Error ? error.message : String(error),
-            });
-            return undefined;
-          }
-        },
+        decode: decodeOrSkip<AgentEval>(AgentEvalSchema, {
+          logger,
+          message: "skipped an agent eval row that does not decode",
+          fields: { agentId },
+        }),
         keep: (agentEval) => agentEval.spec?.agentId === agentId,
         scope: async (evals) => {
           if (isServerComposedRequest(ctx.callerIdentity)) {

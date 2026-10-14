@@ -36,7 +36,7 @@
  * cloud) and __tests__/controller.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type {
@@ -88,6 +88,7 @@ import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import {
+  decodeOrSkip,
   listPageFingerprint,
   readPage,
 } from "../../pipeline/steps/list-page.js";
@@ -568,10 +569,4 @@ async function list(
 }
 
 /** A stored client, or undefined (skipped) when its bytes do not decode. */
-function decodePlatformClient(data: Uint8Array): PlatformClient | undefined {
-  try {
-    return fromBinary(PlatformClientSchema, data);
-  } catch {
-    return undefined;
-  }
-}
+const decodePlatformClient = decodeOrSkip(PlatformClientSchema);

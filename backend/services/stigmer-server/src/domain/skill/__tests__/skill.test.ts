@@ -20,7 +20,8 @@
  * history holds the first push and the re-push, each once. The same race
  * over a single-use upload reference lands: the retried push reuses the
  * bytes the first attempt consumed. A re-push keeps the level
- * updateVisibility set, since a push names no visibility.
+ * updateVisibility set, since a push names no visibility. The
+ * organization's skills list newest first, one page at a time.
  */
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import http2 from "node:http2";
@@ -834,5 +835,27 @@ describe("pushFromRunArtifact — reading the run's artifact", () => {
       "download failure",
     );
     expect(err.rawMessage).toBe("failed to download execution artifact");
+  });
+});
+
+describe("list — an organization's skills", () => {
+  it("pages newest first by token, every skill once", async () => {
+    const older = await command.push({ org: ORG, artifact: makeArtifact(uniqueName()) });
+    const newer = await command.push({ org: ORG, artifact: makeArtifact(uniqueName()) });
+
+    const ids: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await query.list({ org: ORG, pageSize: 1, pageToken });
+      expect(page.entries.length).toBeLessThanOrEqual(1);
+      ids.push(...page.entries.map((skill) => skill.metadata!.id));
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+
+    expect(new Set(ids).size).toBe(ids.length);
+    const newerAt = ids.indexOf(newer.metadata!.id);
+    const olderAt = ids.indexOf(older.metadata!.id);
+    expect(newerAt).toBeGreaterThanOrEqual(0);
+    expect(olderAt).toBeGreaterThan(newerAt);
   });
 });

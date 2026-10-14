@@ -34,7 +34,7 @@
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
@@ -102,6 +102,7 @@ import {
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import {
+  decodeOrSkip,
   listPageFingerprint,
   readListPage,
 } from "../../pipeline/steps/list-page.js";
@@ -564,10 +565,4 @@ async function readOwnedKeysPage(
 }
 
 /** A stored key, or undefined (skipped) when its bytes do not decode. */
-function decodeApiKey(data: Uint8Array): ApiKey | undefined {
-  try {
-    return fromBinary(ApiKeySchema, data);
-  } catch {
-    return undefined;
-  }
-}
+const decodeApiKey = decodeOrSkip(ApiKeySchema);

@@ -1,20 +1,24 @@
 /**
  * Pins the page loop every paged list lane shares (../list-page.ts),
  * against a real store opened with the server's list indexes:
- * `page_size` 0 reads the whole list with no token; a positive size walks
- * every row in the store's order with no gap and no duplicate, the last
- * page carrying no token (also when the rows end exactly on a page); a
- * scope that refuses rows still fills pages and the cut resumes after the
- * last row returned; a caller who may see nothing gets short pages bounded
- * by the examine budget, each with a token, until the rows run out; a size
- * above the contract's maximum is capped; and the token's refusals — a
- * negative size, malformed text, a token issued for another request.
+ * `page_size` 0 reads the default page of 50 and a token, never the whole
+ * list; a positive size walks every row in the store's order with no gap
+ * and no duplicate, the last page carrying no token (also when the rows
+ * end exactly on a page); a scope that refuses rows still fills pages and
+ * the cut resumes after the last row returned; a caller who may see
+ * nothing gets short pages bounded by the examine budget, each with a
+ * token, until the rows run out; a size above the contract's maximum is
+ * capped; and the token's refusals — a negative size, malformed text, a
+ * token issued for another request.
  *
  * `readPage` is the same loop over a function source, the way an extension
  * that keeps its own table calls it: it pages a source's rows with no gap
  * and no duplicate, asks the source for the rows after the last one it
  * handed out with one row past the batch, and answers a source fault as
- * INTERNAL with the lane's copy.
+ * INTERNAL with the lane's copy. `readEveryPage` walks a list's tokens to
+ * the end for an in-process reader, and refuses past its cap rather than
+ * answer a cut list. `decodeOrSkip` is a lane's decoder: a row that does
+ * not decode is skipped, and named in a warning when the lane asks.
  */
 import { create } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
@@ -23,15 +27,18 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { fromBinary } from "@bufbuild/protobuf";
+import { fromBinary, toBinary } from "@bufbuild/protobuf";
 
 import { sessionListIndex } from "../../../domain/session/list-index.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import {
+  LIST_PAGE_DEFAULT_SIZE,
   LIST_PAGE_MAX_SIZE,
+  decodeOrSkip,
   examineBudgetOf,
   listPageFingerprint,
+  readEveryPage,
   readListPage,
   readPage,
 } from "../list-page.js";
@@ -117,11 +124,11 @@ async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
 }
 
 describe("readListPage", () => {
-  it("reads the whole list with no token at page_size 0", async () => {
-    const all = await seed(7);
+  it("reads the default page of 50 and a token at page_size 0, never the whole list", async () => {
+    const all = await seed(LIST_PAGE_DEFAULT_SIZE + 1);
     const page = await readListPage(params(0, ""));
-    expect(page.entries.map((s) => s.metadata!.id)).toEqual(all);
-    expect(page.nextPageToken).toBe("");
+    expect(page.entries.map((s) => s.metadata!.id)).toEqual(all.slice(0, LIST_PAGE_DEFAULT_SIZE));
+    expect(page.nextPageToken).not.toBe("");
   });
 
   it("walks every row with no gap and no duplicate, the last page without a token", async () => {
@@ -272,5 +279,69 @@ describe("readPage", () => {
       Code.Internal,
       "failed to list host rows",
     ]);
+  });
+
+  it("readEveryPage follows every token to the end, in order", async () => {
+    const rows = hostRows(5);
+    const source = sourceOver(rows, []);
+    const tokens: string[] = [];
+    const every = await readEveryPage(
+      (pageToken) => {
+        tokens.push(pageToken);
+        return pageOf(source, 2, pageToken);
+      },
+      { what: "the host's rows" },
+    );
+    expect(every).toEqual(rows.map((row) => row.id));
+    expect(tokens).toHaveLength(3);
+    expect(tokens[0]).toBe("");
+  });
+
+  it("readEveryPage refuses past its cap rather than answer a cut list", async () => {
+    const source = sourceOver(hostRows(5), []);
+    const refused = await refusal(
+      readEveryPage((pageToken) => pageOf(source, 2, pageToken), {
+        what: "the host's rows",
+        cap: 3,
+      }),
+    );
+    expect([refused.code, refused.rawMessage]).toEqual([
+      Code.FailedPrecondition,
+      "the host's rows holds more than 3 entries; read it a page at a time",
+    ]);
+  });
+});
+
+describe("decodeOrSkip", () => {
+  const session = create(SessionSchema, { metadata: { id: "ses_1", org: "acme" } });
+  const undecodable = new Uint8Array([0xff, 0xff, 0xff]);
+
+  it("decodes a stored row", () => {
+    expect(decodeOrSkip(SessionSchema)(toBinary(SessionSchema, session))?.metadata?.id).toBe("ses_1");
+  });
+
+  it("skips a row that does not decode, silently when the lane names no log", () => {
+    expect(decodeOrSkip(SessionSchema)(undecodable)).toBeUndefined();
+  });
+
+  it("skips a row that does not decode and warns with the lane's fields and the reason", () => {
+    const warnings: Array<[string, Record<string, unknown> | undefined]> = [];
+    const logger = {
+      debug: () => undefined,
+      info: () => undefined,
+      warn: (message: string, fields?: Record<string, unknown>) => {
+        warnings.push([message, fields]);
+      },
+      error: () => undefined,
+    };
+    const decode = decodeOrSkip(SessionSchema, {
+      logger,
+      message: "skipped a session row that does not decode",
+      fields: { org: "acme" },
+    });
+    expect(decode(undecodable)).toBeUndefined();
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]![0]).toBe("skipped a session row that does not decode");
+    expect(warnings[0]![1]).toMatchObject({ org: "acme", error: expect.any(String) });
   });
 });

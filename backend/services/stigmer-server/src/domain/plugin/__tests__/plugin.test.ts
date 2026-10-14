@@ -30,6 +30,7 @@
  * lands between the re-push's read and its swap leaves its status_audit
  * stamp on the stored plugin beside the new digest at the level the push
  * declares, and the history holds the first push and the upgrade, each once.
+ * The organization's plugins list newest first, one page at a time.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -924,5 +925,27 @@ describe("Plugin delete and visibility", () => {
     expect(versions.entries).toHaveLength(1);
 
     await agents.delete({ value: mine.metadata!.id });
+  });
+});
+
+describe("Plugin list — an organization's plugins", () => {
+  it("pages newest first by token, every plugin once", async () => {
+    const older = await plugins.push({ org: ORG, artifact: archiveOf(thermosLike(uniqueName("listed-older"))) });
+    const newer = await plugins.push({ org: ORG, artifact: archiveOf(thermosLike(uniqueName("listed-newer"))) });
+
+    const ids: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await pluginQuery.list({ org: ORG, pageSize: 1, pageToken });
+      expect(page.entries.length).toBeLessThanOrEqual(1);
+      ids.push(...page.entries.map((plugin) => plugin.metadata!.id));
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+
+    expect(new Set(ids).size).toBe(ids.length);
+    const newerAt = ids.indexOf(newer.metadata!.id);
+    const olderAt = ids.indexOf(older.metadata!.id);
+    expect(newerAt).toBeGreaterThanOrEqual(0);
+    expect(olderAt).toBeGreaterThan(newerAt);
   });
 });

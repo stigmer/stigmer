@@ -19,7 +19,7 @@
  *
  * Proven by __tests__/score.test.ts and score.conformance.test.ts.
  */
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -64,6 +64,7 @@ import {
 } from "../../pipeline/steps/defaults.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import {
+  decodeOrSkip,
   listPageFingerprint,
   readListPage,
 } from "../../pipeline/steps/list-page.js";
@@ -658,17 +659,11 @@ async function readParentScorePage(
       lane: parent.lane,
       [parent.key]: parent.value,
     }),
-    decode: (data) => {
-      try {
-        return fromBinary(ScoreSchema, data);
-      } catch (error) {
-        logger.warn("Failed to unmarshal score, skipping", {
-          [parent.key]: parent.value,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        return undefined;
-      }
-    },
+    decode: decodeOrSkip(ScoreSchema, {
+      logger,
+      message: "Failed to unmarshal score, skipping",
+      fields: { [parent.key]: parent.value },
+    }),
     keep: parent.keep,
     scope: (scores) => Promise.resolve(scores),
     failure: parent.failure,

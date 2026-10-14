@@ -20,7 +20,7 @@
  * Proven by memory.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/memory.test.ts.
  */
-import { create, equals, fromBinary, isMessage } from "@bufbuild/protobuf";
+import { create, equals, isMessage } from "@bufbuild/protobuf";
 import { timestampNow } from "@bufbuild/protobuf/wkt";
 import type { ConnectError } from "@connectrpc/connect";
 
@@ -59,6 +59,7 @@ import {
 import { memoryCaptureCredentialOf } from "../../pipeline/steps/guard-memory-capture.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import {
+  decodeOrSkip,
   listPageFingerprint,
   readListPage,
 } from "../../pipeline/steps/list-page.js";
@@ -628,13 +629,7 @@ export function newListMemoriesByOrgStep(
         query: { org },
         request: ctx.input,
         fingerprint: listPageFingerprint({ lane: "memory.list", org }),
-        decode: (data) => {
-          try {
-            return fromBinary(MemorySchema, data);
-          } catch {
-            return undefined;
-          }
-        },
+        decode: decodeOrSkip<Memory>(MemorySchema),
         scope: (memories) =>
           restrictListByReadScope(
             listReadScope,

@@ -10,7 +10,8 @@
  *   - the owner-scoped name check answers INTERNAL when the owner's keys
  *     cannot be read, and when the chain reached it with no slug;
  *   - the owner read skips a row that does not decode and keeps only the
- *     owners' keys;
+ *     owners' keys, and a caller no key can speak for lists none without
+ *     reading the index;
  *   - an account's key delete refuses a key row that carries no id.
  */
 import { create, toBinary } from "@bufbuild/protobuf";
@@ -68,11 +69,15 @@ function clientsWithFailingAccounts() {
   return clientsWithAccounts(() => Promise.reject(new Error("account store down")));
 }
 
-function clientsWithAccounts(findById: (id: string) => Promise<undefined>) {
+function clientsWithAccounts(
+  findById: (id: string) => Promise<undefined>,
+  caller = testCallerIdentity(),
+  store = storeAnswering([]),
+) {
   const transport = createRouterTransport(
     (router) =>
       registerApiKeyServices(router, {
-        store: storeAnswering([]),
+        store,
         logger: silentLogger,
         authorizer: ALLOW_ALL,
         authorizationLifecycle: undefined,
@@ -83,7 +88,7 @@ function clientsWithAccounts(findById: (id: string) => Promise<undefined>) {
       router: {
         interceptors: [
           (next) => (request) => {
-            request.contextValues.set(callerIdentityKey, testCallerIdentity());
+            request.contextValues.set(callerIdentityKey, caller);
             return next(request);
           },
         ],
@@ -129,6 +134,18 @@ describe("a service account's key lanes when the account read faults", () => {
     const error = await refusal(query.listByAccount({ accountId: "ida_sa" }));
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).toContain("failed to load identity account");
+  });
+});
+
+describe("the key list of a caller no key can speak for", () => {
+  it("list answers a caller no key can speak for an empty page, without reading the index", async () => {
+    const { query } = clientsWithAccounts(
+      () => Promise.resolve(undefined),
+      testCallerIdentity({ identityId: "" }),
+      storeAnswering(new Error("the index must not be read")),
+    );
+    const page = await query.list({});
+    expect([page.entries, page.nextPageToken]).toEqual([[], ""]);
   });
 });
 
