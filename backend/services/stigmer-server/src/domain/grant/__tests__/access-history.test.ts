@@ -202,7 +202,7 @@ async function harness(options: {
   return {
     query: createClient(GrantQueryController, transport),
     checks,
-    grants: grants,
+    grants,
     grant: (spec, record) => grants.save(rowOf(spec), recordOf(record)),
     revoke: (spec, record) =>
       grants.deleteById(grantIdFor(spec), recordOf({ cause: "revoke", ...record })),
@@ -282,13 +282,13 @@ describe("listAccessHistory's chain", () => {
         throw new ConnectError("the plan does not include the access history", Code.FailedPrecondition);
       },
     };
-    const h = await harness({ gate, grants: grants });
+    const h = await harness({ gate, grants });
     const error = await rejection(h.query.listAccessHistory({ org: ACME }));
     expect(error.code).toBe(Code.FailedPrecondition);
     expect(h.checks).toHaveLength(1);
     expect(reads).toEqual([]);
 
-    const denied = await harness({ gate, grants: grants, decision: { kind: "deny", reason: "not an admin" } });
+    const denied = await harness({ gate, grants, decision: { kind: "deny", reason: "not an admin" } });
     expect((await rejection(denied.query.listAccessHistory({ org: ACME }))).code).toBe(
       Code.PermissionDenied,
     );
@@ -304,7 +304,7 @@ describe("listAccessHistory's chain", () => {
         return base.listChanges(org, page);
       },
     };
-    const h = await harness({ grants: grants });
+    const h = await harness({ grants });
     await h.query.listAccessHistory({ org: ACME, pageSize: 101 });
     // The page, then the oldest kept entry.
     expect(limits).toEqual([LIST_PAGE_MAX_SIZE + 1, 1]);
@@ -324,7 +324,7 @@ describe("listAccessHistory's chain", () => {
       ...base,
       listChanges: () => Promise.reject(new Error("connection reset by peer")),
     };
-    const h = await harness({ grants: grants });
+    const h = await harness({ grants });
     const error = await rejection(h.query.listAccessHistory({ org: ACME }));
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).toBe("failed to read the access history");
@@ -569,7 +569,7 @@ describe("listAccessHistory's retention", () => {
       await base.save(rowOf(n), recordOf);
     }
     await base.pruneChanges(LATER, 10);
-    const h = await harness({ grants: grants, retentionDays: 365 });
+    const h = await harness({ grants, retentionDays: 365 });
 
     const page = await h.query.listAccessHistory({ org: ACME, afterSequence: 1n });
     expect(page.entries).toEqual([]);
@@ -607,7 +607,7 @@ describe("listAccessHistory's retention", () => {
         return changes;
       },
     };
-    const h = await harness({ grants: grants, retentionDays: 7 });
+    const h = await harness({ grants, retentionDays: 7 });
     const recordOf = (organizationId: string): GrantChangeRecord => ({
       actor: { id: ANA, callerClass: "user" },
       cause: "grant",
@@ -635,7 +635,7 @@ describe("listAccessHistory's retention", () => {
           ? Promise.reject(new Error("connection reset by peer"))
           : base.listChanges(org, page),
     };
-    const h = await harness({ grants: grants });
+    const h = await harness({ grants });
     const error = await rejection(h.query.listAccessHistory({ org: ACME }));
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).toBe("failed to read the access history");

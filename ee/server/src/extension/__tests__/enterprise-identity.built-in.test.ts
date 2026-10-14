@@ -347,7 +347,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
       identityVerifiers: [fixtureVerifier],
       drivers: {
         platformTokenKeys: RING,
-        grantStore: grantStore,
+        grantStore,
         grantScope: newKindMetaGrantScope(),
       },
     };

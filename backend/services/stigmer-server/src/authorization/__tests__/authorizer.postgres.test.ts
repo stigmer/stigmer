@@ -154,7 +154,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
       ) {
         return newBuiltInAuthorizer({
           store: overrides.store ?? countingStore(opened.store),
-          grants: grants,
+          grants,
           accounts,
           edition: overrides.edition ?? ServerEdition.oss,
           logger: silentLogger,
@@ -676,7 +676,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           });
           const decision = await newBuiltInAuthorizer({
             store: opened.store,
-            grants: grants,
+            grants,
             accounts,
             edition: ServerEdition.oss,
             logger: silentLogger,
@@ -694,7 +694,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
       describe("cost", () => {
         it("one blueprint point check reads the target once and the account once — three reads through the port and the store in all", async () => {
-          const reads = { store: 0, accounts: 0, policies: 0 };
+          const reads = { store: 0, accounts: 0, grants: 0 };
           const auth = newBuiltInAuthorizer({
             store: {
               ...opened.store,
@@ -706,7 +706,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             grants: {
               ...grants,
               findByPrincipal(principalKind, principalId) {
-                reads.policies += 1;
+                reads.grants += 1;
                 return grants.findByPrincipal(principalKind, principalId);
               },
             },
@@ -731,7 +731,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           // The agent row once (the loader's memo serves the derivation
           // and the walk); the organization row once (the `viewer`
           // userset hop); the member's account once (resolved by id).
-          expect(reads).toEqual({ store: 2, accounts: 1, policies: 1 });
+          expect(reads).toEqual({ store: 2, accounts: 1, grants: 1 });
         });
       });
     });

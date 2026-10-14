@@ -37,7 +37,7 @@
  * instance reads them from then on from the person's personal environment
  * (when the agent belongs to the run's own organization) or from the
  * layers a schedule or a PlatformClient caller supplies.
- * Every IamPolicy row whose resource or principal is an instance leaves too
+ * Every grant row whose resource or principal is an instance leaves too
  * (`grantNamesRetiredInstance`): a grant on an object that no longer
  * exists would only linger in grant listings. Such a row leaves the way the
  * store deletes a policy, with its list keys and with its history kept.
@@ -169,7 +169,7 @@ export function migrateSessionRow(
 }
 
 /**
- * Whether a stored IamPolicy row names an agent instance as its resource
+ * Whether a stored grant row names an agent instance as its resource
  * or its principal (an `ApiResourceRef.kind` is the enum member name, the
  * string the instance kind's rows were stored under). Read through the
  * live schema: the policy's own fields are unchanged. Throws when the

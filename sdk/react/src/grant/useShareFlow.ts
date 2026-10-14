@@ -143,10 +143,10 @@ export function useShareFlow(
   );
   const canShareWithTeams = teamsServed && teamGrantableRoles.length > 0;
 
-  const { create: createPolicy, isCreating: isGranting, error: grantError, clearError: clearGrantError } =
+  const { create: createGrant, isCreating: isGranting, error: grantError, clearError: clearGrantError } =
     useCreateGrant();
 
-  const { remove: removePolicy } = useDeleteGrant();
+  const { remove: removeGrant } = useDeleteGrant();
   const [isRevoking, setIsRevoking] = useState(false);
   const [revokeError, setRevokeError] = useState<Error | null>(null);
 
@@ -160,7 +160,7 @@ export function useShareFlow(
       const res = resourceRef.current;
       if (!res) return;
 
-      await createPolicy(
+      await createGrant(
         create(GrantSpecSchema, {
           principal: granteeRef(grantee),
           resource: create(ApiResourceRefSchema, { kind: res.kind, id: res.id }),
@@ -169,7 +169,7 @@ export function useShareFlow(
       );
       refetch();
     },
-    [createPolicy, refetch],
+    [createGrant, refetch],
   );
 
   const revoke = useCallback(
@@ -191,7 +191,7 @@ export function useShareFlow(
       setRevokeError(null);
       try {
         for (const relation of new Set(relations)) {
-          await removePolicy(
+          await removeGrant(
             create(GrantSpecSchema, {
               principal: granteeRef(grantee),
               resource: create(ApiResourceRefSchema, { kind: res.kind, id: res.id }),
@@ -207,7 +207,7 @@ export function useShareFlow(
         refetch();
       }
     },
-    [removePolicy, refetch],
+    [removeGrant, refetch],
   );
 
   const clearErrors = useCallback(() => {

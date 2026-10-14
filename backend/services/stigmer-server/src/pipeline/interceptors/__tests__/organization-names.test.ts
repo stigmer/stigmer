@@ -128,7 +128,7 @@ function harness(resolver: OrganizationNameResolver) {
     agents: createClient(AgentCommandController, transport),
     search: createClient(SearchService, transport),
     organizations: createClient(OrganizationQueryController, transport),
-    policies: createClient(GrantCommandController, transport),
+    grants: createClient(GrantCommandController, transport),
   };
 }
 
@@ -165,7 +165,7 @@ describe("the organization-name resolver", () => {
 
   it("resolves a top-level org, the Organization service's annotated id, and a grant ref of kind organization", async () => {
     const resolver = resolverOf({ acme: ACME });
-    const { search, organizations, policies: grants, seen } = harness(resolver);
+    const { search, organizations, grants, seen } = harness(resolver);
 
     await search.search({ org: "acme" });
     await organizations.get({ value: "acme" });
@@ -177,13 +177,13 @@ describe("the organization-name resolver", () => {
 
     expect((seen[0] as unknown as { org: string }).org).toBe(ACME);
     expect((seen[1] as unknown as { value: string }).value).toBe(ACME);
-    const policy = seen[2] as unknown as {
+    const grant = seen[2] as unknown as {
       principal?: { id: string };
       resource?: { id: string };
     };
-    expect(policy.resource?.id).toBe(ACME);
+    expect(grant.resource?.id).toBe(ACME);
     expect(
-      policy.principal?.id,
+      grant.principal?.id,
       "a ref of another kind is not an organization",
     ).toBe("acme");
   });

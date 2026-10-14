@@ -199,7 +199,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         ): ListReadScope {
           return newBuiltInListReadScope({
             store: countingStore(),
-            grants: grants,
+            grants,
             accounts: {
               findById: (id) => {
                 accountReads += 1;

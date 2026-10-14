@@ -69,7 +69,7 @@ describe("the identity unit's wiring", () => {
       ...[...block(handOver, "handedOver = {", "};").matchAll(/^\s*([A-Za-z_]\w*):/gm)].map((m) => m[1]),
       "transport",
       "transportRef",
-      "policies",
+      "grants",
       "grantStore",
     ]);
     expect(composed.size, "instances the hand-over takes").toBeGreaterThan(8);

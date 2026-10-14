@@ -258,7 +258,7 @@ export function newGrantStep(
     async execute(
       ctx: RequestContext<typeof GrantSpecSchema>,
     ): Promise<void> {
-      const { grant: grant } = await grantPath.grant(
+      const { grant } = await grantPath.grant(
         ctx.input,
         ctx.callerIdentity,
         cause,

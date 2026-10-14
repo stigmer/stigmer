@@ -523,7 +523,7 @@ describe.each(
             }
             const scope = newBuiltInListReadScope({
               store: opened.store,
-              grants: grants,
+              grants,
               accounts,
               logger: silentLogger,
               model: builtInModel,
@@ -569,7 +569,7 @@ describe.each(
           }
           const scope = newBuiltInListReadScope({
             store: opened.store,
-            grants: grants,
+            grants,
             accounts,
             logger: silentLogger,
             model: builtInModel,
@@ -613,7 +613,7 @@ describe.each(
             await save("agent", enterpriseAgentRow(agent));
             const authorizer = newBuiltInAuthorizer({
               store: opened.store,
-              grants: grants,
+              grants,
               accounts,
               edition: ServerEdition.oss,
               logger: silentLogger,

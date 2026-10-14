@@ -814,7 +814,7 @@ function migrateToV13(db: DatabaseSync): void {
  * read in keyset pages for the agent it names, each named agent once by
  * point read, then every session in keyset pages, rewritten when it names
  * an instance with `updated_at` bumped (the list index re-derives a row
- * whose stamp no longer matches, at open). Every IamPolicy row naming an
+ * whose stamp no longer matches, at open). Every grant row naming an
  * instance as resource or principal is found in keyset pages and deleted
  * with its list keys, its history kept, as the store deletes a policy. The
  * instance rows, their history and their list keys are then deleted; the
@@ -986,7 +986,7 @@ function migrateToV16(db: DatabaseSync): void {
 /**
  * v17: the workflow instance kind is removed — the Postgres driver's v12 in
  * this engine's terms (workflow-instance-retired.ts says what leaves and
- * why an unreadable row fails the step). Every IamPolicy row naming an
+ * why an unreadable row fails the step). Every grant row naming an
  * instance as resource or principal is found in keyset pages and deleted
  * with its list keys, its history kept, as the store deletes a policy. The
  * instance rows, their history and their list keys are then deleted; the
@@ -1053,7 +1053,7 @@ function migrateToV18(db: DatabaseSync): void {
  * One rename of a kind (kind-rename.ts), shared by v18 and v21. Every row
  * of the kind is read in keyset pages under its old name and rewritten when
  * its bytes spell the kind the old way; then every table keyed by kind
- * renames the kind. Every IamPolicy row is read in keyset pages, and the ones
+ * renames the kind. Every grant row is read in keyset pages, and the ones
  * naming the old kind are re-keyed: the old row leaves with its list keys,
  * its history kept, and the new row is written unproven with `updated_at`
  * stamped, so the list index derives its keys at open. The search index is
@@ -1129,7 +1129,7 @@ function renameKind(db: DatabaseSync, rename: KindRename): void {
  * v19: workflows, workflow runs and the artifact kind are removed — the
  * Postgres driver's v14 in this engine's terms (workflow-retired.ts says
  * what leaves, what each agent run becomes and why an unreadable row fails
- * the step). Every IamPolicy row is read in keyset pages, and the ones
+ * the step). Every grant row is read in keyset pages, and the ones
  * naming a retired kind as resource or principal are deleted with their
  * list keys, their history kept, as the store deletes a policy. Every
  * agent run is read in keyset pages and rewritten when it carries a
@@ -1261,7 +1261,7 @@ function migrateToV21(db: DatabaseSync): void {
 
 /**
  * v22: vaults replace the Environment kind (../environment-retired.ts says
- * what leaves and why nothing is carried). Every IamPolicy row is read in
+ * what leaves and why nothing is carried). Every grant row is read in
  * keyset pages, and the ones naming an environment as resource or principal
  * are deleted with their list keys, their history kept, as the store
  * deletes a policy. Every environment row is then deleted from every table
@@ -1814,7 +1814,7 @@ function migrateToV31(db: DatabaseSync): void {
  * change to an access row, written in the row's transaction by an edition
  * that keeps one, and its per-organization heads. The Postgres driver's
  * v27 in this engine's terms (its header has the columns). Not the Cloud's
- * `cloud.iam_policy_history`, which its own policy store writes; the
+ * `cloud.iam_grant_history`, which its own grant store writes; the
  * columns match so one reader reads both alike.
  */
 function migrateToV32(db: DatabaseSync): void {
@@ -1974,7 +1974,7 @@ function migrateToV36(db: DatabaseSync, logger: StoreLogger): void {
 /**
  * v37: the platform client kind is removed — the Postgres driver's v33 in
  * this engine's terms (../platform-client-retired.ts says what leaves, what
- * stays and why an unreadable row fails the step). Every IamPolicy row
+ * stays and why an unreadable row fails the step). Every grant row
  * naming a client as resource or principal is found in keyset pages and
  * deleted with its list keys, its history kept, as the store deletes a
  * policy. The client rows then leave every table that keys a row by kind.

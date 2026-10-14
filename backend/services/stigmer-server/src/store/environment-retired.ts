@@ -12,7 +12,7 @@
  * personal environment and every OAuth-managed one included), their
  * history, their list keys and the names they held. No value is moved into
  * a vault: a person saves their keys again, and signs in again, into My
- * vault. Every IamPolicy row whose resource or principal is an environment
+ * vault. Every grant row whose resource or principal is an environment
  * leaves too (`grantNamesRetiredEnvironment`): a grant on an object that no
  * longer exists would only linger in grant listings. Such a row leaves the
  * way the store deletes a policy, with its list keys and with its history
@@ -58,7 +58,7 @@ export const RETIRED_ENVIRONMENT_TABLES: ReadonlyArray<string> = ["oauth_grant"]
 export const ENVIRONMENT_RETIRED_PAGE_SIZE = 500;
 
 /**
- * Whether a stored IamPolicy row names the environment kind as its
+ * Whether a stored grant row names the environment kind as its
  * resource or its principal (an `ApiResourceRef.kind` is the enum member
  * name, the string the kind's rows were stored under). Throws when the
  * bytes do not decode.

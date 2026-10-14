@@ -16,7 +16,7 @@ Example:
   "Alice can view the Demo organization"
 ```
 
-IamPolicies are the source of truth for authorization. They are synced to [OpenFGA](https://openfga.dev/) as relationship tuples, where all runtime authorization checks are evaluated.
+Grants are the source of truth for authorization. They are synced to [OpenFGA](https://openfga.dev/) as relationship tuples, where all runtime authorization checks are evaluated.
 
 ## Core Concepts
 

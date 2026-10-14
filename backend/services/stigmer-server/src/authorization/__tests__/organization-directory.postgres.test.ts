@@ -154,7 +154,7 @@ describe.each(
       let accountReads = 0;
       const dir = newBuiltInOrganizationDirectory({
         store: opened.store,
-        grants: grants,
+        grants,
         accounts: {
           findById: (id) => {
             accountReads += 1;

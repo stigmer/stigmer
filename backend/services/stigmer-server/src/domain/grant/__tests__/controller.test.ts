@@ -278,7 +278,7 @@ async function harness(options: {
   const engine = options.engine === true ? recordingEngine() : undefined;
   const grantPath = newGrantPath({
     resources: NO_STORED_RESOURCES,
-    grants: grants,
+    grants,
     lifecycle: undefined,
     logger: silent,
   });
@@ -286,7 +286,7 @@ async function harness(options: {
     (router) => {
       registerGrantServices(router, {
         grantPath,
-        grants: grants,
+        grants,
         accounts,
         authorizer,
         grantScope: options.scope ?? newOrganizationOnlyGrantScope(),
@@ -325,7 +325,7 @@ async function harness(options: {
     query: createClient(GrantQueryController, transport),
     authorizer,
     engine,
-    grants: grants,
+    grants,
   };
 }
 
@@ -659,7 +659,7 @@ describe("checkAuthorization's principal-trust rule (the cloud's three refusals 
   it("a user stamped by EMAIL may ask about their own ACCOUNT id — the trust rule compares accounts, not stamps", async () => {
     const h = await harness({ caller: operator, engine: true });
     const grant = acmeAdmin({ kind: "identity_account", id: OPERATOR_ID });
-    const result = await h.query.checkAuthorization({ grant: grant });
+    const result = await h.query.checkAuthorization({ grant });
     expect(result.isAuthorized).toBe(true);
     expect(h.engine?.calls[0]?.method).toBe("check");
     expect((h.engine?.calls[0]?.args[0] as GrantSpec).principal?.id).toBe(

@@ -13,7 +13,7 @@
  * are not copied into its organization's embedding settings: an
  * organization could hold several clients with different settings, and
  * which to keep is its admins' choice, made once through updateEmbedding.
- * Every IamPolicy row whose resource or principal is a platform client
+ * Every grant row whose resource or principal is a platform client
  * leaves too (`grantNamesRetiredPlatformClient`): a grant on an object
  * that no longer exists would only linger in grant listings. Such a row
  * leaves the way the store deletes a policy, with its list keys and with
@@ -43,7 +43,7 @@ export const PLATFORM_CLIENT_RETIRED_GRANT_KIND = "iam_policy";
 export const PLATFORM_CLIENT_RETIRED_PAGE_SIZE = 500;
 
 /**
- * Whether a stored IamPolicy row names a platform client as its resource
+ * Whether a stored grant row names a platform client as its resource
  * or its principal (an `ApiResourceRef.kind` is the enum member name, the
  * string the kind's rows were stored under). Read through the live schema:
  * the policy's own fields are unchanged. Throws when the bytes do not

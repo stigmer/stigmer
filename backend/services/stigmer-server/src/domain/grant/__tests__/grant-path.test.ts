@@ -144,17 +144,17 @@ function pathOver(
   const grants = fakeGrantStore(recorded);
   const path = newGrantPath({
     resources,
-    grants: grants,
+    grants,
     lifecycle,
     logger: silentLogger,
   });
-  return { policies: grants, path };
+  return { grants, path };
 }
 
 describe("grant: row before onGranted", () => {
   it("persists the row, then fires the hook once with duplicate false; the row carries the contract's stamps", async () => {
     const recorded: RecordedEvent[] = [];
-    const { policies: grants, path } = pathOver(recorded, recordingLifecycle(recorded));
+    const { grants, path } = pathOver(recorded, recordingLifecycle(recorded));
     const spec = orgRole(ALICE, "admin", "acme");
 
     const result = await path.grant(spec, alice, "grant");
@@ -191,7 +191,7 @@ describe("grant: row before onGranted", () => {
 
   it("a hook throw fails the grant and leaves the row in place for the heal", async () => {
     const recorded: RecordedEvent[] = [];
-    const { policies: grants, path } = pathOver(
+    const { grants, path } = pathOver(
       recorded,
       recordingLifecycle(recorded, { granted: new Error("fga is down") }),
     );
@@ -232,7 +232,7 @@ describe("grant: row before onGranted", () => {
 describe("the row for a triple is found by triple, so legacy ids converge", () => {
   it("a legacy row makes a re-grant the duplicate arm: one row, ever, and the legacy id stands", async () => {
     const recorded: RecordedEvent[] = [];
-    const { policies: grants, path } = pathOver(recorded, recordingLifecycle(recorded));
+    const { grants, path } = pathOver(recorded, recordingLifecycle(recorded));
     const spec = orgRole(ALICE, "admin", "acme");
     grants.rows.set(LEGACY_ID, legacyRow(spec));
 
@@ -248,7 +248,7 @@ describe("the row for a triple is found by triple, so legacy ids converge", () =
 
   it("revokeBySpec finds and deletes the legacy row", async () => {
     const recorded: RecordedEvent[] = [];
-    const { policies: grants, path } = pathOver(recorded, recordingLifecycle(recorded));
+    const { grants, path } = pathOver(recorded, recordingLifecycle(recorded));
     const spec = orgRole(ALICE, "admin", "acme");
     grants.rows.set(LEGACY_ID, legacyRow(spec));
 
@@ -269,7 +269,7 @@ describe("the row for a triple is found by triple, so legacy ids converge", () =
     };
     const path = newGrantPath({
       resources: NO_STORED_RESOURCES,
-      grants: grants,
+      grants,
       lifecycle: undefined,
       logger: silentLogger,
     });
@@ -299,7 +299,7 @@ describe("the row for a triple is found by triple, so legacy ids converge", () =
     };
     const path = newGrantPath({
       resources: NO_STORED_RESOURCES,
-      grants: grants,
+      grants,
       lifecycle: recordingLifecycle(recorded),
       logger: silentLogger,
     });
@@ -336,7 +336,7 @@ describe("the one writer is the one gate: nothing is read, written or notified f
 
   it("grant refuses each with the pinned copy, the resource kind read first", async () => {
     const recorded: RecordedEvent[] = [];
-    const { policies: grants, path } = pathOver(recorded, recordingLifecycle(recorded));
+    const { grants, path } = pathOver(recorded, recordingLifecycle(recorded));
     const refusals: ReadonlyArray<[GrantSpec, string]> = [
       [unknownResource, unknownResourceKindMessage("organisation")],
       [unknownPrincipal, unknownPrincipalKindMessage("group")],
@@ -384,7 +384,7 @@ describe("the one writer is the one gate: nothing is read, written or notified f
 describe("revoke: onRevoked before the row delete", () => {
   it("fires the hook with the row, then deletes it, and answers the revoked grant", async () => {
     const recorded: RecordedEvent[] = [];
-    const { policies: grants, path } = pathOver(recorded, recordingLifecycle(recorded));
+    const { grants, path } = pathOver(recorded, recordingLifecycle(recorded));
     const spec = orgRole(ALICE, "admin", "acme");
     await path.grant(spec, alice, "grant");
     recorded.length = 0;
@@ -402,7 +402,7 @@ describe("revoke: onRevoked before the row delete", () => {
 
   it("a hook throw leaves row and tuple — retry converges, nothing fails open", async () => {
     const recorded: RecordedEvent[] = [];
-    const { policies: grants, path } = pathOver(
+    const { grants, path } = pathOver(
       recorded,
       recordingLifecycle(recorded, { revoked: new Error("fga is down") }),
     );
@@ -435,7 +435,7 @@ describe("revoke: onRevoked before the row delete", () => {
 describe("cleanupResource: bidirectional, deduplicated, each row through the revoke order", () => {
   it("revokes rows where the ref is the principal, then where it is the resource, owners last", async () => {
     const recorded: RecordedEvent[] = [];
-    const { policies: grants, path } = pathOver(recorded, recordingLifecycle(recorded));
+    const { grants, path } = pathOver(recorded, recordingLifecycle(recorded));
     const owner = orgRole(ALICE, "owner", "acme");
     const member = orgRole(BOB, "member", "acme");
     const asPrincipal = triple(
@@ -473,7 +473,7 @@ describe("cleanupResource: bidirectional, deduplicated, each row through the rev
   it("stops at the first fault with the owner rows still in place", async () => {
     const recorded: RecordedEvent[] = [];
     const lifecycle = recordingLifecycle(recorded);
-    const { policies: grants, path } = pathOver(recorded, {
+    const { grants, path } = pathOver(recorded, {
       ...lifecycle,
       onRevoked: (event) =>
         event.spec.relation === "member"
@@ -531,7 +531,7 @@ describe("cleanupResource: bidirectional, deduplicated, each row through the rev
 describe("revokeOrgAccess: the account's direct rows on the organization", () => {
   it("revokes every relation the account holds on that organization and nothing on another", async () => {
     const recorded: RecordedEvent[] = [];
-    const { policies: grants, path } = pathOver(recorded, recordingLifecycle(recorded));
+    const { grants, path } = pathOver(recorded, recordingLifecycle(recorded));
     await path.grant(orgRole(ALICE, "admin", "acme"), alice, "grant");
     await path.grant(orgRole(ALICE, "viewer", "acme"), alice, "grant");
     await path.grant(orgRole(ALICE, "member", "globex"), alice, "grant");
@@ -598,7 +598,7 @@ describe("leaving an organization: the account's rows on its resources", () => {
       [`agent:${ELSEWHERE}`]: BOB,
       [`session:${SESSION}`]: ALICE,
     });
-    const { policies: grants, path } = pathOver(
+    const { grants, path } = pathOver(
       recorded,
       recordingLifecycle(recorded),
       creators,
@@ -640,7 +640,7 @@ describe("leaving an organization: the account's rows on its resources", () => {
       await path.grant(spec, bob, "grant");
     }
     recorded.length = 0;
-    return { recorded, policies: grants, path };
+    return { recorded, grants, path };
   }
 
   function aliceHolds(grants: FakeGrantStore): ReadonlyArray<string> {
@@ -654,7 +654,7 @@ describe("leaving an organization: the account's rows on its resources", () => {
   }
 
   it("revokeOrgAccess removes the shares and memberships the account held in the organization and keeps its authorship", async () => {
-    const { recorded, policies: grants, path } = await seeded();
+    const { recorded, grants, path } = await seeded();
 
     await path.revokeOrgAccess(ALICE, "acme", alice);
 
@@ -676,7 +676,7 @@ describe("leaving an organization: the account's rows on its resources", () => {
   });
 
   it("a resource below another is placed by its parent's scope link", async () => {
-    const { policies: grants, path } = await seeded();
+    const { grants, path } = await seeded();
 
     await path.revokeOrgAccess(ALICE, "acme", alice);
 
@@ -684,7 +684,7 @@ describe("leaving an organization: the account's rows on its resources", () => {
   });
 
   it("a retried revokeOrgAccess still sweeps when the organization rows are already gone", async () => {
-    const { policies: grants, path } = await seeded();
+    const { grants, path } = await seeded();
     for (const id of [grantIdFor(orgRole(ALICE, "admin", "acme"))]) {
       grants.rows.delete(id);
     }
@@ -696,7 +696,7 @@ describe("leaving an organization: the account's rows on its resources", () => {
   });
 
   it("revoking the last role by spec sweeps the organization", async () => {
-    const { policies: grants, path } = await seeded();
+    const { grants, path } = await seeded();
 
     await path.revokeBySpec(orgRole(ALICE, "admin", "acme"), alice);
 
@@ -705,7 +705,7 @@ describe("leaving an organization: the account's rows on its resources", () => {
   });
 
   it("revoking one role by spec while another remains sweeps nothing", async () => {
-    const { policies: grants, path } = await seeded();
+    const { grants, path } = await seeded();
     await path.grant(orgRole(ALICE, "viewer", "acme"), bob, "grant");
 
     await path.revokeBySpec(orgRole(ALICE, "admin", "acme"), alice);
@@ -715,7 +715,7 @@ describe("leaving an organization: the account's rows on its resources", () => {
   });
 
   it("revoking a row that is not an organization role sweeps nothing", async () => {
-    const { policies: grants, path } = await seeded();
+    const { grants, path } = await seeded();
 
     await path.revokeBySpec(
       triple({ kind: "identity_account", id: ALICE }, "member", {
@@ -729,7 +729,7 @@ describe("leaving an organization: the account's rows on its resources", () => {
   });
 
   it("an organization's delete (cleanupResource) revokes its own rows and sweeps nothing else", async () => {
-    const { policies: grants, path } = await seeded();
+    const { grants, path } = await seeded();
 
     await path.cleanupResource(
       create(ApiResourceRefSchema, { kind: "organization", id: "acme" }),
@@ -741,7 +741,7 @@ describe("leaving an organization: the account's rows on its resources", () => {
   });
 
   it("an owner row whose principal is not the recorded creator is a grant, and goes", async () => {
-    const { policies: grants, path } = await seeded();
+    const { grants, path } = await seeded();
 
     await path.revokeOrgAccess(ALICE, "acme", alice);
 
@@ -754,11 +754,11 @@ describe("affiliation: every change of an account's organization rows is announc
 
   function announcing(faults: { changing?: Error } = {}) {
     const recorded: RecordedEvent[] = [];
-    const { policies: grants, path } = pathOver(
+    const { grants, path } = pathOver(
       recorded,
       recordingLifecycle(recorded, faults, { affiliation: true }),
     );
-    return { recorded, policies: grants, path };
+    return { recorded, grants, path };
   }
 
   it("a role granted announces changed after the row's grant hook, on the duplicate arm too", async () => {
@@ -857,7 +857,7 @@ describe("affiliation: every change of an account's organization rows is announc
 
   it("a fault in changing stops the revoke with the row in place", async () => {
     const fault = new Error("tuple store down");
-    const { policies: grants, path } = announcing({ changing: fault });
+    const { grants, path } = announcing({ changing: fault });
     await path.grant(orgRole(ALICE, "member", "acme"), alice, "grant");
 
     await expect(
@@ -912,7 +912,7 @@ describe("who and why: every access row reaches the store with its change record
   }
 
   it("a fresh grant hands the store its actor, its door and its organization; a duplicate hands nothing", async () => {
-    const { policies: grants, path } = pathOver([], undefined);
+    const { grants, path } = pathOver([], undefined);
     const spec = orgRole(BOB, "member", "acme");
 
     await path.grant(spec, alice, "grant");
@@ -928,13 +928,13 @@ describe("who and why: every access row reaches the store with its change record
   });
 
   it("the actor is the caller's id and class, never its email or token", async () => {
-    const { policies: grants, path } = pathOver([], undefined);
+    const { grants, path } = pathOver([], undefined);
     await path.grant(orgRole(BOB, "member", "acme"), alice, "first_sign_in");
     expect(grants.changes[0]?.record?.actor).toStrictEqual(aliceActor);
   });
 
   it("a structural link carries no record; a share below the organization finds it through the link, and a team's audience is an access row", async () => {
-    const { policies: grants, path } = pathOver([], undefined);
+    const { grants, path } = pathOver([], undefined);
     const link = scopeLink("agent", SHARED, "acme");
     const toTeam = triple(
       { kind: "team", id: TEAM, relation: "member" },
@@ -954,13 +954,13 @@ describe("who and why: every access row reaches the store with its change record
   });
 
   it("a resource whose organization cannot be found is recorded with none, never refused", async () => {
-    const { policies: grants, path } = pathOver([], undefined);
+    const { grants, path } = pathOver([], undefined);
     await path.grant(share(BOB, "viewer"), alice, "grant");
     expect(grants.changes[0]?.record?.organizationId).toBe("");
   });
 
   it("a revoke names its revoker; revoking a row that is not held records nothing", async () => {
-    const { policies: grants, path } = pathOver([], undefined);
+    const { grants, path } = pathOver([], undefined);
     const spec = orgRole(BOB, "member", "acme");
     await path.grant(orgRole(BOB, "admin", "acme"), alice, "grant");
     await path.grant(spec, alice, "grant");
@@ -979,7 +979,7 @@ describe("who and why: every access row reaches the store with its change record
   });
 
   it("removing a person records the removal on their roles and left_organization on what the sweep takes, both as the remover", async () => {
-    const { policies: grants, path } = pathOver([], undefined);
+    const { grants, path } = pathOver([], undefined);
     await path.grant(scopeLink("agent", SHARED, "acme"), alice, "structural");
     await path.grant(orgRole(BOB, "member", "acme"), alice, "grant");
     await path.grant(share(BOB, "viewer"), alice, "grant");
@@ -1010,7 +1010,7 @@ describe("who and why: every access row reaches the store with its change record
   });
 
   it("the last role's revoke sweeps as the revoker", async () => {
-    const { policies: grants, path } = pathOver([], undefined);
+    const { grants, path } = pathOver([], undefined);
     await path.grant(scopeLink("agent", SHARED, "acme"), alice, "structural");
     await path.grant(orgRole(BOB, "member", "acme"), alice, "grant");
     await path.grant(share(BOB, "viewer"), alice, "grant");
@@ -1025,7 +1025,7 @@ describe("who and why: every access row reaches the store with its change record
   });
 
   it("a resource's cleanup reads its organization before its scope link goes, and names whoever deleted it", async () => {
-    const { policies: grants, path } = pathOver([], undefined);
+    const { grants, path } = pathOver([], undefined);
     const link = scopeLink("agent", SHARED, "acme");
     await path.grant(link, alice, "structural");
     await path.grant(share(ALICE, "viewer"), alice, "grant");
@@ -1068,7 +1068,7 @@ describe("who and why: every access row reaches the store with its change record
   });
 
   it("a revoke whose scope links a delete already removed takes the organization from the resource's stored row", async () => {
-    const { policies: grants, path } = pathOver(
+    const { grants, path } = pathOver(
       [],
       undefined,
       storedResources({ organizations: { [`agent:${SHARED}`]: "acme" } }),
@@ -1096,7 +1096,7 @@ describe("who and why: every access row reaches the store with its change record
   it("a run's revoke walks to its session and takes the organization from the session's stored row", async () => {
     const RUN = "aex_audited00000000000000000";
     const SESSION = "ses_audited00000000000000000";
-    const { policies: grants, path } = pathOver(
+    const { grants, path } = pathOver(
       [],
       undefined,
       storedResources({ organizations: { [`session:${SESSION}`]: "acme" } }),
@@ -1138,7 +1138,7 @@ describe("who and why: every access row reaches the store with its change record
   });
 
   it("a grant on a resource with no scope link records the organization of its stored row", async () => {
-    const { policies: grants, path } = pathOver(
+    const { grants, path } = pathOver(
       [],
       undefined,
       storedResources({ organizations: { [`agent:${SHARED}`]: "acme" } }),
@@ -1156,7 +1156,7 @@ describe("who and why: every access row reaches the store with its change record
   });
 
   it("a resource this server stores no row of still records no organization once its links are gone", async () => {
-    const { policies: grants, path } = pathOver([], undefined);
+    const { grants, path } = pathOver([], undefined);
     await path.grant(scopeLink("agent", SHARED, "acme"), alice, "structural");
     await path.grant(share(BOB, "owner"), bob, "structural");
     await path.cleanupResource(organizationRef, alice);

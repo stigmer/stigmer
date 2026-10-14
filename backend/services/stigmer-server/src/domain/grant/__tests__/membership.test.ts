@@ -164,13 +164,13 @@ describe("membership rules", () => {
     grants = fakeGrantStore();
     grantPath = newGrantPath({
       resources: NO_STORED_RESOURCES,
-      grants: grants,
+      grants,
       lifecycle: undefined,
       logger: silentLogger,
     });
     rules = newMembershipRules({
       grantPath,
-      grants: grants,
+      grants,
       store,
       operatorEmail: OPERATOR_EMAIL,
       edition: ServerEdition.oss,

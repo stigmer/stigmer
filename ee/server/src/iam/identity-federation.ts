@@ -89,7 +89,7 @@ export interface CloudIdentityFederationDeps {
 export function newIdentityFederation(
   deps: CloudIdentityFederationDeps,
 ): IdentityFederation {
-  const { accounts, grants: grants, providers, childOrganizations, logger } = deps;
+  const { accounts, grants, providers, childOrganizations, logger } = deps;
   /** The provider a resolved reference holds, by its id, in the organization it names. */
   const providerOf = async (org: string, id: string) => {
     if (id === "") {

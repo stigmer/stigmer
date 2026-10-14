@@ -574,7 +574,7 @@ export async function composeServer(
   // both exist; the grant path only calls it at request time.
   let myVaultDeparture: OrganizationDepartureHandler | undefined;
   const grantPath = newGrantPath({
-    grants: grants,
+    grants,
     resources: newStoredResources(store),
     lifecycle: extensions.drivers.resourceAuthorizationLifecycle,
     logger,
@@ -611,7 +611,7 @@ export async function composeServer(
     authorizationLifecycle ??
     (builtInAuthorization
       ? newBuiltInRoleLifecycle({
-          grantPath: grantPath,
+          grantPath,
           accounts: identityAccounts,
         })
       : undefined);
@@ -628,8 +628,8 @@ export async function composeServer(
     extensions.orgLimit === 1 ? newSingleOrganizationHolder() : undefined;
   const membership = builtInAuthorization
     ? newMembershipRules({
-        grantPath: grantPath,
-        grants: grants,
+        grantPath,
+        grants,
         store,
         operatorEmail: operatorIdentity.email,
         edition: extensions.edition,
@@ -681,7 +681,7 @@ export async function composeServer(
     (authorizationPosture === "built-in"
       ? newBuiltInAuthorizer({
           store,
-          grants: grants,
+          grants,
           accounts: identityAccounts,
           rowReaders: extensions.drivers.resourceRowReaders,
           edition: extensions.edition,
@@ -693,7 +693,7 @@ export async function composeServer(
     (authorizationPosture === "built-in"
       ? newBuiltInOrganizationDirectory({
           store,
-          grants: grants,
+          grants,
           accounts: identityAccounts,
           rowReaders: extensions.drivers.resourceRowReaders,
         })
@@ -716,7 +716,7 @@ export async function composeServer(
     (authorizationPosture === "built-in"
       ? newBuiltInListReadScope({
           store,
-          grants: grants,
+          grants,
           accounts: identityAccounts,
           rowReaders: extensions.drivers.resourceRowReaders,
           logger,
@@ -737,7 +737,7 @@ export async function composeServer(
   const credentialBinding = newCredentialBinding({
     store,
     rowReaders: extensions.drivers.resourceRowReaders,
-    grants: grants,
+    grants,
     identityAccounts,
     lifecycle: organizationLifecycle,
   });
@@ -1609,7 +1609,7 @@ export async function composeServer(
   const corePurges = newCoreKindPurges({
     store,
     logger,
-    grantPath: grantPath,
+    grantPath,
     authorizationLifecycle,
     secretService,
     scheduleClock: () => scheduleSyncer,
@@ -1641,7 +1641,7 @@ export async function composeServer(
       final: newFinalStage({
         store,
         logger,
-        grantPath: grantPath,
+        grantPath,
         lifecycle: roleLifecycle,
         // A row a racing create stored after its stage passed.
         sweepFirst: [
@@ -1661,7 +1661,7 @@ export async function composeServer(
     extensions.accessHistoryRetentionDays === undefined
       ? undefined
       : new AccessHistoryRetentionRunner({
-          grants: grants,
+          grants,
           retentionDays: extensions.accessHistoryRetentionDays,
           logger,
         });
@@ -1686,7 +1686,7 @@ export async function composeServer(
       gateSteps: extensions.gateSteps,
       // The delete revokes the organization's rows through the one grant
       // path, before its row goes (domain/organization/steps.ts).
-      grantPath: grantPath,
+      grantPath,
       // The role lifecycle and the directory (the identity stage): the
       // composed drivers, or open source's under the built-in posture.
       authorizationLifecycle: roleLifecycle,
@@ -1739,13 +1739,13 @@ export async function composeServer(
           {
             store,
             logger,
-            grantPath: grantPath,
+            grantPath,
             authorizationLifecycle,
           },
           owners,
           caller,
         ),
-      grantPath: grantPath,
+      grantPath,
       createAccount: createIdentityAccount,
       // Without sign-in no API-key verifier is composed (the verifier
       // chain below), so no service account could ever authenticate.
@@ -1761,8 +1761,8 @@ export async function composeServer(
     // UNIMPLEMENTED). The chains take no lifecycle: a grant is the
     // authorization record, not a protected resource.
     registerGrantServices(router, {
-      grantPath: grantPath,
-      grants: grants,
+      grantPath,
+      grants,
       accounts: identityAccounts,
       authorizer,
       grantScope:
@@ -1831,7 +1831,7 @@ export async function composeServer(
         authorizer,
         accounts: identityAccounts,
         createAccount: createIdentityAccount,
-        grantPath: grantPath,
+        grantPath,
         keys: platformTokenKeys,
         logger,
         now: () => new Date(),
@@ -2319,7 +2319,7 @@ export async function composeServer(
       (authorizationPosture === "built-in"
         ? newBuiltInGrantCheck({
             store,
-            grants: grants,
+            grants,
             accounts: identityAccounts,
             rowReaders: extensions.drivers.resourceRowReaders,
           })

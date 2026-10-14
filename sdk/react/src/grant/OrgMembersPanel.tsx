@@ -628,8 +628,8 @@ function ChangeRoleRow({
   onDone: () => void;
   onCancel: () => void;
 }) {
-  const { create: createPolicy, isCreating } = useCreateGrant();
-  const { remove: deletePolicy, isDeleting } = useDeleteGrant();
+  const { create: createGrant, isCreating } = useCreateGrant();
+  const { remove: deleteGrant, isDeleting } = useDeleteGrant();
 
   const memberId = entry.principal?.id ?? "";
   const memberName = entry.principal?.name || entry.principal?.email || memberId;
@@ -665,7 +665,7 @@ function ChangeRoleRow({
         }),
         relation: iamRoleToString(selectedRole),
       });
-      await createPolicy(createSpec);
+      await createGrant(createSpec);
 
       const deleteSpec = create(GrantSpecSchema, {
         principal: create(ApiResourceRefSchema, {
@@ -678,7 +678,7 @@ function ChangeRoleRow({
         }),
         relation: currentRoleCode,
       });
-      await deletePolicy(deleteSpec);
+      await deleteGrant(deleteSpec);
 
       onDone();
     } catch (err) {
@@ -689,8 +689,8 @@ function ChangeRoleRow({
     currentRoleCode,
     memberId,
     orgId,
-    deletePolicy,
-    createPolicy,
+    deleteGrant,
+    createGrant,
     onDone,
   ]);
 

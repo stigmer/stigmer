@@ -494,7 +494,7 @@ export function migrateSessionRow(
 }
 
 /**
- * Whether a stored IamPolicy row names a server or a plugin's skill the
+ * Whether a stored grant row names a server or a plugin's skill the
  * step removes, as its resource or its principal: a grant on a row that no
  * longer exists would only linger in grant listings. Throws when the bytes
  * do not decode.

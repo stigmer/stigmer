@@ -292,7 +292,7 @@ type OrganizationOf = (resource: ApiResourceRef) => Promise<string>;
 export function newGrantPath(
   deps: GrantPathDeps,
 ): GrantPath {
-  const { grants: grants, resources, lifecycle, logger, departures } = deps;
+  const { grants, resources, lifecycle, logger, departures } = deps;
 
   /**
    * The organization a resource belongs to: through its scope links, or,
@@ -373,7 +373,7 @@ export function newGrantPath(
     if (affiliation !== undefined) {
       await lifecycle?.onOrganizationAffiliationChanging?.(affiliation);
     }
-    await lifecycle?.onRevoked?.({ spec, grant: grant });
+    await lifecycle?.onRevoked?.({ spec, grant });
     const id = grant.metadata?.id ?? "";
     await grants.deleteById(id, record);
     logger.info("grant revoked", fieldsOf(id, spec, change, record));
@@ -505,13 +505,13 @@ export function newGrantPath(
       }
       // Deliberately unconditional: a duplicate re-grant is the
       // inline heal for a row whose tuple never landed.
-      await lifecycle?.onGranted?.({ grant: grant, duplicate });
+      await lifecycle?.onGranted?.({ grant, duplicate });
       // The same unconditional heal for the affiliation the row stands for.
       const affiliation = affiliationOf(spec);
       if (affiliation !== undefined) {
         await lifecycle?.onOrganizationAffiliationChanged?.(affiliation);
       }
-      return { grant: grant, duplicate };
+      return { grant, duplicate };
     },
 
     async revokeBySpec(spec, caller): Promise<Grant | undefined> {

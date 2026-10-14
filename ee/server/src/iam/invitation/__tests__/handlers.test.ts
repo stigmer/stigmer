@@ -248,7 +248,7 @@ function rig(
             write: (line: string) => void (options.warnings ?? options.errors)?.push(line),
           }),
     store,
-    grants: grants,
+    grants,
     lifecycle: {
       onResourceCreated: async (event) => {
         await options.onCreated?.();

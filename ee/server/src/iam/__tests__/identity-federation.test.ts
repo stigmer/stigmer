@@ -248,7 +248,7 @@ function harness(
   };
   const federation = newIdentityFederation({
     accounts,
-    grants: grants,
+    grants,
     providers,
     childOrganizations,
     logger,

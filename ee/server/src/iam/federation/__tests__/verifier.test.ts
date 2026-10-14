@@ -322,7 +322,7 @@ function verifierOf(
   return newStoreBackedFederatedVerifier({
     providers: providerStore,
     accounts,
-    grants: grants,
+    grants,
     childOrganizations,
     signInGrants: fakes.signInGrants,
     fetchUserProfile: (endpoint: string) => {

@@ -808,7 +808,7 @@ async function migrateToV8(client: PoolClient): Promise<void> {
  *   instance, with `updated_at` bumped the way the store's writes bump it,
  *   so the list index re-derives the row (its key changed with the
  *   session's revision) the way it re-derives any unproven row.
- * - Every IamPolicy row is read in keyset pages, and the ones naming an
+ * - Every grant row is read in keyset pages, and the ones naming an
  *   instance as resource or principal are deleted with their list keys,
  *   their history kept, as the store deletes a policy.
  * - The instance rows, their history and their list keys are then
@@ -995,7 +995,7 @@ async function migrateToV11(client: PoolClient): Promise<void> {
  * v12: the workflow instance kind is removed (workflow-instance-retired.ts
  * says what leaves and why an unreadable row fails the step).
  *
- * - Every IamPolicy row is read in keyset pages, and the ones naming an
+ * - Every grant row is read in keyset pages, and the ones naming an
  *   instance as resource or principal are deleted with their list keys,
  *   their history kept, as the store deletes a policy.
  * - The instance rows, their history and their list keys are then
@@ -1154,7 +1154,7 @@ async function renameKind(client: PoolClient, rename: KindRename): Promise<void>
  * (workflow-retired.ts says what leaves, what each agent run becomes and
  * why an unreadable row fails the step).
  *
- * - Every IamPolicy row is read in keyset pages, and the ones naming a
+ * - Every grant row is read in keyset pages, and the ones naming a
  *   retired kind as resource or principal are deleted with their list
  *   keys, their history kept, as the store deletes a policy.
  * - Every agent run is read in keyset pages and rewritten when it carries
@@ -1293,7 +1293,7 @@ async function migrateToV16(client: PoolClient): Promise<void> {
 
 /**
  * v17: vaults replace the Environment kind (../environment-retired.ts says
- * what leaves and why nothing is carried). Every IamPolicy row is read in
+ * what leaves and why nothing is carried). Every grant row is read in
  * keyset pages, and the ones naming an environment as resource or principal
  * are deleted with their list keys, their history kept, as the store
  * deletes a policy. Every environment row is then deleted from every table
@@ -2110,7 +2110,7 @@ async function migrateToV32(client: PoolClient, logger: StoreLogger): Promise<vo
  * v33: the platform client kind is removed (../platform-client-retired.ts
  * says what leaves, what stays and why an unreadable row fails the step).
  *
- * - Every IamPolicy row is read in keyset pages, and the ones naming a
+ * - Every grant row is read in keyset pages, and the ones naming a
  *   client as resource or principal are deleted with their list keys,
  *   their history kept, as the store deletes a policy.
  * - The client rows then leave every table that keys a row by kind.

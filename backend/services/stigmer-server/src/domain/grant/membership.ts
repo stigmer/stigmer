@@ -388,7 +388,7 @@ function createdAtMillisOf(account: IdentityAccount): number {
 }
 
 export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
-  const { grantPath, grants: grants, store, operatorEmail } = deps;
+  const { grantPath, grants, store, operatorEmail } = deps;
   const everyPersonJoins = deps.edition === ServerEdition.oss;
 
   async function scan(kind: ApiResourceKind): Promise<ScannedResource[]> {

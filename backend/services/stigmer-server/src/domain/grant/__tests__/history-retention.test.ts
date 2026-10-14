@@ -66,12 +66,12 @@ function recordingStore(answers: ReadonlyArray<number | Error>): {
 }
 
 function runner(
-  policies: ReturnType<typeof recordingStore>,
+  grantStore: ReturnType<typeof recordingStore>,
   logged: Logged[],
   options: { readonly retentionDays?: number; readonly intervalMs?: number } = {},
 ): AccessHistoryRetentionRunner {
   return new AccessHistoryRetentionRunner({
-    grants: policies,
+    grants: grantStore,
     retentionDays: options.retentionDays ?? 30,
     logger: recordingLogger(logged),
     now: () => NOW,

@@ -149,7 +149,7 @@ export async function buildPrincipalAccessList(
       assignableRelations(),
     );
     for (const grant of rows) {
-      grants.push({ grant: grant, isInherited: index > 0, level });
+      grants.push({ grant, isInherited: index > 0, level });
     }
   }
   if (grants.length === 0) {

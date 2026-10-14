@@ -149,7 +149,7 @@ export function fakeGrantStore(
       actor: record.actor,
       cause: record.cause,
       organizationId: org,
-      grant: grant,
+      grant,
     });
   };
   const all = (): Grant[] => [...rows.values()];

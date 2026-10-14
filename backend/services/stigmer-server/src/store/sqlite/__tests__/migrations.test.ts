@@ -22,7 +22,7 @@
  * gone, or names no agent), across keyset pages, and the instance rows
  * leave every table; the store opened on the migrated database finds each
  * moved session through the session list index's `agent` key, the one
- * listByAgent reads; every IamPolicy row naming an instance as resource
+ * listByAgent reads; every grant row naming an instance as resource
  * or principal leaves with its list keys (its history kept) while a grant
  * on another kind stays; a session, instance, agent or policy row it
  * cannot decode fails the step, naming the row, and leaves the database at

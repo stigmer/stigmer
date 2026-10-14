@@ -321,7 +321,7 @@ export function newEnterpriseIdentityExtension(
   const federatedVerifier = newStoreBackedFederatedVerifier({
     providers,
     accounts: ports.accounts,
-    grants: grants,
+    grants,
     childOrganizations,
     signInGrants: ports.signInGrants,
     jwks: tenantJwks,
@@ -335,14 +335,14 @@ export function newEnterpriseIdentityExtension(
     providers,
     names,
     accounts: ports.accounts,
-    grants: grants,
+    grants,
     invalidate: invalidateIssuers,
     logger,
   });
-  const teamRemoval = newTeamRemoval({ teams, names, grants: grants, logger });
+  const teamRemoval = newTeamRemoval({ teams, names, grants, logger });
   const invitationRemoval = newInvitationRemoval({
     invitations: ports.invitations,
-    grants: grants,
+    grants,
     logger,
   });
 
@@ -358,7 +358,7 @@ export function newEnterpriseIdentityExtension(
     try {
       const report = await reconcileOrganizationLinks(kind, await rows(), {
         grantStore,
-        grants: grants,
+        grants,
         organizations,
       });
       if (report.converged > 0) {
@@ -418,7 +418,7 @@ export function newEnterpriseIdentityExtension(
   // alone; a provider's first, and one kind's failed read never skips the
   // next.
   async function revokeOwnerRows(): Promise<void> {
-    await reconcileOwnerRows(ENTERPRISE_OWNER_ROW_KINDS, { grantStore, grants: grants, logger });
+    await reconcileOwnerRows(ENTERPRISE_OWNER_ROW_KINDS, { grantStore, grants, logger });
   }
 
   const rowReaders = new Map<ApiResourceKind, ResourceRowReader>([
@@ -433,7 +433,7 @@ export function newEnterpriseIdentityExtension(
     drivers: {
       identityFederation: newIdentityFederation({
         accounts: ports.accounts,
-        grants: grants,
+        grants,
         providers,
         childOrganizations,
         logger,
@@ -497,7 +497,7 @@ export function newEnterpriseIdentityExtension(
         authorizer,
         logger,
         store: ports.invitations,
-        grants: grants,
+        grants,
         lifecycle,
         listReadScope,
         organizations,

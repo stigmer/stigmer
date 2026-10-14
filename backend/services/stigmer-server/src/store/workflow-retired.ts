@@ -14,7 +14,7 @@
  * artifact, whose only producer was a workflow step's output) leaves every
  * table that keys a row by kind (kind-rename.ts `KIND_TABLES`): the live
  * rows, their history, their list keys and the names they held. No data of
- * those kinds is kept. Every IamPolicy row whose resource or principal is
+ * those kinds is kept. Every grant row whose resource or principal is
  * one of those kinds leaves too (`grantNamesRetiredWorkflowKind`): a grant
  * on an object that no longer exists would only linger in grant listings.
  * Such a row leaves the way the store deletes a policy, with its list keys
@@ -178,7 +178,7 @@ export function migrateAgentRunRow(data: Uint8Array, endedAt: string): Uint8Arra
 }
 
 /**
- * Whether a stored IamPolicy row names a retired kind as its resource or
+ * Whether a stored grant row names a retired kind as its resource or
  * its principal (an `ApiResourceRef.kind` is the enum member name, the
  * string the kind's rows were stored under). Read through the live schema:
  * the policy's own fields are unchanged. Throws when the bytes do not
