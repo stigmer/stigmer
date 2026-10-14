@@ -124,6 +124,7 @@
 // visitor-isolation consequence of checkMyPermission through the composed
 // Authorizer (no guest caller exists in this harness).
 import { Code } from "@connectrpc/connect";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { expectGrpcCode } from "../contract/errors";
@@ -189,6 +190,12 @@ const ABSENT_AGENT_EXECUTION = "aex_01hzzzzzzzzzzzzzzzzzzzzzzz";
 let target: TargetProfile;
 let clients: ConformanceClients;
 const capabilities = createTarget().capabilities;
+
+// listAccessHistory's pinned copies: its annotation's refusal for a caller
+// who may not read it, and open source's, which keeps no history.
+const VIEW_ACCESS_HISTORY_DENIED_MESSAGE = "unauthorized to view the access history";
+const ACCESS_HISTORY_UNIMPLEMENTED_MESSAGE =
+  "the access history is served by the Enterprise and Cloud editions";
 const fixtures = new FixtureTracker();
 
 beforeAll(async () => {
@@ -888,6 +895,36 @@ describe.skipIf(!capabilities.perResourceGrants)(
   },
 );
 
+describe("IamPolicy conformance — the access history, as each edition answers its owner", () => {
+  it.skipIf(capabilities.accessHistory !== "unimplemented")(
+    "[rpc:IamPolicyQueryController.listAccessHistory] an edition that keeps no history answers UNIMPLEMENTED with the edition sentence, after authorizing",
+    async () => {
+      const org = await createOwnedOrganization();
+      const error = await expectGrpcCode(
+        () => clients.iamPolicyQuery.listAccessHistory({ org }),
+        Code.Unimplemented,
+        "listAccessHistory where no history is kept",
+      );
+      expect(error.rawMessage).toBe(ACCESS_HISTORY_UNIMPLEMENTED_MESSAGE);
+    },
+  );
+
+  it.skipIf(capabilities.accessHistory !== "plan-upgrade-required")(
+    "[rpc:IamPolicyQueryController.listAccessHistory] a plan without the access history refuses the read with PLAN_UPGRADE_REQUIRED, naming the feature",
+    async () => {
+      const org = await createOwnedOrganization();
+      const error = await expectGrpcCode(
+        () => clients.iamPolicyQuery.listAccessHistory({ org }),
+        Code.FailedPrecondition,
+        "listAccessHistory on a plan without it",
+      );
+      const [info] = error.findDetails(ErrorInfoSchema);
+      expect(info?.reason).toBe("PLAN_UPGRADE_REQUIRED");
+      expect(info?.metadata.feature).toBe("access_history");
+    },
+  );
+});
+
 describe.skipIf(capabilities.authorizationQueries)(
   "IamPolicy conformance — no authorization query engine composed",
   () => {
@@ -1090,6 +1127,11 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
           org,
         }),
       REVOKE_ORG_ACCESS_DENIED_MESSAGE,
+    ],
+    [
+      "[rpc:IamPolicyQueryController.listAccessHistory] listAccessHistory",
+      (using, org) => using.iamPolicyQuery.listAccessHistory({ org }),
+      VIEW_ACCESS_HISTORY_DENIED_MESSAGE,
     ],
     [
       "[rpc:IamPolicyQueryController.listAuthorizedPrincipalIds] listAuthorizedPrincipalIds",

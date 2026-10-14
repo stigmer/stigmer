@@ -33,6 +33,7 @@ import { registerRun } from "./commands/run.js";
 import { registerRuns } from "./commands/runs/index.js";
 import { registerSchedule } from "./commands/schedule.js";
 import { registerServiceAccount } from "./commands/service-account/index.js";
+import { registerAccessHistory } from "./commands/access-history/index.js";
 import { registerSearch } from "./commands/search.js";
 import { registerSetup } from "./commands/setup.js";
 import { registerShare } from "./commands/share.js";
@@ -147,6 +148,7 @@ export function buildProgram(): Command {
   registerAuth(program);
   registerApiKey(program);
   registerServiceAccount(program);
+  registerAccessHistory(program);
   registerGet(program);
   registerList(program);
   registerSearch(program);

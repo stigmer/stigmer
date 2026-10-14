@@ -31,7 +31,8 @@
             "channels",
             "sharing",
             "teams",
-            "child_orgs"
+            "child_orgs",
+            "access_history"
           ]
         }
       },

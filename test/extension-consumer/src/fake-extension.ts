@@ -587,6 +587,9 @@ const consumerIamPolicyStore: IamPolicyStore = {
   countDistinctPrincipalsByResource: () => Promise.resolve(0),
   findScopeTuple: () => Promise.resolve(undefined),
   findByResourceKindAndRelation: () => Promise.resolve([]),
+  // A store that keeps no history answers none; one composed above open
+  // source keeps one and reads it back here.
+  listChanges: () => Promise.resolve([]),
 };
 
 /**
@@ -603,6 +606,7 @@ export function consumerIamPolicyStoreContract(): ReadonlyArray<IamPolicyStoreCo
       disconnect: () => Promise.resolve(),
       cleanup: () => Promise.resolve(),
     }),
+    { keepsHistory: false },
   );
 }
 
@@ -1574,6 +1578,9 @@ export const fakeExtension: ServerExtension = {
     // edition removes, or refuses to leave behind, what it keeps for the
     // organization. It reads the loaded organization off the exported key.
     ["org-delete:pre-delete", [consumerGateStep()]],
+    // The tenth: the access history's read before anything is read — where
+    // a host refuses a read its own rules forbid (the Cloud, by plan).
+    ["iam-policy-list-access-history:pre-read", [consumerGateStep()]],
   ]),
   statusTransitionHooks: {
     observers: [statusObserver],

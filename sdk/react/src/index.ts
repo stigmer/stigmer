@@ -1165,6 +1165,7 @@ export {
   useRoleSelector,
   useResourceAccess,
   usePrincipalsCount,
+  useAccessHistory,
   useWhoAmI,
   useCreateIamPolicy,
   useDeleteIamPolicy,
@@ -1183,6 +1184,8 @@ export {
   PermissionGate,
 } from "./iam-policy/index.js";
 export type {
+  UseAccessHistoryOptions,
+  UseAccessHistoryReturn,
   UseGrantableRolesReturn,
   RoleOption,
   UseRoleSelectorReturn,
@@ -1435,6 +1438,7 @@ export { IdentityProvidersSection } from "./settings/index.js";
 export { PlatformClientsSection } from "./settings/index.js";
 export { ServiceAccountsSection } from "./settings/index.js";
 export { TeamsSection } from "./settings/index.js";
+export { AccessHistorySection } from "./settings/index.js";
 export { OAuthAppsSection } from "./settings/index.js";
 export { ChannelAppsSection } from "./settings/index.js";
 export { UsageSection } from "./settings/index.js";
