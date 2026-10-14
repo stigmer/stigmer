@@ -89,6 +89,10 @@ const { setupUrl } = await stigmer.billing.createPaymentMethodSetupSession({
 ### Common operations
 
 ```typescript
+import { create } from "@bufbuild/protobuf";
+import { ListAgentsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import { RenameInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+
 // Create
 const agent = await stigmer.agent.create({
   name: "my-agent",
@@ -106,13 +110,23 @@ const agent = await stigmer.agent.getByReference({
   slug: "my-agent",
 });
 
-// Update: read, change, then name the fields you changed. Every other
-// field keeps its stored value. The read's etag makes the save fail with
-// "aborted" if someone changed the agent since.
+// Update: name the agent by id, give the new values, and name the fields
+// you changed. Every other field keeps its stored value. Sending the etag
+// you read makes the save fail with "aborted" if someone changed the agent
+// since.
 const current = await stigmer.agent.get("agent-id");
 const updated = await stigmer.agent.update(
-  { ...current, spec: { ...current.spec, description: "Updated description" } },
+  {
+    metadata: { id: current.metadata?.id, etag: current.metadata?.etag },
+    spec: { description: "Updated description" },
+  },
   ["spec.description"],
+);
+
+// Rename: change the slug people type. The id stays, so everything that
+// points at the agent keeps working; the old slug reads for 30 days.
+const renamed = await stigmer.agent.rename(
+  create(RenameInputSchema, { resourceId: "agent-id", slug: "support-bot" }),
 );
 
 // Delete
@@ -120,11 +134,18 @@ const deleted = await stigmer.agent.delete("agent-id");
 
 // List: one page of the org's agents, newest first. A page carries
 // nextPageToken while more follow; pageSize 0 asks for the default 50.
-const page = await stigmer.agent.list({ org: "my-org", pageSize: 20 });
-const next = await stigmer.agent.list({ org: "my-org", pageSize: 20, pageToken: page.nextPageToken });
+const page = await stigmer.agent.list(create(ListAgentsRequestSchema, { org: "my-org", pageSize: 20 }));
+const next = await stigmer.agent.list(
+  create(ListAgentsRequestSchema, { org: "my-org", pageSize: 20, pageToken: page.nextPageToken }),
+);
 
 // Every agent, page after page: listAll follows the tokens.
 for await (const a of stigmer.agent.listAll({ org: "my-org" })) {
+  console.log(a.metadata?.slug);
+}
+
+// Only the agents carrying every label given.
+for await (const a of stigmer.agent.listAll({ org: "my-org", labels: { team: "support" } })) {
   console.log(a.metadata?.slug);
 }
 ```

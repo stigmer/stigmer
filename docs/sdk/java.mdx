@@ -48,14 +48,15 @@ options.
 ## Make your first call
 
 Every resource has its own client with methods like `get`, `create`, `list`,
-`apply`, and `delete`. Java uses plural camelCase methods that return typed
-sub-clients:
+`apply`, `update`, `rename`, and `delete`
+([Update and apply](/docs/sdk/overview#update-and-apply)). Java uses singular
+camelCase fields on the client:
 
 ```java
 import ai.stigmer.sdk.gen.StigmerException;
 
 try {
-    var agent = client.agents().get(id);
+    var agent = client.agent.get(id);
     System.out.println(agent.getMetadata().getName());
 } catch (StigmerException e) {
     if (e.isNotFound()) {

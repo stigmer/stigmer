@@ -46,10 +46,6 @@ service RunCommandController {
   //     No metadata.
   //   - WRITE_CONFLICT — the run kept changing while the update was
   //     being saved: try again. No metadata.
-  //
-  // @internal
-  // Used by users to update run configuration (spec fields).
-  // No individual field updates - always provide complete state.
   rpc update(UpdateRunInput) returns (Run) {
     option (ai.stigmer.commons.rpc.config).resource_kind = run;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;

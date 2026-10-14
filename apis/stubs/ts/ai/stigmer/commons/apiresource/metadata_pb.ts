@@ -99,13 +99,12 @@ export type ApiResourceMetadata = Message<"ai.stigmer.commons.apiresource.ApiRes
    * Default: config-driven per kind — blueprint kinds (marked
    * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
    *
-   * Mutation contract: visibility is set at create and changed ONLY through
+   * Mutation contract: visibility is set at create and changed only through
    * the kind's UpdateVisibility RPC, where the visibility guards live
-   * (per-kind level support). A plain Update
-   * preserves the stored value — a request-carried level is ignored, never
-   * applied. Declarative clients that want a manifest's visibility to land
-   * on update must follow up with UpdateVisibility (the CLI and MCP apply
-   * surfaces do this automatically).
+   * (per-kind level support). An update's mask cannot name it, and an
+   * apply keeps the stored value. Declarative clients that want a
+   * manifest's visibility to land follow the apply with UpdateVisibility
+   * (the CLI and MCP apply surfaces do this automatically).
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5;
    */

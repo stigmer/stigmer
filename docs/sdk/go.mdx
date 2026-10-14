@@ -42,7 +42,8 @@ options.
 ## Make your first call
 
 Every resource has its own client with methods like `Get`, `Create`, `List`,
-`Apply`, and `Delete`. Go uses singular PascalCase fields, and every method
+`Apply`, `Update`, `Rename`, and `Delete`
+([Update and apply](/docs/sdk/overview#update-and-apply)). Go uses singular PascalCase fields, and every method
 takes a `context.Context` as its first argument:
 
 ```go

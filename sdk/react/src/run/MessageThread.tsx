@@ -1680,11 +1680,10 @@ function lastLoadedVersions(run: Run): ReadonlyMap<string, LoadedVersionChange> 
   return byResource;
 }
 
-/** How one moved resource reads: "Skill refunds updated", or "Deleted skill updated" once it is gone. */
+/** How one moved resource reads: "Skill refunds updated", or "A deleted skill was updated" once it is gone. */
 function loadedVersionChangeText(change: LoadedVersionChange): string {
   if (isDeletedReference(change)) {
-    const label = deletedReferenceLabel(change.kind);
-    return `${label.charAt(0).toUpperCase()}${label.slice(1)} updated`;
+    return `A ${deletedReferenceLabel(change.kind)} was updated`;
   }
   return `${change.kind === ApiResourceKind.skill ? "Skill" : "Plugin"} ${change.slug} updated`;
 }

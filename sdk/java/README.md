@@ -91,6 +91,7 @@ import ai.stigmer.sdk.gen.*;
 import ai.stigmer.agentic.agent.v1.Agent;
 import ai.stigmer.agentic.agent.v1.AgentList;
 import ai.stigmer.agentic.agent.v1.ListAgentsRequest;
+import ai.stigmer.commons.apiresource.RenameInput;
 
 try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
     // Create
@@ -118,6 +119,13 @@ try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
             .build(),
         java.util.List.of("spec.description"));
 
+    // Rename: change the slug people type. The id stays, so everything that
+    // points at the agent keeps working; the old slug reads for 30 days.
+    Agent renamed = client.agent.rename(RenameInput.newBuilder()
+        .setResourceId(agent.getMetadata().getId())
+        .setSlug("support-bot")
+        .build());
+
     // Delete
     client.agent.delete(agent.getMetadata().getId());
 
@@ -132,6 +140,12 @@ try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
     for (Agent a : client.agent.listAll(ListAgentsRequest.newBuilder().setOrg("my-org").build())) {
         System.out.println(a.getMetadata().getSlug());
     }
+
+    // Only the agents carrying every label given.
+    AgentList support = client.agent.list(ListAgentsRequest.newBuilder()
+        .setOrg("my-org")
+        .putLabels("team", "support")
+        .build());
 }
 ```
 

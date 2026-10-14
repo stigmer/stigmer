@@ -1,6 +1,6 @@
 # Skill Versioning
 
-Skills are the **only versioned resource type** in the Stigmer platform. This document explains how versions are created, identified, and resolved — and how to make the right choice between floating and pinned references.
+Every push of a skill makes a new version. This document explains how a version is created and identified, and how to choose between floating and pinned references. When a reference's version is read, for skills and for the other kinds that have versions, is stated once in [resource-references.md](../../agent/docs/resource-references.md#when-a-version-is-read).
 
 ## The Two-Layer Versioning Model
 
@@ -109,16 +109,7 @@ Tags must match `^$|^[a-zA-Z0-9._-]+$`. Valid examples:
 
 ## Version Resolution
 
-When an agent references a skill, the platform resolves the `version` field in the `ApiResourceReference` to a specific artifact. See [Agent docs: resource-references.md](../agent/docs/resource-references.md) for the full reference format.
-
-| `version` Value | Resolution |
-|---|---|
-| Empty or omitted | Resolves to the current `latest` tag. Equivalent to `version: latest`. |
-| `latest` | Same as empty — resolves to the current `latest` tag. |
-| Tag name (e.g., `stable`, `v1.0.0`) | Resolves to whichever hash the tag currently points to. Tags are mutable — this can change over time. |
-| 64-character hex hash (e.g., `a1b2c3d4...`) | Resolves to that exact artifact. Immutable. Always the same content. |
-
-Resolution happens at runtime — the platform reads the current tag-to-hash mapping each time an agent starts. An agent referencing `version: stable` may load different content today vs. next week if `stable` was moved in the meantime.
+When an agent references a skill, the `version` field of its `ApiResourceReference` names a tag or a hash, and empty means the `latest` tag. It is read at the start of each turn, so a tag moved since the last turn takes the next turn with it, and the run records the hash each turn loaded. [resource-references.md](../../agent/docs/resource-references.md#when-a-version-is-read) states the rule and its formats.
 
 ### Resolution Flow
 

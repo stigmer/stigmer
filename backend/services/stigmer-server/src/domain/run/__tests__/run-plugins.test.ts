@@ -16,7 +16,10 @@
  * store fault is never mistaken for a missing plugin; two plugins of one
  * name from two organizations refuse FAILED_PRECONDITION naming both,
  * before anything is planned. Each loaded plugin carries its id, its name
- * and its status, an empty status when the row has none.
+ * and its status, an empty status when the row has none. A plugin the run
+ * excludes is left out by its loaded id, whether the agent, the
+ * conversation or a subagent lists it and whether its reference names it
+ * by slug alone, and takes no part in the name and server checks.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -197,6 +200,45 @@ describe("runPluginReferences", () => {
 });
 
 describe("loadRunPlugins", () => {
+  /** A subagent at its pinned version, listing `plugins`. */
+  function subagent(name: string, plugins: ApiResourceReference[]): RunSubagent {
+    return { id: `agt_${name}`, name, org: ORG, versionHash: "", spec: create(AgentSpecSchema, { plugins }) };
+  }
+
+  it("leaves out an excluded plugin the agent, the conversation or a subagent lists, by its loaded id", async () => {
+    const agentSpec = create(AgentSpecSchema, { plugins: [ref(ORG, "linear")] });
+    const session = create(SessionSchema, { spec: { plugins: [ref(ORG, "notion")] } });
+    const listedBy = {
+      agent: runPluginReferences(agentSpec, undefined, ORG),
+      conversation: runPluginReferences(undefined, session, ORG),
+      subagent: runPluginReferences(undefined, undefined, ORG, [subagent("helper", [ref("", "linear")])]),
+    };
+    expect((await loadRunPlugins(store, listedBy.agent, ORG, ["plg_linear"])).map((p) => p.id)).toEqual([]);
+    expect((await loadRunPlugins(store, listedBy.conversation, ORG, ["plg_notion"])).map((p) => p.id)).toEqual([]);
+    expect((await loadRunPlugins(store, listedBy.subagent, ORG, ["plg_linear"])).map((p) => p.id)).toEqual([]);
+    const all = runPluginReferences(agentSpec, session, ORG, [subagent("helper", [ref("", "bare")])]);
+    expect((await loadRunPlugins(store, all, ORG, ["plg_linear"])).map((p) => p.id)).toEqual(["plg_notion", "plg_bare"]);
+  });
+
+  it("leaves out an excluded plugin a reference names by slug alone, at any version", async () => {
+    expect((await loadRunPlugins(store, [ref("", "linear"), ref(ORG, "linear", OLDER)], ORG, ["plg_linear"])).map((p) => p.id)).toEqual(
+      [],
+    );
+  });
+
+  it("loads every plugin when nothing is excluded, and ignores an id the run does not list", async () => {
+    const refs = [ref(ORG, "linear"), ref(ORG, "notion")];
+    expect((await loadRunPlugins(store, refs, ORG, [])).map((p) => p.id)).toEqual(["plg_linear", "plg_notion"]);
+    expect((await loadRunPlugins(store, refs, ORG, ["plg_other"])).map((p) => p.id)).toEqual(["plg_linear", "plg_notion"]);
+  });
+
+  it("checks names and servers only among the plugins the run keeps", async () => {
+    const sameName = await loadRunPlugins(store, [ref(ORG, "linear"), ref(OTHER_ORG, "linear")], ORG, ["plg_linear_elsewhere"]);
+    expect(sameName.map((p) => p.id)).toEqual(["plg_linear"]);
+    const sameServer = await loadRunPlugins(store, [ref(ORG, "acme-tools"), ref(ORG, "acme")], ORG, ["plg_acme"]);
+    expect(sameServer.map((p) => p.id)).toEqual(["plg_acme_tools"]);
+  });
+
   it("loads the installed plugin for no version, in the run's organization when the reference names none", async () => {
     const plugins = await loadRunPlugins(store, [ref("", "linear"), ref(ORG, "notion")], ORG);
     expect(plugins.map((p) => [p.id, p.name, p.status.mcpServers[0]?.name])).toEqual([

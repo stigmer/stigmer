@@ -114,6 +114,8 @@ import {
   newKeepPluginEvalCaseStep,
   newGuardReconcileFileReviewStep,
   newKeepReconcileFileReviewStep,
+  newGuardExcludedPluginsStep,
+  newKeepExcludedPluginsStep,
   newRefuseVisitorAppendedPromptStep,
   newComposeRecalledMemoriesStep,
   newCreateSessionIfNeededStep,
@@ -415,6 +417,7 @@ async function createExecution(
     .addStep(newValidateThinkingModeStep(deps.modelRegistry))
     .addStep(newGuardPluginEvalCaseStep())
     .addStep(newGuardReconcileFileReviewStep())
+    .addStep(newGuardExcludedPluginsStep())
     .addStep(
       newRefuseVisitorAppendedPromptStep(deps.logger, deps.visitorClassifier),
     )
@@ -513,8 +516,9 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * GuardReservedLabels refuses a `stigmer.ai/*` label the caller
  * introduces or changes (a run's schedule label names whose vaults a
  * person-less run uses), ValidateSessionImmutability keeps the
- * execution in its session (session-binding.ts), and KeepPluginEvalCase
- * and KeepReconcileFileReview keep what the server composed at create.
+ * execution in its session (session-binding.ts), and KeepPluginEvalCase,
+ * KeepReconcileFileReview and KeepExcludedPlugins keep what the server
+ * composed at create.
  */
 async function update(
   deps: AgentExecutionControllerDeps,
@@ -546,6 +550,7 @@ async function update(
       .addStep(newNormalizeReferencesStep(deps.store))
       .addStep(newKeepPluginEvalCaseStep())
       .addStep(newKeepReconcileFileReviewStep())
+      .addStep(newKeepExcludedPluginsStep())
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newValidateSessionImmutabilityStep())
       .addStep(newValidateReferencesStep(deps.store, deps.authorizer))

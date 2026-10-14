@@ -206,6 +206,22 @@
       },
       "description": "Set on a turn that only puts back the files a person undid after an\n earlier turn ended: it runs no model and carries no message. The\n server starts one when an undo is decided on a finished turn.",
       "required": false
+    },
+    {
+      "name": "ExcludedPluginIds",
+      "jsonName": "excludedPluginIds",
+      "protoField": "excluded_plugin_ids",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Plugins this turn leaves out, by id, wherever the turn would take them\n from: its agent version, its conversation or one of its subagents. A\n plugin left out loads nothing into the turn: no skills, agents, hooks\n or MCP servers, and no values planned for it.",
+      "required": false,
+      "validation": {
+        "maxItems": 8
+      }
     }
   ]
 }

@@ -1,0 +1,170 @@
+---
+title: Resources
+description:
+  Every Agent, Skill and Schedule is a resource with a permanent ID and a slug
+  you can rename. Learn how names, references, changes, lists, labels and tags
+  work the same way for every kind.
+---
+
+Priya runs her team's support Agent, `test-bot`. It answers in the support Slack
+channel, a Schedule runs it every morning, and another Agent hands it refund
+questions. One day she renames it `support-bot`. The channel keeps answering,
+the Schedule runs the next morning, and the other Agent keeps handing it work.
+Nothing that used `test-bot` had to change.
+
+That works because every resource in Stigmer (Agents, Skills, Plugins,
+Schedules, Vaults and the rest) follows the same rules for how it is named,
+pointed at, changed, and listed. This page explains those rules once.
+
+## An ID and a slug
+
+Every resource has two names:
+
+- **The ID**, which Stigmer gives the resource when it is made (`agt_…` for an
+  Agent). It never changes, and Stigmer files everything about the resource
+  under it.
+- **The slug**, the short name people type in URLs, files and commands
+  (`support-bot`). It is unique among the resources of that kind in the
+  Organization, and it can be renamed.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: Support bot
+  slug: support-bot
+spec:
+  instructions: Answer customer questions about orders and refunds.
+```
+
+Leave the slug out and Stigmer makes one from the name.
+
+## Renaming
+
+A rename changes the slug and nothing else. The resource keeps its ID, so
+everything that points at it keeps working, and every page and answer shows the
+new slug. The old slug keeps leading to the resource for 30 days, so a bookmark
+or a script that reads `test-bot` still finds it. For those 30 days no other
+resource of the kind can take the old slug, and you can take it back; after that
+it is free.
+
+A change that writes through the old slug is refused, with a message that names
+the new one. A file that still says `test-bot` and carries no ID would otherwise
+update the Agent for 30 days and then make a second one.
+
+How you rename depends on where you work:
+
+- **In the console**, edit the slug on the resource's page (an Agent's Overview
+  tab) and choose Rename.
+- **From a file**, keep the resource's `id` in the file, change its `slug`, and
+  apply it. The file `stigmer get agent test-bot -o yaml` prints has both. This
+  works for every kind the CLI applies from a file and can rename: Agent,
+  Schedule, Channel App, OAuth App, Federation Issuer and Organization. The
+  console's Edit YAML dialog follows the same rule, and says "Applying will
+  rename test-bot to support-bot" before you apply.
+- **Vaults and Teams** have no file: rename them in the console, or with the
+  SDK's `rename`.
+
+Renaming needs the same permission as deleting. A few kinds keep their slug for
+good (an Agent Share, an Agent Channel, a Session): a file that changes one
+still applies its other changes, and says the slug was kept.
+
+## What a reference holds
+
+When one resource points at another (an Agent's Skills and subagents, a
+Schedule's Agent), you write the target's slug:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: Triage bot
+spec:
+  instructions: Hand refund questions to the support bot.
+  subagents:
+    - kind: agent
+      slug: support-bot
+```
+
+When the Agent is saved, Stigmer stores the ID that slug named, not the slug.
+Every answer shows the target's current slug. So:
+
+- When `support-bot` is renamed, Triage bot keeps handing it work, and shows the
+  new slug.
+- When a Skill is deleted, the Agents that listed it show a deleted Skill, and
+  their conversations run without it. If someone later makes a new Skill under
+  the old name, those Agents do not pick it up. A reference follows a name only
+  when someone saves it naming that name again.
+
+A Skill or Plugin reference without a version follows each new version: every
+turn of a conversation loads the latest at its start, and the run records which
+version it used. The conversation marks the turn where one moved ("Skill refunds
+updated"). A subagent is fixed to the version it had when the Agent that lists
+it was saved. [Skills](/docs/concepts/skills) has more on versions.
+
+## Apply and update
+
+There are two ways to change a resource:
+
+- **An apply** states the whole resource, as a file does
+  (`stigmer apply -f agent.yaml`). Stigmer finds the resource by the file's ID,
+  or by its slug when the file has none, makes it when neither finds one, and
+  otherwise makes it match the file. Applying the same file twice changes
+  nothing the second time.
+- **An update** changes only the fields it names. Code that changes an Agent's
+  instructions names `spec.instructions`, and every other field keeps what is
+  stored, so two people changing different fields at the same moment never undo
+  each other.
+
+Neither changes the slug (that is a rename) or who can see the resource (that is
+[sharing](/docs/concepts/sharing-and-access)).
+
+Every resource also carries an etag, a fingerprint of what people edit on it. A
+change that sends back the etag it read is refused if the resource changed in
+the meantime, so the person can look again and redo the change instead of
+overwriting someone else's. The console's editors work this way. A change
+without an etag simply wins. A file never asks for this check: an etag inside a
+file, even one `stigmer get -o yaml` printed, is dropped when the file is
+applied, so a file you kept applies as written.
+
+## Lists come in pages
+
+Every list returns a page at a time, newest first, with a token for the next
+page; the list is complete when there is no token. The console shows a Load more
+button where a page ends, the CLI reads as many pages as `--limit` asks for, and
+each SDK has an iterator that walks every page for you
+([Pagination](/docs/sdk/overview#pagination)). A list says whether more follow,
+not how many there are.
+
+## Labels and tags
+
+Two kinds of words help you organize resources, and they do different jobs.
+
+**Labels filter.** A label is a key and value, such as `team: support`. A list
+asked for labels returns only the resources that carry every one:
+`stigmer list agents --label team=support`. Use labels for the groupings your
+team and your scripts rely on: a team, an environment, a cost center.
+
+**Tags help people find things.** A tag is a search word, such as `refunds` or
+`billing`, written in lowercase with hyphens. Tags never filter a list; they are
+there for search and for browsing. A Plugin's tags come from the keywords in its
+manifest.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: Support bot
+  slug: support-bot
+  labels:
+    team: support
+    env: production
+  tags:
+    - refunds
+    - orders
+spec:
+  instructions: Answer customer questions about orders and refunds.
+```
+
+Keys that start with `stigmer.ai/` belong to the platform, and Stigmer refuses
+them in what you write.
