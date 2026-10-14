@@ -73,13 +73,14 @@ the plugins section lists `order-management-api`, the tool list shows `tools`,
 and the two `skill_refs` appear under Skills. Each of those fields serves a
 purpose:
 
-| Field          | What it does                                                                           |
-| -------------- | -------------------------------------------------------------------------------------- |
-| `instructions` | The Agent's system prompt — defines its personality, behavior rules, and task guidance |
-| `skill_refs`   | References to [Skills](/docs/concepts/skills) that give the Agent domain knowledge     |
-| `plugins`      | [Plugins](/docs/concepts/plugins) the Agent uses whole: their tools, Skills and hooks  |
-| `tools`        | Only these tools, in Claude Code's names — here no shell commands and no file writes   |
-| `env`          | Environment variables the Agent needs at runtime (API keys, URLs, configuration)       |
+| Field          | What it does                                                                                                                            |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `instructions` | The Agent's system prompt — defines its personality, behavior rules, and task guidance                                                  |
+| `skill_refs`   | References to [Skills](/docs/concepts/skills) that give the Agent domain knowledge                                                      |
+| `plugins`      | [Plugins](/docs/concepts/plugins) the Agent uses whole: their tools, Skills and hooks                                                   |
+| `mcp_servers`  | [MCP servers](/docs/concepts/tools#where-an-mcp-server-comes-from) of the Agent's own, reached over HTTP; only admins add or change one |
+| `tools`        | Only these tools, in Claude Code's names — here no shell commands and no file writes                                                    |
+| `env`          | Environment variables the Agent needs at runtime (API keys, URLs, configuration)                                                        |
 
 Two more fields shape what the Agent's tools may do. `disallowed_tools` lists
 tools the Agent may never use, and `hooks` carries hooks written in the Agent,
@@ -243,8 +244,9 @@ and the conversation's hooks run on its calls before its own.
 
 On the Cursor Harness a subagent runs with its instructions, model and Skills. A
 subagent that brings its own tool lists, or a saved one that brings its own
-plugins or hooks, is refused there, by name, since Cursor cannot tell its tool
-calls from the main Agent's; run such an Agent on the native Harness.
+plugins, hooks or MCP servers, is refused there, by name, since Cursor cannot
+tell its tool calls from the main Agent's; run such an Agent on the native
+Harness.
 
 ## Run settings
 

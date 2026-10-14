@@ -99,9 +99,10 @@ All spec fields are defined by `AgentSpec` in `ai/stigmer/agentic/agent/v1/spec.
 | `spec.icon_url` | No | Publicly accessible image URL (SVG, PNG, JPEG) for marketplace and UI. |
 | `spec.instructions` | Yes | System prompt defining the agent's behavior. Minimum 10 characters (enforced by `buf.validate`). |
 | `spec.plugins` | No | Plugins this agent uses, each whole: their skills, agents, hooks and MCP servers. See [plugin-integration.md](plugin-integration.md). |
+| `spec.mcp_servers` | No | MCP servers written in this agent, reached over HTTP: a `name`, a `url` and optional `headers` each, at most 20. Only the organization's admins add one or change its address or headers. Tools are `mcp__<name>__<tool>`. See [plugin-integration.md](plugin-integration.md#an-agents-own-mcp-servers). |
 | `spec.skill_refs` | No | Skills providing agent knowledge. See [skill-integration.md](skill-integration.md). |
 | `spec.subagents` | No | Saved agents this agent may hand work to, each running its own definition; pinned to a version when this agent is saved, at most 20. See [subagents.md](subagents.md). |
-| `spec.tools` | No | Tools this agent may use, in Claude Code's names (`Read`, `Bash(git push *)`, `mcp__plugin_<plugin>_<server>`). Empty means every tool it has. See [plugin-integration.md](plugin-integration.md). |
+| `spec.tools` | No | Tools this agent may use, in Claude Code's names (`Read`, `Bash(git push *)`, `mcp__plugin_<plugin>_<server>`, `mcp__<server>`). Empty means every tool it has. See [plugin-integration.md](plugin-integration.md). |
 | `spec.disallowed_tools` | No | Tools this agent may never use, in the same names. Applied before `spec.tools`. |
 | `spec.hooks` | No | A hooks block written in the agent, run around its tool calls and its subagents' calls after the hooks of the plugins it lists. See [Hooks](#hooks). |
 | `spec.env_spec` | No | Required environment variables (schema only). See below. |

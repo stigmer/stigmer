@@ -104,9 +104,10 @@ asking about it, give the Agent one or both of Claude Code's two lists:
 
 Entries use Claude Code's names: `Read`, `Grep`, `Bash(git push *)`,
 `Agent(explore)`, `mcp__plugin_<plugin>_<server>` for every tool of one plugin's
-server, `mcp__plugin_<plugin>_<server>__<tool>` for one tool, and `mcp__*` for
-every MCP tool. The never-list is applied first. A specifier in parentheses is
-accepted but governs the whole tool, as in Claude Code:
+server, `mcp__plugin_<plugin>_<server>__<tool>` for one tool, `mcp__<server>`
+and `mcp__<server>__<tool>` for a server in the Agent's own `mcp_servers`, and
+`mcp__*` for every MCP tool. The never-list is applied first. A specifier in
+parentheses is accepted but governs the whole tool, as in Claude Code:
 `tools: [Bash(git status *)]` allows every shell command, not only `git status`,
 and `disallowed_tools: [Bash(git push *)]` removes the shell entirely.
 
@@ -189,8 +190,8 @@ A few principles:
   `destructiveHint: true` on every tool that deletes, refunds or changes an
   account, so every Agent that uses it asks first.
 - **Leave out what an Agent should never do.** A support Agent that only looks
-  things up needs `tools: [Read, Grep, mcp__<server-slug>]`, not an approval on
-  every write.
+  things up needs `tools: [Read, Grep, mcp__plugin_<plugin>_<server>]`, not an
+  approval on every write.
 - **Approval is for the person at the conversation.** On a channel or a guest
   share there is no approver, so a tool that asks, by default or because a hook
   asks, is skipped there; a hook's refusal still holds. Keep the tools such an

@@ -86,14 +86,14 @@ never changes the slug.
 ### Plugins
 
 A Plugin is one folder's Skills, agents, hooks and MCP servers, kept together as
-one resource; an MCP server lives only in a Plugin. It is the unit of install,
-upgrade and removal: `stigmer push plugin <dir>` installs the folder as one
-Plugin, the Marketplace installs one from a catalogue, and `stigmer mcp add`
-installs a Plugin of one MCP server. An Agent or a conversation uses a Plugin
-whole by listing it in `plugins`; removing a Plugin is refused while an Agent
-lists it. A Plugin is not written as YAML; it is read from a folder in the open
-Agent Plugins format (or the Cursor, Claude Code or Codex dialect), and the
-resource the server keeps records what the folder holds:
+one resource; a Plugin is how an MCP server is packaged and shared. It is the
+unit of install, upgrade and removal: `stigmer push plugin <dir>` installs the
+folder as one Plugin, the Marketplace installs one from a catalogue, and
+`stigmer mcp add` installs a Plugin of one MCP server. An Agent or a
+conversation uses a Plugin whole by listing it in `plugins`; removing a Plugin
+is refused while an Agent lists it. A Plugin is not written as YAML; it is read
+from a folder in the open Agent Plugins format (or the Cursor, Claude Code or
+Codex dialect), and the resource the server keeps records what the folder holds:
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1

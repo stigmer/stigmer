@@ -134,6 +134,10 @@ A saved subagent runs its own definition:
   parent agent's lists. A subagent can use a tool the parent may not.
 - **Its plugins.** Their MCP servers, skills and hooks. Their agents are not
   offered: a subagent hands work to no one.
+- **Its MCP servers** (`mcp_servers`), the ones written in it. A server's name
+  is the agent's and its subagents' together: an agent and a subagent it lists
+  may not both have a server of one name, and run planning refuses such a turn,
+  naming both.
 - **Its skills** (`skill_refs`) and **its hooks** (`hooks`).
 - **Its values.** The keys its `env` declares, found in the conversation's
   vaults like the agent's own, reach only its shell and its own hooks. The
@@ -179,10 +183,10 @@ The native engine runs everything on this page.
 
 The Cursor engine runs a subagent with its instructions, model and skills. It
 cannot tell a subagent's tool call from the main agent's, so it refuses a turn
-whose saved subagent brings its own plugins, hooks or tool lists:
+whose saved subagent brings its own plugins, hooks, MCP servers or tool lists:
 
 ```text
-Subagent 'release-notes' brings its own plugins, hooks or tool lists, which the Cursor engine cannot keep to it: it cannot tell a subagent's tool call from the main agent's. Run this agent on the native engine, or remove them from 'release-notes'.
+Subagent 'release-notes' brings its own plugins, hooks, MCP servers or tool lists, which the Cursor engine cannot keep to it: it cannot tell a subagent's tool call from the main agent's. Run this agent on the native engine, or remove them from 'release-notes'.
 ```
 
 For the same reason it refuses a turn whose plugin subagent carries tool lists

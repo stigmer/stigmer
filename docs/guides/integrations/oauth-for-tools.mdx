@@ -1,9 +1,9 @@
 ---
 title: OAuth for tools
 description:
-  Sign in once to an OAuth-protected MCP server from its plugin's page. Stigmer
-  handles token exchange, secure storage, and credential lifecycle
-  automatically.
+  Sign in once to an OAuth-protected MCP server from its plugin's page, or from
+  the Agent's page for a server written in the Agent. Stigmer handles token
+  exchange, secure storage, and credential lifecycle automatically.
 ---
 
 import { DemoOAuthConnectFlow } from "@/components/docs";
@@ -26,6 +26,10 @@ requested permissions, and the login is saved in your vault at the server's
 address. **Check tools** then lists what the server offers.
 
 <DemoOAuthConnectFlow />
+
+A server written in an Agent's own `mcp_servers` signs in the same way, with
+**Sign in** on its row in the Agent's **MCP servers** section, and the login is
+saved at its address.
 
 ## How a server signs in
 

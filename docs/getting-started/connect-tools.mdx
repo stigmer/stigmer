@@ -40,9 +40,12 @@ and an external system — an API, a database, an internal service. Stigmer
 connects to any server that speaks the
 [Model Context Protocol](https://modelcontextprotocol.io/).
 
-In Stigmer an MCP server always lives in a plugin, the package that can carry
-Skills and hooks as well. A server you add by its address becomes a plugin of
-its own, holding that one server.
+In Stigmer an MCP server reaches an Agent two ways: in a plugin, the package
+that can carry Skills and hooks as well, or written in the Agent itself. This
+tutorial uses a plugin, which every Agent and chat can share: a server you add
+by its address becomes a plugin of its own, holding that one server. To write a
+server in one Agent instead, see
+[Give an agent its own MCP server](/docs/guides/integrations/connect-an-mcp-server#give-an-agent-its-own-mcp-server).
 
 <Callout type="info">
   Many MCP servers arrive ready-made in plugins: install one from a marketplace

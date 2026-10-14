@@ -1,6 +1,7 @@
 A Plugin is an installed Agent Plugins package, the unit of install, upgrade and
-removal for a set of skills, agents, hooks and MCP servers, and the only home of
-an MCP server. Pushing a plugin folder in the Agent Plugins, Cursor, Claude Code
+removal for a set of skills, agents, hooks and MCP servers, and how an MCP
+server is packaged and shared; an agent can also write a server in its own
+`mcp_servers`. Pushing a plugin folder in the Agent Plugins, Cursor, Claude Code
 or Codex layout stores the plugin alone, and its status lists what the archive
 holds. An agent or a conversation uses a plugin by listing it in `plugins`, and
 gets it whole: its skills as `<plugin>:<skill>`, its agents as subagents named
