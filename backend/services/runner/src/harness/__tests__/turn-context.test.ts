@@ -10,7 +10,7 @@
  *    engine's rows produce), whatever the thread id says (the id exists on
  *    the first turn too), and never the live engine checkpoint.
  *  - `fileReviewOn`: a turn's file review is on when the session asks for
- *    it or the run is a plugin-eval try, and off otherwise (the default).
+ *    it or the run is a eval-run try, and off otherwise (the default).
  *  - `reconcileTurnSettlement`: a reconcile turn completes, its rows naming
  *    the files put back, or the failures when any undo failed.
  *  - `regeneratesApprovedWrites`: which pause primitives make the runner pin
@@ -131,7 +131,7 @@ describe("runEventsReader", () => {
 describe("fileReviewOn", () => {
   const session = (fileReview: boolean) => create(SessionSchema, { spec: { fileReview } });
   const message = create(RunSpecSchema, { message: "Edit the notes." });
-  const evalTry = create(RunSpecSchema, { message: "Edit the notes.", pluginEvalCase: {} });
+  const evalTry = create(RunSpecSchema, { message: "Edit the notes.", evalCase: {} });
 
   it("is off unless the session asks for it", () => {
     expect(fileReviewOn(session(false), message)).toBe(false);
@@ -139,7 +139,7 @@ describe("fileReviewOn", () => {
     expect(fileReviewOn(session(true), message)).toBe(true);
   });
 
-  it("is on for a plugin-eval try whatever the switch says: its graders read the captured sets", () => {
+  it("is on for a eval-run try whatever the switch says: its graders read the captured sets", () => {
     expect(fileReviewOn(session(false), evalTry)).toBe(true);
     expect(fileReviewOn(session(true), evalTry)).toBe(true);
   });

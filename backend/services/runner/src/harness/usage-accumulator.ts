@@ -20,7 +20,7 @@
  * Cursor orchestrator wrote.
  *
  * A model call the runtime itself makes for the turn, not the engine (a
- * plugin-eval try's agent mock), adds its cost alone
+ * eval-run try's agent mock), adds its cost alone
  * ({@link UsageAccumulator.addAuxiliaryCost}): the estimate and the cap see
  * it, while the token counts, the model and the turn count stay the
  * engine's.

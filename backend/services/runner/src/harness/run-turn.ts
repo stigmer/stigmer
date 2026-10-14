@@ -55,7 +55,7 @@ import { runWithExecutionContext } from "../shared/execution-context.js";
 import { startHeartbeat } from "../shared/heartbeat.js";
 import { describeExecutionError } from "../shared/model-error.js";
 import { publishPlanArtifact } from "../shared/plan-artifact.js";
-import { readEvalFiles } from "../shared/plugin-eval/read-files.js";
+import { readEvalFiles } from "../shared/eval-case/read-files.js";
 import { StallTimeoutError, startStallWatchdog, type StallWatchdog } from "../shared/stall-watchdog.js";
 import { reportSetupProgress, slimStatus, utcTimestamp } from "../shared/status.js";
 import { cancelInProgressSubAgentProtos } from "../shared/subagent-rows.js";
@@ -307,13 +307,13 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
   };
 
   /**
-   * A plugin-eval try's graders read the files they name as the turn left
+   * A eval-run try's graders read the files they name as the turn left
    * them, the ones it did not change included: read now, with every terminal
    * write, so the status the case workflow reads back carries them.
    */
   async function recordEvalFiles(): Promise<void> {
     if (frame.evalReadFiles === undefined || frame.evalReadFiles.length === 0 || frame.primaryDir === undefined) return;
-    status.pluginEvalFiles = await readEvalFiles(frame.primaryDir, frame.evalReadFiles);
+    status.evalFiles = await readEvalFiles(frame.primaryDir, frame.evalReadFiles);
   }
 
   // ── The turn ended during resolution ──────────────────────────────────────
@@ -368,7 +368,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
         return { kind: "return", value: slimStatus(settlement.status) };
       }
       case "eval-scaffold-failed": {
-        // A plugin-eval try's scaffold failed before the engine started:
+        // A eval-run try's scaffold failed before the engine started:
         // the eval reads the sentence back (`parseTryStop`) and scores the
         // try 0. A retry would run the same script.
         console.warn(`${activityName} eval scaffold failed: execution=${executionId}, ${settlement.message}`);
@@ -399,7 +399,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     const accumulator = costCap.accumulator;
     usage = accumulator;
 
-    // A plugin-eval try's mocks report through the turn's own stop and cap:
+    // A eval-run try's mocks report through the turn's own stop and cap:
     // a mock that stops the try, and an agent mock's cost, which joins the
     // estimate the cap is enforced against.
     frame.evalMocks?.bind({
@@ -565,7 +565,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
 
   /**
    * The table for an `interrupted` outcome, in the orchestrator's precedence:
-   * a stall (FAILED, return) outranks everything; a plugin-eval mock's abort
+   * a stall (FAILED, return) outranks everything; a eval-case mock's abort
    * (TERMINATED, return); a cost cap (TERMINATED, return); then Temporal's cancellation as the signal's reason reads it —
    * the runner's drain, the orchestrator's stop, an infrastructure cancel
    * (all thrown); last a platform stop (COMPLETED, return).
@@ -835,7 +835,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     periodicHeartbeat.stop();
     watchdog?.stop();
     cancellationSignal.removeEventListener("abort", onCancellation);
-    // A plugin-eval try's mock endpoint serves this turn only.
+    // A eval-run try's mock endpoint serves this turn only.
     await frame.evalMocks?.close();
     // Remove the workspace's `.stigmer` link the skill and attachment phases
     // created, so attaching a real repo leaves it untouched between turns

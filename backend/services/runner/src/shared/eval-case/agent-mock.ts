@@ -1,5 +1,5 @@
 /**
- * A plugin-eval `agent` mock: a model playing the plugin's MCP server for
+ * A eval-case `agent` mock: a model playing the plugin's MCP server for
  * one try, from the instructions the mock file's body gives, as Claude
  * Code's judge model plays it.
  *

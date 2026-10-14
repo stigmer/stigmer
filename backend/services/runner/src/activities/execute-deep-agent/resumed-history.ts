@@ -1,5 +1,5 @@
 /**
- * A plugin-eval try's recorded conversation as the native graph's messages,
+ * A eval-run try's recorded conversation as the native graph's messages,
  * so the try resumes it the way Claude Code resumes a `--resume` session:
  * the case's prompt is the next user turn after it.
  *

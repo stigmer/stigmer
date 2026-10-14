@@ -44,7 +44,7 @@ export function costCapExceeded(maxCostUsd: number, estimatedCostUsd: number): b
  * distinguish "ran out of cost budget" from other TERMINATED causes match
  * on it, because RunStatus carries no structured termination reason. The
  * wording lives in `@stigmer/eval-runtime` (`try-stop.ts`), which the
- * plugin eval reads it back with, so the two cannot drift.
+ * eval run reads it back with, so the two cannot drift.
  */
 export { COST_LIMIT_ERROR_PREFIX };
 

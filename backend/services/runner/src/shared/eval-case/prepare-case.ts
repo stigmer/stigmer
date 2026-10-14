@@ -1,5 +1,5 @@
 /**
- * The plugin-eval case's own setup for its try, run once the workspace is
+ * The eval case's own setup for its try, run once the workspace is
  * the turn's (after the workspace lock) and before the engine starts: the
  * scaffold, the reference folders, the recorded conversation and the
  * case's variables.
@@ -39,7 +39,7 @@
  */
 
 import { join, posix } from "node:path";
-import type { PluginEvalCaseContext } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
+import type { EvalCaseContext } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
 import { parseTranscript, type TranscriptMessage } from "@stigmer/eval-runtime";
 import { AgentExecError, agentFs, agentPathExists } from "../agent-fs.js";
 import type { ResolvedAttachment } from "../attachment-resolver.js";
@@ -83,7 +83,7 @@ export type PrepareOutcome =
 
 /** Prepare the case for its try (the module header). Throws {@link CaseArchiveError} when the archive lacks what the server planned. */
 export async function prepareEvalCase(args: {
-  readonly context: PluginEvalCaseContext;
+  readonly context: EvalCaseContext;
   readonly archive: CaseArchive;
   readonly sessionId: string;
   readonly primaryDir: string;
@@ -106,7 +106,7 @@ export async function prepareEvalCase(args: {
 
 /** Run the scaffold unless an earlier attempt of this turn finished it; the failure's detail, or `undefined`. */
 async function scaffoldOnce(
-  context: PluginEvalCaseContext,
+  context: EvalCaseContext,
   archive: CaseArchive,
   caseDir: string,
   primaryDir: string,
@@ -188,7 +188,7 @@ export function failureDetail(err: unknown, elapsedMs = 0): string {
 
 /** Write the reference folders under `inputs/` and list them as the turn's inputs. */
 async function writeReferenceDirs(
-  context: PluginEvalCaseContext,
+  context: EvalCaseContext,
   archive: CaseArchive,
   platformDir: string,
   primaryDir: string,
@@ -214,7 +214,7 @@ async function writeReferenceDirs(
 }
 
 /** The recorded conversation, parsed as the server checked it. */
-function historyOf(context: PluginEvalCaseContext, archive: CaseArchive): readonly TranscriptMessage[] | undefined {
+function historyOf(context: EvalCaseContext, archive: CaseArchive): readonly TranscriptMessage[] | undefined {
   if (context.historyFile === "") return undefined;
   const path = `${context.caseDir}/${context.historyFile}`;
   const text = archive.text(path);

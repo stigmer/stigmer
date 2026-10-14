@@ -1,5 +1,5 @@
 /**
- * Pins the plugin-eval mock endpoint (`mock-endpoint.ts`) through a real
+ * Pins the eval-case mock endpoint (`mock-endpoint.ts`) through a real
  * MCP client over loopback: each stand-in lists only its mocked tools, with
  * the saved schema where there is one; a fixed mock renders its body and
  * fixtures (the case's before the suite's); an error mock answers as a tool
@@ -17,11 +17,11 @@ import { create } from "@bufbuild/protobuf";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import {
-  PluginEvalCaseContextSchema,
-  PluginEvalMockKind,
-  PluginEvalMockServerSchema,
-  PluginEvalMockToolSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
+  EvalCaseContextSchema,
+  EvalMockKind,
+  EvalMockServerSchema,
+  EvalMockToolSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
 
 import type { MockAbort } from "../../../harness/stop-controller.js";
 import type { AgentMockModel, AgentMockRequest } from "../agent-mock.js";
@@ -41,11 +41,11 @@ const ARCHIVE = caseArchiveOf([
   { path: "evals/mocks/orders/receipt.md", content: encode("{{file:fixtures/missing.json}}") },
 ]);
 
-const tool = (fields: { tool: string; file: string; kind: PluginEvalMockKind; error?: boolean; expectJson?: string; abortWhen?: string }) =>
-  create(PluginEvalMockToolSchema, fields);
+const tool = (fields: { tool: string; file: string; kind: EvalMockKind; error?: boolean; expectJson?: string; abortWhen?: string }) =>
+  create(EvalMockToolSchema, fields);
 
 function contextOf(budget: number) {
-  return create(PluginEvalCaseContextSchema, {
+  return create(EvalCaseContextSchema, {
     pluginId: "plg_1",
     pluginName: "kit",
     pluginDigest: "a".repeat(64),
@@ -53,22 +53,22 @@ function contextOf(budget: number) {
     caseDir: "evals/fix",
     agentMockCallBudget: budget,
     mocks: [
-      create(PluginEvalMockServerSchema, {
+      create(EvalMockServerSchema, {
         server: "tracker",
         segment: "plugin_kit_tracker",
         toolsFile: "evals/mocks/tracker/_tools.json",
         tools: [
-          tool({ tool: "close_issue", file: "evals/mocks/tracker/close_issue.md", kind: PluginEvalMockKind.fixed, error: true }),
-          tool({ tool: "create_issue", file: "evals/mocks/tracker/create_issue.md", kind: PluginEvalMockKind.fixed, expectJson: '{"title":"string"}' }),
+          tool({ tool: "close_issue", file: "evals/mocks/tracker/close_issue.md", kind: EvalMockKind.fixed, error: true }),
+          tool({ tool: "create_issue", file: "evals/mocks/tracker/create_issue.md", kind: EvalMockKind.fixed, expectJson: '{"title":"string"}' }),
         ],
       }),
-      create(PluginEvalMockServerSchema, {
+      create(EvalMockServerSchema, {
         server: "orders",
         segment: "plugin_kit_orders",
         tools: [
-          tool({ tool: "lookup_order", file: "evals/mocks/orders/lookup_order.md", kind: PluginEvalMockKind.fixed }),
-          tool({ tool: "receipt", file: "evals/mocks/orders/receipt.md", kind: PluginEvalMockKind.fixed }),
-          tool({ tool: "refund", file: "evals/mocks/orders/_server.md", kind: PluginEvalMockKind.agent, abortWhen: "the order is unknown" }),
+          tool({ tool: "lookup_order", file: "evals/mocks/orders/lookup_order.md", kind: EvalMockKind.fixed }),
+          tool({ tool: "receipt", file: "evals/mocks/orders/receipt.md", kind: EvalMockKind.fixed }),
+          tool({ tool: "refund", file: "evals/mocks/orders/_server.md", kind: EvalMockKind.agent, abortWhen: "the order is unknown" }),
         ],
       }),
     ],
@@ -190,7 +190,7 @@ describe("the mock endpoint", () => {
   });
 
   it("starts nothing for a case that mocks no server", async () => {
-    const context = create(PluginEvalCaseContextSchema, { pluginId: "plg_1" });
+    const context = create(EvalCaseContextSchema, { pluginId: "plg_1" });
     expect(await startMockEndpoint({ context, archive: ARCHIVE, agentModel: noModel })).toBeUndefined();
   });
 

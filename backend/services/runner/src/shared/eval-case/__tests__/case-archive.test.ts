@@ -10,7 +10,7 @@ import { createHash } from "node:crypto";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginEvalCaseContextSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
+import { EvalCaseContextSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
 import { buildZip } from "@stigmer/zip-structure/testing";
 import { describe, expect, it } from "vitest";
 import type { StigmerClient } from "../../../client/stigmer-client.js";
@@ -23,7 +23,7 @@ const ARCHIVE = buildZip([
 ]);
 const DIGEST = createHash("sha256").update(ARCHIVE).digest("hex");
 
-const context = (digest = DIGEST) => create(PluginEvalCaseContextSchema, { pluginId: "plg_1", pluginDigest: digest });
+const context = (digest = DIGEST) => create(EvalCaseContextSchema, { pluginId: "plg_1", pluginDigest: digest });
 
 const pluginRecord = (status: { digest?: string; artifactStorageKey?: string }): Plugin =>
   create(PluginSchema, { status: { digest: DIGEST, artifactStorageKey: "plugins/abc.zip", ...status } });
@@ -59,7 +59,7 @@ describe("fetchCaseArchive", () => {
   ] as const)("refuses when %s", async (_why, fields, ctx, detail) => {
     const refused = fetchCaseArchive(clientServing(fields), ctx);
     await expect(refused).rejects.toBeInstanceOf(CaseArchiveError);
-    await expect(refused).rejects.toThrow(`the plugin eval's case could not be read: ${detail}`);
+    await expect(refused).rejects.toThrow(`the eval run's case could not be read: ${detail}`);
   });
 
   it("refuses a plugin whose status carries no digest", async () => {

@@ -8,11 +8,11 @@
 
 import { create } from "@bufbuild/protobuf";
 import {
-  PluginEvalCaseContextSchema,
-  PluginEvalMockKind,
-  PluginEvalMockServerSchema,
-  PluginEvalMockToolSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
+  EvalCaseContextSchema,
+  EvalMockKind,
+  EvalMockServerSchema,
+  EvalMockToolSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { caseArchiveOf } from "../case-archive.js";
 
@@ -45,13 +45,13 @@ afterEach(async () => {
 describe("the mock endpoint's failed request", () => {
   it("is logged and answered 500", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    const context = create(PluginEvalCaseContextSchema, {
+    const context = create(EvalCaseContextSchema, {
       pluginId: "plg_1",
       mocks: [
-        create(PluginEvalMockServerSchema, {
+        create(EvalMockServerSchema, {
           server: "tracker",
           segment: "plugin_kit_tracker",
-          tools: [create(PluginEvalMockToolSchema, { tool: "create_issue", file: "evals/mocks/tracker/create_issue.md", kind: PluginEvalMockKind.fixed })],
+          tools: [create(EvalMockToolSchema, { tool: "create_issue", file: "evals/mocks/tracker/create_issue.md", kind: EvalMockKind.fixed })],
         }),
       ],
     });
@@ -60,6 +60,6 @@ describe("the mock endpoint's failed request", () => {
     const server = endpoint?.servers[0];
     const response = await fetch(server?.url ?? "", { method: "POST", body: "{}", headers: { ...server?.headers, "content-type": "application/json" } });
     expect(response.status).toBe(500);
-    expect(warn).toHaveBeenCalledWith("[plugin-eval mocks] request failed: transport broke");
+    expect(warn).toHaveBeenCalledWith("[eval-case mocks] request failed: transport broke");
   });
 });

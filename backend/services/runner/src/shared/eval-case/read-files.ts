@@ -1,12 +1,12 @@
 /**
- * The files a plugin eval's graders read, as the try's turn left them.
+ * The files an eval run's graders read, as the try's turn left them.
  *
  * The server sends the workspace-relative paths its file graders name
- * (`PluginEvalCaseContext.read_files`). The file-review ledger holds only
+ * (`EvalCaseContext.read_files`). The file-review ledger holds only
  * what the turn changed, so a file the scaffold wrote and the agent left
  * alone would read as absent there; Claude Code's graders read the file as
  * it is. So the runner reads exactly those paths when the turn ends and
- * returns them on the run (`RunStatus.plugin_eval_files`), where the case
+ * returns them on the run (`RunStatus.eval_files`), where the case
  * workflow's graders read any path no change set holds.
  *
  * Each read is the agent's own (`agentFs()`), so it reaches nothing the
@@ -21,11 +21,11 @@
 import { join, posix } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import {
-  type PluginEvalFile,
-  PluginEvalFileSchema,
-  type PluginEvalFiles,
-  PluginEvalFilesSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
+  type EvalFile,
+  EvalFileSchema,
+  type EvalFiles,
+  EvalFilesSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
 import { agentFs } from "../agent-fs.js";
 import { bytesLookBinary } from "../file-change.js";
 import { INLINE_FILE_CONTENT_MAX_BYTES, STATUS_PAYLOAD_HARD_LIMIT_BYTES } from "../status-offload.js";
@@ -41,19 +41,19 @@ const S_IFMT = 0o170000;
 const S_IFREG = 0o100000;
 
 /** Reads each path under `workspaceDir`, in the order given, once per path. */
-export async function readEvalFiles(workspaceDir: string, paths: readonly string[]): Promise<PluginEvalFiles> {
-  const files: PluginEvalFile[] = [];
+export async function readEvalFiles(workspaceDir: string, paths: readonly string[]): Promise<EvalFiles> {
+  const files: EvalFile[] = [];
   let budget = EVAL_FILES_MAX_BYTES;
   for (const path of new Set(paths)) {
     const file = await readOne(workspaceDir, path, budget);
     if (file.content.case === "text") budget -= Buffer.byteLength(file.content.value);
     files.push(file);
   }
-  return create(PluginEvalFilesSchema, { files });
+  return create(EvalFilesSchema, { files });
 }
 
-async function readOne(workspaceDir: string, path: string, budget: number): Promise<PluginEvalFile> {
-  const of = (content: PluginEvalFile["content"]): PluginEvalFile => create(PluginEvalFileSchema, { path, content });
+async function readOne(workspaceDir: string, path: string, budget: number): Promise<EvalFile> {
+  const of = (content: EvalFile["content"]): EvalFile => create(EvalFileSchema, { path, content });
   const relative = posix.normalize(path.trim());
   if (posix.isAbsolute(relative) || relative === ".." || relative.startsWith("../")) {
     return of({ case: "unreadable", value: `'${path}' is outside the workspace` });

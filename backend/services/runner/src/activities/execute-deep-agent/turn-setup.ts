@@ -809,7 +809,7 @@ export function checkTurnToolLists(
  * stays the session's), the structured-output contract appended, and
  * the inline images FIRST as content blocks when the turn carries any (per
  * Anthropic's images-before-text guidance; a plain string otherwise). A
- * plugin-eval try's recorded conversation goes ahead of that message when
+ * eval-run try's recorded conversation goes ahead of that message when
  * the thread holds none yet (`resumed-history.ts`).
  */
 export async function composeGraphInput(input: TurnInput, engine: DeepAgentEngine): Promise<DeepAgentGraphInput> {

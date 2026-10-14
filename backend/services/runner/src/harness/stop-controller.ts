@@ -5,7 +5,7 @@
  * every cause of stopping and forbids it to branch on the cause; the runtime
  * keeps the cause here, as evidence its terminal table reads after the
  * adapter settles `interrupted`. Five producers abort the signal: the stall
- * watchdog, a plugin-eval try's mock (`shared/plugin-eval/mock-endpoint.ts`:
+ * watchdog, a eval-run try's mock (`shared/eval-case/mock-endpoint.ts`:
  * an input guard violated, an agent mock ending the run, the agent mocks'
  * budget spent), the usage accumulator's cost cap, the persist chokepoint's
  * platform STOP, and Temporal's own cancellation (a pause, a worker
@@ -30,7 +30,7 @@ export type StopCause =
   | { readonly kind: "platform-stop" }
   | { readonly kind: "cancellation" };
 
-/** Which mock stopped a plugin-eval try, and why. */
+/** Which mock stopped a eval-run try, and why. */
 export interface MockAbort {
   /** The mocked server's key in the plugin's MCP configuration. */
   readonly server: string;

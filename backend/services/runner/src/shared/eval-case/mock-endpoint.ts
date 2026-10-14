@@ -1,5 +1,5 @@
 /**
- * A plugin-eval try's stand-ins for the plugin's MCP servers: one
+ * A eval-run try's stand-ins for the plugin's MCP servers: one
  * Streamable HTTP MCP endpoint on loopback for the turn, serving one
  * server per mocked plugin server under that server's own name, so both
  * engines reach it as they reach any HTTP server and the transcript records
@@ -8,7 +8,7 @@
  * What each stand-in offers: the tools the case mocks, with the real
  * server's descriptions and input schemas when its `_tools.json` holds them
  * and a permissive object schema otherwise. A tool with no mock is not
- * offered. The server planned all of this (`RunSpec.plugin_eval_case`); the
+ * offered. The server planned all of this (`RunSpec.eval_case`); the
  * bytes come from the plugin's archive.
  *
  * How a call is answered:
@@ -45,11 +45,11 @@ import {
   type CompiledExpect,
 } from "@stigmer/eval-runtime";
 import {
-  PluginEvalMockKind,
-  type PluginEvalCaseContext,
-  type PluginEvalMockServer,
-  type PluginEvalMockTool,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
+  EvalMockKind,
+  type EvalCaseContext,
+  type EvalMockServer,
+  type EvalMockTool,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
 import type { MockAbort } from "../../harness/stop-controller.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
 import type { AgentMockExchange, AgentMockModel } from "./agent-mock.js";
@@ -78,14 +78,14 @@ const PERMISSIVE_SCHEMA = { type: "object", additionalProperties: true } as cons
 
 /** One mocked tool, ready to answer. */
 interface ToolStandIn {
-  readonly mock: PluginEvalMockTool;
+  readonly mock: EvalMockTool;
   readonly listing: Tool;
   readonly expect: CompiledExpect | undefined;
 }
 
 /** One mocked server, ready to answer. */
 interface ServerStandIn {
-  readonly server: PluginEvalMockServer;
+  readonly server: EvalMockServer;
   readonly tools: ReadonlyMap<string, ToolStandIn>;
   /** Its agent mocks' earlier exchanges, oldest first. */
   readonly history: AgentMockExchange[];
@@ -97,7 +97,7 @@ interface ServerStandIn {
  * them from it.
  */
 export async function startMockEndpoint(args: {
-  readonly context: PluginEvalCaseContext;
+  readonly context: EvalCaseContext;
   readonly archive: CaseArchive;
   readonly agentModel: AgentMockModel;
 }): Promise<MockEndpoint | undefined> {
@@ -128,7 +128,7 @@ export async function startMockEndpoint(args: {
       if (violation !== undefined) return stop(violation);
     }
     const body = mockBodyOf(archive.text(tool.mock.file) ?? "");
-    if (tool.mock.kind === PluginEvalMockKind.fixed) {
+    if (tool.mock.kind === EvalMockKind.fixed) {
       const rendered = renderMockAnswer(body, input, (path) => fixtureOf(context, archive, standIn.server.server, path));
       if (!rendered.ok) return toolError(rendered.error);
       return { content: [{ type: "text", text: rendered.text }], ...(tool.mock.error && { isError: true }) };
@@ -169,7 +169,7 @@ export async function startMockEndpoint(args: {
   };
 }
 
-function standInOf(server: PluginEvalMockServer, archive: CaseArchive): ServerStandIn {
+function standInOf(server: EvalMockServer, archive: CaseArchive): ServerStandIn {
   const saved = new Map(
     (server.toolsFile === "" ? [] : parseToolsList(archive.text(server.toolsFile) ?? "")).map((tool) => [tool.name, tool] as const),
   );
@@ -191,13 +191,13 @@ function standInOf(server: PluginEvalMockServer, archive: CaseArchive): ServerSt
 }
 
 /** A fixture beside the mock: the case's mocks directory first, then the suite's. */
-function fixtureOf(context: PluginEvalCaseContext, archive: CaseArchive, server: string, path: string): string | undefined {
+function fixtureOf(context: EvalCaseContext, archive: CaseArchive, server: string, path: string): string | undefined {
   return archive.text(`${context.caseDir}/mocks/${server}/${path}`) ?? archive.text(`${context.suiteDir}/mocks/${server}/${path}`);
 }
 
 function resolvedServerOf(
-  context: PluginEvalCaseContext,
-  server: PluginEvalMockServer,
+  context: EvalCaseContext,
+  server: EvalMockServer,
   port: number,
   token: string,
 ): ResolvedMcpServer {
@@ -246,7 +246,7 @@ async function serve(
     await mcp.connect(transport);
     await transport.handleRequest(req, res);
   } catch (err) {
-    console.warn(`[plugin-eval mocks] request failed: ${err instanceof Error ? err.message : String(err)}`);
+    console.warn(`[eval-case mocks] request failed: ${err instanceof Error ? err.message : String(err)}`);
     if (!res.headersSent) res.writeHead(500).end();
   }
 }

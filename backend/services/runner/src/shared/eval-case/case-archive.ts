@@ -1,9 +1,9 @@
 /**
- * A plugin-eval case's files, read from the plugin's own archive at the
+ * A eval case's files, read from the plugin's own archive at the
  * eval's version and held in memory for the turn.
  *
  * The server planned the case from the same archive (`RunSpec.
- * plugin_eval_case`): the plugin id, its digest and the plugin-relative
+ * eval_case`): the plugin id, its digest and the plugin-relative
  * paths of what the try needs. The runner fetches the archive the way a
  * plugin mount does (`archive-mount.ts`), refuses any bytes that do not hash
  * to the eval's digest, and keeps every entry in memory by its cleaned name
@@ -18,7 +18,7 @@
  * case.
  */
 
-import type { PluginEvalCaseContext } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
+import type { EvalCaseContext } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import { downloadArchive } from "../archive-mount.js";
 import { cleanEntryPath, sha256Hex } from "../plugin-mount.js";
@@ -37,13 +37,13 @@ export interface CaseArchive {
 /** The archive cannot serve the case; its message names why, for the run's error. */
 export class CaseArchiveError extends Error {
   constructor(detail: string, options?: { readonly cause?: unknown }) {
-    super(`the plugin eval's case could not be read: ${detail}`, options);
+    super(`the eval run's case could not be read: ${detail}`, options);
     this.name = "CaseArchiveError";
   }
 }
 
 /** Fetch, verify and index the archive the case names. Throws {@link CaseArchiveError}. */
-export async function fetchCaseArchive(client: StigmerClient, context: PluginEvalCaseContext): Promise<CaseArchive> {
+export async function fetchCaseArchive(client: StigmerClient, context: EvalCaseContext): Promise<CaseArchive> {
   const plugin = await client.getPlugin(context.pluginId).catch((err: unknown) => {
     throw new CaseArchiveError(`the plugin could not be read (${err instanceof Error ? err.message : String(err)})`, { cause: err });
   });

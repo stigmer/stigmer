@@ -26,7 +26,7 @@ import { TELEMETRY_OFF, adoptTelemetrySettings, resetTelemetrySettingsForTests }
 import { RunTraceIdGenerator, traceIdOfRun } from "../../run-trace-id.js";
 import type { ResolvedBlueprint } from "../../shared/blueprint-resolver.js";
 import { runWithExecutionContext } from "../../shared/execution-context.js";
-import { PLUGIN_EVAL_LABEL, SCHEDULE_ID_LABEL, agentNameOf, runKindOf, withRunSpan, type RunFacts } from "../run-span.js";
+import { EVAL_RUN_LABEL, SCHEDULE_ID_LABEL, agentNameOf, runKindOf, withRunSpan, type RunFacts } from "../run-span.js";
 
 const exporter = new InMemorySpanExporter();
 let provider: NodeTracerProvider;
@@ -178,7 +178,7 @@ describe("withRunSpan", () => {
     ["conversation", {}],
     ["schedule", { [SCHEDULE_ID_LABEL]: "sch_1" }],
     ["judge", { "stigmer.ai/grades-run": "run_x" }],
-    ["eval-try", { [PLUGIN_EVAL_LABEL]: "pev_1" }],
+    ["eval-try", { [EVAL_RUN_LABEL]: "evr_1" }],
   ] as const)("carries no text and no asker with content off, for a %s run", async (kind, labels) => {
     await withRunSpan(TURN, async (span) => {
       span.identify(facts(run(labels), session("support-bot")));
@@ -248,7 +248,7 @@ describe("withRunSpan", () => {
 
 describe("runKindOf and agentNameOf", () => {
   it("prefers the judge's label over an eval's, as a graded eval check carries both", () => {
-    expect(runKindOf({ "stigmer.ai/grades-run": "r", [PLUGIN_EVAL_LABEL]: "e" })).toBe("judge");
+    expect(runKindOf({ "stigmer.ai/grades-run": "r", [EVAL_RUN_LABEL]: "e" })).toBe("judge");
     expect(runKindOf(undefined)).toBe("conversation");
     expect(agentNameOf(run(), session())).toBe("assistant");
   });

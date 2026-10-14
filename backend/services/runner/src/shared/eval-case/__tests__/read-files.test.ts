@@ -1,5 +1,5 @@
 /**
- * Pins how a plugin-eval try returns the files its graders read
+ * Pins how a eval-run try returns the files its graders read
  * (`read-files.ts`) on a real temporary workspace: a text file whether or
  * not the turn changed it, a binary file, a missing path and one under a
  * file, a directory, a path outside the workspace, a file past the per-file

@@ -1,5 +1,5 @@
 /**
- * Pins a plugin-eval try's own setup (`prepare-case.ts`) on real processes
+ * Pins a eval-run try's own setup (`prepare-case.ts`) on real processes
  * and a temporary home: the scaffold runs in the workspace with the
  * format's environment alone and reaches a fixture beside its case; its
  * suite copy, home and temp are gone before the engine; a finished
@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { PluginEvalCaseContextSchema, type PluginEvalCaseContext } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
+import { EvalCaseContextSchema, type EvalCaseContext } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
 
 import { AgentExecError } from "../../agent-fs.js";
 import { getPlatformDir } from "../../workspace/platform-dir.js";
@@ -36,8 +36,8 @@ interface CaseFields {
   readonly env?: Record<string, string>;
 }
 
-function contextOf(fields: CaseFields): PluginEvalCaseContext {
-  return create(PluginEvalCaseContextSchema, {
+function contextOf(fields: CaseFields): EvalCaseContext {
+  return create(EvalCaseContextSchema, {
     pluginId: "plg_1",
     pluginDigest: "a".repeat(64),
     suiteDir: "evals",
