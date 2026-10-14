@@ -1,20 +1,21 @@
 // File-mode apply orchestration (`apply -f <file|dir>`).
 //
-// Pipeline per document: strict YAML→proto marshal → inject the
+// Pipeline per document: strict YAML→proto marshal, reduced to the desired
+// state the file declares (no etag, references by slug) → inject the
 // resolved org when absent → dry-run preview OR drive the raw command
 // controller's `apply` RPC with the full proto → build a CommandResult. Items
 // across all files are sorted into dependency order before applying so parents
 // (org → agent → agent channel → …) land before their dependents.
+//
+// The slug rules (a renamed-away slug named, a declared slug followed with a
+// rename, a kind that cannot rename) are the SDK's, shared with the
+// console's YAML editors; this file words their outcomes for the terminal.
 
 import { create, equals, fromJson, type JsonValue, type Message } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import {
-  ApiResourceReferenceSchema,
-  RenameInputSchema,
-  UpdateVisibilityInputSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { UpdateOrganizationPoliciesInputSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
@@ -31,7 +32,14 @@ import {
   organizationLabel,
   organizationNamed,
 } from "../../client/organizations.js";
-import { getErrorReason, retiredShapeWayForward } from "@stigmer/sdk";
+import {
+  applyNamingCurrentSlug,
+  followDeclaredSlug,
+  retiredShapeWayForward,
+  SlugChangeRefusedError,
+  SlugRenamedError,
+  toDesiredState,
+} from "@stigmer/sdk";
 import { classify, UsageError } from "../../errors/index.js";
 import { CommandResult } from "../../output/index.js";
 import { defaultRegistry, unknownKindError, Verb } from "../../registry/index.js";
@@ -116,10 +124,19 @@ export async function applyItem(
  * Strict YAML→proto marshal for one item, with a precise location in the error.
  * Split out from {@link applyItem} so marshalling can be exercised and reused
  * apart from the apply it feeds.
+ *
+ * A file is a desired state (`toDesiredState`): its etag is dropped, and so
+ * is the id of each reference it names by slug. A file `get -o yaml`
+ * printed whole applies after the resource changed, and a reference whose
+ * slug was edited follows the new slug instead of disagreeing with a
+ * leftover id.
  */
 export function marshalItem(item: ApplyItem): Message {
   try {
-    return fromJson(item.handler.schema, item.document, { ignoreUnknownFields: false });
+    return toDesiredState(
+      item.handler.schema,
+      fromJson(item.handler.schema, item.document, { ignoreUnknownFields: false }),
+    );
   } catch (err) {
     const hint = retiredShapeWayForward(item.document);
     throw new UsageError(
@@ -151,14 +168,14 @@ export async function applyMessage(
     return { result: await buildDryRunResult(controller, handler, message), warning: orgWarning };
   }
 
-  const applied = await applyNamingCurrentSlug(controller, handler, message);
+  const applied = await applyNamingSlug(controller, handler, message);
   // Visibility and policies land before the slug: a refused rename stops
   // the command, so everything else the manifest asked for has landed by
   // then, and the refusal reports it.
   const visibilityWarning = await applyDeclaredVisibility(controller, handler, message, applied);
   await applyDeclaredPolicies(controller, handler, message, applied);
-  await applyDeclaredSlug(controller, handler, message, applied, visibilityWarning);
-  const warning = combineWarnings(orgWarning, visibilityWarning);
+  const slugWarning = await applyDeclaredSlug(controller, handler, message, applied, visibilityWarning);
+  const warning = combineWarnings(orgWarning, visibilityWarning, slugWarning);
   const result = buildApplyResult(handler, applied, created);
   return { result, warning, applied };
 }
@@ -265,20 +282,20 @@ function storedPolicies(organization: Organization): OrganizationPolicies {
 }
 
 /**
- * Land a manifest-declared slug change through the guarded door. An apply
- * finds its resource by the manifest's id when it carries one, and an
- * update ignores the slug, so a manifest that carries the id and a new slug
- * (an organization's `get -o yaml`, edited) updates the resource and leaves
- * the slug as it was; this follows up with one `rename`, as visibility is
- * followed up. Only kinds with the RPC are driven, and only when the
- * manifest names the id: without it the slug is how apply finds the
- * resource, so a new slug means a new resource. A refusal fails the
+ * Land a manifest-declared slug change through the guarded door (the SDK's
+ * `followDeclaredSlug`). An apply finds its resource by the manifest's id
+ * when it carries one, and an update ignores the slug, so a manifest that
+ * carries the id and a new slug (an organization's `get -o yaml`, edited)
+ * updates the resource and leaves the slug as it was; one `rename` follows,
+ * as visibility is followed up. Without the id the slug is how apply finds
+ * the resource, so a new slug means a new resource. A kind with no rename
+ * keeps its slug, and the returned warning says so. A refusal fails the
  * command after the spec and any declared visibility have landed; the error
- * says what landed and carries the visibility follow-up's warning. Its advice
- * follows the refusal: a slug that is taken or reserved (AlreadyExists) asks
- * for another slug, a caller who may not rename (PermissionDenied: renaming
- * needs what deleting needs, an organization's owner for an organization)
- * is told so, anything else gets none.
+ * says what landed and carries the visibility follow-up's warning. Its
+ * advice follows the refusal: a slug that is taken or reserved
+ * (AlreadyExists) asks for another slug, a caller who may not rename
+ * (PermissionDenied: renaming needs what deleting needs, an organization's
+ * owner for an organization) is told so, anything else gets none.
  */
 async function applyDeclaredSlug(
   controller: ControllerFn,
@@ -286,34 +303,33 @@ async function applyDeclaredSlug(
   message: Message,
   applied: Message,
   visibilityWarning: string | undefined,
-): Promise<void> {
+): Promise<string | undefined> {
   const declared = metaOf(message);
   const appliedMeta = metaOf(applied);
-  if (
-    handler.rename === undefined ||
-    declared === undefined ||
-    appliedMeta === undefined ||
-    declared.id === "" ||
-    declared.slug === "" ||
-    declared.slug === appliedMeta.slug
-  ) {
-    return;
-  }
   try {
-    const renamed = await handler.rename(
-      controller,
-      create(RenameInputSchema, { resourceId: appliedMeta.id, slug: declared.slug }),
-    );
-    appliedMeta.slug = metaOf(renamed)?.slug ?? declared.slug;
+    const followed = await followDeclaredSlug(controller, handler, message, applied);
+    if (followed.slugKept) {
+      return (
+        `${handler.displayName} slugs do not change: the file's metadata.slug '${declared?.slug ?? ""}' ` +
+        `was not applied, and the slug stays '${appliedMeta?.slug ?? ""}'`
+      );
+    }
+    if (followed.renamedFrom !== undefined && appliedMeta !== undefined) {
+      appliedMeta.slug = metaOf(followed.message)?.slug ?? declared?.slug ?? appliedMeta.slug;
+    }
+    return undefined;
   } catch (err) {
+    /* v8 ignore next -- @preserve: followDeclaredSlug throws only SlugChangeRefusedError; the guard narrows the type */
+    if (!(err instanceof SlugChangeRefusedError)) throw err;
     const visibilityLanded =
+      declared !== undefined &&
       declared.visibility !== ApiResourceVisibility.api_resource_visibility_unspecified &&
-      appliedMeta.visibility === declared.visibility;
+      appliedMeta?.visibility === declared.visibility;
     const landed = visibilityLanded ? "spec and visibility" : "spec";
     const warning = visibilityWarning === undefined ? "" : ` (${visibilityWarning})`;
     throw new UsageError(
       `${handler.displayName} ${landed} applied${warning}, but the manifest's slug change was rejected: ` +
-        `${(err as Error).message}. The slug stays '${appliedMeta.slug}'${renameAdvice(err, handler)}.`,
+        `${(err.cause as Error).message}. The slug stays '${err.slug}'${renameAdvice(err.cause, handler)}.`,
     );
   }
 }
@@ -333,49 +349,19 @@ function renameAdvice(err: unknown, handler: ApplyHandler): string {
 }
 
 /**
- * The server's reason for a write that names a resource by a slug it was
- * renamed away from (each renamable kind's apply documents it). The
- * refusal never names the current slug, because the server answers it
- * before it authorizes the target.
+ * Applies the message (the SDK's `applyNamingCurrentSlug`); a refusal for a
+ * renamed-away slug is answered with the slug the resource has now, read
+ * as the caller by the old slug (which still leads to it for reading), so
+ * the file can be corrected. A caller who may not read the resource, or a
+ * kind with no read by reference, gets the server's own words.
  */
-const REASON_SLUG_RENAMED = "SLUG_RENAMED";
-
-/**
- * Applies the message; a refusal for a renamed-away slug is answered with
- * the slug the resource has now, read as the caller by the old slug (which
- * still leads to it for reading), so the file can be corrected. A caller
- * who may not read the resource, or a kind with no read by reference,
- * gets the server's own words.
- */
-async function applyNamingCurrentSlug(
-  controller: ControllerFn,
-  handler: ApplyHandler,
-  message: Message,
-): Promise<Message> {
+async function applyNamingSlug(controller: ControllerFn, handler: ApplyHandler, message: Message): Promise<Message> {
   try {
-    return await handler.apply(controller, message);
+    return await applyNamingCurrentSlug(controller, handler, message);
   } catch (err) {
-    const reason = getErrorReason(err);
-    if (reason?.reason !== REASON_SLUG_RENAMED || handler.getByReference === undefined) {
-      throw err;
-    }
-    const meta = metaOf(message);
-    const slug = reason.metadata.slug ?? meta?.slug ?? "";
-    let current = "";
-    try {
-      const found = await handler.getByReference(
-        controller,
-        create(ApiResourceReferenceSchema, { kind: handler.kind, org: meta?.org ?? "", slug }),
-      );
-      current = metaOf(found)?.slug ?? "";
-    } catch {
-      throw err;
-    }
-    if (current === "" || current === slug) {
-      throw err;
-    }
+    if (!(err instanceof SlugRenamedError)) throw err;
     throw new UsageError(
-      `${handler.displayName} '${slug}' was renamed to '${current}'; update the file's metadata.slug to '${current}' and apply again`,
+      `${handler.displayName} '${err.slug}' was renamed to '${err.currentSlug}'; update the file's metadata.slug to '${err.currentSlug}' and apply again`,
     );
   }
 }

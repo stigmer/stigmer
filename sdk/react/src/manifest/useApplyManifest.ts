@@ -24,8 +24,12 @@ export type ManifestEntryStatus =
 export interface ManifestPreviewEntry {
   /** The parsed document (kind handler, message, name/slug/org). */
   readonly document: ManifestDocument;
-  /** What applying will do, resolved against live server state. */
-  readonly action: "create" | "update" | "unknown";
+  /**
+   * What applying will do, resolved against live server state by the
+   * apply's own lookup (`stigmer.manifest.resolveTarget`): a document that
+   * carries an id and a new slug renames.
+   */
+  readonly action: "create" | "update" | "rename" | "unknown";
   /** Apply lifecycle status. */
   readonly status: ManifestEntryStatus;
   /** The applied resource, present when `status` is `"applied"`. */
@@ -77,7 +81,7 @@ const VALIDATE_DEBOUNCE_MS = 500;
  * the console counterpart of `stigmer apply -f`.
  *
  * Orchestrates: paste or upload → strict parse against generated proto
- * schemas ({@link parseManifest}) → per-document create-vs-update preview
+ * schemas ({@link parseManifest}) → per-document create, update or rename preview
  * (server existence check) → sequential apply in dependency order with
  * live per-document status.
  *
@@ -182,12 +186,7 @@ export function useApplyManifest(org: string): UseApplyManifestReturn {
         documents.map(async (document): Promise<ManifestPreviewEntry> => {
           let action: ManifestPreviewEntry["action"];
           try {
-            const existing = await stigmer.manifest.getByReference(
-              document.handler.yamlKind,
-              document.org,
-              document.slug,
-            );
-            action = existing !== null ? "update" : "create";
+            action = (await stigmer.manifest.resolveTarget(document)).action;
           } catch {
             action = "unknown";
           }

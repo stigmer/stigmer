@@ -5,6 +5,11 @@
 // applying a half-parsed or typo'd document would be dangerous. Error
 // messages are written for end users: what failed, where, and what
 // a valid document looks like.
+//
+// A parsed document is the desired state its file declares: no etag, and
+// references named by slug alone (`toDesiredState`, the serializer's rule).
+// A file printed by a full read applies the same as one the serializer
+// wrote, however much changed since it was read.
 
 import { fromJson, type JsonValue, type Message } from "@bufbuild/protobuf";
 import { create } from "@bufbuild/protobuf";
@@ -18,6 +23,7 @@ import {
   manifestHandlerForYamlKind,
   manifestKinds,
 } from "./registry.js";
+import { toDesiredState } from "./serialize.js";
 
 /**
  * The way forward for a manifest written while an MCP server was its own
@@ -212,9 +218,12 @@ function parseDocument(
 
   let message: Message;
   try {
-    message = fromJson(handler.schema, value as JsonValue, {
-      ignoreUnknownFields: false,
-    });
+    message = toDesiredState(
+      handler.schema,
+      fromJson(handler.schema, value as JsonValue, {
+        ignoreUnknownFields: false,
+      }),
+    );
   } catch (err) {
     throw new Error(
       `Invalid ${handler.displayName} in ${where}: ${(err as Error).message}` +

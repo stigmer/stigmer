@@ -3,9 +3,8 @@
 The protobuf contract, published as the Buf module buf.build/stigmer/stigmer,
 and the committed generated stubs under `stubs/`. Every resource, RPC,
 validation rule and authorization annotation the platform serves is declared
-here first and generated outward to the server, the SDKs, the CLI, the MCP
-server and the docs. This guide is an index; the protos and the generator are
-the truth.
+here first and generated outward. This guide is an index; the protos and the
+generator are the truth.
 
 ## Read in this order
 
@@ -15,8 +14,8 @@ the truth.
 - `ai/stigmer/commons/apiresource/`: the resource envelope every kind shares
   (metadata, status, io shapes, the `ApiResourceKind` enum, the
   `api_resource_kind` service option).
-- `ai/stigmer/commons/rpc/`: method options, the authorization config
-  annotation, pagination.
+- `ai/stigmer/commons/rpc/`: method options and the authorization config
+  annotation.
 - `ai/stigmer/agentic/agent/`: the reference resource, its versioned file split
   and its `docs/` folder.
 - `tools/codegen/README.md` and
@@ -43,6 +42,10 @@ the truth.
   or Cursor plugin can express it; Stigmer adds no tool-policy knob of its own.
 - Agent output is never a Stigmer-invented format. `README.md`, "Agent output
   formats", has the rule, its scope and what predates it.
+- Every kind meets one resource contract: a claimed slug, references by id,
+  masked updates, one list shape. Inventories in
+  `backend/services/stigmer-server/docs/` refuse what breaks it; the
+  model-proto-resource skill is the procedure.
 - Validation is protovalidate rules on the message, not prose in a comment.
 - Comments are generated surface. The first sentence of an RPC comment is a
   standalone summary, verb first, naming the resource; the first sentence of a
@@ -63,9 +66,7 @@ the truth.
 ## Skills
 
 - `.agents/skills/model-proto-resource/SKILL.md`: the procedure for adding or
-  reshaping a resource: files, envelope, kind registration, the authorization
-  annotation on every RPC, spec against status, codegen. Load it before a new
-  kind or RPC.
+  reshaping a resource and its contract. Load it before a new kind or RPC.
 
 ## Verify
 

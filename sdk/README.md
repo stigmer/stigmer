@@ -17,6 +17,9 @@ in the language's own idiom.
 Each client reaches every resource (Agents, Sessions, Runs, Vaults and the rest)
 with the same operations, authenticates with an API key or a user token, and
 reports refusals as typed errors.
+Every resource follows one set of rules for its ID and slug, renaming,
+references, updates and lists, the same in every language:
+[Resources](https://stigmer.ai/docs/concepts/resources).
 
 ## UI libraries (TypeScript)
 
