@@ -25,8 +25,8 @@ function item(id: string, iso: string, overrides: Record<string, unknown> = {}) 
   });
 }
 
-function createMockStigmer(getTimeline: (input: unknown) => Promise<unknown>) {
-  return { agentChannel: { getTimeline } } as never;
+function createMockStigmer(listTimeline: (input: unknown) => Promise<unknown>) {
+  return { agentChannel: { listTimeline } } as never;
 }
 
 function wrapper(client: unknown) {
@@ -49,13 +49,13 @@ describe("useConversationTimeline", () => {
   });
 
   it("serves the head page in chronological order — the server pages newest-first", async () => {
-    const getTimeline = vi.fn().mockResolvedValue({
-      items: [item("wa:3", "2026-08-07T09:02:00Z"), item("wa:1", "2026-08-07T09:00:00Z")],
+    const listTimeline = vi.fn().mockResolvedValue({
+      entries: [item("wa:3", "2026-08-07T09:02:00Z"), item("wa:1", "2026-08-07T09:00:00Z")],
       nextPageToken: "",
     });
     const { result } = renderHook(
       () => useConversationTimeline("ach_1", "15550001111", NO_POLL),
-      { wrapper: wrapper(createMockStigmer(getTimeline)) },
+      { wrapper: wrapper(createMockStigmer(listTimeline)) },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -64,26 +64,26 @@ describe("useConversationTimeline", () => {
   });
 
   it("loads older pages behind the cursor and never infers the end from a short page", async () => {
-    const getTimeline = vi
+    const listTimeline = vi
       .fn()
       .mockResolvedValueOnce({
-        items: [item("wa:9", "2026-08-07T09:09:00Z")],
+        entries: [item("wa:9", "2026-08-07T09:09:00Z")],
         nextPageToken: "cursor-1",
       })
       // A SHORT mid-history page with a live cursor: same-second bursts
       // narrow pages, so only the empty token means the end.
       .mockResolvedValueOnce({
-        items: [item("wa:5", "2026-08-07T09:05:00Z")],
+        entries: [item("wa:5", "2026-08-07T09:05:00Z")],
         nextPageToken: "cursor-2",
       })
       .mockResolvedValueOnce({
-        items: [item("wa:1", "2026-08-07T09:01:00Z")],
+        entries: [item("wa:1", "2026-08-07T09:01:00Z")],
         nextPageToken: "",
       });
 
     const { result } = renderHook(
       () => useConversationTimeline("ach_1", "15550001111", NO_POLL),
-      { wrapper: wrapper(createMockStigmer(getTimeline)) },
+      { wrapper: wrapper(createMockStigmer(listTimeline)) },
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.hasOlder).toBe(true);
@@ -92,7 +92,7 @@ describe("useConversationTimeline", () => {
     await waitFor(() => expect(result.current.isLoadingOlder).toBe(false));
     expect(result.current.items.map((i) => i.itemId)).toEqual(["wa:5", "wa:9"]);
     expect(result.current.hasOlder).toBe(true);
-    expect(getTimeline).toHaveBeenLastCalledWith(
+    expect(listTimeline).toHaveBeenLastCalledWith(
       expect.objectContaining({ pageToken: "cursor-1" }),
     );
 
@@ -103,22 +103,22 @@ describe("useConversationTimeline", () => {
   });
 
   it("keeps items that slide out of the polled head window — nothing ever vanishes mid-scroll", async () => {
-    const getTimeline = vi
+    const listTimeline = vi
       .fn()
       .mockResolvedValueOnce({
-        items: [item("wa:2", "2026-08-07T09:02:00Z"), item("wa:1", "2026-08-07T09:01:00Z")],
+        entries: [item("wa:2", "2026-08-07T09:02:00Z"), item("wa:1", "2026-08-07T09:01:00Z")],
         nextPageToken: "",
       })
       // The refreshed head window has shifted entirely to newer items;
       // wa:1 and wa:2 are in no loaded page anymore.
       .mockResolvedValueOnce({
-        items: [item("wa:4", "2026-08-07T09:04:00Z"), item("wa:3", "2026-08-07T09:03:00Z")],
+        entries: [item("wa:4", "2026-08-07T09:04:00Z"), item("wa:3", "2026-08-07T09:03:00Z")],
         nextPageToken: "cursor-x",
       });
 
     const { result } = renderHook(
       () => useConversationTimeline("ach_1", "15550001111", NO_POLL),
-      { wrapper: wrapper(createMockStigmer(getTimeline)) },
+      { wrapper: wrapper(createMockStigmer(listTimeline)) },
     );
     await waitFor(() => expect(result.current.items).toHaveLength(2));
 
@@ -145,14 +145,14 @@ describe("useConversationTimeline", () => {
       deliveryStatus: ChannelDeliveryStatus.delivered,
       receiptState: ChannelReceiptState.receipt_read,
     });
-    const getTimeline = vi
+    const listTimeline = vi
       .fn()
-      .mockResolvedValueOnce({ items: [sent], nextPageToken: "" })
-      .mockResolvedValueOnce({ items: [read], nextPageToken: "" });
+      .mockResolvedValueOnce({ entries: [sent], nextPageToken: "" })
+      .mockResolvedValueOnce({ entries: [read], nextPageToken: "" });
 
     const { result } = renderHook(
       () => useConversationTimeline("ach_1", "15550001111", NO_POLL),
-      { wrapper: wrapper(createMockStigmer(getTimeline)) },
+      { wrapper: wrapper(createMockStigmer(listTimeline)) },
     );
     await waitFor(() => expect(result.current.items).toHaveLength(1));
     expect(result.current.items[0].receiptState).toBe(ChannelReceiptState.receipt_sent);
@@ -165,16 +165,16 @@ describe("useConversationTimeline", () => {
   });
 
   it("keeps item and list references stable across polls that change nothing", async () => {
-    const getTimeline = vi.fn().mockImplementation(() =>
+    const listTimeline = vi.fn().mockImplementation(() =>
       Promise.resolve({
         // Fresh-but-equal proto objects every call, like a real poll.
-        items: [item("wa:1", "2026-08-07T09:00:00Z")],
+        entries: [item("wa:1", "2026-08-07T09:00:00Z")],
         nextPageToken: "",
       }),
     );
     const { result } = renderHook(
       () => useConversationTimeline("ach_1", "15550001111", NO_POLL),
-      { wrapper: wrapper(createMockStigmer(getTimeline)) },
+      { wrapper: wrapper(createMockStigmer(listTimeline)) },
     );
     await waitFor(() => expect(result.current.items).toHaveLength(1));
     const firstItems = result.current.items;
@@ -186,10 +186,10 @@ describe("useConversationTimeline", () => {
   });
 
   it("resets on identity change so conversation A's thread never flashes under B", async () => {
-    const getTimeline = vi
+    const listTimeline = vi
       .fn()
       .mockResolvedValueOnce({
-        items: [item("wa:1", "2026-08-07T09:00:00Z")],
+        entries: [item("wa:1", "2026-08-07T09:00:00Z")],
         nextPageToken: "cursor-a",
       })
       .mockReturnValue(new Promise(() => {}));
@@ -197,7 +197,7 @@ describe("useConversationTimeline", () => {
     const { result, rerender } = renderHook(
       ({ key }: { key: string }) => useConversationTimeline("ach_1", key, NO_POLL),
       {
-        wrapper: wrapper(createMockStigmer(getTimeline)),
+        wrapper: wrapper(createMockStigmer(listTimeline)),
         initialProps: { key: "15550001111" },
       },
     );
@@ -210,41 +210,41 @@ describe("useConversationTimeline", () => {
   });
 
   it("refetches the head when the window regains focus", async () => {
-    const getTimeline = vi.fn().mockResolvedValue({ items: [], nextPageToken: "" });
+    const listTimeline = vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" });
     renderHook(() => useConversationTimeline("ach_1", "15550001111", NO_POLL), {
-      wrapper: wrapper(createMockStigmer(getTimeline)),
+      wrapper: wrapper(createMockStigmer(listTimeline)),
     });
-    await waitFor(() => expect(getTimeline).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(listTimeline).toHaveBeenCalledTimes(1));
 
     await act(async () => {
       window.dispatchEvent(new Event("focus"));
     });
 
-    await waitFor(() => expect(getTimeline).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(listTimeline).toHaveBeenCalledTimes(2));
   });
 
   it("skips fetching for empty identity (stable no-op)", async () => {
-    const getTimeline = vi.fn();
+    const listTimeline = vi.fn();
     const { result } = renderHook(() => useConversationTimeline("", "", NO_POLL), {
-      wrapper: wrapper(createMockStigmer(getTimeline)),
+      wrapper: wrapper(createMockStigmer(listTimeline)),
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(getTimeline).not.toHaveBeenCalled();
+    expect(listTimeline).not.toHaveBeenCalled();
   });
 
   it("records a loadOlder failure beside the control, leaving the loaded thread intact", async () => {
-    const getTimeline = vi
+    const listTimeline = vi
       .fn()
       .mockResolvedValueOnce({
-        items: [item("wa:1", "2026-08-07T09:00:00Z")],
+        entries: [item("wa:1", "2026-08-07T09:00:00Z")],
         nextPageToken: "cursor-1",
       })
       .mockRejectedValueOnce(new Error("boom"));
 
     const { result } = renderHook(
       () => useConversationTimeline("ach_1", "15550001111", NO_POLL),
-      { wrapper: wrapper(createMockStigmer(getTimeline)) },
+      { wrapper: wrapper(createMockStigmer(listTimeline)) },
     );
     await waitFor(() => expect(result.current.items).toHaveLength(1));
 

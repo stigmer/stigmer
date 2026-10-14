@@ -1,19 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { GetAgentSharesByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
+import type { ListAgentSharesByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useAgentShares } from "../useAgentShares";
 
 function createMockStigmer(overrides: {
-  getByAgent?: (input: GetAgentSharesByAgentRequest) => Promise<unknown>;
+  listByAgent?: (input: ListAgentSharesByAgentRequest) => Promise<unknown>;
 } = {}) {
   return {
     agentShare: {
-      getByAgent:
-        overrides.getByAgent ??
-        vi.fn().mockResolvedValue({ totalCount: 0, items: [] }),
+      listByAgent:
+        overrides.listByAgent ??
+        vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
     },
   } as never;
 }
@@ -44,10 +44,10 @@ describe("useAgentShares", () => {
 
   it("loads the agent's shares by agent id", async () => {
     const share = makeShare("acme", "support-agent");
-    const getByAgent = vi
+    const listByAgent = vi
       .fn()
-      .mockResolvedValue({ totalCount: 1, items: [share] });
-    const client = createMockStigmer({ getByAgent });
+      .mockResolvedValue({ entries: [share], nextPageToken: "" });
+    const client = createMockStigmer({ listByAgent });
 
     const { result } = renderHook(() => useAgentShares("agt_1"), {
       wrapper: wrapper(client),
@@ -58,7 +58,7 @@ describe("useAgentShares", () => {
 
     expect(result.current.shares).toEqual([share]);
     expect(result.current.error).toBeNull();
-    expect(getByAgent).toHaveBeenCalledWith(
+    expect(listByAgent).toHaveBeenCalledWith(
       expect.objectContaining({ agentId: "agt_1", org: "" }),
     );
   });
@@ -66,26 +66,26 @@ describe("useAgentShares", () => {
   it("threads the org scope into the request", async () => {
     // The org scope belongs in the RPC, never client-side filtering: the
     // server narrows a multi-org member's view to one org's channels.
-    const getByAgent = vi
+    const listByAgent = vi
       .fn()
-      .mockResolvedValue({ totalCount: 0, items: [] });
-    const client = createMockStigmer({ getByAgent });
+      .mockResolvedValue({ entries: [], nextPageToken: "" });
+    const client = createMockStigmer({ listByAgent });
 
     const { result } = renderHook(() => useAgentShares("agt_1", "acme"), {
       wrapper: wrapper(client),
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(getByAgent).toHaveBeenCalledWith(
+    expect(listByAgent).toHaveBeenCalledWith(
       expect.objectContaining({ agentId: "agt_1", org: "acme" }),
     );
   });
 
   it("refetches when the org scope changes", async () => {
-    const getByAgent = vi
+    const listByAgent = vi
       .fn()
-      .mockResolvedValue({ totalCount: 0, items: [] });
-    const client = createMockStigmer({ getByAgent });
+      .mockResolvedValue({ entries: [], nextPageToken: "" });
+    const client = createMockStigmer({ listByAgent });
 
     const { result, rerender } = renderHook(
       ({ org }: { org: string }) => useAgentShares("agt_1", org),
@@ -93,13 +93,13 @@ describe("useAgentShares", () => {
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(getByAgent).toHaveBeenCalledTimes(1);
+    expect(listByAgent).toHaveBeenCalledTimes(1);
 
     // Switching org context must re-query — a stale other-org list is
     // exactly the bug the scope exists to prevent.
     rerender({ org: "consumer-org" });
-    await waitFor(() => expect(getByAgent).toHaveBeenCalledTimes(2));
-    expect(getByAgent).toHaveBeenLastCalledWith(
+    await waitFor(() => expect(listByAgent).toHaveBeenCalledTimes(2));
+    expect(listByAgent).toHaveBeenLastCalledWith(
       expect.objectContaining({ agentId: "agt_1", org: "consumer-org" }),
     );
   });
@@ -111,10 +111,10 @@ describe("useAgentShares", () => {
     const owner = makeShare("acme", "support-agent");
     const renamed = makeShare("acme", "support-help-desk");
     const external = makeShare("consumer-org", "support-agent");
-    const getByAgent = vi
+    const listByAgent = vi
       .fn()
-      .mockResolvedValue({ totalCount: 3, items: [owner, renamed, external] });
-    const client = createMockStigmer({ getByAgent });
+      .mockResolvedValue({ entries: [owner, renamed, external], nextPageToken: "" });
+    const client = createMockStigmer({ listByAgent });
 
     const { result } = renderHook(() => useAgentShares("agt_1"), {
       wrapper: wrapper(client),
@@ -140,8 +140,8 @@ describe("useAgentShares", () => {
   });
 
   it("skips fetching while the agent id is empty (stable no-op)", () => {
-    const getByAgent = vi.fn();
-    const client = createMockStigmer({ getByAgent });
+    const listByAgent = vi.fn();
+    const client = createMockStigmer({ listByAgent });
 
     const { result } = renderHook(() => useAgentShares(""), {
       wrapper: wrapper(client),
@@ -149,14 +149,14 @@ describe("useAgentShares", () => {
 
     expect(result.current.isLoading).toBe(false);
     expect(result.current.shares).toEqual([]);
-    expect(getByAgent).not.toHaveBeenCalled();
+    expect(listByAgent).not.toHaveBeenCalled();
   });
 
   it("exposes fetch failures as errors", async () => {
-    const getByAgent = vi
+    const listByAgent = vi
       .fn()
       .mockRejectedValue(new Error("backend unavailable"));
-    const client = createMockStigmer({ getByAgent });
+    const client = createMockStigmer({ listByAgent });
 
     const { result } = renderHook(() => useAgentShares("agt_1"), {
       wrapper: wrapper(client),
@@ -168,19 +168,19 @@ describe("useAgentShares", () => {
   });
 
   it("refetches on demand", async () => {
-    const getByAgent = vi
+    const listByAgent = vi
       .fn()
-      .mockResolvedValue({ totalCount: 0, items: [] });
-    const client = createMockStigmer({ getByAgent });
+      .mockResolvedValue({ entries: [], nextPageToken: "" });
+    const client = createMockStigmer({ listByAgent });
 
     const { result } = renderHook(() => useAgentShares("agt_1"), {
       wrapper: wrapper(client),
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(getByAgent).toHaveBeenCalledTimes(1);
+    expect(listByAgent).toHaveBeenCalledTimes(1);
 
     result.current.refetch();
-    await waitFor(() => expect(getByAgent).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(listByAgent).toHaveBeenCalledTimes(2));
   });
 });

@@ -27,8 +27,8 @@ import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/sdk";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { GetServerInfoOutputSchema, PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
-import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
-import { SearchResponseSchema, SearchResultSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginListSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 
 import { StigmerContext } from "../../context.js";
 import { CATALOG_PAGE_SIZE, MarketplaceCatalog, filterEntries } from "../MarketplaceCatalog.js";
@@ -54,15 +54,13 @@ function transport(installedSlugs: readonly string[]) {
       // A development server: the official catalogue is not published for it.
       getServerInfo: () => create(GetServerInfoOutputSchema, { edition: 1, version: "dev" }),
     });
-    service(SearchService, {
-      search: () =>
-        create(SearchResponseSchema, {
-          entries: installedSlugs.map((slug) => create(SearchResultSchema, { id: `plg_${slug}`, slug, name: slug, org: ORG })),
-          totalCount: installedSlugs.length,
-          totalPages: 1,
-        }),
-    });
     service(PluginQueryController, {
+      // The installed plugins, every page of them (one here).
+      list: () =>
+        create(PluginListSchema, {
+          entries: installedSlugs.map((slug) => create(PluginSchema, { metadata: { id: `plg_${slug}`, slug, name: slug, org: ORG } })),
+          nextPageToken: "",
+        }),
       getByReference: () => {
         throw new ConnectError("no plugin", Code.NotFound);
       },

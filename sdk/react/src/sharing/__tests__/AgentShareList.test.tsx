@@ -40,7 +40,7 @@ beforeAll(() => {
 afterEach(cleanup);
 
 interface MockOverrides {
-  getByAgent?: (input: unknown) => Promise<unknown>;
+  listByAgent?: (input: unknown) => Promise<unknown>;
   apply?: (input: AgentShareInput) => Promise<unknown>;
   update?: (resource: AgentShare, paths: string[]) => Promise<unknown>;
   deleteShare?: (id: string) => Promise<unknown>;
@@ -56,9 +56,9 @@ interface MockOverrides {
 function createMockStigmer(overrides: MockOverrides = {}) {
   return {
     agentShare: {
-      getByAgent:
-        overrides.getByAgent ??
-        vi.fn().mockResolvedValue({ totalCount: 0, items: [] }),
+      listByAgent:
+        overrides.listByAgent ??
+        vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
       apply: overrides.apply ?? vi.fn().mockResolvedValue({}),
       update: overrides.update ?? vi.fn().mockResolvedValue({}),
       delete: overrides.deleteShare ?? vi.fn().mockResolvedValue({}),
@@ -77,7 +77,7 @@ function createMockStigmer(overrides: MockOverrides = {}) {
         ),
     },
     vault: {
-      list: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
+      list: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
       getByReference: vi.fn().mockRejectedValue(new Error("not found")),
     },
     billing: {
@@ -149,7 +149,7 @@ function makeShare(overrides?: {
 }
 
 function withShares(...shares: unknown[]) {
-  return vi.fn().mockResolvedValue({ totalCount: shares.length, items: shares });
+  return vi.fn().mockResolvedValue({ entries: shares, nextPageToken: "" });
 }
 
 // A link names the share by its id alone — never its organization or slug.
@@ -189,7 +189,7 @@ async function openRowMenu(rowName?: string) {
 describe("AgentShareList", () => {
   it("lists every share with link, audience, and status — no canonical collapse", async () => {
     const client = createMockStigmer({
-      getByAgent: withShares(
+      listByAgent: withShares(
         makeShare(),
         makeShare({
           id: "ash_2",
@@ -215,7 +215,7 @@ describe("AgentShareList", () => {
 
   it("reads a share with no audience as the organization's, never public", async () => {
     const client = createMockStigmer({
-      getByAgent: withShares(makeShare({ audience: undefined })),
+      listByAgent: withShares(makeShare({ audience: undefined })),
     });
     await renderList(client);
 
@@ -224,11 +224,11 @@ describe("AgentShareList", () => {
   });
 
   it("scopes the list to the agent's own organization — a share lives where its agent lives", async () => {
-    const getByAgent = withShares(makeShare());
-    const client = createMockStigmer({ getByAgent });
+    const listByAgent = withShares(makeShare());
+    const client = createMockStigmer({ listByAgent });
     await renderList(client);
 
-    expect(getByAgent).toHaveBeenCalledWith(
+    expect(listByAgent).toHaveBeenCalledWith(
       expect.objectContaining({ agentId: "agt_1", org: "acme" }),
     );
   });
@@ -252,7 +252,7 @@ describe("AgentShareList", () => {
   });
 
   it("opens the dialog in create mode from the Create button", async () => {
-    const client = createMockStigmer({ getByAgent: withShares(makeShare()) });
+    const client = createMockStigmer({ listByAgent: withShares(makeShare()) });
     await renderList(client);
 
     fireEvent.click(screen.getByRole("button", { name: /Create share/ }));
@@ -264,7 +264,7 @@ describe("AgentShareList", () => {
 
   it("opens the dialog on the EXACT share of the clicked row", async () => {
     const client = createMockStigmer({
-      getByAgent: withShares(
+      listByAgent: withShares(
         makeShare(),
         makeShare({ id: "ash_2", slug: "help-desk", name: "Help Desk" }),
       ),
@@ -287,7 +287,7 @@ describe("AgentShareList", () => {
       configurable: true,
     });
     const client = createMockStigmer({
-      getByAgent: withShares(
+      listByAgent: withShares(
         makeShare({ shareLinkToken: "tok123" }),
         makeShare({
           id: "ash_2",
@@ -328,7 +328,7 @@ describe("AgentShareList", () => {
       configurable: true,
     });
     const client = createMockStigmer({
-      getByAgent: withShares(makeShare({ shareLinkToken: "tok123" })),
+      listByAgent: withShares(makeShare({ shareLinkToken: "tok123" })),
     });
     await renderList(client, { buildShareUrl: undefined });
 
@@ -345,7 +345,7 @@ describe("AgentShareList", () => {
       const update = vi.fn().mockResolvedValue({});
       const client = createMockStigmer({
         update,
-        getByAgent: withShares(
+        listByAgent: withShares(
           makeShare({ allowedOrigins: ["https://example.com"] }),
         ),
       });
@@ -368,7 +368,7 @@ describe("AgentShareList", () => {
       const update = vi.fn().mockResolvedValue({});
       const client = createMockStigmer({
         update,
-        getByAgent: withShares(makeShare({ enabled: false })),
+        listByAgent: withShares(makeShare({ enabled: false })),
       });
       await renderList(client);
 
@@ -385,7 +385,7 @@ describe("AgentShareList", () => {
       const rotateShareLink = vi.fn().mockResolvedValue(makeShare());
       const client = createMockStigmer({
         rotateShareLink,
-        getByAgent: withShares(makeShare()),
+        listByAgent: withShares(makeShare()),
       });
       await renderList(client);
 
@@ -400,7 +400,7 @@ describe("AgentShareList", () => {
 
     it("is not offered on org-audience shares (membership gates access, not the token)", async () => {
       const client = createMockStigmer({
-        getByAgent: withShares(
+        listByAgent: withShares(
           makeShare({ audience: AgentShareAudience.org }),
         ),
       });
@@ -414,8 +414,8 @@ describe("AgentShareList", () => {
   describe("delete", () => {
     it("deletes after confirmation and refetches", async () => {
       const deleteShare = vi.fn().mockResolvedValue({});
-      const getByAgent = withShares(makeShare());
-      const client = createMockStigmer({ deleteShare, getByAgent });
+      const listByAgent = withShares(makeShare());
+      const client = createMockStigmer({ deleteShare, listByAgent });
       await renderList(client);
 
       await openRowMenu();
@@ -434,14 +434,14 @@ describe("AgentShareList", () => {
       );
 
       await waitFor(() => expect(deleteShare).toHaveBeenCalledWith("ash_1"));
-      await waitFor(() => expect(getByAgent).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(listByAgent).toHaveBeenCalledTimes(2));
     });
 
     it("does nothing when the confirmation is cancelled", async () => {
       const deleteShare = vi.fn();
       const client = createMockStigmer({
         deleteShare,
-        getByAgent: withShares(makeShare()),
+        listByAgent: withShares(makeShare()),
       });
       await renderList(client);
 
@@ -457,7 +457,7 @@ describe("AgentShareList", () => {
   describe("actions menu gating", () => {
     it("hides the kebab entirely when the viewer can neither edit nor delete", async () => {
       const client = createMockStigmer({
-        getByAgent: withShares(makeShare()),
+        listByAgent: withShares(makeShare()),
         isAuthorized: false,
       });
       await renderList(client);
@@ -474,7 +474,7 @@ describe("AgentShareList", () => {
 
     it("offers only Delete when the viewer can delete but not edit", async () => {
       const client = createMockStigmer({
-        getByAgent: withShares(makeShare()),
+        listByAgent: withShares(makeShare()),
         checkPermission: (relation) => relation === "can_delete",
       });
       await renderList(client);
@@ -489,7 +489,7 @@ describe("AgentShareList", () => {
 
   it("shows an error state when the share list fails to load", async () => {
     const client = createMockStigmer({
-      getByAgent: vi.fn().mockRejectedValue(new Error("backend unavailable")),
+      listByAgent: vi.fn().mockRejectedValue(new Error("backend unavailable")),
     });
     await renderList(client);
 

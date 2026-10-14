@@ -11,7 +11,7 @@ function createMockStigmer(overrides: {
 } = {}) {
   return {
     run: {
-      list: overrides.agentList ?? vi.fn().mockResolvedValue({ entries: [] }),
+      list: overrides.agentList ?? vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
     },
   } as never;
 }
@@ -30,7 +30,7 @@ function wrapper(client: unknown) {
 
 describe("useDashboardFailedRuns", () => {
   it("scopes the list request to the active org and the FAILED phase", async () => {
-    const agentList = vi.fn().mockResolvedValue({ entries: [] });
+    const agentList = vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" });
     const client = createMockStigmer({ agentList });
 
     const { result } = renderHook(() => useDashboardFailedRuns("acme"), {
@@ -48,7 +48,7 @@ describe("useDashboardFailedRuns", () => {
   });
 
   it("does not fetch until an org is available", async () => {
-    const agentList = vi.fn().mockResolvedValue({ entries: [] });
+    const agentList = vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" });
     const client = createMockStigmer({ agentList });
 
     renderHook(() => useDashboardFailedRuns(null), {
@@ -68,7 +68,7 @@ describe("useDashboardFailedRuns", () => {
       status: { error: "boom", agentId: `agt_${n}`, audit: { specAudit: { createdAt: ts(n) } } },
     }));
     const client = createMockStigmer({
-      agentList: vi.fn().mockResolvedValue({ entries: agentEntries }),
+      agentList: vi.fn().mockResolvedValue({ entries: agentEntries, nextPageToken: "" }),
     });
 
     const { result } = renderHook(() => useDashboardFailedRuns("acme"), {

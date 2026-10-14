@@ -50,7 +50,7 @@ const stubEmptyFlow = {
   skillRefs: [] as ResourceRef[],
   setSkillRefs: vi.fn(),
   workspace: emptyWorkspace,
-  sessionVariables: { entries: [], isEmpty: true, clear: vi.fn() },
+  sessionVariables: { entries: [], isEmpty: true, clear: vi.fn(), nextPageToken: "" },
   autoApproveAll: false,
   setAutoApproveAll,
   isSubmitting: false,

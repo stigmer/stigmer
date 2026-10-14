@@ -140,7 +140,7 @@ const stubSessionPageFlow = {
   skillRefs: [],
   setSkillRefs: vi.fn(),
   workspace: stubWorkspace,
-  sessionVariables: { entries: [], isEmpty: true, clear: vi.fn() },
+  sessionVariables: { entries: [], isEmpty: true, clear: vi.fn(), nextPageToken: "" },
   autoApproveAll: false,
   setAutoApproveAll: vi.fn(),
   handleSubmit: vi.fn(),

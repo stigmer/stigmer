@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { clone, create, equals } from "@bufbuild/protobuf";
 import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
@@ -129,7 +129,7 @@ describe("useSchedule", () => {
 describe("useScheduleList", () => {
   it("fetches a page of full Schedule protos", async () => {
     const list = vi.fn().mockResolvedValue(
-      create(ScheduleListSchema, { items: [SCHEDULE], totalCount: 1 }),
+      create(ScheduleListSchema, { entries: [SCHEDULE]}),
     );
     const client = { schedule: { list } };
 
@@ -140,8 +140,7 @@ describe("useScheduleList", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.schedules).toHaveLength(1);
     expect(result.current.schedules[0].spec?.cron).toBe("0 9 * * *");
-    expect(result.current.totalCount).toBe(1);
-    expect(result.current.totalPages).toBe(1);
+    expect(result.current.hasMore).toBe(false);
   });
 
   it("skips fetching when org is null", () => {
@@ -158,9 +157,9 @@ describe("useScheduleList", () => {
 });
 
 describe("useScheduleCount", () => {
-  it("reads only the total count", async () => {
+  it("counts the largest first page and says whether more follow", async () => {
     const list = vi.fn().mockResolvedValue(
-      create(ScheduleListSchema, { items: [SCHEDULE], totalCount: 7 }),
+      create(ScheduleListSchema, { entries: [SCHEDULE], nextPageToken: "tok_2" }),
     );
     const client = { schedule: { list } };
 
@@ -169,7 +168,9 @@ describe("useScheduleCount", () => {
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.count).toBe(7);
+    expect(result.current.count).toBe(1);
+    expect(result.current.isLowerBound).toBe(true);
+    expect(list.mock.calls[0][0].pageSize).toBe(100);
   });
 });
 
@@ -280,8 +281,7 @@ describe("useScheduleFires", () => {
   it("fetches a schedule's run history, newest first", async () => {
     const listFires = vi.fn().mockResolvedValue(
       create(ScheduleFireListSchema, {
-        totalCount: 2,
-        items: [
+        entries: [
           create(ScheduleFireSchema, {
             scheduleId: "sch_01example",
             origin: ScheduleFireOrigin.MANUAL,
@@ -295,6 +295,7 @@ describe("useScheduleFires", () => {
             reason: "run refused: missing credential",
           }),
         ],
+        nextPageToken: "",
       }),
     );
     const client = { schedule: { listFires } };
@@ -305,8 +306,40 @@ describe("useScheduleFires", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.fires).toHaveLength(2);
-    expect(result.current.totalCount).toBe(2);
+    expect(result.current.hasNext).toBe(false);
+    expect(result.current.pageNumber).toBe(1);
     expect(result.current.fires[1].reason).toBe("run refused: missing credential");
+  });
+
+  it("pages next and previous by token", async () => {
+    const fire = (reason: string) =>
+      create(ScheduleFireSchema, { scheduleId: "sch_01example", reason });
+    const listFires = vi.fn((input: { pageToken: string }) =>
+      Promise.resolve(
+        input.pageToken === ""
+          ? create(ScheduleFireListSchema, { entries: [fire("newest")], nextPageToken: "tok_2" })
+          : create(ScheduleFireListSchema, { entries: [fire("older")], nextPageToken: "" }),
+      ),
+    );
+    const client = { schedule: { listFires } };
+
+    const { result } = renderHook(() => useScheduleFires("sch_01example", { pageSize: 1 }), {
+      wrapper: wrapper(client),
+    });
+    await waitFor(() => expect(result.current.fires[0]?.reason).toBe("newest"));
+    expect(result.current.hasNext).toBe(true);
+    expect(result.current.hasPrevious).toBe(false);
+
+    act(() => result.current.next());
+    await waitFor(() => expect(result.current.fires[0]?.reason).toBe("older"));
+    expect(result.current.pageNumber).toBe(2);
+    expect(result.current.hasNext).toBe(false);
+    expect(result.current.hasPrevious).toBe(true);
+    expect(listFires.mock.calls[1][0].pageToken).toBe("tok_2");
+
+    act(() => result.current.previous());
+    await waitFor(() => expect(result.current.fires[0]?.reason).toBe("newest"));
+    expect(result.current.pageNumber).toBe(1);
   });
 
   it("skips fetching when scheduleId is null", () => {

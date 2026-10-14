@@ -110,10 +110,7 @@ function client(
   if (opts.started) byId.set(opts.started.metadata?.id ?? "", opts.started);
   return {
     plugineval: {
-      listByPlugin: vi.fn(async () => ({
-        totalCount: evals.length,
-        items: evals,
-      })),
+      listByPlugin: vi.fn(async () => ({ entries: evals, nextPageToken: "" })),
       get: vi.fn(async (id: string) => byId.get(id)),
       create: vi.fn(async () => opts.started),
       cancel: vi.fn(async (id: string) => byId.get(id)),

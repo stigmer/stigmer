@@ -149,7 +149,7 @@ function makeClient(schedule: Schedule): MockClient {
         }),
       ),
       listFires: vi.fn().mockResolvedValue(
-        create(ScheduleFireListSchema, { items: [], totalCount: 0 }),
+        create(ScheduleFireListSchema, { entries: []}),
       ),
       delete: vi.fn().mockResolvedValue(schedule),
       rename: vi.fn(async ({ slug }: { slug: string }) => {
@@ -174,7 +174,7 @@ function makeClient(schedule: Schedule): MockClient {
       checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: false }),
     },
     vault: {
-      list: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
+      list: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
     },
     identityAccount: {
       whoAmI: vi.fn().mockResolvedValue({ metadata: { id: VIEWER_ID } }),
@@ -204,6 +204,27 @@ function renderView(
     />,
     { wrapper: Wrapper },
   );
+}
+
+
+/** A fire ledger of `total` fires, paged by token as the server pages it. */
+function pagedFires(total: number) {
+  return async (req: { pageSize: number; pageToken: string }) => {
+    const start = req.pageToken === "" ? 0 : Number(req.pageToken.slice("after_".length));
+    const size = req.pageSize > 0 ? req.pageSize : 50;
+    const end = Math.min(start + size, total);
+    return create(ScheduleFireListSchema, {
+      entries: Array.from({ length: end - start }, (_, i) =>
+        create(ScheduleFireSchema, {
+          scheduleId: "sch_01example",
+          origin: ScheduleFireOrigin.CRON,
+          outcome: ScheduleFireOutcome.COMPLETED,
+          nominalFireTime: timestampFromDate(new Date(NOW.getTime() - (start + i + 1) * 60_000)),
+        }),
+      ),
+      nextPageToken: end < total ? `after_${end}` : "",
+    });
+  };
 }
 
 describe("ScheduleDetailView", () => {
@@ -334,8 +355,7 @@ describe("ScheduleDetailView", () => {
     const client = makeClient(makeSchedule());
     client.schedule.listFires.mockResolvedValue(
       create(ScheduleFireListSchema, {
-        totalCount: 1,
-        items: [
+        entries: [
           create(ScheduleFireSchema, {
             scheduleId: "sch_01example",
             origin: ScheduleFireOrigin.CRON,
@@ -345,6 +365,7 @@ describe("ScheduleDetailView", () => {
             nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
           }),
         ],
+        nextPageToken: "",
       }),
     );
     renderView(client);
@@ -357,7 +378,7 @@ describe("ScheduleDetailView", () => {
 
   it("states an empty fire history in the History tab, not a blank table", async () => {
     const client = makeClient(makeSchedule());
-    client.schedule.listFires.mockResolvedValue(create(ScheduleFireListSchema, { totalCount: 0, items: [] }));
+    client.schedule.listFires.mockResolvedValue(create(ScheduleFireListSchema, { entries: [], nextPageToken: "" }));
     renderView(client);
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
@@ -370,8 +391,7 @@ describe("ScheduleDetailView", () => {
     const client = makeClient(makeSchedule());
     client.schedule.listFires.mockResolvedValue(
       create(ScheduleFireListSchema, {
-        totalCount: 1,
-        items: [
+        entries: [
           create(ScheduleFireSchema, {
             scheduleId: "sch_01example",
             origin: ScheduleFireOrigin.CRON,
@@ -381,6 +401,7 @@ describe("ScheduleDetailView", () => {
             completedAt: timestampFromDate(new Date(NOW.getTime() - 18_000)),
           }),
         ],
+        nextPageToken: "",
       }),
     );
     renderView(client);
@@ -412,8 +433,7 @@ describe("ScheduleDetailView", () => {
     const client = makeClient(makeSchedule({ lastRunId: "aex_01last" }));
     client.schedule.listFires.mockResolvedValue(
       create(ScheduleFireListSchema, {
-        totalCount: 1,
-        items: [
+        entries: [
           create(ScheduleFireSchema, {
             scheduleId: "sch_01example",
             origin: ScheduleFireOrigin.MANUAL,
@@ -422,6 +442,7 @@ describe("ScheduleDetailView", () => {
             nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
           }),
         ],
+        nextPageToken: "",
       }),
     );
     renderView(client, { onNavigateToRun });
@@ -534,12 +555,11 @@ describe("ScheduleDetailView", () => {
   // Tabs — Overview and the paginated History tab
   // -------------------------------------------------------------------------
 
-  it("splits into Overview and History tabs, with the fire count as badge", async () => {
+  it("splits into Overview and History tabs, with the recent fires' count as badge", async () => {
     const client = makeClient(makeSchedule());
     client.schedule.listFires.mockResolvedValue(
       create(ScheduleFireListSchema, {
-        totalCount: 12,
-        items: [
+        entries: [
           create(ScheduleFireSchema, {
             scheduleId: "sch_01example",
             origin: ScheduleFireOrigin.CRON,
@@ -547,6 +567,7 @@ describe("ScheduleDetailView", () => {
             nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
           }),
         ],
+        nextPageToken: "",
       }),
     );
     renderView(client);
@@ -555,7 +576,7 @@ describe("ScheduleDetailView", () => {
     // The badge fills in once the (separate) fires fetch resolves.
     await waitFor(() => {
       const tabs = screen.getAllByRole("tab");
-      expect(tabs.map((t) => t.textContent)).toEqual(["Overview", "History12"]);
+      expect(tabs.map((t) => t.textContent)).toEqual(["Overview", "History1"]);
     });
     // Overview is the default: definition on screen, no full table.
     expect(screen.getByText("Target agent")).toBeTruthy();
@@ -565,69 +586,37 @@ describe("ScheduleDetailView", () => {
     expect(screen.queryByText("Target agent")).toBeNull();
   });
 
-  it("pages through the fire history (the hook's pagination, finally used)", async () => {
+  it("pages through the fire history next and previous, by token", async () => {
     const client = makeClient(makeSchedule());
-    client.schedule.listFires.mockImplementation(
-      async (req: { pageInfo?: { num: number; size: number } }) =>
-        create(ScheduleFireListSchema, {
-          totalCount: 30,
-          items: Array.from(
-            { length: Math.min(req.pageInfo?.size ?? 25, 30) },
-            (_, i) =>
-              create(ScheduleFireSchema, {
-                scheduleId: "sch_01example",
-                origin: ScheduleFireOrigin.CRON,
-                outcome: ScheduleFireOutcome.COMPLETED,
-                nominalFireTime: timestampFromDate(
-                  new Date(NOW.getTime() - (i + 1) * 60_000),
-                ),
-              }),
-          ),
-        }),
-    );
+    client.schedule.listFires.mockImplementation(pagedFires(30));
     renderView(client);
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
     fireEvent.click(screen.getByRole("tab", { name: /History/ }));
-    await screen.findByText("Page 1 of 2");
+    await screen.findByText("Page 1");
 
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     await waitFor(() => {
       const pageTwoCall = client.schedule.listFires.mock.calls.find((call) => {
-        const req = call[0] as { pageInfo?: { num: number; size: number } };
-        return req.pageInfo?.num === 2 && req.pageInfo?.size === 25;
+        const req = call[0] as { pageSize: number; pageToken: string };
+        return req.pageToken === "after_25" && req.pageSize === 25;
       });
       expect(pageTwoCall).toBeTruthy();
     });
-    await screen.findByText("Page 2 of 2");
+    await screen.findByText("Page 2");
+    expect(screen.getByRole("button", { name: "Next" }).hasAttribute("disabled")).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    await screen.findByText("Page 1");
   });
 
-  it("links the Overview recent-fires strip to the History tab", async () => {
+  it("links the Overview recent-fires strip to the History tab when older fires follow", async () => {
     const client = makeClient(makeSchedule());
-    client.schedule.listFires.mockImplementation(
-      async (req: { pageInfo?: { num: number; size: number } }) =>
-        create(ScheduleFireListSchema, {
-          totalCount: 12,
-          items: Array.from(
-            { length: Math.min(req.pageInfo?.size ?? 25, 12) },
-            (_, i) =>
-              create(ScheduleFireSchema, {
-                scheduleId: "sch_01example",
-                origin: ScheduleFireOrigin.CRON,
-                outcome: ScheduleFireOutcome.COMPLETED,
-                nominalFireTime: timestampFromDate(
-                  new Date(NOW.getTime() - (i + 1) * 60_000),
-                ),
-              }),
-          ),
-        }),
-    );
+    client.schedule.listFires.mockImplementation(pagedFires(12));
     renderView(client);
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
-    fireEvent.click(
-      await screen.findByRole("button", { name: "View all 12 fires" }),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: "View all fires" }));
     await screen.findByRole("table", { name: "Fire history" });
   });
 
@@ -917,7 +906,7 @@ describe("ScheduleDetailView", () => {
 
   it("offers My vault in the vaults editor to the schedule's creator only", async () => {
     const vaults = {
-      items: [
+      entries: [
         {
           metadata: { name: "My vault", slug: "my-vault-viewer", org: "isc" },
           spec: { owner: { case: "person", value: VIEWER_ID } },
@@ -927,7 +916,7 @@ describe("ScheduleDetailView", () => {
           spec: { owner: { case: "org", value: "isc" } },
         },
       ],
-      totalCount: 2,
+      nextPageToken: "",
     };
     const openVaultsEditor = async (createdBy: string): Promise<MockClient> => {
       const client = makeClient(makeSchedule({ createdBy }));

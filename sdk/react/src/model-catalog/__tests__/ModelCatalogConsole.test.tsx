@@ -29,7 +29,7 @@ interface MockBilling {
 function createMockStigmer(billing: Partial<MockBilling> = {}) {
   return {
     billing: {
-      listModelPricingBaselines: vi.fn().mockResolvedValue({ baselines: [] }),
+      listModelPricingBaselines: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
       upsertModelPricingBaseline: vi.fn(),
       retireModelPricingBaseline: vi.fn(),
       ...billing,
@@ -83,7 +83,7 @@ describe("ModelCatalogConsole — list", () => {
     const client = createMockStigmer({
       listModelPricingBaselines: vi
         .fn()
-        .mockResolvedValue({ baselines: [sonnetBaseline()] }),
+        .mockResolvedValue({ entries: [sonnetBaseline()], nextPageToken: "" }),
     });
 
     render(<ModelCatalogConsole />, { wrapper: wrapper(client) });
@@ -100,7 +100,7 @@ describe("ModelCatalogConsole — models search", () => {
     const user = userEvent.setup();
     const client = createMockStigmer({
       listModelPricingBaselines: vi.fn().mockResolvedValue({
-        baselines: [
+        entries: [
           sonnetBaseline(),
           sonnetBaseline({
             baselineId: "bl-2",
@@ -109,6 +109,7 @@ describe("ModelCatalogConsole — models search", () => {
             displayName: "GPT 5.6",
           }),
         ],
+        nextPageToken: "",
       }),
     });
 
@@ -128,7 +129,7 @@ describe("ModelCatalogConsole — detail view", () => {
     const client = createMockStigmer({
       listModelPricingBaselines: vi
         .fn()
-        .mockResolvedValue({ baselines: [sonnetBaseline()] }),
+        .mockResolvedValue({ entries: [sonnetBaseline()], nextPageToken: "" }),
     });
 
     render(<ModelCatalogConsole />, { wrapper: wrapper(client) });
@@ -148,7 +149,7 @@ describe("ModelCatalogConsole — detail view", () => {
     const client = createMockStigmer({
       listModelPricingBaselines: vi
         .fn()
-        .mockResolvedValue({ baselines: [sonnetBaseline()] }),
+        .mockResolvedValue({ entries: [sonnetBaseline()], nextPageToken: "" }),
     });
 
     render(<ModelCatalogConsole />, { wrapper: wrapper(client) });
@@ -168,7 +169,7 @@ describe("ModelCatalogConsole — detail view", () => {
     const client = createMockStigmer({
       listModelPricingBaselines: vi
         .fn()
-        .mockResolvedValue({ baselines: [sonnetBaseline()] }),
+        .mockResolvedValue({ entries: [sonnetBaseline()], nextPageToken: "" }),
       retireModelPricingBaseline,
     });
 
@@ -198,7 +199,7 @@ describe("ModelCatalogConsole — detail view", () => {
     const client = createMockStigmer({
       listModelPricingBaselines: vi
         .fn()
-        .mockResolvedValue({ baselines: [sonnetBaseline()] }),
+        .mockResolvedValue({ entries: [sonnetBaseline()], nextPageToken: "" }),
     });
 
     render(<ModelCatalogConsole />, { wrapper: wrapper(client) });

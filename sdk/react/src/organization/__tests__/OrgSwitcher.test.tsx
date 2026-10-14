@@ -30,12 +30,12 @@ const INITECH = org(INITECH_ID, "initech");
 /** Each fetch answers the next list; the last one repeats. */
 function clientFor(lists: Organization[][], create = vi.fn()) {
   let calls = 0;
-  const findMyOrganizations = vi.fn(async () => {
+  const listMine = vi.fn(async () => {
     const entries = lists[Math.min(calls, lists.length - 1)];
     calls += 1;
-    return { entries };
+    return { entries, nextPageToken: "" };
   });
-  return { organization: { findMyOrganizations, create } };
+  return { organization: { listMine, create } };
 }
 
 function ActiveId() {

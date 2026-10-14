@@ -119,7 +119,7 @@ function renderSection(mode: DeploymentMode, server: Server) {
     getAccessToken: () => "test-token",
     customTransport: createRouterTransport((router) => {
       router.service(OrganizationQueryController, {
-        findMyOrganizations: () => create(OrganizationsSchema, { entries: [...server.orgs] }),
+        listMine: () => create(OrganizationsSchema, { entries: [...server.orgs], nextPageToken: "" }),
       });
       router.service(IamPolicyQueryController, {
         checkMyPermission: async (input) => {
@@ -133,7 +133,7 @@ function renderSection(mode: DeploymentMode, server: Server) {
         revoke: (input) => invitation(input.value.replace(/^inv_/, ""), InvitationState.revoked),
       });
       router.service(InvitationQueryController, {
-        listByOrg: (input) => {
+        list: (input) => {
           server.listedOrgs.push(input.org);
           server.listedPages.push({ pageSize: input.pageSize, pageToken: input.pageToken });
           if (server.failing.has(input.pageToken)) {

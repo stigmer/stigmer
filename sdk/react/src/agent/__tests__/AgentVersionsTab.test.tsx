@@ -1,7 +1,7 @@
 /**
  * The agent detail view's Versions tab: the tab carries the number of
- * versions the agent has, read as the history's total from a one-entry
- * page; it lists them newest first through the shared
+ * versions on the history's first page, with "+" when more follow (a list
+ * carries no total); it lists them newest first through the shared
  * timeline, the current one marked; selecting an older version shows how
  * its instructions differ from the current version's, and nothing when the
  * loaded history does not hold the current one; and an agent with no
@@ -20,13 +20,15 @@ afterEach(cleanup);
 const CURRENT = "b".repeat(64);
 const OLDER = "a".repeat(64);
 
-function renderView(versions: ReturnType<typeof create<typeof AgentVersionEntrySchema>>[]) {
+function renderView(
+  versions: ReturnType<typeof create<typeof AgentVersionEntrySchema>>[],
+  nextPageToken = "",
+) {
   const agent = samples.agent({ name: "Reviewer", org: ACME_ID });
-  // The server pages: a request for one entry answers one, with the total.
+  // The server pages: a request answers its page size or the default of 50.
   const listVersions = vi.fn(async (req: { pageSize: number }) => ({
-    versions: req.pageSize > 0 ? versions.slice(0, req.pageSize) : versions,
-    totalCount: versions.length,
-    nextPageToken: "",
+    entries: versions.slice(0, req.pageSize > 0 ? req.pageSize : 50),
+    nextPageToken,
   }));
   render(<AgentDetailView org="acme" slug="reviewer" />, {
     wrapper: orgWrapper(
@@ -43,6 +45,15 @@ function renderView(versions: ReturnType<typeof create<typeof AgentVersionEntryS
 }
 
 describe("AgentDetailView — the Versions tab", () => {
+  it("reads N+ on the badge when more versions follow the first page", async () => {
+    renderView(
+      [create(AgentVersionEntrySchema, { versionHash: CURRENT, isCurrent: true, message: "latest" })],
+      "tok_more",
+    );
+    const tab = await screen.findByRole("tab", { name: /Versions/ });
+    expect(await within(tab).findByText("1+")).toBeTruthy();
+  });
+
   it("lists the versions with the current one marked, and diffs an older version's instructions against the current", async () => {
     const { listVersions } = renderView([
       create(AgentVersionEntrySchema, {
@@ -60,9 +71,9 @@ describe("AgentDetailView — the Versions tab", () => {
     ]);
 
     const tab = await screen.findByRole("tab", { name: /Versions/ });
-    // The badge is the history's total, read without loading the history.
+    // The badge is the first page's length; no token follows, so no "+".
     expect(await within(tab).findByText("2")).toBeTruthy();
-    expect(listVersions).toHaveBeenCalledWith(expect.objectContaining({ pageSize: 1 }));
+    expect(listVersions).toHaveBeenCalled();
     fireEvent.click(tab);
 
     expect(await screen.findByText("tighter review")).toBeTruthy();

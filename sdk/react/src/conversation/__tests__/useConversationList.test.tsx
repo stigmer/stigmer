@@ -74,10 +74,10 @@ describe("useConversationList", () => {
     vi.restoreAllMocks();
   });
 
-  it("loads the org's head page with the exact server total", async () => {
+  it("loads the org's head page and whether more follow", async () => {
     const listConversations = vi.fn().mockResolvedValue({
-      items: [conversation("ach_1", "15550001111", "Pat")],
-      totalCount: 12,
+      entries: [conversation("ach_1", "15550001111", "Pat")],
+      nextPageToken: "next",
     });
     const { result } = renderHook(
       () => useConversationList({ org: "acme", ...NO_POLL }),
@@ -87,19 +87,18 @@ describe("useConversationList", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.conversations).toHaveLength(1);
-    expect(result.current.totalCount).toBe(12);
     expect(result.current.hasMore).toBe(true);
     expect(listConversations).toHaveBeenCalledWith(
       expect.objectContaining({
         org: "acme",
         agentChannelId: "",
-        pageInfo: expect.objectContaining({ num: 1, size: 50 }),
+        pageSize: 50,
       }),
     );
   });
 
   it("passes the channel filter through", async () => {
-    const listConversations = vi.fn().mockResolvedValue({ items: [], totalCount: 0 });
+    const listConversations = vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" });
     renderHook(
       () => useConversationList({ org: "acme", agentChannelId: "ach_9", ...NO_POLL }),
       { wrapper: wrapper(createMockStigmer(listConversations)) },
@@ -124,9 +123,10 @@ describe("useConversationList", () => {
   });
 
   it("accumulates older pages and dedups a conversation that moved between pages", async () => {
-    // Offset pages drift under live activity: 15550002222 sat on page 2
-    // when it was fetched, then new activity moved it into the polled
-    // head. It must render ONCE, in its head (fresher) position.
+    // Live activity moves a conversation above the pages already read:
+    // 15550002222 sat on page 2 when it was fetched, then new activity
+    // moved it into the polled head. It must render ONCE, in its head
+    // (fresher) position.
     const head = [
       conversation("ach_1", "15550002222", "Moved Up"),
       conversation("ach_1", "15550001111"),
@@ -137,8 +137,8 @@ describe("useConversationList", () => {
     ];
     const listConversations = vi
       .fn()
-      .mockResolvedValueOnce({ items: head, totalCount: 4 })
-      .mockResolvedValueOnce({ items: pageTwo, totalCount: 4 });
+      .mockResolvedValueOnce({ entries: head, nextPageToken: "next" })
+      .mockResolvedValueOnce({ entries: pageTwo, nextPageToken: "next" });
 
     const { result } = renderHook(
       () => useConversationList({ org: "acme", pageSize: 2, ...NO_POLL }),
@@ -150,12 +150,12 @@ describe("useConversationList", () => {
     await waitFor(() => expect(result.current.isLoadingMore).toBe(false));
 
     expect(listConversations).toHaveBeenLastCalledWith(
-      expect.objectContaining({ pageInfo: expect.objectContaining({ num: 2, size: 2 }) }),
+      expect.objectContaining({ pageToken: "next", pageSize: 2 }),
     );
     const keys = result.current.conversations.map((c) => c.conversationKey);
     expect(keys).toEqual(["15550002222", "15550001111", "15550003333"]);
     expect(result.current.conversations[0].displayName).toBe("Moved Up");
-    // 3 loaded of a real total of 4.
+    // The second page carried a token: more follow.
     expect(result.current.hasMore).toBe(true);
   });
 
@@ -163,8 +163,8 @@ describe("useConversationList", () => {
     const listConversations = vi
       .fn()
       .mockResolvedValueOnce({
-        items: [conversation("ach_1", "15550001111")],
-        totalCount: 5,
+        entries: [conversation("ach_1", "15550001111")],
+        nextPageToken: "next",
       })
       .mockRejectedValueOnce(new Error("boom"));
 
@@ -185,14 +185,14 @@ describe("useConversationList", () => {
     const listConversations = vi
       .fn()
       .mockResolvedValueOnce({
-        items: [conversation("ach_1", "15550001111")],
-        totalCount: 3,
+        entries: [conversation("ach_1", "15550001111")],
+        nextPageToken: "next",
       })
       .mockResolvedValueOnce({
-        items: [conversation("ach_1", "15550002222")],
-        totalCount: 3,
+        entries: [conversation("ach_1", "15550002222")],
+        nextPageToken: "next",
       })
-      .mockResolvedValue({ items: [], totalCount: 0 });
+      .mockResolvedValue({ entries: [], nextPageToken: "" });
 
     const { result, rerender } = renderHook(
       ({ channel }: { channel: string }) =>
@@ -210,21 +210,21 @@ describe("useConversationList", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.conversations).toEqual([]);
-    expect(result.current.totalCount).toBe(0);
+    expect(result.current.hasMore).toBe(false);
   });
 
   it("passes the predicate filter through and drops accumulated pages when it changes", async () => {
     const listConversations = vi
       .fn()
       .mockResolvedValueOnce({
-        items: [conversation("ach_1", "15550001111")],
-        totalCount: 3,
+        entries: [conversation("ach_1", "15550001111")],
+        nextPageToken: "next",
       })
       .mockResolvedValueOnce({
-        items: [conversation("ach_1", "15550002222")],
-        totalCount: 3,
+        entries: [conversation("ach_1", "15550002222")],
+        nextPageToken: "next",
       })
-      .mockResolvedValue({ items: [], totalCount: 0 });
+      .mockResolvedValue({ entries: [], nextPageToken: "" });
 
     const { result, rerender } = renderHook(
       ({ filter }: { filter: ChannelConversationListFilter }) =>
@@ -256,7 +256,7 @@ describe("useConversationList", () => {
   it("refetches the head when the window regains focus", async () => {
     const listConversations = vi
       .fn()
-      .mockResolvedValue({ items: [], totalCount: 0 });
+      .mockResolvedValue({ entries: [], nextPageToken: "" });
     renderHook(() => useConversationList({ org: "acme", ...NO_POLL }), {
       wrapper: wrapper(createMockStigmer(listConversations)),
     });
@@ -280,10 +280,10 @@ describe("useConversationList.applyServerState (own actions reflect immediately)
     const humanHeld = conversationAt("ach_1", "15550001111", "2026-08-07T11:00:00Z", {
       control: ConversationControl.control_human,
     });
-    const postApply = deferred<{ items: unknown[]; totalCount: number }>();
+    const postApply = deferred<{ entries: unknown[]; nextPageToken: string }>();
     const listConversations = vi
       .fn()
-      .mockResolvedValueOnce({ items: [agentHeld], totalCount: 1 })
+      .mockResolvedValueOnce({ entries: [agentHeld], nextPageToken: "next" })
       .mockReturnValueOnce(postApply.promise);
 
     const { result } = renderHook(
@@ -318,11 +318,11 @@ describe("useConversationList.applyServerState (own actions reflect immediately)
       control: ConversationControl.control_human,
       displayName: "Pat (server truth)",
     });
-    const stale = deferred<{ items: unknown[]; totalCount: number }>();
-    const postApply = deferred<{ items: unknown[]; totalCount: number }>();
+    const stale = deferred<{ entries: unknown[]; nextPageToken: string }>();
+    const postApply = deferred<{ entries: unknown[]; nextPageToken: string }>();
     const listConversations = vi
       .fn()
-      .mockResolvedValueOnce({ items: [staleAgent], totalCount: 1 })
+      .mockResolvedValueOnce({ entries: [staleAgent], nextPageToken: "next" })
       .mockReturnValueOnce(stale.promise)
       .mockReturnValueOnce(postApply.promise);
 
@@ -340,7 +340,7 @@ describe("useConversationList.applyServerState (own actions reflect immediately)
     // context — the microtask interleaving applyServerState sees in
     // production, where it is called from a command's promise chain.
     await act(async () => {
-      stale.resolve({ items: [staleAgent], totalCount: 1 });
+      stale.resolve({ entries: [staleAgent], nextPageToken: "next" });
       result.current.applyServerState(freshHuman);
       await Promise.resolve();
     });
@@ -352,7 +352,7 @@ describe("useConversationList.applyServerState (own actions reflect immediately)
 
     // The post-apply fetch answers: server truth is adopted, overlay gone.
     await act(async () => {
-      postApply.resolve({ items: [serverTruth], totalCount: 1 });
+      postApply.resolve({ entries: [serverTruth], nextPageToken: "next" });
     });
     await waitFor(() =>
       expect(result.current.conversations[0].displayName).toBe("Pat (server truth)"),
@@ -368,10 +368,10 @@ describe("useConversationList.applyServerState (own actions reflect immediately)
     const middle = conversationAt("ach_1", "15550002222", "2026-08-07T11:00:00Z", {
       control: ConversationControl.control_human,
     });
-    const postApply = deferred<{ items: unknown[]; totalCount: number }>();
+    const postApply = deferred<{ entries: unknown[]; nextPageToken: string }>();
     const listConversations = vi
       .fn()
-      .mockResolvedValueOnce({ items: [newest, oldest], totalCount: 3 })
+      .mockResolvedValueOnce({ entries: [newest, oldest], nextPageToken: "next" })
       .mockReturnValueOnce(postApply.promise);
 
     const { result } = renderHook(
@@ -394,10 +394,10 @@ describe("useConversationList.applyServerState (own actions reflect immediately)
     const foreign = conversationAt("ach_2", "15550009999", "2026-08-07T12:00:00Z", {
       control: ConversationControl.control_human,
     });
-    const postApply = deferred<{ items: unknown[]; totalCount: number }>();
+    const postApply = deferred<{ entries: unknown[]; nextPageToken: string }>();
     const listConversations = vi
       .fn()
-      .mockResolvedValueOnce({ items: [listed], totalCount: 1 })
+      .mockResolvedValueOnce({ entries: [listed], nextPageToken: "next" })
       .mockReturnValueOnce(postApply.promise);
 
     const { result } = renderHook(
@@ -422,10 +422,10 @@ describe("useConversationList.applyServerState (own actions reflect immediately)
     const unlisted = conversationAt("ach_1", "15550002222", "2026-08-07T12:00:00Z", {
       control: ConversationControl.control_human,
     });
-    const postApply = deferred<{ items: unknown[]; totalCount: number }>();
+    const postApply = deferred<{ entries: unknown[]; nextPageToken: string }>();
     const listConversations = vi
       .fn()
-      .mockResolvedValueOnce({ items: [listed], totalCount: 1 })
+      .mockResolvedValueOnce({ entries: [listed], nextPageToken: "next" })
       .mockReturnValue(postApply.promise);
 
     const { result } = renderHook(
@@ -458,11 +458,11 @@ describe("useConversationList.applyServerState (own actions reflect immediately)
       control: ConversationControl.control_human,
     });
     const older = conversationAt("ach_1", "15550003333", "2026-08-07T09:00:00Z");
-    const pageTwo = deferred<{ items: unknown[]; totalCount: number }>();
-    const postApply = deferred<{ items: unknown[]; totalCount: number }>();
+    const pageTwo = deferred<{ entries: unknown[]; nextPageToken: string }>();
+    const postApply = deferred<{ entries: unknown[]; nextPageToken: string }>();
     const listConversations = vi
       .fn()
-      .mockResolvedValueOnce({ items: [staleAgent], totalCount: 2 })
+      .mockResolvedValueOnce({ entries: [staleAgent], nextPageToken: "next" })
       .mockReturnValueOnce(pageTwo.promise)
       .mockReturnValueOnce(postApply.promise);
 
@@ -478,7 +478,7 @@ describe("useConversationList.applyServerState (own actions reflect immediately)
     act(() => result.current.applyServerState(freshHuman));
 
     await act(async () => {
-      pageTwo.resolve({ items: [staleAgent, older], totalCount: 2 });
+      pageTwo.resolve({ entries: [staleAgent, older], nextPageToken: "next" });
     });
     await waitFor(() => expect(result.current.isLoadingMore).toBe(false));
 

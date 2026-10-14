@@ -85,7 +85,9 @@ export function useCursorPages<T, P extends CursorPage<T> = CursorPage<T>>(
     error,
     refetch,
   } = useFetch<P | null>(
-    fetchPage === null ? null : () => fetchPage(""),
+    // Async, so a reader that throws before returning a promise lands as
+    // the hook's error like a rejected read does.
+    fetchPage === null ? null : async () => fetchPage(""),
     deps,
     null,
     options,

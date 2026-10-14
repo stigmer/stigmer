@@ -68,7 +68,7 @@ function renderSidebar(ui: ReactNode) {
     getAccessToken: () => "test-token",
     customTransport: createRouterTransport((router) => {
       router.service(OrganizationQueryController, {
-        findMyOrganizations: () =>
+        listMine: () =>
           create(OrganizationsSchema, {
             entries: [
               create(OrganizationSchema, {
@@ -93,7 +93,7 @@ function renderSidebar(ui: ReactNode) {
 function baseProps() {
   return {
     renderLink: renderAnchor,
-    recentActivity: { entries: ENTRIES },
+    recentActivity: { entries: ENTRIES, nextPageToken: "" },
     footer: <span data-testid="footer-slot">footer</span>,
     now: NOW,
   };

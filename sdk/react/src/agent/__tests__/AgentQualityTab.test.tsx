@@ -65,9 +65,9 @@ function client(evaluator: ReturnType<typeof stored> | null) {
     },
     score: {
       getAgentQualityReport: vi.fn(async () => emptyReport()),
-      listFlaggedByAgent: vi.fn(async () => ({ totalCount: 0, items: [], nextPageToken: "" })),
+      listFlaggedByAgent: vi.fn(async () => ({ entries: [], nextPageToken: "" })),
     },
-    agenteval: { listByAgent: vi.fn(async () => ({ totalCount: 0, items: [] })) },
+    agenteval: { listByAgent: vi.fn(async () => ({ entries: [], nextPageToken: "" })) },
   };
 }
 

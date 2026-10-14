@@ -169,7 +169,7 @@ function wrapper({ children }: { children: ReactNode }) {
 
 /** Lists `runs`, and answers `run.get` with the listed run of that id. */
 function listing(...runs: Run[]): void {
-  methods.listBySession.mockResolvedValue({ entries: runs });
+  methods.listBySession.mockResolvedValue({ entries: runs, nextPageToken: "" });
   methods.runGet.mockImplementation((id: string) => {
     const run = runs.find((r) => r.metadata?.id === id);
     return run ? Promise.resolve(run) : Promise.reject(new ConnectError("no run", Code.NotFound));
@@ -184,7 +184,7 @@ beforeEach(() => {
   events = sessionEventStream();
   methods = {
     sessionGet: vi.fn().mockResolvedValue(makeSession()),
-    listBySession: vi.fn().mockResolvedValue({ entries: [] }),
+    listBySession: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
     runGet: vi.fn().mockRejectedValue(new ConnectError("no run", Code.NotFound)),
     runCreate: vi.fn(),
     terminate: vi.fn().mockResolvedValue(makeRun("run_live", RunPhase.RUN_TERMINATED)),
@@ -271,7 +271,7 @@ describe("useSessionConversation — turns and runs", () => {
   it("a live turn is the active one: its run is read again and merged into the runs", async () => {
     const listed = makeRun("run_live", RunPhase.RUN_PENDING);
     const fresh = makeRun("run_live", RunPhase.RUN_IN_PROGRESS, { progress: true });
-    methods.listBySession.mockResolvedValue({ entries: [listed] });
+    methods.listBySession.mockResolvedValue({ entries: [listed], nextPageToken: "" });
     methods.runGet.mockResolvedValue(fresh);
     events.push(...turnOpen("run_live", "running"));
 
@@ -320,7 +320,7 @@ describe("useSessionConversation — turns and runs", () => {
 
   it("hides the turn a live run supersedes before the list carries the live run", async () => {
     const live = makeRun("run_b", RunPhase.RUN_IN_PROGRESS, { supersedes: "run_a" });
-    methods.listBySession.mockResolvedValue({ entries: [makeRun("run_a", RunPhase.RUN_CANCELLED)] });
+    methods.listBySession.mockResolvedValue({ entries: [makeRun("run_a", RunPhase.RUN_CANCELLED)], nextPageToken: "" });
     methods.runGet.mockResolvedValue(live);
     events.push(...samples.turnEvents({ runId: "run_a", phase: "cancelled" }), ...turnOpen("run_b", "running"));
 

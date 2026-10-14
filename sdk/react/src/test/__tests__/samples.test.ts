@@ -233,7 +233,7 @@ describe("samples", () => {
     it("sessionList wraps sessions", () => {
       const list = samples.sessionList();
       expect(list.entries).toHaveLength(1);
-      expect(list.totalPages).toBe(1);
+      expect(list.nextPageToken).toBe("");
     });
 
     it("sessionList accepts custom entries", () => {
@@ -248,14 +248,14 @@ describe("samples", () => {
     it("runList wraps runs", () => {
       const list = samples.runList();
       expect(list.entries).toHaveLength(1);
-      expect(list.totalPages).toBe(1);
+      expect(list.nextPageToken).toBe("");
     });
 
     it("searchResponse wraps search results", () => {
       const resp = samples.searchResponse();
       expect(resp.entries).toHaveLength(1);
-      expect(resp.totalCount).toBe(1);
-      expect(resp.totalPages).toBe(1);
+      expect(resp.countsByKind).toEqual({ agent: 1 });
+      expect(resp.nextPageToken).toBe("");
     });
 
     it("searchResult accepts overrides", () => {

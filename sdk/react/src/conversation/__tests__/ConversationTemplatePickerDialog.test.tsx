@@ -43,7 +43,7 @@ function renderPicker(options?: {
 }) {
   const listTemplates = vi
     .fn()
-    .mockResolvedValue({ entries: options?.templates ?? [makeTemplate()] });
+    .mockResolvedValue({ entries: options?.templates ?? [makeTemplate()], nextPageToken: "" });
   const onSend =
     options?.onSend ?? vi.fn().mockResolvedValue(output(ChannelSendOutcome.accepted));
   const client = { agentChannel: { listTemplates } } as never;

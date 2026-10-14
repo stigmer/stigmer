@@ -25,7 +25,7 @@ afterEach(cleanup);
 
 function mockClient(options: { admin?: boolean; subscribed?: ReturnType<typeof subscription> } = {}) {
   return {
-    plan: { list: vi.fn().mockResolvedValue({ entries: [TEAM, BUSINESS, RETIRED] }) },
+    plan: { list: vi.fn().mockResolvedValue({ entries: [TEAM, BUSINESS, RETIRED], nextPageToken: "" }) },
     subscription: {
       getForOrg: options.subscribed
         ? vi.fn().mockResolvedValue(options.subscribed)

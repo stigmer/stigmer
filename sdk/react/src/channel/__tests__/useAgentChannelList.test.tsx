@@ -1,19 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { GetAgentChannelsByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
+import type { ListAgentChannelsByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useAgentChannelList } from "../useAgentChannelList";
 
 function createMockStigmer(overrides: {
-  getByAgent?: (input: GetAgentChannelsByAgentRequest) => Promise<unknown>;
+  listByAgent?: (input: ListAgentChannelsByAgentRequest) => Promise<unknown>;
 } = {}) {
   return {
     agentChannel: {
-      getByAgent:
-        overrides.getByAgent ??
-        vi.fn().mockResolvedValue({ totalCount: 0, items: [] }),
+      listByAgent:
+        overrides.listByAgent ??
+        vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
     },
   } as never;
 }
@@ -45,10 +45,10 @@ describe("useAgentChannelList", () => {
 
   it("loads the agent's channels by agent id", async () => {
     const channel = makeChannel("acme", "support-agent-slack");
-    const getByAgent = vi
+    const listByAgent = vi
       .fn()
-      .mockResolvedValue({ totalCount: 1, items: [channel] });
-    const client = createMockStigmer({ getByAgent });
+      .mockResolvedValue({ entries: [channel], nextPageToken: "" });
+    const client = createMockStigmer({ listByAgent });
 
     const { result } = renderHook(() => useAgentChannelList("agt_1"), {
       wrapper: wrapper(client),
@@ -59,7 +59,7 @@ describe("useAgentChannelList", () => {
 
     expect(result.current.channels).toEqual([channel]);
     expect(result.current.error).toBeNull();
-    expect(getByAgent).toHaveBeenCalledWith(
+    expect(listByAgent).toHaveBeenCalledWith(
       expect.objectContaining({ agentId: "agt_1", org: "" }),
     );
   });
@@ -67,10 +67,10 @@ describe("useAgentChannelList", () => {
   it("threads the org scope into the request", async () => {
     // The org scope belongs in the RPC, never client-side filtering: the
     // server narrows a multi-org member's view to one org's channels.
-    const getByAgent = vi
+    const listByAgent = vi
       .fn()
-      .mockResolvedValue({ totalCount: 0, items: [] });
-    const client = createMockStigmer({ getByAgent });
+      .mockResolvedValue({ entries: [], nextPageToken: "" });
+    const client = createMockStigmer({ listByAgent });
 
     const { result } = renderHook(
       () => useAgentChannelList("agt_1", "acme"),
@@ -78,16 +78,16 @@ describe("useAgentChannelList", () => {
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(getByAgent).toHaveBeenCalledWith(
+    expect(listByAgent).toHaveBeenCalledWith(
       expect.objectContaining({ agentId: "agt_1", org: "acme" }),
     );
   });
 
   it("refetches when the org scope changes", async () => {
-    const getByAgent = vi
+    const listByAgent = vi
       .fn()
-      .mockResolvedValue({ totalCount: 0, items: [] });
-    const client = createMockStigmer({ getByAgent });
+      .mockResolvedValue({ entries: [], nextPageToken: "" });
+    const client = createMockStigmer({ listByAgent });
 
     const { result, rerender } = renderHook(
       ({ org }: { org: string }) => useAgentChannelList("agt_1", org),
@@ -95,11 +95,11 @@ describe("useAgentChannelList", () => {
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(getByAgent).toHaveBeenCalledTimes(1);
+    expect(listByAgent).toHaveBeenCalledTimes(1);
 
     rerender({ org: "consumer-org" });
-    await waitFor(() => expect(getByAgent).toHaveBeenCalledTimes(2));
-    expect(getByAgent).toHaveBeenLastCalledWith(
+    await waitFor(() => expect(listByAgent).toHaveBeenCalledTimes(2));
+    expect(listByAgent).toHaveBeenLastCalledWith(
       expect.objectContaining({ agentId: "agt_1", org: "consumer-org" }),
     );
   });
@@ -120,8 +120,8 @@ describe("useAgentChannelList", () => {
   });
 
   it("skips fetching while the agent id is empty (stable no-op)", () => {
-    const getByAgent = vi.fn();
-    const client = createMockStigmer({ getByAgent });
+    const listByAgent = vi.fn();
+    const client = createMockStigmer({ listByAgent });
 
     const { result } = renderHook(() => useAgentChannelList(""), {
       wrapper: wrapper(client),
@@ -129,14 +129,14 @@ describe("useAgentChannelList", () => {
 
     expect(result.current.isLoading).toBe(false);
     expect(result.current.channels).toEqual([]);
-    expect(getByAgent).not.toHaveBeenCalled();
+    expect(listByAgent).not.toHaveBeenCalled();
   });
 
   it("exposes fetch failures as errors", async () => {
-    const getByAgent = vi
+    const listByAgent = vi
       .fn()
       .mockRejectedValue(new Error("backend unavailable"));
-    const client = createMockStigmer({ getByAgent });
+    const client = createMockStigmer({ listByAgent });
 
     const { result } = renderHook(() => useAgentChannelList("agt_1"), {
       wrapper: wrapper(client),
@@ -148,19 +148,19 @@ describe("useAgentChannelList", () => {
   });
 
   it("refetches on demand", async () => {
-    const getByAgent = vi
+    const listByAgent = vi
       .fn()
-      .mockResolvedValue({ totalCount: 0, items: [] });
-    const client = createMockStigmer({ getByAgent });
+      .mockResolvedValue({ entries: [], nextPageToken: "" });
+    const client = createMockStigmer({ listByAgent });
 
     const { result } = renderHook(() => useAgentChannelList("agt_1"), {
       wrapper: wrapper(client),
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(getByAgent).toHaveBeenCalledTimes(1);
+    expect(listByAgent).toHaveBeenCalledTimes(1);
 
     result.current.refetch();
-    await waitFor(() => expect(getByAgent).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(listByAgent).toHaveBeenCalledTimes(2));
   });
 });

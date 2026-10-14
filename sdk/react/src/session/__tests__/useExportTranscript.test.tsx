@@ -73,8 +73,8 @@ beforeEach(() => {
   listBySession = vi.fn(() =>
     Promise.resolve(
       create(RunListSchema, {
-        totalPages: 1,
         entries: [fakeExecution],
+        nextPageToken: "",
       }),
     ),
   );

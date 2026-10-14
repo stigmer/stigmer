@@ -175,7 +175,7 @@ const stubSessionPageFlow = {
     clear: vi.fn(),
     clearLocal: vi.fn(),
   },
-  sessionVariables: { entries: [], isEmpty: true, clear: vi.fn() },
+  sessionVariables: { entries: [], isEmpty: true, clear: vi.fn(), nextPageToken: "" },
   autoApproveAll: false,
   setAutoApproveAll: vi.fn(),
   handleSubmit: vi.fn(),

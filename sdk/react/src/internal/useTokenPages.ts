@@ -75,7 +75,9 @@ export function useTokenPages<T, P extends CursorPage<T> = CursorPage<T>>(
   const token = stack[stack.length - 1] ?? "";
 
   const { data: page, isLoading, isRefetching, error, refetch } = useFetch<P | null>(
-    fetchPage === null ? null : () => fetchPage(token),
+    // Async, so a reader that throws before returning a promise lands as
+    // the hook's error like a rejected read does.
+    fetchPage === null ? null : async () => fetchPage(token),
     [epoch, token, refetchKey],
     null,
   );

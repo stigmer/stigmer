@@ -131,8 +131,8 @@ function clientWith(
         list: () => {
           if (opts.listError) throw new ConnectError("list failed", Code.Unavailable);
           return opts.onlyMine
-            ? create(VaultListSchema, { items: [MINE], totalCount: 1 })
-            : create(VaultListSchema, { items: [MINE, SUPPORT, HANDBOOK], totalCount: 3 });
+            ? create(VaultListSchema, { entries: [MINE], nextPageToken: "" })
+            : create(VaultListSchema, { entries: [MINE, SUPPORT, HANDBOOK], nextPageToken: "" });
         },
         getMine: () => {
           if (opts.mine === null) throw new ConnectError("none yet", Code.NotFound);

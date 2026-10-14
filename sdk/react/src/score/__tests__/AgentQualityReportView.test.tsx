@@ -43,22 +43,20 @@ function client(
   return {
     score: {
       getAgentQualityReport: vi.fn(report),
-      listFlaggedByAgent: vi.fn(async () => ({
-        totalCount: 2,
-        items: [
+      listFlaggedByAgent: vi.fn(async () => ({ entries: [
           flaggedScore("s1", "run-health", "run_health_1", ["loop"]),
           flaggedScore("s2", "feedback", "run_thumbs_1", [], ""),
         ],
-        nextPageToken: "",
-      })),
+        nextPageToken: "" })),
     },
     agent: {
       listVersions: vi.fn(async () => ({
-        versions: [{ versionHash: VERSION_HASH, tag: "v2", isCurrent: true }],
+        entries: [{ versionHash: VERSION_HASH, tag: "v2", isCurrent: true }],
+        nextPageToken: "",
       })),
     },
     agenteval: {
-      listByAgent: vi.fn(async () => ({ totalCount: 0, items: opts.evals ?? [] })),
+      listByAgent: vi.fn(async () => ({ entries: opts.evals ?? [], nextPageToken: "" })),
     },
     evaluator: {
       getByAgent: vi.fn(async () => {
@@ -217,7 +215,7 @@ describe("AgentQualityReportView in the Quality tab", () => {
 
   it("says none were found yet, and offers to look further back, when a first page is empty but more may follow", async () => {
     const mock = client(async () => qualityReport());
-    mock.score.listFlaggedByAgent.mockResolvedValueOnce({ totalCount: 0, items: [], nextPageToken: "t1" });
+    mock.score.listFlaggedByAgent.mockResolvedValueOnce({ entries: [], nextPageToken: "t1" });
     render(<AgentQualityTab agent={agent} />, { wrapper: orgWrapper(mock) });
     expect(await screen.findByText("No flagged runs among the most recent grades.")).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: "Look further back" }));
