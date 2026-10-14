@@ -349,7 +349,7 @@ const QUIET_ACTION_CLASSES = cn(
  * The per-message copy control: writes the message's text to the clipboard
  * and flips to a check for the feedback window. `variant` selects the visual
  * home — `"bubble"` joins the human bubble's floating action cluster,
- * `"quiet"` sits in the AI message's reserved actions row.
+ * `"quiet"` sits in the agent message's reserved actions row.
  */
 function CopyMessageButton({
   text,

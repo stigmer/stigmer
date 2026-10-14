@@ -144,11 +144,17 @@
       ]
     },
     // The fold's golden check reads every hermetic event and status golden
-    // of both harnesses, which live beside the runner's activities.
+    // of both harnesses, which live beside the runner's activities; the
+    // Managed Agents coverage test reads the page that names the events
+    // Stigmer never writes.
     "@stigmer/session-log#test": {
       "dependsOn": ["^build"],
       "outputs": [],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/backend/services/runner/src/activities/**"]
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/backend/services/runner/src/activities/**",
+        "$TURBO_ROOT$/docs/sdk/managed-agents.mdx"
+      ]
     },
     "@stigmer/react#test": {
       "dependsOn": ["^build"],

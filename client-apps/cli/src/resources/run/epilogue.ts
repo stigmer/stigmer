@@ -171,7 +171,7 @@ async function readTurn(client: Stigmer, sessionId: string, runId: string): Prom
   return turnOf(foldSession(await listSessionEvents(client, sessionId, runId)), runId);
 }
 
-// The output of the first tool use that failed, a sub-agent's included.
+// The output of the first tool use that failed, a subagent's included.
 function firstFailedOutput(items: readonly TurnItem[]): string | undefined {
   for (const item of items) {
     if (item.kind !== "tool_use") continue;

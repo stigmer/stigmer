@@ -5,7 +5,7 @@ import type { ToolUseAnswer } from "./useAnswerToolUse.js";
 /**
  * Context value that carries the answer handler and its per-gate state to the
  * tool rows, so a tool use that waits for a person renders its decision
- * *inline* on its own row (parent thread and nested sub-agents alike) instead
+ * *inline* on its own row (parent thread and nested subagents alike) instead
  * of as a detached card at the bottom of the thread.
  *
  * Whether a row waits is the row's own fact (`ToolUse.state === "waiting"`,

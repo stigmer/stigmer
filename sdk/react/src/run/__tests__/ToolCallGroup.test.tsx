@@ -1,7 +1,7 @@
 // Pins ToolCallGroup over the session fold's tool uses: a turn's calls stay
 // visible as persistent rows, consecutive reads fold into one chip, a lone
 // read stays a row, each call is its own bordered card, an empty group
-// renders nothing, and a call that started a sub-agent is titled from its
+// renders nothing, and a call that started a subagent is titled from its
 // `task` description beside its siblings.
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
@@ -104,8 +104,8 @@ describe("ToolCallGroup timeline", () => {
   });
 });
 
-describe("ToolCallGroup sub-agent rows", () => {
-  it("titles a call that started a sub-agent from its task description, and leaves the others alone", () => {
+describe("ToolCallGroup subagent rows", () => {
+  it("titles a call that started a subagent from its task description, and leaves the others alone", () => {
     render(
       <ToolCallGroup
         toolUses={[
