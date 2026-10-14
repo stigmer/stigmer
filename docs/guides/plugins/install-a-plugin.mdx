@@ -10,8 +10,10 @@ hooks in the layout the Cursor, Claude Code, and Codex communities already
 publish. Installing it on Stigmer stores the plugin in your Organization as one
 resource, and its page lists what it holds. A chat or an Agent that lists the
 plugin gets all of it: its Skills and hooks, its agents as subagents, and its
-MCP servers. A plugin is also the only home of an MCP server: to use one server
-at an address, `stigmer mcp add` installs a plugin holding just that server.
+MCP servers. A plugin is also how one server at an address is shared:
+`stigmer mcp add` installs a plugin holding just that server. One Agent can
+instead carry a server of its own
+([Give an agent its own MCP server](/docs/guides/integrations/connect-an-mcp-server#give-an-agent-its-own-mcp-server)).
 
 Before you start, [sign in](/docs/guides/authentication) with
 `stigmer auth login`. Every command below takes `--org <slug>` if you work in
