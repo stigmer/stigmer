@@ -25,7 +25,7 @@ export type ManagementNavId =
   | "org-profile"
   | "members"
   | "invitations"
-  | "identity-providers"
+  | "federation-issuers"
   | "api-keys"
   | "platform-clients"
   | "vaults"
@@ -51,8 +51,8 @@ const NAV_GROUPS: readonly NavGroup[] = [
       { id: "members", label: "Members", icon: Users },
       { id: "invitations", label: "Invitations", icon: LinkIcon },
       {
-        id: "identity-providers",
-        label: "Identity Providers",
+        id: "federation-issuers",
+        label: "Federation Issuers",
         icon: ShieldCheck,
       },
     ],

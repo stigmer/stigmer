@@ -53,7 +53,7 @@ import { fittedName } from "../../pipeline/steps/slug.js";
 import { assignDirectBackendFields } from "./steps.js";
 import type { IdentityAccountStore } from "./store.js";
 
-/** The profile an identity provider's userinfo endpoint states. */
+/** The profile a federation issuer's userinfo endpoint states. */
 export interface UserProfile {
   readonly email: string;
   readonly firstName: string;
@@ -84,8 +84,8 @@ export class UserInfoFetchError extends Error {
  *   - `platform_client`: an end user a PlatformClient's mint provisioned
  *     (domain/platformclient/mint.ts). Its subject is the reserved
  *     composite, and it belongs to the client's owning organization.
- *   - `federated`: a person an organization's identity provider vouches
- *     for, provisioned by the edition that serves identity providers. Its
+ *   - `federated`: a person an organization's federation issuer vouches
+ *     for, provisioned by the edition that serves federation issuers. Its
  *     subject is the provider's to choose, so none of the direct arm's
  *     subject rules apply; its id is derived from the provider and the
  *     subject (constants.ts `federatedAccountIdFor`), and it belongs to the
@@ -101,12 +101,12 @@ export type AccountProvisioning =
   | { readonly mode: "platform_client"; readonly org: string }
   | {
       readonly mode: "federated";
-      readonly provider: FederatedProvider;
+      readonly provider: FederatedIssuer;
     }
   | { readonly mode: "service_account"; readonly org: string };
 
-/** The identity provider a federated account belongs to, as its stored reference names it. */
-export interface FederatedProvider {
+/** The federation issuer a federated account belongs to, as its stored reference names it. */
+export interface FederatedIssuer {
   /** The provider's organization id. */
   readonly org: string;
   /** The provider's id: what the account's address is derived from and its reference holds. */

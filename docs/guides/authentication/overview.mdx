@@ -15,7 +15,7 @@ where the request comes from and who makes it.
 | **What it is**        | A static secret you create in the Console, for yourself or for a service account | A trust relationship with your OIDC provider                 | A credential pair your backend uses to mint Stigmer tokens per user |
 | **Who uses it**       | Your backend, CLI, CI/CD (as a service account)                                  | Your end users (via their existing IdP)                      | Your end users (via your backend)                                   |
 | **Where it runs**     | Server-side only                                                                 | Browser (user's JWT sent directly)                           | Browser (token fetched from your backend)                           |
-| **Setup effort**      | Create a key in the Console                                                      | Register an Identity Provider, configure JWKS + issuer       | Create a PlatformClient in the Console, add one backend endpoint    |
+| **Setup effort**      | Create a key in the Console                                                      | Register a Federation Issuer, configure JWKS + issuer        | Create a PlatformClient in the Console, add one backend endpoint    |
 | **User provisioning** | Not applicable (server credential)                                               | JIT automatic or manual                                      | Automatic on first token mint, or manual                            |
 | **Organizations**     | Every Organization of its owner, or one; a service account's key, its own        | One per token                                                | The PlatformClient's Organization                                   |
 | **Best for**          | Server-to-server, scripts, internal tools                                        | Apps where users already have an OIDC provider (Auth0, Okta) | Embedding Stigmer in your product without OIDC setup                |
@@ -52,8 +52,8 @@ alone.
 
 **Your users already authenticate through an OIDC provider** (Auth0, Okta, Entra
 ID, Cognito, or any OIDC-compatible system). Use **identity federation**.
-Register your provider as an Identity Provider in Stigmer, and the SDK sends
-your users' JWTs directly. Stigmer validates them against your JWKS endpoint.
+Register your provider as a Federation Issuer in Stigmer, and the SDK sends your
+users' JWTs directly. Stigmer validates them against your JWKS endpoint.
 
 <Card
   href="/docs/guides/authentication/federation/overview"
@@ -113,5 +113,5 @@ another one. A call it makes into another Organization fails with
 `PERMISSION_DENIED`.
 
 A person who signs in at the Stigmer Console with their own Stigmer sign-in, not
-through an Identity Provider or a PlatformClient, is not bound: they move
-between all the Organizations they hold a role in.
+through a Federation Issuer or a PlatformClient, is not bound: they move between
+all the Organizations they hold a role in.

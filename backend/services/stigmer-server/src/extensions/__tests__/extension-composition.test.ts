@@ -175,7 +175,7 @@ describe("extension composition (composed server)", () => {
       // keeps none of their rows, and says so to the credential binding.
       resourceRowReaders: new Map(
         [
-          ApiResourceKind.identity_provider,
+          ApiResourceKind.federation_issuer,
           ApiResourceKind.invitation,
           ApiResourceKind.team,
         ].map((kind) => [kind, { findById: () => Promise.resolve(undefined) }]),
@@ -297,7 +297,7 @@ describe("extension composition (enterprise edition on the wire)", () => {
     drivers: {
       platformTokenKeys: EDITION_RING,
       resourceRowReaders: new Map([
-        [ApiResourceKind.identity_provider, noRows],
+        [ApiResourceKind.federation_issuer, noRows],
         [ApiResourceKind.invitation, noRows],
         [ApiResourceKind.team, noRows],
       ]),
@@ -738,7 +738,7 @@ describe("extension composition (require-authentication posture)", () => {
           host: "127.0.0.1",
         }),
       ).rejects.toThrowError(
-        /serves edition 'enterprise' under the built-in authorizer but registers no row reader for 'identity_provider', 'invitation', 'team'/,
+        /serves edition 'enterprise' under the built-in authorizer but registers no row reader for 'federation_issuer', 'invitation', 'team'/,
       );
     } finally {
       rmSync(enterpriseDir, { recursive: true, force: true });
@@ -777,7 +777,7 @@ describe("extension composition (require-authentication posture)", () => {
           host: "127.0.0.1",
         }),
       ).rejects.toThrowError(
-        /serves edition 'enterprise' but registers no row reader for 'identity_provider', 'invitation', 'team' — the credential binding reads/,
+        /serves edition 'enterprise' but registers no row reader for 'federation_issuer', 'invitation', 'team' — the credential binding reads/,
       );
     } finally {
       rmSync(enterpriseDir, { recursive: true, force: true });

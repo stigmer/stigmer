@@ -13,8 +13,15 @@
  *     and the single sign-on column and index, and nothing else;
  *   - a database at v3 moves to v4, its team and provider list indexes
  *     ordering ids in byte order;
- *   - each claim is the database's: a team's slug per organization, a
- *     provider's route, a provider's slug per organization, and an
+ *   - a database at v4 holding an identity provider, its route and a
+ *     sign-in grant moves to v5: the tables, indexes, constraints and
+ *     columns carry the federation issuer's names, the row reads the kind
+ *     FederationIssuer under its idp_ id and passes the contract's
+ *     validation, and the store resolves its issuer and audience to it; a
+ *     row that does not decode fails v5, naming it, and leaves v4; the
+ *     rewrite reads every row across its keyset pages;
+ *   - each claim is the database's: a team's slug per organization, an
+ *     issuer's route, an issuer's slug per organization, and an
  *     invitation's token are each refused with a unique violation naming
  *     its constraint.
  *
@@ -22,6 +29,9 @@
  * TEST_DATABASE_URL and skips by name without it (it fails inside a test
  * gate, `__test-utils__/test-gate.ts`).
  */
+import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
+import { createValidator } from "@bufbuild/protovalidate";
+import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -30,7 +40,8 @@ import {
   TEST_DATABASE_URL,
   type ProvisionedEnterpriseDatabase,
 } from "../../__test-utils__/enterprise-postgres.js";
-import { ENTERPRISE_SCHEMA_VERSION, runEnterpriseMigrations } from "../enterprise-migrations.js";
+import { newFederationIssuerStore } from "../../iam/issuer/postgres-store.js";
+import { ENTERPRISE_SCHEMA_VERSION, ISSUER_RENAME_PAGE_SIZE, runEnterpriseMigrations } from "../enterprise-migrations.js";
 
 /** Postgres unique-violation SQLSTATE. */
 const UNIQUE_VIOLATION = "23505";
@@ -96,7 +107,7 @@ describe.skipIf(!TEST_DATABASE_URL)("the Enterprise schema chain", () => {
     expect(schemasBefore).not.toContain("ee");
     expect(await schemas()).toEqual([...schemasBefore, "ee"].sort());
     expect(await ledger()).toEqual([ENTERPRISE_SCHEMA_VERSION]);
-    expect(ENTERPRISE_SCHEMA_VERSION).toBe(4);
+    expect(ENTERPRISE_SCHEMA_VERSION).toBe(5);
   });
 
   it("changes nothing when it runs again", async () => {
@@ -133,14 +144,14 @@ describe.skipIf(!TEST_DATABASE_URL)("the Enterprise schema chain", () => {
   });
 
   it("gives every table exactly the indexes its adapter reads by, under the names its outcomes key on", async () => {
-    expect(await indexesOf("iam_identity_provider")).toEqual([
-      "iam_identity_provider_org_created",
-      "iam_identity_provider_org_slug",
-      "iam_identity_provider_pkey",
+    expect(await indexesOf("iam_federation_issuer")).toEqual([
+      "iam_federation_issuer_org_created",
+      "iam_federation_issuer_org_slug",
+      "iam_federation_issuer_pkey",
     ]);
-    expect(await indexesOf("iam_identity_provider_route")).toEqual([
-      "iam_identity_provider_route_pkey",
-      "iam_identity_provider_route_provider",
+    expect(await indexesOf("iam_federation_issuer_route")).toEqual([
+      "iam_federation_issuer_route_issuer",
+      "iam_federation_issuer_route_pkey",
     ]);
     expect(await indexesOf("iam_team")).toEqual(["iam_team_pkey", "idx_iam_team_org_created", "uq_iam_team_org_slug"]);
     expect(await indexesOf("iam_invitation")).toEqual([
@@ -201,7 +212,7 @@ describe.skipIf(!TEST_DATABASE_URL)("the Enterprise schema chain", () => {
           ).rows[0]?.indexdef;
         expect(await definition("idx_iam_team_org_created")).not.toContain('COLLATE "C"');
         expect(await definition("iam_identity_provider_org_created")).toBeUndefined();
-        await runEnterpriseMigrations(client);
+        await runEnterpriseMigrations(client, { through: 4 });
         expect(await definition("idx_iam_team_org_created")).toContain('id COLLATE "C" DESC');
         expect(await definition("iam_identity_provider_org_created")).toContain('id COLLATE "C" DESC');
         const ledger = await earlier.pool.query<{ version: number }>("SELECT version FROM ee.schema_version");
@@ -214,6 +225,133 @@ describe.skipIf(!TEST_DATABASE_URL)("the Enterprise schema chain", () => {
     }
   });
 
+  it("brings a database at v4 holding an identity provider to v5, under the federation issuer's names and kind", async () => {
+    const earlier = await provisionEnterpriseDatabase({ migrate: false });
+    try {
+      const client = await earlier.pool.connect();
+      try {
+        await runEnterpriseMigrations(client, { through: 4 });
+        const atV4 = create(FederationIssuerSchema, {
+          apiVersion: "iam.stigmer.ai/v1",
+          kind: "IdentityProvider",
+          metadata: { id: "idp_held", name: "Acme Okta", slug: "acme-okta", org: "acme" },
+          spec: {
+            jwksUri: "https://acme.okta.test/keys",
+            allowedIssuers: ["https://acme.okta.test"],
+            expectedAudience: "https://api.acme.test",
+          },
+        });
+        await earlier.pool.query(
+          `INSERT INTO ee.iam_identity_provider (id, data, org, slug, created_at) VALUES ($1, $2, $3, $4, $5)`,
+          ["idp_held", Buffer.from(toBinary(FederationIssuerSchema, atV4)), "acme", "acme-okta", CREATED],
+        );
+        await earlier.pool.query(
+          `INSERT INTO ee.iam_identity_provider_route (issuer, audience, identity_provider_id) VALUES ($1, $2, $3)`,
+          ["https://acme.okta.test", "https://api.acme.test", "idp_held"],
+        );
+        await earlier.pool.query(
+          `INSERT INTO ee.iam_sign_in_grants (account_id, org, identity_provider_id) VALUES ($1, $2, $3)`,
+          ["ida_b", "acme", "idp_held"],
+        );
+
+        await runEnterpriseMigrations(client);
+
+        const ledger = await earlier.pool.query<{ version: number }>("SELECT version FROM ee.schema_version");
+        expect(ledger.rows).toEqual([{ version: 5 }]);
+        const tables = await earlier.pool.query<{ name: string }>(
+          `SELECT table_name AS name FROM information_schema.tables WHERE table_schema = 'ee' ORDER BY 1`,
+        );
+        expect(tables.rows.map((row) => row.name)).toEqual([
+          "iam_federation_issuer",
+          "iam_federation_issuer_route",
+          "iam_invitation",
+          "iam_sign_in_grants",
+          "iam_team",
+          "schema_version",
+        ]);
+        const stored = await earlier.pool.query<{ data: Buffer }>(`SELECT data FROM ee.iam_federation_issuer WHERE id = 'idp_held'`);
+        const issuer = fromBinary(FederationIssuerSchema, new Uint8Array(stored.rows[0]!.data));
+        expect(issuer.kind).toBe("FederationIssuer");
+        expect(issuer).toEqual({ ...atV4, kind: "FederationIssuer" });
+        const kindViolations = createValidator()
+          .validate(FederationIssuerSchema, issuer)
+          .violations?.filter((v) => v.toString().startsWith("kind:"));
+        expect(kindViolations ?? []).toEqual([]);
+        const grants = await earlier.pool.query(`SELECT account_id, org, federation_issuer_id FROM ee.iam_sign_in_grants`);
+        expect(grants.rows).toEqual([{ account_id: "ida_b", org: "acme", federation_issuer_id: "idp_held" }]);
+        const store = newFederationIssuerStore(earlier.pool);
+        expect(await store.findIssuerIdByRoute("https://acme.okta.test", "https://api.acme.test")).toBe("idp_held");
+        expect((await store.findById("idp_held"))?.kind).toBe("FederationIssuer");
+      } finally {
+        client.release();
+      }
+    } finally {
+      await earlier.drop();
+    }
+  });
+
+  it("rewrites every identity provider row at v5 across its keyset pages, missing none past the first", async () => {
+    const earlier = await provisionEnterpriseDatabase({ migrate: false });
+    try {
+      const client = await earlier.pool.connect();
+      try {
+        await runEnterpriseMigrations(client, { through: 4 });
+        const ids = Array.from({ length: ISSUER_RENAME_PAGE_SIZE + 1 }, (_, i) => `idp_${String(i).padStart(4, "0")}`);
+        const bytes = (id: string) =>
+          Buffer.from(
+            toBinary(
+              FederationIssuerSchema,
+              create(FederationIssuerSchema, { apiVersion: "iam.stigmer.ai/v1", kind: "IdentityProvider", metadata: { id, org: "acme", slug: id } }),
+            ),
+          );
+        await earlier.pool.query(
+          `INSERT INTO ee.iam_identity_provider (id, data, org, slug, created_at)
+           SELECT id, data, 'acme', id, $3 FROM unnest($1::text[], $2::bytea[]) AS t(id, data)`,
+          [ids, ids.map(bytes), CREATED],
+        );
+
+        await runEnterpriseMigrations(client);
+
+        const last = ids[ids.length - 1]!;
+        const stored = await earlier.pool.query<{ data: Buffer }>(`SELECT data FROM ee.iam_federation_issuer WHERE id = $1`, [last]);
+        expect(fromBinary(FederationIssuerSchema, new Uint8Array(stored.rows[0]!.data)).kind).toBe("FederationIssuer");
+        const left = await earlier.pool.query<{ data: Buffer }>(`SELECT data FROM ee.iam_federation_issuer`);
+        expect(left.rows.filter((row) => fromBinary(FederationIssuerSchema, new Uint8Array(row.data)).kind !== "FederationIssuer")).toEqual([]);
+      } finally {
+        client.release();
+      }
+    } finally {
+      await earlier.drop();
+    }
+  }, 60_000);
+
+  it("fails v5 on an identity provider row that does not decode, naming it, and leaves the database at v4", async () => {
+    const earlier = await provisionEnterpriseDatabase({ migrate: false });
+    try {
+      const client = await earlier.pool.connect();
+      try {
+        await runEnterpriseMigrations(client, { through: 4 });
+        await earlier.pool.query(
+          `INSERT INTO ee.iam_identity_provider (id, data, org, slug, created_at) VALUES ('idp_bad', '\\xffffff', 'acme', 'bad', $1)`,
+          [CREATED],
+        );
+        await expect(runEnterpriseMigrations(client)).rejects.toThrow(
+          /the federation issuer row idp_bad cannot be read for the rename of the identity provider/,
+        );
+        const ledger = await earlier.pool.query<{ version: number }>("SELECT version FROM ee.schema_version");
+        expect(ledger.rows).toEqual([{ version: 4 }]);
+        const tables = await earlier.pool.query(
+          `SELECT 1 FROM information_schema.tables WHERE table_schema = 'ee' AND table_name = 'iam_identity_provider'`,
+        );
+        expect(tables.rowCount).toBe(1);
+      } finally {
+        client.release();
+      }
+    } finally {
+      await earlier.drop();
+    }
+  }, 60_000);
+
   it("holds a team's slug per organization", async () => {
     const insert = `INSERT INTO ee.iam_team (id, data, org, slug, created_at) VALUES ($1, '\\x', $2, $3, $4)`;
     await database.pool.query(insert, ["tm_a", "acme", "sre", CREATED]);
@@ -221,21 +359,21 @@ describe.skipIf(!TEST_DATABASE_URL)("the Enterprise schema chain", () => {
     await expect(database.pool.query(insert, ["tm_c", "other", "sre", CREATED])).resolves.toBeDefined();
   });
 
-  it("holds a provider's route, the pair of issuer and audience", async () => {
-    const insert = `INSERT INTO ee.iam_identity_provider_route (issuer, audience, identity_provider_id) VALUES ($1, $2, $3)`;
-    await database.pool.query(insert, ["https://idp.test", "https://first.test", "idp_a"]);
-    await database.pool.query(insert, ["https://idp.test", "https://second.test", "idp_b"]);
-    expect(await refusedBy(insert, ["https://idp.test", "https://first.test", "idp_c"])).toBe(
-      "iam_identity_provider_route_pkey",
+  it("holds an issuer's route, the pair of issuer and audience", async () => {
+    const insert = `INSERT INTO ee.iam_federation_issuer_route (issuer, audience, federation_issuer_id) VALUES ($1, $2, $3)`;
+    await database.pool.query(insert, ["https://idp.test", "https://first.test", "fis_a"]);
+    await database.pool.query(insert, ["https://idp.test", "https://second.test", "fis_b"]);
+    expect(await refusedBy(insert, ["https://idp.test", "https://first.test", "fis_c"])).toBe(
+      "iam_federation_issuer_route_pkey",
     );
   });
 
-  it("holds a provider's slug per organization, and its id", async () => {
-    const insert = `INSERT INTO ee.iam_identity_provider (id, data, org, slug, created_at) VALUES ($1, '\\x', $2, $3, $4)`;
-    await database.pool.query(insert, ["idp_a", "acme", "partner", CREATED]);
-    expect(await refusedBy(insert, ["idp_b", "acme", "partner", CREATED])).toBe("iam_identity_provider_org_slug");
-    await expect(database.pool.query(insert, ["idp_c", "beta", "partner", CREATED])).resolves.toBeDefined();
-    expect(await refusedBy(insert, ["idp_a", "gamma", "other", CREATED])).toBe("iam_identity_provider_pkey");
+  it("holds an issuer's slug per organization, and its id", async () => {
+    const insert = `INSERT INTO ee.iam_federation_issuer (id, data, org, slug, created_at) VALUES ($1, '\\x', $2, $3, $4)`;
+    await database.pool.query(insert, ["fis_a", "acme", "partner", CREATED]);
+    expect(await refusedBy(insert, ["fis_b", "acme", "partner", CREATED])).toBe("iam_federation_issuer_org_slug");
+    await expect(database.pool.query(insert, ["fis_c", "beta", "partner", CREATED])).resolves.toBeDefined();
+    expect(await refusedBy(insert, ["fis_a", "gamma", "other", CREATED])).toBe("iam_federation_issuer_pkey");
   });
 
   it("holds an invitation's token", async () => {
@@ -245,10 +383,10 @@ describe.skipIf(!TEST_DATABASE_URL)("the Enterprise schema chain", () => {
   });
 
   it("keeps one sign-in grant per account and organization", async () => {
-    const insert = `INSERT INTO ee.iam_sign_in_grants (account_id, org, identity_provider_id) VALUES ($1, $2, $3)`;
-    await database.pool.query(insert, ["ida_a", "acme", "idp_a"]);
-    expect(await refusedBy(insert, ["ida_a", "acme", "idp_b"])).toBe("iam_sign_in_grants_pkey");
-    await expect(database.pool.query(insert, ["ida_a", "beta", "idp_a"])).resolves.toBeDefined();
+    const insert = `INSERT INTO ee.iam_sign_in_grants (account_id, org, federation_issuer_id) VALUES ($1, $2, $3)`;
+    await database.pool.query(insert, ["ida_a", "acme", "fis_a"]);
+    expect(await refusedBy(insert, ["ida_a", "acme", "fis_b"])).toBe("iam_sign_in_grants_pkey");
+    await expect(database.pool.query(insert, ["ida_a", "beta", "fis_a"])).resolves.toBeDefined();
   });});
 
 describe.skipIf(!TEST_DATABASE_URL)("the Enterprise schema chain when a version fails", () => {

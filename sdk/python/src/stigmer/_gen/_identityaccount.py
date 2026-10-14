@@ -149,7 +149,7 @@ class IdentityAccountInput:
     picture_url: str = ""
     is_machine_account: bool = False
     provisioning_mode: int = 0
-    identity_provider_ref: ResourceRef | None = None
+    federation_issuer_ref: ResourceRef | None = None
     preferences: IdentityAccountPreferencesInput | None = None
 
     def _to_proto(self) -> api_pb2.IdentityAccount:
@@ -162,10 +162,10 @@ class IdentityAccountInput:
             is_machine_account=self.is_machine_account,
             provisioning_mode=self.provisioning_mode,
         )
-        if self.identity_provider_ref is not None and (self.identity_provider_ref.org or self.identity_provider_ref.slug):
-            _ref = self.identity_provider_ref._to_proto()
+        if self.federation_issuer_ref is not None and (self.federation_issuer_ref.org or self.federation_issuer_ref.slug):
+            _ref = self.federation_issuer_ref._to_proto()
             _ref.kind = 21
-            spec.identity_provider_ref.CopyFrom(_ref)
+            spec.federation_issuer_ref.CopyFrom(_ref)
         if self.preferences is not None:
             spec.preferences.CopyFrom(self.preferences._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(

@@ -331,19 +331,19 @@ func (x *ListServiceAccountsInput) GetPageToken() string {
 	return ""
 }
 
-// ExternalSubLookup identifies a federated identity account by its identity provider
+// ExternalSubLookup identifies a federated identity account by its federation issuer
 // reference and external subject identifier (OIDC sub claim).
 //
 // Used by platform backends to check whether a federated account already exists
 // before calling createFederatedAccount.
 type ExternalSubLookup struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Organization that owns the identity provider.
+	// Organization that owns the federation issuer.
 	// Used as the authorization scope: caller must have can_create_identity_account
 	// permission on this organization.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// Reference to the IdentityProvider that the federated account belongs to.
-	IdentityProviderRef *apiresource.ApiResourceReference `protobuf:"bytes,2,opt,name=identity_provider_ref,json=identityProviderRef,proto3" json:"identity_provider_ref,omitempty"`
+	// Reference to the FederationIssuer that the federated account belongs to.
+	FederationIssuerRef *apiresource.ApiResourceReference `protobuf:"bytes,2,opt,name=federation_issuer_ref,json=federationIssuerRef,proto3" json:"federation_issuer_ref,omitempty"`
 	// External subject identifier from the platform's OIDC provider.
 	// The raw OIDC sub claim (e.g., "google-oauth2|109876543210").
 	ExternalSub   string `protobuf:"bytes,3,opt,name=external_sub,json=externalSub,proto3" json:"external_sub,omitempty"`
@@ -388,9 +388,9 @@ func (x *ExternalSubLookup) GetOrg() string {
 	return ""
 }
 
-func (x *ExternalSubLookup) GetIdentityProviderRef() *apiresource.ApiResourceReference {
+func (x *ExternalSubLookup) GetFederationIssuerRef() *apiresource.ApiResourceReference {
 	if x != nil {
-		return x.IdentityProviderRef
+		return x.FederationIssuerRef
 	}
 	return nil
 }
@@ -403,7 +403,7 @@ func (x *ExternalSubLookup) GetExternalSub() string {
 }
 
 // CreateFederatedAccountInput is the command for creating a federated identity account
-// linked to an external platform's identity provider.
+// linked to an external platform's federation issuer.
 //
 // Called by platform backends (via API key) when a new user signs up on their platform.
 // The platform provides the user's OIDC subject identifier and profile data.
@@ -411,18 +411,18 @@ func (x *ExternalSubLookup) GetExternalSub() string {
 // authenticate; a just-in-time provider creates it on first sign-in.
 type CreateFederatedAccountInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Organization that owns the identity provider.
+	// Organization that owns the federation issuer.
 	// Used as the authorization scope: caller must have can_create_identity_account
 	// permission on this organization.
-	// Must match identity_provider_ref.org (when identity_provider_ref.org is non-empty).
+	// Must match federation_issuer_ref.org (when federation_issuer_ref.org is non-empty).
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// Reference to the IdentityProvider that this federated account belongs to.
-	// The IdP must exist and belong to the specified org.
-	IdentityProviderRef *apiresource.ApiResourceReference `protobuf:"bytes,2,opt,name=identity_provider_ref,json=identityProviderRef,proto3" json:"identity_provider_ref,omitempty"`
+	// Reference to the FederationIssuer that this federated account belongs to.
+	// The federation issuer must exist and belong to the specified org.
+	FederationIssuerRef *apiresource.ApiResourceReference `protobuf:"bytes,2,opt,name=federation_issuer_ref,json=federationIssuerRef,proto3" json:"federation_issuer_ref,omitempty"`
 	// External subject identifier from the platform's OIDC provider.
 	// The raw OIDC sub claim (e.g., "google-oauth2|109876543210").
 	// Stored as-is without any prefix transformation.
-	// Must match the sub claim in JWTs issued by this IdP for authentication to work.
+	// Must match the sub claim in JWTs this federation issuer accepts for authentication to work.
 	ExternalSub string `protobuf:"bytes,3,opt,name=external_sub,json=externalSub,proto3" json:"external_sub,omitempty"`
 	// Email address of the user.
 	Email string `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
@@ -473,9 +473,9 @@ func (x *CreateFederatedAccountInput) GetOrg() string {
 	return ""
 }
 
-func (x *CreateFederatedAccountInput) GetIdentityProviderRef() *apiresource.ApiResourceReference {
+func (x *CreateFederatedAccountInput) GetFederationIssuerRef() *apiresource.ApiResourceReference {
 	if x != nil {
-		return x.IdentityProviderRef
+		return x.FederationIssuerRef
 	}
 	return nil
 }
@@ -516,21 +516,21 @@ func (x *CreateFederatedAccountInput) GetPictureUrl() string {
 }
 
 // UpdateFederatedAccountInput is the command for updating profile fields on a
-// federated identity account identified by its natural key (identity provider
+// federated identity account identified by its natural key (federation issuer
 // reference + external subject).
 //
 // Called by platform backends when a user's profile changes on their platform
 // (e.g., name update, email change). Uses full-replace semantics: all profile
-// fields must be provided. Identity keys (org, identity_provider_ref, external_sub)
+// fields must be provided. Identity keys (org, federation_issuer_ref, external_sub)
 // are immutable and used only for lookup.
 type UpdateFederatedAccountInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Organization that owns the identity provider.
+	// Organization that owns the federation issuer.
 	// Used as the authorization scope: caller must have can_create_identity_account
 	// permission on this organization.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// Reference to the IdentityProvider that the federated account belongs to.
-	IdentityProviderRef *apiresource.ApiResourceReference `protobuf:"bytes,2,opt,name=identity_provider_ref,json=identityProviderRef,proto3" json:"identity_provider_ref,omitempty"`
+	// Reference to the FederationIssuer that the federated account belongs to.
+	FederationIssuerRef *apiresource.ApiResourceReference `protobuf:"bytes,2,opt,name=federation_issuer_ref,json=federationIssuerRef,proto3" json:"federation_issuer_ref,omitempty"`
 	// External subject identifier (OIDC sub claim) — lookup key, not updatable.
 	ExternalSub string `protobuf:"bytes,3,opt,name=external_sub,json=externalSub,proto3" json:"external_sub,omitempty"`
 	// Updated email address.
@@ -582,9 +582,9 @@ func (x *UpdateFederatedAccountInput) GetOrg() string {
 	return ""
 }
 
-func (x *UpdateFederatedAccountInput) GetIdentityProviderRef() *apiresource.ApiResourceReference {
+func (x *UpdateFederatedAccountInput) GetFederationIssuerRef() *apiresource.ApiResourceReference {
 	if x != nil {
-		return x.IdentityProviderRef
+		return x.FederationIssuerRef
 	}
 	return nil
 }
@@ -629,16 +629,16 @@ func (x *UpdateFederatedAccountInput) GetPictureUrl() string {
 //
 // Called by platform backends when a user is removed from their platform
 // (e.g., employee offboarding, account suspension). Uses the natural key
-// (identity provider reference + external subject) for lookup.
+// (federation issuer reference + external subject) for lookup.
 //
 // Two modes:
 //   - Revoke only (delete_account = false): removes all IAM policies for the
-//     account in the organization and in every organization the identity
-//     provider manages, where its sign-in grants roles too. The identity
+//     account in the organization and in every organization the federation
+//     issuer manages, where its sign-in grants roles too. The identity
 //     account is preserved for audit trail. The user can still sign in but
 //     holds no role in those organizations, and an existing account is never
 //     granted one at sign-in, so this is the mode that keeps a user of a
-//     just-in-time provider out.
+//     just-in-time federation issuer out.
 //   - Revoke and delete (delete_account = true): revokes access AND deletes
 //     the identity account. All IAM policies across all organizations are
 //     cleaned up. Under a just-in-time provider, the user's next
@@ -647,15 +647,15 @@ func (x *UpdateFederatedAccountInput) GetPictureUrl() string {
 //     provider.
 type DeprovisionFederatedAccountInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Organization that owns the identity provider.
+	// Organization that owns the federation issuer.
 	// Used as the authorization scope: caller must have can_create_identity_account
 	// permission on this organization.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// Reference to the IdentityProvider that the federated account belongs to.
-	IdentityProviderRef *apiresource.ApiResourceReference `protobuf:"bytes,2,opt,name=identity_provider_ref,json=identityProviderRef,proto3" json:"identity_provider_ref,omitempty"`
+	// Reference to the FederationIssuer that the federated account belongs to.
+	FederationIssuerRef *apiresource.ApiResourceReference `protobuf:"bytes,2,opt,name=federation_issuer_ref,json=federationIssuerRef,proto3" json:"federation_issuer_ref,omitempty"`
 	// External subject identifier (OIDC sub claim) — lookup key.
 	ExternalSub string `protobuf:"bytes,3,opt,name=external_sub,json=externalSub,proto3" json:"external_sub,omitempty"`
-	// When false (default): revoke the account's access in this organization and the organizations its identity provider manages.
+	// When false (default): revoke the account's access in this organization and the organizations its federation issuer manages.
 	// When true: revoke access AND delete the identity account; a just-in-time
 	// provider creates a new one at the user's next sign-in.
 	DeleteAccount bool `protobuf:"varint,4,opt,name=delete_account,json=deleteAccount,proto3" json:"delete_account,omitempty"`
@@ -700,9 +700,9 @@ func (x *DeprovisionFederatedAccountInput) GetOrg() string {
 	return ""
 }
 
-func (x *DeprovisionFederatedAccountInput) GetIdentityProviderRef() *apiresource.ApiResourceReference {
+func (x *DeprovisionFederatedAccountInput) GetFederationIssuerRef() *apiresource.ApiResourceReference {
 	if x != nil {
-		return x.IdentityProviderRef
+		return x.FederationIssuerRef
 	}
 	return nil
 }
@@ -872,11 +872,11 @@ const file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc = "" +
 	"page_token\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageTokenJ\x04\b\x02\x10\x03R\x04page\"\xc8\x01\n" +
 	"\x11ExternalSubLookup\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12n\n" +
-	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12)\n" +
+	"\x15federation_issuer_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13federationIssuerRef\x12)\n" +
 	"\fexternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexternalSub\"\xcd\x02\n" +
 	"\x1bCreateFederatedAccountInput\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12n\n" +
-	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12)\n" +
+	"\x15federation_issuer_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13federationIssuerRef\x12)\n" +
 	"\fexternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexternalSub\x12\x1c\n" +
 	"\x05email\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05email\x12\x1d\n" +
 	"\n" +
@@ -886,7 +886,7 @@ const file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc = "" +
 	"pictureUrl\"\xcd\x02\n" +
 	"\x1bUpdateFederatedAccountInput\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12n\n" +
-	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12)\n" +
+	"\x15federation_issuer_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13federationIssuerRef\x12)\n" +
 	"\fexternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexternalSub\x12\x1c\n" +
 	"\x05email\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05email\x12\x1d\n" +
 	"\n" +
@@ -896,7 +896,7 @@ const file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc = "" +
 	"pictureUrl\"\xfe\x01\n" +
 	" DeprovisionFederatedAccountInput\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12n\n" +
-	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12)\n" +
+	"\x15federation_issuer_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13federationIssuerRef\x12)\n" +
 	"\fexternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexternalSub\x12%\n" +
 	"\x0edelete_account\x18\x04 \x01(\bR\rdeleteAccount\"\xb9\x02\n" +
 	"\x19CreateServiceAccountInput\x12\x18\n" +
@@ -945,10 +945,10 @@ var file_ai_stigmer_iam_identityaccount_v1_io_proto_goTypes = []any{
 var file_ai_stigmer_iam_identityaccount_v1_io_proto_depIdxs = []int32{
 	12, // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccounts.entries:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
 	12, // 1: ai.stigmer.iam.identityaccount.v1.IdentityAccountsList.entries:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	13, // 2: ai.stigmer.iam.identityaccount.v1.ExternalSubLookup.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	13, // 3: ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	13, // 4: ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	13, // 5: ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	13, // 2: ai.stigmer.iam.identityaccount.v1.ExternalSubLookup.federation_issuer_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	13, // 3: ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput.federation_issuer_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	13, // 4: ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput.federation_issuer_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	13, // 5: ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput.federation_issuer_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	14, // 6: ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput.role:type_name -> ai.stigmer.iam.v1.IamRole
 	12, // 7: ai.stigmer.iam.identityaccount.v1.UpdateIdentityAccountInput.resource:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
 	15, // 8: ai.stigmer.iam.identityaccount.v1.UpdateIdentityAccountInput.update_mask:type_name -> google.protobuf.FieldMask

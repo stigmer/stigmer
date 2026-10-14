@@ -330,7 +330,7 @@ describe("USER_GRANT_PRINCIPAL_KINDS — who a person may grant a role to", () =
       ApiResourceKind.organization,
       ApiResourceKind.platform,
       ApiResourceKind.agent,
-      ApiResourceKind.identity_provider,
+      ApiResourceKind.federation_issuer,
     ]) {
       expect(USER_GRANT_PRINCIPAL_KINDS).not.toContain(structural);
     }

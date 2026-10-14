@@ -55,7 +55,7 @@ import type { ResourceNameStore } from "../store/interface.js";
  * The identity-account domain as a unit's own lane meets it: the store
  * binding (a unit's registered driver, or open source's adapter) and the
  * one create path, which takes the `federated` provisioning arm an edition
- * that serves identity providers needs. An update or a delete is an RPC
+ * that serves federation issuers needs. An update or a delete is an RPC
  * like any other, over the in-process transport below, so it runs the
  * domain's own chain (the person's My vaults and access rows go with the
  * account) and no second path exists.

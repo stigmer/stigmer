@@ -1,0 +1,69 @@
+# FederationIssuer Resource Documentation
+
+Comprehensive documentation for the `iam.stigmer.ai/v1` FederationIssuer resource.
+
+## What Is a FederationIssuer?
+
+A FederationIssuer is an outside issuer whose tokens Stigmer accepts for its own users: the issuer's address and signing keys, the audience its tokens carry for Stigmer, and what those tokens get. A platform's users then call Stigmer with the platform's own tokens. One FederationIssuer is one issuer and its key set, so a platform with a production and a staging tenant registers one of each.
+
+Federation issuers are served by the Enterprise and Cloud editions; the open-source server answers UNIMPLEMENTED.
+
+A typical use case: a platform like Planton wants its users to access Stigmer's AI features. Instead of requiring users to create a separate Stigmer account, Planton registers a FederationIssuer. Planton either creates [federated IdentityAccounts](../../identityaccount/docs/README.md) for its users ahead of time, or lets Stigmer create them on first sign-in (`create_accounts_on_sign_in`). When a user calls Stigmer with a Planton-issued JWT, Stigmer validates the token, binds it to one organization and resolves the user's federated account.
+
+## How a Sign-In Is Verified
+
+There is no exchange step and no Stigmer-issued token: every request carries the issuer's JWT, and Stigmer verifies it on that request.
+
+```
+External Platform               Stigmer
+─────────────────               ───────
+User authenticates
+  on platform
+User calls the API       ──►   Route the JWT by (iss, aud)
+  with the platform JWT          (allowed_issuers, expected_audience)
+                                  │
+                          Verify the signature
+                          (keys from jwks_uri)
+                                  │
+                          Check exp, nbf and sub
+                                  │
+                          Bind the token to one organization
+                          (external_id_claim's child, or the issuer's own;
+                          a missing or unknown claim is refused)
+                                  │
+                          Resolve the federated IdentityAccount
+                          by (this issuer, sub)
+                                  │
+                          Not found: create it (JIT),
+                          or refuse (manual mode)
+                                  │
+                          First sign-in to that organization:
+                          grant sign_in_role, when set
+                                  │
+                ◄─────────────────┘
+         The request runs as that account,
+         in the bound organization only
+```
+
+## Key Concepts
+
+| Concept | Detail |
+|---|---|
+| **Ownership** | A FederationIssuer is owned by one organization. The org field on the FederationIssuer identifies the owning organization. |
+| **JWKS URI** | The endpoint Stigmer fetches signing keys from to verify JWT signatures. |
+| **Allowed issuers** | The `iss` claim values Stigmer will accept. Tokens with any other issuer are not routed to this issuer. |
+| **Expected audience** | The `aud` claim value every token must include. With the issuer, it routes a token to this issuer, and it keeps tokens minted for other services out. |
+| **Provisioning** | Manual (the platform creates each account) or automatic (`create_accounts_on_sign_in`). Automatic creation happens on the first sign-in. |
+| **Sign-in role** | `sign_in_role`: the role an account receives the first time it signs in to an organization through this issuer, once per account and organization. A role an admin removes stays removed. Unspecified grants nothing; owner is refused. |
+| **Binding** | Every token is bound to one organization and works there only: the child organization of the issuer's organization whose `external_id` the `external_id_claim` carries (read on every token; a missing, non-string or unknown value is refused as unauthenticated), otherwise the issuer's own. |
+| **UserInfo endpoint** | OIDC UserInfo endpoint URL. Read only when Stigmer creates an account from a token that carries no email claim. |
+| **No secrets stored** | The spec contains only public validation configuration — no client secrets or private keys. |
+
+## Documentation Index
+
+| Document | Description |
+|---|---|
+| [federationissuer-resource-guide.md](federationissuer-resource-guide.md) | YAML schema reference — spec fields, CLI commands, API operations |
+| [sign-in-flow.md](sign-in-flow.md) | How a request with an issuer's token is verified and resolved, the OIDC standards involved, and integration requirements |
+| [examples.md](examples.md) | Complete YAML examples for registering a federation issuer |
+| [validation-checklist.md](validation-checklist.md) | Pre-create checklist and common pitfalls |

@@ -55,9 +55,9 @@ const SETTINGS_SECTIONS: readonly {
     oss: { notice: "Invitations are not available in local mode." },
   },
   {
-    path: "/settings/identity-providers",
-    headingText: "Identity Providers",
-    oss: { notice: "Identity providers are not available in local mode." },
+    path: "/settings/federation-issuers",
+    headingText: "Federation Issuers",
+    oss: { notice: "Federation issuers are not available in local mode." },
   },
   {
     path: "/settings/platform-clients",

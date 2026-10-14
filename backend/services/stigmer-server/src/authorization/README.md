@@ -84,7 +84,7 @@ computes.
   capability no self-host holds); the target loaded once through the source;
   `not-found` for a missing row except on the kinds the cloud never probes
   (`NOT_FOUND_EXEMPT_KINDS`, the cloud's own set: accounts, policies, platform
-  clients, and the platform, identity providers, invitations and teams an
+  clients, and the platform, federation issuers, invitations and teams an
   edition above open source serves — ids cannot be enumerated); the model's answer with an empty reason on a denial so
   the annotation's copy wins; every fault `unavailable`, never a denial and
   never a throw.

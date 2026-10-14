@@ -17,7 +17,7 @@
  * carry methods only one edition calls or no edition needs.
  * `findByResourceKindAndRelation` joined it when a second edition came to
  * call it: the boot reconcile that revokes the direct `owner` rows a kind
- * no longer admits runs in every host that serves identity providers and
+ * no longer admits runs in every host that serves federation issuers and
  * invitations, over this port.
  *
  * Contract every implementation must satisfy — proven by the port-contract

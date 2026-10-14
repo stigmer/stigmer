@@ -73,7 +73,7 @@ definitions, API names, and examples follow below.
 | **Team**              | teams            | ---                                    | Team                   | Team, `kind: team`                              | Team              |
 | **Vault**             | vault            | vault ("your keys and logins")         | Vault                  | Vault, `kind: Vault`                            | vault             |
 | **Preference**        | preferences      | preference ("standing context")        | Preference             | `spec.preferences.standing_context`             | Preference        |
-| **Identity Provider** | ---              | identity provider                      | Identity Provider      | IdentityProvider, `kind: identity_provider`     | Identity Provider |
+| **Federation Issuer** | ---              | identity provider (Auth0, Okta, …)     | Federation Issuer      | FederationIssuer, `kind: FederationIssuer`      | Federation Issuer |
 | **Identity Account**  | ---              | ---                                    | Identity Account       | IdentityAccount, `kind: identity_account`       | Identity Account  |
 | **PlatformClient**    | ---              | ---                                    | PlatformClient         | PlatformClient, `kind: platform_client`         | PlatformClient    |
 | **Run**               | ---              | run                                    | run                    | Run, `kind: Run`                                | Run               |
@@ -680,7 +680,7 @@ Organization an integrator runs for one of its customers.
   `OrganizationSpec.external_id`; `OrganizationQueryController.getByExternalId`
   and `listChildOrgs`; the permission `can_manage_child_orgs`; the share level
   `visibility_child_orgs` (the CLI and frontmatter spelling `child-orgs`); the
-  Identity Provider's `external_id_claim`; the plan feature `child_orgs` and its
+  Federation Issuer's `external_id_claim`; the plan feature `child_orgs` and its
   limit `included_child_orgs`.
 - **Note**: One level deep: a child has no children, and is never moved to
   another parent. `parent_org` and `external_id` are fixed at create. An
@@ -700,7 +700,7 @@ keys.
 
 - **Capitalize**: No.
 - **API surface**: `OrganizationSpec.external_id`, unique among one parent's
-  children; `getByExternalId(parent_org, external_id)`; an Identity Provider's
+  children; `getByExternalId(parent_org, external_id)`; a Federation Issuer's
   `external_id_claim` names the JWT claim that carries it.
   `VaultSpec.external_id`, unique in the vault's Organization;
   `getByExternalId(org, external_id)`.
@@ -871,47 +871,55 @@ context.
 
 ---
 
-#### Identity Provider
+#### Federation Issuer
 
-An external trust relationship that tells Stigmer how to validate tokens from
-your authentication system.
+An outside issuer whose tokens Stigmer accepts for its own users: your identity
+provider (Auth0, Okta, …) is registered as a Federation Issuer. It holds the
+issuer, its signing keys, the audience its tokens carry for Stigmer, and what
+those tokens get.
 
 - **Capitalize**: Yes, when referring to the Stigmer resource.
-- **API surface**: `kind: identity_provider`, prefix `idp`. proto:
-  `iam/identityprovider/v1/spec.proto`.
+- **API surface**: `kind: FederationIssuer` (enum `federation_issuer`), prefix
+  `fis` (ids minted before the rename keep `idp`). proto:
+  `iam/federationissuer/v1/spec.proto`.
 - **Key fields**: `jwks_uri`, `allowed_issuers`, `expected_audience`,
   `create_accounts_on_sign_in`, `sign_in_role`, `external_id_claim`.
-- **Context rule**: Do not use on the sales site. In quickstart, say "identity
-  provider" in lowercase on first use with a brief gloss. In concepts and
-  how-to, capitalize as "Identity Provider." In reference, use
-  `IdentityProvider`.
-- **Note**: An Identity Provider is not a user database---it defines how Stigmer
-  validates externally issued JWTs. It is owned by an Organization and can route
-  its users to that Organization's child organizations. Each token it vouches
-  for is a **bound credential**: it works in the child organization
-  `external_id_claim` names, or in the provider's own Organization.
+- **Context rule**: Do not use on the sales site. In quickstart, say "your
+  identity provider" in lowercase and gloss it once: "registered as a Federation
+  Issuer". In concepts and how-to, capitalize as "Federation Issuer." In
+  reference, use `FederationIssuer`. "Identity provider" in lowercase keeps its
+  everyday sense: the outside provider itself (Auth0, Okta, Keycloak), whatever
+  Stigmer calls its registration.
+- **Note**: A Federation Issuer is not a user database---it defines how Stigmer
+  validates externally issued JWTs. One Federation Issuer is one issuer and its
+  key set, so a platform with a production and a staging tenant registers one of
+  each. It is owned by an Organization and can route its users to that
+  Organization's child organizations. Each token it vouches for is a **bound
+  credential**: it works in the child organization `external_id_claim` names, or
+  in the issuer's own Organization.
+- **Former names**: `IdentityProvider` (`kind: IdentityProvider`, "Identity
+  Provider"). Do not use it in new writing.
 
 ---
 
 #### Identity Account
 
 A principal that Stigmer can authenticate and authorize. Comes in five types:
-Direct (user signed up on Stigmer), Federated (created via an Identity
-Provider), Platform (created via PlatformClient; "App users" in the console's
-pickers), Service account (an Organization's own account for automation), and
-Machine (the hosted platform's own service-to-service account, never created by
-a customer).
+Direct (user signed up on Stigmer), Federated (created via a Federation Issuer),
+Platform (created via PlatformClient; "App users" in the console's pickers),
+Service account (an Organization's own account for automation), and Machine (the
+hosted platform's own service-to-service account, never created by a customer).
 
 - **Capitalize**: Yes, when referring to the Stigmer resource.
 - **API surface**: `kind: identity_account`, prefix `ida`. proto:
   `iam/identityaccount/v1/spec.proto`.
 - **Key fields**: `provisioning_mode` (`direct`, `federated`, `platform_client`,
-  `machine`, `service_account`), `identity_provider_ref`, `idp_id`.
+  `machine`, `service_account`), `federation_issuer_ref`, `idp_id`.
 - **Context rule**: Do not use on the sales site. In how-to and concept docs,
   capitalize as "Identity Account." In reference, use `IdentityAccount`. In
   quickstart, avoid unless the tutorial covers federation or PlatformClient.
 - **Note**: Federated accounts can be provisioned via JIT (automatic on first
-  token, when the Identity Provider sets `create_accounts_on_sign_in`) or
+  token, when the Federation Issuer sets `create_accounts_on_sign_in`) or
   explicitly via `createFederatedAccount`. Platform accounts are created by
   `mintUserToken` when the PlatformClient sets `create_accounts_on_sign_in`, or
   by the platform beforehand.
@@ -984,7 +992,7 @@ Stigmer without creating Stigmer-native accounts.
 
 - **Capitalize**: No. "Identity federation" is a pattern, not a Stigmer resource
   type. Do not capitalize "federation" unless it starts a sentence.
-- **Related resources**: Identity Provider, Identity Account, IAM Policy.
+- **Related resources**: Federation Issuer, Identity Account, IAM Policy.
 - **Context rule**: Use in federation guides and concept pages. On the sales
   site, say "your users sign in with their existing credentials" without naming
   the mechanism. In quickstart, avoid unless the tutorial covers federation
@@ -1001,7 +1009,7 @@ whatever roles its person holds elsewhere.
   Stigmer resource type.
 - **Examples**: a PlatformClient user token (bound to the PlatformClient's
   Organization, or the child organization it was minted for), a federated token
-  through an Identity Provider (bound to the child organization
+  through a Federation Issuer (bound to the child organization
   `external_id_claim` names, or the provider's own), an API key limited to an
   Organization (`ApiKeySpec.bound_org`), and the credential a runner holds for
   one run (bound to the run's Organization). A person signed in at the Stigmer

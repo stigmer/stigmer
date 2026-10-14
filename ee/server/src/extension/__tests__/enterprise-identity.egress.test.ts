@@ -1,5 +1,5 @@
 /**
- * Every URL an organization admin writes into an identity provider is
+ * Every URL an organization admin writes into a federation issuer is
  * dialed through the ONE fetch the host hands the enterprise-identity unit
  * (`EnterpriseIdentityPorts.outboundFetch`, the egress-guarded fetch in any
  * host that serves tenants). The type cannot say it: the global `fetch` is
@@ -10,7 +10,7 @@
  * a recording fetch, the global `fetch` is stubbed to throw, and each of
  * the unit's dials is driven through its own door:
  *
- *   - an IdentityProvider create reads the issuer's discovery document and
+ *   - a FederationIssuer create reads the issuer's discovery document and
  *     checks the JWKS it names (the save-time validation);
  *   - a token naming the provider has its signing keys fetched (the
  *     federated lane's key cache);
@@ -41,9 +41,9 @@ import {
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
-import { IdentityProviderSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
+import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
+import { FederationIssuerSpecSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/spec_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import {
@@ -61,7 +61,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { refusingPort, SILENT_LOGGER } from "../../__test-utils__/refusing-doubles.js";
 import type { IdentityAccountService } from "../../iam/account/port.js";
-import { InMemoryProviderStore, storedProvider } from "../../iam/provider/__tests__/in-memory-provider-store.js";
+import { InMemoryIssuerStore, storedIssuer } from "../../iam/issuer/__tests__/in-memory-issuer-store.js";
 import { inMemorySignInGrants } from "../../iam/federation/__tests__/in-memory-sign-in-grants.js";
 import { UNBOUND_CREDENTIAL_BINDING } from "../../__test-utils__/unbound-credential-binding.js";
 import { newEnterpriseIdentityExtension } from "../enterprise-identity.js";
@@ -159,7 +159,7 @@ function accountService(created: IdentityAccount[]): IdentityAccountService {
     store: new Proxy(refusingPort<IdentityAccountService["store"]>("accounts.store"), {
       get: (target, member) =>
         // No federated row yet, and the admin is no service account.
-        member === "findByProviderAndIdpId" || member === "findById"
+        member === "findByIssuerAndIdpId" || member === "findById"
           ? () => Promise.resolve(undefined)
           : Reflect.get(target, member),
     }),
@@ -168,12 +168,12 @@ function accountService(created: IdentityAccount[]): IdentityAccountService {
 
 interface Rig {
   readonly unit: ServerExtension;
-  readonly store: InMemoryProviderStore;
+  readonly store: InMemoryIssuerStore;
   readonly dialed: string[];
   readonly created: IdentityAccount[];
 }
 
-function rig(store: InMemoryProviderStore = new InMemoryProviderStore()): Rig {
+function rig(store: InMemoryIssuerStore = new InMemoryIssuerStore()): Rig {
   const dialed: string[] = [];
   const recording: OutboundFetch = (url) => {
     const key = String(url);
@@ -219,15 +219,15 @@ const asAdmin: Interceptor = (next) => (request) => {
 };
 
 /** The stored JIT provider the sign-in cases route to: the issuer's own JWKS and userinfo. */
-function jitProvider() {
-  const provider = storedProvider({
-    id: "idp_acme",
+function jitIssuer() {
+  const provider = storedIssuer({
+    id: "fis_acme",
     org: "acme",
     slug: "acme-idp",
     issuers: [`${ISSUER}/`],
     expectedAudience: AUDIENCE,
   });
-  const spec = provider.spec ?? create(IdentityProviderSpecSchema);
+  const spec = provider.spec ?? create(FederationIssuerSpecSchema);
   spec.jwksUri = JWKS;
   spec.userinfoEndpoint = USERINFO;
   spec.createAccountsOnSignIn = true;
@@ -247,7 +247,7 @@ describe("the enterprise-identity unit dials every tenant-written URL through it
     globalFetch.mockClear();
   });
 
-  it("an IdentityProvider create reads the issuer's discovery document and its JWKS through it", async () => {
+  it("a FederationIssuer create reads the issuer's discovery document and its JWKS through it", async () => {
     const r = rig();
     const transport = createRouterTransport(
       (inner) => {
@@ -257,14 +257,14 @@ describe("the enterprise-identity unit dials every tenant-written URL through it
       },
       { router: { interceptors: [asAdmin] } },
     );
-    const client = createClient(IdentityProviderCommandController, transport);
+    const client = createClient(FederationIssuerCommandController, transport);
 
     const saved = await client.create(
-      create(IdentityProviderSchema, {
+      create(FederationIssuerSchema, {
         apiVersion: "iam.stigmer.ai/v1",
-        kind: "IdentityProvider",
+        kind: "FederationIssuer",
         metadata: create(ApiResourceMetadataSchema, { name: "Acme Platform", org: "acme" }),
-        spec: create(IdentityProviderSpecSchema, {
+        spec: create(FederationIssuerSpecSchema, {
           displayName: "Acme Platform",
           jwksUri: JWKS,
           allowedIssuers: [`${ISSUER}/`],
@@ -273,14 +273,14 @@ describe("the enterprise-identity unit dials every tenant-written URL through it
       }),
     );
 
-    expect(saved.metadata?.id).toMatch(/^idp_/);
+    expect(saved.metadata?.id).toMatch(/^fis_/);
     expect(r.dialed).toEqual([DISCOVERY, JWKS]);
     expect(globalFetch).not.toHaveBeenCalled();
   });
 
   it("a token naming the provider has its keys fetched through it, and a first sign-in reads the profile through it", async () => {
-    const store = new InMemoryProviderStore();
-    await store.insert(jitProvider());
+    const store = new InMemoryIssuerStore();
+    await store.insert(jitIssuer());
     const r = rig(store);
     const [verifier] = r.unit.identityVerifiers ?? [];
 

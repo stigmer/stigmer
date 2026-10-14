@@ -9,7 +9,7 @@
  *     never calls Store.findByField or findAllByField (no per-request
  *     scan), the federated sign-in's lookup included. Asserted with a spy
  *     over the real store, not by inspection; findDirectByEmail and
- *     findByProvider are the lookups that scan (an administrative RPC and
+ *     findByIssuer are the lookups that scan (an administrative RPC and
  *     a provider's removal), each reading every matching row;
  *   - save refuses a direct account whose id is not its derived id, and a
  *     federated account whose id is not the address of its provider and
@@ -62,10 +62,10 @@ const CONTRACT_CASE_NAMES = [
   "findByIds answers the present ones in request order and skips the unknown",
   "a disconnected store is an infrastructure fault, never 'not found'",
   "two concurrent saves of one subject end in fulfilments and DuplicateAccountErrors only, and the winner is readable by subject",
-  "no subject lookup answers a federated account: its subject is its identity provider's",
-  "findByProviderAndIdpId finds a federated row by its provider and subject, and nothing under another provider or subject",
-  "findByProviderAndIdpId keeps two providers' same subject apart, and never answers a direct row sharing the subject",
-  "findByProvider answers every row the provider vouches for, in id order, and none of another provider's or a direct row",
+  "no subject lookup answers a federated account: its subject is its federation issuer's",
+  "findByIssuerAndIdpId finds a federated row by its provider and subject, and nothing under another provider or subject",
+  "findByIssuerAndIdpId keeps two providers' same subject apart, and never answers a direct row sharing the subject",
+  "findByIssuer answers every row the provider vouches for, in id order, and none of another provider's or a direct row",
   "an outage is a fault on both federated reads, never 'no account'",
   "findDirectByEmail answers the direct account when federated and platform-client rows share its email",
   "findDirectByIdpId and findDirectByEmail never answer a platform-client account, while findByIdpId (any mode) does",
@@ -103,8 +103,8 @@ function makeDirectAccount(overrides: {
   });
 }
 
-const PROVIDER_ORG = "org_01hzacme000000000000000000";
-const PROVIDER_ID = "idp_01hzacmeokta0000000000000";
+const ISSUER_ORG = "org_01hzacme000000000000000000";
+const ISSUER_ID = "fis_01hzacmeokta0000000000000";
 
 /** A federated account at the address of its provider and subject, as the create path writes it. */
 function makeFederatedAccount(idpId: string): IdentityAccount {
@@ -112,17 +112,17 @@ function makeFederatedAccount(idpId: string): IdentityAccount {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "IdentityAccount",
     metadata: {
-      id: federatedAccountIdFor(PROVIDER_ID, idpId),
+      id: federatedAccountIdFor(ISSUER_ID, idpId),
       name: idpId,
-      org: PROVIDER_ORG,
+      org: ISSUER_ORG,
     },
     spec: {
       idpId,
       provisioningMode: IdentityAccountProvisioningMode.federated,
-      identityProviderRef: {
-        org: PROVIDER_ORG,
-        kind: ApiResourceKind.identity_provider,
-        id: PROVIDER_ID,
+      federationIssuerRef: {
+        org: ISSUER_ORG,
+        kind: ApiResourceKind.federation_issuer,
+        id: ISSUER_ID,
       },
     },
   });
@@ -247,25 +247,25 @@ describe.each([sqliteFixture, postgresFixture])(
         await accounts.save(makeFederatedAccount("okta|dana"));
         expect(
           (
-            await accounts.findByProviderAndIdpId(PROVIDER_ID, "okta|dana")
+            await accounts.findByIssuerAndIdpId(ISSUER_ID, "okta|dana")
           )?.metadata?.id,
-        ).toBe(federatedAccountIdFor(PROVIDER_ID, "okta|dana"));
+        ).toBe(federatedAccountIdFor(ISSUER_ID, "okta|dana"));
         expect(
-          await accounts.findByProviderAndIdpId(PROVIDER_ID, "okta|nobody"),
+          await accounts.findByIssuerAndIdpId(ISSUER_ID, "okta|nobody"),
         ).toBeUndefined();
         expect(findByFieldPaths).toEqual([]);
         expect(findAllByFieldPaths).toEqual([]);
       });
 
-      it("findByProvider scans by the provider's id (a provider's removal, never a per-request path)", async () => {
+      it("findByIssuer scans by the provider's id (a provider's removal, never a per-request path)", async () => {
         await accounts.save(makeFederatedAccount("okta|dana"));
         expect(
-          (await accounts.findByProvider(PROVIDER_ID)).map(
+          (await accounts.findByIssuer(ISSUER_ID)).map(
             (account) => account.spec?.idpId,
           ),
         ).toEqual(["okta|dana"]);
         expect(findAllByFieldPaths).toEqual([
-          "spec.identity_provider_ref.id",
+          "spec.federation_issuer_ref.id",
         ]);
       });
 
@@ -274,10 +274,10 @@ describe.each([sqliteFixture, postgresFixture])(
         atDirectAddress.metadata = create(ApiResourceMetadataSchema, {
           id: accountIdFor("okta|erin"),
           name: "stray",
-          org: PROVIDER_ORG,
+          org: ISSUER_ORG,
         });
         await expect(accounts.save(atDirectAddress)).rejects.toThrow(
-          "federated account id must be derived from its identity provider and idp_id",
+          "federated account id must be derived from its federation issuer and idp_id",
         );
         expect(
           await opened.store.listResources(ApiResourceKind.identity_account),
@@ -288,25 +288,25 @@ describe.each([sqliteFixture, postgresFixture])(
         await accounts.save(makeFederatedAccount("okta|dana"));
         for (const [provider, subject] of [
           ["", "okta|dana"],
-          [PROVIDER_ID, ""],
+          [ISSUER_ID, ""],
           ["idp|okta", "dana"],
         ] as const) {
           expect(
-            await accounts.findByProviderAndIdpId(provider, subject),
+            await accounts.findByIssuerAndIdpId(provider, subject),
           ).toBeUndefined();
         }
-        expect(await accounts.findByProvider("")).toEqual([]);
+        expect(await accounts.findByIssuer("")).toEqual([]);
 
         const unaddressable = makeFederatedAccount("okta|erin");
-        unaddressable.spec!.identityProviderRef!.id = "";
+        unaddressable.spec!.federationIssuerRef!.id = "";
         await expect(accounts.save(unaddressable)).rejects.toThrow(
-          "federated account id must be derived from its identity provider and idp_id",
+          "federated account id must be derived from its federation issuer and idp_id",
         );
       });
 
       it("a subject lookup handed the federated address text answers nothing: the mode filter stands behind the reserved prefix", async () => {
         await accounts.save(makeFederatedAccount("okta|dana"));
-        const addressText = `${FEDERATED_SUBJECT_PREFIX}${PROVIDER_ORG}|acme-okta|okta|dana`;
+        const addressText = `${FEDERATED_SUBJECT_PREFIX}${ISSUER_ORG}|acme-okta|okta|dana`;
         expect(await accounts.findByIdpId(addressText)).toBeUndefined();
         expect(await accounts.findDirectByIdpId(addressText)).toBeUndefined();
       });

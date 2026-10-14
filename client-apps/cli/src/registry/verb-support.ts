@@ -54,7 +54,7 @@ export const VERB_SUPPORT: ReadonlyMap<
   // IAM apps are configured declaratively; read/ops verbs are deliberately
   // not promised (never wired, no demand — stigmer/stigmer#354). To add one:
   // dispatch entry + this line, in the same change.
-  [ApiResourceKind.identity_provider, new Set<Verb>([Verb.Apply])],
+  [ApiResourceKind.federation_issuer, new Set<Verb>([Verb.Apply])],
   [ApiResourceKind.oauth_app, new Set<Verb>([Verb.Apply])],
   // A vault holds secrets, which never belong in a manifest file, so it has
   // no apply; entries change through the `stigmer vault` group, and no verb

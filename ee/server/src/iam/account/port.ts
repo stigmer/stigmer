@@ -54,7 +54,7 @@ export interface IdentityAccountService {
   /**
    * The create pipeline: build → persist → self-owner grant, acting for
    * `actingFor` when a principal is behind the create (a federated
-   * account's identity provider). Throws DuplicateAccountError when the
+   * account's federation issuer). Throws DuplicateAccountError when the
    * account is held (callers resolve the race winner themselves, since
    * each lane's natural key differs).
    */

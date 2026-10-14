@@ -77,7 +77,7 @@ const PACKAGE_ROOT = new URL("../../../../", import.meta.url);
 /** The kinds the model defines outside the open-source tier: the ones the wider editions serve. */
 const WIDER_EDITION_KINDS: ReadonlyArray<ApiResourceKind> = [
   ApiResourceKind.platform,
-  ApiResourceKind.identity_provider,
+  ApiResourceKind.federation_issuer,
   ApiResourceKind.invitation,
   ApiResourceKind.team,
 ];

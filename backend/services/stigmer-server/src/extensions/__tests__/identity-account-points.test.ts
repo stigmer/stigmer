@@ -36,8 +36,8 @@ const store: IdentityAccountStore = {
   findDirectByEmail: unimplemented,
   findByIds: unimplemented,
   findByOrg: unimplemented,
-  findByProviderAndIdpId: unimplemented,
-  findByProvider: unimplemented,
+  findByIssuerAndIdpId: unimplemented,
+  findByIssuer: unimplemented,
 };
 
 const federation: IdentityFederation = {

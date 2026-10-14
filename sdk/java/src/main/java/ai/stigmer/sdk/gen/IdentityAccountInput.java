@@ -25,7 +25,7 @@ public final class IdentityAccountInput {
     private final String pictureUrl;
     private final boolean isMachineAccount;
     private final IdentityAccountProvisioningMode provisioningMode;
-    private final ResourceRef identityProviderRef;
+    private final ResourceRef federationIssuerRef;
     private final IdentityAccountPreferencesInput preferences;
 
     private IdentityAccountInput(Builder builder) {
@@ -42,7 +42,7 @@ public final class IdentityAccountInput {
         this.pictureUrl = builder.pictureUrl;
         this.isMachineAccount = builder.isMachineAccount;
         this.provisioningMode = builder.provisioningMode;
-        this.identityProviderRef = builder.identityProviderRef;
+        this.federationIssuerRef = builder.federationIssuerRef;
         this.preferences = builder.preferences;
     }
 
@@ -67,9 +67,9 @@ public final class IdentityAccountInput {
         if (this.provisioningMode != null) {
             spec.setProvisioningMode(this.provisioningMode);
         }
-        if (this.identityProviderRef != null && this.identityProviderRef.hasIdentifier()) {
-            spec.setIdentityProviderRef(this.identityProviderRef.toProto().toBuilder()
-                .setKind(ApiResourceKind.identity_provider).build());
+        if (this.federationIssuerRef != null && this.federationIssuerRef.hasIdentifier()) {
+            spec.setFederationIssuerRef(this.federationIssuerRef.toProto().toBuilder()
+                .setKind(ApiResourceKind.federation_issuer).build());
         }
         if (this.preferences != null) {
             spec.setPreferences(this.preferences.toProto());
@@ -115,7 +115,7 @@ public final class IdentityAccountInput {
         private String pictureUrl;
         private boolean isMachineAccount;
         private IdentityAccountProvisioningMode provisioningMode;
-        private ResourceRef identityProviderRef;
+        private ResourceRef federationIssuerRef;
         private IdentityAccountPreferencesInput preferences;
 
         private Builder() {}
@@ -138,7 +138,7 @@ public final class IdentityAccountInput {
         public Builder pictureUrl(String pictureUrl) { this.pictureUrl = pictureUrl; return this; }
         public Builder isMachineAccount(boolean isMachineAccount) { this.isMachineAccount = isMachineAccount; return this; }
         public Builder provisioningMode(IdentityAccountProvisioningMode provisioningMode) { this.provisioningMode = provisioningMode; return this; }
-        public Builder identityProviderRef(ResourceRef identityProviderRef) { this.identityProviderRef = identityProviderRef; return this; }
+        public Builder federationIssuerRef(ResourceRef federationIssuerRef) { this.federationIssuerRef = federationIssuerRef; return this; }
         public Builder preferences(IdentityAccountPreferencesInput preferences) { this.preferences = preferences; return this; }
 
         public IdentityAccountInput build() { return new IdentityAccountInput(this); }

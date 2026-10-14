@@ -96,11 +96,11 @@ function rig(
   return { deps, deleted, read, logged };
 }
 
-const PROVIDER = { kind: "identity_provider", id: "idp_a" };
+const PROVIDER = { kind: "federation_issuer", id: "fis_a" };
 const CLIENT = { kind: "platform_client", id: "pcl_a" };
 
 const ALL_NO_OWNER_KINDS: ReadonlyArray<OwnerRowKind> = [
-  { kind: ApiResourceKind.identity_provider, key: "identity-provider", idField: "provider" },
+  { kind: ApiResourceKind.federation_issuer, key: "federation-issuer", idField: "provider" },
   { kind: ApiResourceKind.invitation, key: "invitation", idField: "invitation" },
   { kind: ApiResourceKind.platform_client, key: "platform-client", idField: "client" },
   { kind: ApiResourceKind.oauth_app, key: "oauth-app", idField: "app" },
@@ -118,21 +118,21 @@ describe("revokeOwnerRows", () => {
     ];
     const r = rig(table);
 
-    const report = await revokeOwnerRows(ApiResourceKind.identity_provider, r.deps);
+    const report = await revokeOwnerRows(ApiResourceKind.federation_issuer, r.deps);
 
-    expect(r.read).toEqual([{ kind: "identity_provider", relation: "owner" }]);
+    expect(r.read).toEqual([{ kind: "federation_issuer", relation: "owner" }]);
     expect(r.deleted.map((spec) => spec.principal?.id)).toEqual(["ida_carol", "ida_granted"]);
     expect(report).toEqual({
       revoked: [
-        { id: "idp_a", accountId: "ida_carol" },
-        { id: "idp_a", accountId: "ida_granted" },
+        { id: "fis_a", accountId: "ida_carol" },
+        { id: "fis_a", accountId: "ida_granted" },
       ],
       failures: [],
     });
     expect(table.map((row) => `${row.spec?.resource?.kind}#${row.spec?.relation}`)).toEqual([
-      "identity_provider#organization",
-      "identity_provider#viewer",
-      "identity_provider#creator",
+      "federation_issuer#organization",
+      "federation_issuer#viewer",
+      "federation_issuer#creator",
       "platform_client#owner",
     ]);
   });
@@ -176,13 +176,13 @@ describe("reconcileOwnerRows", () => {
     await reconcileOwnerRows(ALL_NO_OWNER_KINDS, r.deps);
 
     expect(r.read.map((entry) => entry.kind)).toEqual([
-      "identity_provider",
+      "federation_issuer",
       "invitation",
       "platform_client",
       "oauth_app",
     ]);
     expect(r.deleted.map((spec) => `${spec.resource?.kind}:${spec.resource?.id}@${spec.principal?.id}`)).toEqual([
-      "identity_provider:idp_a@ida_carol",
+      "federation_issuer:fis_a@ida_carol",
       "invitation:inv_1@ida_carl",
       "platform_client:pcl_a@ida_dan",
       "oauth_app:oapp_a@ida_erin",

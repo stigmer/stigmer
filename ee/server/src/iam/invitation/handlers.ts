@@ -5,7 +5,7 @@
  * registers no service for, so these are its only handlers; every one
  * runs the composition's unary chain (Authorize from the proto annotation,
  * then ValidateProto, then the lane's steps and its domain step), the
- * shape Team and IdentityProvider run.
+ * shape Team and FederationIssuer run.
  *
  * An invitation is its organization's administrative resource
  * (`invitation.fga` in the model `@stigmer/server` ships: the

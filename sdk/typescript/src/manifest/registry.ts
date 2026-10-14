@@ -35,9 +35,9 @@ import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/ch
 import { type Schedule, ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
-import { type IdentityProvider, IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
-import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
+import { type FederationIssuer, FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
+import { FederationIssuerQueryController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/query_pb";
 import { type OAuthApp, OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
 import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
@@ -113,15 +113,15 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     rename: (c, i) => c(AgentCommandController).rename(i),
   },
   {
-    kind: ApiResourceKind.identity_provider,
-    yamlKind: "IdentityProvider",
-    displayName: "Identity Provider",
+    kind: ApiResourceKind.federation_issuer,
+    yamlKind: "FederationIssuer",
+    displayName: "Federation Issuer",
     apiVersion: IAM_V1,
-    schema: IdentityProviderSchema,
+    schema: FederationIssuerSchema,
     applyOrder: 6,
-    apply: (c, m) => c(IdentityProviderCommandController).apply(m as IdentityProvider),
-    getByReference: (c, ref) => c(IdentityProviderQueryController).getByReference(ref),
-    rename: (c, i) => c(IdentityProviderCommandController).rename(i),
+    apply: (c, m) => c(FederationIssuerCommandController).apply(m as FederationIssuer),
+    getByReference: (c, ref) => c(FederationIssuerQueryController).getByReference(ref),
+    rename: (c, i) => c(FederationIssuerCommandController).rename(i),
   },
   {
     kind: ApiResourceKind.oauth_app,

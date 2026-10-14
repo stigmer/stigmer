@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.federationissuer.v1;
+
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+import "ai/stigmer/iam/federationissuer/v1/api.proto";
+import "ai/stigmer/iam/federationissuer/v1/io.proto";
+
+// FederationIssuerQueryController provides read operations for federation issuers.
+service FederationIssuerQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = federation_issuer;
+
+  // Get a federation issuer by its unique identifier.
+  //
+  // @internal
+  // Authorization: Requires can_view permission on the federation issuer resource.
+  rpc get(ai.stigmer.commons.apiresource.ApiResourceId) returns (FederationIssuer) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = federation_issuer;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view federation issuer";
+  }
+
+  // Get a federation issuer by its organization-scoped reference (org/slug).
+  //
+  // Resolves a human-readable reference like "acme/planton" to the full
+  // FederationIssuer resource.
+  //
+  // @internal
+  // Authorization: the handler loads the issuer by org and slug, then
+  // requires can_view on the loaded issuer exactly as get does (the same
+  // permission and the same error message). The lane is skip-annotated only
+  // because its target is the loaded row, which no request field names.
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (FederationIssuer) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // List the federation issuers of an organization that the caller may view.
+  //
+  // Returns the FederationIssuers whose metadata.org matches the input org and
+  // that the caller could get by id, newest first, one page at a time.
+  //
+  // @internal
+  // Authorization: requires can_view on the organization, then keeps only the
+  // issuers the caller holds can_view on (the list read scope), so a member
+  // who may not get an issuer does not see it listed either.
+  rpc list(ListFederationIssuersInput) returns (FederationIssuers) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list federation issuers in this organization";
+  }
+}

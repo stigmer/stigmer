@@ -79,7 +79,7 @@ class IdentityAccountQueryControllerServicer(object):
         """Get a direct identity account by email address.
 
         Only returns direct (non-federated) accounts. Federated accounts are not
-        returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
+        returned by this RPC — use getByExternalSub for issuer-scoped federated lookups.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -90,7 +90,7 @@ class IdentityAccountQueryControllerServicer(object):
 
         Primarily used for direct and machine accounts where the IDP ID is
         the Auth0 user_id or client_id. A federated account is never answered:
-        its subject is its identity provider's, so it is looked up with
+        its subject is its federation issuer's, so it is looked up with
         getByExternalSub, which is scoped to that provider.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -98,7 +98,7 @@ class IdentityAccountQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def getByExternalSub(self, request, context):
-        """Get a federated identity account by identity provider reference and external subject.
+        """Get a federated identity account by federation issuer reference and external subject.
 
         Used by platform backends to check whether a federated account already exists
         for a given OIDC subject before calling createFederatedAccount.
@@ -107,7 +107,7 @@ class IdentityAccountQueryControllerServicer(object):
         answers UNIMPLEMENTED.
 
         Authorization: Requires can_create_identity_account on the organization
-        that owns the identity provider.
+        that owns the federation issuer.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

@@ -12,7 +12,7 @@ The server reads one license key at boot and decides its edition once:
 - **A key that does not verify**: the boot is refused with the reason (an unknown key, a signature that does not match, contents that do not read, or a ticket that is not one), and the process exits 1. It never falls back to open source silently, because that would sign every single-sign-on person out over a typo.
 - **A verified key**: the Enterprise edition, on Postgres. Its tables live in their own `ee` schema beside the library's, created and migrated by the server at start.
 
-A license is verified offline, against the public keys compiled into this package; there is no setting that adds a key. When a license and its grace period have ended, the server keeps running and keeps every person, organization and record: it refuses only growth (a new organization, a new team, a new or changed identity provider) until a renewed key is pasted. How long production use in that mode stays licensed is the license's to say (see `LICENSE`), not the code's: the server never locks anyone out.
+A license is verified offline, against the public keys compiled into this package; there is no setting that adds a key. When a license and its grace period have ended, the server keeps running and keeps every person, organization and record: it refuses only growth (a new organization, a new team, a new or changed federation issuer) until a renewed key is pasted. How long production use in that mode stays licensed is the license's to say (see `LICENSE`), not the code's: the server never locks anyone out.
 
 ## Running it
 
@@ -21,7 +21,7 @@ The package's process entry is `main.js` at the root of its build output, a one-
 | Variable | Meaning |
 |---|---|
 | `STIGMER_LICENSE_KEY` | The license key. Unset or blank: the server runs as open source. |
-| `STIGMER_OUTBOUND_EGRESS` | Which addresses a licensed server may dial when it reaches a URL a person wrote (an identity provider's documents, an MCP or plugin install probe, a vault sign-in). Unset, blank or `strict`: public addresses only, the default. `relaxed`: private and loopback addresses too, link-local still refused. Read only when a license key is set: without one the server is the open-source edition exactly and ignores this variable. With a key, any other value refuses the boot. |
+| `STIGMER_OUTBOUND_EGRESS` | Which addresses a licensed server may dial when it reaches a URL a person wrote (a federation issuer's documents, an MCP or plugin install probe, a vault sign-in). Unset, blank or `strict`: public addresses only, the default. `relaxed`: private and loopback addresses too, link-local still refused. Read only when a license key is set: without one the server is the open-source edition exactly and ignores this variable. With a key, any other value refuses the boot. |
 | `DATABASE_URL` | Required with a key: Stigmer Enterprise runs on Postgres. |
 | `STIGMER_PLATFORM_TOKEN_KEY` | The key the server signs its own tokens with. Unset, the server generates one and keeps it under its home directory; a server run as several replicas sets it so they share one key. |
 

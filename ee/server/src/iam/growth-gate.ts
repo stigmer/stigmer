@@ -1,6 +1,6 @@
 /**
  * The growth gate: whether this server may grow its setup right now (a new
- * team, a new or changed identity provider).
+ * team, a new or changed federation issuer).
  *
  * A host whose right to grow is bounded (a self-hosted server whose license
  * has run out) refuses growth and nothing else: everything that exists keeps
@@ -11,7 +11,7 @@
  * and with no gate (a host with no license) every act is allowed.
  *
  * The step sits last in the create chains of the kinds that grow a setup
- * (team create, after its plan gate; identity provider create and update),
+ * (team create, after its plan gate; federation issuer create and update),
  * so nothing is written before it refuses, and apply reaches it through the
  * create or update chain it delegates to. Invitations, team members and
  * every delete are never gated.

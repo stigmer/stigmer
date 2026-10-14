@@ -12,10 +12,10 @@ public interface CreateFederatedAccountInputOrBuilder extends
 
   /**
    * <pre>
-   * Organization that owns the identity provider.
+   * Organization that owns the federation issuer.
    * Used as the authorization scope: caller must have can_create_identity_account
    * permission on this organization.
-   * Must match identity_provider_ref.org (when identity_provider_ref.org is non-empty).
+   * Must match federation_issuer_ref.org (when federation_issuer_ref.org is non-empty).
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -24,10 +24,10 @@ public interface CreateFederatedAccountInputOrBuilder extends
   java.lang.String getOrg();
   /**
    * <pre>
-   * Organization that owns the identity provider.
+   * Organization that owns the federation issuer.
    * Used as the authorization scope: caller must have can_create_identity_account
    * permission on this organization.
-   * Must match identity_provider_ref.org (when identity_provider_ref.org is non-empty).
+   * Must match federation_issuer_ref.org (when federation_issuer_ref.org is non-empty).
    * </pre>
    *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -38,40 +38,40 @@ public interface CreateFederatedAccountInputOrBuilder extends
 
   /**
    * <pre>
-   * Reference to the IdentityProvider that this federated account belongs to.
-   * The IdP must exist and belong to the specified org.
+   * Reference to the FederationIssuer that this federated account belongs to.
+   * The federation issuer must exist and belong to the specified org.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
-   * @return Whether the identityProviderRef field is set.
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
+   * @return Whether the federationIssuerRef field is set.
    */
-  boolean hasIdentityProviderRef();
+  boolean hasFederationIssuerRef();
   /**
    * <pre>
-   * Reference to the IdentityProvider that this federated account belongs to.
-   * The IdP must exist and belong to the specified org.
+   * Reference to the FederationIssuer that this federated account belongs to.
+   * The federation issuer must exist and belong to the specified org.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
-   * @return The identityProviderRef.
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
+   * @return The federationIssuerRef.
    */
-  ai.stigmer.commons.apiresource.ApiResourceReference getIdentityProviderRef();
+  ai.stigmer.commons.apiresource.ApiResourceReference getFederationIssuerRef();
   /**
    * <pre>
-   * Reference to the IdentityProvider that this federated account belongs to.
-   * The IdP must exist and belong to the specified org.
+   * Reference to the FederationIssuer that this federated account belongs to.
+   * The federation issuer must exist and belong to the specified org.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 2 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
    */
-  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getIdentityProviderRefOrBuilder();
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getFederationIssuerRefOrBuilder();
 
   /**
    * <pre>
    * External subject identifier from the platform's OIDC provider.
    * The raw OIDC sub claim (e.g., "google-oauth2|109876543210").
    * Stored as-is without any prefix transformation.
-   * Must match the sub claim in JWTs issued by this IdP for authentication to work.
+   * Must match the sub claim in JWTs this federation issuer accepts for authentication to work.
    * </pre>
    *
    * <code>string external_sub = 3 [json_name = "externalSub", (.buf.validate.field) = { ... }</code>
@@ -83,7 +83,7 @@ public interface CreateFederatedAccountInputOrBuilder extends
    * External subject identifier from the platform's OIDC provider.
    * The raw OIDC sub claim (e.g., "google-oauth2|109876543210").
    * Stored as-is without any prefix transformation.
-   * Must match the sub claim in JWTs issued by this IdP for authentication to work.
+   * Must match the sub claim in JWTs this federation issuer accepts for authentication to work.
    * </pre>
    *
    * <code>string external_sub = 3 [json_name = "externalSub", (.buf.validate.field) = { ... }</code>
