@@ -18,9 +18,15 @@
  * Known corners are cases from the start, not later additions:
  * every relation on a pair; distinct principals, not rows; the scope-tuple
  * exclusions verbatim; unknown-id delete a no-op; a held id refused. A
- * change record changes nothing about the row; what a store that keeps a
- * history writes with it is that store's own test, since the port lets an
- * implementation keep none.
+ * change record changes nothing about the row.
+ *
+ * The history. A driver says whether its store keeps one
+ * (`keepsHistory`), and the kit holds it to that: a store that keeps one
+ * reads back exactly one change for each record handed with a write that
+ * changed a row, in order, none for a duplicate, an unheld delete or a
+ * write handed no record, and pages exactly at both orders' edges; a
+ * store that keeps none answers no change after a recorded write. Every
+ * edition above open source serves the history, so its store keeps one.
  *
  * What the kit deliberately does not carry: open source's derived-id
  * refusal and its primary-key read, the cloud's column layout and SQLSTATE
@@ -53,7 +59,7 @@ import type {
   PortContractDeclaration,
   PortContractFixture,
 } from "../../store/port-contract.js";
-import type { PolicyChangeRecord } from "./change.js";
+import type { PolicyChange, PolicyChangeRecord } from "./change.js";
 import {
   IAM_POLICY_API_VERSION,
   IAM_POLICY_KIND,
@@ -61,6 +67,12 @@ import {
 } from "./constants.js";
 import { DuplicatePolicyError } from "./store.js";
 import type { IamPolicyStore } from "./store.js";
+
+/** What a driver tells the kit about its store. */
+export interface IamPolicyStoreContractOptions {
+  /** The store keeps a permission history and reads it back (`listChanges`). */
+  readonly keepsHistory: boolean;
+}
 
 /** The runner's fixture over this port — the name a driver's test and the barrel know it by. */
 export type IamPolicyStoreContractFixture = PortContractFixture<IamPolicyStore>;
@@ -487,6 +499,10 @@ const CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> = [
         ),
         "a kind read on a disconnected store must reject: a reconcile that read no rows would leave every one standing",
       );
+      await assert.rejects(
+        fixture.store.listChanges("acme", { limit: 10 }),
+        "a history read on a disconnected store must reject, never read as no changes",
+      );
     },
   ],
   [
@@ -525,9 +541,122 @@ const CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> = [
   ],
 ];
 
+function recordOf(
+  cause: PolicyChangeRecord["cause"],
+  organizationId: string,
+): PolicyChangeRecord {
+  return { actor: { id: BOB, callerClass: "user" }, cause, organizationId };
+}
+
+function sequencesOf(changes: ReadonlyArray<PolicyChange>): number[] {
+  return changes.map((change) => Number(change.sequence));
+}
+
+const FIXED_WIDTH_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
+/** The history cases of a store that keeps one. */
+const HISTORY_CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> = [
+  [
+    "with a history, each recorded write that changed a row reads back as one change, in order, and nothing else does",
+    async ({ store }) => {
+      const granted = policyRow(orgRole(ALICE, "admin", "acme"));
+      const structural = policyRow(
+        spec({ kind: "organization", id: "acme" }, "organization", {
+          kind: "agent",
+          id: AGENT,
+        }),
+      );
+      const elsewhere = policyRow(orgRole(ALICE, "member", "globex"));
+      await store.save(granted, recordOf("grant", "acme"));
+      await assert.rejects(
+        store.save(policyRow(orgRole(ALICE, "admin", "acme"), BOB), recordOf("grant", "acme")),
+        DuplicatePolicyError,
+      );
+      await store.save(structural);
+      await store.deleteById("iamp_00000000000000000000000000", recordOf("revoke", "acme"));
+      await store.deleteById(idOf(granted), recordOf("organization_access_revoked", "acme"));
+      await store.save(elsewhere, recordOf("grant", "globex"));
+
+      const changes = await store.listChanges("acme", { limit: 10 });
+      assert.deepEqual(
+        changes.map((change) => [Number(change.sequence), change.change, change.cause]),
+        [
+          [2, "revoked", "organization_access_revoked"],
+          [1, "granted", "grant"],
+        ],
+        "one change per recorded write that changed a row, numbered from 1, newest first",
+      );
+      for (const change of changes) {
+        assert.deepEqual(change.actor, { id: BOB, callerClass: "user" }, "the actor reads back as recorded");
+        assert.equal(change.organizationId, "acme", "the organization reads back as recorded");
+        assert.ok(
+          equals(IamPolicySchema, change.policy, granted),
+          "the change carries the row as granted, or as it stood when revoked",
+        );
+        assert.match(change.occurredAt, FIXED_WIDTH_UTC, "times are fixed-width UTC with milliseconds");
+      }
+      assert.ok(
+        (changes[1]?.occurredAt ?? "") <= (changes[0]?.occurredAt ?? ""),
+        "a change is never timed before the change numbered before it",
+      );
+      assert.deepEqual(
+        sequencesOf(await store.listChanges("globex", { limit: 10 })),
+        [1],
+        "each organization numbers its own changes from 1",
+      );
+    },
+  ],
+  [
+    "with a history, newest first below a number and oldest first above one page exactly at their edges",
+    async ({ store }) => {
+      for (const account of [ALICE, BOB, "ida_c", "ida_d", "ida_e"]) {
+        await store.save(policyRow(orgRole(account, "member", "acme")), recordOf("grant", "acme"));
+      }
+      const read = async (page: Parameters<IamPolicyStore["listChanges"]>[1]) =>
+        sequencesOf(await store.listChanges("acme", page));
+      assert.deepEqual(await read({ limit: 2 }), [5, 4], "newest first from the newest");
+      assert.deepEqual(await read({ limit: 2, before: 4n }), [3, 2], "newest first strictly below the bound");
+      assert.deepEqual(await read({ limit: 2, before: 2n }), [1], "a short last page");
+      assert.deepEqual(await read({ limit: 2, before: 1n }), [], "nothing below the first");
+      assert.deepEqual(await read({ limit: 2, after: 0n }), [1, 2], "oldest first from the first");
+      assert.deepEqual(await read({ limit: 2, after: 2n }), [3, 4], "oldest first strictly above the bound");
+      assert.deepEqual(await read({ limit: 2, after: 4n }), [5], "a short last page");
+      assert.deepEqual(await read({ limit: 2, after: 5n }), [], "nothing above the last");
+      assert.deepEqual(
+        await store.listChanges("nowhere", { limit: 2 }),
+        [],
+        "an organization with no changes answers an empty list",
+      );
+      await assert.rejects(
+        store.listChanges("acme", { limit: 0 }),
+        "a limit that is not a positive integer must reject",
+      );
+    },
+  ],
+];
+
+/** The case of a store that keeps no history. */
+const NO_HISTORY_CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> = [
+  [
+    "without a history, a recorded write leaves no change to read",
+    async ({ store }) => {
+      await store.save(policyRow(orgRole(ALICE, "admin", "acme")), recordOf("grant", "acme"));
+      assert.deepEqual(
+        await store.listChanges("acme", { limit: 10 }),
+        [],
+        "a store that keeps no history answers no changes",
+      );
+    },
+  ],
+];
+
 /** The port's cases over `makeFixture`, one fresh fixture per case. */
 export function iamPolicyStoreContract(
   makeFixture: () => Promise<IamPolicyStoreContractFixture>,
+  options: IamPolicyStoreContractOptions,
 ): ReadonlyArray<IamPolicyStoreContractCase> {
-  return portContractCases(CASES, makeFixture);
+  return portContractCases(
+    [...CASES, ...(options.keepsHistory ? HISTORY_CASES : NO_HISTORY_CASES)],
+    makeFixture,
+  );
 }

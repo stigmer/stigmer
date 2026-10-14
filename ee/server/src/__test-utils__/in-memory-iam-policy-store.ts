@@ -14,7 +14,10 @@
  * (extension/__tests__/enterprise-identity.built-in.test.ts), so it is held
  * to the contract every driver is held to rather than to a reading of it.
  * `disconnect` turns every read and write into the rejection an outage is,
- * the kit's fault arm.
+ * the kit's fault arm. It keeps a history, as every store composed above
+ * open source does: each change a write is handed with is numbered from 1
+ * per organization, in the order the writes were made, and read back by
+ * `listChanges`.
  *
  * Edition-neutral by what it imports (the library's barrel and the protos),
  * so the Enterprise identity unit's suites, which publish with it, can use
@@ -22,7 +25,12 @@
  */
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { DuplicatePolicyError } from "@stigmer/server";
-import type { IamPolicyStore } from "@stigmer/server";
+import type {
+  IamPolicyStore,
+  PolicyChange,
+  PolicyChangePage,
+  PolicyChangeRecord,
+} from "@stigmer/server";
 
 /** Principal kinds a scope tuple never names: a person or a team is a grantee, not a link. */
 const NON_STRUCTURAL_PRINCIPAL_KINDS: ReadonlySet<string> = new Set(["identity_account", "team"]);
@@ -31,6 +39,7 @@ const NON_STRUCTURAL_RELATIONS: ReadonlySet<string> = new Set(["owner", "creator
 
 export class InMemoryIamPolicyStore implements IamPolicyStore {
   private readonly rows = new Map<string, IamPolicy>();
+  private readonly history: PolicyChange[] = [];
   private down = false;
 
   /** Every later call rejects, as a store whose connection is gone does. */
@@ -43,18 +52,39 @@ export class InMemoryIamPolicyStore implements IamPolicyStore {
     return [...this.rows.values()];
   }
 
-  async save(policy: IamPolicy): Promise<void> {
+  async save(policy: IamPolicy, record?: PolicyChangeRecord): Promise<void> {
     this.guard();
     const id = policy.metadata?.id ?? "";
     if (this.rows.has(id)) {
       throw new DuplicatePolicyError(`IAM policy '${id}' already exists`);
     }
     this.rows.set(id, policy);
+    this.keep("granted", policy, record);
   }
 
-  async deleteById(id: string): Promise<void> {
+  async deleteById(id: string, record?: PolicyChangeRecord): Promise<void> {
     this.guard();
-    this.rows.delete(id);
+    const held = this.rows.get(id);
+    if (held !== undefined) {
+      this.rows.delete(id);
+      this.keep("revoked", held, record);
+    }
+  }
+
+  async listChanges(org: string, page: PolicyChangePage): Promise<ReadonlyArray<PolicyChange>> {
+    this.guard();
+    if (!Number.isSafeInteger(page.limit) || page.limit <= 0) {
+      throw new Error(`limit must be a positive integer, got ${page.limit}`);
+    }
+    const own = this.history.filter((change) => change.organizationId === org);
+    if ("after" in page) {
+      return own.filter((change) => change.sequence > page.after).slice(0, page.limit);
+    }
+    const before = page.before;
+    return own
+      .filter((change) => before === undefined || change.sequence < before)
+      .reverse()
+      .slice(0, page.limit);
   }
 
   async findById(id: string): Promise<IamPolicy | undefined> {
@@ -134,6 +164,23 @@ export class InMemoryIamPolicyStore implements IamPolicyStore {
   ): Promise<ReadonlyArray<IamPolicy>> {
     this.guard();
     return [...this.rows.values()].filter((row) => row.spec !== undefined && matches(row.spec));
+  }
+
+  private keep(change: PolicyChange["change"], policy: IamPolicy, record: PolicyChangeRecord | undefined): void {
+    if (record === undefined) {
+      return;
+    }
+    const org = record.organizationId;
+    const sequence = BigInt(this.history.filter((kept) => kept.organizationId === org).length) + 1n;
+    this.history.push({
+      sequence,
+      occurredAt: new Date().toISOString(),
+      change,
+      actor: record.actor,
+      cause: record.cause,
+      organizationId: org,
+      policy,
+    });
   }
 
   private guard(): void {

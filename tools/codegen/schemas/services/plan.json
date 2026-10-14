@@ -193,6 +193,11 @@
           "name": "child_orgs",
           "number": 7,
           "description": "Creating child organizations (spec.parent_org), the organizations an\n integrator runs for its own customers. A plan lists it together with\n included_child_orgs: the feature admits new child organizations, and\n the limit is how many the plan includes before the per-organization\n fee. Without it, existing children keep working and no new one is\n admitted. It tiers the Cloud runtime and is not an edition gate; a\n license never lists it."
+        },
+        {
+          "name": "access_history",
+          "number": 8,
+          "description": "Reading an organization's access history: who gave whom access to\n what, and when. Every Cloud organization's history is recorded; this\n feature tiers reading and exporting it inside Cloud plans, so an\n organization that gains it reads its whole past. It is not an edition\n gate: a licensed self-hosted server serves the history by its edition,\n and a license never lists it."
         }
       ]
     }

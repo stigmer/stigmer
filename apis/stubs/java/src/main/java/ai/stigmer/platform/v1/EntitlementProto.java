@@ -66,14 +66,15 @@ public final class EntitlementProto extends com.google.protobuf.GeneratedFile {
       "ctive_session_sandboxesB$\n\"_archived_wor" +
       "kspace_retention_daysB\027\n\025_included_agent" +
       "_hoursJ\004\010\005\020\006R\035max_active_workflow_sandbo" +
-      "xes*\231\001\n\007Feature\022\027\n\023feature_unspecified\020\000" +
+      "xes*\255\001\n\007Feature\022\027\n\023feature_unspecified\020\000" +
       "\022\023\n\017sso_enforcement\020\001\022\023\n\017platform_client" +
       "\020\002\022\025\n\021byo_provider_keys\020\003\022\014\n\010channels\020\004\022" +
-      "\013\n\007sharing\020\005\022\t\n\005teams\020\006\022\016\n\nchild_orgs\020\007B" +
-      "\215\001B\020EntitlementProtoP\001\242\002\003ASP\252\002\026Ai.Stigme" +
-      "r.Platform.V1\312\002\026Ai\\Stigmer\\Platform\\V1\342\002" +
-      "\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\352\002\031Ai" +
-      "::Stigmer::Platform::V1b\006proto3"
+      "\013\n\007sharing\020\005\022\t\n\005teams\020\006\022\016\n\nchild_orgs\020\007\022" +
+      "\022\n\016access_history\020\010B\215\001B\020EntitlementProto" +
+      "P\001\242\002\003ASP\252\002\026Ai.Stigmer.Platform.V1\312\002\026Ai\\S" +
+      "tigmer\\Platform\\V1\342\002\"Ai\\Stigmer\\Platform" +
+      "\\V1\\GPBMetadata\352\002\031Ai::Stigmer::Platform:" +
+      ":V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

@@ -93,6 +93,11 @@ func (i *IamPolicyClient) GetPrincipalsCount(ctx context.Context, input *iampoli
 	return resp, wrapErr(err)
 }
 
+func (i *IamPolicyClient) ListAccessHistory(ctx context.Context, input *iampolicyv1.ListAccessHistoryInput) (*iampolicyv1.AccessHistoryPage, error) {
+	resp, err := i.query.ListAccessHistory(ctx, input)
+	return resp, wrapErr(err)
+}
+
 // IamPolicyInput holds the fields for creating or applying a IamPolicy.
 type IamPolicyInput struct {
 	// Id is the resource's metadata.id: an apply that carries it changes

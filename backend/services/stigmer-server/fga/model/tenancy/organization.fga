@@ -170,6 +170,9 @@ type organization
     # ========================================
     define can_grant_access: admin or parent_admin
     define can_view_access: viewer or parent_admin
+    # The record of every grant and removal: read by those who manage
+    # access, not by everyone who can see who has it.
+    define can_view_access_history: admin or parent_admin
     
     # ========================================
     # BILLING PERMISSIONS

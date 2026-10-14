@@ -107,6 +107,12 @@ class IamPolicyClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def list_access_history(self, input: io_pb2.ListAccessHistoryInput) -> io_pb2.AccessHistoryPage:
+        try:
+            return self._query.listAccessHistory(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
 
 @dataclass
 class IamPolicyInput:

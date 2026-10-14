@@ -197,6 +197,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | IamPolicyQueryController.checkMyPermission | `resource.id (kind organization)`, `contextual_policies.principal.id (kind organization)`, `contextual_policies.resource.id (kind organization)` |
 | IamPolicyQueryController.getPrincipalResourceRoles | `principal.id (kind organization)`, `resource.id (kind organization)` |
 | IamPolicyQueryController.getPrincipalsCount | `org` |
+| IamPolicyQueryController.listAccessHistory | `org` |
 | IamPolicyQueryController.listAuthorizedPrincipalIds | `resource.id (kind organization)`, `contextual_policies.principal.id (kind organization)`, `contextual_policies.resource.id (kind organization)` |
 | IamPolicyQueryController.listAuthorizedResourceIds | `principal.id (kind organization)`, `contextual_policies.principal.id (kind organization)`, `contextual_policies.resource.id (kind organization)` |
 | IamPolicyQueryController.listResourceAccessByPrincipal | `resource.id (kind organization)` |

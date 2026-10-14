@@ -56,6 +56,11 @@ class IamPolicyQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.GetPrincipalsCountInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.PrincipalsCount.FromString,
                 _registered_method=True)
+        self.listAccessHistory = channel.unary_unary(
+                '/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/listAccessHistory',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.ListAccessHistoryInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.AccessHistoryPage.FromString,
+                _registered_method=True)
 
 
 class IamPolicyQueryControllerServicer(object):
@@ -208,6 +213,32 @@ class IamPolicyQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def listAccessHistory(self, request, context):
+        """List an organization's access history: every time someone was given
+        or lost access to the organization or to a resource in it, who did it,
+        why, and when.
+
+        Without after_sequence the entries come newest first, for people
+        reading what happened lately. With after_sequence they come oldest
+        first, starting just after that entry, for a tool that keeps its own
+        copy: it asks for what came after the last entry it holds. Each
+        organization numbers its entries from 1 in the order they happened,
+        with no gaps, so a reader that resumes after entry N never misses one.
+
+        Only the organization's owners and administrators may read it, and a
+        parent organization's administrators for a child. A parent's
+        administrators manage a child without reading what it holds, so they
+        read only the entries about the child organization itself (who holds
+        which role in it), never the child's resources or who was given access
+        to them. The Enterprise and
+        Cloud editions keep the history; an open-source server keeps none and
+        answers UNIMPLEMENTED. A host may refuse the read for its own reasons,
+        such as a plan that does not include it.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_IamPolicyQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -250,6 +281,11 @@ def add_IamPolicyQueryControllerServicer_to_server(servicer, server):
                     servicer.getPrincipalsCount,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.GetPrincipalsCountInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.PrincipalsCount.SerializeToString,
+            ),
+            'listAccessHistory': grpc.unary_unary_rpc_method_handler(
+                    servicer.listAccessHistory,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.ListAccessHistoryInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.AccessHistoryPage.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -469,6 +505,33 @@ class IamPolicyQueryController(object):
             '/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/getPrincipalsCount',
             ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.GetPrincipalsCountInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.PrincipalsCount.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def listAccessHistory(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/listAccessHistory',
+            ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.ListAccessHistoryInput.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.AccessHistoryPage.FromString,
             options,
             channel_credentials,
             insecure,

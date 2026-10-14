@@ -266,7 +266,7 @@ async function accountsOutsideOrganization(
  * string that names no kind (a legacy row) and every kind with no display
  * are simply absent, so the caller's fallback shape names them.
  */
-async function resolvePrincipalViews(
+export async function resolvePrincipalViews(
   rows: ReadonlyArray<IamPolicy>,
   displayResolver: PrincipalDisplayResolver,
   principalDisplay: PrincipalDisplay | undefined,
