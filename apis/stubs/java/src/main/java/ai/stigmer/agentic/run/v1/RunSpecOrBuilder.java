@@ -879,5 +879,58 @@ public interface RunSpecOrBuilder extends
    */
   boolean getReconcileFileReview();
 
+  /**
+   * <pre>
+   * Plugins this turn leaves out, by id, wherever the turn would take them
+   * from: its agent version, its conversation or one of its subagents. A
+   * plugin left out loads nothing into the turn: no skills, agents, hooks
+   * or MCP servers, and no values planned for it.
+   * </pre>
+   *
+   * <code>repeated string excluded_plugin_ids = 27 [json_name = "excludedPluginIds", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the excludedPluginIds.
+   */
+  java.util.List<java.lang.String>
+      getExcludedPluginIdsList();
+  /**
+   * <pre>
+   * Plugins this turn leaves out, by id, wherever the turn would take them
+   * from: its agent version, its conversation or one of its subagents. A
+   * plugin left out loads nothing into the turn: no skills, agents, hooks
+   * or MCP servers, and no values planned for it.
+   * </pre>
+   *
+   * <code>repeated string excluded_plugin_ids = 27 [json_name = "excludedPluginIds", (.buf.validate.field) = { ... }</code>
+   * @return The count of excludedPluginIds.
+   */
+  int getExcludedPluginIdsCount();
+  /**
+   * <pre>
+   * Plugins this turn leaves out, by id, wherever the turn would take them
+   * from: its agent version, its conversation or one of its subagents. A
+   * plugin left out loads nothing into the turn: no skills, agents, hooks
+   * or MCP servers, and no values planned for it.
+   * </pre>
+   *
+   * <code>repeated string excluded_plugin_ids = 27 [json_name = "excludedPluginIds", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The excludedPluginIds at the given index.
+   */
+  java.lang.String getExcludedPluginIds(int index);
+  /**
+   * <pre>
+   * Plugins this turn leaves out, by id, wherever the turn would take them
+   * from: its agent version, its conversation or one of its subagents. A
+   * plugin left out loads nothing into the turn: no skills, agents, hooks
+   * or MCP servers, and no values planned for it.
+   * </pre>
+   *
+   * <code>repeated string excluded_plugin_ids = 27 [json_name = "excludedPluginIds", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the excludedPluginIds at the given index.
+   */
+  com.google.protobuf.ByteString
+      getExcludedPluginIdsBytes(int index);
+
   ai.stigmer.agentic.run.v1.RunSpec.TargetCase getTargetCase();
 }

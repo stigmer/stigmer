@@ -198,6 +198,7 @@ class RunInput:
     conversation_catchup: ConversationCatchupInput | None = None
     plugin_eval_case: PluginEvalCaseContextInput | None = None
     reconcile_file_review: bool = False
+    excluded_plugin_ids: list[str] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.Run:
         spec = spec_pb2.RunSpec(
@@ -225,6 +226,8 @@ class RunInput:
             spec.conversation_catchup.CopyFrom(self.conversation_catchup._to_proto())
         if self.plugin_eval_case is not None:
             spec.plugin_eval_case.CopyFrom(self.plugin_eval_case._to_proto())
+        if self.excluded_plugin_ids:
+            spec.excluded_plugin_ids.extend(self.excluded_plugin_ids)
         if self.session_spec is not None:
             spec.session_spec.CopyFrom(self.session_spec._to_proto())
         if self.session_id:
