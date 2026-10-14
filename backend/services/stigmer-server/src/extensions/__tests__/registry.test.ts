@@ -142,6 +142,7 @@ describe("resolveExtensions — defaults", () => {
     expect(resolved.unitNames).toEqual([]);
     expect(resolved.edition).toBe(ServerEdition.oss);
     expect(resolved.orgLimit).toBeUndefined();
+    expect(resolved.accessHistoryRetentionDays).toBeUndefined();
     expect(resolved.requireAuthentication).toBeUndefined();
     expect(resolved.authorizer).toBeUndefined();
     expect(resolved.identityVerifiers).toEqual([]);
@@ -488,6 +489,55 @@ describe("resolveExtensions — loud-fail throws", () => {
     },
   );
 
+  it("resolves the one declared access-history window above open source", () => {
+    expect(
+      resolveExtensions([
+        { name: "edition", edition: ServerEdition.enterprise },
+        { name: "license", accessHistoryRetentionDays: 365 },
+      ]).accessHistoryRetentionDays,
+    ).toBe(365);
+  });
+
+  it("throws on a second access-history window, naming both units", () => {
+    expect(() =>
+      resolveExtensions([
+        { name: "edition", edition: ServerEdition.cloud },
+        { name: "first-window", accessHistoryRetentionDays: 30 },
+        { name: "second-window", accessHistoryRetentionDays: 90 },
+      ]),
+    ).toThrowError(
+      /extension 'second-window' declares the access history's retention, but 'first-window' already did/,
+    );
+  });
+
+  it.each([0, -1, 1.5, Number.NaN])(
+    "throws on an access-history window that is not a positive integer (%s)",
+    (accessHistoryRetentionDays) => {
+      expect(() =>
+        resolveExtensions([
+          { name: "edition", edition: ServerEdition.cloud },
+          { name: "odd", accessHistoryRetentionDays },
+        ]),
+      ).toThrowError(
+        /extension 'odd' declares accessHistoryRetentionDays .* — declare a positive integer or omit the field/,
+      );
+    },
+  );
+
+  it("throws on an access-history window declared where open source is served, whichever unit names the edition", () => {
+    for (const units of [
+      [{ name: "window", accessHistoryRetentionDays: 30 }],
+      [
+        { name: "window", accessHistoryRetentionDays: 30 },
+        { name: "edition", edition: ServerEdition.oss },
+      ],
+    ]) {
+      expect(() => resolveExtensions(units)).toThrowError(
+        "extension 'window' declares the access history's retention on an open-source composition — open source keeps no access history",
+      );
+    }
+  });
+
   it("throws on a declared-but-unspecified edition", () => {
     expect(() =>
       resolveExtensions([
@@ -817,7 +867,7 @@ describe("resolveExtensions — resource row readers", () => {
         name: "identity",
         drivers: {
           resourceRowReaders: new Map([
-            [ApiResourceKind.identity_provider, providers],
+            [ApiResourceKind.federation_issuer, providers],
           ]),
         },
       },
@@ -830,7 +880,7 @@ describe("resolveExtensions — resource row readers", () => {
     ]);
     expect(
       resolved.drivers.resourceRowReaders.get(
-        ApiResourceKind.identity_provider,
+        ApiResourceKind.federation_issuer,
       ),
     ).toBe(providers);
     expect(resolved.drivers.resourceRowReaders.get(ApiResourceKind.team)).toBe(

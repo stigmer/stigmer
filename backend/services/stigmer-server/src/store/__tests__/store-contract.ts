@@ -153,6 +153,12 @@ export interface StoreContractFixture {
    * so the write arms prove what was written without the Store's own read.
    */
   permissionHistory(): Promise<PermissionHistoryRow[]>;
+  /**
+   * Re-stamps one iam_policy_history entry's time, written raw: the only
+   * way a test holds entries older than now, and entries that share a
+   * millisecond, without waiting on the clock.
+   */
+  stampPermissionHistory(org: string, sequence: number, occurredAt: string): Promise<void>;
   cleanup(): Promise<void>;
 }
 
@@ -2904,6 +2910,107 @@ export function describeStoreContract(
           `permission history limit must be a positive integer, got ${limit}`,
         );
       }
+    });
+
+    describe("retention's removal", () => {
+      async function grantAll(writes: ReadonlyArray<readonly [string, string]>): Promise<void> {
+        for (const [id, org] of writes) {
+          await fx.store.insertResource(POLICY, id, IamPolicySchema, policy(id, "ida_ana", org), change(org));
+        }
+      }
+
+      const kept = async (): Promise<Array<[string, number]>> =>
+        (await fx.permissionHistory()).map((entry) => [entry.org, entry.sequence]);
+
+      it("removes only the entries recorded before the cutoff, in every organization, and keeps the heads", async () => {
+        await grantAll([
+          ["iamp_a1", "acme"],
+          ["iamp_b1", "beta"],
+          ["iamp_a2", "acme"],
+          ["iamp_b2", "beta"],
+          ["iamp_a3", "acme"],
+        ]);
+        await fx.stampPermissionHistory("acme", 1, "2026-01-01T00:00:00.000Z");
+        await fx.stampPermissionHistory("beta", 1, "2026-01-01T00:00:00.500Z");
+        await fx.stampPermissionHistory("acme", 2, "2026-01-02T00:00:00.000Z");
+        await fx.stampPermissionHistory("beta", 2, "2026-01-03T00:00:00.000Z");
+
+        await expect(
+          fx.store.prunePermissionHistory(new Date("2026-01-03T00:00:00.000Z"), 100),
+        ).resolves.toBe(3);
+
+        expect(await kept()).toEqual([
+          ["acme", 3],
+          ["beta", 2],
+        ]);
+        const [oldest] = await fx.store.listPermissionHistory("acme", { limit: 1, after: 0n });
+        expect(oldest?.sequence).toBe(3n);
+        await grantAll([
+          ["iamp_a4", "acme"],
+          ["iamp_b3", "beta"],
+        ]);
+        expect(await kept()).toEqual([
+          ["acme", 3],
+          ["acme", 4],
+          ["beta", 2],
+          ["beta", 3],
+        ]);
+      });
+
+      it("removes oldest first a batch at a time, entries sharing a millisecond in number order, each organization a prefix", async () => {
+        await grantAll([
+          ["iamp_a1", "acme"],
+          ["iamp_a2", "acme"],
+          ["iamp_b1", "beta"],
+          ["iamp_a3", "acme"],
+          ["iamp_a4", "acme"],
+        ]);
+        const instant = "2026-01-01T00:00:00.000Z";
+        for (const [org, sequence] of [
+          ["acme", 1],
+          ["acme", 2],
+          ["beta", 1],
+          ["acme", 3],
+        ] as const) {
+          await fx.stampPermissionHistory(org, sequence, instant);
+        }
+        await fx.stampPermissionHistory("acme", 4, "2026-01-01T00:00:00.001Z");
+        const cutoff = new Date("2026-01-01T00:00:00.002Z");
+
+        await expect(fx.store.prunePermissionHistory(cutoff, 2)).resolves.toBe(2);
+        expect(await kept()).toEqual([
+          ["acme", 3],
+          ["acme", 4],
+          ["beta", 1],
+        ]);
+        await expect(fx.store.prunePermissionHistory(cutoff, 2)).resolves.toBe(2);
+        expect(await kept()).toEqual([["acme", 4]]);
+        await expect(fx.store.prunePermissionHistory(cutoff, 2)).resolves.toBe(1);
+        await expect(fx.store.prunePermissionHistory(cutoff, 2)).resolves.toBe(0);
+        expect(await kept()).toEqual([]);
+        // Every entry removed, the heads still say where each numbering stands.
+        await expect(fx.store.permissionHistoryHead("acme")).resolves.toBe(4n);
+        await expect(fx.store.permissionHistoryHead("beta")).resolves.toBe(1n);
+        await expect(fx.store.permissionHistoryHead("gamma")).resolves.toBe(0n);
+
+        await grantAll([["iamp_a5", "acme"]]);
+        expect(await kept()).toEqual([["acme", 5]]);
+      });
+
+      it("removes nothing from a history with nothing older, and refuses a limit that is not a positive integer", async () => {
+        await expect(fx.store.prunePermissionHistory(new Date(), 10)).resolves.toBe(0);
+        await grantAll([["iamp_a1", "acme"]]);
+        await expect(
+          fx.store.prunePermissionHistory(new Date("2000-01-01T00:00:00.000Z"), 10),
+        ).resolves.toBe(0);
+        expect(await kept()).toEqual([["acme", 1]]);
+        for (const limit of [0, -1, 1.5]) {
+          await expect(fx.store.prunePermissionHistory(new Date(), limit)).rejects.toThrow(
+            `permission history limit must be a positive integer, got ${limit}`,
+          );
+        }
+        expect(await kept()).toEqual([["acme", 1]]);
+      });
     });
 
     it("rolls the row back when the table refuses its entry", async () => {

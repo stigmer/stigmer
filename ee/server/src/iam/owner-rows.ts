@@ -3,7 +3,7 @@
  * loses any direct `owner` policy row it still holds. Four kinds, in the
  * model `@stigmer/server` ships, are managed by their organization's
  * current admins alone (`owner: admin from organization`, kind_meta
- * `owner_type` NONE): identity providers and invitations since
+ * `owner_type` NONE): federation issuers and invitations since
  * stigmer/stigmer#1314, the Enterprise domain's to reconcile
  * (extension/enterprise-identity.ts), and OAuth apps and channel apps
  * since stigmer/stigmer#1329 and stigmer/stigmer#1426, the host's.
@@ -68,7 +68,7 @@ export interface OwnerRowDeps {
 /** A kind the reconcile covers, and how its log lines name it. */
 export interface OwnerRowKind {
   readonly kind: ApiResourceKind;
-  /** The log lines' subject, `identity-provider owner row revoked; ...`. */
+  /** The log lines' subject, `federation-issuer owner row revoked; ...`. */
   readonly key: string;
   /** The log field carrying the resource id. */
   readonly idField: string;

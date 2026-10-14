@@ -68,7 +68,7 @@ Every resource type has a typed client exposed as a public final field on
 | `apiKey`                 | ApiKey             |
 | `iamPolicy`              | IamPolicy          |
 | `identityAccount`        | IdentityAccount    |
-| `identityProvider`       | IdentityProvider   |
+| `federationIssuer`       | FederationIssuer   |
 | `organization`           | Organization       |
 | `plugin`                 | Plugin             |
 | `session`                | Session            |

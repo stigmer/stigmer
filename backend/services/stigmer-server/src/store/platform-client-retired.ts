@@ -8,7 +8,7 @@
  * which grant names one. It follows workflow-instance-retired.ts.
  *
  * What leaves. Every platform client row leaves every table that keys a
- * row by kind (run-rename.ts `RUN_KIND_TABLES`): the live rows, their
+ * row by kind (kind-rename.ts `KIND_TABLES`): the live rows, their
  * history, their list keys and the names they held. A client's settings
  * are not copied into its organization's embedding settings: an
  * organization could hold several clients with different settings, and

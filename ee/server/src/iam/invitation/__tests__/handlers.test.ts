@@ -1,6 +1,6 @@
 /**
  * The Invitation RPCs over a router transport with the serving chain's
- * identity stamp (the IdentityProvider and Team suites' idiom), an
+ * identity stamp (the FederationIssuer and Team suites' idiom), an
  * in-memory store, a recording authorizer, and recording lifecycle, list
  * scope, grant-path and organization fakes. A host's composed suites prove
  * the same lane over the real model; this one pins the lane's own

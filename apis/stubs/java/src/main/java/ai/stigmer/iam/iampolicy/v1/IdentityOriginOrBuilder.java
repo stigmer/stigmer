@@ -32,7 +32,7 @@ public interface IdentityOriginOrBuilder extends
   /**
    * <pre>
    * Human-readable label for the identity source: "Stigmer" for direct
-   * accounts, or the owning IdentityProvider's display name for federated
+   * accounts, or the owning FederationIssuer's display name for federated
    * accounts.
    * </pre>
    *
@@ -43,7 +43,7 @@ public interface IdentityOriginOrBuilder extends
   /**
    * <pre>
    * Human-readable label for the identity source: "Stigmer" for direct
-   * accounts, or the owning IdentityProvider's display name for federated
+   * accounts, or the owning FederationIssuer's display name for federated
    * accounts.
    * </pre>
    *

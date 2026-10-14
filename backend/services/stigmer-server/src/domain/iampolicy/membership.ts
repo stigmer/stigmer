@@ -34,7 +34,7 @@
  *     5. `member` — everyone else, in the open-source edition only.
  *   Above it (a composition whose edition serves many organizations under
  *   the built-in posture) arm 5 answers nothing: a person joins an
- *   organization by invitation, an identity provider's sign-in role or an
+ *   organization by invitation, a federation issuer's sign-in role or an
  *   administrator's grant, never by signing in, or everyone who signs in
  *   through the operator's issuer would become a member of every
  *   organization the server holds. The edition is the composition's one declaration of
@@ -267,7 +267,7 @@ export function isPersonStamp(stamp: string): boolean {
  * would become a member of every organization (and the operator-email arm
  * would read an email the product asserted). Nor does a
  * federated account, for the same reason at every arm: its subject and its
- * email are the ones an organization's identity provider asserted, so the
+ * email are the ones an organization's federation issuer asserted, so the
  * alias rule would read a subject the provider chose as a founder's stamp
  * (`owner`), the operator-email arm an email it chose (`admin`), and arm 5
  * would make it a member of every organization. A federated person's roles

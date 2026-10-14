@@ -149,6 +149,18 @@ export interface ServerExtension {
    */
   readonly orgLimit?: number;
   /**
+   * How many days the access history is kept (single-declaration point,
+   * the organization limit's shape). Exactly one unit may declare it, a
+   * positive integer; undeclared compositions keep every entry. When one
+   * is declared the library's retention runner removes, every hour, the
+   * entries older than the window from the composed policy store
+   * (domain/iampolicy/history-retention.ts), and every page of the history
+   * says how long it is kept. Declared on an open-source composition it
+   * refuses the boot: open source keeps no history. The library reads no
+   * setting for it; each host reads its own and its unit declares it.
+   */
+  readonly accessHistoryRetentionDays?: number;
+  /**
    * The require-authentication admission posture (single-declaration
    * point, the edition's shape). Declaring it turns
    * the serving chain's tokenless-refusal arm on INDEPENDENTLY of the OSS
@@ -238,6 +250,8 @@ export interface ResolvedExtensions {
   readonly edition: ServerEdition;
   /** The declared organization limit, or undefined when no unit declares one (any number). */
   readonly orgLimit: number | undefined;
+  /** The declared access-history window in days, or undefined when no unit declares one (kept for good). */
+  readonly accessHistoryRetentionDays: number | undefined;
   /**
    * The unit-declared require-authentication posture, or undefined when
    * no unit declares it (the OSS trusted-local posture — unless the OIDC
@@ -439,6 +453,8 @@ export function resolveExtensions(
   let editionDeclaredBy: string | undefined;
   let orgLimit: number | undefined;
   let orgLimitDeclaredBy: string | undefined;
+  let accessHistoryRetentionDays: number | undefined;
+  let accessHistoryRetentionDeclaredBy: string | undefined;
   let requireAuthenticationDeclaredBy: string | undefined;
   let authorizer: Authorizer | undefined;
   let authorizerDeclaredBy: string | undefined;
@@ -546,6 +562,24 @@ export function resolveExtensions(
       }
       orgLimit = unit.orgLimit;
       orgLimitDeclaredBy = unit.name;
+    }
+
+    if (unit.accessHistoryRetentionDays !== undefined) {
+      if (
+        !Number.isSafeInteger(unit.accessHistoryRetentionDays) ||
+        unit.accessHistoryRetentionDays < 1
+      ) {
+        throw new Error(
+          `extension '${unit.name}' declares accessHistoryRetentionDays ${unit.accessHistoryRetentionDays} — declare a positive integer or omit the field`,
+        );
+      }
+      if (accessHistoryRetentionDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' declares the access history's retention, but '${accessHistoryRetentionDeclaredBy}' already did — exactly one extension may declare it`,
+        );
+      }
+      accessHistoryRetentionDays = unit.accessHistoryRetentionDays;
+      accessHistoryRetentionDeclaredBy = unit.name;
     }
 
     if (unit.requireAuthentication !== undefined) {
@@ -965,10 +999,20 @@ export function resolveExtensions(
     }
   }
 
+  if (
+    accessHistoryRetentionDeclaredBy !== undefined &&
+    (edition ?? ServerEdition.oss) === ServerEdition.oss
+  ) {
+    throw new Error(
+      `extension '${accessHistoryRetentionDeclaredBy}' declares the access history's retention on an open-source composition — open source keeps no access history`,
+    );
+  }
+
   return {
     unitNames,
     edition: edition ?? ServerEdition.oss,
     orgLimit,
+    accessHistoryRetentionDays,
     requireAuthentication:
       requireAuthenticationDeclaredBy !== undefined
         ? { declaredBy: requireAuthenticationDeclaredBy }

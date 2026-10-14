@@ -11,9 +11,9 @@ from ._agentshare import AgentShareClient
 from ._apikey import ApiKeyClient
 from ._channelapp import ChannelAppClient
 from ._evaluator import EvaluatorClient
+from ._federationissuer import FederationIssuerClient
 from ._iampolicy import IamPolicyClient
 from ._identityaccount import IdentityAccountClient
-from ._identityprovider import IdentityProviderClient
 from ._invitation import InvitationClient
 from ._license import LicenseClient
 from ._memory import MemoryClient
@@ -44,9 +44,9 @@ class GeneratedClient:
         self.api_keys = ApiKeyClient(channel)
         self.channelapps = ChannelAppClient(channel)
         self.evaluators = EvaluatorClient(channel)
+        self.federation_issuers = FederationIssuerClient(channel)
         self.iam_policies = IamPolicyClient(channel)
         self.identity_accounts = IdentityAccountClient(channel)
-        self.identity_providers = IdentityProviderClient(channel)
         self.invitations = InvitationClient(channel)
         self.licenses = LicenseClient(channel)
         self.memorys = MemoryClient(channel)

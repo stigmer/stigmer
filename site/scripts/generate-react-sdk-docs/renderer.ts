@@ -57,7 +57,7 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
       "team",
       "iam-policy",
       "access",
-      "identity-provider",
+      "federation-issuer",
       "identity-account",
       "invitation",
       "oauth-app",

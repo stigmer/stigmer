@@ -36,8 +36,8 @@ import { newJwksKeyCache } from "../../../verifiers/jwks.js";
 import type { IdentityAccountService, NewAccountRequest } from "../../account/port.js";
 import type { OrganizationLookup } from "../../organization-links.js";
 import type { IamPolicyGrantPathClient } from "../../policy/grant-path-client.js";
-import { newProviderRemoval } from "../../provider/removal.js";
-import { InMemoryProviderStore, storedProvider } from "../../provider/__tests__/in-memory-provider-store.js";
+import { newIssuerRemoval } from "../../issuer/removal.js";
+import { InMemoryIssuerStore, storedIssuer } from "../../issuer/__tests__/in-memory-issuer-store.js";
 import { newStoreBackedFederatedVerifier } from "../verifier.js";
 import { inMemorySignInGrants } from "./in-memory-sign-in-grants.js";
 import { inMemoryNames } from "../../../__test-utils__/in-memory-names.js";
@@ -46,10 +46,10 @@ import type { InMemoryNames } from "../../../__test-utils__/in-memory-names.js";
 const idpKey = generateKeyPairSync("rsa", { modulusLength: 2048 });
 const ISSUER = "https://sso.race.test";
 const AUDIENCE = "https://api.race.test/stigmer";
-const PROVIDER_ID = "idp_race";
+const ISSUER_ID = "fis_race";
 const DELETER = "ida_deleter";
 
-/** A compact RS256 JWT from the provider's identity provider. */
+/** A compact RS256 JWT from the provider's federation issuer. */
 function signed(sub: string): string {
   const head = Buffer.from(JSON.stringify({ alg: "RS256", kid: "k1" })).toString("base64url");
   const body = Buffer.from(
@@ -88,7 +88,7 @@ interface Holds {
  * by principal and resource, and the first-sign-in ledger.
  */
 function world(holds: Holds = {}) {
-  const providers = new InMemoryProviderStore();
+  const providers = new InMemoryIssuerStore();
   const names = inMemoryNames();
   const accounts = new Map<string, { readonly key: string; readonly account: IdentityAccount }>();
   const grants: IamPolicySpec[] = [];
@@ -107,9 +107,9 @@ function world(holds: Holds = {}) {
 
   const accountService = {
     store: {
-      findByProviderAndIdpId: (providerId: string, sub: string) =>
+      findByIssuerAndIdpId: (providerId: string, sub: string) =>
         Promise.resolve(byKey(`${providerId}:${sub}`)),
-      findByProvider: async (providerId: string) => {
+      findByIssuer: async (providerId: string) => {
         const listed = [...accounts.values()]
           .filter((held) => held.key.startsWith(`${providerId}:`))
           .map((held) => held.account);
@@ -127,7 +127,7 @@ function world(holds: Holds = {}) {
       await holds.beforeCreate;
       minted += 1;
       const id = `ida_signed_in_${minted}`;
-      const ref = request.spec.identityProviderRef;
+      const ref = request.spec.federationIssuerRef;
       const account = create(IdentityAccountSchema, { metadata: { id } });
       accounts.set(id, { key: `${ref?.id ?? ""}:${request.spec.idpId}`, account });
       return account;
@@ -187,7 +187,7 @@ function world(holds: Holds = {}) {
     reservedIssuers: [],
     organizations,
   });
-  const removal = newProviderRemoval({
+  const removal = newIssuerRemoval({
     providers,
     names,
     accounts: accountService,
@@ -200,9 +200,9 @@ function world(holds: Holds = {}) {
 }
 
 /** The provider under delete: it creates accounts on sign-in and grants viewer. */
-async function seedProvider(providers: InMemoryProviderStore, names: InMemoryNames): Promise<void> {
-  const provider = storedProvider({
-    id: PROVIDER_ID,
+async function seedIssuer(providers: InMemoryIssuerStore, names: InMemoryNames): Promise<void> {
+  const provider = storedIssuer({
+    id: ISSUER_ID,
     org: "acme",
     slug: "acme-sso",
     issuers: [ISSUER],
@@ -216,8 +216,8 @@ async function seedProvider(providers: InMemoryProviderStore, names: InMemoryNam
   }
   await providers.insert(provider);
   await names.resourceNames.claim(
-    { kind: "identity_provider", org: "acme", name: "acme-sso" },
-    PROVIDER_ID,
+    { kind: "federation_issuer", org: "acme", name: "acme-sso" },
+    ISSUER_ID,
     "2026-09-10T00:00:00.000Z",
   );
 }
@@ -233,7 +233,7 @@ describe("a provider's delete racing a first sign-in through it", () => {
       onListed: listed.resolve,
       afterListing: signInSettled.promise,
     });
-    await seedProvider(w.providers, w.names);
+    await seedIssuer(w.providers, w.names);
 
     const signIn = w.verifier.verify(signed("okta|late")).then(
       () => undefined,
@@ -241,27 +241,27 @@ describe("a provider's delete racing a first sign-in through it", () => {
     );
     void signIn.finally(signInSettled.resolve);
     await createReached.promise;
-    const deleted = w.removal.remove(PROVIDER_ID, DELETER);
+    const deleted = w.removal.remove(ISSUER_ID, DELETER);
 
     const refused = await signIn;
     await deleted;
     expect(refused).toBeInstanceOf(ConnectError);
     expect((refused as ConnectError).code).toBe(Code.Unauthenticated);
-    expect([...w.accounts.keys()], "no account the identity provider made survives").toEqual([]);
+    expect([...w.accounts.keys()], "no account the federation issuer made survives").toEqual([]);
     expect(w.grants, "and no role").toEqual([]);
     expect(w.signInGrants.rows.size, "and no first-sign-in record").toBe(0);
-    expect(await w.providers.findById(PROVIDER_ID)).toBeUndefined();
+    expect(await w.providers.findById(ISSUER_ID)).toBeUndefined();
   });
 
   it("removes, with its grant, the account of a sign-in that finished before the delete began", async () => {
     const w = world();
-    await seedProvider(w.providers, w.names);
+    await seedIssuer(w.providers, w.names);
 
     const identity = await w.verifier.verify(signed("okta|early"));
     expect(identity?.identityId).toBe("ida_signed_in_1");
     expect(w.grants.map((grant) => [grant.relation, grant.principal?.id])).toEqual([["viewer", "ida_signed_in_1"]]);
 
-    await w.removal.remove(PROVIDER_ID, DELETER);
+    await w.removal.remove(ISSUER_ID, DELETER);
     expect([...w.accounts.keys()]).toEqual([]);
     expect(w.grants).toEqual([]);
   });

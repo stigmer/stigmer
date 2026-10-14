@@ -1,6 +1,6 @@
 /**
  * OrgProfilePanel: the profile save keeps every spec field it does not
- * edit, the identity-provider summary's empty state follows the caller's
+ * edit, the federation-issuer summary's empty state follows the caller's
  * rights, and the slug is renamable by owners only, and never on a server
  * that holds one organization. A rename lands once: the Rename action stays
  * disabled until the panel shows the renamed slug. A save or a rename inside
@@ -16,9 +16,9 @@ import {
 } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import {
-  IdentityProviderSchema,
-  type IdentityProvider,
-} from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+  FederationIssuerSchema,
+  type FederationIssuer,
+} from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
@@ -32,9 +32,9 @@ import { OrgProfileSection } from "../../settings/OrgProfileSection";
  * visibly `spec.preferences.standing_context` set via the CLI or the
  * preferences page — keeps its stored value without being sent back.
  *
- * Also pins the identity-provider summary's empty state on the editions
- * that serve identity providers: the list holds only the providers the
- * caller may view, so a caller the server refuses `can_create_idp` is told
+ * Also pins the federation-issuer summary's empty state on the editions
+ * that serve federation issuers: the list holds only the providers the
+ * caller may view, so a caller the server refuses `can_create_federation_issuer` is told
  * the organization's admins manage them, and is not invited to set one up.
  * A listed provider that creates accounts on sign-in carries a JIT badge.
  */
@@ -69,8 +69,8 @@ function createMockStigmer(overrides?: {
   } as never;
 }
 
-// Deployment mode "local" keeps the IdentityProvidersSummary sub-panel
-// inert (identity_provider is cloud-only), so no extra client stubs are
+// Deployment mode "local" keeps the FederationIssuersSummary sub-panel
+// inert (federation_issuer is cloud-only), so no extra client stubs are
 // needed — the suite tests the form, not the summary.
 function renderPanel(client: unknown) {
   return render(
@@ -130,17 +130,17 @@ describe("OrgProfilePanel save payload", () => {
   });
 });
 
-describe("OrgProfilePanel identity-provider summary", () => {
+describe("OrgProfilePanel federation-issuer summary", () => {
   function renderCloudPanel(
     isAuthorized: boolean,
-    providers: IdentityProvider[] = [],
+    providers: FederationIssuer[] = [],
   ) {
     const checkMyPermission = vi.fn(async (_input: CheckMyPermissionInput) => ({
       isAuthorized,
     }));
     const client = {
       organization: { get: vi.fn(async () => ORG), update: vi.fn(async () => ORG) },
-      identityProvider: { list: vi.fn(async () => ({ entries: providers, nextPageToken: "" })) },
+      federationIssuer: { list: vi.fn(async () => ({ entries: providers, nextPageToken: "" })) },
       iamPolicy: { checkMyPermission },
       platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
     };
@@ -154,10 +154,10 @@ describe("OrgProfilePanel identity-provider summary", () => {
     return checkMyPermission;
   }
 
-  it("names the organization's admins to a caller refused can_create_idp", async () => {
+  it("names the organization's admins to a caller refused can_create_federation_issuer", async () => {
     const checkMyPermission = renderCloudPanel(false);
     expect(
-      await screen.findByText("Identity providers are managed by your organization's admins."),
+      await screen.findByText("Federation issuers are managed by your organization's admins."),
     ).toBeTruthy();
     expect(screen.queryByText("Set up federated authentication")).toBeNull();
     const asked = checkMyPermission.mock.calls.map(([input]) => [
@@ -165,18 +165,18 @@ describe("OrgProfilePanel identity-provider summary", () => {
       input.resource?.id,
       input.relation,
     ]);
-    expect(asked).toContainEqual(["organization", ACME_ID, "can_create_idp"]);
+    expect(asked).toContainEqual(["organization", ACME_ID, "can_create_federation_issuer"]);
   });
 
   it("badges a provider that creates accounts JIT", async () => {
-    const idp = (id: string, displayName: string, spec: object) =>
-      create(IdentityProviderSchema, {
+    const issuer = (id: string, displayName: string, spec: object) =>
+      create(FederationIssuerSchema, {
         metadata: { id, name: displayName, org: ACME_ID },
         spec: { displayName, ...spec },
       });
     renderCloudPanel(true, [
-      idp("idp-2", "Platform", { createAccountsOnSignIn: true }),
-      idp("idp-3", "Manual", {}),
+      issuer("issuer-2", "Platform", { createAccountsOnSignIn: true }),
+      issuer("issuer-3", "Manual", {}),
     ]);
 
     const row = async (name: string) =>
@@ -185,11 +185,11 @@ describe("OrgProfilePanel identity-provider summary", () => {
     expect(await row("Manual")).toBe("Manual");
   });
 
-  it("invites setting one up when the caller may create identity providers", async () => {
+  it("invites setting one up when the caller may create federation issuers", async () => {
     renderCloudPanel(true);
     expect(await screen.findByText("Set up federated authentication")).toBeTruthy();
     expect(
-      screen.queryByText("Identity providers are managed by your organization's admins."),
+      screen.queryByText("Federation issuers are managed by your organization's admins."),
     ).toBeNull();
   });
 });

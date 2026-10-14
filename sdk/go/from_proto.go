@@ -23,9 +23,9 @@ import (
 	planv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/plan/v1"
 	subscriptionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/subscription/v1"
 	apikeyv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/apikey/v1"
+	federationissuerv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/federationissuer/v1"
 	iampolicyv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/iampolicy/v1"
 	identityaccountv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityaccount/v1"
-	identityproviderv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityprovider/v1"
 	invitationv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/invitation/v1"
 	oauthappv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/oauthapp/v1"
 	teamv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/team/v1"
@@ -67,6 +67,11 @@ func EvaluatorInputFromProto(p *evaluatorv1.Evaluator) *EvaluatorInput {
 	return gen.EvaluatorInputFromProto(p)
 }
 
+// FederationIssuerInputFromProto creates a FederationIssuerInput from a proto FederationIssuer resource.
+func FederationIssuerInputFromProto(p *federationissuerv1.FederationIssuer) *FederationIssuerInput {
+	return gen.FederationIssuerInputFromProto(p)
+}
+
 // IamPolicyInputFromProto creates a IamPolicyInput from a proto IamPolicy resource.
 func IamPolicyInputFromProto(p *iampolicyv1.IamPolicy) *IamPolicyInput {
 	return gen.IamPolicyInputFromProto(p)
@@ -75,11 +80,6 @@ func IamPolicyInputFromProto(p *iampolicyv1.IamPolicy) *IamPolicyInput {
 // IdentityAccountInputFromProto creates a IdentityAccountInput from a proto IdentityAccount resource.
 func IdentityAccountInputFromProto(p *identityaccountv1.IdentityAccount) *IdentityAccountInput {
 	return gen.IdentityAccountInputFromProto(p)
-}
-
-// IdentityProviderInputFromProto creates a IdentityProviderInput from a proto IdentityProvider resource.
-func IdentityProviderInputFromProto(p *identityproviderv1.IdentityProvider) *IdentityProviderInput {
-	return gen.IdentityProviderInputFromProto(p)
 }
 
 // InvitationInputFromProto creates a InvitationInput from a proto Invitation resource.

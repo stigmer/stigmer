@@ -220,7 +220,7 @@
           }
         },
         "source_info": {
-          "file": "iam/identity_provider.fga"
+          "file": "iam/federation_issuer.fga"
         }
       },
       "relations": {
@@ -293,7 +293,7 @@
           }
         }
       },
-      "type": "identity_provider"
+      "type": "federation_issuer"
     },
     {
       "metadata": {
@@ -817,8 +817,8 @@
           "can_create_agent_channel": {},
           "can_create_agent_share": {},
           "can_create_channel_app": {},
+          "can_create_federation_issuer": {},
           "can_create_identity_account": {},
-          "can_create_idp": {},
           "can_create_oauth_app": {},
           "can_create_plugin": {},
           "can_create_run_in": {},
@@ -960,12 +960,12 @@
             "relation": "admin"
           }
         },
-        "can_create_identity_account": {
+        "can_create_federation_issuer": {
           "computedUserset": {
             "relation": "admin"
           }
         },
-        "can_create_idp": {
+        "can_create_identity_account": {
           "computedUserset": {
             "relation": "admin"
           }

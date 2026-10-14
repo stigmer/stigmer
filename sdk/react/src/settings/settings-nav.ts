@@ -59,7 +59,7 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
   {
     label: "Organization",
     description:
-      "Manage members, teams, organization identity, and identity providers.",
+      "Manage members, teams, organization identity, and federation issuers.",
     items: [
       { href: "/settings/org-profile", label: "Org Profile", icon: Building2 },
       {
@@ -76,8 +76,8 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
       { href: "/settings/teams", label: "Teams", icon: UsersRound },
       { href: "/settings/invitations", label: "Invitations", icon: Link },
       {
-        href: "/settings/identity-providers",
-        label: "Identity Providers",
+        href: "/settings/federation-issuers",
+        label: "Federation Issuers",
         icon: ShieldCheck,
       },
     ],
@@ -126,7 +126,7 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
  * names the organization: the first group is "General" rather than
  * "Organization", and the organization's profile page (its name, slug and
  * logo) is left out. Its preferences and members stay; Teams, Invitations
- * and Identity Providers keep the edition gates their own pages apply.
+ * and Federation Issuers keep the edition gates their own pages apply.
  * {@link useSettingsNavGroups} picks between the two.
  */
 export const SINGLE_ORG_SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] =

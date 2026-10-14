@@ -2,7 +2,7 @@
 title: Identity
 description:
   How Stigmer identifies users and services. Learn the five account types, how
-  Identity Providers and PlatformClients establish trust, and how your
+  Federation Issuers and PlatformClients establish trust, and how your
   platform's users access Stigmer.
 ---
 
@@ -34,15 +34,17 @@ person who set it up leaves. Use one for anything that calls Stigmer unattended,
 never a person's API key. Machine accounts are Stigmer's own and have no
 interactive login.
 
-## Identity Providers
+## Federation Issuers
 
-An Identity Provider represents a **trust relationship** between an external
-platform and Stigmer. It is not a user database---it tells Stigmer how to
-validate tokens that a platform's users present.
+Your identity provider (Auth0, Okta, …) is registered as a Federation Issuer: an
+**outside issuer whose tokens Stigmer accepts** for its own users. It is not a
+user database---it tells Stigmer how to validate tokens that a platform's users
+present. One Federation Issuer is one issuer and its signing keys, so a platform
+with a production and a staging tenant registers one of each.
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
-kind: IdentityProvider
+kind: FederationIssuer
 metadata:
   name: Acme Cloud
   slug: acme-cloud
@@ -63,19 +65,19 @@ Key fields:
 | Field               | Purpose                                                                |
 | ------------------- | ---------------------------------------------------------------------- |
 | `jwks_uri`          | JWKS endpoint where Stigmer fetches public keys for token verification |
-| `allowed_issuers`   | JWT `iss` values Stigmer accepts from this provider                    |
+| `allowed_issuers`   | JWT `iss` values Stigmer accepts from this issuer                      |
 | `expected_audience` | JWT `aud` value Stigmer expects                                        |
 
 ## How federated authentication works
 
-Your backend registers an Identity Provider once. After that, users authenticate
+Your backend registers a Federation Issuer once. After that, users authenticate
 with JWTs from your OIDC provider and Stigmer validates them directly.
 
 Federation supports two provisioning modes:
 
 - **JIT provisioning** --- Stigmer creates accounts and grants roles
   automatically when a user first presents a valid JWT. You only register the
-  Identity Provider.
+  Federation Issuer.
 - **Manual provisioning** --- Your backend creates accounts and grants roles via
   the API before users can authenticate. Use this when you need explicit control
   over who gets access.
@@ -89,7 +91,7 @@ sequenceDiagram
   participant Platform as Platform Backend
   participant Stigmer as Stigmer API
   participant User as Platform User
-  Platform->>Stigmer: 1. Register Identity Provider
+  Platform->>Stigmer: 1. Register Federation Issuer
   Note right of Stigmer: Manual only:
   Platform->>Stigmer: 2. createFederatedAccount(sub, email, name)
   Platform->>Stigmer: 3. Grant org role via IAM Policy
@@ -143,7 +145,7 @@ sequenceDiagram
 
 {/* vale on */}
 
-No Identity Provider registration or JWKS endpoint is needed. You create a
+No Federation Issuer registration or JWKS endpoint is needed. You create a
 PlatformClient in the Stigmer Console, store its credentials in your backend,
 and call `mintUserToken` for each user.
 
@@ -188,7 +190,7 @@ Choose the authentication path that fits your integration:
 
 - **Your users have an OIDC provider** (Auth0, Okta, Entra ID) --- the
   [federation guide](/docs/guides/authentication/federation/overview) walks you
-  through registering an Identity Provider, provisioning accounts, and the
+  through registering a Federation Issuer, provisioning accounts, and the
   runtime authentication flow.
 - **You want to embed Stigmer without OIDC setup** --- the
   [PlatformClient guide](/docs/guides/authentication/platform-client/overview)
@@ -198,7 +200,7 @@ Choose the authentication path that fits your integration:
   three authentication paths side by side.
 
 For API reference details, see
-[IdentityProvider](/docs/sdk/resources/identity-provider),
+[FederationIssuer](/docs/sdk/resources/federation-issuer),
 [IdentityAccount](/docs/sdk/resources/identity-account),
 [Organization](/docs/sdk/resources/organization), and
 [IamPolicy](/docs/sdk/resources/iam-policy).

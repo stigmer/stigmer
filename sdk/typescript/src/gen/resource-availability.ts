@@ -17,7 +17,7 @@ export const KIND_TIERS: ReadonlyMap<ApiResourceKind, ResourceTier> = new Map([
   [ApiResourceKind.identity_account, ResourceTier.open_source],
   [ApiResourceKind.api_key, ResourceTier.open_source],
   [ApiResourceKind.invitation, ResourceTier.enterprise],
-  [ApiResourceKind.identity_provider, ResourceTier.enterprise],
+  [ApiResourceKind.federation_issuer, ResourceTier.enterprise],
   [ApiResourceKind.oauth_app, ResourceTier.open_source],
   [ApiResourceKind.team, ResourceTier.enterprise],
   [ApiResourceKind.organization, ResourceTier.open_source],

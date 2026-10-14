@@ -31,7 +31,7 @@
  * row too hot to update.
  *
  * A writer outside a chain that changes named fields of a row kept by a
- * port (an identity provider's profile update for a federated account)
+ * port (a federation issuer's profile update for a federated account)
  * runs the same loop through changeThroughGuardedPort: read, change, swap,
  * and on a lost swap read again.
  *

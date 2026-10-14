@@ -1476,9 +1476,9 @@
           "description": "Shareable link for joining an organization with a configurable role."
         },
         {
-          "name": "identity_provider",
+          "name": "federation_issuer",
           "number": 21,
-          "description": "External identity provider for federated authentication."
+          "description": "An outside issuer whose tokens Stigmer accepts for its own users\n (identity federation): its keys, its audience, and what its tokens get."
         },
         {
           "name": "oauth_app",
@@ -2453,7 +2453,7 @@
               "identity_account",
               "api_key",
               "invitation",
-              "identity_provider",
+              "federation_issuer",
               "oauth_app",
               "team",
               "organization",

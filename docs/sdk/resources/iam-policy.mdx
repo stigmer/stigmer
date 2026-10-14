@@ -208,7 +208,9 @@ PrincipalsCount principalsCount = client.iamPolicies().getPrincipalsCount(GetPri
 
 List an organization's access history: every time someone was given or lost access to the organization or to a resource in it, who did it, why, and when.
 
-Without after_sequence the entries come newest first, for people reading what happened lately. With after_sequence they come oldest first, starting just after that entry, for a tool that keeps its own copy: it asks for what came after the last entry it holds. Each organization numbers its entries from 1 in the order they happened, with no gaps, so a reader that resumes after entry N never misses one.
+Without after_sequence the entries come newest first, for people reading what happened lately. With after_sequence they come oldest first, starting just after that entry, for a tool that keeps its own copy: it asks for what came after the last entry it holds. Each organization numbers its entries from 1 in the order they happened, with no gaps above the oldest kept entry, so a reader that resumes after entry N never misses one the server still keeps.
+
+A server may keep the history for a limited time, set by its operator. It then removes the oldest entries first and never reuses a number: every page says how many days the server keeps the history (retention_days, 0 for good) and the oldest number it still holds (oldest_sequence), so a tool can tell entries that were removed from entries it missed.
 
 Only the organization's owners and administrators may read it, and a parent organization's administrators for a child. A parent's administrators manage a child without reading what it holds, so they read only the entries about the child organization itself (who holds which role in it), never the child's resources or who was given access to them. The Enterprise and Cloud editions keep the history; an open-source server keeps none and answers UNIMPLEMENTED. A host may refuse the read for its own reasons, such as a plan that does not include it.
 
@@ -1034,7 +1036,7 @@ ListAccessHistoryInput names the organization whose access history to read, and 
     org: { type: "string", description: "The organization, by slug or id.", required: true },
     pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
     pageToken: { type: "string", description: "The previous response's next_page_token, to continue that read." },
-    afterSequence: { type: "number", description: "Read oldest first, starting just after this entry's sequence; 0 reads from the first entry." },
+    afterSequence: { type: "number", description: "Read oldest first, starting just after this entry's sequence; 0 reads from the oldest entry the server still keeps." },
   }}
 />
 
@@ -1046,6 +1048,8 @@ AccessHistoryPage is one page of an organization's access history.
   type={{
     entries: { type: "AccessHistoryEntryInput[]", description: "The entries, newest first, or oldest first when the request named after_sequence." },
     nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token, with the same request otherwise, to continue." },
+    oldestSequence: { type: "number", description: "The lowest sequence the organization's history still holds." },
+    retentionDays: { type: "number", description: "How many days this server keeps the access history, 0 when it removes nothing." },
   }}
 />
 
@@ -1070,7 +1074,7 @@ IdentityAccountProvisioningMode defines how an identity account was created.
 | Value | Description |
 |-------|-------------|
 | `direct` | User signed up directly via Stigmer's own authentication tenant. |
-| `federated` | Account was created by the platform for federated authentication via an IdentityProvider. |
+| `federated` | Account was created by the platform for federated authentication via a FederationIssuer. |
 | `machine` | Machine-to-machine client credentials account for inter-service communication. |
 | `app_user` | A person who signs in from an organization's own product: the product's backend asks for their token with TokenService.mintUserToken, and Stigmer signs it. |
 | `service_account` | An organization's own non-person account: the principal its automation (a CI job, a script, an integration) acts as, so the automation keeps working when the person who set it up leaves. |

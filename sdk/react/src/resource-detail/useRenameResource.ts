@@ -27,7 +27,7 @@ export type RenamableResourceKind =
   | "channel_app"
   | "oauth_app"
   | "team"
-  | "identity_provider";
+  | "federation_issuer";
 
 /** The resource a rename answers: its id and slug, as every kind's metadata holds them. */
 export type RenamedResource = Message & {
@@ -115,7 +115,7 @@ function renameOf(
       return stigmer.oauthapp.rename(input);
     case "team":
       return stigmer.team.rename(input);
-    case "identity_provider":
-      return stigmer.identityProvider.rename(input);
+    case "federation_issuer":
+      return stigmer.federationIssuer.rename(input);
   }
 }

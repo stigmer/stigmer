@@ -127,6 +127,13 @@
       "components": 0
     },
     {
+      "slug": "federation-issuer",
+      "title": "Federation Issuer",
+      "description": "Hooks and components for registering federation issuers, the outside issuers whose tokens Stigmer accepts.",
+      "hooks": 5,
+      "components": 5
+    },
+    {
       "slug": "file-reference",
       "title": "file-reference",
       "description": "",
@@ -153,13 +160,6 @@
       "description": "Hooks for identity account lookup and profile resolution.",
       "hooks": 4,
       "components": 1
-    },
-    {
-      "slug": "identity-provider",
-      "title": "Identity Provider",
-      "description": "Hooks and components for federated identity provider setup and management.",
-      "hooks": 5,
-      "components": 5
     },
     {
       "slug": "invitation",

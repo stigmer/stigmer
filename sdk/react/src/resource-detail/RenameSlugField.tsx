@@ -3,8 +3,8 @@
 /**
  * The slug as an editable field with its own Rename action: the one place a
  * console page renames a resource (an organization, an agent, a vault, a
- * schedule, a channel app, an OAuth app, a team or an identity
- * provider).
+ * schedule, a channel app, an OAuth app, a team or a federation
+ * issuer).
  *
  * A rename changes the name in every link and file that names the
  * resource, so it is a deliberate act of its own, apart from any form's

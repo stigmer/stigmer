@@ -158,7 +158,7 @@ type IdentityAccountInput struct {
 	PictureUrl          string
 	IsMachineAccount    bool
 	ProvisioningMode    identityaccountv1.IdentityAccountProvisioningMode
-	IdentityProviderRef ResourceRef
+	FederationIssuerRef ResourceRef
 	Preferences         *IdentityAccountPreferencesInput
 }
 
@@ -193,10 +193,10 @@ func (i *IdentityAccountInput) toProto() (*identityaccountv1.IdentityAccount, er
 	resource.Spec.PictureUrl = i.PictureUrl
 	resource.Spec.IsMachineAccount = i.IsMachineAccount
 	resource.Spec.ProvisioningMode = i.ProvisioningMode
-	if i.IdentityProviderRef.Org != "" || i.IdentityProviderRef.Slug != "" {
-		ref := i.IdentityProviderRef.toProto()
-		ref.Kind = apiresourcekind.ApiResourceKind_identity_provider
-		resource.Spec.IdentityProviderRef = ref
+	if i.FederationIssuerRef.Org != "" || i.FederationIssuerRef.Slug != "" {
+		ref := i.FederationIssuerRef.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_federation_issuer
+		resource.Spec.FederationIssuerRef = ref
 	}
 	if i.Preferences != nil {
 		v, err := i.Preferences.toProto()
@@ -241,7 +241,7 @@ func IdentityAccountInputFromProto(p *identityaccountv1.IdentityAccount) *Identi
 		input.PictureUrl = s.GetPictureUrl()
 		input.IsMachineAccount = s.GetIsMachineAccount()
 		input.ProvisioningMode = s.GetProvisioningMode()
-		input.IdentityProviderRef = resourceRefFromProto(s.GetIdentityProviderRef())
+		input.FederationIssuerRef = resourceRefFromProto(s.GetFederationIssuerRef())
 		input.Preferences = identityAccountPreferencesInputFromProto(s.GetPreferences())
 	}
 	return input

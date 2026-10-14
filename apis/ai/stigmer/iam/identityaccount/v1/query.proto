@@ -34,7 +34,7 @@ service IdentityAccountQueryController {
   // Get a direct identity account by email address.
   //
   // Only returns direct (non-federated) accounts. Federated accounts are not
-  // returned by this RPC — use getByExternalSub for IdP-scoped federated lookups.
+  // returned by this RPC — use getByExternalSub for issuer-scoped federated lookups.
   rpc getByEmail(IdentityAccountEmail) returns (IdentityAccount) {
     option (ai.stigmer.commons.rpc.config).resource_kind = identity_account;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
@@ -46,7 +46,7 @@ service IdentityAccountQueryController {
   //
   // Primarily used for direct and machine accounts where the IDP ID is
   // the Auth0 user_id or client_id. A federated account is never answered:
-  // its subject is its identity provider's, so it is looked up with
+  // its subject is its federation issuer's, so it is looked up with
   // getByExternalSub, which is scoped to that provider.
   rpc getByIdpId(IdpId) returns (IdentityAccount) {
     option (ai.stigmer.commons.rpc.config).resource_kind = identity_account;
@@ -55,7 +55,7 @@ service IdentityAccountQueryController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get identity account";
   }
 
-  // Get a federated identity account by identity provider reference and external subject.
+  // Get a federated identity account by federation issuer reference and external subject.
   //
   // Used by platform backends to check whether a federated account already exists
   // for a given OIDC subject before calling createFederatedAccount.
@@ -64,7 +64,7 @@ service IdentityAccountQueryController {
   // answers UNIMPLEMENTED.
   //
   // Authorization: Requires can_create_identity_account on the organization
-  // that owns the identity provider.
+  // that owns the federation issuer.
   rpc getByExternalSub(ExternalSubLookup) returns (IdentityAccount) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_create_identity_account;

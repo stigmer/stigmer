@@ -138,7 +138,7 @@ type organization
     define can_create_skill: admin
     # A plugin install writes several resources in one act — the skill bar.
     define can_create_plugin: admin
-    define can_create_idp: admin
+    define can_create_federation_issuer: admin
     define can_create_identity_account: admin
     define can_create_oauth_app: admin
     # Channel apps hold org-wide webhook + OAuth credentials — admin-gated

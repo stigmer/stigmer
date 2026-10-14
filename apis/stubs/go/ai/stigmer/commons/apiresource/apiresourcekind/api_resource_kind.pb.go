@@ -209,8 +209,9 @@ const (
 	ApiResourceKind_api_key ApiResourceKind = 12
 	// Shareable link for joining an organization with a configurable role.
 	ApiResourceKind_invitation ApiResourceKind = 20
-	// External identity provider for federated authentication.
-	ApiResourceKind_identity_provider ApiResourceKind = 21
+	// An outside issuer whose tokens Stigmer accepts for its own users
+	// (identity federation): its keys, its audience, and what its tokens get.
+	ApiResourceKind_federation_issuer ApiResourceKind = 21
 	// Registered OAuth application with an external vendor for outbound authentication.
 	ApiResourceKind_oauth_app ApiResourceKind = 22
 	// Named group of an organization's people that access is shared with as one.
@@ -294,7 +295,7 @@ var (
 		11: "identity_account",
 		12: "api_key",
 		20: "invitation",
-		21: "identity_provider",
+		21: "federation_issuer",
 		22: "oauth_app",
 		24: "team",
 		30: "organization",
@@ -325,7 +326,7 @@ var (
 		"identity_account":          11,
 		"api_key":                   12,
 		"invitation":                20,
-		"identity_provider":         21,
+		"federation_issuer":         21,
 		"oauth_app":                 22,
 		"team":                      24,
 		"organization":              30,
@@ -554,7 +555,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"enterprise\x10\x03*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\x83 \n" +
+	"\astigmer\x10\x01*\x88 \n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -567,8 +568,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\n" +
 	"invitation\x10\x14\x1a/\xaa\xff++\b\x02\x10\x01\x1a\n" +
 	"Invitation\"\n" +
-	"Invitation*\x03inv8\x01@\x03J\x04\b\x02\x10\x04\x12\x80\x01\n" +
-	"\x11identity_provider\x10\x15\x1ai\xaa\xff+e\b\x02\x10\x01\x1a\x10IdentityProvider\"\x11Identity Provider*\x03idp8\x01@\x03J1\b\x02\x10\x04:\x01\x04J(\b\x04\x12$See its settings; cannot change them\x12i\n" +
+	"Invitation*\x03inv8\x01@\x03J\x04\b\x02\x10\x04\x12\x85\x01\n" +
+	"\x11federation_issuer\x10\x15\x1an\xaa\xff+j\b\x02\x10\x01\x1a\x10FederationIssuer\"\x11Federation Issuer*\x03fis8\x01@\x03J1\b\x02\x10\x04:\x01\x04J(\b\x04\x12$See its settings; cannot change themR\x03idp\x12i\n" +
 	"\toauth_app\x10\x16\x1aZ\xaa\xff+V\b\x02\x10\x01\x1a\bOAuthApp\"\tOAuth App*\x04oapp8\x01@\x01J1\b\x02\x10\x04:\x01\x04J(\b\x04\x12$See its settings; cannot change them\x12o\n" +
 	"\x04team\x10\x18\x1ae\xaa\xff+a\b\x02\x10\x01\x1a\x04Team\"\x04Team*\x02tm8\x01@\x03JG\b\x02\x10\x04:\x01\x03J>\b\x03\x12:Belongs to the team and holds every role the team is given\x12\xf2\x03\n" +
 	"\forganization\x10\x1e\x1a\xdf\x03\xaa\xff+\xda\x03\b\x03\x10\x01\x1a\fOrganization\"\fOrganization*\x03org@\x01J\xb0\x03\b\x04\x10\x01:\x04\x01\x02\x03\x04JK\b\x01\x12GEverything, including deleting the organization and choosing its ownersJ\x9f\x01\b\x02\x12\x9a\x01Manage people, settings, billing, and the organization's agents and tools; cannot read private conversations, delete the organization or change its ownersJk\b\x03\x12gStart conversations with the agents shared with them, and create agents when the organization allows itJH\b\x04\x12DSee what is shared with the organization; cannot start conversations\x129\n" +

@@ -65,7 +65,7 @@ class StigmerClientTest {
             assertNotNull(client.apiKey);
             assertNotNull(client.iamPolicy);
             assertNotNull(client.identityAccount);
-            assertNotNull(client.identityProvider);
+            assertNotNull(client.federationIssuer);
             assertNotNull(client.oauthapp);
             assertNotNull(client.organization);
             assertNotNull(client.plugin);

@@ -210,13 +210,13 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| IdentityAccountCommandController.create | `metadata.org`, `spec.identity_provider_ref.org` |
-| IdentityAccountCommandController.createFederatedAccount | `org`, `identity_provider_ref.org` |
+| IdentityAccountCommandController.create | `metadata.org`, `spec.federation_issuer_ref.org` |
+| IdentityAccountCommandController.createFederatedAccount | `org`, `federation_issuer_ref.org` |
 | IdentityAccountCommandController.createServiceAccount | `org` |
-| IdentityAccountCommandController.deprovisionFederatedAccount | `org`, `identity_provider_ref.org` |
-| IdentityAccountCommandController.update | `resource.metadata.org`, `resource.spec.identity_provider_ref.org` |
-| IdentityAccountCommandController.updateFederatedAccount | `org`, `identity_provider_ref.org` |
-| IdentityAccountQueryController.getByExternalSub | `org`, `identity_provider_ref.org` |
+| IdentityAccountCommandController.deprovisionFederatedAccount | `org`, `federation_issuer_ref.org` |
+| IdentityAccountCommandController.update | `resource.metadata.org`, `resource.spec.federation_issuer_ref.org` |
+| IdentityAccountCommandController.updateFederatedAccount | `org`, `federation_issuer_ref.org` |
+| IdentityAccountQueryController.getByExternalSub | `org`, `federation_issuer_ref.org` |
 | IdentityAccountQueryController.listServiceAccounts | `org` |
 
 ## `ai.stigmer.iam.oauthapp.v1`

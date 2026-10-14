@@ -146,7 +146,7 @@ import type {
   ComposedIdentityAccounts,
   ComposedServer,
   CreateAccountInput,
-  FederatedProvider,
+  FederatedIssuer,
   RunServerOptions,
   ServerBoot,
   GateSlotName,
@@ -272,8 +272,8 @@ const consumerIdentityAccountStore: IdentityAccountStore = {
   findDirectByEmail: () => Promise.resolve(undefined),
   findByIds: () => Promise.resolve([]),
   findByOrg: () => Promise.resolve([]),
-  findByProviderAndIdpId: () => Promise.resolve(undefined),
-  findByProvider: () => Promise.resolve([]),
+  findByIssuerAndIdpId: () => Promise.resolve(undefined),
+  findByIssuer: () => Promise.resolve([]),
 };
 
 /**
@@ -458,9 +458,11 @@ const consumerIamPolicyStore: IamPolicyStore = {
   countDistinctPrincipalsByResource: () => Promise.resolve(0),
   findScopeTuple: () => Promise.resolve(undefined),
   findByResourceKindAndRelation: () => Promise.resolve([]),
-  // A store that keeps no history answers none; one composed above open
-  // source keeps one and reads it back here.
+  // A store that keeps no history answers none and removes none; one
+  // composed above open source keeps one, reads it back and ages it out here.
   listChanges: () => Promise.resolve([]),
+  pruneChanges: () => Promise.resolve(0),
+  lastChangeSequence: () => Promise.resolve(0n),
 };
 
 /**
@@ -626,7 +628,7 @@ const consumerIdentityFederation: IdentityFederation = {
     Promise.resolve(create(IdentityAccountSchema)),
   getByExternalSub: () => Promise.resolve(create(IdentityAccountSchema)),
   providerExists: (org: string, id: string) =>
-    Promise.resolve(org === "consumer-org" && id === "idp_consumer"),
+    Promise.resolve(org === "consumer-org" && id === "fis_consumer"),
 };
 
 /**
@@ -1342,14 +1344,14 @@ export const consumerOutsideVerdict: BindingVerdict = "outside";
 let consumerChildOrganizations: ChildOrganizations | undefined;
 
 /**
- * The identity accounts as an edition that serves identity providers meets
+ * The identity accounts as an edition that serves federation issuers meets
  * them: kept from `onComposed`, a person its provider vouches for is
  * looked up by the federated natural key and, when absent, created through
  * the composition's one create path with the `federated` arm.
  */
 let consumerIdentityAccounts: ComposedIdentityAccounts | undefined;
 export async function consumerFederatedSignIn(
-  provider: FederatedProvider,
+  provider: FederatedIssuer,
   subject: string,
   caller: CallerIdentity,
 ): Promise<IdentityAccount | undefined> {
@@ -1357,7 +1359,7 @@ export async function consumerFederatedSignIn(
   if (accounts === undefined) {
     return undefined;
   }
-  const existing = await accounts.store.findByProviderAndIdpId(
+  const existing = await accounts.store.findByIssuerAndIdpId(
     provider.id,
     subject,
   );
@@ -1474,7 +1476,7 @@ export const fakeExtension: ServerExtension = {
     // row in every posture, so a wider edition registers a reader for each.
     resourceRowReaders: new Map(
       [
-        ApiResourceKind.identity_provider,
+        ApiResourceKind.federation_issuer,
         ApiResourceKind.invitation,
         ApiResourceKind.team,
       ].map((kind) => [kind, { findById: () => Promise.resolve(undefined) }]),

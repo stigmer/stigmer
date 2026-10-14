@@ -28,8 +28,8 @@ import { file_ai_stigmer_billing_plan_v1_api } from "@stigmer/protos/ai/stigmer/
 import { file_ai_stigmer_billing_subscription_v1_api } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/api_pb";
 import { file_ai_stigmer_iam_apikey_v1_api } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { file_ai_stigmer_iam_iampolicy_v1_api } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { file_ai_stigmer_iam_federationissuer_v1_api } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { file_ai_stigmer_iam_identityaccount_v1_api } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { file_ai_stigmer_iam_identityprovider_v1_api } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { file_ai_stigmer_iam_invitation_v1_api } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { file_ai_stigmer_iam_oauthapp_v1_api } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { file_ai_stigmer_iam_team_v1_api } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
@@ -56,8 +56,8 @@ const ROOT_FILES: DescFile[] = [
   file_ai_stigmer_billing_subscription_v1_api,
   file_ai_stigmer_iam_apikey_v1_api,
   file_ai_stigmer_iam_iampolicy_v1_api,
+  file_ai_stigmer_iam_federationissuer_v1_api,
   file_ai_stigmer_iam_identityaccount_v1_api,
-  file_ai_stigmer_iam_identityprovider_v1_api,
   file_ai_stigmer_iam_invitation_v1_api,
   file_ai_stigmer_iam_oauthapp_v1_api,
   file_ai_stigmer_iam_team_v1_api,

@@ -274,10 +274,12 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "geSize\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpa" +
       "geToken\0223\n\016after_sequence\030\004 \001(\003B\007\272H\004\"\002(\000" +
       "H\000R\rafterSequence\210\001\001B\021\n\017_after_sequence\"" +
-      "\206\001\n\021AccessHistoryPage\022I\n\007entries\030\001 \003(\0132/" +
+      "\326\001\n\021AccessHistoryPage\022I\n\007entries\030\001 \003(\0132/" +
       ".ai.stigmer.iam.iampolicy.v1.AccessHisto" +
       "ryEntryR\007entries\022&\n\017next_page_token\030\002 \001(" +
-      "\tR\rnextPageToken\"\272\004\n\022AccessHistoryEntry\022" +
+      "\tR\rnextPageToken\022\'\n\017oldest_sequence\030\003 \001(" +
+      "\003R\016oldestSequence\022%\n\016retention_days\030\004 \001(" +
+      "\005R\rretentionDays\"\272\004\n\022AccessHistoryEntry\022" +
       "\032\n\010sequence\030\001 \001(\003R\010sequence\022;\n\013occurred_" +
       "at\030\002 \001(\0132\032.google.protobuf.TimestampR\noc" +
       "curredAt\022A\n\006change\030\003 \001(\0162).ai.stigmer.ia" +
@@ -472,7 +474,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_iampolicy_v1_AccessHistoryPage_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_iampolicy_v1_AccessHistoryPage_descriptor,
-        new java.lang.String[] { "Entries", "NextPageToken", });
+        new java.lang.String[] { "Entries", "NextPageToken", "OldestSequence", "RetentionDays", });
     internal_static_ai_stigmer_iam_iampolicy_v1_AccessHistoryEntry_descriptor =
       getDescriptor().getMessageType(26);
     internal_static_ai_stigmer_iam_iampolicy_v1_AccessHistoryEntry_fieldAccessorTable = new

@@ -19,6 +19,10 @@ and a parent organization's administrators for a child
 `null` otherwise, which keeps it idle. An open-source server keeps no
 history and answers UNIMPLEMENTED.
 
+A server may keep the history for a limited time, set by its operator;
+`retention` says how long, and the oldest number the organization still
+holds, from the first page.
+
 To hand the whole history to another tool, use `exportAccessHistory`
 and `accessHistoryJsonLine` from `@stigmer/sdk`.
 
@@ -47,6 +51,7 @@ function useAccessHistory(org: string | null, options: UseAccessHistoryOptions):
     loadMore: { type: "() => void", description: "Load the next, older page. No-op while one is loading or when nothing follows." },
     loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`." },
     refetch: { type: "() => void", description: "Re-read the first page; entries made since appear at the head." },
+    retention: { type: "AccessHistoryRetention | null", description: "How long the server keeps the history, from the first page; `null` until it loads." },
   }}
 />
 
@@ -823,6 +828,18 @@ All visual properties flow through `--stgm-*` design tokens.
 
 ## Types
 
+### AccessHistoryRetention
+
+How long the server keeps the history, as its first page says.
+
+<TypeTable
+  type={{
+    days: { type: "number", description: "Days the server keeps the history; 0 when it keeps it for good.", required: true },
+    oldestSequence: { type: "bigint", description: "The lowest number the organization still holds; 0 when it holds none.", required: true },
+  }}
+/>
+
+
 ### CheckPermissionOptions
 
 Options for [`useCheckPermission`](#usecheckpermission).
@@ -873,7 +890,7 @@ is known.
 
 Email is not an identity key in Stigmer — a person can have a direct account
 and federated accounts that share one email. This label (e.g. "Stigmer" for
-direct sign-ups, or an IdentityProvider's display name for federated ones)
+direct sign-ups, or a FederationIssuer's display name for federated ones)
 is what lets the UI tell those accounts apart.
 
 ```tsx

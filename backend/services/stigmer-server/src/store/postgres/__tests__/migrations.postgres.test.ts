@@ -63,6 +63,12 @@
  * session without them, and every other kind's row, keeps its bytes; a
  * session it cannot decode fails the step, naming the row, and leaves the
  * database at v17.
+ * v30 renames the identity provider kind to federation_issuer by v13's
+ * transformation: from a store at v29, the name claims an edition made for
+ * its issuers name the new kind with their idp_ ids, and every grant on one
+ * is re-keyed to the id its new triple derives, so a revoke finds it; the
+ * permission history's entries for those grants take the kind's new name
+ * and the re-keyed id, and every other entry keeps its bytes.
  * A step's starting database is built by running the chain up to the step
  * before it.
  * Newer schemas are refused without writes or reconciliation; refusal
@@ -120,6 +126,8 @@ import {
   SCHEMA_VERSION_28,
   SCHEMA_VERSION_29,
   SCHEMA_VERSION_30,
+  SCHEMA_VERSION_31,
+  SCHEMA_VERSION_32,
   runMigrations,
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
@@ -161,7 +169,7 @@ import { PostgresStore } from "../store.js";
 import { agentExecutionListIndex } from "../../../domain/run/list-index.js";
 import { policyIdFor } from "../../../domain/iampolicy/constants.js";
 import { iamPolicyListIndex } from "../../../domain/iampolicy/list-index.js";
-import { RUN_KIND_TABLES, RUN_RENAME_PAGE_SIZE } from "../../run-rename.js";
+import { KIND_TABLES, KIND_RENAME_PAGE_SIZE } from "../../kind-rename.js";
 import {
   AGENT_RUN_NAMES,
   EXECUTION_NAMES,
@@ -1906,7 +1914,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       it("reads runs across keyset pages, missing none past the first page", async () => {
         const client = await v12Client();
         try {
-          const total = RUN_RENAME_PAGE_SIZE + 3;
+          const total = KIND_RENAME_PAGE_SIZE + 3;
           for (let i = 0; i < total; i++) {
             // Mixed case and punctuation order differently under a
             // linguistic collation than as bytes; the keyset compares and
@@ -2700,7 +2708,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       async function expectRuns(client: pg.Client, audit: Uint8Array): Promise<void> {
         await migrateTo(db.databaseUrl, SCHEMA_VERSION_16);
         expect(await version(client)).toBe(SCHEMA_VERSION_16);
-        for (const table of RUN_KIND_TABLES) {
+        for (const table of KIND_TABLES) {
           expect(await count(client, table, "agent_run"), table).toBe(0);
           expect(await count(client, table, "agent_execution"), table).toBe(0);
         }
@@ -2771,7 +2779,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       it("reads runs across keyset pages, missing none past the first page", async () => {
         const client = await clientAt(SCHEMA_VERSION_15);
         try {
-          const total = RUN_RENAME_PAGE_SIZE + 3;
+          const total = KIND_RENAME_PAGE_SIZE + 3;
           for (let i = 0; i < total; i++) {
             // Mixed case and punctuation order differently under a
             // linguistic collation than as bytes; the keyset compares and
@@ -2899,7 +2907,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           await migrateTo(db.databaseUrl, SCHEMA_VERSION_17);
 
           expect(await version(client)).toBe(SCHEMA_VERSION_17);
-          for (const table of RUN_KIND_TABLES) {
+          for (const table of KIND_TABLES) {
             expect(await count(client, table, "environment"), table).toBe(0);
           }
           const policies = (
@@ -3187,6 +3195,160 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       });
     });
 
+    describe("v30: the identity provider is a federation issuer", () => {
+      const seededAt = new Date("2026-10-14T00:00:00Z");
+      const org = "org_01jz0000000000000000000000";
+      const grant = (kind: string) => ({
+        id: "iamp_on_issuer",
+        principal: "identity_account:ida_2",
+        relation: "viewer",
+        resource: `${kind}:idp_1`,
+      });
+      const linkGrant = (kind: string) => ({
+        id: "iamp_issuer_link",
+        principal: "organization:org_1",
+        relation: "organization",
+        resource: `${kind}:idp_1`,
+      });
+
+      it("renames the issuers' name claims, re-keys every grant naming one and the permission history's entries for them, from a store at v29", async () => {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_29);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        try {
+          await client.query(
+            `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ('identity_provider', $1, 'acme-okta', 'idp_1', 'current', $2)`,
+            [org, seededAt],
+          );
+          for (const held of [grant("identity_provider"), linkGrant("identity_provider")]) {
+            await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('iam_policy', $1, $2, $3)`, [
+              held.id,
+              Buffer.from(policyRow(held)),
+              seededAt,
+            ]);
+            await client.query(
+              `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', $1, 'principal', $2, '')`,
+              [held.id, held.principal.split(":")[1] ?? ""],
+            );
+          }
+
+          const history = async (sequence: number, change: string, held: { id: string; principal: string; relation: string; resource: string }) => {
+            const [principalKind, principalId] = held.principal.split(":");
+            const [resourceKind, resourceId] = held.resource.split(":");
+            await client.query(
+              `INSERT INTO iam_policy_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+                 principal_kind, principal_id, relation, resource_kind, resource_id, data)
+               VALUES ($1, $2, '2026-10-14T00:00:00.000Z', $3, 'grant', 'ida_1', 'user', $4, $5, $6, $7, $8, $9, $10)`,
+              [org, sequence, change, held.id, principalKind, principalId, held.relation, resourceKind, resourceId, Buffer.from(policyRow(held))],
+            );
+          };
+          await history(1, "granted", grant("identity_provider"));
+          await history(2, "revoked", grant("identity_provider"));
+          const unrelated = { id: "iamp_on_agent", principal: "identity_account:ida_3", relation: "viewer", resource: "agent:agt_1" };
+          await history(3, "granted", unrelated);
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_30);
+
+          const entries = (
+            await client.query<{ sequence: string; policy_id: string; principal_kind: string; resource_kind: string; data: Buffer }>(
+              `SELECT sequence, policy_id, principal_kind, resource_kind, data FROM iam_policy_history WHERE org = $1 ORDER BY sequence`,
+              [org],
+            )
+          ).rows;
+          const renamedGrant = policyIdFor(fromBinary(IamPolicySchema, policyRow(grant("federation_issuer"))).spec!);
+          expect(entries.map((e) => [e.sequence, e.policy_id, e.resource_kind])).toEqual([
+            ["1", renamedGrant, "federation_issuer"],
+            ["2", renamedGrant, "federation_issuer"],
+            ["3", "iamp_on_agent", "agent"],
+          ]);
+          expect(fromBinary(IamPolicySchema, new Uint8Array(entries[0]!.data)).spec?.resource).toMatchObject({
+            kind: "federation_issuer",
+            id: "idp_1",
+          });
+          expect(new Uint8Array(entries[2]!.data)).toEqual(policyRow(unrelated));
+
+          const version = Number(
+            (await client.query(`SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`)).rows[0].version,
+          );
+          expect(version).toBe(SCHEMA_VERSION_30);
+          const names = (
+            await client.query<{ kind: string; id: string }>(`SELECT kind, id FROM resource_names WHERE name = 'acme-okta'`)
+          ).rows;
+          expect(names).toEqual([{ kind: "federation_issuer", id: "idp_1" }]);
+          for (const held of [grant, linkGrant]) {
+            const renamed = policyIdFor(fromBinary(IamPolicySchema, policyRow(held("federation_issuer"))).spec!);
+            const rows = (
+              await client.query<{ id: string; data: Buffer }>(
+                `SELECT id, data FROM resources WHERE kind = 'iam_policy' AND id IN ($1, $2)`,
+                [held("identity_provider").id, renamed],
+              )
+            ).rows;
+            expect(rows.map((r) => r.id)).toEqual([renamed]);
+            expect(fromBinary(IamPolicySchema, new Uint8Array(rows[0]!.data)).spec?.resource).toMatchObject({
+              kind: "federation_issuer",
+              id: "idp_1",
+            });
+          }
+        } finally {
+          await client.end();
+        }
+      });
+      it("rewrites the permission history's entries for issuers across its keyset pages", async () => {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_29);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        try {
+          const held = grant("identity_provider");
+          const [, principalId] = held.principal.split(":");
+          const sequences = Array.from({ length: KIND_RENAME_PAGE_SIZE + 1 }, (_, i) => i + 1);
+          await client.query(
+            `INSERT INTO iam_policy_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+               principal_kind, principal_id, relation, resource_kind, resource_id, data)
+             SELECT $1, s, '2026-10-14T00:00:00.000Z', 'granted', 'grant', 'ida_1', 'user', $2,
+               'identity_account', $3, 'viewer', 'identity_provider', 'idp_1', $4
+             FROM unnest($5::bigint[]) AS s`,
+            [org, held.id, principalId, Buffer.from(policyRow(held)), sequences],
+          );
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_30);
+
+          const left = await client.query(`SELECT 1 FROM iam_policy_history WHERE resource_kind = 'identity_provider'`);
+          expect(left.rowCount).toBe(0);
+          const last = await client.query<{ policy_id: string }>(
+            `SELECT policy_id FROM iam_policy_history WHERE org = $1 AND sequence = $2`,
+            [org, KIND_RENAME_PAGE_SIZE + 1],
+          );
+          expect(last.rows[0]!.policy_id).toBe(policyIdFor(fromBinary(IamPolicySchema, policyRow(grant("federation_issuer"))).spec!));
+        } finally {
+          await client.end();
+        }
+      }, 60_000);
+
+      it("fails on a permission history entry for an issuer it cannot decode, naming it, and leaves the database at v29", async () => {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_29);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        try {
+          await client.query(
+            `INSERT INTO iam_policy_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+               principal_kind, principal_id, relation, resource_kind, resource_id, data)
+             VALUES ($1, 7, '2026-10-14T00:00:00.000Z', 'granted', 'grant', 'ida_1', 'user', 'iamp_bad',
+               'identity_account', 'ida_2', 'viewer', 'identity_provider', 'idp_1', '\\xffffff')`,
+            [org],
+          );
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_30)).rejects.toThrow(
+            `the iam_policy_history row ${org}/7 cannot be read for the rename of the identity provider to a federation issuer`,
+          );
+          const version = Number(
+            (await client.query(`SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`)).rows[0].version,
+          );
+          expect(version).toBe(SCHEMA_VERSION_29);
+        } finally {
+          await client.end();
+        }
+      });
+    });
+
     describe("v28 and v29: a session's harness state moves to its status, and every resource gains its etag", () => {
       const seededAt = new Date("2026-10-13T00:00:00Z");
       const ORG = "org_01jz0000000000000000000000";
@@ -3359,9 +3521,36 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           await client.end();
         }
       });
+
+      it("v31 indexes the permission history in retention's order and keeps every entry", async () => {
+        const client = await clientAt(SCHEMA_VERSION_30);
+        try {
+          await client.query(
+            `INSERT INTO iam_policy_history
+               (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+                principal_kind, principal_id, relation, resource_kind, resource_id, data)
+             VALUES ('acme', 1, '2026-01-01T00:00:00.000Z', 'granted', 'grant', 'ida_ana', 'user',
+                     'iamp_1', 'identity_account', 'ida_ana', 'member', 'organization', 'acme', '\\x00')`,
+          );
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_31);
+
+          expect(await version(client)).toBe(SCHEMA_VERSION_31);
+          const index = await client.query(
+            `SELECT indexdef FROM pg_indexes WHERE indexname = 'iam_policy_history_by_time'`,
+          );
+          expect((index.rows[0] as { indexdef: string } | undefined)?.indexdef).toMatch(
+            /ON public\.iam_policy_history USING btree \(occurred_at, org, sequence\)$/,
+          );
+          const kept = await client.query(`SELECT org, sequence FROM iam_policy_history`);
+          expect(kept.rows).toEqual([{ org: "acme", sequence: "1" }]);
+        } finally {
+          await client.end();
+        }
+      });
     });
 
-    describe("v30: the platform client rows leave, with every grant naming one", () => {
+    describe("v32: the platform client rows leave, with every grant naming one", () => {
       const ORG = "org_01jz0000000000000000000000";
       const seededAt = new Date("2026-10-01T00:00:00Z");
 
@@ -3443,7 +3632,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       }
 
       it("removes the client rows from every table and every grant naming one, and keeps the accounts its mints created and their grants", async () => {
-        const client = await clientAt(SCHEMA_VERSION_30 - 1);
+        const client = await clientAt(SCHEMA_VERSION_32 - 1);
         try {
           await seedClient(client);
           for (const grant of [...retiredGrants, keptGrant]) {
@@ -3451,9 +3640,9 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           }
           await insert(client, "identity_account", "ida_app_user", appUser);
 
-          await migrateTo(db.databaseUrl, SCHEMA_VERSION_30);
-          expect(await version(client)).toBe(SCHEMA_VERSION_30);
-          for (const table of RUN_KIND_TABLES) {
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_32);
+          expect(await version(client)).toBe(SCHEMA_VERSION_32);
+          for (const table of KIND_TABLES) {
             expect(await count(client, table, "platform_client"), table).toBe(0);
           }
           const kept = await client.query<{ id: string }>(`SELECT id FROM resources WHERE kind = 'iam_policy' ORDER BY id`);
@@ -3466,7 +3655,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       });
 
       it("reads grants across keyset pages, missing none past the first page", async () => {
-        const client = await clientAt(SCHEMA_VERSION_30 - 1);
+        const client = await clientAt(SCHEMA_VERSION_32 - 1);
         try {
           await seedClient(client);
           for (let i = 0; i <= PLATFORM_CLIENT_RETIRED_PAGE_SIZE; i++) {
@@ -3483,7 +3672,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
               }),
             );
           }
-          await migrateTo(db.databaseUrl, SCHEMA_VERSION_30);
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_32);
           expect(await count(client, "resources", "iam_policy")).toBe(PLATFORM_CLIENT_RETIRED_PAGE_SIZE);
           expect(await count(client, "resources", "platform_client")).toBe(0);
         } finally {
@@ -3491,16 +3680,16 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         }
       });
 
-      it("a grant that does not decode fails the step, names the row, rolls back, and leaves the database at v29", async () => {
-        const client = await clientAt(SCHEMA_VERSION_30 - 1);
+      it("a grant that does not decode fails the step, names the row, rolls back, and leaves the database at v31", async () => {
+        const client = await clientAt(SCHEMA_VERSION_32 - 1);
         try {
           await seedClient(client);
           await insert(client, "iam_policy", "iam_a_retired", policyRow({ ...retiredGrants[0]!, id: "iam_a_retired" }));
           await insert(client, "iam_policy", "iam_z_broken", new Uint8Array([0x22, 0xff]));
-          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_30)).rejects.toThrow(
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_32)).rejects.toThrow(
             "iam_policy 'iam_z_broken' cannot be read to retire the platform client kind",
           );
-          expect(await version(client)).toBe(SCHEMA_VERSION_30 - 1);
+          expect(await version(client)).toBe(SCHEMA_VERSION_32 - 1);
           expect(await data(client, "iam_policy", "iam_a_retired")).toEqual(
             policyRow({ ...retiredGrants[0]!, id: "iam_a_retired" }),
           );
@@ -3529,12 +3718,12 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             "iam_on_early",
             policyRow({ id: "iam_on_early", principal: "identity_account:ida_1", relation: "viewer", resource: "platform_client:pcl_early" }),
           );
-          await migrateTo(db.databaseUrl, SCHEMA_VERSION_30 - 1);
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_32 - 1);
           // The name backfill read the retired row through its envelope.
           expect(await count(client, "resource_names", "platform_client")).toBe(1);
-          await migrateTo(db.databaseUrl, SCHEMA_VERSION_30);
-          expect(await version(client)).toBe(SCHEMA_VERSION_30);
-          for (const table of RUN_KIND_TABLES) {
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_32);
+          expect(await version(client)).toBe(SCHEMA_VERSION_32);
+          for (const table of KIND_TABLES) {
             expect(await count(client, table, "platform_client"), table).toBe(0);
           }
           expect(await count(client, "resources", "iam_policy")).toBe(0);

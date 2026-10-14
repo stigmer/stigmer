@@ -3,7 +3,7 @@
  * the caller's account id, and its subject only for an account whose
  * subject is the platform's own (a direct or legacy account), the stamp a
  * key minted before the account existed carries. A federated account's
- * subject is the one its organization's identity provider chose, so a
+ * subject is the one its organization's federation issuer chose, so a
  * provider that asserted another person's subject must not list that
  * person's keys; nor may a token's own `sub` claim name an owner.
  */
@@ -91,7 +91,7 @@ describe("the names a caller's own keys are read by", () => {
       spec: {
         idpId: "auth0|victim",
         provisioningMode: IdentityAccountProvisioningMode.federated,
-        identityProviderRef: { org: "org_acme", slug: "okta" },
+        federationIssuerRef: { org: "org_acme", slug: "okta" },
       },
     });
     const keys = await ownKeysOf(federated, "auth0|victim");

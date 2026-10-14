@@ -210,7 +210,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 
 ## Kinds that belong to no organization, whose request names one
 
-These kinds are owned by a person, not an organization, yet these methods take a top-level `org` that names an organization the request acts in: the organization that owns the identity provider a federated account belongs to (its authorization scope), or the organization a reference lives in. On a server that holds one organization, that is the one.
+These kinds are owned by a person, not an organization, yet these methods take a top-level `org` that names an organization the request acts in: the organization that owns the federation issuer a federated account belongs to (its authorization scope), or the organization a reference lives in. On a server that holds one organization, that is the one.
 
 | Method | Fills |
 |---|---|

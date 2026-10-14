@@ -828,7 +828,7 @@ async function provisionMyAccount(
  */
 interface FederatedInput extends Message {
   readonly org: string;
-  readonly identityProviderRef?: ApiResourceReference;
+  readonly federationIssuerRef?: ApiResourceReference;
 }
 
 async function federated<Input extends FederatedInput>(
@@ -863,15 +863,15 @@ async function federated<Input extends FederatedInput>(
   }
   const caller = callerIdentityOf(ctx);
   const org = input.org;
-  const ref = input.identityProviderRef;
+  const ref = input.federationIssuerRef;
   if (ref === undefined || (ref.slug === "" && ref.id === "")) {
     throw invalidArgumentError(
-      "identity_provider_ref with a valid slug or id is required",
+      "federation_issuer_ref with a valid slug or id is required",
     );
   }
   if (ref.org !== "" && ref.org !== org) {
     throw invalidArgumentError(
-      `identity_provider_ref.org '${ref.org}' does not match input org '${org}'`,
+      `federation_issuer_ref.org '${ref.org}' does not match input org '${org}'`,
     );
   }
   // The annotation's target is the org (`field_path = "org"`); resolved
@@ -883,7 +883,7 @@ async function federated<Input extends FederatedInput>(
   await resolveReferencesIn(deps.store, method.input, input, org);
   if (ref.id === "" || !(await federation.providerExists(ref.org, ref.id))) {
     throw new ConnectError(
-      `IdentityProvider '${ref.org}/${named !== "" ? named : ref.id}' not found`,
+      `FederationIssuer '${ref.org}/${named !== "" ? named : ref.id}' not found`,
       Code.NotFound,
     );
   }

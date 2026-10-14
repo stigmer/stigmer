@@ -18,9 +18,9 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  IdentityProviderSchema,
-  type IdentityProvider,
-} from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+  FederationIssuerSchema,
+  type FederationIssuer,
+} from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { DeploymentMode } from "@stigmer/sdk";
 import { DeploymentModeContext } from "../../deployment-mode";
@@ -30,10 +30,10 @@ vi.mock("../../organization/OrgProvider.js", () => ({
     activeOrg: { metadata: { id: "org_acme", slug: "acme", name: "Acme" } },
   }),
 }));
-const providers = vi.hoisted(() => ({ list: [] as IdentityProvider[] }));
+const providers = vi.hoisted(() => ({ list: [] as FederationIssuer[] }));
 
-vi.mock("../../identity-provider/useIdentityProviderList.js", () => ({
-  useIdentityProviderList: () => ({ identityProviders: providers.list }),
+vi.mock("../../federation-issuer/useFederationIssuerList.js", () => ({
+  useFederationIssuerList: () => ({ federationIssuers: providers.list }),
 }));
 vi.mock("../../iam-policy/OrgMembersPanel.js", () => ({
   OrgMembersPanel: ({ org, serviceAccountsHref }: { org: string; serviceAccountsHref?: string }) => (
@@ -63,9 +63,9 @@ const SIGN_IN_NOTICE = /People appear here the first time they sign in/;
 function provider(spec: {
   createAccountsOnSignIn?: boolean;
   signInRole?: IamRole;
-}): IdentityProvider {
-  return create(IdentityProviderSchema, {
-    metadata: { id: "idp-1", name: "Acme", org: "org_acme" },
+}): FederationIssuer {
+  return create(FederationIssuerSchema, {
+    metadata: { id: "issuer-1", name: "Acme", org: "org_acme" },
     spec,
   });
 }

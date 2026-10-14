@@ -26,7 +26,7 @@ const FILE_TREE: FileTreeEntry[] = [
   { name: "handlers", type: "folder", depth: 1 },
   { name: "onboard-user.ts", type: "file", depth: 2 },
   { name: "federation", type: "folder", depth: 1 },
-  { name: "register-idp.ts", type: "file", depth: 2 },
+  { name: "register-issuer.ts", type: "file", depth: 2 },
   { name: "verify-idp.ts", type: "file", depth: 2 },
   { name: "package.json", type: "file", depth: 0 },
 ];

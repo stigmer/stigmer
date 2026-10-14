@@ -13,9 +13,9 @@ public class GeneratedClient {
     public final ApiKeyClient apiKey;
     public final ChannelAppClient channelapp;
     public final EvaluatorClient evaluator;
+    public final FederationIssuerClient federationIssuer;
     public final IamPolicyClient iamPolicy;
     public final IdentityAccountClient identityAccount;
-    public final IdentityProviderClient identityProvider;
     public final InvitationClient invitation;
     public final LicenseClient license;
     public final MemoryClient memory;
@@ -42,9 +42,9 @@ public class GeneratedClient {
         this.apiKey = new ApiKeyClient(channel);
         this.channelapp = new ChannelAppClient(channel);
         this.evaluator = new EvaluatorClient(channel);
+        this.federationIssuer = new FederationIssuerClient(channel);
         this.iamPolicy = new IamPolicyClient(channel);
         this.identityAccount = new IdentityAccountClient(channel);
-        this.identityProvider = new IdentityProviderClient(channel);
         this.invitation = new InvitationClient(channel);
         this.license = new LicenseClient(channel);
         this.memory = new MemoryClient(channel);

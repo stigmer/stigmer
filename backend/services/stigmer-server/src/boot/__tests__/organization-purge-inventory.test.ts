@@ -97,7 +97,7 @@ describe("assertOrganizationPurgeCoverage", () => {
         coreKinds: CORE_PURGED_KINDS,
         units: NO_UNITS,
       }),
-    ).toThrow(/'identity_provider'.*'invitation'.*'subscription'.*'team'|nothing removes them/);
+    ).toThrow(/'federation_issuer'.*'invitation'.*'subscription'.*'team'|nothing removes them/);
   });
 
   it("admits the wider edition once a unit removes or retains each kind", () => {
@@ -110,7 +110,7 @@ describe("assertOrganizationPurgeCoverage", () => {
             {
               unit: "identity",
               stage: stage("identity", [
-                ApiResourceKind.identity_provider,
+                ApiResourceKind.federation_issuer,
                 ApiResourceKind.invitation,
                 ApiResourceKind.team,
               ]),

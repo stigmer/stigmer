@@ -31,7 +31,7 @@
           "identity_account",
           "api_key",
           "invitation",
-          "identity_provider",
+          "federation_issuer",
           "oauth_app",
           "team",
           "organization",

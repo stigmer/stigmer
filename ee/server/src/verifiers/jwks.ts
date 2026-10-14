@@ -7,7 +7,7 @@
  * input because the two lanes dial different kinds of URL. The direct
  * lane's document is the operator's own tenant (configuration, fetched
  * with the platform fetch, and a loopback tenant is a normal development
- * and spike setup); a federated IdentityProvider's `jwks_uri` is written
+ * and spike setup); a federated FederationIssuer's `jwks_uri` is written
  * by any organization admin, so its instance is handed the composition's
  * egress-guarded fetch. The cache judges nothing
  * itself: a guard refusal propagates unchanged, and the lane that asked

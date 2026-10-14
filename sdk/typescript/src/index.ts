@@ -47,6 +47,7 @@ export {
   accessHistoryJsonLine,
   type AccessHistoryEntry,
   type ExportAccessHistoryOptions,
+  type RemovedAccessHistory,
 } from "./access-history.js";
 
 // Error handling
@@ -246,10 +247,10 @@ export {
 } from "./gen/identityaccount.js";
 export { InvitationClient, type InvitationInput } from "./gen/invitation.js";
 export {
-  IdentityProviderClient,
-  buildIdentityProviderProto,
-  type IdentityProviderInput,
-} from "./gen/identityprovider.js";
+  FederationIssuerClient,
+  buildFederationIssuerProto,
+  type FederationIssuerInput,
+} from "./gen/federationissuer.js";
 export {
   TeamClient,
   buildTeamProto,
@@ -511,7 +512,7 @@ export { toApiKeyInput } from "./gen/apikey.js";
 export { toChannelAppInput } from "./gen/channelapp.js";
 export { toEvaluatorInput } from "./gen/evaluator.js";
 export { toIdentityAccountInput } from "./gen/identityaccount.js";
-export { toIdentityProviderInput } from "./gen/identityprovider.js";
+export { toFederationIssuerInput } from "./gen/federationissuer.js";
 export { toMemoryInput } from "./gen/memory.js";
 export { toOAuthAppInput } from "./gen/oauthapp.js";
 export { toOrganizationInput } from "./gen/organization.js";

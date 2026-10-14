@@ -7,7 +7,7 @@ It is held equal to the contract by `src/pipeline/steps/__tests__/reference-fiel
 ## The classes
 
 - **manifest reference**: an `ApiResourceReference` a person writes in a resource's spec. Resolved to the id at write, stored as `{org, kind, id, version}`, returned with the current slug.
-- **request reference**: a reference a request carries to name the resource it acts on: the federated-account inputs' `identity_provider_ref`, resolved the same way before the edition's arm runs, and the requests that name a resource by `org` and `slug` strings, which stay names a person types and resolve through the name table. Every `getByReference` takes an `ApiResourceReference` as its whole input: by `id` (a point read, then a check that the organization and kind agree) or by `org` and `slug`, and both must agree when both are given.
+- **request reference**: a reference a request carries to name the resource it acts on: the federated-account inputs' `federation_issuer_ref`, resolved the same way before the edition's arm runs, and the requests that name a resource by `org` and `slug` strings, which stay names a person types and resolve through the name table. Every `getByReference` takes an `ApiResourceReference` as its whole input: by `id` (a point read, then a check that the organization and kind agree) or by `org` and `slug`, and both must agree when both are given.
 - **stamped reference**: an `ApiResourceReference` the server or the runner writes, never a person: held by id like any stored reference. A run's loaded versions (`LoadedVersions`) are the runner's, written through `updateStatus`, which whoever may edit the run can call too, so each new entry is admitted by the reference rule from the run's organization before it is stored (`src/domain/run/update-status.ts`).
 - **stamped id**: a `<kind>_id` string the server writes or a request names the resource by: an id already.
 - **display slug**: a slug kept beside an id for people to read, never resolved.
@@ -206,11 +206,11 @@ Rows read `| \`Message.field\` | class |`.
 
 | Field | Class |
 |---|---|
-| `ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput.identity_provider_ref` | request reference |
-| `ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput.identity_provider_ref` | request reference |
-| `ai.stigmer.iam.identityaccount.v1.ExternalSubLookup.identity_provider_ref` | request reference |
-| `ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec.identity_provider_ref` | stamped reference |
-| `ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput.identity_provider_ref` | request reference |
+| `ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput.federation_issuer_ref` | request reference |
+| `ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput.federation_issuer_ref` | request reference |
+| `ai.stigmer.iam.identityaccount.v1.ExternalSubLookup.federation_issuer_ref` | request reference |
+| `ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec.federation_issuer_ref` | stamped reference |
+| `ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput.federation_issuer_ref` | request reference |
 
 ## `ai.stigmer.platform.v1`
 

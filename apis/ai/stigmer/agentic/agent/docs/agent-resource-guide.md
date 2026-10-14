@@ -61,7 +61,7 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 
 ### Visibility
 
-Agents take one of three levels. Organization is the default: a blueprint is a shared asset of the organization that owns it. Private is an explicit opt-in. Platform is offered only to an organization that operates an identity provider, and shares the agent with every organization it manages. An agent may not be more visible than the skills, plugins and agents it references; the server refuses the save (and the escalation) that would break that.
+Agents take one of three levels. Organization is the default: a blueprint is a shared asset of the organization that owns it. Private is an explicit opt-in. Platform is offered only to an organization that registers a federation issuer, and shares the agent with every organization it manages. An agent may not be more visible than the skills, plugins and agents it references; the server refuses the save (and the escalation) that would break that.
 
 ```yaml
 # Organization agent (default) — every member of acme-corp can read and run it

@@ -24,7 +24,7 @@
  * to a database it has not reached yet (organization-slug-history.ts gives
  * the same reason). The `kind` strings are the enum names the drivers'
  * `kind` column holds. Organizations are absent: their names were recorded
- * when the table arrived. Teams and identity providers are absent: an
+ * when the table arrived. Teams and federation issuers are absent: an
  * edition keeps their rows in its own tables. A person's identity account
  * names nothing (it has no unique slug); a service account names its slug.
  *

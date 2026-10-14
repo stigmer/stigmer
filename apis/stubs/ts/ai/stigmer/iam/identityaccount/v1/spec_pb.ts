@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/identityaccount/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_identityaccount_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvc3BlYy5wcm90bxIhYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxIqIDChNJZGVudGl0eUFjY291bnRTcGVjEhYKBmlkcF9pZBgBIAEoCUIGukgDyAEBEg0KBWVtYWlsGAIgASgJEhIKCmZpcnN0X25hbWUYAyABKAkSEQoJbGFzdF9uYW1lGAQgASgJEhMKC3BpY3R1cmVfdXJsGAUgASgJEhoKEmlzX21hY2hpbmVfYWNjb3VudBgGIAEoCBJdChFwcm92aXNpb25pbmdfbW9kZRgHIAEoDjJCLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnRQcm92aXNpb25pbmdNb2RlElkKFWlkZW50aXR5X3Byb3ZpZGVyX3JlZhgIIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsFRJSCgtwcmVmZXJlbmNlcxgJIAEoCzI9LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnRQcmVmZXJlbmNlcyL3AQoaSWRlbnRpdHlBY2NvdW50UHJlZmVyZW5jZXMSIgoQc3RhbmRpbmdfY29udGV4dBgBIAEoCUIIukgFcgMY0A8SMQoPZGVmYXVsdF9oYXJuZXNzGAIgASgJQhi6SBXYAQFyEFIGbmF0aXZlUgZjdXJzb3ISJQoUZGVmYXVsdF9uYXRpdmVfbW9kZWwYAyABKAlCB7pIBHICGGQSJQoUZGVmYXVsdF9jdXJzb3JfbW9kZWwYBCABKAlCB7pIBHICGGQSFgoObWVtb3J5X2VuYWJsZWQYBSABKAgSHAoUZGVmYXVsdF9hdXRvX2FwcHJvdmUYBiABKAhiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_identityaccount_v1_enum, file_buf_validate_validate]);
+  fileDesc("CixhaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvc3BlYy5wcm90bxIhYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxIqIDChNJZGVudGl0eUFjY291bnRTcGVjEhYKBmlkcF9pZBgBIAEoCUIGukgDyAEBEg0KBWVtYWlsGAIgASgJEhIKCmZpcnN0X25hbWUYAyABKAkSEQoJbGFzdF9uYW1lGAQgASgJEhMKC3BpY3R1cmVfdXJsGAUgASgJEhoKEmlzX21hY2hpbmVfYWNjb3VudBgGIAEoCBJdChFwcm92aXNpb25pbmdfbW9kZRgHIAEoDjJCLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnRQcm92aXNpb25pbmdNb2RlElkKFWZlZGVyYXRpb25faXNzdWVyX3JlZhgIIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsFRJSCgtwcmVmZXJlbmNlcxgJIAEoCzI9LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnRQcmVmZXJlbmNlcyL3AQoaSWRlbnRpdHlBY2NvdW50UHJlZmVyZW5jZXMSIgoQc3RhbmRpbmdfY29udGV4dBgBIAEoCUIIukgFcgMY0A8SMQoPZGVmYXVsdF9oYXJuZXNzGAIgASgJQhi6SBXYAQFyEFIGbmF0aXZlUgZjdXJzb3ISJQoUZGVmYXVsdF9uYXRpdmVfbW9kZWwYAyABKAlCB7pIBHICGGQSJQoUZGVmYXVsdF9jdXJzb3JfbW9kZWwYBCABKAlCB7pIBHICGGQSFgoObWVtb3J5X2VuYWJsZWQYBSABKAgSHAoUZGVmYXVsdF9hdXRvX2FwcHJvdmUYBiABKAhiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_identityaccount_v1_enum, file_buf_validate_validate]);
 
 /**
  * IdentityAccountSpec defines the configuration for an identity account.
@@ -41,7 +41,7 @@ export type IdentityAccountSpec = Message<"ai.stigmer.iam.identityaccount.v1.Ide
    * FAILED_PRECONDITION — a different subject is a different account.
    * For federated accounts: the raw OIDC sub claim from the external identity
    * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
-   * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
+   * federation_issuer_ref — the pair (federation_issuer_ref, idp_id) is unique.
    * For machine accounts: the Auth0 client ID with "@clients" suffix.
    * For app_user accounts: composite "stgm_pc|{org}|{external_user_id}" where
    * org is the organization the minted token is for and external_user_id is
@@ -82,7 +82,7 @@ export type IdentityAccountSpec = Message<"ai.stigmer.iam.identityaccount.v1.Ide
   /**
    * URL of the profile picture.
    * For direct accounts: from Auth0 profile.
-   * For federated accounts: from the IdentityProvider's UserInfo endpoint.
+   * For federated accounts: from the FederationIssuer's UserInfo endpoint.
    *
    * @generated from field: string picture_url = 5;
    */
@@ -107,15 +107,15 @@ export type IdentityAccountSpec = Message<"ai.stigmer.iam.identityaccount.v1.Ide
   provisioningMode: IdentityAccountProvisioningMode;
 
   /**
-   * Reference to the IdentityProvider that owns this federated account.
+   * Reference to the FederationIssuer that owns this federated account.
    * Set only when provisioning_mode is FEDERATED. Identifies which external
-   * platform's identity provider scopes this account. Together with idp_id,
+   * platform's federation issuer scopes this account. Together with idp_id,
    * forms the unique identity for federated accounts.
    * (ignored for create) this value is assigned by backend.
    *
-   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8;
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 8;
    */
-  identityProviderRef?: ApiResourceReference;
+  federationIssuerRef?: ApiResourceReference;
 
   /**
    * Standing preferences declared by this identity account.

@@ -103,12 +103,12 @@ export type {
 } from "./extensions/composed-services.js";
 // The identity-account create path's input, as a unit hands it: the spec,
 // the name, and how the account was provisioned (a federated account names
-// the identity provider that vouches for it).
+// the federation issuer that vouches for it).
 export type {
   AccountProvisioning,
   CreateAccount,
   CreateAccountInput,
-  FederatedProvider,
+  FederatedIssuer,
 } from "./domain/identityaccount/provisioning.js";
 export type {
   CallerClass,
@@ -693,7 +693,7 @@ export type {
 export { ORGANIZATION_SLUG_RESERVED } from "./domain/organization/names.js";
 // Every named kind's slug is a name in that table (pipeline/steps/names.ts):
 // a composition that keeps a named kind's rows in its own table (a team, an
-// identity provider) claims the slug through these steps before its row,
+// federation issuer) claims the slug through these steps before its row,
 // releases it after its delete, and looks a slug up by name, so one table
 // answers "taken" and resolves names for every kind in every edition.
 export {

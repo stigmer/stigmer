@@ -77,9 +77,9 @@ tuples:
   - {user: identity_account:left, relation: owner, object: session:x}
   - {user: identity_account:back, relation: owner, object: session:x}
   - {user: identity_account:left, relation: viewer, object: session:x}
-  - {user: organization:acme, relation: organization, object: identity_provider:x}
-  - {user: identity_account:stays, relation: viewer, object: identity_provider:x}
-  - {user: identity_account:left, relation: viewer, object: identity_provider:x}
+  - {user: organization:acme, relation: organization, object: federation_issuer:x}
+  - {user: identity_account:stays, relation: viewer, object: federation_issuer:x}
+  - {user: identity_account:left, relation: viewer, object: federation_issuer:x}
   - {user: organization:acme, relation: organization, object: oauth_app:x}
   - {user: identity_account:stays, relation: viewer, object: oauth_app:x}
   - {user: identity_account:left, relation: viewer, object: oauth_app:x}
@@ -108,7 +108,7 @@ tests:
       - {user: identity_account:left, object: vault:mine-left, assertions: {owner: false, can_view: false, can_use: false}}
       - {user: identity_account:left, object: vault:team, assertions: {user: false, can_use: false}}
       - {user: identity_account:left, object: session:x, assertions: {owner: false, viewer: false, can_view: false}}
-      - {user: identity_account:left, object: identity_provider:x, assertions: {viewer: false, can_view: false}}
+      - {user: identity_account:left, object: federation_issuer:x, assertions: {viewer: false, can_view: false}}
       - {user: identity_account:left, object: oauth_app:x, assertions: {viewer: false, can_view: false}}
       - {user: identity_account:left, object: agent_channel:x, assertions: {participant: false}}
       - {user: identity_account:left, object: agent:x, assertions: {editor: false, can_edit: false}}
@@ -125,7 +125,7 @@ tests:
       - {user: identity_account:stays, object: vault:mine-stays, assertions: {owner: true, can_view: true, can_use: true}}
       - {user: identity_account:stays, object: vault:team, assertions: {user: true, can_use: true}}
       - {user: identity_account:stays, object: session:x, assertions: {owner: true, can_view: true}}
-      - {user: identity_account:stays, object: identity_provider:x, assertions: {viewer: true, can_view: true}}
+      - {user: identity_account:stays, object: federation_issuer:x, assertions: {viewer: true, can_view: true}}
       - {user: identity_account:stays, object: oauth_app:x, assertions: {viewer: true, can_view: true}}
       - {user: identity_account:stays, object: memory:x, assertions: {can_view: true}}
   - name: rejoining gives back what the person authored

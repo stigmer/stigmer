@@ -36,8 +36,8 @@ import {
   type IamPolicySpec,
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
-import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
-import type { IdentityProvider, IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
+import type { FederationIssuer, FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { LicenseClaimsSchema, type LicenseClaims } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
@@ -114,6 +114,8 @@ export interface BootOptions {
    * suite whose providers live on the loopback issuer passes `relaxed`.
    */
   readonly egress?: EgressPosture;
+  /** Days the access history is kept; absent keeps every entry. */
+  readonly accessHistoryRetentionDays?: number;
   /** Units the suite composes after the entry's, to receive the composition's hand-over. */
   readonly extraUnits?: ReadonlyArray<ServerExtension>;
 }
@@ -149,6 +151,9 @@ export async function bootEnterprise(options: BootOptions): Promise<BootedServer
       fetchImpl: options.dialer ?? options.issuer.fetch,
       keyLoader: { env: {}, homeDir: dir },
       ...(options.egress === undefined ? {} : { egress: options.egress }),
+      ...(options.accessHistoryRetentionDays === undefined
+        ? {}
+        : { accessHistoryRetentionDays: options.accessHistoryRetentionDays }),
     },
   );
   const server = await composeServer({
@@ -216,7 +221,7 @@ export async function createOrganization(founder: Person, slug: string): Promise
   return created.metadata?.id ?? "";
 }
 
-/** An identity provider request over the loopback server's https spelling of `issuerName` (its slug by default). */
+/** A federation issuer request over the loopback server's https spelling of `issuerName` (its slug by default). */
 export function providerRequest(
   issuer: LoopbackIssuer,
   org: string,
@@ -228,11 +233,11 @@ export function providerRequest(
     readonly issuers?: ReadonlyArray<string>;
     readonly jwksUri?: string;
   } = {},
-): MessageInitShape<typeof IdentityProviderSchema> {
+): MessageInitShape<typeof FederationIssuerSchema> {
   const issuerUrl = issuer.tlsIssuerUrl(options.issuerName ?? slug);
   return {
     apiVersion: "iam.stigmer.ai/v1",
-    kind: "IdentityProvider",
+    kind: "FederationIssuer",
     metadata: { name: slug, slug, org, ...(options.id === undefined ? {} : { id: options.id }) },
     spec: {
       displayName: options.displayName ?? slug,
@@ -245,14 +250,14 @@ export function providerRequest(
   };
 }
 
-/** Creates an identity provider as `admin`; answers it. */
-export async function createProvider(
+/** Creates a federation issuer as `admin`; answers it. */
+export async function createIssuer(
   admin: Person,
   issuer: LoopbackIssuer,
   org: string,
   slug: string,
-): Promise<IdentityProvider> {
-  return createClient(IdentityProviderCommandController, admin.transport).create(
+): Promise<FederationIssuer> {
+  return createClient(FederationIssuerCommandController, admin.transport).create(
     providerRequest(issuer, org, slug),
   );
 }

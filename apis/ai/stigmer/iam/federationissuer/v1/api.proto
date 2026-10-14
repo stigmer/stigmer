@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.federationissuer.v1;
+
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "ai/stigmer/iam/federationissuer/v1/spec.proto";
+import "buf/validate/validate.proto";
+
+// FederationIssuer is an outside issuer whose tokens Stigmer accepts for its own
+// users (identity federation): one issuer and its signing keys.
+//
+// A FederationIssuer is owned by an organization (e.g., "planton") and configures
+// how Stigmer validates signed JWT assertions from that issuer's platform. It enables the
+// platform to create and manage organizations on behalf of its users, and to pass
+// user identity for FGA-based authorization.
+//
+// Example YAML:
+//   apiVersion: iam.stigmer.ai/v1
+//   kind: FederationIssuer
+//   metadata:
+//     name: Planton
+//     slug: planton
+//     org: planton
+//   spec:
+//     display_name: "Planton"
+//     jwks_uri: "https://planton-prod.us.auth0.com/.well-known/jwks.json"
+//     allowed_issuers: ["https://planton-prod.us.auth0.com/"]
+//     expected_audience: "https://api.planton.ai/"
+message FederationIssuer {
+  // API version for this resource type.
+  // Must be exactly "iam.stigmer.ai/v1".
+  string api_version = 1 [(buf.validate.field).string.const = 'iam.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  // Must be exactly "FederationIssuer".
+  string kind = 2 [(buf.validate.field).string.const = 'FederationIssuer'];
+
+  // Standard resource metadata including name, id, org, visibility, labels, and tags.
+  // The org field identifies which organization owns this federation issuer.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // User-provided federation issuer configuration (desired state).
+  FederationIssuerSpec spec = 4;
+
+  // System-managed state including audit trail.
+  ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
+}

@@ -2,7 +2,7 @@
   "title": "Identity federation",
   "pages": [
     "overview",
-    "register-identity-provider",
+    "register-federation-issuer",
     "provision-federated-accounts",
     "grant-access",
     "authentication-flow",

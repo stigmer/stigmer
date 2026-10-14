@@ -39,7 +39,7 @@ Every resource type has a typed client accessible as a property on `StigmerClien
 | `api_keys`             | ApiKey             |
 | `iam_policies`         | IamPolicy          |
 | `identity_accounts`    | IdentityAccount    |
-| `identity_providers`   | IdentityProvider   |
+| `federation_issuers`   | FederationIssuer   |
 | `organizations`        | Organization       |
 | `plugins`              | Plugin             |
 | `sessions`             | Session            |

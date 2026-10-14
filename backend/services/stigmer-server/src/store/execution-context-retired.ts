@@ -7,7 +7,7 @@
  * environment-retired.ts, its line's latest.
  *
  * What leaves. Every `execution_context` row leaves every table that keys a
- * row by kind (run-rename.ts `RUN_KIND_TABLES`): the live rows (a sealed
+ * row by kind (kind-rename.ts `KIND_TABLES`): the live rows (a sealed
  * copy of the values one run or one tool connect used, which a stopped or
  * failed run left behind), their history, their list keys and the names
  * they held. A key does not outlive the field that held it: nothing is

@@ -30,9 +30,9 @@ from ._gen._agent import (
     RunConfigInput,
 )
 from ._gen._apikey import ApiKeyClient, ApiKeyInput
+from ._gen._federationissuer import FederationIssuerClient, FederationIssuerInput
 from ._gen._iampolicy import ApiResourceRefInput, IamPolicyClient, IamPolicyInput
 from ._gen._identityaccount import IdentityAccountClient, IdentityAccountInput
-from ._gen._identityprovider import IdentityProviderClient, IdentityProviderInput
 from ._gen._oauthapp import OAuthAppClient, OAuthAppInput
 from ._gen._organization import OrganizationClient, OrganizationInput
 from ._gen._plugin import PluginClient
@@ -103,9 +103,9 @@ __all__ = [
     # Resource clients
     "AgentClient",
     "ApiKeyClient",
+    "FederationIssuerClient",
     "IamPolicyClient",
     "IdentityAccountClient",
-    "IdentityProviderClient",
     "OAuthAppClient",
     "OrganizationClient",
     "PluginClient",
@@ -121,10 +121,10 @@ __all__ = [
     "ApiResourceRefInput",
     "AttachmentInput",
     "DeleteResourceInput",
+    "FederationIssuerInput",
     "GitRepoSourceInput",
     "IamPolicyInput",
     "IdentityAccountInput",
-    "IdentityProviderInput",
     "LocalPathSourceInput",
     "OAuthAppInput",
     "OrganizationInput",

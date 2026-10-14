@@ -13,7 +13,9 @@
  *     a person and a deleted resource shown deleted; "Load more" follows
  *     the page token;
  *   - "Download JSON Lines" follows the whole history oldest first and
- *     downloads one line per entry.
+ *     downloads one line per entry;
+ *   - one line above the rows says how long the server keeps the history,
+ *     from the first page: "Kept for good" when it removes nothing.
  *
  * Everything below the network is real but the plan hooks and the file
  * download: the organization provider, the permission gate, the list hook
@@ -141,7 +143,7 @@ interface Server {
 /** How the fake server answers a read: the pages above, a plan refusal, or a failing export. */
 type ReadMode = "pages" | "plan-refusal" | "export-fails";
 
-function renderSection(mode: DeploymentMode, verdict = true, read: ReadMode = "pages"): Server {
+function renderSection(mode: DeploymentMode, verdict = true, read: ReadMode = "pages", retentionDays = 0): Server {
   const server: Server = { verdict, checks: [], reads: [] };
   const client = new Stigmer({
     baseUrl: "/",
@@ -175,8 +177,8 @@ function renderSection(mode: DeploymentMode, verdict = true, read: ReadMode = "p
             });
           }
           return input.pageToken === ""
-            ? create(AccessHistoryPageSchema, { entries: NEWEST, nextPageToken: "t1" })
-            : create(AccessHistoryPageSchema, { entries: OLDER });
+            ? create(AccessHistoryPageSchema, { entries: NEWEST, nextPageToken: "t1", oldestSequence: BigInt(1), retentionDays })
+            : create(AccessHistoryPageSchema, { entries: OLDER, oldestSequence: BigInt(1), retentionDays });
         },
       });
     }),
@@ -273,6 +275,14 @@ describe("AccessHistorySection", () => {
     expect(items.map((text) => text.match(/#(\d+)/)?.[1])).toEqual(["5", "4", "3", "2", "1"]);
     expect(screen.getByText("Ana Silva gave the members of team Core the Viewer role on a resource")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+  });
+
+  it("says above the rows how long the server keeps the history", async () => {
+    renderSection("enterprise", true, "pages", 365);
+    await waitFor(() => expect(screen.getByText("Entries older than 365 days are removed")).toBeTruthy());
+    cleanup();
+    renderSection("enterprise");
+    await waitFor(() => expect(screen.getByText("Kept for good")).toBeTruthy());
   });
 
   it("downloads the whole history oldest first, one JSON line per entry", async () => {

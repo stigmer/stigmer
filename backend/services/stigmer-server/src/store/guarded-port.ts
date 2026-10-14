@@ -1,7 +1,7 @@
 /**
  * The guarded write for a kind kept outside the shared store: the one shape
  * every such port offers (an identity account, and
- * Enterprise's team and identity provider), and the contract kit every
+ * Enterprise's team and federation issuer), and the contract kit every
  * driver of one runs.
  *
  * An update chain builds its new state across awaited steps from a row it
@@ -12,7 +12,7 @@
  * compared on the table's data column, so a status write, a rename or a
  * credential rotation that lands in between makes the swap lose, and the
  * chain runs again from a fresh read (pipeline/guarded-write.ts). A port
- * whose write can be refused for other reasons (an identity provider's
+ * whose write can be refused for other reasons (a federation issuer's
  * route another provider holds) answers a typed outcome from `swap`
  * instead of a boolean, and tells the kit which outcome landed. A port
  * keeps its narrow atomic write (`modifyById` and its kin) for the writers

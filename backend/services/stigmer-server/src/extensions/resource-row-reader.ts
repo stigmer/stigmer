@@ -7,7 +7,7 @@
  * tuples each row stands for, derived from the row when a check asks
  * (authorization/derived-tuples.ts). It reads open source's kinds from the
  * generic Store and identity accounts through the account port. A kind an
- * edition above open source serves (an identity provider, an invitation,
+ * edition above open source serves (a federation issuer, an invitation,
  * a team) lives wherever the unit that serves it keeps it, so the unit
  * says where: it registers a reader for each such kind, and the built-in
  * loader asks that reader before the generic Store. A unit that keeps its

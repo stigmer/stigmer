@@ -5,7 +5,7 @@ contents:
   
   # IAM
   - iam/identity_account.fga
-  - iam/identity_provider.fga
+  - iam/federation_issuer.fga
   - iam/iam_policy.fga
   - iam/api_key.fga
   - iam/oauth_app.fga

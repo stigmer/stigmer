@@ -9,7 +9,7 @@ Every IdentityAccount is created in one of five provisioning modes. The mode is 
 | Mode | `provisioning_mode` value | Who creates it | `idp_id` format |
 |---|---|---|---|
 | Direct | `direct` | Auth0 authentication (JIT on first login) | `auth0\|{subject}` |
-| Federated | `federated` | The platform via API, or Stigmer on the first sign-in when the IdentityProvider provisions accounts | Raw OIDC sub (e.g., `google-oauth2\|109876543210`) |
+| Federated | `federated` | The platform via API, or Stigmer on the first sign-in when the FederationIssuer provisions accounts | Raw OIDC sub (e.g., `google-oauth2\|109876543210`) |
 | Machine | `machine` | Platform bootstrap / M2M setup | `{client_id}@clients` |
 | App user | `app_user` | `TokenService.mintUserToken`, called with a service account's key | `stgm_pc\|{org}\|{external_user_id}` |
 | Service account | `service_account` | An organization admin, through `createServiceAccount` | `stgm_sa\|{org id}\|{random}` |
@@ -39,28 +39,28 @@ A direct account is created when a user signs up through Stigmer's own Auth0 ten
 
 ## Federated Mode
 
-A federated account belongs to one IdentityProvider. Who creates it depends on how that provider provisions accounts:
+A federated account belongs to one FederationIssuer. Who creates it depends on how that provider provisions accounts:
 
 - **Manual** (`create_accounts_on_sign_in` false): the platform creates each account with the `createFederatedAccount` RPC, giving the user's external subject, email, and name, before the user calls Stigmer.
 - **Just-in-time** (`create_accounts_on_sign_in`): Stigmer creates the account on the user's first sign-in, from the token's `email`, `given_name` and `family_name` (or `name`) and `picture` claims, or from the provider's `userinfo_endpoint` when the token carries no email. The profile is not refreshed on later sign-ins; the platform updates it with `updateFederatedAccount`.
 
 Whoever creates the account, the provider's `sign_in_role`, when set, is granted the first time the account signs in to an organization through the provider: the organization its token is bound to (the child organization `external_id_claim` names, or the provider's own). It is granted once per account and organization; a role an admin later removes stays removed. Every token the provider vouches for works in its bound organization only.
 
-The [sign-in flow](../../identityprovider/docs/sign-in-flow.md) shows how each request is verified and its account resolved.
+The [sign-in flow](../../federationissuer/docs/sign-in-flow.md) shows how each request is verified and its account resolved.
 
 ### Manual Flow
 
 ```
 1. Platform backend creates a federated IdentityAccount via createFederatedAccount:
-   a. Provides the IdentityProvider reference (org + slug)
+   a. Provides the FederationIssuer reference (org + slug)
    b. Provides the user's external sub claim (raw OIDC sub)
    c. Provides email, first_name, last_name, picture_url
    d. Stigmer creates the account and returns the identity_account_id
    e. Stigmer writes a self-ownership FGA tuple
 2. Platform grants roles to the new account (e.g., member on the organization)
 3. When the user authenticates via the platform's JWT:
-   a. Stigmer validates the JWT against the IdentityProvider's JWKS
-   b. Stigmer resolves the account by (identity_provider_ref, idp_id)
+   a. Stigmer validates the JWT against the FederationIssuer's JWKS
+   b. Stigmer resolves the account by (federation_issuer_ref, idp_id)
    c. If found: proceeds with FGA authorization checks, in the organization
       the token is bound to
    d. If NOT found: returns 401 Unauthorized (manual mode only; see above)
@@ -70,14 +70,14 @@ The [sign-in flow](../../identityprovider/docs/sign-in-flow.md) shows how each r
 
 - `provisioning_mode`: `federated`
 - `idp_id`: raw OIDC sub claim from the external provider (e.g., `google-oauth2|109876543210`)
-- `identity_provider_ref`: points to the owning IdentityProvider resource
-- Uniqueness: the pair `(identity_provider_ref, idp_id)` is unique
+- `federation_issuer_ref`: points to the owning FederationIssuer resource
+- Uniqueness: the pair `(federation_issuer_ref, idp_id)` is unique
 - `email`, `first_name`, `last_name`, `picture_url`: provided by the platform at account creation, or read from the first sign-in's token (or userinfo) when Stigmer creates the account
 - The account **cannot** log in to Stigmer directly — it has no credentials in Stigmer's Auth0
 
 ### `idp_id` for Federated Accounts
 
-The `idp_id` stores the raw OIDC `sub` claim from the external identity provider, exactly as it appears in the JWT. Uniqueness is scoped by the `identity_provider_ref` — two different identity providers can have users with the same `sub` without conflict.
+The `idp_id` stores the raw OIDC `sub` claim from the external identity provider, exactly as it appears in the JWT. Uniqueness is scoped by the `federation_issuer_ref` — two federation issuers can have users with the same `sub` without conflict.
 
 Example: `google-oauth2|109876543210`
 
@@ -125,7 +125,7 @@ A service account is an organization's own non-person account: the principal its
 - `idp_id`: the reserved `stgm_sa|` composite, assigned by the server; no sign-in ever resolves to it
 - `metadata.name`: its one name, unique among the organization's service accounts; `email`, `first_name`, `last_name` and `picture_url` stay empty
 - Managed by the organization's admins: they rename it, change its role, list, create and revoke its keys, and delete it, which ends every key at once
-- It is never a person: whatever credential speaks for it, it is refused creating or changing keys and service accounts, creating or deleting organizations, changing any identity account, granting or revoking a role on the organization, creating invitations, identity providers or federated accounts; it is never a team member
+- It is never a person: whatever credential speaks for it, it is refused creating or changing keys and service accounts, creating or deleting organizations, changing any identity account, granting or revoking a role on the organization, creating invitations, federation issuers or federated accounts; it is never a team member
 - The one exception is minting: an administrator's service account may mint user tokens for its organization and its child organizations (`TokenService.mintUserToken`), which creates a person's App user account on first sign-in and grants the organization's embedding sign-in role when one is set
 - Deleted and created again under the same name, it is a new principal: the random part of its subject is never reissued
 
@@ -134,4 +134,4 @@ A service account is an organization's own non-person account: the principal its
 - [README.md](README.md) — Overview and key concepts
 - [identityaccount-resource-guide.md](identityaccount-resource-guide.md) — YAML schema and CLI reference
 - [examples.md](examples.md) — Complete examples
-- [../../identityprovider/docs/README.md](../../identityprovider/docs/README.md) — IdentityProvider resource (required for federated mode)
+- [../../federationissuer/docs/README.md](../../federationissuer/docs/README.md) — FederationIssuer resource (required for federated mode)

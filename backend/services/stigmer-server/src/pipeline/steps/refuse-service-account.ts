@@ -18,7 +18,7 @@
  *     its organization's admins set, domain/token/mint.ts);
  *   - create, change or remove a federated account;
  *   - an edition's own doors of the same kind (the hosted edition's
- *     invitations and identity providers splice the step).
+ *     invitations and federation issuers splice the step).
  *
  * So a leaked key can neither outlive its revocation, by minting another
  * credential, nor widen the organization. The model alone cannot hold this:

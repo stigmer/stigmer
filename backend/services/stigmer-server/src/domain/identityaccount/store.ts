@@ -9,9 +9,9 @@
  * pipeline steps take this interface, never `Store`. Open source's own
  * implementation is resource-store.ts over the generic Store.
  *
- * The two federated reads (`findByProviderAndIdpId`, `findByProvider`)
+ * The two federated reads (`findByIssuerAndIdpId`, `findByIssuer`)
  * joined the port when a second edition came to call them: the Enterprise
- * edition serves identity providers over this port as the cloud does over
+ * edition serves federation issuers over this port as the cloud does over
  * its own table, and a read two editions make belongs on the port. A port
  * still carries no method only one edition calls.
  *
@@ -25,7 +25,7 @@
  *     `readForWrite` answered, and never creates (store/guarded-port.ts):
  *     the update chain's guarded write, so a write that lands between the
  *     chain's read and its write is never undone;
- *   - an account carries an identity_provider_ref if and only if its mode
+ *   - an account carries a federation_issuer_ref if and only if its mode
  *     is `federated`, and `save` and `swap` refuse either mixed shape.
  *     It is what "federated" means to every lookup below: while it holds,
  *     a driver may classify a row by either field and agree with every
@@ -49,12 +49,12 @@
  *     account's;
  *   - `findByIds` answers one row per distinct id, in first-occurrence
  *     order, and skips unknown ids;
- *   - `findByProviderAndIdpId` answers only a federated account, by the
- *     identity provider that vouches for it and its subject: never one
+ *   - `findByIssuerAndIdpId` answers only a federated account, by the
+ *     federation issuer that vouches for it and its subject: never one
  *     under another provider (two providers may assert one subject for two
  *     people) and never a direct account sharing the subject (the
  *     federated lane must never resolve a platform person);
- *   - `findByProvider` answers every federated account the provider
+ *   - `findByIssuer` answers every federated account the provider
  *     vouches for, in id order, and nothing of another provider's or any
  *     direct row;
  *   - a typed not-found reads as `undefined`; any other storage failure
@@ -87,7 +87,7 @@ export interface IdentityAccountStore extends GuardedWritePort<IdentityAccount> 
   /**
    * The account under a subject in any mode but federated — the getByIdpId
    * RPC's lookup and the user-token mint's. A federated subject is its
-   * identity provider's to choose, so it is reached only through the
+   * federation issuer's to choose, so it is reached only through the
    * federated natural key (provider and subject), never by a bare subject.
    */
   findByIdpId(idpId: string): Promise<IdentityAccount | undefined>;
@@ -100,17 +100,17 @@ export interface IdentityAccountStore extends GuardedWritePort<IdentityAccount> 
     ids: ReadonlyArray<string>,
   ): Promise<ReadonlyArray<IdentityAccount>>;
   /**
-   * The federated account the identity provider `providerId` vouches for
+   * The federated account the federation issuer `providerId` vouches for
    * under `idpId` — the federated sign-in's lookup, and the natural key a
    * federated account is reached by. The provider is named by its id, as
    * the stored reference holds it, so a provider's rename moves no account.
    */
-  findByProviderAndIdpId(
+  findByIssuerAndIdpId(
     providerId: string,
     idpId: string,
   ): Promise<IdentityAccount | undefined>;
-  /** Every federated account the identity provider `providerId` vouches for, in id order: what the provider's removal deletes. */
-  findByProvider(providerId: string): Promise<ReadonlyArray<IdentityAccount>>;
+  /** Every federated account the federation issuer `providerId` vouches for, in id order: what the provider's removal deletes. */
+  findByIssuer(providerId: string): Promise<ReadonlyArray<IdentityAccount>>;
   /**
    * The accounts that belong to one organization: every account whose row
    * names it in `metadata.org` (its app users and service accounts, a

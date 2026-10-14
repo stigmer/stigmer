@@ -4,7 +4,7 @@
  * JWKS-outage contract, and the Unauthenticated answer when the egress
  * policy refuses the provider's JWKS address, with fixed copy that names
  * no resolved address. Then routing and provisioning: route resolution
- * from the IdentityProvider store, a token going to the
+ * from the FederationIssuer store, a token going to the
  * one provider whose issuer AND audience it carries (two organizations on
  * one issuer each get their own users; an audience nobody registered, a
  * provider with no audience or naming a reserved issuer, route nothing;
@@ -63,9 +63,9 @@ import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
-import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
@@ -77,7 +77,7 @@ import type {
   NewAccountRequest,
 } from "../../account/port.js";
 import type { OrganizationFacts, OrganizationLookup } from "../../organization-links.js";
-import type { IdentityProviderStore } from "../../provider/store.js";
+import type { FederationIssuerStore } from "../../issuer/store.js";
 import { SILENT_LOGGER } from "../../../__test-utils__/refusing-doubles.js";
 import { newJwksKeyCache } from "../../../verifiers/jwks.js";
 import {
@@ -105,9 +105,9 @@ function provider(overrides?: {
   audience?: string;
   metadata?: { id: string; org: string; slug: string };
   userinfoEndpoint?: string;
-}): IdentityProvider {
-  return create(IdentityProviderSchema, {
-    metadata: overrides?.metadata ?? { id: "idp_1", org: "acme", slug: "acme-sso" },
+}): FederationIssuer {
+  return create(FederationIssuerSchema, {
+    metadata: overrides?.metadata ?? { id: "fis_1", org: "acme", slug: "acme-sso" },
     status: { audit: { specAudit: { createdAt: timestampFromDate(PROVIDER_CREATED) } } },
     spec: {
       jwksUri: "https://sso.customer.test/jwks",
@@ -160,7 +160,7 @@ const CLAIMS = {
 };
 
 interface Fakes {
-  providers: IdentityProvider[];
+  providers: FederationIssuer[];
   accountsByNaturalKey: Map<string, IdentityAccount>;
   created: NewAccountRequest[];
   deleted: string[];
@@ -201,7 +201,7 @@ interface Fakes {
   revoked: Array<{ readonly spec: IamPolicySpec; readonly actingFor: string | undefined }>;
 }
 
-function newFakes(providers: IdentityProvider[]): Fakes {
+function newFakes(providers: FederationIssuer[]): Fakes {
   return {
     providers,
     accountsByNaturalKey: new Map(),
@@ -241,7 +241,7 @@ function verifierOf(
     fetchUserProfile?: (endpoint: string) => Promise<UserProfile>;
   },
 ) {
-  const providerStore: Pick<IdentityProviderStore, "findLive" | "isLive"> = {
+  const providerStore: Pick<FederationIssuerStore, "findLive" | "isLive"> = {
     findLive: () => {
       fakes.providerReads += 1;
       return Promise.resolve(fakes.providers.filter((held) => !fakes.deletingIds.has(held.metadata?.id ?? "")));
@@ -261,7 +261,7 @@ function verifierOf(
   };
   const accounts = {
     store: {
-      findByProviderAndIdpId: (providerId: string, sub: string) => {
+      findByIssuerAndIdpId: (providerId: string, sub: string) => {
         fakes.accountLookups += 1;
         return Promise.resolve(fakes.accountsByNaturalKey.get(`${providerId}:${sub}`));
       },
@@ -394,7 +394,7 @@ describe("store-backed federated verifier", () => {
   it("mints the ACCOUNT id for an existing federated account", async () => {
     const fakes = newFakes([provider()]);
     fakes.accountsByNaturalKey.set(
-      "idp_1:okta|user-1",
+      "fis_1:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_existing" } }),
     );
     const identity = await verifierOf(fakes).verify(sign(CLAIMS));
@@ -409,7 +409,7 @@ describe("store-backed federated verifier", () => {
   it("resolves an Auth0-shaped issuer (trailing slash) against the canonical stored value", async () => {
     const fakes = newFakes([provider()]);
     fakes.accountsByNaturalKey.set(
-      "idp_1:okta|user-1",
+      "fis_1:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_existing" } }),
     );
     const identity = await verifierOf(fakes).verify(
@@ -421,7 +421,7 @@ describe("store-backed federated verifier", () => {
   it("resolves a canonical issuer against a stored spelling that was never normalized", async () => {
     const fakes = newFakes([provider({ allowedIssuers: [`${ISSUER}/`] })]);
     fakes.accountsByNaturalKey.set(
-      "idp_1:okta|user-1",
+      "fis_1:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_existing" } }),
     );
     const identity = await verifierOf(fakes).verify(sign(CLAIMS));
@@ -433,7 +433,7 @@ describe("store-backed federated verifier", () => {
       provider(),
       provider({
         allowedIssuers: [`${ISSUER}/`],
-        metadata: { id: "idp_2", org: "beta", slug: "beta-sso" },
+        metadata: { id: "fis_2", org: "beta", slug: "beta-sso" },
       }),
     ]);
     const warnings: string[] = [];
@@ -446,23 +446,23 @@ describe("store-backed federated verifier", () => {
       expect(refused).toBeInstanceOf(ConnectError);
       expect((refused as ConnectError).code).toBe(Code.Unauthenticated);
       expect((refused as ConnectError).rawMessage).toBe(
-        `token from issuer '${ISSUER}' matches more than one identity provider`,
+        `token from issuer '${ISSUER}' matches more than one federation issuer`,
       );
     }
-    expect(warnings).toEqual(["two identity providers share one route; tokens on it are refused"]);
+    expect(warnings).toEqual(["two federation issuers share one route; tokens on it are refused"]);
   });
 
   it("routes each organization's tokens to its own provider when two share an issuer", async () => {
     const fakes = newFakes([
       provider(),
-      provider({ audience: "https://api.beta.test/stigmer", metadata: { id: "idp_2", org: "beta", slug: "beta-sso" } }),
+      provider({ audience: "https://api.beta.test/stigmer", metadata: { id: "fis_2", org: "beta", slug: "beta-sso" } }),
     ]);
     fakes.accountsByNaturalKey.set(
-      "idp_1:okta|user-1",
+      "fis_1:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_acme" } }),
     );
     fakes.accountsByNaturalKey.set(
-      "idp_2:okta|user-1",
+      "fis_2:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_beta" } }),
     );
     const verifier = verifierOf(fakes);
@@ -486,7 +486,7 @@ describe("store-backed federated verifier", () => {
     const warnings: string[] = [];
     const noAudience = verifierOf(newFakes([provider({ audience: "" })]), { warnings });
     expect(await noAudience.verify(sign(CLAIMS))).toBeNull();
-    expect(warnings).toEqual(["identity provider has no audience and routes no token; an admin must set one"]);
+    expect(warnings).toEqual(["federation issuer has no audience and routes no token; an admin must set one"]);
 
     const reservedWarnings: string[] = [];
     const reserved = verifierOf(newFakes([provider()]), {
@@ -495,7 +495,7 @@ describe("store-backed federated verifier", () => {
     });
     expect(await reserved.verify(sign(CLAIMS))).toBeNull();
     expect(reservedWarnings).toEqual([
-      "identity provider names this platform's own sign-in issuer and routes no token",
+      "federation issuer names this platform's own sign-in issuer and routes no token",
     ]);
   });
 
@@ -511,7 +511,7 @@ describe("store-backed federated verifier", () => {
     expect(identity?.identityId).toBe("ida_new");
     expect(identity?.boundOrg).toBe("acme");
     expect(fakes.created[0].spec.email).toBe("sso@customer.test");
-    expect(fakes.created[0].spec.identityProviderRef?.id).toBe("idp_1");
+    expect(fakes.created[0].spec.federationIssuerRef?.id).toBe("fis_1");
     expect(fakes.grants.map((grant) => [grant.relation, grant.resource?.id])).toEqual([["viewer", "acme"]]);
     expect([...fakes.signInGrants.rows.keys()]).toEqual(["ida_new:acme"]);
   });
@@ -581,14 +581,14 @@ describe("store-backed federated verifier", () => {
     expect(fakes.deleted).toEqual(["ida_new"]);
     expect(errors.find((logged) => logged.message.includes("could not release"))).toEqual({
       message: "a failed sign-in could not release its first sign-in; the next sign-in to the organization grants nothing",
-      fields: { accountId: "ida_new", org: "acme", provider: "idp_1", error: "ledger unavailable" },
+      fields: { accountId: "ida_new", org: "acme", provider: "fis_1", error: "ledger unavailable" },
     });
   });
 
   it("never rolls back an account a concurrent sign-in created when this one loses the creation race and its grant fails", async () => {
     const fakes = newFakes([provider({ createAccounts: true, signInRole: IamRole.viewer })]);
     fakes.createRace = {
-      key: "idp_1:okta|user-1",
+      key: "fis_1:okta|user-1",
       account: create(IdentityAccountSchema, { metadata: { id: "ida_winner" } }),
     };
     fakes.grantFails = true;
@@ -614,7 +614,7 @@ describe("store-backed federated verifier", () => {
     const fakes = newFakes([provider({ externalIdClaim: "org_id" })]);
     fakes.childByExternalId.set("tenant-42", { parent: "acme", id: "org_tenant42" });
     fakes.accountsByNaturalKey.set(
-      "idp_1:okta|user-1",
+      "fis_1:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_existing" } }),
     );
     const identity = await verifierOf(fakes).verify(sign({ ...CLAIMS, org_id: "tenant-42" }));
@@ -650,7 +650,7 @@ describe("a returning account's token is bound on every sign-in", () => {
     fakes.childByExternalId.set("alpha", { parent: "acme", id: "org_alpha" });
     fakes.childByExternalId.set("beta", { parent: "acme", id: "org_beta" });
     fakes.accountsByNaturalKey.set(
-      "idp_1:okta|user-1",
+      "fis_1:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_alice" } }),
     );
     return fakes;
@@ -719,7 +719,7 @@ describe("a sign-in whose provider's delete has begun", () => {
     expect(
       fakes.accountDeletes,
       "the account it created goes through the account service, policies and all, acting for the provider",
-    ).toEqual([{ id: "ida_new", actingFor: "idp_1" }]);
+    ).toEqual([{ id: "ida_new", actingFor: "fis_1" }]);
     expect(fakes.deleted, "never the row-only rollback, which would leave the grant").toEqual([]);
     expect(fakes.signInGrants.rows.size).toBe(0);
   });
@@ -730,14 +730,14 @@ describe("a sign-in whose provider's delete has begun", () => {
     ]);
     fakes.childByExternalId.set("alpha", { parent: "acme", id: "org_alpha" });
     fakes.accountsByNaturalKey.set(
-      "idp_1:okta|user-1",
+      "fis_1:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_alice" } }),
     );
     fakes.markedFromRead = 2;
 
     await refusalOf(verifierOf(fakes).verify(sign({ ...CLAIMS, org_id: "alpha" })));
     expect(fakes.revoked.map(({ spec, actingFor }) => [spec.relation, spec.resource?.id, spec.principal?.id, actingFor])).toEqual([
-      ["member", "org_alpha", "ida_alice", "idp_1"],
+      ["member", "org_alpha", "ida_alice", "fis_1"],
     ]);
     expect(fakes.accountDeletes, "an account that already existed is the removal's to delete").toEqual([]);
     expect(fakes.signInGrants.rows.size).toBe(0);
@@ -753,7 +753,7 @@ describe("a sign-in whose provider's delete has begun", () => {
     expect(refused.rawMessage).toBe("IdP 'acme/acme-sso' is being deleted and signs no one in");
     expect(errors).toEqual([
       {
-        message: "a sign-in through an identity provider being deleted could not undo its write",
+        message: "a sign-in through a federation issuer being deleted could not undo its write",
         fields: { step: "delete the account", accountId: "ida_new", idp: "acme/acme-sso", error: "grant path down" },
       },
     ]);
@@ -767,22 +767,22 @@ describe("a sign-in whose provider's delete has begun", () => {
 
     const refused = await refusalOf(verifierOf(fakes, { errors }).verify(sign(CLAIMS)));
     expect(refused.rawMessage).toBe("Failed to complete sign-in from IdP 'acme/acme-sso'. Please retry authentication.");
-    expect(fakes.accountDeletes).toEqual([{ id: "ida_new", actingFor: "idp_1" }]);
+    expect(fakes.accountDeletes).toEqual([{ id: "ida_new", actingFor: "fis_1" }]);
     expect(fakes.signInGrants.rows.size).toBe(0);
     expect(errors.map((logged) => logged.message)).toEqual([
-      "could not read whether a sign-in's identity provider is live; the sign-in is refused",
+      "could not read whether a sign-in's federation issuer is live; the sign-in is refused",
     ]);
   });
 
   it("passes, once routed again and without reading an account, a token a routing cache sends through a provider no longer live", async () => {
     const fakes = newFakes([provider({ createAccounts: true, signInRole: IamRole.viewer })]);
     const verifier = verifierOf(fakes);
-    await verifier.verify(sign({ ...CLAIMS, sub: "okta|warm-up" })); // the cache now holds idp_1
+    await verifier.verify(sign({ ...CLAIMS, sub: "okta|warm-up" })); // the cache now holds fis_1
     fakes.accountsByNaturalKey.set(
-      "idp_1:okta|user-1",
+      "fis_1:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_returning" } }),
     );
-    fakes.deletingIds.add("idp_1"); // its delete has begun; this process's cache still routes it
+    fakes.deletingIds.add("fis_1"); // its delete has begun; this process's cache still routes it
     const lookupsBefore = fakes.accountLookups;
 
     expect(await verifier.verify(sign(CLAIMS)), "routed again, the token names no live provider").toBeNull();
@@ -793,20 +793,20 @@ describe("a sign-in whose provider's delete has begun", () => {
   it("forgets a cached provider that is gone and routes the token once more, to the provider created since on its route", async () => {
     const fakes = newFakes([provider({ createAccounts: true, signInRole: IamRole.viewer })]);
     const verifier = verifierOf(fakes);
-    await verifier.verify(sign({ ...CLAIMS, sub: "okta|warm-up" })); // the cache now holds idp_1
+    await verifier.verify(sign({ ...CLAIMS, sub: "okta|warm-up" })); // the cache now holds fis_1
     const readsBefore = fakes.providerReads;
 
-    // idp_1 is deleted and the slug taken again by idp_2, on the same route.
+    // fis_1 is deleted and the slug taken again by fis_2, on the same route.
     fakes.providers = [
       provider({
         createAccounts: true,
         signInRole: IamRole.viewer,
-        metadata: { id: "idp_2", org: "acme", slug: "acme-sso" },
+        metadata: { id: "fis_2", org: "acme", slug: "acme-sso" },
       }),
     ];
     // The new provider's accounts are keyed by its own id.
     fakes.accountsByNaturalKey.set(
-      "idp_2:okta|user-1",
+      "fis_2:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_of_idp_2" } }),
     );
 
@@ -827,9 +827,9 @@ describe("a sign-in whose provider's delete has begun", () => {
         (error: unknown) => error,
       );
     expect(caught, "a plain Error, which the verifier chain answers INTERNAL").not.toBeInstanceOf(ConnectError);
-    expect((caught as Error).message).toBe("could not read whether identity provider 'acme/acme-sso' is live");
+    expect((caught as Error).message).toBe("could not read whether federation issuer 'acme/acme-sso' is live");
     expect(errors.map((logged) => [logged.message, logged.fields.error])).toEqual([
-      ["could not read whether a sign-in's identity provider is live", "store unavailable"],
+      ["could not read whether a sign-in's federation issuer is live", "store unavailable"],
     ]);
     expect(fakes.created).toEqual([]);
     expect(fakes.grants).toEqual([]);
@@ -839,7 +839,7 @@ describe("a sign-in whose provider's delete has begun", () => {
     const fakes = newFakes([provider({ externalIdClaim: "org_id" })]);
     fakes.childByExternalId.set("alpha", { parent: "acme", id: "org_alpha" });
     fakes.accountsByNaturalKey.set(
-      "idp_1:okta|user-1",
+      "fis_1:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_alice" } }),
     );
     fakes.markedFromRead = 2;
@@ -858,7 +858,7 @@ describe("a sign-in whose provider's delete has begun", () => {
     expect(fakes.liveChecks, "the first sign-in wrote, so it read before and after").toBe(2);
 
     fakes.accountsByNaturalKey.set(
-      "idp_1:okta|user-1",
+      "fis_1:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_new" } }),
     );
     await verifier.verify(sign(CLAIMS));
@@ -914,7 +914,7 @@ describe("store-backed federated verifier: the profile and the token's shape", (
   it("throws Unauthenticated on expiry and bad signatures", async () => {
     const fakes = newFakes([provider()]);
     fakes.accountsByNaturalKey.set(
-      "idp_1:okta|user-1",
+      "fis_1:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_x" } }),
     );
     const verifier = verifierOf(fakes);
@@ -948,7 +948,7 @@ describe("store-backed federated verifier: the profile and the token's shape", (
   it("refuses a token with no exp, or one that is not a number, as expired", async () => {
     const fakes = newFakes([provider()]);
     fakes.accountsByNaturalKey.set(
-      "idp_1:okta|user-1",
+      "fis_1:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_x" } }),
     );
     const verifier = verifierOf(fakes);
@@ -961,7 +961,7 @@ describe("store-backed federated verifier: the profile and the token's shape", (
   it("refuses a token before its nbf, or with an nbf that is not a number, and admits one after it", async () => {
     const fakes = newFakes([provider()]);
     fakes.accountsByNaturalKey.set(
-      "idp_1:okta|user-1",
+      "fis_1:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_x" } }),
     );
     const verifier = verifierOf(fakes);
@@ -977,7 +977,7 @@ describe("store-backed federated verifier: the profile and the token's shape", (
   it("verifies RS256 whatever the header names: an unsigned token, and an HS256 one keyed by the provider's public key, are refused", async () => {
     const fakes = newFakes([provider()]);
     fakes.accountsByNaturalKey.set(
-      "idp_1:okta|user-1",
+      "fis_1:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_x" } }),
     );
     const verifier = verifierOf(fakes);
@@ -1010,7 +1010,7 @@ describe("store-backed federated verifier: the profile and the token's shape", (
     expect(error).toBeInstanceOf(ConnectError);
     expect((error as ConnectError).code).toBe(Code.Unauthenticated);
     expect((error as ConnectError).rawMessage).toBe(
-      `the identity provider for issuer '${ISSUER}' names a JWKS address this platform does not dial`,
+      `the federation issuer for issuer '${ISSUER}' names a JWKS address this platform does not dial`,
     );
     expect((error as ConnectError).rawMessage).not.toContain("10.0.0.5");
     // Like the lane's other refusals, a refused token logs nothing: a
@@ -1020,7 +1020,7 @@ describe("store-backed federated verifier: the profile and the token's shape", (
 
   it("throws a PLAIN error on a JWKS outage (infrastructure fault)", async () => {
     const fakes = newFakes([provider()]);
-    const providerStore: Pick<IdentityProviderStore, "findLive" | "isLive"> = {
+    const providerStore: Pick<FederationIssuerStore, "findLive" | "isLive"> = {
       findLive: () => Promise.resolve(fakes.providers),
       isLive: () => Promise.resolve(true),
     };
@@ -1054,7 +1054,7 @@ describe("the issuer cache: provider writes reach the lane by invalidation, or a
   /** A known account for the default provider's subject, so a routed token resolves without provisioning. */
   function withAccount(fakes: Fakes): Fakes {
     fakes.accountsByNaturalKey.set(
-      "idp_1:okta|user-1",
+      "fis_1:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_existing" } }),
     );
     return fakes;
@@ -1106,7 +1106,7 @@ describe("a provider its organization no longer owns", () => {
   it("routes nothing, and is logged, when its organization is gone", async () => {
     const fakes = newFakes([provider()]);
     fakes.accountsByNaturalKey.set(
-      "idp_1:okta|user-1",
+      "fis_1:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_existing" } }),
     );
     const warnings: string[] = [];
@@ -1114,7 +1114,7 @@ describe("a provider its organization no longer owns", () => {
 
     expect(await verifier.verify(token())).toBeNull();
     expect(warnings).toContain(
-      "identity provider's organization is gone or younger than it; it routes no token",
+      "federation issuer's organization is gone or younger than it; it routes no token",
     );
     expect(fakes.grants).toEqual([]);
   });
@@ -1135,11 +1135,11 @@ describe("a provider its organization no longer owns", () => {
   it("still routes the organization's own provider beside it", async () => {
     const orphan = provider({
       audience: "https://api.gone.test/stigmer",
-      metadata: { id: "idp_gone", org: "gone", slug: "gone-sso" },
+      metadata: { id: "fis_gone", org: "gone", slug: "gone-sso" },
     });
     const fakes = newFakes([orphan, provider()]);
     fakes.accountsByNaturalKey.set(
-      "idp_1:okta|user-1",
+      "fis_1:okta|user-1",
       create(IdentityAccountSchema, { metadata: { id: "ida_existing" } }),
     );
     const verifier = verifierOf(fakes, { organizations: new Map([["acme", ORG_CREATED]]) });

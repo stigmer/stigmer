@@ -125,6 +125,7 @@ import {
   SCHEMA_VERSION_33,
   SCHEMA_VERSION_34,
   SCHEMA_VERSION_35,
+  SCHEMA_VERSION_36,
   SCHEMA_VERSION_7,
   getSchemaVersion,
   runMigrations,
@@ -169,7 +170,7 @@ import {
 import { materializeGoFixture } from "./support.js";
 import { agentExecutionListIndex } from "../../../domain/run/list-index.js";
 import { iamPolicyListIndex } from "../../../domain/iampolicy/list-index.js";
-import { RUN_KIND_TABLES, RUN_RENAME_PAGE_SIZE } from "../../run-rename.js";
+import { KIND_TABLES, KIND_RENAME_PAGE_SIZE } from "../../kind-rename.js";
 import {
   AGENT_RUN_NAMES,
   EXECUTION_NAMES,
@@ -345,7 +346,7 @@ describe("fresh database", () => {
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-      22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
+      22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
     ]);
   });
 
@@ -1898,7 +1899,7 @@ describe("v18: agent executions are runs", () => {
 
   it("reads runs across keyset pages, missing none past the first page", () => {
     const { dbPath, db: setup } = v17Database();
-    for (let i = 0; i <= RUN_RENAME_PAGE_SIZE; i++) {
+    for (let i = 0; i <= KIND_RENAME_PAGE_SIZE; i++) {
       const id = `aex_page_${String(i).padStart(4, "0")}`;
       insertPlain(setup, "agent_execution", id, runBytes(id, "ses_1", EXECUTION_NAMES));
     }
@@ -1907,8 +1908,8 @@ describe("v18: agent executions are runs", () => {
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
     runMigrations(db, SCHEMA_VERSION_18);
-    const last = `aex_page_${String(RUN_RENAME_PAGE_SIZE).padStart(4, "0")}`;
-    expect(count(db, "resources", "agent_run")).toBe(RUN_RENAME_PAGE_SIZE + 1);
+    const last = `aex_page_${String(KIND_RENAME_PAGE_SIZE).padStart(4, "0")}`;
+    expect(count(db, "resources", "agent_run")).toBe(KIND_RENAME_PAGE_SIZE + 1);
     expect(row(db, "agent_run", last)?.data).toEqual(runBytes(last, "ses_1", AGENT_RUN_NAMES));
   });
 
@@ -2152,7 +2153,7 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
     runMigrations(db, SCHEMA_VERSION_19);
 
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_19);
-    for (const table of RUN_KIND_TABLES) {
+    for (const table of KIND_TABLES) {
       for (const kind of GONE_KINDS) {
         expect(count(db, table, kind), `${kind} in ${table}`).toBe(0);
       }
@@ -2642,7 +2643,7 @@ describe("v21: the agent run is a run", () => {
     cleanups.push(() => db.close());
     runMigrations(db, SCHEMA_VERSION_21);
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_21);
-    for (const table of RUN_KIND_TABLES) {
+    for (const table of KIND_TABLES) {
       expect(count(db, table, "agent_run"), table).toBe(0);
       expect(count(db, table, "agent_execution"), table).toBe(0);
     }
@@ -2698,7 +2699,7 @@ describe("v21: the agent run is a run", () => {
   it("reads runs across keyset pages, missing none past the first page", () => {
     const { dbPath, db: setup } = databaseAt(SCHEMA_VERSION_20);
     setup.exec("BEGIN");
-    for (let i = 0; i <= RUN_RENAME_PAGE_SIZE; i++) {
+    for (let i = 0; i <= KIND_RENAME_PAGE_SIZE; i++) {
       // Mixed case and punctuation: the keyset holds in byte order.
       const id = `${i % 2 === 0 ? "aex_" : "AEX-"}${String(i).padStart(4, "0")}`;
       insertRow(setup, "agent_run", id, runBytes(id, "ses_1", AGENT_RUN_NAMES));
@@ -2709,8 +2710,8 @@ describe("v21: the agent run is a run", () => {
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
     runMigrations(db, SCHEMA_VERSION_21);
-    expect(count(db, "resources", "run")).toBe(RUN_RENAME_PAGE_SIZE + 1);
-    for (let i = 0; i <= RUN_RENAME_PAGE_SIZE; i++) {
+    expect(count(db, "resources", "run")).toBe(KIND_RENAME_PAGE_SIZE + 1);
+    for (let i = 0; i <= KIND_RENAME_PAGE_SIZE; i++) {
       const id = `${i % 2 === 0 ? "aex_" : "AEX-"}${String(i).padStart(4, "0")}`;
       expect(row(db, "run", id)?.data, id).toEqual(runBytes(id, "ses_1", RUN_NAMES));
     }
@@ -2817,7 +2818,7 @@ describe("v22: environments and the sign-in grant table leave the store", () => 
     runMigrations(db, SCHEMA_VERSION_22);
 
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_22);
-    for (const table of RUN_KIND_TABLES) {
+    for (const table of KIND_TABLES) {
       expect(count(db, table, "environment"), `environment in ${table}`).toBe(0);
     }
     const policies = db
@@ -3234,18 +3235,44 @@ describe("v33 and v34: a session's harness state moves to its status, and every 
       },
     ]);
   });
+
+  it("v35 indexes the permission history in retention's order and keeps every entry", () => {
+    const { dbPath, db: setup } = databaseAt(SCHEMA_VERSION_34);
+    setup
+      .prepare(
+        `INSERT INTO iam_policy_history
+           (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+            principal_kind, principal_id, relation, resource_kind, resource_id, data)
+         VALUES ('acme', 1, '2026-01-01T00:00:00.000Z', 'granted', 'grant', 'ida_ana', 'user',
+                 'iamp_1', 'identity_account', 'ida_ana', 'member', 'organization', 'acme', x'00')`,
+      )
+      .run();
+    setup.close();
+
+    const db = reopen(dbPath);
+    runMigrations(db, SCHEMA_VERSION_35);
+
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_35);
+    const columns = db.prepare(`PRAGMA index_info('iam_policy_history_by_time')`).all() as Array<{
+      name: string;
+    }>;
+    expect(columns.map((column) => column.name)).toEqual(["occurred_at", "org", "sequence"]);
+    expect(db.prepare(`SELECT org, sequence FROM iam_policy_history`).all()).toEqual([
+      { org: "acme", sequence: 1 },
+    ]);
+  });
 });
 
-describe("v35: the platform client rows and the grants naming them leave", () => {
+describe("v36: the platform client rows and the grants naming them leave", () => {
   const ORG = "org_01jz0000000000000000000000";
   const SEEDED_AT = "2026-10-01 00:00:00";
 
-  /** A v34 database: the chain replayed up to the step before v35. */
-  function v34Database(): { dbPath: string; db: DatabaseSync } {
+  /** A v35 database: the chain replayed up to the step before v36. */
+  function v35Database(): { dbPath: string; db: DatabaseSync } {
     const dbPath = tempDbPath();
     const setup = new DatabaseSync(dbPath);
-    runMigrations(setup, SCHEMA_VERSION_35 - 1);
-    expect(getSchemaVersion(setup)).toBe(SCHEMA_VERSION_35 - 1);
+    runMigrations(setup, SCHEMA_VERSION_36 - 1);
+    expect(getSchemaVersion(setup)).toBe(SCHEMA_VERSION_36 - 1);
     return { dbPath, db: setup };
   }
 
@@ -3339,7 +3366,7 @@ describe("v35: the platform client rows and the grants naming them leave", () =>
   }
 
   it("removes the client rows from every table and every grant naming one, its history kept, and keeps the accounts its mints created and their grants", () => {
-    const { dbPath, db: setup } = v34Database();
+    const { dbPath, db: setup } = v35Database();
     seedClient(setup);
     seedGrants(setup);
     insert(setup, "identity_account", "ida_app_user", appUser);
@@ -3347,10 +3374,10 @@ describe("v35: the platform client rows and the grants naming them leave", () =>
 
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
-    runMigrations(db, SCHEMA_VERSION_35);
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_35);
+    runMigrations(db, SCHEMA_VERSION_36);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_36);
 
-    for (const table of RUN_KIND_TABLES) {
+    for (const table of KIND_TABLES) {
       expect(count(db, table, "platform_client"), table).toBe(0);
     }
     const policyIds = (table: string) =>
@@ -3365,7 +3392,7 @@ describe("v35: the platform client rows and the grants naming them leave", () =>
   });
 
   it("reads grants across keyset pages, missing none past the first page", () => {
-    const { dbPath, db: setup } = v34Database();
+    const { dbPath, db: setup } = v35Database();
     seedClient(setup);
     setup.exec("BEGIN");
     for (let i = 0; i <= PLATFORM_CLIENT_RETIRED_PAGE_SIZE; i++) {
@@ -3387,7 +3414,7 @@ describe("v35: the platform client rows and the grants naming them leave", () =>
 
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
-    runMigrations(db, SCHEMA_VERSION_35);
+    runMigrations(db, SCHEMA_VERSION_36);
 
     expect(count(db, "resources", "iam_policy")).toBe(PLATFORM_CLIENT_RETIRED_PAGE_SIZE);
     const last = `iam_page_${String(PLATFORM_CLIENT_RETIRED_PAGE_SIZE).padStart(4, "0")}`;
@@ -3395,8 +3422,8 @@ describe("v35: the platform client rows and the grants naming them leave", () =>
     expect(count(db, "resources", "platform_client")).toBe(0);
   });
 
-  it("a grant that does not decode fails the step, names the row, rolls back, and leaves the database at v34", () => {
-    const { dbPath, db: setup } = v34Database();
+  it("a grant that does not decode fails the step, names the row, rolls back, and leaves the database at v35", () => {
+    const { dbPath, db: setup } = v35Database();
     seedClient(setup);
     insert(setup, "iam_policy", "iam_a_retired", policyRow({ ...retiredGrants[0]!, id: "iam_a_retired" }));
     insert(setup, "iam_policy", "iam_z_broken", new Uint8Array([0x22, 0xff]));
@@ -3404,10 +3431,10 @@ describe("v35: the platform client rows and the grants naming them leave", () =>
 
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
-    expect(() => runMigrations(db, SCHEMA_VERSION_35)).toThrow(
+    expect(() => runMigrations(db, SCHEMA_VERSION_36)).toThrow(
       "iam_policy 'iam_z_broken' cannot be read to retire the platform client kind",
     );
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_35 - 1);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_36 - 1);
     expect(row(db, "iam_policy", "iam_a_retired").data).toEqual(
       policyRow({ ...retiredGrants[0]!, id: "iam_a_retired" }),
     );
@@ -3443,13 +3470,13 @@ describe("v35: the platform client rows and the grants naming them leave", () =>
 
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
-    runMigrations(db, SCHEMA_VERSION_35 - 1);
+    runMigrations(db, SCHEMA_VERSION_36 - 1);
     // The name backfill read the retired row through its envelope.
     expect(count(db, "resource_names", "platform_client")).toBe(1);
 
-    runMigrations(db, SCHEMA_VERSION_35);
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_35);
-    for (const table of RUN_KIND_TABLES) {
+    runMigrations(db, SCHEMA_VERSION_36);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_36);
+    for (const table of KIND_TABLES) {
       expect(count(db, table, "platform_client"), table).toBe(0);
     }
     expect(count(db, "resources", "iam_policy")).toBe(0);

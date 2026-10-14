@@ -86,9 +86,9 @@ function createRequest(idpId: string): IdentityAccount {
       pictureUrl: "https://example.com/p.png",
       isMachineAccount: true,
       provisioningMode: IdentityAccountProvisioningMode.direct,
-      identityProviderRef: {
+      federationIssuerRef: {
         org: "acme",
-        kind: ApiResourceKind.identity_provider,
+        kind: ApiResourceKind.federation_issuer,
         slug: "acme-okta",
       },
     },
@@ -159,7 +159,7 @@ describe("AssignBackendFields — the reserved subject namespaces", () => {
       IdentityAccountProvisioningMode.service_account,
     );
     expect(spec?.isMachineAccount).toBe(false);
-    expect(spec?.identityProviderRef).toBeUndefined();
+    expect(spec?.federationIssuerRef).toBeUndefined();
     expect(spec?.email).toBe("");
     expect(spec?.firstName).toBe("");
     expect(spec?.lastName).toBe("");

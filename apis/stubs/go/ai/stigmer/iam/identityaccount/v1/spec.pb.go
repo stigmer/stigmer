@@ -42,7 +42,7 @@ type IdentityAccountSpec struct {
 	// FAILED_PRECONDITION — a different subject is a different account.
 	// For federated accounts: the raw OIDC sub claim from the external identity
 	// provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
-	// identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
+	// federation_issuer_ref — the pair (federation_issuer_ref, idp_id) is unique.
 	// For machine accounts: the Auth0 client ID with "@clients" suffix.
 	// For app_user accounts: composite "stgm_pc|{org}|{external_user_id}" where
 	// org is the organization the minted token is for and external_user_id is
@@ -63,7 +63,7 @@ type IdentityAccountSpec struct {
 	LastName string `protobuf:"bytes,4,opt,name=last_name,json=lastName,proto3" json:"last_name,omitempty"`
 	// URL of the profile picture.
 	// For direct accounts: from Auth0 profile.
-	// For federated accounts: from the IdentityProvider's UserInfo endpoint.
+	// For federated accounts: from the FederationIssuer's UserInfo endpoint.
 	PictureUrl string `protobuf:"bytes,5,opt,name=picture_url,json=pictureUrl,proto3" json:"picture_url,omitempty"`
 	// Indicates if this is a machine account used for inter-service communication.
 	// Machine accounts have idp_id values ending with "@clients" suffix.
@@ -73,12 +73,12 @@ type IdentityAccountSpec struct {
 	// Unspecified for legacy accounts created before this field was introduced.
 	// (ignored for create) this value is assigned by backend.
 	ProvisioningMode IdentityAccountProvisioningMode `protobuf:"varint,7,opt,name=provisioning_mode,json=provisioningMode,proto3,enum=ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode" json:"provisioning_mode,omitempty"`
-	// Reference to the IdentityProvider that owns this federated account.
+	// Reference to the FederationIssuer that owns this federated account.
 	// Set only when provisioning_mode is FEDERATED. Identifies which external
-	// platform's identity provider scopes this account. Together with idp_id,
+	// platform's federation issuer scopes this account. Together with idp_id,
 	// forms the unique identity for federated accounts.
 	// (ignored for create) this value is assigned by backend.
-	IdentityProviderRef *apiresource.ApiResourceReference `protobuf:"bytes,8,opt,name=identity_provider_ref,json=identityProviderRef,proto3" json:"identity_provider_ref,omitempty"`
+	FederationIssuerRef *apiresource.ApiResourceReference `protobuf:"bytes,8,opt,name=federation_issuer_ref,json=federationIssuerRef,proto3" json:"federation_issuer_ref,omitempty"`
 	// Standing preferences declared by this identity account.
 	Preferences   *IdentityAccountPreferences `protobuf:"bytes,9,opt,name=preferences,proto3" json:"preferences,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -164,9 +164,9 @@ func (x *IdentityAccountSpec) GetProvisioningMode() IdentityAccountProvisioningM
 	return IdentityAccountProvisioningMode_identity_account_provisioning_mode_unspecified
 }
 
-func (x *IdentityAccountSpec) GetIdentityProviderRef() *apiresource.ApiResourceReference {
+func (x *IdentityAccountSpec) GetFederationIssuerRef() *apiresource.ApiResourceReference {
 	if x != nil {
-		return x.IdentityProviderRef
+		return x.FederationIssuerRef
 	}
 	return nil
 }
@@ -292,7 +292,7 @@ const file_ai_stigmer_iam_identityaccount_v1_spec_proto_rawDesc = "" +
 	"pictureUrl\x12,\n" +
 	"\x12is_machine_account\x18\x06 \x01(\bR\x10isMachineAccount\x12o\n" +
 	"\x11provisioning_mode\x18\a \x01(\x0e2B.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningModeR\x10provisioningMode\x12n\n" +
-	"\x15identity_provider_ref\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12_\n" +
+	"\x15federation_issuer_ref\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13federationIssuerRef\x12_\n" +
 	"\vpreferences\x18\t \x01(\v2=.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferencesR\vpreferences\"\xe3\x02\n" +
 	"\x1aIdentityAccountPreferences\x123\n" +
 	"\x10standing_context\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContext\x12A\n" +
@@ -324,7 +324,7 @@ var file_ai_stigmer_iam_identityaccount_v1_spec_proto_goTypes = []any{
 }
 var file_ai_stigmer_iam_identityaccount_v1_spec_proto_depIdxs = []int32{
 	2, // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec.provisioning_mode:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode
-	3, // 1: ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	3, // 1: ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec.federation_issuer_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	1, // 2: ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec.preferences:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type

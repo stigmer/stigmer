@@ -88,7 +88,7 @@ import { formatObjectRef } from "./tuples.js";
  * unknown invitation's id is PERMISSION_DENIED with the annotation's copy
  * in both), so a member cannot learn which provider, invitation or
  * team ids exist in an organization they may not read. In open source,
- * `platform`, `identity_provider`, `invitation` and `team` are refused by
+ * `platform`, `federation_issuer`, `invitation` and `team` are refused by
  * arm 2 before any row is asked about, so their entries matter only to an
  * edition that serves them. `platform` also has no row at all
  * (model/bindings.ts, ROWLESS): outside this set every check on it would
@@ -103,7 +103,7 @@ import { formatObjectRef } from "./tuples.js";
 export const NOT_FOUND_EXEMPT_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.platform,
   ApiResourceKind.identity_account,
-  ApiResourceKind.identity_provider,
+  ApiResourceKind.federation_issuer,
   ApiResourceKind.iam_policy,
   ApiResourceKind.invitation,
   ApiResourceKind.team,
