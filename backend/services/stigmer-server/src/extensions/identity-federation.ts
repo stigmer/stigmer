@@ -1,7 +1,7 @@
 /**
  * The identity-federation capability: the four
  * federated-account RPC arms the identity-account controller dispatches
- * to when a composed unit provides them, plus the identity-provider
+ * to when a composed unit provides them, plus the federation-issuer
  * existence check their shared precondition rides. Single instance,
  * registered as `drivers.identityFederation` (the organizationDirectory
  * shape: a driver point that is byte-identical OSS behaviour when absent).
@@ -54,7 +54,7 @@ export interface IdentityFederation {
     caller: CallerIdentity,
   ): Promise<IdentityAccount>;
   /**
-   * Whether the IdentityProvider `id` exists in organization `org` — the
+   * Whether the FederationIssuer `id` exists in organization `org` — the
    * arms' shared precondition. The reference was resolved to the
    * provider's id first (pipeline/steps/references.ts), so an arm always
    * receives a reference that holds the id.

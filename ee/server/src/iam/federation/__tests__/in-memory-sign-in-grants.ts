@@ -20,12 +20,12 @@ export function inMemorySignInGrants(): InMemorySignInGrants {
   return {
     rows,
     recorded: (accountId, org) => Promise.resolve(rows.has(key(accountId, org))),
-    claim(accountId, org, identityProviderId) {
+    claim(accountId, org, federationIssuerId) {
       const at = key(accountId, org);
       if (rows.has(at)) {
         return Promise.resolve(false);
       }
-      rows.set(at, identityProviderId);
+      rows.set(at, federationIssuerId);
       return Promise.resolve(true);
     },
     release(accountId, org) {

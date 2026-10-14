@@ -17,7 +17,7 @@ import {
 import { serializeManifest } from "../manifest/serialize";
 import { manifestDocumentForResource } from "../manifest/document";
 import { manifestKinds, manifestHandlerForYamlKind, type ServiceClientFn } from "../manifest/registry";
-import { RenameInputSchema, type RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema, RenameInputSchema, type RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
 /**
  * Manifest engine contract tests.
@@ -495,7 +495,32 @@ describe("manifest registry", () => {
       expect(await handler.rename?.(recording, input)).toBe(input);
     }
 
-    expect(renamable.map((h) => h.yamlKind).sort()).toEqual(["Agent", "ChannelApp", "IdentityProvider", "OAuthApp", "Schedule"]);
+    expect(renamable.map((h) => h.yamlKind).sort()).toEqual(["Agent", "ChannelApp", "FederationIssuer", "OAuthApp", "Schedule"]);
     expect(services).toEqual(renamable.map((h) => h.schema.typeName.replace(/\.([A-Za-z]+)$/, ".$1CommandController")));
+  });
+
+  it("binds apply and getByReference on every manifest kind, each through its own command and query service", async () => {
+    const services: string[] = [];
+    const recording = ((service: { readonly typeName: string }) => {
+      services.push(service.typeName);
+      return {
+        apply: (resource: unknown) => Promise.resolve(resource),
+        getByReference: (ref: unknown) => Promise.resolve(ref),
+      };
+    }) as unknown as ServiceClientFn;
+    const ref = create(ApiResourceReferenceSchema, { org: "acme", slug: "named" });
+
+    for (const handler of manifestKinds()) {
+      const resource = create(handler.schema);
+      expect(await handler.apply(recording, resource)).toBe(resource);
+      expect(await handler.getByReference(recording, ref)).toBe(ref);
+    }
+
+    expect(services).toEqual(
+      manifestKinds().flatMap((h) => [
+        h.schema.typeName.replace(/\.([A-Za-z]+)$/, ".$1CommandController"),
+        h.schema.typeName.replace(/\.([A-Za-z]+)$/, ".$1QueryController"),
+      ]),
+    );
   });
 });

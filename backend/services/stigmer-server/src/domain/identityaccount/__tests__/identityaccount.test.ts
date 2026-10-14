@@ -21,7 +21,7 @@
  *     immutability shape); an update of an id no account holds is the
  *     byte-pinned NOT_FOUND copy;
  *   - an update keeps a write that lands through the port between its read
- *     and its write (an email the identity provider asserted): the lost
+ *     and its write (an email the federation issuer asserted): the lost
  *     swap runs the chain again from a fresh read, so both are kept;
  *   - the byte-pinned NOT_FOUND copy on get / getByEmail / getByIdpId /
  *     whoAmI; getActorInfo names the account the way its audit stamps
@@ -513,7 +513,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
         () =>
           command.createFederatedAccount({
             org: "acme",
-            identityProviderRef: ref,
+            federationIssuerRef: ref,
             externalSub: "okta|1",
             email: "person@example.com",
           }),
@@ -523,7 +523,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
         () =>
           command.updateFederatedAccount({
             org: "acme",
-            identityProviderRef: ref,
+            federationIssuerRef: ref,
             externalSub: "okta|1",
             email: "person@example.com",
           }),
@@ -533,7 +533,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
         () =>
           command.deprovisionFederatedAccount({
             org: "acme",
-            identityProviderRef: ref,
+            federationIssuerRef: ref,
             externalSub: "okta|1",
           }),
       ],
@@ -542,7 +542,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
         () =>
           query.getByExternalSub({
             org: "acme",
-            identityProviderRef: ref,
+            federationIssuerRef: ref,
             externalSub: "okta|1",
           }),
       ],

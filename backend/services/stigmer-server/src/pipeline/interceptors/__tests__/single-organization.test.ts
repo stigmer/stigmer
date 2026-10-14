@@ -78,7 +78,7 @@ describe("fillRuleFor — one path per method, from the contract", () => {
       { path: "org" },
     ],
     [
-      "a top-level org on an owner-only kind (the identity provider's organization) fills org",
+      "a top-level org on an owner-only kind (the federation issuer's organization) fills org",
       IdentityAccountCommandController.method.createFederatedAccount,
       { path: "org" },
     ],

@@ -36,9 +36,8 @@ export function toTimestamp(value: Date | string): Timestamp {
  * back without the id would name nothing. `version` is preserved —
  * dropping it would reset a pinned reference to "latest". `kind` is also
  * preserved: builders overwrite it where the proto annotates a reference
- * kind, but refs without that annotation (e.g. an organization's
- * identityProviderRef) carry the stored kind, so dropping it would be
- * lossy.
+ * kind, but refs without that annotation carry the stored kind, so
+ * dropping it would be lossy.
  */
 export function toResourceRefInput(ref: ApiResourceReference | undefined): ResourceRef | undefined {
   if (!ref || (!ref.org && !ref.slug && !ref.id)) return undefined;

@@ -8,7 +8,7 @@
  * is dropped. It follows workflow-retired.ts, its line's latest.
  *
  * What leaves. Every `environment` row leaves every table that keys a row
- * by kind (run-rename.ts `RUN_KIND_TABLES`): the live rows (a person's
+ * by kind (kind-rename.ts `KIND_TABLES`): the live rows (a person's
  * personal environment and every OAuth-managed one included), their
  * history, their list keys and the names they held. No value is moved into
  * a vault: a person saves their keys again, and signs in again, into My

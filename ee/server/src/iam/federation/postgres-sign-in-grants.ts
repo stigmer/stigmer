@@ -19,13 +19,13 @@ export function newSignInGrantLedger(pool: Pool): SignInGrantLedger {
       return result.rowCount !== null && result.rowCount > 0;
     },
 
-    async claim(accountId, org, identityProviderId) {
+    async claim(accountId, org, federationIssuerId) {
       const result = await pool.query(
-        `INSERT INTO ee.iam_sign_in_grants (account_id, org, identity_provider_id)
+        `INSERT INTO ee.iam_sign_in_grants (account_id, org, federation_issuer_id)
          VALUES ($1, $2, $3)
          ON CONFLICT (account_id, org) DO NOTHING
          RETURNING account_id`,
-        [accountId, org, identityProviderId],
+        [accountId, org, federationIssuerId],
       );
       return result.rowCount !== null && result.rowCount > 0;
     },

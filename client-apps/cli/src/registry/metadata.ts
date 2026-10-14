@@ -48,11 +48,12 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
     { name: "ApiKey", displayName: "API Key", idPrefix: "key" },
   ],
   [
-    ApiResourceKind.identity_provider,
+    ApiResourceKind.federation_issuer,
     {
-      name: "IdentityProvider",
-      displayName: "Identity Provider",
-      idPrefix: "idp",
+      name: "FederationIssuer",
+      displayName: "Federation Issuer",
+      idPrefix: "fis",
+      retiredIdPrefixes: ["idp"],
     },
   ],
   [
@@ -118,7 +119,7 @@ export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [
   ApiResourceKind.skill,
   ApiResourceKind.plugin,
   ApiResourceKind.api_key,
-  ApiResourceKind.identity_provider,
+  ApiResourceKind.federation_issuer,
   ApiResourceKind.oauth_app,
   ApiResourceKind.vault,
   ApiResourceKind.agent_share,

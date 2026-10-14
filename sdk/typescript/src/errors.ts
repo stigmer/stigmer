@@ -156,13 +156,13 @@ const CATEGORY_FALLBACKS: Record<ErrorCategory, string> = {
 const AUTH_ERROR_PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   [
     /token audience does not match/i,
-    "The token's audience does not match the IdentityProvider's expected_audience. " +
+    "The token's audience does not match the FederationIssuer's expected_audience. " +
       "Verify your Auth0 API identifier matches the expected_audience configured in Stigmer.",
   ],
   [
     /token signature verification failed/i,
     "Token signature verification failed. " +
-      "Check that the IdentityProvider's jwks_uri points to the correct JWKS endpoint.",
+      "Check that the FederationIssuer's jwks_uri points to the correct JWKS endpoint.",
   ],
   [
     /token has expired/i,
@@ -177,7 +177,7 @@ const AUTH_ERROR_PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   [
     /account provisioning failed/i,
     "SSO account provisioning failed. " +
-      "Ensure the IdentityProvider's userinfo_endpoint is configured and the " +
+      "Ensure the FederationIssuer's userinfo_endpoint is configured and the " +
       "access token includes the 'openid email profile' scopes.",
   ],
 ];

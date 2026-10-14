@@ -359,8 +359,8 @@ export function tsProtoFieldName(protoField: string): string {
 const TS_CLIENT_FIELD_NAMES = new Map<string, string>([
   ["agentchannel", "agentChannel"],
   ["agentshare", "agentShare"],
+  ["federationissuer", "federationIssuer"],
   ["identityaccount", "identityAccount"],
-  ["identityprovider", "identityProvider"],
   ["iampolicy", "iamPolicy"],
   ["apikey", "apiKey"],
 ]);

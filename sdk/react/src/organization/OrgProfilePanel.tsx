@@ -10,8 +10,8 @@ import { useUpdateOrganization } from "./useUpdateOrganization.js";
 import { useRenameOrganization } from "./useRenameOrganization.js";
 import { useOptionalOrg } from "./OrgProvider.js";
 import { useSingleOrg } from "../server-info.js";
-import { useIdentityProviderList } from "../identity-provider/useIdentityProviderList.js";
-import { IDENTITY_PROVIDERS_MANAGED_BY_ADMINS } from "../identity-provider/copy.js";
+import { useFederationIssuerList } from "../federation-issuer/useFederationIssuerList.js";
+import { FEDERATION_ISSUERS_MANAGED_BY_ADMINS } from "../federation-issuer/copy.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
@@ -387,53 +387,53 @@ export function OrgProfilePanel({
         )}
       </div>
 
-      {/* -- Identity Providers summary -- */}
-      <IdentityProvidersSummary orgId={serverOrgId} />
+      {/* -- Federation Issuers summary -- */}
+      <FederationIssuersSummary orgId={serverOrgId} />
     </form>
   );
 }
 
 // ---------------------------------------------------------------------------
-// IdentityProvidersSummary — shows linked IDPs on the org profile
+// FederationIssuersSummary — shows linked federation issuers on the org profile
 // ---------------------------------------------------------------------------
 
 /**
- * The list holds only the providers the caller may view, so an empty list
+ * The list holds only the issuers the caller may view, so an empty list
  * invites setting one up only when the server has not said the caller may
- * not create providers; otherwise it says who manages them.
+ * not create issuers; otherwise it says who manages them.
  */
-function IdentityProvidersSummary({ orgId }: { orgId: string }) {
-  const idpAvailable = useResourceAvailable(ApiResourceKind.identity_provider);
-  const { identityProviders, isLoading } = useIdentityProviderList(
-    idpAvailable && orgId ? orgId : null,
+function FederationIssuersSummary({ orgId }: { orgId: string }) {
+  const issuerAvailable = useResourceAvailable(ApiResourceKind.federation_issuer);
+  const { federationIssuers, isLoading } = useFederationIssuerList(
+    issuerAvailable && orgId ? orgId : null,
   );
   const createCheck = useCheckPermission(
-    idpAvailable && orgId ? { kind: "organization", id: orgId } : null,
-    "can_create_idp",
+    issuerAvailable && orgId ? { kind: "organization", id: orgId } : null,
+    "can_create_federation_issuer",
   );
   const deniedCreate = !createCheck.isLoading && !createCheck.allowed;
 
-  if (!idpAvailable || !orgId) return null;
+  if (!issuerAvailable || !orgId) return null;
 
   return (
     <>
       <hr className="stg:border-border" />
       <div className="stg:space-y-2">
         <p className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground stg:uppercase stg:tracking-wider">
-          Identity Providers
+          Federation Issuers
         </p>
 
         {isLoading ? (
           <div className="stg:bg-muted-subtle stg:h-8 stg:animate-pulse stg:rounded" />
-        ) : identityProviders.length === 0 && deniedCreate ? (
+        ) : federationIssuers.length === 0 && deniedCreate ? (
           <p className="stg:text-xs stg:text-muted-foreground">
-            {IDENTITY_PROVIDERS_MANAGED_BY_ADMINS}
+            {FEDERATION_ISSUERS_MANAGED_BY_ADMINS}
           </p>
-        ) : identityProviders.length === 0 ? (
+        ) : federationIssuers.length === 0 ? (
           <p className="stg:text-xs stg:text-muted-foreground">
-            No identity providers configured.{" "}
+            No federation issuers configured.{" "}
             <a
-              href="/settings/identity-providers"
+              href="/settings/federation-issuers"
               className="stg:text-primary stg:hover:text-primary-hover stg:underline stg:underline-offset-2"
             >
               Set up federated authentication
@@ -441,15 +441,15 @@ function IdentityProvidersSummary({ orgId }: { orgId: string }) {
           </p>
         ) : (
           <div className="stg:space-y-1.5">
-            {identityProviders.map((idp) => {
-              const spec = idp.spec;
+            {federationIssuers.map((issuer) => {
+              const spec = issuer.spec;
               const displayName =
-                spec?.displayName || idp.metadata?.name || "Unnamed";
+                spec?.displayName || issuer.metadata?.name || "Unnamed";
               const isJit = spec?.createAccountsOnSignIn;
 
               return (
                 <div
-                  key={idp.metadata?.id}
+                  key={issuer.metadata?.id}
                   className="stg:flex stg:items-center stg:gap-2 stg:text-xs"
                 >
                   <ShieldSmallIcon />
@@ -463,7 +463,7 @@ function IdentityProvidersSummary({ orgId }: { orgId: string }) {
               );
             })}
             <a
-              href="/settings/identity-providers"
+              href="/settings/federation-issuers"
               className="stg:inline-block stg:text-[0.65rem] stg:text-primary stg:hover:text-primary-hover stg:underline stg:underline-offset-2"
             >
               Manage

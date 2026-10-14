@@ -148,10 +148,11 @@ else. Use this pattern only for MCP servers you operate yourself.
 
 For a `stigmer_user`, the value is the email the person's sign-in asserted, and
 the server takes it as given. On a server where each Organization can bring its
-own Identity Provider, that includes every one of those providers: an
-Organization's provider can sign a person in with any email it chooses.
+own Federation Issuer, that includes every one of those issuers: an
+Organization's Federation Issuer can sign a person in with any email it chooses.
 
 So the email identifies a person only to an MCP server whose operator trusts
-every Identity Provider of every Organization the Stigmer server serves. If you
-serve Organizations whose providers you do not control, grant by something those
-providers cannot choose, or keep privileged tools out of their reach.
+every Federation Issuer of every Organization the Stigmer server serves. If you
+serve Organizations whose Federation Issuers you do not control, grant by
+something those issuers cannot choose, or keep privileged tools out of their
+reach.

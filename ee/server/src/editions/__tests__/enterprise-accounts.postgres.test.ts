@@ -9,7 +9,7 @@
  * The service is the one the server composes, filled from the same
  * hand-over: a unit composed after the entry's receives the composition's
  * account domain and in-process transport, on a licensed server over
- * Postgres whose two identity providers (acme-okta and acme-entra, in one
+ * Postgres whose two federation issuers (acme-okta and acme-entra, in one
  * organization) vouch for every account the cases make; the provider
  * lines read one subject under both, and each provider's own accounts.
  * Keys are made through the library's own key lane as the account's
@@ -35,7 +35,7 @@ import { newEnterpriseAccounts } from "../enterprise-accounts.js";
 import {
   bootEnterprise,
   createOrganization,
-  createProvider,
+  createIssuer,
   issueKey,
   keysOf,
   licenseClaims,
@@ -77,13 +77,13 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the Enterprise account service
     });
     const owner = await signIn(booted, issuer, "operator|alice");
     const acme = await createOrganization(owner, "acme");
-    const provider = await createProvider(owner, issuer, acme, "acme-okta");
-    const otherProvider = await createProvider(owner, issuer, acme, "acme-entra");
+    const provider = await createIssuer(owner, issuer, acme, "acme-okta");
+    const otherIssuer = await createIssuer(owner, issuer, acme, "acme-entra");
     const server = booted.server;
     underTest = {
       service: accounts.service,
       provider: { org: acme, slug: "acme-okta", id: provider.metadata?.id ?? "" },
-      otherProvider: { org: acme, slug: "acme-entra", id: otherProvider.metadata?.id ?? "" },
+      otherIssuer: { org: acme, slug: "acme-entra", id: otherIssuer.metadata?.id ?? "" },
       issueKey: async (account) => {
         await issueKey(server, account.metadata?.id ?? "", acme);
       },

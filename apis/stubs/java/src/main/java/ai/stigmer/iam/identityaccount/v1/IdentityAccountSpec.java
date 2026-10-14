@@ -80,7 +80,7 @@ private static final long serialVersionUID = 0L;
    * FAILED_PRECONDITION — a different subject is a different account.
    * For federated accounts: the raw OIDC sub claim from the external identity
    * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
-   * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
+   * federation_issuer_ref — the pair (federation_issuer_ref, idp_id) is unique.
    * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
    * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
    * where org is the Stigmer org that owns the PlatformClient(s) and
@@ -119,7 +119,7 @@ private static final long serialVersionUID = 0L;
    * FAILED_PRECONDITION — a different subject is a different account.
    * For federated accounts: the raw OIDC sub claim from the external identity
    * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
-   * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
+   * federation_issuer_ref — the pair (federation_issuer_ref, idp_id) is unique.
    * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
    * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
    * where org is the Stigmer org that owns the PlatformClient(s) and
@@ -303,7 +303,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * URL of the profile picture.
    * For direct accounts: from Auth0 profile.
-   * For federated accounts: from the IdentityProvider's UserInfo endpoint.
+   * For federated accounts: from the FederationIssuer's UserInfo endpoint.
    * </pre>
    *
    * <code>string picture_url = 5 [json_name = "pictureUrl"];</code>
@@ -326,7 +326,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * URL of the profile picture.
    * For direct accounts: from Auth0 profile.
-   * For federated accounts: from the IdentityProvider's UserInfo endpoint.
+   * For federated accounts: from the FederationIssuer's UserInfo endpoint.
    * </pre>
    *
    * <code>string picture_url = 5 [json_name = "pictureUrl"];</code>
@@ -394,54 +394,54 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode.UNRECOGNIZED : result;
   }
 
-  public static final int IDENTITY_PROVIDER_REF_FIELD_NUMBER = 8;
-  private ai.stigmer.commons.apiresource.ApiResourceReference identityProviderRef_;
+  public static final int FEDERATION_ISSUER_REF_FIELD_NUMBER = 8;
+  private ai.stigmer.commons.apiresource.ApiResourceReference federationIssuerRef_;
   /**
    * <pre>
-   * Reference to the IdentityProvider that owns this federated account.
+   * Reference to the FederationIssuer that owns this federated account.
    * Set only when provisioning_mode is FEDERATED. Identifies which external
-   * platform's identity provider scopes this account. Together with idp_id,
+   * platform's federation issuer scopes this account. Together with idp_id,
    * forms the unique identity for federated accounts.
    * (ignored for create) this value is assigned by backend.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
-   * @return Whether the identityProviderRef field is set.
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 8 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
+   * @return Whether the federationIssuerRef field is set.
    */
   @java.lang.Override
-  public boolean hasIdentityProviderRef() {
+  public boolean hasFederationIssuerRef() {
     return ((bitField0_ & 0x00000001) != 0);
   }
   /**
    * <pre>
-   * Reference to the IdentityProvider that owns this federated account.
+   * Reference to the FederationIssuer that owns this federated account.
    * Set only when provisioning_mode is FEDERATED. Identifies which external
-   * platform's identity provider scopes this account. Together with idp_id,
+   * platform's federation issuer scopes this account. Together with idp_id,
    * forms the unique identity for federated accounts.
    * (ignored for create) this value is assigned by backend.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
-   * @return The identityProviderRef.
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 8 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
+   * @return The federationIssuerRef.
    */
   @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReference getIdentityProviderRef() {
-    return identityProviderRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : identityProviderRef_;
+  public ai.stigmer.commons.apiresource.ApiResourceReference getFederationIssuerRef() {
+    return federationIssuerRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : federationIssuerRef_;
   }
   /**
    * <pre>
-   * Reference to the IdentityProvider that owns this federated account.
+   * Reference to the FederationIssuer that owns this federated account.
    * Set only when provisioning_mode is FEDERATED. Identifies which external
-   * platform's identity provider scopes this account. Together with idp_id,
+   * platform's federation issuer scopes this account. Together with idp_id,
    * forms the unique identity for federated accounts.
    * (ignored for create) this value is assigned by backend.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 8 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
    */
   @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getIdentityProviderRefOrBuilder() {
-    return identityProviderRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : identityProviderRef_;
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getFederationIssuerRefOrBuilder() {
+    return federationIssuerRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : federationIssuerRef_;
   }
 
   public static final int PREFERENCES_FIELD_NUMBER = 9;
@@ -518,7 +518,7 @@ private static final long serialVersionUID = 0L;
       output.writeEnum(7, provisioningMode_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
-      output.writeMessage(8, getIdentityProviderRef());
+      output.writeMessage(8, getFederationIssuerRef());
     }
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(9, getPreferences());
@@ -557,7 +557,7 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(8, getIdentityProviderRef());
+        .computeMessageSize(8, getFederationIssuerRef());
     }
     if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -591,10 +591,10 @@ private static final long serialVersionUID = 0L;
     if (getIsMachineAccount()
         != other.getIsMachineAccount()) return false;
     if (provisioningMode_ != other.provisioningMode_) return false;
-    if (hasIdentityProviderRef() != other.hasIdentityProviderRef()) return false;
-    if (hasIdentityProviderRef()) {
-      if (!getIdentityProviderRef()
-          .equals(other.getIdentityProviderRef())) return false;
+    if (hasFederationIssuerRef() != other.hasFederationIssuerRef()) return false;
+    if (hasFederationIssuerRef()) {
+      if (!getFederationIssuerRef()
+          .equals(other.getFederationIssuerRef())) return false;
     }
     if (hasPreferences() != other.hasPreferences()) return false;
     if (hasPreferences()) {
@@ -627,9 +627,9 @@ private static final long serialVersionUID = 0L;
         getIsMachineAccount());
     hash = (37 * hash) + PROVISIONING_MODE_FIELD_NUMBER;
     hash = (53 * hash) + provisioningMode_;
-    if (hasIdentityProviderRef()) {
-      hash = (37 * hash) + IDENTITY_PROVIDER_REF_FIELD_NUMBER;
-      hash = (53 * hash) + getIdentityProviderRef().hashCode();
+    if (hasFederationIssuerRef()) {
+      hash = (37 * hash) + FEDERATION_ISSUER_REF_FIELD_NUMBER;
+      hash = (53 * hash) + getFederationIssuerRef().hashCode();
     }
     if (hasPreferences()) {
       hash = (37 * hash) + PREFERENCES_FIELD_NUMBER;
@@ -776,7 +776,7 @@ private static final long serialVersionUID = 0L;
     private void maybeForceBuilderInitialization() {
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
-        internalGetIdentityProviderRefFieldBuilder();
+        internalGetFederationIssuerRefFieldBuilder();
         internalGetPreferencesFieldBuilder();
       }
     }
@@ -791,10 +791,10 @@ private static final long serialVersionUID = 0L;
       pictureUrl_ = "";
       isMachineAccount_ = false;
       provisioningMode_ = 0;
-      identityProviderRef_ = null;
-      if (identityProviderRefBuilder_ != null) {
-        identityProviderRefBuilder_.dispose();
-        identityProviderRefBuilder_ = null;
+      federationIssuerRef_ = null;
+      if (federationIssuerRefBuilder_ != null) {
+        federationIssuerRefBuilder_.dispose();
+        federationIssuerRefBuilder_ = null;
       }
       preferences_ = null;
       if (preferencesBuilder_ != null) {
@@ -857,9 +857,9 @@ private static final long serialVersionUID = 0L;
       }
       int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.identityProviderRef_ = identityProviderRefBuilder_ == null
-            ? identityProviderRef_
-            : identityProviderRefBuilder_.build();
+        result.federationIssuerRef_ = federationIssuerRefBuilder_ == null
+            ? federationIssuerRef_
+            : federationIssuerRefBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
       if (((from_bitField0_ & 0x00000100) != 0)) {
@@ -914,8 +914,8 @@ private static final long serialVersionUID = 0L;
       if (other.provisioningMode_ != 0) {
         setProvisioningModeValue(other.getProvisioningModeValue());
       }
-      if (other.hasIdentityProviderRef()) {
-        mergeIdentityProviderRef(other.getIdentityProviderRef());
+      if (other.hasFederationIssuerRef()) {
+        mergeFederationIssuerRef(other.getFederationIssuerRef());
       }
       if (other.hasPreferences()) {
         mergePreferences(other.getPreferences());
@@ -983,7 +983,7 @@ private static final long serialVersionUID = 0L;
             } // case 56
             case 66: {
               input.readMessage(
-                  internalGetIdentityProviderRefFieldBuilder().getBuilder(),
+                  internalGetFederationIssuerRefFieldBuilder().getBuilder(),
                   extensionRegistry);
               bitField0_ |= 0x00000080;
               break;
@@ -1024,7 +1024,7 @@ private static final long serialVersionUID = 0L;
      * FAILED_PRECONDITION — a different subject is a different account.
      * For federated accounts: the raw OIDC sub claim from the external identity
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
-     * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
+     * federation_issuer_ref — the pair (federation_issuer_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
      * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
      * where org is the Stigmer org that owns the PlatformClient(s) and
@@ -1062,7 +1062,7 @@ private static final long serialVersionUID = 0L;
      * FAILED_PRECONDITION — a different subject is a different account.
      * For federated accounts: the raw OIDC sub claim from the external identity
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
-     * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
+     * federation_issuer_ref — the pair (federation_issuer_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
      * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
      * where org is the Stigmer org that owns the PlatformClient(s) and
@@ -1101,7 +1101,7 @@ private static final long serialVersionUID = 0L;
      * FAILED_PRECONDITION — a different subject is a different account.
      * For federated accounts: the raw OIDC sub claim from the external identity
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
-     * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
+     * federation_issuer_ref — the pair (federation_issuer_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
      * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
      * where org is the Stigmer org that owns the PlatformClient(s) and
@@ -1136,7 +1136,7 @@ private static final long serialVersionUID = 0L;
      * FAILED_PRECONDITION — a different subject is a different account.
      * For federated accounts: the raw OIDC sub claim from the external identity
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
-     * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
+     * federation_issuer_ref — the pair (federation_issuer_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
      * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
      * where org is the Stigmer org that owns the PlatformClient(s) and
@@ -1168,7 +1168,7 @@ private static final long serialVersionUID = 0L;
      * FAILED_PRECONDITION — a different subject is a different account.
      * For federated accounts: the raw OIDC sub claim from the external identity
      * provider (e.g., "google-oauth2|109876543210"). Uniqueness is scoped by
-     * identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.
+     * federation_issuer_ref — the pair (federation_issuer_ref, idp_id) is unique.
      * For machine accounts: the Auth0 client ID with "&#64;clients" suffix.
      * For platform_client accounts: composite "stgm_pc|{org}|{external_user_id}"
      * where org is the Stigmer org that owns the PlatformClient(s) and
@@ -1490,7 +1490,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * URL of the profile picture.
      * For direct accounts: from Auth0 profile.
-     * For federated accounts: from the IdentityProvider's UserInfo endpoint.
+     * For federated accounts: from the FederationIssuer's UserInfo endpoint.
      * </pre>
      *
      * <code>string picture_url = 5 [json_name = "pictureUrl"];</code>
@@ -1512,7 +1512,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * URL of the profile picture.
      * For direct accounts: from Auth0 profile.
-     * For federated accounts: from the IdentityProvider's UserInfo endpoint.
+     * For federated accounts: from the FederationIssuer's UserInfo endpoint.
      * </pre>
      *
      * <code>string picture_url = 5 [json_name = "pictureUrl"];</code>
@@ -1535,7 +1535,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * URL of the profile picture.
      * For direct accounts: from Auth0 profile.
-     * For federated accounts: from the IdentityProvider's UserInfo endpoint.
+     * For federated accounts: from the FederationIssuer's UserInfo endpoint.
      * </pre>
      *
      * <code>string picture_url = 5 [json_name = "pictureUrl"];</code>
@@ -1554,7 +1554,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * URL of the profile picture.
      * For direct accounts: from Auth0 profile.
-     * For federated accounts: from the IdentityProvider's UserInfo endpoint.
+     * For federated accounts: from the FederationIssuer's UserInfo endpoint.
      * </pre>
      *
      * <code>string picture_url = 5 [json_name = "pictureUrl"];</code>
@@ -1570,7 +1570,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * URL of the profile picture.
      * For direct accounts: from Auth0 profile.
-     * For federated accounts: from the IdentityProvider's UserInfo endpoint.
+     * For federated accounts: from the FederationIssuer's UserInfo endpoint.
      * </pre>
      *
      * <code>string picture_url = 5 [json_name = "pictureUrl"];</code>
@@ -1719,62 +1719,62 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private ai.stigmer.commons.apiresource.ApiResourceReference identityProviderRef_;
+    private ai.stigmer.commons.apiresource.ApiResourceReference federationIssuerRef_;
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> identityProviderRefBuilder_;
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> federationIssuerRefBuilder_;
     /**
      * <pre>
-     * Reference to the IdentityProvider that owns this federated account.
+     * Reference to the FederationIssuer that owns this federated account.
      * Set only when provisioning_mode is FEDERATED. Identifies which external
-     * platform's identity provider scopes this account. Together with idp_id,
+     * platform's federation issuer scopes this account. Together with idp_id,
      * forms the unique identity for federated accounts.
      * (ignored for create) this value is assigned by backend.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
-     * @return Whether the identityProviderRef field is set.
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 8 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
+     * @return Whether the federationIssuerRef field is set.
      */
-    public boolean hasIdentityProviderRef() {
+    public boolean hasFederationIssuerRef() {
       return ((bitField0_ & 0x00000080) != 0);
     }
     /**
      * <pre>
-     * Reference to the IdentityProvider that owns this federated account.
+     * Reference to the FederationIssuer that owns this federated account.
      * Set only when provisioning_mode is FEDERATED. Identifies which external
-     * platform's identity provider scopes this account. Together with idp_id,
+     * platform's federation issuer scopes this account. Together with idp_id,
      * forms the unique identity for federated accounts.
      * (ignored for create) this value is assigned by backend.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
-     * @return The identityProviderRef.
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 8 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
+     * @return The federationIssuerRef.
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference getIdentityProviderRef() {
-      if (identityProviderRefBuilder_ == null) {
-        return identityProviderRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : identityProviderRef_;
+    public ai.stigmer.commons.apiresource.ApiResourceReference getFederationIssuerRef() {
+      if (federationIssuerRefBuilder_ == null) {
+        return federationIssuerRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : federationIssuerRef_;
       } else {
-        return identityProviderRefBuilder_.getMessage();
+        return federationIssuerRefBuilder_.getMessage();
       }
     }
     /**
      * <pre>
-     * Reference to the IdentityProvider that owns this federated account.
+     * Reference to the FederationIssuer that owns this federated account.
      * Set only when provisioning_mode is FEDERATED. Identifies which external
-     * platform's identity provider scopes this account. Together with idp_id,
+     * platform's federation issuer scopes this account. Together with idp_id,
      * forms the unique identity for federated accounts.
      * (ignored for create) this value is assigned by backend.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 8 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
      */
-    public Builder setIdentityProviderRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (identityProviderRefBuilder_ == null) {
+    public Builder setFederationIssuerRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (federationIssuerRefBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        identityProviderRef_ = value;
+        federationIssuerRef_ = value;
       } else {
-        identityProviderRefBuilder_.setMessage(value);
+        federationIssuerRefBuilder_.setMessage(value);
       }
       bitField0_ |= 0x00000080;
       onChanged();
@@ -1782,21 +1782,21 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Reference to the IdentityProvider that owns this federated account.
+     * Reference to the FederationIssuer that owns this federated account.
      * Set only when provisioning_mode is FEDERATED. Identifies which external
-     * platform's identity provider scopes this account. Together with idp_id,
+     * platform's federation issuer scopes this account. Together with idp_id,
      * forms the unique identity for federated accounts.
      * (ignored for create) this value is assigned by backend.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 8 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
      */
-    public Builder setIdentityProviderRef(
+    public Builder setFederationIssuerRef(
         ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
-      if (identityProviderRefBuilder_ == null) {
-        identityProviderRef_ = builderForValue.build();
+      if (federationIssuerRefBuilder_ == null) {
+        federationIssuerRef_ = builderForValue.build();
       } else {
-        identityProviderRefBuilder_.setMessage(builderForValue.build());
+        federationIssuerRefBuilder_.setMessage(builderForValue.build());
       }
       bitField0_ |= 0x00000080;
       onChanged();
@@ -1804,28 +1804,28 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Reference to the IdentityProvider that owns this federated account.
+     * Reference to the FederationIssuer that owns this federated account.
      * Set only when provisioning_mode is FEDERATED. Identifies which external
-     * platform's identity provider scopes this account. Together with idp_id,
+     * platform's federation issuer scopes this account. Together with idp_id,
      * forms the unique identity for federated accounts.
      * (ignored for create) this value is assigned by backend.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 8 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
      */
-    public Builder mergeIdentityProviderRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (identityProviderRefBuilder_ == null) {
+    public Builder mergeFederationIssuerRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (federationIssuerRefBuilder_ == null) {
         if (((bitField0_ & 0x00000080) != 0) &&
-          identityProviderRef_ != null &&
-          identityProviderRef_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
-          getIdentityProviderRefBuilder().mergeFrom(value);
+          federationIssuerRef_ != null &&
+          federationIssuerRef_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
+          getFederationIssuerRefBuilder().mergeFrom(value);
         } else {
-          identityProviderRef_ = value;
+          federationIssuerRef_ = value;
         }
       } else {
-        identityProviderRefBuilder_.mergeFrom(value);
+        federationIssuerRefBuilder_.mergeFrom(value);
       }
-      if (identityProviderRef_ != null) {
+      if (federationIssuerRef_ != null) {
         bitField0_ |= 0x00000080;
         onChanged();
       }
@@ -1833,83 +1833,83 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Reference to the IdentityProvider that owns this federated account.
+     * Reference to the FederationIssuer that owns this federated account.
      * Set only when provisioning_mode is FEDERATED. Identifies which external
-     * platform's identity provider scopes this account. Together with idp_id,
+     * platform's federation issuer scopes this account. Together with idp_id,
      * forms the unique identity for federated accounts.
      * (ignored for create) this value is assigned by backend.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 8 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
      */
-    public Builder clearIdentityProviderRef() {
+    public Builder clearFederationIssuerRef() {
       bitField0_ = (bitField0_ & ~0x00000080);
-      identityProviderRef_ = null;
-      if (identityProviderRefBuilder_ != null) {
-        identityProviderRefBuilder_.dispose();
-        identityProviderRefBuilder_ = null;
+      federationIssuerRef_ = null;
+      if (federationIssuerRefBuilder_ != null) {
+        federationIssuerRefBuilder_.dispose();
+        federationIssuerRefBuilder_ = null;
       }
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Reference to the IdentityProvider that owns this federated account.
+     * Reference to the FederationIssuer that owns this federated account.
      * Set only when provisioning_mode is FEDERATED. Identifies which external
-     * platform's identity provider scopes this account. Together with idp_id,
+     * platform's federation issuer scopes this account. Together with idp_id,
      * forms the unique identity for federated accounts.
      * (ignored for create) this value is assigned by backend.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 8 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getIdentityProviderRefBuilder() {
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getFederationIssuerRefBuilder() {
       bitField0_ |= 0x00000080;
       onChanged();
-      return internalGetIdentityProviderRefFieldBuilder().getBuilder();
+      return internalGetFederationIssuerRefFieldBuilder().getBuilder();
     }
     /**
      * <pre>
-     * Reference to the IdentityProvider that owns this federated account.
+     * Reference to the FederationIssuer that owns this federated account.
      * Set only when provisioning_mode is FEDERATED. Identifies which external
-     * platform's identity provider scopes this account. Together with idp_id,
+     * platform's federation issuer scopes this account. Together with idp_id,
      * forms the unique identity for federated accounts.
      * (ignored for create) this value is assigned by backend.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 8 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getIdentityProviderRefOrBuilder() {
-      if (identityProviderRefBuilder_ != null) {
-        return identityProviderRefBuilder_.getMessageOrBuilder();
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getFederationIssuerRefOrBuilder() {
+      if (federationIssuerRefBuilder_ != null) {
+        return federationIssuerRefBuilder_.getMessageOrBuilder();
       } else {
-        return identityProviderRef_ == null ?
-            ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : identityProviderRef_;
+        return federationIssuerRef_ == null ?
+            ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : federationIssuerRef_;
       }
     }
     /**
      * <pre>
-     * Reference to the IdentityProvider that owns this federated account.
+     * Reference to the FederationIssuer that owns this federated account.
      * Set only when provisioning_mode is FEDERATED. Identifies which external
-     * platform's identity provider scopes this account. Together with idp_id,
+     * platform's federation issuer scopes this account. Together with idp_id,
      * forms the unique identity for federated accounts.
      * (ignored for create) this value is assigned by backend.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference federation_issuer_ref = 8 [json_name = "federationIssuerRef", (.ai.stigmer.commons.apiresource.reference_kind) = federation_issuer];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-        internalGetIdentityProviderRefFieldBuilder() {
-      if (identityProviderRefBuilder_ == null) {
-        identityProviderRefBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+        internalGetFederationIssuerRefFieldBuilder() {
+      if (federationIssuerRefBuilder_ == null) {
+        federationIssuerRefBuilder_ = new com.google.protobuf.SingleFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
-                getIdentityProviderRef(),
+                getFederationIssuerRef(),
                 getParentForChildren(),
                 isClean());
-        identityProviderRef_ = null;
+        federationIssuerRef_ = null;
       }
-      return identityProviderRefBuilder_;
+      return federationIssuerRefBuilder_;
     }
 
     private ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences preferences_;

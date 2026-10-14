@@ -74,7 +74,7 @@
  * configuration rather than a caller (the organization creator's row, the
  * membership rules, the trusted-local operator), which call the grant path
  * directly, nor an edition's in-process doors that grant a role on a
- * person's behalf (an invitation's redemption, an identity provider's
+ * person's behalf (an invitation's redemption, a federation issuer's
  * auto-grant), which run as `internal` and hold the same rule at their own
  * sites.
  *

@@ -50,13 +50,13 @@ const (
 	// who observes its runs, a share link to it, or a channel it answers on.
 	IamPermission_can_manage_audience IamPermission = 48
 	// Organization-level create permissions.
-	IamPermission_can_create_agent            IamPermission = 6
-	IamPermission_can_create_session          IamPermission = 8
-	IamPermission_can_create_skill            IamPermission = 9
-	IamPermission_can_create_idp              IamPermission = 11
-	IamPermission_can_create_identity_account IamPermission = 21
-	IamPermission_can_create_oauth_app        IamPermission = 23
-	IamPermission_can_create_platform_client  IamPermission = 24
+	IamPermission_can_create_agent             IamPermission = 6
+	IamPermission_can_create_session           IamPermission = 8
+	IamPermission_can_create_skill             IamPermission = 9
+	IamPermission_can_create_federation_issuer IamPermission = 11
+	IamPermission_can_create_identity_account  IamPermission = 21
+	IamPermission_can_create_oauth_app         IamPermission = 23
+	IamPermission_can_create_platform_client   IamPermission = 24
 	// Resource-level create permissions.
 	IamPermission_can_create_run_in IamPermission = 13
 	// Execution permission.
@@ -152,7 +152,7 @@ var (
 		6:  "can_create_agent",
 		8:  "can_create_session",
 		9:  "can_create_skill",
-		11: "can_create_idp",
+		11: "can_create_federation_issuer",
 		21: "can_create_identity_account",
 		23: "can_create_oauth_app",
 		24: "can_create_platform_client",
@@ -181,44 +181,44 @@ var (
 		56: "can_view_access_history",
 	}
 	IamPermission_value = map[string]int32{
-		"unspecified":                 0,
-		"can_view":                    1,
-		"can_edit":                    2,
-		"can_delete":                  3,
-		"can_grant_access":            4,
-		"can_view_access":             5,
-		"can_assign_roles":            47,
-		"can_manage_audience":         48,
-		"can_create_agent":            6,
-		"can_create_session":          8,
-		"can_create_skill":            9,
-		"can_create_idp":              11,
-		"can_create_identity_account": 21,
-		"can_create_oauth_app":        23,
-		"can_create_platform_client":  24,
-		"can_create_run_in":           13,
-		"can_execute":                 15,
-		"can_bootstrap_iam":           17,
-		"can_view_billing":            27,
-		"can_manage_billing":          28,
-		"can_execute_billing_ops":     29,
-		"can_create_agent_share":      30,
-		"can_create_agent_channel":    54,
-		"can_create_channel_app":      31,
-		"can_manage_model_pricing":    32,
-		"can_participate":             36,
-		"can_write_reserved_labels":   37,
-		"can_create_plugin":           40,
-		"can_manage_plans":            41,
-		"can_issue_license":           42,
-		"can_create_team":             45,
-		"can_manage_child_orgs":       49,
-		"can_view_settings":           50,
-		"can_create_vault":            51,
-		"can_create_shared_vault":     52,
-		"can_use":                     53,
-		"can_manage_keys":             55,
-		"can_view_access_history":     56,
+		"unspecified":                  0,
+		"can_view":                     1,
+		"can_edit":                     2,
+		"can_delete":                   3,
+		"can_grant_access":             4,
+		"can_view_access":              5,
+		"can_assign_roles":             47,
+		"can_manage_audience":          48,
+		"can_create_agent":             6,
+		"can_create_session":           8,
+		"can_create_skill":             9,
+		"can_create_federation_issuer": 11,
+		"can_create_identity_account":  21,
+		"can_create_oauth_app":         23,
+		"can_create_platform_client":   24,
+		"can_create_run_in":            13,
+		"can_execute":                  15,
+		"can_bootstrap_iam":            17,
+		"can_view_billing":             27,
+		"can_manage_billing":           28,
+		"can_execute_billing_ops":      29,
+		"can_create_agent_share":       30,
+		"can_create_agent_channel":     54,
+		"can_create_channel_app":       31,
+		"can_manage_model_pricing":     32,
+		"can_participate":              36,
+		"can_write_reserved_labels":    37,
+		"can_create_plugin":            40,
+		"can_manage_plans":             41,
+		"can_issue_license":            42,
+		"can_create_team":              45,
+		"can_manage_child_orgs":        49,
+		"can_view_settings":            50,
+		"can_create_vault":             51,
+		"can_create_shared_vault":      52,
+		"can_use":                      53,
+		"can_manage_keys":              55,
+		"can_view_access_history":      56,
 	}
 )
 
@@ -430,7 +430,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1\x1a google/protobuf/descriptor.proto\"R\n" +
 	"\vIamRoleMeta\x12!\n" +
 	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription*\x84\v\n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription*\x92\v\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -443,8 +443,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x13can_manage_audience\x100\x12\x14\n" +
 	"\x10can_create_agent\x10\x06\x12\x16\n" +
 	"\x12can_create_session\x10\b\x12\x14\n" +
-	"\x10can_create_skill\x10\t\x12\x12\n" +
-	"\x0ecan_create_idp\x10\v\x12\x1f\n" +
+	"\x10can_create_skill\x10\t\x12 \n" +
+	"\x1ccan_create_federation_issuer\x10\v\x12\x1f\n" +
 	"\x1bcan_create_identity_account\x10\x15\x12\x18\n" +
 	"\x14can_create_oauth_app\x10\x17\x12\x1e\n" +
 	"\x1acan_create_platform_client\x10\x18\x12\x15\n" +

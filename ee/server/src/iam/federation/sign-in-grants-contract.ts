@@ -45,9 +45,9 @@ const CASES: ReadonlyArray<PortContractDeclaration<SignInGrantLedger>> = [
     "a first sign-in is claimed once and reads as recorded",
     async ({ store }) => {
       assert.equal(await store.recorded("ida_a", "org_alpha"), false);
-      assert.equal(await store.claim("ida_a", "org_alpha", "idp_1"), true, "the claim that writes the row wins");
-      assert.equal(await store.claim("ida_a", "org_alpha", "idp_1"), false, "a later claim never wins");
-      assert.equal(await store.claim("ida_a", "org_alpha", "idp_2"), false, "nor a later one through another provider");
+      assert.equal(await store.claim("ida_a", "org_alpha", "fis_1"), true, "the claim that writes the row wins");
+      assert.equal(await store.claim("ida_a", "org_alpha", "fis_1"), false, "a later claim never wins");
+      assert.equal(await store.claim("ida_a", "org_alpha", "fis_2"), false, "nor a later one through another provider");
       assert.equal(await store.recorded("ida_a", "org_alpha"), true);
     },
   ],
@@ -55,7 +55,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<SignInGrantLedger>> = [
     "of concurrent claims, exactly one wins",
     async ({ store }) => {
       const outcomes = await Promise.all(
-        Array.from({ length: 8 }, () => store.claim("ida_race", "org_alpha", "idp_1")),
+        Array.from({ length: 8 }, () => store.claim("ida_race", "org_alpha", "fis_1")),
       );
       assert.equal(outcomes.filter(Boolean).length, 1);
       assert.equal(await store.recorded("ida_race", "org_alpha"), true);
@@ -64,9 +64,9 @@ const CASES: ReadonlyArray<PortContractDeclaration<SignInGrantLedger>> = [
   [
     "each (account, organization) is its own row",
     async ({ store }) => {
-      assert.equal(await store.claim("ida_b", "org_alpha", "idp_1"), true);
-      assert.equal(await store.claim("ida_b", "org_beta", "idp_1"), true, "another organization of the same account");
-      assert.equal(await store.claim("ida_c", "org_alpha", "idp_1"), true, "another account in the same organization");
+      assert.equal(await store.claim("ida_b", "org_alpha", "fis_1"), true);
+      assert.equal(await store.claim("ida_b", "org_beta", "fis_1"), true, "another organization of the same account");
+      assert.equal(await store.claim("ida_c", "org_alpha", "fis_1"), true, "another account in the same organization");
       assert.equal(await store.recorded("ida_d", "org_alpha"), false);
       assert.equal(await store.recorded("ida_b", "org_gamma"), false);
     },
@@ -74,21 +74,21 @@ const CASES: ReadonlyArray<PortContractDeclaration<SignInGrantLedger>> = [
   [
     "a released row is no longer recorded and can be claimed again",
     async ({ store }) => {
-      assert.equal(await store.claim("ida_e", "org_alpha", "idp_1"), true);
-      assert.equal(await store.claim("ida_e", "org_beta", "idp_1"), true);
+      assert.equal(await store.claim("ida_e", "org_alpha", "fis_1"), true);
+      assert.equal(await store.claim("ida_e", "org_beta", "fis_1"), true);
       await store.release("ida_e", "org_alpha");
       assert.equal(await store.recorded("ida_e", "org_alpha"), false);
       assert.equal(await store.recorded("ida_e", "org_beta"), true, "a release takes only the row it names");
-      assert.equal(await store.claim("ida_e", "org_alpha", "idp_1"), true);
+      assert.equal(await store.claim("ida_e", "org_alpha", "fis_1"), true);
       await assert.doesNotReject(store.release("ida_never", "org_alpha"));
     },
   ],
   [
     "an organization's removal takes its rows and no other's, counts them, and a second run removes nothing",
     async ({ store }) => {
-      await store.claim("ida_f", "org_gone", "idp_1");
-      await store.claim("ida_g", "org_gone", "idp_2");
-      await store.claim("ida_f", "org_kept", "idp_1");
+      await store.claim("ida_f", "org_gone", "fis_1");
+      await store.claim("ida_g", "org_gone", "fis_2");
+      await store.claim("ida_f", "org_kept", "fis_1");
       assert.equal(await store.removeByOrgId("org_gone"), 2);
       assert.equal(await store.recorded("ida_f", "org_gone"), false);
       assert.equal(await store.recorded("ida_g", "org_gone"), false);
@@ -102,7 +102,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<SignInGrantLedger>> = [
     async ({ store, disconnect }) => {
       await disconnect();
       await assert.rejects(store.recorded("ida_a", "org_alpha"));
-      await assert.rejects(store.claim("ida_a", "org_alpha", "idp_1"));
+      await assert.rejects(store.claim("ida_a", "org_alpha", "fis_1"));
       await assert.rejects(store.release("ida_a", "org_alpha"));
       await assert.rejects(store.removeByOrgId("org_alpha"));
     },

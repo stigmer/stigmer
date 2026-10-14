@@ -848,7 +848,7 @@
         {
           "name": "federated",
           "number": 2,
-          "description": "Account was created by the platform for federated authentication via an IdentityProvider."
+          "description": "Account was created by the platform for federated authentication via a FederationIssuer."
         },
         {
           "name": "machine",
@@ -982,9 +982,9 @@
           "description": "Shareable link for joining an organization with a configurable role."
         },
         {
-          "name": "identity_provider",
+          "name": "federation_issuer",
           "number": 21,
-          "description": "External identity provider for federated authentication."
+          "description": "An outside issuer whose tokens Stigmer accepts for its own users\n (identity federation): its keys, its audience, and what its tokens get."
         },
         {
           "name": "oauth_app",

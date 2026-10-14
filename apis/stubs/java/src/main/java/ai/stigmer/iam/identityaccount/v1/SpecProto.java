@@ -59,10 +59,10 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "t\030\006 \001(\010R\020isMachineAccount\022o\n\021provisionin" +
       "g_mode\030\007 \001(\0162B.ai.stigmer.iam.identityac" +
       "count.v1.IdentityAccountProvisioningMode" +
-      "R\020provisioningMode\022n\n\025identity_provider_" +
+      "R\020provisioningMode\022n\n\025federation_issuer_" +
       "ref\030\010 \001(\01324.ai.stigmer.commons.apiresour" +
-      "ce.ApiResourceReferenceB\004\340\205,\025R\023identityP" +
-      "roviderRef\022_\n\013preferences\030\t \001(\0132=.ai.sti" +
+      "ce.ApiResourceReferenceB\004\340\205,\025R\023federatio" +
+      "nIssuerRef\022_\n\013preferences\030\t \001(\0132=.ai.sti" +
       "gmer.iam.identityaccount.v1.IdentityAcco" +
       "untPreferencesR\013preferences\"\343\002\n\032Identity" +
       "AccountPreferences\0223\n\020standing_context\030\001" +
@@ -93,7 +93,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_identityaccount_v1_IdentityAccountSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityaccount_v1_IdentityAccountSpec_descriptor,
-        new java.lang.String[] { "IdpId", "Email", "FirstName", "LastName", "PictureUrl", "IsMachineAccount", "ProvisioningMode", "IdentityProviderRef", "Preferences", });
+        new java.lang.String[] { "IdpId", "Email", "FirstName", "LastName", "PictureUrl", "IsMachineAccount", "ProvisioningMode", "FederationIssuerRef", "Preferences", });
     internal_static_ai_stigmer_iam_identityaccount_v1_IdentityAccountPreferences_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_iam_identityaccount_v1_IdentityAccountPreferences_fieldAccessorTable = new

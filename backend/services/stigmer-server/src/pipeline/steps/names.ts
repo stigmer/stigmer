@@ -116,7 +116,7 @@ export const NAMED_KINDS: Readonly<Record<ApiResourceKind, NamedKind>> = {
       "the cloud's unique index is the claim; nothing references or renames it",
   },
   // The cloud's chains claim it through the exported steps.
-  [ApiResourceKind.identity_provider]: CLAIMS,
+  [ApiResourceKind.federation_issuer]: CLAIMS,
   [ApiResourceKind.oauth_app]: CLAIMS,
   [ApiResourceKind.platform_client]: CLAIMS,
   // The cloud's chains claim it through the exported steps.

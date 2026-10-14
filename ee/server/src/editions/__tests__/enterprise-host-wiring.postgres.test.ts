@@ -27,7 +27,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
-import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
+import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import {
@@ -93,7 +93,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the self-hosted Enterprise ser
   });
 
   it("reserves the operator's issuer, its trailing-slash spelling included", async () => {
-    const providers = createClient(IdentityProviderCommandController, owner.transport);
+    const providers = createClient(FederationIssuerCommandController, owner.transport);
     const operator = issuer.issuerUrl(OPERATOR_ISSUER_NAME);
     for (const spelling of [operator, `${operator}/`]) {
       const refused = await refusalOf(
@@ -136,7 +136,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the self-hosted Enterprise ser
       const strictOwner = await signIn(strict, issuer, "operator|bea");
       const org = await createOrganization(strictOwner, "beta");
       const refused = await refusalOf(
-        createClient(IdentityProviderCommandController, strictOwner.transport).create(
+        createClient(FederationIssuerCommandController, strictOwner.transport).create(
           providerRequest(issuer, org, "beta-okta"),
         ),
       );
@@ -149,7 +149,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the self-hosted Enterprise ser
   }, 120_000);
 
   it("on the operator's word dials every provider URL through the guarded fetch: a loopback provider is saved, link-local is never dialed", async () => {
-    const providers = createClient(IdentityProviderCommandController, owner.transport);
+    const providers = createClient(FederationIssuerCommandController, owner.transport);
     dialed.length = 0;
     await providers.create(providerRequest(issuer, acme, "acme-okta"));
     expect(dialed).toContain(`${issuer.tlsIssuerUrl("acme-okta")}/.well-known/openid-configuration`);
