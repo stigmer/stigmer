@@ -834,6 +834,9 @@ export type AccessHistoryPage = Message<"ai.stigmer.iam.iampolicy.v1.AccessHisto
   /**
    * Set when more entries may follow: pass it as page_token, with the same
    * request otherwise, to continue. Empty when this page reached the end.
+   * A page may be short, even empty, and still carry a token: a parent
+   * organization's administrators are not shown the entries about a child's
+   * resources.
    *
    * @generated from field: string next_page_token = 2;
    */

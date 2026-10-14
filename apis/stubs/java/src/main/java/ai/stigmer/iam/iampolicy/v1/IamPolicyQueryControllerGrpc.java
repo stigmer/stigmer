@@ -517,7 +517,11 @@ public final class IamPolicyQueryControllerGrpc {
      * organization numbers its entries from 1 in the order they happened,
      * with no gaps, so a reader that resumes after entry N never misses one.
      * Only the organization's owners and administrators may read it, and a
-     * parent organization's administrators for a child. The Enterprise and
+     * parent organization's administrators for a child. A parent's
+     * administrators manage a child without reading what it holds, so they
+     * read only the entries about the child organization itself (who holds
+     * which role in it), never the child's resources or who was given access
+     * to them. The Enterprise and
      * Cloud editions keep the history; an open-source server keeps none and
      * answers UNIMPLEMENTED. A host may refuse the read for its own reasons,
      * such as a plan that does not include it.
@@ -727,7 +731,11 @@ public final class IamPolicyQueryControllerGrpc {
      * organization numbers its entries from 1 in the order they happened,
      * with no gaps, so a reader that resumes after entry N never misses one.
      * Only the organization's owners and administrators may read it, and a
-     * parent organization's administrators for a child. The Enterprise and
+     * parent organization's administrators for a child. A parent's
+     * administrators manage a child without reading what it holds, so they
+     * read only the entries about the child organization itself (who holds
+     * which role in it), never the child's resources or who was given access
+     * to them. The Enterprise and
      * Cloud editions keep the history; an open-source server keeps none and
      * answers UNIMPLEMENTED. A host may refuse the read for its own reasons,
      * such as a plan that does not include it.
@@ -916,7 +924,11 @@ public final class IamPolicyQueryControllerGrpc {
      * organization numbers its entries from 1 in the order they happened,
      * with no gaps, so a reader that resumes after entry N never misses one.
      * Only the organization's owners and administrators may read it, and a
-     * parent organization's administrators for a child. The Enterprise and
+     * parent organization's administrators for a child. A parent's
+     * administrators manage a child without reading what it holds, so they
+     * read only the entries about the child organization itself (who holds
+     * which role in it), never the child's resources or who was given access
+     * to them. The Enterprise and
      * Cloud editions keep the history; an open-source server keeps none and
      * answers UNIMPLEMENTED. A host may refuse the read for its own reasons,
      * such as a plan that does not include it.
@@ -1104,7 +1116,11 @@ public final class IamPolicyQueryControllerGrpc {
      * organization numbers its entries from 1 in the order they happened,
      * with no gaps, so a reader that resumes after entry N never misses one.
      * Only the organization's owners and administrators may read it, and a
-     * parent organization's administrators for a child. The Enterprise and
+     * parent organization's administrators for a child. A parent's
+     * administrators manage a child without reading what it holds, so they
+     * read only the entries about the child organization itself (who holds
+     * which role in it), never the child's resources or who was given access
+     * to them. The Enterprise and
      * Cloud editions keep the history; an open-source server keeps none and
      * answers UNIMPLEMENTED. A host may refuse the read for its own reasons,
      * such as a plan that does not include it.
@@ -1300,7 +1316,11 @@ public final class IamPolicyQueryControllerGrpc {
      * organization numbers its entries from 1 in the order they happened,
      * with no gaps, so a reader that resumes after entry N never misses one.
      * Only the organization's owners and administrators may read it, and a
-     * parent organization's administrators for a child. The Enterprise and
+     * parent organization's administrators for a child. A parent's
+     * administrators manage a child without reading what it holds, so they
+     * read only the entries about the child organization itself (who holds
+     * which role in it), never the child's resources or who was given access
+     * to them. The Enterprise and
      * Cloud editions keep the history; an open-source server keeps none and
      * answers UNIMPLEMENTED. A host may refuse the read for its own reasons,
      * such as a plan that does not include it.

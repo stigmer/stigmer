@@ -1671,6 +1671,9 @@ type AccessHistoryPage struct {
 	Entries []*AccessHistoryEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
 	// Set when more entries may follow: pass it as page_token, with the same
 	// request otherwise, to continue. Empty when this page reached the end.
+	// A page may be short, even empty, and still carry a token: a parent
+	// organization's administrators are not shown the entries about a child's
+	// resources.
 	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

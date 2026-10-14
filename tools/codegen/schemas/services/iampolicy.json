@@ -133,7 +133,7 @@
           "inputFullType": "ai.stigmer.iam.iampolicy.v1.ListAccessHistoryInput",
           "outputType": "AccessHistoryPage",
           "outputFullType": "ai.stigmer.iam.iampolicy.v1.AccessHistoryPage",
-          "description": "List an organization's access history: every time someone was given\n or lost access to the organization or to a resource in it, who did it,\n why, and when.\n\n Without after_sequence the entries come newest first, for people\n reading what happened lately. With after_sequence they come oldest\n first, starting just after that entry, for a tool that keeps its own\n copy: it asks for what came after the last entry it holds. Each\n organization numbers its entries from 1 in the order they happened,\n with no gaps, so a reader that resumes after entry N never misses one.\n\n Only the organization's owners and administrators may read it, and a\n parent organization's administrators for a child. The Enterprise and\n Cloud editions keep the history; an open-source server keeps none and\n answers UNIMPLEMENTED. A host may refuse the read for its own reasons,\n such as a plan that does not include it."
+          "description": "List an organization's access history: every time someone was given\n or lost access to the organization or to a resource in it, who did it,\n why, and when.\n\n Without after_sequence the entries come newest first, for people\n reading what happened lately. With after_sequence they come oldest\n first, starting just after that entry, for a tool that keeps its own\n copy: it asks for what came after the last entry it holds. Each\n organization numbers its entries from 1 in the order they happened,\n with no gaps, so a reader that resumes after entry N never misses one.\n\n Only the organization's owners and administrators may read it, and a\n parent organization's administrators for a child. A parent's\n administrators manage a child without reading what it holds, so they\n read only the entries about the child organization itself (who holds\n which role in it), never the child's resources or who was given access\n to them. The Enterprise and\n Cloud editions keep the history; an open-source server keeps none and\n answers UNIMPLEMENTED. A host may refuse the read for its own reasons,\n such as a plan that does not include it."
         }
       ]
     }
@@ -804,7 +804,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Set when more entries may follow: pass it as page_token, with the same\n request otherwise, to continue. Empty when this page reached the end.",
+          "description": "Set when more entries may follow: pass it as page_token, with the same\n request otherwise, to continue. Empty when this page reached the end.\n A page may be short, even empty, and still carry a token: a parent\n organization's administrators are not shown the entries about a child's\n resources.",
           "required": false
         }
       ]
