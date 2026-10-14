@@ -54,6 +54,7 @@ public final class RunInput {
     private final ConversationCatchupInput conversationCatchup;
     private final PluginEvalCaseContextInput pluginEvalCase;
     private final boolean reconcileFileReview;
+    private final java.util.List<String> excludedPluginIds;
 
     private RunInput(Builder builder) {
         this.id = builder.id;
@@ -79,6 +80,7 @@ public final class RunInput {
         this.conversationCatchup = builder.conversationCatchup;
         this.pluginEvalCase = builder.pluginEvalCase;
         this.reconcileFileReview = builder.reconcileFileReview;
+        this.excludedPluginIds = builder.excludedPluginIds;
     }
 
     Run toProto() {
@@ -130,6 +132,9 @@ public final class RunInput {
             spec.setPluginEvalCase(this.pluginEvalCase.toProto());
         }
         spec.setReconcileFileReview(this.reconcileFileReview);
+        if (this.excludedPluginIds != null && !this.excludedPluginIds.isEmpty()) {
+            spec.addAllExcludedPluginIds(this.excludedPluginIds);
+        }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
         if (this.org != null) {
@@ -181,6 +186,7 @@ public final class RunInput {
         private ConversationCatchupInput conversationCatchup;
         private PluginEvalCaseContextInput pluginEvalCase;
         private boolean reconcileFileReview;
+        private java.util.List<String> excludedPluginIds;
 
         private Builder() {}
 
@@ -212,6 +218,7 @@ public final class RunInput {
         public Builder conversationCatchup(ConversationCatchupInput conversationCatchup) { this.conversationCatchup = conversationCatchup; return this; }
         public Builder pluginEvalCase(PluginEvalCaseContextInput pluginEvalCase) { this.pluginEvalCase = pluginEvalCase; return this; }
         public Builder reconcileFileReview(boolean reconcileFileReview) { this.reconcileFileReview = reconcileFileReview; return this; }
+        public Builder excludedPluginIds(java.util.List<String> excludedPluginIds) { this.excludedPluginIds = excludedPluginIds; return this; }
 
         public RunInput build() { return new RunInput(this); }
     }

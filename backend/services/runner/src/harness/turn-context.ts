@@ -503,6 +503,7 @@ export async function resolveAgentBlueprint(
     session,
     execution.status,
     execution.metadata?.labels ?? {},
+    execution.spec?.excludedPluginIds,
   );
   deps.timing.mark("resolve_blueprint");
   return { session, blueprint };

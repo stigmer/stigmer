@@ -52,6 +52,15 @@
  * subagent's own context from them (harness/turn-context.ts
  * `resolveSubagents`).
  *
+ * Exclusion. A run's `excluded_plugin_ids` (set only by the server's
+ * evals, to run a case without the plugin it compares) leaves those
+ * plugins out of the turn wherever they come from: the agent's list, the
+ * session's, or a subagent's. Each is matched on the resolved plugin's id,
+ * since a reference may still name a plugin by slug alone, so a plugin
+ * left out is still read; it loads nothing into the turn. The server
+ * plans the run's values without the same plugins (domain/run/
+ * run-plugins.ts).
+ *
  * A turn whose run carries the judge label is the built-in judge
  * (builtin-judge.ts), whatever its stamp: the judge's code-defined spec is
  * the agent, with id "" as the built-ins have, and the turn gets no plugin,
@@ -140,6 +149,7 @@ export async function resolveBlueprint(
   session: Session,
   recorded: RecordedRunAgent | undefined,
   runLabels: Readonly<Record<string, string>>,
+  excludedPluginIds: readonly string[] = [],
 ): Promise<ResolvedBlueprint> {
   const sessionSpec = session.spec!;
 
@@ -163,8 +173,10 @@ export async function resolveBlueprint(
 
   const org = session.metadata?.org ?? "";
   const pluginRefs = mergePluginRefs(agentSpec?.plugins ?? [], sessionSpec.plugins, org);
-  const plugins = await resolvePlugins(client, pluginRefs);
-  const subagents = await resolveSubagents(client, agentSpec?.subagents ?? [], org, pluginRefs, plugins);
+  const resolved = await resolvePlugins(client, pluginRefs);
+  const excluded = new Set(excludedPluginIds);
+  const plugins = resolved.filter((plugin) => !excluded.has(plugin.metadata?.id ?? ""));
+  const subagents = await resolveSubagents(client, agentSpec?.subagents ?? [], org, pluginRefs, resolved, excluded);
 
   const mergedSkillRefs = mergeSkillRefs(
     agentSpec?.skillRefs ?? [],
@@ -265,7 +277,8 @@ export function usableRefs(
 /**
  * Each saved agent the agent lists, at its pinned version, with its own
  * plugins: a plugin the turn's merge already holds is that one, and each
- * other is resolved once, the first subagent's reference winning.
+ * other is resolved once, the first subagent's reference winning. A plugin
+ * the run excludes is left out of the subagent, by its resolved id.
  */
 async function resolveSubagents(
   client: StigmerClient,
@@ -273,6 +286,7 @@ async function resolveSubagents(
   org: string,
   turnRefs: readonly ApiResourceReference[],
   turnPlugins: readonly Plugin[],
+  excluded: ReadonlySet<string>,
 ): Promise<SavedSubagent[]> {
   const byKey = new Map<string, Plugin>(turnRefs.map((ref, i) => [pluginKey(ref, org), turnPlugins[i]!]));
   const subagents: SavedSubagent[] = [];
@@ -296,6 +310,9 @@ async function resolveSubagents(
       if (plugin === undefined) {
         [plugin] = await resolvePlugins(client, [pluginRef.org ? pluginRef : { ...pluginRef, org: subagentOrg }]);
         byKey.set(key, plugin!);
+      }
+      if (excluded.has(plugin!.metadata?.id ?? "")) {
+        continue;
       }
       plugins.push(plugin!);
     }

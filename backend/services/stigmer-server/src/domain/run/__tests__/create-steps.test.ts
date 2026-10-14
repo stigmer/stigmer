@@ -30,7 +30,10 @@
  * compose (GuardPluginEvalCase), and on update kept as the create stored
  * it, whatever the request carries (KeepPluginEvalCase); a reconcile turn's
  * flag, held to the same two rules (GuardReconcileFileReview,
- * KeepReconcileFileReview) and carried into the workflow's input.
+ * KeepReconcileFileReview) and carried into the workflow's input; and a
+ * run's excluded plugins, held to the same two rules (GuardExcludedPlugins,
+ * KeepExcludedPlugins), so no caller but the server's evals runs an agent
+ * without a plugin its author attached.
  */
 import { PluginEvalCaseContextSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
@@ -89,6 +92,9 @@ import {
   newKeepPluginEvalCaseStep,
   newGuardReconcileFileReviewStep,
   newKeepReconcileFileReviewStep,
+  newGuardExcludedPluginsStep,
+  newKeepExcludedPluginsStep,
+  EXCLUDED_PLUGINS_NOT_COMPOSED_MESSAGE,
   PLUGIN_EVAL_CASE_NOT_COMPOSED_MESSAGE,
   RECONCILE_FILE_REVIEW_NOT_COMPOSED_MESSAGE,
   VISITOR_APPENDED_PROMPT_MESSAGE,
@@ -1570,6 +1576,67 @@ describe("newKeepReconcileFileReviewStep", () => {
     const cleared = update(true, false);
     await step.execute(cleared);
     expect(cleared.newState.spec?.reconcileFileReview).toBe(true);
+  });
+});
+
+describe("newGuardExcludedPluginsStep", () => {
+  const step = newGuardExcludedPluginsStep();
+
+  function excluding(caller: CallerIdentity, ids: string[]) {
+    const execution = newExecution("ses_1");
+    execution.spec!.excludedPluginIds = ids;
+    return newContext(execution, caller);
+  }
+
+  it("refuses an exclusion from any caller the server did not compose", async () => {
+    await expect(step.execute(excluding(testCallerIdentity(), ["plg_1"]))).rejects.toThrow(
+      EXCLUDED_PLUGINS_NOT_COMPOSED_MESSAGE,
+    );
+    await expect(step.execute(excluding(testCallerIdentity({ callerClass: "api_key" }), ["plg_1"]))).rejects.toThrow(
+      EXCLUDED_PLUGINS_NOT_COMPOSED_MESSAGE,
+    );
+  });
+
+  it("refuses it as permission denied", async () => {
+    const failure = await step.execute(excluding(testCallerIdentity(), ["plg_1"])).catch((e: unknown) => e);
+    expect(failure).toBeInstanceOf(ConnectError);
+    expect((failure as ConnectError).code).toBe(Code.PermissionDenied);
+  });
+
+  it("passes the server's own request, and any request without one", async () => {
+    await step.execute(excluding(testCallerIdentity({ origin: "in-process" }), ["plg_1"]));
+    await step.execute(excluding(testCallerIdentity({ callerClass: "internal" }), ["plg_1"]));
+    await step.execute(excluding(testCallerIdentity(), []));
+  });
+});
+
+describe("newKeepExcludedPluginsStep", () => {
+  const step = newKeepExcludedPluginsStep();
+
+  /** An update of a run whose create stored `stored`, asking for `requested`. */
+  function update(stored: string[], requested: string[]) {
+    const existing = newExecution("ses_1");
+    existing.spec!.excludedPluginIds = stored;
+    const execution = newExecution("ses_1");
+    execution.spec!.excludedPluginIds = requested;
+    const ctx = newContext(execution, testCallerIdentity());
+    ctx.set(EXISTING_RESOURCE_KEY, existing);
+    return ctx;
+  }
+
+  it("never adds an exclusion to a run that has none", async () => {
+    const set = update([], ["plg_1"]);
+    await step.execute(set);
+    expect(set.newState.spec?.excludedPluginIds).toEqual([]);
+  });
+
+  it("keeps the stored exclusion against a changed one, and against an update that leaves it out", async () => {
+    const changed = update(["plg_1"], ["plg_2"]);
+    await step.execute(changed);
+    expect(changed.newState.spec?.excludedPluginIds).toEqual(["plg_1"]);
+    const cleared = update(["plg_1"], []);
+    await step.execute(cleared);
+    expect(cleared.newState.spec?.excludedPluginIds).toEqual(["plg_1"]);
   });
 });
 
