@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/oauthapp/v1/io.proto.
  */
 export const file_ai_stigmer_iam_oauthapp_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiNhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9pby5wcm90bxIaYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEiJgoKT0F1dGhBcHBJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIlsKCU9BdXRoQXBwcxI1CgdlbnRyaWVzGAEgAygLMiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHASFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJImQKEkxpc3RPQXV0aEFwcHNJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhwKCnBhZ2VfdG9rZW4YAyABKAlCCLpIBXIDGIAIItICChNVcGRhdGVPQXV0aEFwcElucHV0Ej4KCHJlc291cmNlGAEgASgLMiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHBCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATrBAbpIvQEaugEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EklyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBPQXV0aCBhcHAgYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJydiBnByb3RvMw", [file_ai_stigmer_iam_oauthapp_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("CiNhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9pby5wcm90bxIaYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEiJgoKT0F1dGhBcHBJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIlsKCU9BdXRoQXBwcxI1CgdlbnRyaWVzGAEgAygLMiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHASFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIt8BChJMaXN0T0F1dGhBcHBzSW5wdXQSFAoDb3JnGAEgASgJQge6SARyAhABEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACBJKCgZsYWJlbHMYBCADKAsyOi5haS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MS5MaXN0T0F1dGhBcHBzSW5wdXQuTGFiZWxzRW50cnkaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASLSAgoTVXBkYXRlT0F1dGhBcHBJbnB1dBI+CghyZXNvdXJjZRgBIAEoCzIkLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwQga6SAPYAQMSNwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrQga6SAPIAQE6wQG6SL0BGroBChd1cGRhdGVfbmFtZXNfaXRzX3RhcmdldBJJcmVzb3VyY2UubWV0YWRhdGEuaWQgaXMgcmVxdWlyZWQ6IGFuIHVwZGF0ZSBuYW1lcyB0aGUgT0F1dGggYXBwIGJ5IGl0cyBpZBpUaGFzKHRoaXMucmVzb3VyY2UpICYmIGhhcyh0aGlzLnJlc291cmNlLm1ldGFkYXRhKSAmJiB0aGlzLnJlc291cmNlLm1ldGFkYXRhLmlkICE9ICcnYgZwcm90bzM", [file_ai_stigmer_iam_oauthapp_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * OAuthAppId identifies an OAuth app by its unique identifier.
@@ -96,6 +96,15 @@ export type ListOAuthAppsInput = Message<"ai.stigmer.iam.oauthapp.v1.ListOAuthAp
    * @generated from field: string page_token = 3;
    */
   pageToken: string;
+
+  /**
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   *
+   * @generated from field: map<string, string> labels = 4;
+   */
+  labels: { [key: string]: string };
 };
 
 /**

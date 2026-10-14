@@ -37,6 +37,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentshare_v1_ListAgentSharesByAgentRequest_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentshare_v1_ListAgentSharesByAgentRequest_LabelsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentshare_v1_ListAgentSharesByAgentRequest_LabelsEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareList_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -88,11 +93,15 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "ource/io.proto\032\033buf/validate/validate.pr" +
       "oto\032 google/protobuf/field_mask.proto\"1\n" +
       "\014AgentShareId\022!\n\005value\030\001 \001(\tB\013\272H\010r\003\030\200\001\310\001" +
-      "\001R\005value\"\264\001\n\035ListAgentSharesByAgentReque" +
+      "\001R\005value\"\324\002\n\035ListAgentSharesByAgentReque" +
       "st\022!\n\010agent_id\030\001 \001(\tB\006\272H\003\310\001\001R\007agentId\022\020\n" +
       "\003org\030\003 \001(\tR\003org\022$\n\tpage_size\030\004 \001(\005B\007\272H\004\032" +
       "\002(\000R\010pageSize\022\'\n\npage_token\030\005 \001(\tB\010\272H\005r\003" +
-      "\030\200\010R\tpageTokenJ\004\010\002\020\003R\tpage_info\"\223\001\n\016Agen" +
+      "\030\200\010R\tpageToken\022c\n\006labels\030\006 \003(\0132K.ai.stig" +
+      "mer.agentic.agentshare.v1.ListAgentShare" +
+      "sByAgentRequest.LabelsEntryR\006labels\0329\n\013L" +
+      "abelsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 " +
+      "\001(\tR\005value:\0028\001J\004\010\002\020\003R\tpage_info\"\223\001\n\016Agen" +
       "tShareList\022F\n\007entries\030\002 \003(\0132,.ai.stigmer" +
       ".agentic.agentshare.v1.AgentShareR\007entri" +
       "es\022&\n\017next_page_token\030\003 \001(\tR\rnextPageTok" +
@@ -151,7 +160,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentshare_v1_ListAgentSharesByAgentRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentshare_v1_ListAgentSharesByAgentRequest_descriptor,
-        new java.lang.String[] { "AgentId", "Org", "PageSize", "PageToken", });
+        new java.lang.String[] { "AgentId", "Org", "PageSize", "PageToken", "Labels", });
+    internal_static_ai_stigmer_agentic_agentshare_v1_ListAgentSharesByAgentRequest_LabelsEntry_descriptor =
+      internal_static_ai_stigmer_agentic_agentshare_v1_ListAgentSharesByAgentRequest_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_agentshare_v1_ListAgentSharesByAgentRequest_LabelsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentshare_v1_ListAgentSharesByAgentRequest_LabelsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareList_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareList_fieldAccessorTable = new

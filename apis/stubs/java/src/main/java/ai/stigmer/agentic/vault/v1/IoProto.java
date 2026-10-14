@@ -77,6 +77,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_vault_v1_ListVaultsRequest_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_vault_v1_ListVaultsRequest_LabelsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_vault_v1_ListVaultsRequest_LabelsEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_vault_v1_VaultList_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -160,63 +165,67 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "yVaultInput\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\"`" +
       "\n\031GetVaultByExternalIdInput\022\031\n\003org\030\001 \001(\t" +
       "B\007\272H\004r\002\020\001R\003org\022(\n\013external_id\030\002 \001(\tB\007\272H\004" +
-      "r\002\020\001R\nexternalId\"\216\001\n\021ListVaultsRequest\022\031" +
+      "r\002\020\001R\nexternalId\"\235\002\n\021ListVaultsRequest\022\031" +
       "\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022$\n\tpage_size\030\003" +
       " \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_token\030\004 " +
-      "\001(\tB\010\272H\005r\003\030\200\010R\tpageTokenJ\004\010\002\020\003R\tpage_inf" +
-      "o\"\204\001\n\tVaultList\022<\n\007entries\030\002 \003(\0132\".ai.st" +
-      "igmer.agentic.vault.v1.VaultR\007entries\022&\n" +
-      "\017next_page_token\030\003 \001(\tR\rnextPageTokenJ\004\010" +
-      "\001\020\002R\013total_count\"\233\004\n\020StartSignInInput\022F\n" +
-      "\005vault\030\001 \001(\0132(.ai.stigmer.agentic.vault." +
-      "v1.VaultTargetB\006\272H\003\310\001\001R\005vault\022$\n\007address" +
-      "\030\002 \001(\tB\n\272H\007r\005\020\001\030\200\020R\007address\022F\n\treturn_to" +
-      "\030\003 \001(\0162).ai.stigmer.agentic.vault.v1.Sig" +
-      "nInReturnR\010returnTo\022.\n\rloopback_port\030\004 \001" +
-      "(\rB\t\272H\006*\004\030\377\377\003R\014loopbackPort:\240\002\272H\234\002\032\231\002\n\033s" +
-      "tart_sign_in.loopback_port\022\210\001loopback_po" +
-      "rt is required for return_to loopback (1" +
-      "7237 to 17239, the ports Stigmer Desktop" +
-      " listens on) and must be left unset othe" +
-      "rwise\032othis.return_to == 3 ? (this.loopb" +
-      "ack_port >= 17237u && this.loopback_port" +
-      " <= 17239u) : this.loopback_port == 0u\"\223" +
-      "\001\n\021StartSignInOutput\022+\n\021authorization_ur" +
-      "l\030\001 \001(\tR\020authorizationUrl\022\024\n\005state\030\002 \001(\t" +
-      "R\005state\022#\n\rprovider_name\030\003 \001(\tR\014provider" +
-      "Name\022\026\n\006scopes\030\004 \003(\tR\006scopes\"W\n\023Complete" +
-      "SignInInput\022 \n\005state\030\001 \001(\tB\n\272H\007r\005\020\001\030\200\004R\005" +
-      "state\022\036\n\004code\030\002 \001(\tB\n\272H\007r\005\020\001\030\200 R\004code\"R\n" +
-      "\024CompleteSignInOutput\022\030\n\007address\030\001 \001(\tR\007" +
-      "address\022 \n\013description\030\002 \001(\tR\013descriptio" +
-      "n\"\244\003\n\026CreateConnectLinkInput\022\031\n\003org\030\001 \001(" +
-      "\tB\007\272H\004r\002\020\001R\003org\0226\n\010vault_id\030\002 \001(\tB\033\272H\030r\026" +
-      "\030\0362\022^vlt_[0-9a-z]{26}$R\007vaultId\022$\n\007addre" +
-      "ss\030\003 \001(\tB\n\272H\007r\005\020\001\030\200\020R\007address\022)\n\nreturn_" +
-      "url\030\004 \001(\tB\n\272H\007r\005\020\001\030\200\020R\treturnUrl\0229\n\022expi" +
-      "res_in_seconds\030\005 \001(\005B\013\272H\010\032\006\030\200\243\005(\000R\020expir" +
-      "esInSeconds:\252\001\272H\246\001\032\243\001\n&create_connect_li" +
-      "nk.expires_in_seconds\022:expires_in_second" +
-      "s is 60 to 86400, or unset for 30 minute" +
-      "s\032=this.expires_in_seconds == 0 || this." +
-      "expires_in_seconds >= 60\"Z\n\013ConnectLink\022" +
-      "\020\n\003url\030\001 \001(\tR\003url\0229\n\nexpires_at\030\002 \001(\0132\032." +
-      "google.protobuf.TimestampR\texpiresAt\"\337\002\n" +
-      "\020UpdateVaultInput\022F\n\010resource\030\001 \001(\0132\".ai" +
-      ".stigmer.agentic.vault.v1.VaultB\006\272H\003\330\001\003R" +
-      "\010resource\022C\n\013update_mask\030\002 \001(\0132\032.google." +
-      "protobuf.FieldMaskB\006\272H\003\310\001\001R\nupdateMask:\275" +
-      "\001\272H\271\001\032\266\001\n\027update_names_its_target\022Eresou" +
-      "rce.metadata.id is required: an update n" +
-      "ames the vault by its id\032Thas(this.resou" +
-      "rce) && has(this.resource.metadata) && t" +
-      "his.resource.metadata.id != \'\'*R\n\014SignIn" +
-      "Return\022\036\n\032sign_in_return_unspecified\020\000\022\007" +
-      "\n\003web\020\001\022\013\n\007desktop\020\002\022\014\n\010loopback\020\003B\232\001B\007I" +
-      "oProtoP\001\242\002\004ASAV\252\002\033Ai.Stigmer.Agentic.Vau" +
-      "lt.V1\312\002\033Ai\\Stigmer\\Agentic\\Vault\\V1\342\002\'Ai" +
-      "\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\352\002\037" +
-      "Ai::Stigmer::Agentic::Vault::V1b\006proto3"
+      "\001(\tB\010\272H\005r\003\030\200\010R\tpageToken\022R\n\006labels\030\005 \003(\013" +
+      "2:.ai.stigmer.agentic.vault.v1.ListVault" +
+      "sRequest.LabelsEntryR\006labels\0329\n\013LabelsEn" +
+      "try\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005va" +
+      "lue:\0028\001J\004\010\002\020\003R\tpage_info\"\204\001\n\tVaultList\022<" +
+      "\n\007entries\030\002 \003(\0132\".ai.stigmer.agentic.vau" +
+      "lt.v1.VaultR\007entries\022&\n\017next_page_token\030" +
+      "\003 \001(\tR\rnextPageTokenJ\004\010\001\020\002R\013total_count\"" +
+      "\233\004\n\020StartSignInInput\022F\n\005vault\030\001 \001(\0132(.ai" +
+      ".stigmer.agentic.vault.v1.VaultTargetB\006\272" +
+      "H\003\310\001\001R\005vault\022$\n\007address\030\002 \001(\tB\n\272H\007r\005\020\001\030\200" +
+      "\020R\007address\022F\n\treturn_to\030\003 \001(\0162).ai.stigm" +
+      "er.agentic.vault.v1.SignInReturnR\010return" +
+      "To\022.\n\rloopback_port\030\004 \001(\rB\t\272H\006*\004\030\377\377\003R\014lo" +
+      "opbackPort:\240\002\272H\234\002\032\231\002\n\033start_sign_in.loop" +
+      "back_port\022\210\001loopback_port is required fo" +
+      "r return_to loopback (17237 to 17239, th" +
+      "e ports Stigmer Desktop listens on) and " +
+      "must be left unset otherwise\032othis.retur" +
+      "n_to == 3 ? (this.loopback_port >= 17237" +
+      "u && this.loopback_port <= 17239u) : thi" +
+      "s.loopback_port == 0u\"\223\001\n\021StartSignInOut" +
+      "put\022+\n\021authorization_url\030\001 \001(\tR\020authoriz" +
+      "ationUrl\022\024\n\005state\030\002 \001(\tR\005state\022#\n\rprovid" +
+      "er_name\030\003 \001(\tR\014providerName\022\026\n\006scopes\030\004 " +
+      "\003(\tR\006scopes\"W\n\023CompleteSignInInput\022 \n\005st" +
+      "ate\030\001 \001(\tB\n\272H\007r\005\020\001\030\200\004R\005state\022\036\n\004code\030\002 \001" +
+      "(\tB\n\272H\007r\005\020\001\030\200 R\004code\"R\n\024CompleteSignInOu" +
+      "tput\022\030\n\007address\030\001 \001(\tR\007address\022 \n\013descri" +
+      "ption\030\002 \001(\tR\013description\"\244\003\n\026CreateConne" +
+      "ctLinkInput\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\0226" +
+      "\n\010vault_id\030\002 \001(\tB\033\272H\030r\026\030\0362\022^vlt_[0-9a-z]" +
+      "{26}$R\007vaultId\022$\n\007address\030\003 \001(\tB\n\272H\007r\005\020\001" +
+      "\030\200\020R\007address\022)\n\nreturn_url\030\004 \001(\tB\n\272H\007r\005\020" +
+      "\001\030\200\020R\treturnUrl\0229\n\022expires_in_seconds\030\005 " +
+      "\001(\005B\013\272H\010\032\006\030\200\243\005(\000R\020expiresInSeconds:\252\001\272H\246" +
+      "\001\032\243\001\n&create_connect_link.expires_in_sec" +
+      "onds\022:expires_in_seconds is 60 to 86400," +
+      " or unset for 30 minutes\032=this.expires_i" +
+      "n_seconds == 0 || this.expires_in_second" +
+      "s >= 60\"Z\n\013ConnectLink\022\020\n\003url\030\001 \001(\tR\003url" +
+      "\0229\n\nexpires_at\030\002 \001(\0132\032.google.protobuf.T" +
+      "imestampR\texpiresAt\"\337\002\n\020UpdateVaultInput" +
+      "\022F\n\010resource\030\001 \001(\0132\".ai.stigmer.agentic." +
+      "vault.v1.VaultB\006\272H\003\330\001\003R\010resource\022C\n\013upda" +
+      "te_mask\030\002 \001(\0132\032.google.protobuf.FieldMas" +
+      "kB\006\272H\003\310\001\001R\nupdateMask:\275\001\272H\271\001\032\266\001\n\027update_" +
+      "names_its_target\022Eresource.metadata.id i" +
+      "s required: an update names the vault by" +
+      " its id\032Thas(this.resource) && has(this." +
+      "resource.metadata) && this.resource.meta" +
+      "data.id != \'\'*R\n\014SignInReturn\022\036\n\032sign_in" +
+      "_return_unspecified\020\000\022\007\n\003web\020\001\022\013\n\007deskto" +
+      "p\020\002\022\014\n\010loopback\020\003B\232\001B\007IoProtoP\001\242\002\004ASAV\252\002" +
+      "\033Ai.Stigmer.Agentic.Vault.V1\312\002\033Ai\\Stigme" +
+      "r\\Agentic\\Vault\\V1\342\002\'Ai\\Stigmer\\Agentic\\" +
+      "Vault\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agen" +
+      "tic::Vault::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -285,7 +294,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_vault_v1_ListVaultsRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_vault_v1_ListVaultsRequest_descriptor,
-        new java.lang.String[] { "Org", "PageSize", "PageToken", });
+        new java.lang.String[] { "Org", "PageSize", "PageToken", "Labels", });
+    internal_static_ai_stigmer_agentic_vault_v1_ListVaultsRequest_LabelsEntry_descriptor =
+      internal_static_ai_stigmer_agentic_vault_v1_ListVaultsRequest_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_vault_v1_ListVaultsRequest_LabelsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_vault_v1_ListVaultsRequest_LabelsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_agentic_vault_v1_VaultList_descriptor =
       getDescriptor().getMessageType(9);
     internal_static_ai_stigmer_agentic_vault_v1_VaultList_fieldAccessorTable = new

@@ -64,13 +64,12 @@ function refusalOf(action: () => unknown): ConnectError {
 }
 
 describe("checkUpdateMask", () => {
-  it("expands * to spec and the four editable metadata fields, and keeps a spec path at any depth", () => {
+  it("expands * to spec and the three editable metadata fields, and keeps a spec path at any depth", () => {
     expect(checkUpdateMask(AgentSchema, [EVERY_UPDATABLE_PATH], [])).toEqual([
       "spec",
       "metadata.name",
       "metadata.labels",
       "metadata.tags",
-      "metadata.annotations",
     ]);
     expect(checkUpdateMask(AgentSchema, ["spec.run_config.model_name", "metadata.name"], [])).toEqual([
       "spec.run_config.model_name",
@@ -83,11 +82,15 @@ describe("checkUpdateMask", () => {
       [[], 'update_mask names no path: name the fields the update changes, or "*"'],
       [
         ["metadata.slug"],
-        "update_mask path 'metadata.slug' cannot be updated: an update changes spec, metadata.name, metadata.labels, metadata.tags and metadata.annotations",
+        "update_mask path 'metadata.slug' cannot be updated: an update changes spec, metadata.name, metadata.labels and metadata.tags",
+      ],
+      [
+        ["metadata.annotations"],
+        "update_mask path 'metadata.annotations' cannot be updated: an update changes spec, metadata.name, metadata.labels and metadata.tags",
       ],
       [
         ["status.version_hash"],
-        "update_mask path 'status.version_hash' cannot be updated: an update changes spec, metadata.name, metadata.labels, metadata.tags and metadata.annotations",
+        "update_mask path 'status.version_hash' cannot be updated: an update changes spec, metadata.name, metadata.labels and metadata.tags",
       ],
       [["spec.no_such_field"], "update_mask path 'spec.no_such_field' is not a field of Agent"],
       [["spec.env.A"], "update_mask path 'spec.env.A' is not a field of Agent"],

@@ -729,7 +729,7 @@ function newListByOrgAndLabelsStep(
     async execute(
       ctx: RequestContext<typeof AgentShareQueryController.method.list.input>,
     ): Promise<void> {
-      const { org, labels: filterLabels } = ctx.input;
+      const { org } = ctx.input;
       // The org is an indexed predicate and the labels a per-row filter,
       // in both editions; the scope narrows the org's rows last (the scope
       // is the last per-row predicate).
@@ -743,13 +743,7 @@ function newListByOrgAndLabelsStep(
           ctx.input,
           {
             query: { org },
-            keep: (share) =>
-              matchesAllLabels(share.metadata?.labels ?? {}, filterLabels),
-            fingerprint: {
-              lane: "agentShare.list",
-              org,
-              labels: sortedLabels(filterLabels),
-            },
+            fingerprint: { lane: "agentShare.list", org },
           },
         ),
       );
@@ -757,16 +751,15 @@ function newListByOrgAndLabelsStep(
   };
 }
 
-/** The two share lanes' shared read: one page, the scope last, as an AgentShareList. */
+/** The two share lanes' shared read: one page, the request's labels as each row's keep, the scope last, as an AgentShareList. */
 async function readSharePage(
   store: Store,
   logger: Logger,
   listReadScope: ListReadScope | undefined,
   caller: CallerIdentity,
-  request: ListPageRequest,
+  request: ListPageRequest & { readonly labels: Readonly<Record<string, string>> },
   lane: {
     readonly query: ListIndexQuery<"agent">;
-    readonly keep?: (share: AgentShare) => boolean;
     readonly fingerprint: Readonly<Record<string, unknown>>;
   },
 ): Promise<AgentShareList> {
@@ -775,12 +768,16 @@ async function readSharePage(
     declaration: agentShareListIndex,
     query: lane.query,
     request,
-    fingerprint: listPageFingerprint(lane.fingerprint),
+    fingerprint: listPageFingerprint({
+      ...lane.fingerprint,
+      labels: sortedLabels(request.labels),
+    }),
     decode: decodeOrSkip(AgentShareSchema, {
       logger,
       message: "Failed to unmarshal agent share, skipping",
     }),
-    ...(lane.keep === undefined ? {} : { keep: lane.keep }),
+    keep: (share: AgentShare) =>
+      matchesAllLabels(share.metadata?.labels ?? {}, request.labels),
     scope: (shares) =>
       restrictListByReadScope(
         listReadScope,

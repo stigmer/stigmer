@@ -84,6 +84,10 @@ message PushSkillRequest {
 
   // Labels to set on the skill, replacing any stored labels: a push is the
   // skill's definition, so the labels it carries are the labels it has.
+  // A key is an optional DNS subdomain prefix of at most 253 characters and
+  // a slash, then a name of at most 63 characters that starts and ends with
+  // a letter or digit and holds only letters, digits, `-`, `_` and `.`. A
+  // value is empty or follows the name rule. At most 64 labels.
   //
   // @internal
   // Keys in the reserved stigmer.ai/* namespace pass the same
@@ -92,7 +96,25 @@ message PushSkillRequest {
   // materialising its skills as the installing caller) stamps them by
   // design. Visibility is deliberately NOT carried here: it lands through
   // updateVisibility, the one door metadata.proto names.
-  map<string, string> labels = 8;
+  map<string, string> labels = 8 [
+    (buf.validate.field).map = {
+      max_pairs: 64
+      keys: {
+        string: {
+          max_len: 317
+          pattern: "^([a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?)*/)?[A-Za-z0-9]([-A-Za-z0-9_.]{0,61}[A-Za-z0-9])?$"
+        }
+      }
+      values: {
+        string: {pattern: "^([A-Za-z0-9]([-A-Za-z0-9_.]{0,61}[A-Za-z0-9])?)?$"}
+      }
+    },
+    (buf.validate.field).cel = {
+      id: "labels.key_prefix_max_len"
+      message: "a label key's prefix is at most 253 characters"
+      expression: "this.all(k, !k.contains('/') || k.matches('^[^/]{1,253}/'))"
+    }
+  ];
 }
 
 // CreateSkillArtifactUploadUrlRequest asks the server to mint a staging
@@ -295,6 +317,11 @@ message ListSkillsRequest {
   // The previous response's next_page_token, to continue that list; every
   // other field must equal that request's, or the call is refused.
   string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+
+  // Only resources carrying every label given, each matched exactly (AND).
+  // A selective filter may answer short pages, even empty ones, that still
+  // carry a token.
+  map<string, string> labels = 4;
 }
 
 // One page of an organization's skills.

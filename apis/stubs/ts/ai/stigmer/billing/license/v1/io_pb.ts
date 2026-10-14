@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/license/v1/io.proto.
  */
 export const file_ai_stigmer_billing_license_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2JpbGxpbmcvbGljZW5zZS92MS9pby5wcm90bxIdYWkuc3RpZ21lci5iaWxsaW5nLmxpY2Vuc2UudjEiJQoJTGljZW5zZUlkEhgKBXZhbHVlGAEgASgJQgm6SAZyBBABGEAiXAoITGljZW5zZXMSNwoHZW50cmllcxgBIAMoCzImLmFpLnN0aWdtZXIuYmlsbGluZy5saWNlbnNlLnYxLkxpY2Vuc2USFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJImIKEUxpc3RMaWNlbnNlc0lucHV0EhMKC2N1c3RvbWVyX2lkGAEgASgJEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACGIGcHJvdG8z", [file_ai_stigmer_billing_license_v1_api, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2JpbGxpbmcvbGljZW5zZS92MS9pby5wcm90bxIdYWkuc3RpZ21lci5iaWxsaW5nLmxpY2Vuc2UudjEiJQoJTGljZW5zZUlkEhgKBXZhbHVlGAEgASgJQgm6SAZyBBABGEAiXAoITGljZW5zZXMSNwoHZW50cmllcxgBIAMoCzImLmFpLnN0aWdtZXIuYmlsbGluZy5saWNlbnNlLnYxLkxpY2Vuc2USFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIt8BChFMaXN0TGljZW5zZXNJbnB1dBITCgtjdXN0b21lcl9pZBgBIAEoCRIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgSTAoGbGFiZWxzGAQgAygLMjwuYWkuc3RpZ21lci5iaWxsaW5nLmxpY2Vuc2UudjEuTGlzdExpY2Vuc2VzSW5wdXQuTGFiZWxzRW50cnkaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AWIGcHJvdG8z", [file_ai_stigmer_billing_license_v1_api, file_buf_validate_validate]);
 
 /**
  * LicenseId identifies a license by its unique identifier.
@@ -94,6 +94,15 @@ export type ListLicensesInput = Message<"ai.stigmer.billing.license.v1.ListLicen
    * @generated from field: string page_token = 3;
    */
   pageToken: string;
+
+  /**
+   * Only resources carrying every label given, each matched exactly (AND).
+   * A selective filter may answer short pages, even empty ones, that still
+   * carry a token.
+   *
+   * @generated from field: map<string, string> labels = 4;
+   */
+  labels: { [key: string]: string };
 };
 
 /**

@@ -1,7 +1,8 @@
 // Command-level contract for `stigmer list runs`: runs resolve before the
-// registry and list runs; the resolved organization and `--limit`
-// reach the list call, and the result renders through the run table on
-// stdout. The backend and the list read are replaced at their module seams;
+// registry and list runs; the resolved organization, `--limit` and the
+// `--label` filter reach the list call, and the result renders through the
+// run table on stdout. A malformed or repeated label is refused before any
+// call, and `list types` refuses a label it has nothing to filter by. The backend and the list read are replaced at their module seams;
 // the program, the alias routing and the renderer are real.
 
 import { create } from "@bufbuild/protobuf";
@@ -69,7 +70,7 @@ afterEach(() => {
 describe("stigmer list runs", () => {
   it("lists runs in the resolved organization, with the default limit", async () => {
     const out = await listRuns();
-    expect(reads.listAgentRuns).toHaveBeenCalledWith(stigmer, 50, "acme");
+    expect(reads.listAgentRuns).toHaveBeenCalledWith(stigmer, 50, "acme", {});
     expect(out).toContain("AGENT");
     expect(out).toContain("aex_1");
     expect(out).toContain("completed");
@@ -77,13 +78,49 @@ describe("stigmer list runs", () => {
 
   it("honours --limit", async () => {
     await listRuns("--limit", "5");
-    expect(reads.listAgentRuns).toHaveBeenCalledWith(stigmer, 5, "acme");
+    expect(reads.listAgentRuns).toHaveBeenCalledWith(stigmer, 5, "acme", {});
+  });
+
+  it("passes every --label pair as the request's labels, a value split at the first =", async () => {
+    await listRuns("--label", "team=support", "-l", "tier=", "-l", "query=a=b");
+    expect(reads.listAgentRuns).toHaveBeenCalledWith(stigmer, 50, "acme", {
+      team: "support",
+      tier: "",
+      query: "a=b",
+    });
+  });
+
+  it("refuses a label that is not key=value, before any call", async () => {
+    for (const bad of ["team", "=support"]) {
+      await expect(listRuns("--label", bad)).rejects.toThrow(`invalid --label "${bad}": want key=value`);
+    }
+    expect(reads.listAgentRuns).not.toHaveBeenCalled();
+  });
+
+  it("refuses one key given twice", async () => {
+    await expect(listRuns("-l", "team=a", "-l", "team=b")).rejects.toThrow('--label "team" is given twice');
+    expect(reads.listAgentRuns).not.toHaveBeenCalled();
+  });
+
+  it("keeps a __proto__ key as a label, not the map's prototype", async () => {
+    await listRuns("-l", "__proto__=x");
+    const labels = reads.listAgentRuns.mock.calls[0]?.[3] as Record<string, string>;
+    expect(Object.keys(labels)).toEqual(["__proto__"]);
+    expect(Object.getPrototypeOf(labels)).toBe(Object.prototype);
+  });
+
+  it("refuses --label on list types", async () => {
+    const program = buildProgram();
+    program.exitOverride();
+    await expect(
+      program.parseAsync(["node", "stigmer", "--standalone", "list", "types", "--label", "team=a"]),
+    ).rejects.toThrow("--label filters resources; 'list types' has none to filter");
   });
 
   it("accepts the singular alias", async () => {
     const program = buildProgram();
     program.exitOverride();
     await program.parseAsync(["node", "stigmer", "--standalone", "--org", "acme", "list", "run"]);
-    expect(reads.listAgentRuns).toHaveBeenCalledWith(stigmer, 50, "acme");
+    expect(reads.listAgentRuns).toHaveBeenCalledWith(stigmer, 50, "acme", {});
   });
 });

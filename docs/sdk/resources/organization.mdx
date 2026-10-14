@@ -148,6 +148,7 @@ const result = await stigmer.organization.listChildOrgs({
   org: "...",
   pageSize: 0,
   pageToken: "...",
+  labels: {},
 });
 ```
 </Tab>
@@ -157,6 +158,7 @@ result, err := client.Organization.ListChildOrgs(ctx, &stigmer.ListChildOrgsInpu
   Org:       "...",
   PageSize:  0,
   PageToken: "...",
+  Labels:    map[string]string{},
 })
 ```
 </Tab>
@@ -166,6 +168,7 @@ result = client.organizations.list_child_orgs(ListChildOrgsInput(
     org="...",
     page_size=0,
     page_token="...",
+    labels={},
 ))
 ```
 </Tab>
@@ -175,6 +178,7 @@ ChildOrgList result = client.organizations().listChildOrgs(ListChildOrgsInput.bu
     .org("...")
     .pageSize(0)
     .pageToken("...")
+    .labels(Map.of())
     .build());
 ```
 </Tab>
@@ -196,6 +200,7 @@ List the organizations the authenticated caller is a member of. Returns only org
 const organizations = await stigmer.organization.listMine({
   pageSize: 0,
   pageToken: "...",
+  labels: {},
 });
 ```
 </Tab>
@@ -204,6 +209,7 @@ const organizations = await stigmer.organization.listMine({
 organizations, err := client.Organization.ListMine(ctx, &stigmer.ListMyOrganizationsInput{
   PageSize:  0,
   PageToken: "...",
+  Labels:    map[string]string{},
 })
 ```
 </Tab>
@@ -212,6 +218,7 @@ organizations, err := client.Organization.ListMine(ctx, &stigmer.ListMyOrganizat
 organizations = client.organizations.list_mine(ListMyOrganizationsInput(
     page_size=0,
     page_token="...",
+    labels={},
 ))
 ```
 </Tab>
@@ -220,6 +227,7 @@ organizations = client.organizations.list_mine(ListMyOrganizationsInput(
 Organizations organizations = client.organizations().listMine(ListMyOrganizationsInput.builder()
     .pageSize(0)
     .pageToken("...")
+    .labels(Map.of())
     .build());
 ```
 </Tab>
@@ -675,6 +683,7 @@ Input for listing the organizations the caller is a member of.
   type={{
     pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
     pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
+    labels: { type: "Record<string, string>", description: "Only resources carrying every label given, each matched exactly (AND)." },
   }}
 />
 
@@ -709,6 +718,7 @@ Input for listing an organization's child organizations, newest first.
     org: { type: "string", description: "The parent organization, by id or slug." },
     pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
     pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
+    labels: { type: "Record<string, string>", description: "Only resources carrying every label given, each matched exactly (AND)." },
   }}
 />
 

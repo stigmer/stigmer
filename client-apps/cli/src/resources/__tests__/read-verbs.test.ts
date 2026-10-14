@@ -109,7 +109,7 @@ const formatterAgent = create(AgentSchema, {
 });
 
 // Every agent list request, so a test can see the pages the CLI walked.
-const agentListRequests: Array<{ pageSize: number; pageToken: string }> = [];
+const agentListRequests: Array<{ pageSize: number; pageToken: string; labels?: Record<string, string> }> = [];
 
 // More kinds wired into get-bindings and list alongside this test: a
 // plugin, a vault and the two channel kinds, each listed by its own list
@@ -260,7 +260,11 @@ beforeAll(async () => {
       // Two pages, so a list proves the CLI follows the token.
       list: (req) => {
         if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
-        agentListRequests.push({ pageSize: req.pageSize, pageToken: req.pageToken });
+        agentListRequests.push({
+          pageSize: req.pageSize,
+          pageToken: req.pageToken,
+          ...(Object.keys(req.labels).length > 0 ? { labels: { ...req.labels } } : {}),
+        });
         if (req.pageToken === "") {
           return { entries: [knownAgent, hiddenAgent].slice(0, req.pageSize), nextPageToken: "agents-2" };
         }
@@ -551,6 +555,15 @@ describe("list integration", () => {
       { pageSize: 48, pageToken: "agents-2" },
     ]);
     expect(orgGets).toEqual([]);
+  });
+
+  it("sends the --label filter on every page it reads", async () => {
+    agentListRequests.length = 0;
+    await listResources(client, ApiResourceKind.agent, "acme", 0, "json", { team: "support" });
+    expect(agentListRequests).toEqual([
+      { pageSize: 100, pageToken: "", labels: { team: "support" } },
+      { pageSize: 100, pageToken: "agents-2", labels: { team: "support" } },
+    ]);
   });
 
   it("stops reading pages once --limit is met", async () => {
