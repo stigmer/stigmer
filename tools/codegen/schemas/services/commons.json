@@ -124,7 +124,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "A fingerprint of what a person edits on the resource: its spec, name,\n labels, tags and annotations, as stored.\n\n Send it back on update or apply to refuse the write with ABORTED\n (ETAG_MISMATCH) when the resource changed since it was read; leave it\n empty and the last write wins. A status write never changes it.",
+          "description": "A fingerprint of what a person edits on the resource: its spec, name,\n labels and tags, as stored.\n\n Send it back on update or apply to refuse the write with ABORTED\n (ETAG_MISMATCH) when the resource changed since it was read; leave it\n empty and the last write wins. A status write never changes it.",
           "required": false
         }
       ]

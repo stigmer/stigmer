@@ -616,7 +616,7 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * A fingerprint of what a person edits on the resource: its spec, name,
-   * labels, tags and annotations, as stored.
+   * labels and tags, as stored.
    *
    * Send it back on update or apply to refuse the write with ABORTED
    * (ETAG_MISMATCH) when the resource changed since it was read; leave it
@@ -642,7 +642,7 @@ java.lang.String defaultValue) {
   /**
    * <pre>
    * A fingerprint of what a person edits on the resource: its spec, name,
-   * labels, tags and annotations, as stored.
+   * labels and tags, as stored.
    *
    * Send it back on update or apply to refuse the write with ABORTED
    * (ETAG_MISMATCH) when the resource changed since it was read; leave it
@@ -2454,7 +2454,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * A fingerprint of what a person edits on the resource: its spec, name,
-     * labels, tags and annotations, as stored.
+     * labels and tags, as stored.
      *
      * Send it back on update or apply to refuse the write with ABORTED
      * (ETAG_MISMATCH) when the resource changed since it was read; leave it
@@ -2479,7 +2479,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * A fingerprint of what a person edits on the resource: its spec, name,
-     * labels, tags and annotations, as stored.
+     * labels and tags, as stored.
      *
      * Send it back on update or apply to refuse the write with ABORTED
      * (ETAG_MISMATCH) when the resource changed since it was read; leave it
@@ -2505,7 +2505,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * A fingerprint of what a person edits on the resource: its spec, name,
-     * labels, tags and annotations, as stored.
+     * labels and tags, as stored.
      *
      * Send it back on update or apply to refuse the write with ABORTED
      * (ETAG_MISMATCH) when the resource changed since it was read; leave it
@@ -2527,7 +2527,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * A fingerprint of what a person edits on the resource: its spec, name,
-     * labels, tags and annotations, as stored.
+     * labels and tags, as stored.
      *
      * Send it back on update or apply to refuse the write with ABORTED
      * (ETAG_MISMATCH) when the resource changed since it was read; leave it
@@ -2546,7 +2546,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * A fingerprint of what a person edits on the resource: its spec, name,
-     * labels, tags and annotations, as stored.
+     * labels and tags, as stored.
      *
      * Send it back on update or apply to refuse the write with ABORTED
      * (ETAG_MISMATCH) when the resource changed since it was read; leave it

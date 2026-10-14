@@ -105,7 +105,7 @@ type ApiResourceMetadata struct {
 	// Version information for the resource.
 	Version *ApiResourceMetadataVersion `protobuf:"bytes,9,opt,name=version,proto3" json:"version,omitempty"`
 	// A fingerprint of what a person edits on the resource: its spec, name,
-	// labels, tags and annotations, as stored.
+	// labels and tags, as stored.
 	//
 	// Send it back on update or apply to refuse the write with ABORTED
 	// (ETAG_MISMATCH) when the resource changed since it was read; leave it
