@@ -47,8 +47,8 @@ import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityac
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Authorizer, AuthzCheck } from "../../extensions/authorizer.js";
@@ -131,7 +131,7 @@ interface Fixture {
 function fixture(
   rows: ReadonlyArray<{ kind: ApiResourceKind; id: string; row: Message }>,
   ports: {
-    policies?: ReadonlyArray<IamPolicy>;
+    grants?: ReadonlyArray<Grant>;
     readers?: ReadonlyMap<
       ApiResourceKind,
       { findById(id: string): Promise<Message | undefined> }
@@ -163,9 +163,9 @@ function fixture(
     },
     deps: {
       store,
-      policies: {
+      grants: {
         findById: (id) =>
-          Promise.resolve(ports.policies?.find((p) => p.metadata?.id === id)),
+          Promise.resolve(ports.grants?.find((p) => p.metadata?.id === id)),
       },
       ...(ports.readers === undefined ? {} : { rowReaders: ports.readers }),
       ...(ports.accounts === undefined
@@ -559,11 +559,11 @@ describe("the rule, for a caller bound to one organization", () => {
     expect(f.reads).toHaveLength(3);
   });
 
-  it("reads the substitutable policy port and a unit's reader, never the store, for their kinds", async () => {
+  it("reads the substitutable grant port and a unit's reader, never the store, for their kinds", async () => {
     const team = row("team", "tm_b", BETA);
     const f = fixture([], {
-      policies: [
-        create(IamPolicySchema, { metadata: { id: "pol_a", org: ALPHA } }),
+      grants: [
+        create(GrantSchema, { metadata: { id: "pol_a", org: ALPHA } }),
       ],
       readers: new Map([
         [
@@ -579,7 +579,7 @@ describe("the rule, for a caller bound to one organization", () => {
     const caller = boundTo(ALPHA);
     expect(
       await binding.verdict(caller, {
-        kind: ApiResourceKind.iam_policy,
+        kind: ApiResourceKind.grant,
         id: "pol_a",
         permission: EDIT,
       }),

@@ -86,8 +86,8 @@ import {
   ApiResourceAuditInfoSchema,
   ApiResourceAuditSchema,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import {
   InvitationSchema,
@@ -100,7 +100,7 @@ import { InvitationSpecSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/
 import { IamPermission, IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { OrganizationFacts } from "../../organization-links.js";
-import type { IamPolicyGrantPathClient } from "../../policy/grant-path-client.js";
+import type { GrantPathClient } from "../../grant/grant-path-client.js";
 import {
   BOUND_CREDENTIAL_REDEEMS_ELSEWHERE,
   newInvitationRegistrations,
@@ -148,7 +148,7 @@ interface Rig {
   readonly store: InMemoryInvitationStore;
   readonly checks: AuthzCheck[];
   readonly created: ResourceCreatedEvent[];
-  readonly granted: IamPolicySpec[];
+  readonly granted: GrantSpec[];
   /** Whom each grant and revoke acted for. */
   readonly actingFor: Array<string | undefined>;
   readonly revokedOrgAccess: string[];
@@ -187,14 +187,14 @@ function rig(
   const store = new InMemoryInvitationStore();
   const checks: AuthzCheck[] = [];
   const created: ResourceCreatedEvent[] = [];
-  const granted: IamPolicySpec[] = [];
+  const granted: GrantSpec[] = [];
   /** Whom each grant and revoke was made acting for, in call order. */
   const actingFor: Array<string | undefined> = [];
   const revokedOrgAccess: string[] = [];
   const revoked: string[] = [];
   const held = new Set<string>();
   const offered: ListEntryMeta[][] = [];
-  const triple = (spec: IamPolicySpec): string =>
+  const triple = (spec: GrantSpec): string =>
     `${spec.principal?.id}#${spec.relation}@${spec.resource?.id}`;
   const authorizer: Authorizer = {
     authorize: (_caller, check) => {
@@ -206,22 +206,22 @@ function rig(
     },
   };
   const unused = (): Promise<never> => Promise.reject(new Error("not a lane this suite drives"));
-  const policies: IamPolicyGrantPathClient = {
-    bootstrapPolicy: unused,
+  const grants: GrantPathClient = {
+    bootstrapGrant: unused,
     create: async (spec, as) => {
       await options.onGrant?.();
       granted.push(spec);
       actingFor.push(as);
       held.add(triple(spec));
-      return create(IamPolicySchema, { spec });
+      return create(GrantSchema, { spec });
     },
     delete: (spec, as) => {
       actingFor.push(as);
       revoked.push(triple(spec));
       held.delete(triple(spec));
-      return Promise.resolve(create(IamPolicySchema, { spec }));
+      return Promise.resolve(create(GrantSchema, { spec }));
     },
-    cleanupResourcePolicies: unused,
+    cleanupResourceGrants: unused,
     bootstrapRevokeOrgAccess: (account, org) => {
       revokedOrgAccess.push(`${account}@${org}`);
       return Promise.resolve();
@@ -248,7 +248,7 @@ function rig(
             write: (line: string) => void (options.warnings ?? options.errors)?.push(line),
           }),
     store,
-    policies,
+    grants,
     lifecycle: {
       onResourceCreated: async (event) => {
         await options.onCreated?.();
@@ -268,12 +268,12 @@ function rig(
       find: options.organization ?? ((org) => Promise.resolve(org === "acme" ? acme : undefined)),
     },
     authorizationQueries: {
-      check: (policy) => {
-        creatorChecks.push(`${policy.relation} ${policy.principal?.id ?? ""}`);
+      check: (grant) => {
+        creatorChecks.push(`${grant.relation} ${grant.principal?.id ?? ""}`);
         if (options.creatorFault !== undefined) {
           return Promise.reject(options.creatorFault);
         }
-        return Promise.resolve(options.creatorHolds?.(policy.relation) ?? true);
+        return Promise.resolve(options.creatorHolds?.(grant.relation) ?? true);
       },
     },
   };

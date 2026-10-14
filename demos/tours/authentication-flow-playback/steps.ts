@@ -81,7 +81,7 @@ export const ERROR_403_LINES: readonly TerminalLine[] = [
   { type: "error", text: '    on resource org_acme456"' },
   { type: "output", text: "}" },
   { type: "blank", text: "" },
-  { type: "output", text: "Fix: Create an IAM Policy granting this account" },
+  { type: "output", text: "Fix: Create a Grant for this account" },
   { type: "output", text: "the required role on the target resource." },
 ];
 
@@ -99,7 +99,7 @@ export const VALIDATION_CHECKS: readonly CheckItem[] = [
 export const RESOLVE_CHECKS: readonly CheckItem[] = [
   { label: "Resolve identity", detail: "sub auth0|jane_doe → account created on sign-in", status: "pass" },
   { label: "Grant sign-in role", detail: "viewer on org_acme456 (first sign-in)", status: "pass" },
-  { label: "Check IAM Policy", detail: "viewer on org_acme456", status: "pass" },
+  { label: "Check grants", detail: "viewer on org_acme456", status: "pass" },
 ];
 
 export const RESOLVE_RESULT = {
@@ -175,6 +175,6 @@ export const authFlowSteps: ScenarioStep<AuthFlowStep>[] = [
     delayMs: 3000,
     data: { view: "error-403" },
     narration:
-      "If the token is valid but no IAM Policy grants access to the requested resource, Stigmer returns 403 Forbidden.",
+      "If the token is valid but no Grant gives access to the requested resource, Stigmer returns 403 Forbidden.",
   },
 ];

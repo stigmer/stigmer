@@ -206,9 +206,9 @@ public final class InvitationCommandControllerGrpc {
     /**
      * <pre>
      * Redeem an invitation to join an organization.
-     * Creates an IAM policy granting the invitation's configured role to
+     * Creates a grant of the invitation's configured role to
      * the authenticated user on the invitation's organization. The
-     * redemption is atomic: the IAM policy is created and the redemption
+     * redemption is atomic: the grant is created and the redemption
      * count is incremented in a single operation.
      * Validation:
      * - Invitation must be in active state
@@ -293,9 +293,9 @@ public final class InvitationCommandControllerGrpc {
     /**
      * <pre>
      * Redeem an invitation to join an organization.
-     * Creates an IAM policy granting the invitation's configured role to
+     * Creates a grant of the invitation's configured role to
      * the authenticated user on the invitation's organization. The
-     * redemption is atomic: the IAM policy is created and the redemption
+     * redemption is atomic: the grant is created and the redemption
      * count is incremented in a single operation.
      * Validation:
      * - Invitation must be in active state
@@ -365,9 +365,9 @@ public final class InvitationCommandControllerGrpc {
     /**
      * <pre>
      * Redeem an invitation to join an organization.
-     * Creates an IAM policy granting the invitation's configured role to
+     * Creates a grant of the invitation's configured role to
      * the authenticated user on the invitation's organization. The
-     * redemption is atomic: the IAM policy is created and the redemption
+     * redemption is atomic: the grant is created and the redemption
      * count is incremented in a single operation.
      * Validation:
      * - Invitation must be in active state
@@ -436,9 +436,9 @@ public final class InvitationCommandControllerGrpc {
     /**
      * <pre>
      * Redeem an invitation to join an organization.
-     * Creates an IAM policy granting the invitation's configured role to
+     * Creates a grant of the invitation's configured role to
      * the authenticated user on the invitation's organization. The
-     * redemption is atomic: the IAM policy is created and the redemption
+     * redemption is atomic: the grant is created and the redemption
      * count is incremented in a single operation.
      * Validation:
      * - Invitation must be in active state
@@ -509,9 +509,9 @@ public final class InvitationCommandControllerGrpc {
     /**
      * <pre>
      * Redeem an invitation to join an organization.
-     * Creates an IAM policy granting the invitation's configured role to
+     * Creates a grant of the invitation's configured role to
      * the authenticated user on the invitation's organization. The
-     * redemption is atomic: the IAM policy is created and the redemption
+     * redemption is atomic: the grant is created and the redemption
      * count is incremented in a single operation.
      * Validation:
      * - Invitation must be in active state

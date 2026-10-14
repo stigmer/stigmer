@@ -1,6 +1,6 @@
 # Who may assign an organization's roles. An admin holds can_grant_access
 # and so grants every role up to admin; only an owner holds
-# can_assign_roles, which the IamPolicy lanes and the invitation lane ask
+# can_assign_roles, which the Grant lanes and the invitation lane ask
 # whenever a change grants, revokes or removes the owner role. The
 # hierarchy owner > admin > member > viewer is what makes this one
 # relation the whole of "no role above your own".

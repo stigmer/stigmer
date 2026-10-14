@@ -23,7 +23,7 @@
  *   - sign-in: the server acting as nobody
  *     (`serverActingFor(SYSTEM_OPERATOR_IDENTITY_ID)`), so the stamp names
  *     no person and the membership rules decide the owner of the
- *     organization recorded under SINGLE_ORG_KEY (iampolicy/membership.ts).
+ *     organization recorded under SINGLE_ORG_KEY (grant/membership.ts).
  *
  * After the create the store is read again, and that read settles the
  * holder and the SINGLE_ORG_KEY record, not the create's answer. The record
@@ -41,7 +41,7 @@
  *
  * On an empty store, before the create, the step marks the membership
  * rules' pass over the server's organization as owed
- * (SERVER_ORGANIZATION_ROLES_OWED, domain/iampolicy/constants.ts): the
+ * (SERVER_ORGANIZATION_ROLES_OWED, domain/grant/constants.ts): the
  * people that store already held get their roles on the organization made
  * for them, and no other store's people do.
  *
@@ -73,7 +73,7 @@ import { ORGANIZATION_SLUG_RESERVED } from "../domain/organization/names.js";
 import {
   SERVER_ORGANIZATION_ROLES_KEY,
   SERVER_ORGANIZATION_ROLES_OWED,
-} from "../domain/iampolicy/constants.js";
+} from "../domain/grant/constants.js";
 import type { Store } from "../store/interface.js";
 
 /** The in-process edge that makes the organization: the whole create chain, as the given caller. */
@@ -104,7 +104,7 @@ export async function ensureSingleOrganization(
     (await store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY)) === ""
   ) {
     // Before the create, so a start that dies after it still owes the
-    // people this store already held their roles (iampolicy/constants.ts).
+    // people this store already held their roles (grant/constants.ts).
     await store.bootstrapState.set(
       SERVER_ORGANIZATION_ROLES_KEY,
       SERVER_ORGANIZATION_ROLES_OWED,

@@ -71,7 +71,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { expectGrpcCode } from "../contract/errors";
 import { agentRefOf, makeAgent, subagentSlugsOf } from "../support/agents";
 import { makeAgentExecution } from "../support/runs";
-import { policyTriple } from "../support/iampolicies";
+import { grantTriple } from "../support/grants";
 import {
   SESSION_API_VERSION,
   SESSION_KIND,
@@ -359,8 +359,8 @@ describe("run gate — the agent is asked on every turn and every repoint (on th
     );
     const sessionId = ownerSession.metadata!.id;
     // The owner shares the conversation itself, and nothing on the agent.
-    await clients.iamPolicyCommand.create(
-      policyTriple(
+    await clients.grantCommand.create(
+      grantTriple(
         { kind: "identity_account", id: await lane.accountIdOf(member) },
         role,
         { kind: "session", id: sessionId },

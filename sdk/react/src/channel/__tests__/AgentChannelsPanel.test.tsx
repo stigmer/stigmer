@@ -82,7 +82,7 @@ function createMockStigmer(overrides: MockOverrides = {}) {
       list: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
       getByReference: vi.fn().mockRejectedValue(new Error("not found")),
     },
-    iamPolicy: {
+    grant: {
       checkMyPermission:
         overrides.checkMyPermission ??
         vi.fn().mockResolvedValue({ isAuthorized: true }),
@@ -475,8 +475,8 @@ describe("AgentChannelsPanel", () => {
     });
     // The dialog's People section lists existing grants on open.
     (
-      client as { iamPolicy: Record<string, unknown> }
-    ).iamPolicy.listResourceAccessByPrincipal = vi
+      client as { grant: Record<string, unknown> }
+    ).grant.listResourceAccessByPrincipal = vi
       .fn()
       .mockResolvedValue({ entries: [], nextPageToken: "" });
     render(
@@ -842,7 +842,7 @@ describe("AgentChannelsPanel", () => {
       channelapp: {
         list: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
       },
-      iamPolicy: {
+      grant: {
         checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: true }),
       },
     } as never;

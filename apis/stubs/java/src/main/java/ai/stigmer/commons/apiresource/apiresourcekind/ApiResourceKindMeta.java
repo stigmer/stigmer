@@ -357,7 +357,10 @@ private static final long serialVersionUID = 0L;
    * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
    * identities and are never rewritten, so a store keeps the ids it minted
    * under an earlier prefix: readers that tell a kind from an id read these
-   * too. Never minted.
+   * too. Never minted. A kind whose ids are derived from their content (a
+   * Grant's from its triple) moves its stored ids to the new prefix when it
+   * is renamed, and lists the old prefix here so the prefix stays reserved
+   * and an id held outside the store still names its kind.
    * </pre>
    *
    * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
@@ -372,7 +375,10 @@ private static final long serialVersionUID = 0L;
    * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
    * identities and are never rewritten, so a store keeps the ids it minted
    * under an earlier prefix: readers that tell a kind from an id read these
-   * too. Never minted.
+   * too. Never minted. A kind whose ids are derived from their content (a
+   * Grant's from its triple) moves its stored ids to the new prefix when it
+   * is renamed, and lists the old prefix here so the prefix stays reserved
+   * and an id held outside the store still names its kind.
    * </pre>
    *
    * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
@@ -386,7 +392,10 @@ private static final long serialVersionUID = 0L;
    * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
    * identities and are never rewritten, so a store keeps the ids it minted
    * under an earlier prefix: readers that tell a kind from an id read these
-   * too. Never minted.
+   * too. Never minted. A kind whose ids are derived from their content (a
+   * Grant's from its triple) moves its stored ids to the new prefix when it
+   * is renamed, and lists the old prefix here so the prefix stays reserved
+   * and an id held outside the store still names its kind.
    * </pre>
    *
    * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
@@ -401,7 +410,10 @@ private static final long serialVersionUID = 0L;
    * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
    * identities and are never rewritten, so a store keeps the ids it minted
    * under an earlier prefix: readers that tell a kind from an id read these
-   * too. Never minted.
+   * too. Never minted. A kind whose ids are derived from their content (a
+   * Grant's from its triple) moves its stored ids to the new prefix when it
+   * is renamed, and lists the old prefix here so the prefix stays reserved
+   * and an id held outside the store still names its kind.
    * </pre>
    *
    * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
@@ -1706,7 +1718,10 @@ private static final long serialVersionUID = 0L;
      * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
      * identities and are never rewritten, so a store keeps the ids it minted
      * under an earlier prefix: readers that tell a kind from an id read these
-     * too. Never minted.
+     * too. Never minted. A kind whose ids are derived from their content (a
+     * Grant's from its triple) moves its stored ids to the new prefix when it
+     * is renamed, and lists the old prefix here so the prefix stays reserved
+     * and an id held outside the store still names its kind.
      * </pre>
      *
      * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
@@ -1722,7 +1737,10 @@ private static final long serialVersionUID = 0L;
      * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
      * identities and are never rewritten, so a store keeps the ids it minted
      * under an earlier prefix: readers that tell a kind from an id read these
-     * too. Never minted.
+     * too. Never minted. A kind whose ids are derived from their content (a
+     * Grant's from its triple) moves its stored ids to the new prefix when it
+     * is renamed, and lists the old prefix here so the prefix stays reserved
+     * and an id held outside the store still names its kind.
      * </pre>
      *
      * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
@@ -1736,7 +1754,10 @@ private static final long serialVersionUID = 0L;
      * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
      * identities and are never rewritten, so a store keeps the ids it minted
      * under an earlier prefix: readers that tell a kind from an id read these
-     * too. Never minted.
+     * too. Never minted. A kind whose ids are derived from their content (a
+     * Grant's from its triple) moves its stored ids to the new prefix when it
+     * is renamed, and lists the old prefix here so the prefix stays reserved
+     * and an id held outside the store still names its kind.
      * </pre>
      *
      * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
@@ -1751,7 +1772,10 @@ private static final long serialVersionUID = 0L;
      * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
      * identities and are never rewritten, so a store keeps the ids it minted
      * under an earlier prefix: readers that tell a kind from an id read these
-     * too. Never minted.
+     * too. Never minted. A kind whose ids are derived from their content (a
+     * Grant's from its triple) moves its stored ids to the new prefix when it
+     * is renamed, and lists the old prefix here so the prefix stays reserved
+     * and an id held outside the store still names its kind.
      * </pre>
      *
      * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
@@ -1767,7 +1791,10 @@ private static final long serialVersionUID = 0L;
      * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
      * identities and are never rewritten, so a store keeps the ids it minted
      * under an earlier prefix: readers that tell a kind from an id read these
-     * too. Never minted.
+     * too. Never minted. A kind whose ids are derived from their content (a
+     * Grant's from its triple) moves its stored ids to the new prefix when it
+     * is renamed, and lists the old prefix here so the prefix stays reserved
+     * and an id held outside the store still names its kind.
      * </pre>
      *
      * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
@@ -1789,7 +1816,10 @@ private static final long serialVersionUID = 0L;
      * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
      * identities and are never rewritten, so a store keeps the ids it minted
      * under an earlier prefix: readers that tell a kind from an id read these
-     * too. Never minted.
+     * too. Never minted. A kind whose ids are derived from their content (a
+     * Grant's from its triple) moves its stored ids to the new prefix when it
+     * is renamed, and lists the old prefix here so the prefix stays reserved
+     * and an id held outside the store still names its kind.
      * </pre>
      *
      * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
@@ -1810,7 +1840,10 @@ private static final long serialVersionUID = 0L;
      * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
      * identities and are never rewritten, so a store keeps the ids it minted
      * under an earlier prefix: readers that tell a kind from an id read these
-     * too. Never minted.
+     * too. Never minted. A kind whose ids are derived from their content (a
+     * Grant's from its triple) moves its stored ids to the new prefix when it
+     * is renamed, and lists the old prefix here so the prefix stays reserved
+     * and an id held outside the store still names its kind.
      * </pre>
      *
      * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
@@ -1831,7 +1864,10 @@ private static final long serialVersionUID = 0L;
      * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
      * identities and are never rewritten, so a store keeps the ids it minted
      * under an earlier prefix: readers that tell a kind from an id read these
-     * too. Never minted.
+     * too. Never minted. A kind whose ids are derived from their content (a
+     * Grant's from its triple) moves its stored ids to the new prefix when it
+     * is renamed, and lists the old prefix here so the prefix stays reserved
+     * and an id held outside the store still names its kind.
      * </pre>
      *
      * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
@@ -1849,7 +1885,10 @@ private static final long serialVersionUID = 0L;
      * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
      * identities and are never rewritten, so a store keeps the ids it minted
      * under an earlier prefix: readers that tell a kind from an id read these
-     * too. Never minted.
+     * too. Never minted. A kind whose ids are derived from their content (a
+     * Grant's from its triple) moves its stored ids to the new prefix when it
+     * is renamed, and lists the old prefix here so the prefix stays reserved
+     * and an id held outside the store still names its kind.
      * </pre>
      *
      * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>

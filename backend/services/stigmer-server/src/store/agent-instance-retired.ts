@@ -37,8 +37,8 @@
  * instance reads them from then on from the person's personal environment
  * (when the agent belongs to the run's own organization) or from the
  * layers a schedule or a PlatformClient caller supplies.
- * Every IamPolicy row whose resource or principal is an instance leaves too
- * (`policyNamesRetiredInstance`): a grant on an object that no longer
+ * Every grant row whose resource or principal is an instance leaves too
+ * (`grantNamesRetiredInstance`): a grant on an object that no longer
  * exists would only linger in grant listings. Such a row leaves the way the
  * store deletes a policy, with its list keys and with its history kept.
  *
@@ -57,7 +57,7 @@ import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { BinaryReader, WireType } from "@bufbuild/protobuf/wire";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
@@ -70,8 +70,8 @@ import { FrozenAgentInstanceEnvelopeSchema } from "./frozen-envelopes.js";
 export const RETIRED_INSTANCE_KIND = "agent_instance";
 export const SESSION_KIND = "session";
 export const AGENT_KIND = "agent";
-/** The `kind` column value of the grant rows the step reads. */
-export const POLICY_KIND = "iam_policy";
+/** The `kind` column value of the grant rows the step reads: their stored kind at its time, before Postgres v34 and SQLite v38 renamed it `grant`. */
+export const GRANT_KIND_AT_STEP = "iam_policy";
 
 /** How many session rows the step decodes per page. */
 export const RETIREMENT_PAGE_SIZE = 500;
@@ -169,14 +169,14 @@ export function migrateSessionRow(
 }
 
 /**
- * Whether a stored IamPolicy row names an agent instance as its resource
+ * Whether a stored grant row names an agent instance as its resource
  * or its principal (an `ApiResourceRef.kind` is the enum member name, the
  * string the instance kind's rows were stored under). Read through the
  * live schema: the policy's own fields are unchanged. Throws when the
  * bytes do not decode.
  */
-export function policyNamesRetiredInstance(data: Uint8Array): boolean {
-  const spec = fromBinary(IamPolicySchema, data).spec;
+export function grantNamesRetiredInstance(data: Uint8Array): boolean {
+  const spec = fromBinary(GrantSchema, data).spec;
   return (
     spec?.resource?.kind === RETIRED_INSTANCE_KIND ||
     spec?.principal?.kind === RETIRED_INSTANCE_KIND

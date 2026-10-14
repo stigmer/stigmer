@@ -35,7 +35,7 @@ function renderView(
       {
         agent: { getByReference: vi.fn(async () => agent), listVersions },
         platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
-        iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
+        grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
       },
       undefined,
       true,

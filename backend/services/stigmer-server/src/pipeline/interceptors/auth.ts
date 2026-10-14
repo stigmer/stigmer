@@ -180,7 +180,7 @@ export function trustedLocalIdentity(): CallerIdentity {
  * what every audit actor on such a laptop carries as `created_by.id`; the
  * operator account derives its subject from it (`local|system`) and the
  * membership rules read it as "not a person" when they classify creator
- * stamps (domain/iampolicy/membership.ts). One home: a second spelling
+ * stamps (domain/grant/membership.ts). One home: a second spelling
  * anywhere would make a stamp and its reader
  * disagree silently.
  */

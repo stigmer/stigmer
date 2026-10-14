@@ -667,8 +667,8 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Authentication without an IAM Policy yields 403; bind principal, resource,
-      and relation, or revoke access again.
+      Authentication without a Grant yields 403; grant a principal a role on a
+      resource, or revoke access again.
     medium: none
     embeds:
       provision-grant-playback: keep

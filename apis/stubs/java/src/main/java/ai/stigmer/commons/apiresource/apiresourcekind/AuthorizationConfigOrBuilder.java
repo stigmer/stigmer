@@ -188,8 +188,8 @@ public interface AuthorizationConfigOrBuilder extends
 
   /**
    * <pre>
-   * Roles that can be granted on this resource kind via IAM policies.
-   * Drives the web app role selector and SDK validation for IAM policy creation.
+   * Roles that can be granted on this resource kind by a Grant.
+   * Drives the web app role selector and SDK validation for grant creation.
    *
    * Each value must correspond to a directly-assignable FGA relation
    * (defined with [identity_account] in the FGA model). Computed roles
@@ -207,8 +207,8 @@ public interface AuthorizationConfigOrBuilder extends
   java.util.List<ai.stigmer.iam.v1.IamRole> getGrantableRolesList();
   /**
    * <pre>
-   * Roles that can be granted on this resource kind via IAM policies.
-   * Drives the web app role selector and SDK validation for IAM policy creation.
+   * Roles that can be granted on this resource kind by a Grant.
+   * Drives the web app role selector and SDK validation for grant creation.
    *
    * Each value must correspond to a directly-assignable FGA relation
    * (defined with [identity_account] in the FGA model). Computed roles
@@ -226,8 +226,8 @@ public interface AuthorizationConfigOrBuilder extends
   int getGrantableRolesCount();
   /**
    * <pre>
-   * Roles that can be granted on this resource kind via IAM policies.
-   * Drives the web app role selector and SDK validation for IAM policy creation.
+   * Roles that can be granted on this resource kind by a Grant.
+   * Drives the web app role selector and SDK validation for grant creation.
    *
    * Each value must correspond to a directly-assignable FGA relation
    * (defined with [identity_account] in the FGA model). Computed roles
@@ -246,8 +246,8 @@ public interface AuthorizationConfigOrBuilder extends
   ai.stigmer.iam.v1.IamRole getGrantableRoles(int index);
   /**
    * <pre>
-   * Roles that can be granted on this resource kind via IAM policies.
-   * Drives the web app role selector and SDK validation for IAM policy creation.
+   * Roles that can be granted on this resource kind by a Grant.
+   * Drives the web app role selector and SDK validation for grant creation.
    *
    * Each value must correspond to a directly-assignable FGA relation
    * (defined with [identity_account] in the FGA model). Computed roles
@@ -266,8 +266,8 @@ public interface AuthorizationConfigOrBuilder extends
   getGrantableRolesValueList();
   /**
    * <pre>
-   * Roles that can be granted on this resource kind via IAM policies.
-   * Drives the web app role selector and SDK validation for IAM policy creation.
+   * Roles that can be granted on this resource kind by a Grant.
+   * Drives the web app role selector and SDK validation for grant creation.
    *
    * Each value must correspond to a directly-assignable FGA relation
    * (defined with [identity_account] in the FGA model). Computed roles

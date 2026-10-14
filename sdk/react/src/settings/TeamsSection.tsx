@@ -29,7 +29,7 @@ import { useEntitlements } from "../billing/useEntitlements.js";
 import { usePlans } from "../billing/usePlans.js";
 import { useDeploymentMode, useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
-import { PermissionGate } from "../iam-policy/PermissionGate.js";
+import { PermissionGate } from "../grant/PermissionGate.js";
 import { useOrg } from "../organization/OrgProvider.js";
 import { CreateTeamForm } from "../team/CreateTeamForm.js";
 import { TeamDetailPanel } from "../team/TeamDetailPanel.js";

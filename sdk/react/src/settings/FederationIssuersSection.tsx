@@ -7,7 +7,7 @@ import { FederationIssuerWizard } from "../federation-issuer/FederationIssuerWiz
 import { FederationIssuerDetailPanel } from "../federation-issuer/FederationIssuerDetailPanel.js";
 import { FEDERATION_ISSUERS_MANAGED_BY_ADMINS } from "../federation-issuer/copy.js";
 import { useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { useOrg } from "../organization/OrgProvider.js";
 

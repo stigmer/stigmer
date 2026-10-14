@@ -5,7 +5,7 @@ import {
   ChannelAppSchema,
   type ChannelApp,
 } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { ChannelAppDetailPanel } from "../ChannelAppDetailPanel";
 
@@ -42,7 +42,7 @@ function renderPanel(checkMyPermission: ReturnType<typeof vi.fn>) {
   const client = {
     baseUrl: "https://api.stigmer.ai",
     channelapp: { update: vi.fn(), delete: vi.fn() },
-    iamPolicy: { checkMyPermission },
+    grant: { checkMyPermission },
   } as never;
   return render(
     <StigmerContext.Provider value={client}>
@@ -129,7 +129,7 @@ describe("ChannelAppDetailPanel rename", () => {
     const onUpdated = vi.fn();
     const client = {
       channelapp: { rename },
-      iamPolicy: { checkMyPermission: async () => ({ isAuthorized: true }) },
+      grant: { checkMyPermission: async () => ({ isAuthorized: true }) },
     } as never;
     render(
       <StigmerContext.Provider value={client}>

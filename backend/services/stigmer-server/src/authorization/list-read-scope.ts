@@ -68,7 +68,7 @@ import type { DescMessage } from "@bufbuild/protobuf";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../boot/logger.js";
-import type { IamPolicyStore } from "../domain/iampolicy/store.js";
+import type { GrantStore } from "../domain/grant/store.js";
 import type { CallerIdentity } from "../extensions/identity.js";
 import type { ResourceRowReader } from "../extensions/resource-row-reader.js";
 import type {
@@ -98,7 +98,7 @@ type ListableDeclaration = KindDeclaration & { readonly schema: DescMessage };
 export interface BuiltInListReadScopeDeps {
   readonly store: Store;
   /** The port the grant path writes through — the person's rows are read from the same instance. */
-  readonly policies: IamPolicyStore;
+  readonly grants: GrantStore;
   /** The account port: the caller's account, and the parent hops that land on one. */
   readonly accounts: AccountsByCaller;
   readonly logger: Logger;
@@ -127,7 +127,7 @@ export function newBuiltInListReadScope(
     const source = newDerivedTupleSource(
       {
         store: deps.store,
-        policies: deps.policies,
+        grants: deps.grants,
         accounts: deps.accounts,
         rowReaders: deps.rowReaders,
         model,

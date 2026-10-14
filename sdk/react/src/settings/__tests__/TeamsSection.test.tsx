@@ -63,7 +63,7 @@ vi.mock("../../billing/usePlans.js", async () => {
     },
   };
 });
-vi.mock("../../iam-policy/PermissionGate.js", () => ({
+vi.mock("../../grant/PermissionGate.js", () => ({
   PermissionGate: ({
     resource,
     relation,

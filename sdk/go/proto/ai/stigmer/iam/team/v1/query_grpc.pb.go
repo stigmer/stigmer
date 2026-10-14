@@ -33,7 +33,7 @@ const (
 //
 // Every member of an organization can see its teams, so anyone who can share
 // a resource can pick a team to share it with. Who is in a team is read
-// through the IAM policy service's access list on the team.
+// through the Grant service's access list on the team.
 type TeamQueryControllerClient interface {
 	// Get a team by its unique identifier.
 	Get(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*Team, error)
@@ -89,7 +89,7 @@ func (c *teamQueryControllerClient) List(ctx context.Context, in *ListTeamsInput
 //
 // Every member of an organization can see its teams, so anyone who can share
 // a resource can pick a team to share it with. Who is in a team is read
-// through the IAM policy service's access list on the team.
+// through the Grant service's access list on the team.
 type TeamQueryControllerServer interface {
 	// Get a team by its unique identifier.
 	Get(context.Context, *apiresource.ApiResourceId) (*Team, error)

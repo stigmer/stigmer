@@ -1,5 +1,5 @@
 /**
- * The organization-link reconcile over fakes of the policy mirror, the
+ * The organization-link reconcile over fakes of the grant mirror, the
  * grant path and the organization lookup. Pins:
  *   - a row missing its link gets exactly `<kind>:<id>#organization@
  *     organization:<org>` through the structural lane, and a row that has
@@ -31,13 +31,13 @@ import {
   ApiResourceAuditInfoSchema,
   ApiResourceAuditSchema,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import {
   ApiResourceRefSchema,
-  IamPolicySpecSchema,
-  type IamPolicySpec,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+  GrantSpecSchema,
+  type GrantSpec,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import {
   InvitationSchema,
   InvitationStatusSchema,
@@ -53,9 +53,9 @@ import {
 
 const ROW_CREATED = new Date("2026-09-22T10:00:00Z");
 
-function policy(principal: { kind: string; id: string }, relation: string, providerId: string): IamPolicy {
-  return create(IamPolicySchema, {
-    spec: create(IamPolicySpecSchema, {
+function grant(principal: { kind: string; id: string }, relation: string, providerId: string): Grant {
+  return create(GrantSchema, {
+    spec: create(GrantSpecSchema, {
       principal: create(ApiResourceRefSchema, principal),
       relation,
       resource: create(ApiResourceRefSchema, { kind: "federation_issuer", id: providerId }),
@@ -64,23 +64,23 @@ function policy(principal: { kind: string; id: string }, relation: string, provi
 }
 
 function rig(options: {
-  policies?: ReadonlyMap<string, ReadonlyArray<IamPolicy>>;
+  grants?: ReadonlyMap<string, ReadonlyArray<Grant>>;
   organizations?: ReadonlyMap<string, OrganizationFacts>;
   failWritesFor?: ReadonlySet<string>;
 }) {
-  const written: IamPolicySpec[] = [];
+  const written: GrantSpec[] = [];
   const lookedUp: string[] = [];
   const deps = {
-    policyStore: {
-      findByResource: (_kind: string, id: string) => Promise.resolve(options.policies?.get(id) ?? []),
+    grantStore: {
+      findByResource: (_kind: string, id: string) => Promise.resolve(options.grants?.get(id) ?? []),
     },
-    policies: {
-      bootstrapPolicy: (spec: IamPolicySpec) => {
+    grants: {
+      bootstrapGrant: (spec: GrantSpec) => {
         if (options.failWritesFor?.has(spec.resource?.id ?? "") === true) {
           return Promise.reject(new Error("engine down"));
         }
         written.push(spec);
-        return Promise.resolve(create(IamPolicySchema, { spec }));
+        return Promise.resolve(create(GrantSchema, { spec }));
       },
     },
     organizations: {
@@ -104,8 +104,8 @@ const live = (createdAt: Date | undefined): OrganizationFacts => ({
 describe("reconcileOrganizationLinks", () => {
   it("writes exactly the organization link for a row missing it, and nothing for a row that has it", async () => {
     const r = rig({
-      policies: new Map([
-        ["fis_linked", [policy({ kind: "organization", id: "acme" }, "organization", "fis_linked")]],
+      grants: new Map([
+        ["fis_linked", [grant({ kind: "organization", id: "acme" }, "organization", "fis_linked")]],
       ]),
       organizations: new Map([["acme", live(new Date("2026-01-01T00:00:00Z"))]]),
     });
@@ -121,7 +121,7 @@ describe("reconcileOrganizationLinks", () => {
 
     expect(report).toEqual({ converged: 1, orphaned: [], failures: [] });
     expect(r.written).toEqual([
-      create(IamPolicySpecSchema, {
+      create(GrantSpecSchema, {
         principal: create(ApiResourceRefSchema, { kind: "organization", id: "acme" }),
         relation: "organization",
         resource: create(ApiResourceRefSchema, { kind: "federation_issuer", id: "fis_bare" }),
@@ -131,12 +131,12 @@ describe("reconcileOrganizationLinks", () => {
 
   it("counts only the exact triple as the link, never an organization's row on another relation or another organization's link", async () => {
     const r = rig({
-      policies: new Map([
+      grants: new Map([
         [
           "fis_platform",
           [
-            policy({ kind: "organization", id: "tenant" }, "viewer", "fis_platform"),
-            policy({ kind: "organization", id: "elsewhere" }, "organization", "fis_platform"),
+            grant({ kind: "organization", id: "tenant" }, "viewer", "fis_platform"),
+            grant({ kind: "organization", id: "elsewhere" }, "organization", "fis_platform"),
           ],
         ],
       ]),

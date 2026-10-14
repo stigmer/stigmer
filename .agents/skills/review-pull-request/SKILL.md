@@ -77,7 +77,7 @@ checks.
     `backend/services/stigmer-server/src/transport` and
     `backend/services/stigmer-server/src/pipeline`;
   - its domains `backend/services/stigmer-server/src/domain/apikey`,
-    `backend/services/stigmer-server/src/domain/iampolicy`,
+    `backend/services/stigmer-server/src/domain/grant`,
     `backend/services/stigmer-server/src/domain/identityaccount`,
     `backend/services/stigmer-server/src/domain/agentshare`,
     `backend/services/stigmer-server/src/domain/organization`,

@@ -40,7 +40,7 @@ import type { StoreLogger } from "../logger.js";
 import {
   AGENT_KIND as RETIREMENT_AGENT_KIND,
   PLUGIN_KIND,
-  POLICY_KIND as RETIREMENT_POLICY_KIND,
+  GRANT_KIND_AT_STEP as RETIREMENT_GRANT_KIND,
   RETIRED_MCP_SERVER_KIND,
   RETIREMENT_PAGE_SIZE as SERVER_RETIREMENT_PAGE_SIZE,
   RetirementFacts,
@@ -50,7 +50,7 @@ import {
   migrateAgentRow,
   migrateSessionRow as migrateSessionRowForPlugins,
   pluginFactsOf,
-  policyNamesRetired,
+  grantNamesRetired,
   serverFactsOf,
   unreadableRowError as unreadableRetiredServerRowError,
 } from "../mcp-server-retired.js";
@@ -65,14 +65,14 @@ import {
 
 import {
   AGENT_KIND,
-  POLICY_KIND,
+  GRANT_KIND_AT_STEP,
   RETIRED_INSTANCE_KIND,
   RETIREMENT_PAGE_SIZE,
   SESSION_KIND,
   agentFactsOf,
   instanceAgentIdOf,
   migrateSessionRow,
-  policyNamesRetiredInstance,
+  grantNamesRetiredInstance,
   unreadableRowError,
 } from "../agent-instance-retired.js";
 import type { InstanceAgent } from "../agent-instance-retired.js";
@@ -101,37 +101,39 @@ import {
 import {
   RETIRED_WORKFLOW_INSTANCE_KIND,
   WORKFLOW_RETIREMENT_PAGE_SIZE,
-  WORKFLOW_RETIREMENT_POLICY_KIND,
-  policyNamesRetiredWorkflowInstance,
+  WORKFLOW_RETIREMENT_GRANT_KIND,
+  grantNamesRetiredWorkflowInstance,
   unreadableWorkflowRowError,
 } from "../workflow-instance-retired.js";
 import {
   PLATFORM_CLIENT_RETIRED_PAGE_SIZE,
-  PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+  PLATFORM_CLIENT_RETIRED_GRANT_KIND,
   RETIRED_PLATFORM_CLIENT_KIND,
-  policyNamesRetiredPlatformClient,
+  grantNamesRetiredPlatformClient,
   unreadablePlatformClientRowError,
 } from "../platform-client-retired.js";
 import {
   KIND_TABLES,
   KIND_RENAME_PAGE_SIZE,
-  KIND_RENAME_POLICY_KIND,
+  KIND_RENAME_GRANT_KIND,
+  GRANT_RENAME_V34,
   RUN_RENAME_V18,
   RUN_RENAME_V21,
-  rekeyedPolicy,
+  movedGrant,
+  rekeyedGrant,
   renamedKindRow,
   unreadableKindRenameRowError,
 } from "../kind-rename.js";
-import type { KindRename, RekeyedPolicy } from "../kind-rename.js";
+import type { KindRename, RekeyedGrant } from "../kind-rename.js";
 import {
   AGENT_RUN_KIND,
   AGENT_RUN_RETIRED_PAGE_SIZE,
   RETIRED_WORKFLOW_KINDS,
   RETIRED_WORKFLOW_TABLES,
   WORKFLOW_RETIRED_PAGE_SIZE,
-  WORKFLOW_RETIRED_POLICY_KIND,
+  WORKFLOW_RETIRED_GRANT_KIND,
   migrateAgentRunRow,
-  policyNamesRetiredWorkflowKind,
+  grantNamesRetiredWorkflowKind,
   unreadableRetiredWorkflowRowError,
 } from "../workflow-retired.js";
 import {
@@ -153,10 +155,10 @@ import {
 import type { NameAtRewrite } from "../references-by-id.js";
 import {
   ENVIRONMENT_RETIRED_PAGE_SIZE,
-  ENVIRONMENT_RETIRED_POLICY_KIND,
+  ENVIRONMENT_RETIRED_GRANT_KIND,
   RETIRED_ENVIRONMENT_KIND,
   RETIRED_ENVIRONMENT_TABLES,
-  policyNamesRetiredEnvironment,
+  grantNamesRetiredEnvironment,
   unreadableRetiredEnvironmentRowError,
 } from "../environment-retired.js";
 import { RETIRED_EXECUTION_CONTEXT_KIND } from "../execution-context-retired.js";
@@ -254,8 +256,11 @@ export const SCHEMA_VERSION_36 = 36;
 /** v37: the platform client rows removed, with every grant naming one. */
 export const SCHEMA_VERSION_37 = 37;
 
+/** v38: the IAM policy is a grant: its names, its ids and its history's tables. */
+export const SCHEMA_VERSION_38 = 38;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_37;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_38;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -318,6 +323,7 @@ export function runMigrations(
     [SCHEMA_VERSION_35, migrateToV35],
     [SCHEMA_VERSION_36, (migrating) => migrateToV36(migrating, logger)],
     [SCHEMA_VERSION_37, migrateToV37],
+    [SCHEMA_VERSION_38, migrateToV38],
   ];
 
   for (const [version, migrate] of chain) {
@@ -808,7 +814,7 @@ function migrateToV13(db: DatabaseSync): void {
  * read in keyset pages for the agent it names, each named agent once by
  * point read, then every session in keyset pages, rewritten when it names
  * an instance with `updated_at` bumped (the list index re-derives a row
- * whose stamp no longer matches, at open). Every IamPolicy row naming an
+ * whose stamp no longer matches, at open). Every grant row naming an
  * instance as resource or principal is found in keyset pages and deleted
  * with its list keys, its history kept, as the store deletes a policy. The
  * instance rows, their history and their list keys are then deleted; the
@@ -891,22 +897,22 @@ function migrateToV14(db: DatabaseSync): void {
     }
   }
 
-  const retiredPolicies: string[] = [];
-  for (const row of pages(POLICY_KIND)) {
+  const retiredGrantIds: string[] = [];
+  for (const row of pages(GRANT_KIND_AT_STEP)) {
     try {
-      if (policyNamesRetiredInstance(row.data)) {
-        retiredPolicies.push(row.id);
+      if (grantNamesRetiredInstance(row.data)) {
+        retiredGrantIds.push(row.id);
       }
     } catch (error) {
-      throw unreadableRowError(POLICY_KIND, row.id, error);
+      throw unreadableRowError(GRANT_KIND_AT_STEP, row.id, error);
     }
   }
-  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+  const deleteGrant = ["resource_list_keys", "resources"].map((table) =>
     db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
   );
-  for (const id of retiredPolicies) {
-    for (const statement of deletePolicy) {
-      statement.run(POLICY_KIND, id);
+  for (const id of retiredGrantIds) {
+    for (const statement of deleteGrant) {
+      statement.run(GRANT_KIND_AT_STEP, id);
     }
   }
 
@@ -980,7 +986,7 @@ function migrateToV16(db: DatabaseSync): void {
 /**
  * v17: the workflow instance kind is removed — the Postgres driver's v12 in
  * this engine's terms (workflow-instance-retired.ts says what leaves and
- * why an unreadable row fails the step). Every IamPolicy row naming an
+ * why an unreadable row fails the step). Every grant row naming an
  * instance as resource or principal is found in keyset pages and deleted
  * with its list keys, its history kept, as the store deletes a policy. The
  * instance rows, their history and their list keys are then deleted; the
@@ -993,21 +999,21 @@ function migrateToV17(db: DatabaseSync): void {
   const page = db.prepare(
     `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
   );
-  const retiredPolicies: string[] = [];
+  const retiredGrantIds: string[] = [];
   for (let after = ""; ; ) {
     const rows = page.all(
-      WORKFLOW_RETIREMENT_POLICY_KIND,
+      WORKFLOW_RETIREMENT_GRANT_KIND,
       after,
       WORKFLOW_RETIREMENT_PAGE_SIZE,
     ) as Array<{ id: string; data: Uint8Array }>;
     for (const row of rows) {
       try {
-        if (policyNamesRetiredWorkflowInstance(row.data)) {
-          retiredPolicies.push(row.id);
+        if (grantNamesRetiredWorkflowInstance(row.data)) {
+          retiredGrantIds.push(row.id);
         }
       } catch (error) {
         throw unreadableWorkflowRowError(
-          WORKFLOW_RETIREMENT_POLICY_KIND,
+          WORKFLOW_RETIREMENT_GRANT_KIND,
           row.id,
           error,
         );
@@ -1018,12 +1024,12 @@ function migrateToV17(db: DatabaseSync): void {
     }
     after = rows[rows.length - 1]!.id;
   }
-  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+  const deleteGrant = ["resource_list_keys", "resources"].map((table) =>
     db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
   );
-  for (const id of retiredPolicies) {
-    for (const statement of deletePolicy) {
-      statement.run(WORKFLOW_RETIREMENT_POLICY_KIND, id);
+  for (const id of retiredGrantIds) {
+    for (const statement of deleteGrant) {
+      statement.run(WORKFLOW_RETIREMENT_GRANT_KIND, id);
     }
   }
 
@@ -1047,7 +1053,7 @@ function migrateToV18(db: DatabaseSync): void {
  * One rename of a kind (kind-rename.ts), shared by v18 and v21. Every row
  * of the kind is read in keyset pages under its old name and rewritten when
  * its bytes spell the kind the old way; then every table keyed by kind
- * renames the kind. Every IamPolicy row is read in keyset pages, and the ones
+ * renames the kind. Every grant row is read in keyset pages, and the ones
  * naming the old kind are re-keyed: the old row leaves with its list keys,
  * its history kept, and the new row is written unproven with `updated_at`
  * stamped, so the list index derives its keys at open. The search index is
@@ -1094,28 +1100,28 @@ function renameKind(db: DatabaseSync, rename: KindRename): void {
     db.prepare(`UPDATE ${table} SET kind = ? WHERE kind = ?`).run(toKind, fromKind);
   }
 
-  const rekeyed: Array<{ from: string; policy: RekeyedPolicy }> = [];
-  for (const row of resources(KIND_RENAME_POLICY_KIND)) {
+  const rekeyed: Array<{ from: string; grant: RekeyedGrant }> = [];
+  for (const row of resources(KIND_RENAME_GRANT_KIND)) {
     try {
-      const policy = rekeyedPolicy(rename, row.data);
-      if (policy !== undefined) {
-        rekeyed.push({ from: row.id, policy });
+      const grant = rekeyedGrant(rename, row.data);
+      if (grant !== undefined) {
+        rekeyed.push({ from: row.id, grant });
       }
     } catch (error) {
-      throw unreadableKindRenameRowError(rename, KIND_RENAME_POLICY_KIND, row.id, error);
+      throw unreadableKindRenameRowError(rename, KIND_RENAME_GRANT_KIND, row.id, error);
     }
   }
-  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+  const deleteGrant = ["resource_list_keys", "resources"].map((table) =>
     db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
   );
-  const insertPolicy = db.prepare(
+  const insertGrant = db.prepare(
     `INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, datetime('now'))`,
   );
-  for (const { from, policy } of rekeyed) {
-    for (const statement of deletePolicy) {
-      statement.run(KIND_RENAME_POLICY_KIND, from);
+  for (const { from, grant } of rekeyed) {
+    for (const statement of deleteGrant) {
+      statement.run(KIND_RENAME_GRANT_KIND, from);
     }
-    insertPolicy.run(KIND_RENAME_POLICY_KIND, policy.id, policy.data);
+    insertGrant.run(KIND_RENAME_GRANT_KIND, grant.id, grant.data);
   }
 }
 
@@ -1123,7 +1129,7 @@ function renameKind(db: DatabaseSync, rename: KindRename): void {
  * v19: workflows, workflow runs and the artifact kind are removed — the
  * Postgres driver's v14 in this engine's terms (workflow-retired.ts says
  * what leaves, what each agent run becomes and why an unreadable row fails
- * the step). Every IamPolicy row is read in keyset pages, and the ones
+ * the step). Every grant row is read in keyset pages, and the ones
  * naming a retired kind as resource or principal are deleted with their
  * list keys, their history kept, as the store deletes a policy. Every
  * agent run is read in keyset pages and rewritten when it carries a
@@ -1160,29 +1166,29 @@ function migrateToV19(db: DatabaseSync): void {
     }
   };
 
-  const retiredPolicies: string[] = [];
+  const retiredGrantIds: string[] = [];
   for (const row of pages(
-    WORKFLOW_RETIRED_POLICY_KIND,
+    WORKFLOW_RETIRED_GRANT_KIND,
     WORKFLOW_RETIRED_PAGE_SIZE,
   )) {
     try {
-      if (policyNamesRetiredWorkflowKind(row.data)) {
-        retiredPolicies.push(row.id);
+      if (grantNamesRetiredWorkflowKind(row.data)) {
+        retiredGrantIds.push(row.id);
       }
     } catch (error) {
       throw unreadableRetiredWorkflowRowError(
-        WORKFLOW_RETIRED_POLICY_KIND,
+        WORKFLOW_RETIRED_GRANT_KIND,
         row.id,
         error,
       );
     }
   }
-  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+  const deleteGrant = ["resource_list_keys", "resources"].map((table) =>
     db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
   );
-  for (const id of retiredPolicies) {
-    for (const statement of deletePolicy) {
-      statement.run(WORKFLOW_RETIRED_POLICY_KIND, id);
+  for (const id of retiredGrantIds) {
+    for (const statement of deleteGrant) {
+      statement.run(WORKFLOW_RETIRED_GRANT_KIND, id);
     }
   }
 
@@ -1255,7 +1261,7 @@ function migrateToV21(db: DatabaseSync): void {
 
 /**
  * v22: vaults replace the Environment kind (../environment-retired.ts says
- * what leaves and why nothing is carried). Every IamPolicy row is read in
+ * what leaves and why nothing is carried). Every grant row is read in
  * keyset pages, and the ones naming an environment as resource or principal
  * are deleted with their list keys, their history kept, as the store
  * deletes a policy. Every environment row is then deleted from every table
@@ -1270,21 +1276,21 @@ function migrateToV22(db: DatabaseSync): void {
   const page = db.prepare(
     `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
   );
-  const retiredPolicies: string[] = [];
+  const retiredGrantIds: string[] = [];
   for (let after = ""; ; ) {
     const rows = page.all(
-      ENVIRONMENT_RETIRED_POLICY_KIND,
+      ENVIRONMENT_RETIRED_GRANT_KIND,
       after,
       ENVIRONMENT_RETIRED_PAGE_SIZE,
     ) as Array<{ id: string; data: Uint8Array }>;
     for (const row of rows) {
       try {
-        if (policyNamesRetiredEnvironment(row.data)) {
-          retiredPolicies.push(row.id);
+        if (grantNamesRetiredEnvironment(row.data)) {
+          retiredGrantIds.push(row.id);
         }
       } catch (error) {
         throw unreadableRetiredEnvironmentRowError(
-          ENVIRONMENT_RETIRED_POLICY_KIND,
+          ENVIRONMENT_RETIRED_GRANT_KIND,
           row.id,
           error,
         );
@@ -1295,12 +1301,12 @@ function migrateToV22(db: DatabaseSync): void {
     }
     after = rows[rows.length - 1]!.id;
   }
-  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+  const deleteGrant = ["resource_list_keys", "resources"].map((table) =>
     db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
   );
-  for (const id of retiredPolicies) {
-    for (const statement of deletePolicy) {
-      statement.run(ENVIRONMENT_RETIRED_POLICY_KIND, id);
+  for (const id of retiredGrantIds) {
+    for (const statement of deleteGrant) {
+      statement.run(ENVIRONMENT_RETIRED_GRANT_KIND, id);
     }
   }
 
@@ -1534,18 +1540,18 @@ function migrateToV26(db: DatabaseSync, logger: StoreLogger): void {
 
   const serverIds = facts.serverIds();
   const memberSkillIds = facts.memberSkillIds();
-  const retiredPolicies: string[] = [];
-  forEachRow(RETIREMENT_POLICY_KIND, (row) => {
-    if (policyNamesRetired(row.data, serverIds, memberSkillIds)) {
-      retiredPolicies.push(row.id);
+  const retiredGrantIds: string[] = [];
+  forEachRow(RETIREMENT_GRANT_KIND, (row) => {
+    if (grantNamesRetired(row.data, serverIds, memberSkillIds)) {
+      retiredGrantIds.push(row.id);
     }
   });
   const deleteRow = ["resource_list_keys", "resources"].map((table) =>
     db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
   );
-  for (const id of retiredPolicies) {
+  for (const id of retiredGrantIds) {
     for (const statement of deleteRow) {
-      statement.run(RETIREMENT_POLICY_KIND, id);
+      statement.run(RETIREMENT_GRANT_KIND, id);
     }
   }
   const deleteAudit = db.prepare(`DELETE FROM resource_audit WHERE kind = ? AND resource_id = ?`);
@@ -1808,7 +1814,7 @@ function migrateToV31(db: DatabaseSync): void {
  * change to an access row, written in the row's transaction by an edition
  * that keeps one, and its per-organization heads. The Postgres driver's
  * v27 in this engine's terms (its header has the columns). Not the Cloud's
- * `cloud.iam_policy_history`, which its own policy store writes; the
+ * `cloud.iam_grant_history`, which its own grant store writes; the
  * columns match so one reader reads both alike.
  */
 function migrateToV32(db: DatabaseSync): void {
@@ -1968,7 +1974,7 @@ function migrateToV36(db: DatabaseSync, logger: StoreLogger): void {
 /**
  * v37: the platform client kind is removed — the Postgres driver's v33 in
  * this engine's terms (../platform-client-retired.ts says what leaves, what
- * stays and why an unreadable row fails the step). Every IamPolicy row
+ * stays and why an unreadable row fails the step). Every grant row
  * naming a client as resource or principal is found in keyset pages and
  * deleted with its list keys, its history kept, as the store deletes a
  * policy. The client rows then leave every table that keys a row by kind.
@@ -1979,21 +1985,21 @@ function migrateToV37(db: DatabaseSync): void {
   const page = db.prepare(
     `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
   );
-  const retiredPolicies: string[] = [];
+  const retiredGrantIds: string[] = [];
   for (let after = ""; ; ) {
     const rows = page.all(
-      PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+      PLATFORM_CLIENT_RETIRED_GRANT_KIND,
       after,
       PLATFORM_CLIENT_RETIRED_PAGE_SIZE,
     ) as Array<{ id: string; data: Uint8Array }>;
     for (const row of rows) {
       try {
-        if (policyNamesRetiredPlatformClient(row.data)) {
-          retiredPolicies.push(row.id);
+        if (grantNamesRetiredPlatformClient(row.data)) {
+          retiredGrantIds.push(row.id);
         }
       } catch (error) {
         throw unreadablePlatformClientRowError(
-          PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+          PLATFORM_CLIENT_RETIRED_GRANT_KIND,
           row.id,
           error,
         );
@@ -2004,17 +2010,111 @@ function migrateToV37(db: DatabaseSync): void {
     }
     after = rows[rows.length - 1]!.id;
   }
-  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+  const deleteGrant = ["resource_list_keys", "resources"].map((table) =>
     db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
   );
-  for (const id of retiredPolicies) {
-    for (const statement of deletePolicy) {
-      statement.run(PLATFORM_CLIENT_RETIRED_POLICY_KIND, id);
+  for (const id of retiredGrantIds) {
+    for (const statement of deleteGrant) {
+      statement.run(PLATFORM_CLIENT_RETIRED_GRANT_KIND, id);
     }
   }
   for (const table of KIND_TABLES) {
     db.prepare(`DELETE FROM ${table} WHERE kind = ?`).run(
       RETIRED_PLATFORM_CLIENT_KIND,
     );
+  }
+}
+
+/**
+ * v38: the IAM policy is a grant — the Postgres driver's v34 in this
+ * engine's terms (its header says what moves; kind-rename.ts says why a
+ * grant's id moves when no other kind's does). The kind is renamed by the
+ * v18 transformation (`renameKind`) with this step's frozen names
+ * (`GRANT_RENAME_V34`); every grant row then moves from `iamp_X` to
+ * `grt_X` with its list keys; the history's tables and column take the
+ * kind's name, the time index is dropped and made again under its new name
+ * (SQLite renames no index), and every entry moves the same way. Rows are
+ * collected before any id moves. Runs inside applyInTransaction's BEGIN,
+ * so a throw rolls the whole step back and the boot stops on the row it
+ * names.
+ */
+function migrateToV38(db: DatabaseSync): void {
+  const rename = GRANT_RENAME_V34;
+  const [, grantKind] = rename.kind;
+  renameKind(db, rename);
+
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const moved: Array<{ from: string; grant: RekeyedGrant }> = [];
+  for (let after = ""; ; ) {
+    const rows = page.all(grantKind, after, KIND_RENAME_PAGE_SIZE) as Array<{
+      id: string;
+      data: Uint8Array;
+    }>;
+    for (const row of rows) {
+      let grant: RekeyedGrant | undefined;
+      try {
+        grant = movedGrant(row.id, row.data);
+      } catch (error) {
+        throw unreadableKindRenameRowError(rename, grantKind, row.id, error);
+      }
+      if (grant !== undefined) {
+        moved.push({ from: row.id, grant });
+      }
+    }
+    if (rows.length < KIND_RENAME_PAGE_SIZE) {
+      break;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+  const moveRow = db.prepare(`UPDATE resources SET id = ?, data = ? WHERE kind = ? AND id = ?`);
+  const moveKeys = db.prepare(`UPDATE resource_list_keys SET id = ? WHERE kind = ? AND id = ?`);
+  for (const { from, grant } of moved) {
+    moveRow.run(grant.id, grant.data, grantKind, from);
+    moveKeys.run(grant.id, grantKind, from);
+  }
+
+  db.exec(`
+    DROP INDEX iam_policy_history_by_time;
+    ALTER TABLE iam_policy_history RENAME TO grant_history;
+    ALTER TABLE grant_history RENAME COLUMN policy_id TO grant_id;
+    ALTER TABLE iam_policy_history_heads RENAME TO grant_history_heads;
+    CREATE INDEX grant_history_by_time
+      ON grant_history (occurred_at, org, sequence);
+  `);
+  const entries = db.prepare(
+    `SELECT org, sequence, grant_id, data FROM grant_history
+     WHERE (org, sequence) > (?, ?)
+     ORDER BY org, sequence
+     LIMIT ?`,
+  );
+  const moveEntry = db.prepare(
+    `UPDATE grant_history SET grant_id = ?, data = ? WHERE org = ? AND sequence = ?`,
+  );
+  for (let afterOrg = "", afterSequence = 0; ; ) {
+    const rows = entries.all(afterOrg, afterSequence, KIND_RENAME_PAGE_SIZE) as Array<{
+      org: string;
+      sequence: number;
+      grant_id: string;
+      data: Uint8Array;
+    }>;
+    for (const row of rows) {
+      let grant: RekeyedGrant | undefined;
+      try {
+        grant = movedGrant(row.grant_id, row.data);
+      } catch (error) {
+        throw unreadableKindRenameRowError(rename, "grant_history", `${row.org}/${row.sequence}`, error);
+      }
+      if (grant !== undefined) {
+        moveEntry.run(grant.id, grant.data, row.org, row.sequence);
+      }
+    }
+    if (rows.length < KIND_RENAME_PAGE_SIZE) {
+      return;
+    }
+    const last = rows[rows.length - 1]!;
+    afterOrg = last.org;
+    afterSequence = Number(last.sequence);
   }
 }

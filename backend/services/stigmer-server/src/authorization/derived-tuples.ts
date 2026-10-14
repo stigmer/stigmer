@@ -21,7 +21,7 @@
  *
  * Two facts are this edition's own and are stated here, nowhere else:
  *   - The ORGANIZATION's owner is a ROW, not a derivation. The role
- *     lifecycle (domain/iampolicy/role-lifecycle.ts) writes the creator's
+ *     lifecycle (domain/grant/role-lifecycle.ts) writes the creator's
  *     `owner` row for exactly that kind, and the grant path writes every
  *     other role; deriving an owner tuple from the creator stamp as well
  *     would keep a revoked founder owner forever. ROW_RECORDED_OWNER_KINDS
@@ -31,7 +31,7 @@
  *     rules' one predicate). The person comparison itself is the
  *     evaluator's, over the aliases `Person` carries.
  *
- * The SOURCE joins two records per (object, relation): the IamPolicy rows
+ * The SOURCE joins two records per (object, relation): the Grant rows
  * a check can meet on the object, and the tuples derived from the
  * object's row (loaded once per object through the loader, which a
  * declaration's `derived` rule also reads related rows through). The rows
@@ -51,7 +51,7 @@
  *     team's rows and is admitted by none of them.
  *
  * A check about an object rather than a person (an organization asked
- * whether a resource is its own, authorization/policy-check.ts) reads the
+ * whether a resource is its own, authorization/grant-check.ts) reads the
  * rows that name that object directly, and holds no team.
  *
  * Open source serves no team (the kind's tier is enterprise), so the
@@ -90,7 +90,7 @@
  * own (a federation issuer, an invitation, a team, in the editions that
  * serve them) is read through the reader the unit registered for it
  * (`rowReaders`, extensions/resource-row-reader.ts), so a team a grant
- * names resolves its organization from the row its unit wrote. IamPolicy
+ * names resolves its organization from the row its unit wrote. Grant
  * rows are already the port's (`findByPrincipal`), so they need no reader.
  */
 import type { Message } from "@bufbuild/protobuf";
@@ -98,11 +98,11 @@ import { fromBinary } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
-import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
-import { isPersonStamp } from "../domain/iampolicy/membership.js";
-import type { IamPolicyStore } from "../domain/iampolicy/store.js";
+import { isPersonStamp } from "../domain/grant/membership.js";
+import type { GrantStore } from "../domain/grant/store.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import { organizationListIndex } from "../domain/organization/list-index.js";
 import type { VisibilityTupleShape } from "../extensions/resource-authorization.js";
@@ -130,7 +130,7 @@ import type {
 import { ACCOUNT_TYPE, formatObjectRef, isPerson } from "./tuples.js";
 
 /**
- * Kinds whose `[identity_account]` owner is recorded as an IamPolicy row
+ * Kinds whose `[identity_account]` owner is recorded as a Grant row
  * by this edition (the module header): the derivation writes no owner
  * tuple for them. Mirrors role-lifecycle.ts's create arm, which writes
  * the row for `organization` and nothing else.
@@ -245,7 +245,7 @@ function visibilityGrant(shape: VisibilityTupleShape): {
 export interface DerivedTupleSourceDeps {
   readonly store: Store;
   /** The port the grant path writes through — the rows are read from the same instance. */
-  readonly policies: IamPolicyStore;
+  readonly grants: GrantStore;
   /** The account port — an `identity_account` object is read through it, never the generic Store (the module header). */
   readonly accounts: Pick<IdentityAccountStore, "findById">;
   /** The readers of the kinds units keep themselves (`drivers.resourceRowReaders`); absent, every other row is the generic Store's. */
@@ -258,7 +258,7 @@ export interface DerivedTupleSource extends TupleSource {
   /** The memoised row reads, exposed for a declaration's `derived` rules and for tests. */
   readonly loader: RowLoader;
   /**
-   * The person's own IamPolicy rows as tuples, each organization role with
+   * The person's own Grant rows as tuples, each organization role with
    * the organization's `affiliated` tuple it stands for — the ONE read of them this
    * source makes, shared with `tuplesOf`. A list-shaped consumer (the
    * organization directory; the list scope) reads its candidate objects
@@ -346,10 +346,10 @@ export function newDerivedTupleSource(
   function rowTuples(): Promise<ReadonlyArray<Tuple>> {
     if (personRows === undefined) {
       personRows = isPerson(principal)
-        ? deps.policies
+        ? deps.grants
             .findByPrincipal(ACCOUNT_TYPE, principal.accountId)
             .then((found) => found.flatMap(tuplesOfPersonRow))
-        : deps.policies
+        : deps.grants
             .findByPrincipal(principal.object.type, principal.object.id)
             .then((found) => found.filter(isDirectGrant).map(tupleOfRow));
     }
@@ -379,7 +379,7 @@ export function newDerivedTupleSource(
         }
         const granted = await Promise.all(
           [...teams].map((team) =>
-            deps.policies.findByPrincipal(TEAM_TYPE, team),
+            deps.grants.findByPrincipal(TEAM_TYPE, team),
           ),
         );
         return indexByPair([...own, ...granted.flat().map(tupleOfRow)]);
@@ -492,7 +492,7 @@ function parentOrgOfRow(data: Uint8Array): string | undefined {
  * userset (`organization:o#member`): the rows an object principal itself
  * holds. A userset row grants the object's members, never the object.
  */
-function isDirectGrant(row: IamPolicy): boolean {
+function isDirectGrant(row: Grant): boolean {
   return (row.spec?.principal?.relation ?? "") === "";
 }
 
@@ -533,7 +533,7 @@ function isAffiliation(object: ObjectRef, relation: string): boolean {
  * names a userset (a team's members) is not the person's role and stands
  * for no affiliation.
  */
-function tuplesOfPersonRow(row: IamPolicy): ReadonlyArray<Tuple> {
+function tuplesOfPersonRow(row: Grant): ReadonlyArray<Tuple> {
   const recorded = tupleOfRow(row);
   const principal = row.spec?.principal;
   if (
@@ -555,8 +555,8 @@ function tuplesOfPersonRow(row: IamPolicy): ReadonlyArray<Tuple> {
   ];
 }
 
-/** An IamPolicy row as the tuple it records: `resource#relation@principal`. */
-function tupleOfRow(row: IamPolicy): Tuple {
+/** A Grant row as the tuple it records: `resource#relation@principal`. */
+function tupleOfRow(row: Grant): Tuple {
   const spec = row.spec;
   const principal = spec?.principal;
   const resource = spec?.resource;

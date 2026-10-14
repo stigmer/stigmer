@@ -40,14 +40,14 @@
  * Non-transactional in the `org-create:post-persist` sense: a gate
  * failure fails the request, the row survives, the next call heals.
  *
- * The seventh, `iam-policy-create:pre-side-effect-gate`: the IamPolicy
+ * The seventh, `grant-create:pre-side-effect-gate`: the Grant
  * `create` chain (the user grant lane), after ValidateGrantableRole and
  * before Grant, so nothing is written when a gate refuses. It exists for
  * the checks a grant needs that take a read, which the synchronous grant
  * scope may not make: the Enterprise and Cloud editions refuse a team
  * that does not exist, a team of another organization than the granted
  * resource, and a team member who is not one of the organization's
- * viewers. Never on `bootstrapPolicy`, the platform's structural lane.
+ * viewers. Never on `bootstrapGrant`, the platform's structural lane.
  *
  * The eighth, `org-create:pre-side-effect-gate`: the organization create
  * chain after its last pure step (GuardReservedLabels) and before Persist, the
@@ -77,10 +77,10 @@
  * children is never deleted); either way a throw fails the delete with
  * the organization intact, and the retry re-runs every step, so each owns
  * its idempotency. After the slot the chain revokes the organization's own
- * policy rows, also before the row and also failing closed.
+ * grant rows, also before the row and also failing closed.
  *
- * The tenth, `iam-policy-list-access-history:pre-read`: the access
- * history's read (IamPolicyQueryController.listAccessHistory) after
+ * The tenth, `grant-list-access-history:pre-read`: the access
+ * history's read (GrantQueryController.listAccessHistory) after
  * Authorize, ValidateProto and the open-source refusal, before anything is
  * read, so a host refuses a read its own rules forbid with nothing
  * returned. The Cloud refuses an organization whose plan does not include
@@ -131,10 +131,10 @@ export const GATE_SLOT_NAMES = [
   "session-create:pre-side-effect-gate",
   "org-create:post-persist",
   "identity-account-provision:post-persist",
-  "iam-policy-create:pre-side-effect-gate",
+  "grant-create:pre-side-effect-gate",
   "org-create:pre-side-effect-gate",
   "org-delete:pre-delete",
-  "iam-policy-list-access-history:pre-read",
+  "grant-list-access-history:pre-read",
 ] as const;
 
 /** The declared slot-name union — a registration outside it fails tsc. */

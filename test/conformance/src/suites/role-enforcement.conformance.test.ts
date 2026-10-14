@@ -83,7 +83,7 @@
 // runner entry fills it); executions (a Class A target stages no run);
 // the run gate (run-gate.conformance.test.ts), list isolation for an
 // outsider (list-read-scoping), the direct handlers
-// (direct-handler-authorization) and the IamPolicy RPCs (iampolicy) — each
+// (direct-handler-authorization) and the Grant RPCs (grant) — each
 // rides the same lane in its own file; the per-RPC refusal copy, pinned
 // where each RPC's contract lives (this suite asserts the CODE, the
 // question being who may, not what the sentence says).
@@ -107,7 +107,7 @@ import {
   agentRefOf,
 } from "../support/agents";
 import { myVaultTarget, setSecretsInput } from "../support/vaults";
-import { organizationRole, ref } from "../support/iampolicies";
+import { organizationRole, ref } from "../support/grants";
 import { openPlugin, pluginArchive } from "../support/plugins";
 import { uniqueName } from "../support/naming";
 import { makeSlackAgentChannel } from "../support/agentchannels";
@@ -817,10 +817,10 @@ describe("role enforcement — administrative rows: the organization's current a
 
       // The new role before the old one is revoked, as the console changes
       // a role, so the creator is never left with none.
-      await c.owner.iamPolicyCommand.create(
+      await c.owner.grantCommand.create(
         organizationRole(creatorId, "member", c.org),
       );
-      await c.owner.iamPolicyCommand.delete(
+      await c.owner.grantCommand.delete(
         organizationRole(creatorId, "admin", c.org),
       );
 
@@ -886,7 +886,7 @@ describe("role enforcement — leaving the organization: what a person made is t
     id: string,
     org: string,
   ): Promise<void> {
-    await lane.clients.iamPolicyCommand.revokeOrgAccess({
+    await lane.clients.grantCommand.revokeOrgAccess({
       identityAccountId: id,
       org,
     });
@@ -897,7 +897,7 @@ describe("role enforcement — leaving the organization: what a person made is t
     id: string,
     org: string,
   ): Promise<void> {
-    await lane.clients.iamPolicyCommand.create(
+    await lane.clients.grantCommand.create(
       organizationRole(id, "member", org),
     );
   }
@@ -1010,14 +1010,14 @@ describe("role enforcement — the organization: membership, the console's gate"
     );
   });
 
-  it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_edit, organization) is false for a member and true for an admin", async (ctx) => {
+  it("[rpc:GrantQueryController.checkMyPermission] checkMyPermission(can_edit, organization) is false for a member and true for an admin", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const tenancy = await lane.provisionTenancy();
     fixtures.defer(() => lane.cleanupTenancy(tenancy).catch(() => undefined));
     const member = await lane.provisionMember(tenancy);
     const admin = await lane.provisionWithRole(tenancy, "admin");
 
-    const asMember = await member.iamPolicyQuery.checkMyPermission({
+    const asMember = await member.grantQuery.checkMyPermission({
       resource: ref("organization", tenancy.org),
       relation: "can_edit",
     });
@@ -1025,7 +1025,7 @@ describe("role enforcement — the organization: membership, the console's gate"
       false,
     );
 
-    const asAdmin = await admin.iamPolicyQuery.checkMyPermission({
+    const asAdmin = await admin.grantQuery.checkMyPermission({
       resource: ref("organization", tenancy.org),
       relation: "can_edit",
     });
@@ -1036,9 +1036,9 @@ describe("role enforcement — the organization: membership, the console's gate"
 });
 
 describe("role enforcement — the platform: no organization role holds a platform capability", () => {
-  it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_manage_plans, platform:stigmer) is false for an owner", async (ctx) => {
+  it("[rpc:GrantQueryController.checkMyPermission] checkMyPermission(can_manage_plans, platform:stigmer) is false for an owner", async (ctx) => {
     const lane = laneOrSkip(ctx);
-    const result = await lane.clients.iamPolicyQuery.checkMyPermission({
+    const result = await lane.clients.grantQuery.checkMyPermission({
       resource: ref("platform", "stigmer"),
       relation: "can_manage_plans",
     });

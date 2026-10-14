@@ -1,13 +1,13 @@
 /**
  * Pins `derivedId`, the one encoder behind every id a kind derives from its
  * natural key instead of minting (metadata.proto's `id` comment: a direct
- * IdentityAccount from its subject, an IamPolicy from its triple; the
+ * IdentityAccount from its subject, a Grant from its triple; the
  * Organization's slug needs no encoding). Lifted from the identity-account
  * domain so the second derived id did not carry a
  * second copy of the grammar.
  *
  * The vectors here are the two domains' golden vectors restated through
- * the shared function: `accountIdFor` and `policyIdFor` must equal
+ * the shared function: `accountIdFor` and `grantIdFor` must equal
  * `derivedId(prefix, text)` over their canonical text, and those domain
  * tests pin the wire-adjacent constants. A change to the encoding
  * re-addresses every derived row open source ever wrote.
@@ -26,13 +26,13 @@ describe("derivedId — prefix, underscore, the top 130 bits of sha256 as 26 Cro
     );
   });
 
-  it("matches the IamPolicy golden vector over the canonical triple text", () => {
+  it("matches the Grant golden vector over the canonical triple text", () => {
     expect(
       derivedId(
-        "iamp",
+        "grt",
         "identity_account:ida_wtr3jcf281yfk9xx61kj59fsme#@organization:acme#admin",
       ),
-    ).toBe("iamp_vkbjb6nvqm77vtwnr2bj0x95f9");
+    ).toBe("grt_vkbjb6nvqm77vtwnr2bj0x95f9");
   });
 
   it("has the minted id's shape whatever the prefix, so nothing downstream learns a second grammar", () => {
@@ -44,6 +44,6 @@ describe("derivedId — prefix, underscore, the top 130 bits of sha256 as 26 Cro
   it("is a pure function of prefix and text: equal inputs, equal ids; a changed byte, a changed id", () => {
     expect(derivedId("ida", "same")).toBe(derivedId("ida", "same"));
     expect(derivedId("ida", "same")).not.toBe(derivedId("ida", "same "));
-    expect(derivedId("ida", "same")).not.toBe(derivedId("iamp", "same"));
+    expect(derivedId("ida", "same")).not.toBe(derivedId("grt", "same"));
   });
 });

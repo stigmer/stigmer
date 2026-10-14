@@ -37,7 +37,7 @@
  * (`PURGE_ACTOR`, an `internal` caller only the in-process chain can mint,
  * so no wire request can present it). A composition's lifecycle or stage
  * removes what it keeps through in-process RPCs that name the
- * organization (its policy cleanup, for one), acting for the purge.
+ * organization (its grant cleanup, for one), acting for the purge.
  *
  * Cost. `isDeleting` is one primary-key read, memoised per request scope
  * (the caller identity the chain stamps once per request), so a request

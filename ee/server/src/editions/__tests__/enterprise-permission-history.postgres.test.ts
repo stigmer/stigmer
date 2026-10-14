@@ -1,9 +1,9 @@
 /**
  * The permission history on the self-hosted Enterprise server, composed and
- * driven end to end over real Postgres: no unit registers a policy store,
+ * driven end to end over real Postgres: no unit registers a grant store,
  * so the library's own keeps the history, and the edition the license
  * unit declares is what opens it to. Every entry is read raw from the
- * library's `iam_policy_history` table (no reader exists yet).
+ * library's `grant_history` table (no reader exists yet).
  *
  * The story, as an organization lives it:
  *   - Alice founds Acme: her owner role is recorded as the organization's
@@ -29,8 +29,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
 import { InvitationCommandController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/command_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
@@ -84,7 +84,7 @@ async function historyOf(pool: Pool, org: string): Promise<Entry[]> {
     resource_id: string;
   }>(
     `SELECT sequence, change, cause, actor_id, actor_class, principal_id, relation, resource_kind, resource_id
-     FROM public.iam_policy_history WHERE org = $1 ORDER BY sequence`,
+     FROM public.grant_history WHERE org = $1 ORDER BY sequence`,
     [org],
   );
   return result.rows.map((row) => ({
@@ -101,7 +101,7 @@ async function historyOf(pool: Pool, org: string): Promise<Entry[]> {
 }
 
 async function countHistory(pool: Pool): Promise<number> {
-  const result = await pool.query<{ count: string }>(`SELECT COUNT(*) AS count FROM public.iam_policy_history`);
+  const result = await pool.query<{ count: string }>(`SELECT COUNT(*) AS count FROM public.grant_history`);
   return Number(result.rows[0]?.count ?? 0);
 }
 
@@ -186,8 +186,8 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the permission history on a li
 
   it("records a removed member's role as removed, and nothing for a row that did not change", async () => {
     const raj = await signIn(booted, issuer, "operator|raj");
-    const policies = createClient(IamPolicyCommandController, alice.transport);
-    await policies.create(grant(ref("identity_account", raj.accountId), "member", ref("organization", acme)));
+    const grants = createClient(GrantCommandController, alice.transport);
+    await grants.create(grant(ref("identity_account", raj.accountId), "member", ref("organization", acme)));
     const agent = await createClient(AgentCommandController, alice.transport).create({
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Agent",
@@ -195,10 +195,10 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the permission history on a li
       spec: { description: "reviewer", instructions: "You review." },
     });
     const agentId = agent.metadata?.id ?? "";
-    await policies.create(grant(ref("identity_account", raj.accountId), "editor", ref("agent", agentId)));
+    await grants.create(grant(ref("identity_account", raj.accountId), "editor", ref("agent", agentId)));
     const from = await newest();
 
-    await policies.revokeOrgAccess({ identityAccountId: raj.accountId, org: acme });
+    await grants.revokeOrgAccess({ identityAccountId: raj.accountId, org: acme });
 
     const removed = await entriesSince(from);
     expect(removed).toEqual([
@@ -216,8 +216,8 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the permission history on a li
     // posture, so his editor row stays (stigmer#2225). The history records
     // only the rows that changed: once the sweep removes it, its entry is
     // `left_organization`, acting as Alice.
-    const stillHeld = (await booted.server.store.listResources(ApiResourceKind.iam_policy))
-      .map((bytes) => fromBinary(IamPolicySchema, bytes).spec)
+    const stillHeld = (await booted.server.store.listResources(ApiResourceKind.grant))
+      .map((bytes) => fromBinary(GrantSchema, bytes).spec)
       .some((spec) => spec?.principal?.id === raj.accountId && spec.resource?.id === agentId);
     expect(stillHeld).toBe(true);
   });
@@ -265,7 +265,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("a server with no key keeps no 
   it("grants its people their roles and records none of them", async () => {
     await signIn(booted, issuer, "operator|olga");
     await signIn(booted, issuer, "operator|oscar");
-    expect(await booted.server.store.listResources(ApiResourceKind.iam_policy)).not.toEqual([]);
+    expect(await booted.server.store.listResources(ApiResourceKind.grant)).not.toEqual([]);
     expect(await countHistory(db.pool)).toBe(0);
   });
 });

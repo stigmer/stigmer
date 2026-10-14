@@ -18,8 +18,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
-import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
 
 import {
   provisionEnterpriseDatabase,
@@ -83,15 +83,15 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("sharing on a licensed server s
   });
 
   it("refuses a share with someone outside the organization, naming it by its slug, and writes nothing; admits it once they are a member", async () => {
-    const policies = createClient(IamPolicyCommandController, alice.transport);
+    const grants = createClient(GrantCommandController, alice.transport);
     const share = grant(ref("identity_account", vic.accountId), "viewer", ref("agent", agentId));
 
-    const refused = await refusalOf(policies.create(share));
+    const refused = await refusalOf(grants.create(share));
     expect(refused.code).toBe(Code.FailedPrecondition);
     expect(refused.rawMessage).toBe(
       `identity account '${vic.accountId}' is not a member of organization 'acme'; add them to the organization before sharing its resources with them`,
     );
-    const roles = createClient(IamPolicyQueryController, alice.transport);
+    const roles = createClient(GrantQueryController, alice.transport);
     const held = async (): Promise<string[]> =>
       (
         await roles.getPrincipalResourceRoles({
@@ -101,8 +101,8 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("sharing on a licensed server s
       ).roles.map((role) => role.code);
     expect(await held()).toEqual([]);
 
-    await policies.create(grant(ref("identity_account", vic.accountId), "member", ref("organization", acme)));
-    await policies.create(share);
+    await grants.create(grant(ref("identity_account", vic.accountId), "member", ref("organization", acme)));
+    await grants.create(share);
     expect(await held()).toEqual(["viewer"]);
   });
 });

@@ -203,10 +203,10 @@ a child.
 
 To look inside a child, for support for example, an admin of your Organization
 **adds themselves as a member** of the child, through the child's ordinary
-members screen or an IAM Policy. The child's member list and access history show
-who joined and when, every act inside is attributed to that person, and the
-child's own admins can remove them. This is how GitHub Enterprise owners reach
-an organization's repositories: by joining it, visibly.
+members screen or a Grant. The child's member list and access history show who
+joined and when, every act inside is attributed to that person, and the child's
+own admins can remove them. This is how GitHub Enterprise owners reach an
+organization's repositories: by joining it, visibly.
 
 ## Find a child by your customer id
 
@@ -556,7 +556,7 @@ own Organization, scoped to the child's id:
 <Tab value="TypeScript">
 
 ```typescript
-await stigmer.iamPolicy.create({
+await stigmer.grant.create({
   principal: { kind: "identity_account", id: account.metadata.id },
   resource: { kind: "organization", id: child.metadata.id },
   relation: "viewer",
@@ -567,7 +567,7 @@ await stigmer.iamPolicy.create({
 <Tab value="Go">
 
 ```go
-_, err = client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
+_, err = client.Grant.Create(ctx, &stigmer.GrantSpec{
   Principal: &stigmer.ApiResourceRefInput{Kind: "identity_account", Id: account.Metadata.Id},
   Resource:  &stigmer.ApiResourceRefInput{Kind: "organization", Id: child.Metadata.Id},
   Relation:  "viewer",
@@ -578,7 +578,7 @@ _, err = client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
 <Tab value="Python">
 
 ```python
-client.iam_policies.create(IamPolicySpec(
+client.grants.create(GrantSpec(
     principal=ApiResourceRefInput(kind="identity_account", id=account.metadata.id),
     resource=ApiResourceRefInput(kind="organization", id=child.metadata.id),
     relation="viewer",
@@ -589,7 +589,7 @@ client.iam_policies.create(IamPolicySpec(
 <Tab value="Java">
 
 ```java
-client.iamPolicies().create(IamPolicySpec.builder()
+client.grants().create(GrantSpec.builder()
     .principal(ApiResourceRefInput.builder().kind("identity_account").id(account.getMetadata().getId()).build())
     .resource(ApiResourceRefInput.builder().kind("organization").id(child.getMetadata().getId()).build())
     .relation("viewer")
@@ -645,7 +645,7 @@ there too.
   Stigmer grants the sign-in role once per account and child organization. If an
   administrator later removes it, it stays removed, and changing `signInRole`
   does not reach users who already signed in. To give one user a different role,
-  grant it from your backend with an IAM Policy. The `owner` role cannot be the
+  grant it from your backend with a Grant. The `owner` role cannot be the
   sign-in role.
 </Callout>
 
@@ -723,7 +723,7 @@ async function onboardCustomerUser(
   // One account per user, whichever customers they join.
   const accountId = await provisionUser(user);
 
-  await stigmer.iamPolicy.create({
+  await stigmer.grant.create({
     principal: { kind: "identity_account", id: accountId },
     resource: { kind: "organization", id: child.metadata.id },
     relation: "viewer",

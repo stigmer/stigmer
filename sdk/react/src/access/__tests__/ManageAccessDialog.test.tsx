@@ -15,7 +15,7 @@ vi.mock("@stigmer/sdk", async (importActual) => {
   return { ...actual, hasGrantableRoles: (kind: ApiResourceKind) => hasGrantableRolesMock(kind) };
 });
 
-vi.mock("../../iam-policy/PeopleWithAccess", () => ({
+vi.mock("../../grant/PeopleWithAccess", () => ({
   PeopleWithAccess: () => <div data-testid="people-with-access" />,
 }));
 

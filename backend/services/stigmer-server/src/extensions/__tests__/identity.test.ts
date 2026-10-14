@@ -3,7 +3,7 @@
  * definition of "the platform's own pipelines"
  * — a `machine` or `internal` caller, or any identity that entered
  * through the in-process transport — read by the identity-account
- * `create` RPC's admission rule and the three IamPolicy system
+ * `create` RPC's admission rule and the three Grant system
  * RPCs'. A wire `user`, `runner` or a composition's own class
  * (guest) is never one.
  *

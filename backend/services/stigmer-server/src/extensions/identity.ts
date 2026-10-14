@@ -154,7 +154,7 @@ export interface IdentityVerifier {
 /**
  * Whether `caller` is one of the platform's own pipelines — the admission
  * rule of the RPCs a person must never reach directly, stated ONCE
- * (for the identity-account `create` RPC and the three IamPolicy system
+ * (for the identity-account `create` RPC and the three Grant system
  * RPCs): a `machine`
  * account (the platform's service accounts), the `internal` class (the
  * server acting as itself over the in-process transport) or ANY identity

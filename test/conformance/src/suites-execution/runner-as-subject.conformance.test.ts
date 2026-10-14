@@ -115,7 +115,7 @@ import {
 import { makeApiKey, plaintextKeyOf } from "../support/apikeys";
 import { makeSchedule } from "../support/schedules";
 import { makeSessionSpec } from "../support/sessions";
-import { organizationRole } from "../support/iampolicies";
+import { organizationRole } from "../support/grants";
 import {
   createMinter,
   deleteMinter,
@@ -1065,10 +1065,10 @@ describe.skipIf(!runnerActsAsRunCreator)(
 
       // The admin becomes a member: no longer one who may use the private
       // vault. The next fire refuses, naming the vault.
-      await lane.clients.iamPolicyCommand.create(
+      await lane.clients.grantCommand.create(
         organizationRole(adminId, "member", org),
       );
-      await lane.clients.iamPolicyCommand.delete(
+      await lane.clients.grantCommand.delete(
         organizationRole(adminId, "admin", org),
       );
       const refused = await pollUntil(

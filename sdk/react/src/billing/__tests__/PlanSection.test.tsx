@@ -50,7 +50,7 @@ function mockClient(options: { admin?: boolean; subscribed?: ReturnType<typeof s
     billing: {
       createPaymentMethodSetupSession: vi.fn().mockResolvedValue({ setupUrl: "https://checkout.stripe.com/c/setup_1" }),
     },
-    iamPolicy: { checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: options.admin ?? true }) },
+    grant: { checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: options.admin ?? true }) },
   };
 }
 

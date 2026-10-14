@@ -48,9 +48,9 @@ type InvitationCommandControllerClient interface {
 	Revoke(ctx context.Context, in *InvitationId, opts ...grpc.CallOption) (*Invitation, error)
 	// Redeem an invitation to join an organization.
 	//
-	// Creates an IAM policy granting the invitation's configured role to
+	// Creates a grant of the invitation's configured role to
 	// the authenticated user on the invitation's organization. The
-	// redemption is atomic: the IAM policy is created and the redemption
+	// redemption is atomic: the grant is created and the redemption
 	// count is incremented in a single operation.
 	//
 	// Validation:
@@ -126,9 +126,9 @@ type InvitationCommandControllerServer interface {
 	Revoke(context.Context, *InvitationId) (*Invitation, error)
 	// Redeem an invitation to join an organization.
 	//
-	// Creates an IAM policy granting the invitation's configured role to
+	// Creates a grant of the invitation's configured role to
 	// the authenticated user on the invitation's organization. The
-	// redemption is atomic: the IAM policy is created and the redemption
+	// redemption is atomic: the grant is created and the redemption
 	// count is incremented in a single operation.
 	//
 	// Validation:

@@ -21,8 +21,8 @@
 //     its enforcing lane is a different builder, enforcing-lane.ts), so the
 //     outsider needs no revoking and the colleague is one ordinary grant:
 //     `member` on the tenancy's organization, made by the primary as its
-//     owner through IamPolicy create, the Members page's call.
-import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+//     owner through Grant create, the Members page's call.
+import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 
 import { createUniqueOrganization } from "../support/organizations";
 import type { TenancyContext } from "../targets/target";
@@ -54,12 +54,12 @@ export async function provisionPerson(
   return { token, accountId };
 }
 
-// The ordinary IamPolicy grant that makes an identity a `member` of an
-// organization — the Members-page grant, through IamPolicyCommandController.
-// create as the org's owner (never bootstrapPolicy, which is the operator
+// The ordinary grant that makes an identity a `member` of an
+// organization — the Members-page grant, through GrantCommandController.
+// create as the org's owner (never bootstrapGrant, which is the operator
 // lane for grants the ordinary create cannot express). The general form,
 // any role, is the enforcing lane's `organizationRoleGrant`.
-export function organizationMemberGrant(organizationId: string, identityAccountId: string): IamPolicySpec {
+export function organizationMemberGrant(organizationId: string, identityAccountId: string): GrantSpec {
   return organizationRoleGrant(organizationId, identityAccountId, "member");
 }
 
@@ -121,7 +121,7 @@ export class PrimaryPeople {
   async provisionMember(tenancy: TenancyContext): Promise<ConformanceClients> {
     const organizationId = this.organizationIdOf(tenancy, "provisionMember");
     const person = await this.newPerson("provisionMember");
-    await this.deps.founder().iamPolicyCommand.create(organizationMemberGrant(organizationId, person.accountId));
+    await this.deps.founder().grantCommand.create(organizationMemberGrant(organizationId, person.accountId));
     return this.deps.clientsPresenting(person.token);
   }
 

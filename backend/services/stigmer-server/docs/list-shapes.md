@@ -84,10 +84,10 @@ Rows read `| \`package.Service.method\` | class |`.
 | `ai.stigmer.billing.v1.BillingQueryController.listModelPricingBaselines` | paged |
 | `ai.stigmer.iam.apikey.v1.ApiKeyQueryController.list` | paged |
 | `ai.stigmer.iam.apikey.v1.ApiKeyQueryController.listByAccount` | paged |
-| `ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listAccessHistory` | paged |
-| `ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listAuthorizedPrincipalIds` | exempt: an outside system's answer, the authorization engine's enumeration, capped at 1,000 and refused past it |
-| `ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listAuthorizedResourceIds` | exempt: an outside system's answer, the authorization engine's enumeration, capped at 1,000 and refused past it |
-| `ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listResourceAccessByPrincipal` | exempt: an outside system's answer, the authorization engine's enumeration, capped at 1,000 and refused past it |
+| `ai.stigmer.iam.grant.v1.GrantQueryController.listAccessHistory` | paged |
+| `ai.stigmer.iam.grant.v1.GrantQueryController.listAuthorizedPrincipalIds` | exempt: an outside system's answer, the authorization engine's enumeration, capped at 1,000 and refused past it |
+| `ai.stigmer.iam.grant.v1.GrantQueryController.listAuthorizedResourceIds` | exempt: an outside system's answer, the authorization engine's enumeration, capped at 1,000 and refused past it |
+| `ai.stigmer.iam.grant.v1.GrantQueryController.listResourceAccessByPrincipal` | exempt: an outside system's answer, the authorization engine's enumeration, capped at 1,000 and refused past it |
 | `ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.listServiceAccounts` | paged |
 | `ai.stigmer.iam.federationissuer.v1.FederationIssuerQueryController.list` | paged |
 | `ai.stigmer.iam.invitation.v1.InvitationQueryController.list` | paged |

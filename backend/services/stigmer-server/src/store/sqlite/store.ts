@@ -1196,7 +1196,7 @@ export class SqliteStore implements Store {
     const comparison = ascending ? ">" : "<";
     const rows = db
       .prepare(
-        `SELECT ${PERMISSION_HISTORY_COLUMNS} FROM iam_policy_history
+        `SELECT ${PERMISSION_HISTORY_COLUMNS} FROM grant_history
          WHERE org = ? AND (? IS NULL OR sequence ${comparison} ?)
          ORDER BY sequence ${ascending ? "ASC" : "DESC"}
          LIMIT ?`,
@@ -1212,9 +1212,9 @@ export class SqliteStore implements Store {
     // (org, sequence) tie-break across a batch boundary.
     const result = db
       .prepare(
-        `DELETE FROM iam_policy_history
+        `DELETE FROM grant_history
          WHERE (org, sequence) IN (
-           SELECT org, sequence FROM iam_policy_history
+           SELECT org, sequence FROM grant_history
            WHERE occurred_at < ?
            ORDER BY occurred_at, org, sequence
            LIMIT ?
@@ -1226,7 +1226,7 @@ export class SqliteStore implements Store {
 
   async permissionHistoryHead(org: string): Promise<bigint> {
     const head = this.open()
-      .prepare(`SELECT last_sequence FROM iam_policy_history_heads WHERE org = ?`)
+      .prepare(`SELECT last_sequence FROM grant_history_heads WHERE org = ?`)
       .get(org) as { last_sequence: number | bigint } | undefined;
     return head === undefined ? 0n : BigInt(head.last_sequence);
   }
@@ -1711,13 +1711,13 @@ class SqliteBootstrapStateStore implements BootstrapStateStore {
  */
 function appendPermissionHistory(db: DatabaseSync, entry: PermissionHistoryEntry): void {
   const head = db
-    .prepare(`SELECT last_sequence, last_occurred_at FROM iam_policy_history_heads WHERE org = ?`)
+    .prepare(`SELECT last_sequence, last_occurred_at FROM grant_history_heads WHERE org = ?`)
     .get(entry.org) as { last_sequence: number; last_occurred_at: string } | undefined;
   const sequence = (head === undefined ? 0 : Number(head.last_sequence)) + 1;
   const occurredAt = instantNotBefore(Date.now(), head?.last_occurred_at);
   db.prepare(
-    `INSERT INTO iam_policy_history
-       (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+    `INSERT INTO grant_history
+       (org, sequence, occurred_at, change, cause, actor_id, actor_class, grant_id,
         principal_kind, principal_id, principal_relation, relation, resource_kind, resource_id, data)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
@@ -1728,7 +1728,7 @@ function appendPermissionHistory(db: DatabaseSync, entry: PermissionHistoryEntry
     entry.cause,
     entry.actorId,
     entry.actorClass,
-    entry.policyId,
+    entry.grantId,
     entry.principalKind,
     entry.principalId,
     entry.principalRelation,
@@ -1738,7 +1738,7 @@ function appendPermissionHistory(db: DatabaseSync, entry: PermissionHistoryEntry
     entry.data,
   );
   db.prepare(
-    `INSERT INTO iam_policy_history_heads (org, last_sequence, last_occurred_at) VALUES (?, ?, ?)
+    `INSERT INTO grant_history_heads (org, last_sequence, last_occurred_at) VALUES (?, ?, ?)
      ON CONFLICT (org) DO UPDATE SET last_sequence = excluded.last_sequence, last_occurred_at = excluded.last_occurred_at`,
   ).run(entry.org, sequence, occurredAt);
 }

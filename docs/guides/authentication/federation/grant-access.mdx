@@ -1,20 +1,19 @@
 ---
 title: Grant access to federated users
 description:
-  Use IAM Policies to give federated Identity Accounts access to your
-  Organization's resources in Stigmer.
+  Use Grants to give federated Identity Accounts access to your Organization's
+  resources in Stigmer.
 ---
 
 A federated Identity Account proves _who_ the user is, but not _what_ they can
-do. Without an IAM Policy, an authenticated request returns `403 Forbidden`.
-This page shows how to grant roles manually so federated users can access your
+do. Without a Grant, an authenticated request returns `403 Forbidden`. This page
+shows how to grant roles manually so federated users can access your
 Organization's resources.
 
 <Callout type="info">
   **Using JIT provisioning?** If your Federation Issuer sets a `signInRole`,
   Stigmer grants that role the first time an account signs in to an
-  Organization. You don't need to create IAM Policies for that role. See [Enable
-  JIT
+  Organization. You don't need to create Grants for that role. See [Enable JIT
   provisioning](/docs/guides/authentication/federation/register-federation-issuer#enable-jit-provisioning)
   for the automatic setup.
 </Callout>
@@ -34,9 +33,9 @@ Stigmer uses fine-grained authorization (FGA) with three elements:
 | **Resource**  | What they want to access (Organization, Vault, Agent, etc.)                         |
 | **Relation**  | The role they hold (`owner`, `admin`, `member`, `viewer`, or a resource's own role) |
 
-An IAM Policy binds all three. When Stigmer receives an API call, it checks
-whether a policy exists that matches the caller, the target resource, and the
-required permission.
+A Grant binds all three. When Stigmer receives an API call, it checks whether a
+grant exists that matches the caller, the target resource, and the required
+permission.
 
 ## Grant an Organization role
 
@@ -62,7 +61,7 @@ as the principal, and the Organization ID as the resource.
 <Tab value="TypeScript">
 
 ```typescript
-const policy = await stigmer.iamPolicy.create({
+const grant = await stigmer.grant.create({
   principal: {
     kind: "identity_account",
     id: accountId,
@@ -74,14 +73,14 @@ const policy = await stigmer.iamPolicy.create({
   relation: "viewer",
 });
 
-console.log(`Granted viewer role: ${policy.metadata.id}`);
+console.log(`Granted viewer role: ${grant.metadata.id}`);
 ```
 
 </Tab>
 <Tab value="Go">
 
 ```go
-policy, err := client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
+grant, err := client.Grant.Create(ctx, &stigmer.GrantSpec{
   Principal: &stigmer.ApiResourceRefInput{
     Kind: "identity_account",
     Id:   accountId,
@@ -95,14 +94,14 @@ policy, err := client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
 if err != nil {
   return fmt.Errorf("grant org role: %w", err)
 }
-fmt.Printf("Granted viewer role: %s\n", policy.Metadata.Id)
+fmt.Printf("Granted viewer role: %s\n", grant.Metadata.Id)
 ```
 
 </Tab>
 <Tab value="Python">
 
 ```python
-policy = client.iam_policies.create(IamPolicySpec(
+grant = client.grants.create(GrantSpec(
     principal=ApiResourceRefInput(
         kind="identity_account",
         id=account_id,
@@ -114,14 +113,14 @@ policy = client.iam_policies.create(IamPolicySpec(
     relation="viewer",
 ))
 
-print(f"Granted viewer role: {policy.metadata.id}")
+print(f"Granted viewer role: {grant.metadata.id}")
 ```
 
 </Tab>
 <Tab value="Java">
 
 ```java
-IamPolicy policy = client.iamPolicies().create(IamPolicySpec.builder()
+Grant grant = client.grants().create(GrantSpec.builder()
     .principal(ApiResourceRefInput.builder()
         .kind("identity_account")
         .id(accountId)
@@ -133,7 +132,7 @@ IamPolicy policy = client.iamPolicies().create(IamPolicySpec.builder()
     .relation("viewer")
     .build());
 
-System.out.println("Granted viewer role: " + policy.getMetadata().getId());
+System.out.println("Granted viewer role: " + grant.getMetadata().getId());
 ```
 
 </Tab>
@@ -179,7 +178,7 @@ async function onboardUser(user: PlatformUser): Promise<void> {
     accountId = account.metadata.id;
   }
 
-  await stigmer.iamPolicy.create({
+  await stigmer.grant.create({
     principal: { kind: "identity_account", id: accountId },
     resource: { kind: "organization", id: organizationId },
     relation: "viewer",
@@ -225,7 +224,7 @@ func onboardUser(ctx context.Context, client *stigmer.Client, user PlatformUser,
     return err
   }
 
-  _, err = client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
+  _, err = client.Grant.Create(ctx, &stigmer.GrantSpec{
     Principal: &stigmer.ApiResourceRefInput{Kind: "identity_account", Id: accountId},
     Resource:  &stigmer.ApiResourceRefInput{Kind: "organization", Id: orgId},
     Relation:  "viewer",
@@ -262,7 +261,7 @@ def onboard_user(client, user: PlatformUser, organization_id: str) -> None:
         ))
         account_id = account.metadata.id
 
-    client.iam_policies.create(IamPolicySpec(
+    client.grants.create(GrantSpec(
         principal=ApiResourceRefInput(kind="identity_account", id=account_id),
         resource=ApiResourceRefInput(kind="organization", id=organization_id),
         relation="viewer",
@@ -292,7 +291,7 @@ public void onboardUser(StigmerClient client, PlatformUser user, String organiza
         accountId = account.getMetadata().getId();
     }
 
-    client.iamPolicies().create(IamPolicySpec.builder()
+    client.grants().create(GrantSpec.builder()
         .principal(ApiResourceRefInput.builder().kind("identity_account").id(accountId).build())
         .resource(ApiResourceRefInput.builder().kind("organization").id(organizationId).build())
         .relation("viewer").build());
@@ -305,14 +304,14 @@ public void onboardUser(StigmerClient client, PlatformUser user, String organiza
 ## Revoking access
 
 When a user leaves your platform, revoke their access. The `revokeOrgAccess`
-method removes all IAM Policies for a user across the entire Organization,
-including policies on child resources like Vaults and Agents.
+method removes all Grants for a user across the entire Organization, including
+grants on child resources like Vaults and Agents.
 
 <SDKTabs>
 <Tab value="TypeScript">
 
 ```typescript
-await stigmer.iamPolicy.revokeOrgAccess({
+await stigmer.grant.revokeOrgAccess({
   identityAccountId: accountId,
   org: organizationId,
 });
@@ -322,7 +321,7 @@ await stigmer.iamPolicy.revokeOrgAccess({
 <Tab value="Go">
 
 ```go
-_, err := client.IamPolicy.RevokeOrgAccess(ctx, &stigmer.RevokeOrgAccessInput{
+_, err := client.Grant.RevokeOrgAccess(ctx, &stigmer.RevokeOrgAccessInput{
   IdentityAccountId: accountId,
   Org:               organizationId,
 })
@@ -332,7 +331,7 @@ _, err := client.IamPolicy.RevokeOrgAccess(ctx, &stigmer.RevokeOrgAccessInput{
 <Tab value="Python">
 
 ```python
-client.iam_policies.revoke_org_access(RevokeOrgAccessInput(
+client.grants.revoke_org_access(RevokeOrgAccessInput(
     identity_account_id=account_id,
     org=organization_id,
 ))
@@ -342,7 +341,7 @@ client.iam_policies.revoke_org_access(RevokeOrgAccessInput(
 <Tab value="Java">
 
 ```java
-client.iamPolicies().revokeOrgAccess(RevokeOrgAccessInput.builder()
+client.grants().revokeOrgAccess(RevokeOrgAccessInput.builder()
     .identityAccountId(accountId)
     .org(organizationId)
     .build());
@@ -371,5 +370,4 @@ Next:
 [Authentication flow](/docs/guides/authentication/federation/authentication-flow)
 explains the end-to-end path from JWT presentation to authorized API response.
 
-For the full IAM Policy API reference, see
-[IamPolicy](/docs/sdk/resources/iam-policy).
+For the full Grant API reference, see [Grant](/docs/sdk/resources/grant).

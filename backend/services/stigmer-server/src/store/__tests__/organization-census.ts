@@ -67,8 +67,8 @@ export const CENSUS_TABLES: Readonly<Record<string, CensusClass>> = {
   // an organization's delete leaves it in place; retention removes its
   // entries once they are older than the window, never its head
   // (store/permission-history.ts).
-  iam_policy_history: "kept",
-  iam_policy_history_heads: "kept",
+  grant_history: "kept",
+  grant_history_heads: "kept",
   // A registered OAuth client is the login server's, shared by every
   // organization: it names none.
   oauth_client_registration: "none",

@@ -12,8 +12,8 @@
  * personal environment and every OAuth-managed one included), their
  * history, their list keys and the names they held. No value is moved into
  * a vault: a person saves their keys again, and signs in again, into My
- * vault. Every IamPolicy row whose resource or principal is an environment
- * leaves too (`policyNamesRetiredEnvironment`): a grant on an object that no
+ * vault. Every grant row whose resource or principal is an environment
+ * leaves too (`grantNamesRetiredEnvironment`): a grant on an object that no
  * longer exists would only linger in grant listings. Such a row leaves the
  * way the store deletes a policy, with its list keys and with its history
  * kept. The `oauth_grant` table, which held each sign-in's renewal
@@ -43,13 +43,13 @@
  */
 import { fromBinary } from "@bufbuild/protobuf";
 
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 
 /** The `kind` column value of the rows the step deletes. */
 export const RETIRED_ENVIRONMENT_KIND = "environment";
 
-/** The `kind` column value of the grant rows the step reads. */
-export const ENVIRONMENT_RETIRED_POLICY_KIND = "iam_policy";
+/** The `kind` column value of the grant rows the step reads: their stored kind at its time, before Postgres v34 and SQLite v38 renamed it `grant`. */
+export const ENVIRONMENT_RETIRED_GRANT_KIND = "iam_policy";
 
 /** The table the step drops. */
 export const RETIRED_ENVIRONMENT_TABLES: ReadonlyArray<string> = ["oauth_grant"];
@@ -58,13 +58,13 @@ export const RETIRED_ENVIRONMENT_TABLES: ReadonlyArray<string> = ["oauth_grant"]
 export const ENVIRONMENT_RETIRED_PAGE_SIZE = 500;
 
 /**
- * Whether a stored IamPolicy row names the environment kind as its
+ * Whether a stored grant row names the environment kind as its
  * resource or its principal (an `ApiResourceRef.kind` is the enum member
  * name, the string the kind's rows were stored under). Throws when the
  * bytes do not decode.
  */
-export function policyNamesRetiredEnvironment(data: Uint8Array): boolean {
-  const spec = fromBinary(IamPolicySchema, data).spec;
+export function grantNamesRetiredEnvironment(data: Uint8Array): boolean {
+  const spec = fromBinary(GrantSchema, data).spec;
   return (
     spec?.resource?.kind === RETIRED_ENVIRONMENT_KIND ||
     spec?.principal?.kind === RETIRED_ENVIRONMENT_KIND

@@ -21,7 +21,7 @@
 import { type ReactNode, useCallback, useEffect, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import {
   type RenamableResourceKind,

@@ -33,7 +33,7 @@ import type { AgentEval } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/
 import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { cn } from "@stigmer/theme";
 import { ErrorMessage } from "../error/ErrorMessage.js";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { Section } from "../resource-detail/Section.js";
 import {

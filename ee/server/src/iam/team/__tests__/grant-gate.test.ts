@@ -32,21 +32,21 @@
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import type { AuthorizationQueryEngine, IamPolicyStore, ResourceOrganizations } from "@stigmer/server";
+import type { AuthorizationQueryEngine, GrantStore, ResourceOrganizations } from "@stigmer/server";
 import { RequestContext } from "@stigmer/server";
 import { describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import {
   ApiResourceRefSchema,
-  IamPolicySpecSchema,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+  GrantSpecSchema,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 
 import type { OrganizationLookup } from "../../organization-links.js";
 import { newOrganizationGrantGateStep } from "../grant-gate.js";
@@ -56,8 +56,8 @@ function spec(
   principal: { kind: string; id: string; relation?: string },
   relation: string,
   resource: { kind: string; id: string },
-): IamPolicySpec {
-  return create(IamPolicySpecSchema, {
+): GrantSpec {
+  return create(GrantSpecSchema, {
     principal: create(ApiResourceRefSchema, principal),
     relation,
     resource: create(ApiResourceRefSchema, resource),
@@ -114,14 +114,14 @@ function rig(
   rowOrganizationOf: Readonly<Record<string, string>> = {},
 ) {
   const teams = new InMemoryTeamStore();
-  const scopes: Pick<IamPolicyStore, "findScopeTuple"> = {
+  const scopes: Pick<GrantStore, "findScopeTuple"> = {
     findScopeTuple: (kind, id) => {
       const link = organizationOf[`${kind}:${id}`];
       const parent = typeof link === "string" ? { kind: "organization", id: link } : link;
       return Promise.resolve(
         parent === undefined
           ? undefined
-          : create(IamPolicySchema, {
+          : create(GrantSchema, {
               spec: spec(parent, parent.kind, { kind, id }),
             }),
       );
@@ -129,11 +129,11 @@ function rig(
   };
   const asked: Asked[] = [];
   const queries: Pick<AuthorizationQueryEngine, "check"> = {
-    check: (policy) => {
+    check: (grant) => {
       const question = {
-        user: `${policy.principal?.kind ?? ""}:${policy.principal?.id ?? ""}`,
-        relation: policy.relation,
-        object: `${policy.resource?.kind ?? ""}:${policy.resource?.id ?? ""}`,
+        user: `${grant.principal?.kind ?? ""}:${grant.principal?.id ?? ""}`,
+        relation: grant.relation,
+        object: `${grant.resource?.kind ?? ""}:${grant.resource?.id ?? ""}`,
       };
       asked.push(question);
       const result = answer(question);
@@ -152,10 +152,10 @@ function rig(
     accounts: { findById: (id) => Promise.resolve(ACCOUNTS.get(id)) },
     ...(plan === undefined ? {} : { plan }),
   });
-  const run = (input: IamPolicySpec) =>
+  const run = (input: GrantSpec) =>
     step.execute(
       new RequestContext(
-        IamPolicySpecSchema,
+        GrantSpecSchema,
         input,
         { identityId: "ida_admin", callerClass: "user", issuer: "", rawToken: "" },
         ApiResourceKind.api_resource_kind_unknown,

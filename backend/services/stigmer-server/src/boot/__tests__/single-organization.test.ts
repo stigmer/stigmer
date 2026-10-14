@@ -53,7 +53,7 @@ import {
 import {
   SERVER_ORGANIZATION_ROLES_KEY,
   SERVER_ORGANIZATION_ROLES_OWED,
-} from "../../domain/iampolicy/constants.js";
+} from "../../domain/grant/constants.js";
 import type { GateSlotName } from "../../extensions/gate-slots.js";
 import { baseConfig } from "../../extensions/__tests__/composed-support.js";
 import type { ServerExtension } from "../../extensions/registry.js";

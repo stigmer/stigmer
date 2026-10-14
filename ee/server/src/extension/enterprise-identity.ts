@@ -14,14 +14,14 @@
  *   - gateSteps: RemoveOrganizationIdentity on `org-delete:pre-delete` (an
  *     organization's delete removes its teams, providers and invitations
  *     before it answers, or fails; iam/organization-delete.ts); and
- *     OrganizationGrantGate on `iam-policy-create:pre-side-effect-gate` (a
+ *     OrganizationGrantGate on `grant-create:pre-side-effect-gate` (a
  *     grant stays inside the resource's organization: a team grant is
  *     checked against the team, which exists and is the resource's
  *     organization's, a new member or a person a resource is shared with
  *     is one of its viewers; iam/team/grant-gate.ts);
  *   - services: FederationIssuer, Invitation and Team, kinds open source
  *     does not serve. Their grant and revoke lanes reach the library's grant
- *     path through one client (iam/policy/grant-path-client.ts);
+ *     path through one client (iam/grant/grant-path-client.ts);
  *   - orgPurge: the `identity` stage, the same three removals again as the
  *     organization's purge (whatever was written between the slot and the
  *     deletion mark), declaring the provider, team and invitation kinds
@@ -44,7 +44,7 @@
  * @stigmer/server's ComposedServices): the one Authorizer the Authorize
  * step of every chain calls, the list read scope, the authorization check,
  * the tuple lifecycle, the in-process transport its grant-path client
- * and organization reads ride, and the policy store binding its repairs
+ * and organization reads ride, and the grant store binding its repairs
  * and grant gate read. So both halves of one lane (the library's
  * Authorize step and this unit's resolved-target checks) answer by one
  * rule in every host, an OpenFGA authorizer and open source's own
@@ -129,7 +129,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type {
   AuthorizationQueryEngine,
   Authorizer,
-  ComposedIamPolicies,
+  ComposedGrants,
   ComposedServices,
   CredentialBinding,
   GateSlotName,
@@ -164,7 +164,7 @@ import {
 import type { OrganizationScopedRow } from "../iam/organization-links.js";
 import { reconcileOwnerRows } from "../iam/owner-rows.js";
 import type { OwnerRowKind } from "../iam/owner-rows.js";
-import { newIamPolicyGrantPathClient } from "../iam/policy/grant-path-client.js";
+import { newGrantPathClient } from "../iam/grant/grant-path-client.js";
 import { newFederationIssuerRegistrations } from "../iam/issuer/handlers.js";
 import { newIssuerRemoval } from "../iam/issuer/removal.js";
 import type { FederationIssuerStore } from "../iam/issuer/store.js";
@@ -227,7 +227,7 @@ interface HandedOver {
   readonly listReadScope: ListReadScope;
   readonly authorizationQueries: Pick<AuthorizationQueryEngine, "check">;
   readonly lifecycle: ResourceAuthorizationLifecycle | undefined;
-  readonly iamPolicies: ComposedIamPolicies;
+  readonly grants: ComposedGrants;
   readonly resourceOrganizations: ResourceOrganizations;
 }
 
@@ -261,8 +261,8 @@ export function newEnterpriseIdentityExtension(
       composed().listReadScope.restrictListEntries(caller, kind, entries),
   };
   const authorizationQueries: Pick<AuthorizationQueryEngine, "check"> = {
-    check: (policy, contextual) =>
-      composed().authorizationQueries.check(policy, contextual),
+    check: (grant, contextual) =>
+      composed().authorizationQueries.check(grant, contextual),
   };
   // The sign-in routing and the deprovision's reach read the library's
   // children of an organization.
@@ -286,21 +286,21 @@ export function newEnterpriseIdentityExtension(
       await composed().lifecycle?.onVisibilityChanged(event);
     },
   };
-  // The policy rows, read through the composition's one binding: by
+  // The grant rows, read through the composition's one binding: by
   // resource for the link repair, by kind and relation for the owner-row
   // reconcile, the scope link for the grant gate.
-  const policyStore: ComposedIamPolicies = {
-    findByResource: (kind, id) => composed().iamPolicies.findByResource(kind, id),
-    findScopeTuple: (kind, id) => composed().iamPolicies.findScopeTuple(kind, id),
+  const grantStore: ComposedGrants = {
+    findByResource: (kind, id) => composed().grants.findByResource(kind, id),
+    findScopeTuple: (kind, id) => composed().grants.findScopeTuple(kind, id),
     findByResourceKindAndRelation: (kind, relation) =>
-      composed().iamPolicies.findByResourceKindAndRelation(kind, relation),
+      composed().grants.findByResourceKindAndRelation(kind, relation),
   };
   // Which organization a shared resource belongs to, for the grant gate
   // where no scope link is stored (the built-in posture stores none).
   const resourceOrganizations: ResourceOrganizations = {
     organizationOf: (resource) => composed().resourceOrganizations.organizationOf(resource),
   };
-  const policies = newIamPolicyGrantPathClient(transportRef);
+  const grants = newGrantPathClient(transportRef);
   // The server's one name table: a team's and a provider's slug is a name
   // there like every named kind's, claimed before the row, released after
   // it, and read by every lookup by slug (@stigmer/server's names steps).
@@ -328,7 +328,7 @@ export function newEnterpriseIdentityExtension(
   const federatedVerifier = newStoreBackedFederatedVerifier({
     providers,
     accounts: ports.accounts,
-    policies,
+    grants,
     childOrganizations,
     signInGrants: ports.signInGrants,
     jwks: tenantJwks,
@@ -342,14 +342,14 @@ export function newEnterpriseIdentityExtension(
     providers,
     names,
     accounts: ports.accounts,
-    policies,
+    grants,
     invalidate: invalidateIssuers,
     logger,
   });
-  const teamRemoval = newTeamRemoval({ teams, names, policies, logger });
+  const teamRemoval = newTeamRemoval({ teams, names, grants, logger });
   const invitationRemoval = newInvitationRemoval({
     invitations: ports.invitations,
-    policies,
+    grants,
     logger,
   });
 
@@ -364,8 +364,8 @@ export function newEnterpriseIdentityExtension(
   ): Promise<void> {
     try {
       const report = await reconcileOrganizationLinks(kind, await rows(), {
-        policyStore,
-        policies,
+        grantStore,
+        grants,
         organizations,
       });
       if (report.converged > 0) {
@@ -420,12 +420,12 @@ export function newEnterpriseIdentityExtension(
   }
 
   // Every direct `owner` row on a provider or an invitation is revoked,
-  // read by kind and relation from the policy rows (iam/owner-rows.ts),
+  // read by kind and relation from the grant rows (iam/owner-rows.ts),
   // since both kinds are managed by their organization's current admins
   // alone; a provider's first, and one kind's failed read never skips the
   // next.
   async function revokeOwnerRows(): Promise<void> {
-    await reconcileOwnerRows(ENTERPRISE_OWNER_ROW_KINDS, { policyStore, policies, logger });
+    await reconcileOwnerRows(ENTERPRISE_OWNER_ROW_KINDS, { grantStore, grants, logger });
   }
 
   const rowReaders = new Map<ApiResourceKind, ResourceRowReader>([
@@ -440,7 +440,7 @@ export function newEnterpriseIdentityExtension(
     drivers: {
       identityFederation: newIdentityFederation({
         accounts: ports.accounts,
-        policies,
+        grants,
         providers,
         childOrganizations,
         logger,
@@ -460,12 +460,12 @@ export function newEnterpriseIdentityExtension(
         ],
       ],
       [
-        "iam-policy-create:pre-side-effect-gate",
+        "grant-create:pre-side-effect-gate",
         [
           newOrganizationGrantGateStep({
             teams,
             queries: authorizationQueries,
-            scopes: policyStore,
+            scopes: grantStore,
             resources: resourceOrganizations,
             organizations,
             accounts: ports.accounts.store,
@@ -505,7 +505,7 @@ export function newEnterpriseIdentityExtension(
         authorizer,
         logger,
         store: ports.invitations,
-        policies,
+        grants,
         lifecycle,
         listReadScope,
         organizations,
@@ -538,7 +538,7 @@ export function newEnterpriseIdentityExtension(
         listReadScope: services.listReadScope,
         authorizationQueries: services.authorizationQueries,
         lifecycle: services.resourceAuthorizationLifecycle,
-        iamPolicies: services.iamPolicies,
+        grants: services.grants,
         resourceOrganizations: services.resourceOrganizations,
       };
       nameTable.fill(services.resourceNames);

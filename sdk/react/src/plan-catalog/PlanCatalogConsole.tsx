@@ -10,7 +10,7 @@ import { formatChildOrgs, formatMonthlyFee, offeredFeatures } from "../billing/p
 import { usePlans } from "../billing/usePlans.js";
 import { Button } from "../button/index.js";
 import { ApiResourceKind, useResourceAvailable } from "../deployment-mode.js";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { FEATURE_COPY, isNamedFeature } from "../internal/features.js";

@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.iam.invitation.v1.RedeemInvitationInput",
           "outputType": "Invitation",
           "outputFullType": "ai.stigmer.iam.invitation.v1.Invitation",
-          "description": "Redeem an invitation to join an organization.\n\n Creates an IAM policy granting the invitation's configured role to\n the authenticated user on the invitation's organization. The\n redemption is atomic: the IAM policy is created and the redemption\n count is incremented in a single operation.\n\n Validation:\n - Invitation must be in active state\n - Invitation must not be expired\n - Invitation must not have reached max_redemptions (if \u003e 0)\n - Redeemer must not already be a member of the organization\n - The invitation's creator must still be able to create it: a link\n   carries its creator's authority, so it stops redeeming once they no\n   longer hold the role it needed (FAILED_PRECONDITION)"
+          "description": "Redeem an invitation to join an organization.\n\n Creates a grant of the invitation's configured role to\n the authenticated user on the invitation's organization. The\n redemption is atomic: the grant is created and the redemption\n count is incremented in a single operation.\n\n Validation:\n - Invitation must be in active state\n - Invitation must not be expired\n - Invitation must not have reached max_redemptions (if \u003e 0)\n - Redeemer must not already be a member of the organization\n - The invitation's creator must still be able to create it: a link\n   carries its creator's authority, so it stops redeeming once they no\n   longer hold the role it needed (FAILED_PRECONDITION)"
         }
       ]
     },
@@ -303,7 +303,7 @@
   "enumTypes": [
     {
       "name": "IamRole",
-      "description": "IamRole defines the roles that can be assigned to principals on resources\n via IAM policies.\n\n Roles are human-assigned and represent a principal's relationship to a\n resource. They are distinct from permissions (which are computed from roles\n and checked by the authorization interceptor) and structural relations\n (which are internal FGA wiring like organization or session links).\n\n Each ApiResourceKind declares which of these roles are grantable via\n the grantable_roles field in its AuthorizationConfig, and what each one\n means there in role_descriptions.",
+      "description": "IamRole defines the roles that can be assigned to principals on resources\n via Grants.\n\n Roles are human-assigned and represent a principal's relationship to a\n resource. They are distinct from permissions (which are computed from roles\n and checked by the authorization interceptor) and structural relations\n (which are internal FGA wiring like organization or session links).\n\n Each ApiResourceKind declares which of these roles are grantable via\n the grantable_roles field in its AuthorizationConfig, and what each one\n means there in role_descriptions.",
       "protoType": "ai.stigmer.iam.v1.IamRole",
       "values": [
         {

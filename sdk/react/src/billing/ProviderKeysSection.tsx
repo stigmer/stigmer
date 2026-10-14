@@ -7,7 +7,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { ProviderKey } from "@stigmer/protos/ai/stigmer/billing/providerkey/v1/api_pb";
 import { Button } from "../button/index.js";
 import { ApiResourceKind, useDeploymentMode, useResourceAvailable } from "../deployment-mode.js";
-import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { useOrg } from "../organization/OrgProvider.js";

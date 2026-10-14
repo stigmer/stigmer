@@ -15,11 +15,11 @@
  *   - A resource's own `kind` field is the `kind_meta.name` ("AgentShare").
  *     `getKindEnum` reads it by canonical name (case-insensitive,
  *     underscores ignored) and throws on an unknown value.
- *   - An `ApiResourceRef.kind` — the IamPolicy spec's principal and
+ *   - An `ApiResourceRef.kind` — the Grant spec's principal and
  *     resource, the FGA object type — is the enum MEMBER name
  *     ("agent_share"). `kindByEnumName` reads it by the descriptor's exact
  *     proto name and never throws. Exact, because the
- *     IamPolicy id is derived from the spec's text: a lenient
+ *     Grant id is derived from the spec's text: a lenient
  *     match would let "Organization" and "organization" mint two rows for
  *     one grant. Reading the descriptor's name is not deriving a spelling;
  *     the #545 rule is about recovering kind_meta.name from an enum, which
@@ -189,11 +189,11 @@ export function defaultVisibilityFor(
  * The roles a user may be granted on a resource of `kind` according to the
  * CONTRACT — `kind_meta.authorization.grantable_roles`, the one source of
  * "what can be granted at all" (Java AuthorizationConfigResolver
- * .getGrantableRoles; the cloud's iam/policy/roles.ts grantableRolesFor,
+ * .getGrantableRoles; the cloud's iam/grant/roles.ts grantableRolesFor,
  * which this replaced). A kind that lists none
  * is system-managed in every edition (identity_account, api_key,
- * iam_policy, invitation, agent_execution); an edition's PolicyGrantScope
- * (extensions/policy-grant-scope.ts) only narrows this list.
+ * grant, invitation, agent_execution); an edition's GrantScope
+ * (extensions/grant-scope.ts) only narrows this list.
  *
  * Total, never a throw: the kind is an `ApiResourceRef.kind` resolved by
  * `kindByEnumName`, so the unknown kind — the one member without

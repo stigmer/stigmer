@@ -1,7 +1,7 @@
 /**
  * Pins the port-contract runner (../port-contract.ts), the scaffolding every
  * domain store port's kit is built on (identity-account's first, then
- * IamPolicy's, when the scaffolding was lifted out of the first kit so the
+ * Grant's, when the scaffolding was lifted out of the first kit so the
  * second did not copy it):
  *
  *   - every case makes a FRESH fixture, runs its body over it, and cleans

@@ -1241,7 +1241,7 @@ export class PostgresStore implements Store {
     const { ascending, bound, limit } = permissionHistoryBounds(page);
     const comparison = ascending ? ">" : "<";
     const result = await this.open().query(
-      `SELECT ${PERMISSION_HISTORY_COLUMNS} FROM iam_policy_history
+      `SELECT ${PERMISSION_HISTORY_COLUMNS} FROM grant_history
        WHERE org = $1 AND ($2::bigint IS NULL OR sequence ${comparison} $2::bigint)
        ORDER BY sequence ${ascending ? "ASC" : "DESC"}
        LIMIT $3`,
@@ -1257,9 +1257,9 @@ export class PostgresStore implements Store {
     // (org, sequence) tie-break keeps two entries sharing a millisecond in
     // number order across a batch boundary.
     const result = await this.open().query(
-      `DELETE FROM iam_policy_history
+      `DELETE FROM grant_history
        WHERE (org, sequence) IN (
-         SELECT org, sequence FROM iam_policy_history
+         SELECT org, sequence FROM grant_history
          WHERE occurred_at < $1
          ORDER BY occurred_at, org, sequence
          LIMIT $2
@@ -1271,7 +1271,7 @@ export class PostgresStore implements Store {
 
   async permissionHistoryHead(org: string): Promise<bigint> {
     const result = await this.open().query(
-      `SELECT last_sequence FROM iam_policy_history_heads WHERE org = $1`,
+      `SELECT last_sequence FROM grant_history_heads WHERE org = $1`,
       [org],
     );
     const head = result.rows[0] as { last_sequence: string } | undefined;
@@ -2743,7 +2743,7 @@ function sessionEventOf(row: SessionEventRow): SessionEventRecord {
  */
 async function lockPermissionHistory(client: PoolClient, org: string): Promise<void> {
   await client.query(
-    `SELECT pg_advisory_xact_lock(hashtextextended('iam_policy_history/' || $1, 0))`,
+    `SELECT pg_advisory_xact_lock(hashtextextended('grant_history/' || $1, 0))`,
     [org],
   );
 }
@@ -2758,15 +2758,15 @@ async function appendPermissionHistory(
   entry: PermissionHistoryEntry,
 ): Promise<void> {
   const head = await client.query(
-    `SELECT last_sequence, last_occurred_at FROM iam_policy_history_heads WHERE org = $1`,
+    `SELECT last_sequence, last_occurred_at FROM grant_history_heads WHERE org = $1`,
     [entry.org],
   );
   const last = head.rows[0] as { last_sequence: string; last_occurred_at: string } | undefined;
   const sequence = (last === undefined ? 0 : Number(last.last_sequence)) + 1;
   const occurredAt = instantNotBefore(Date.now(), last?.last_occurred_at);
   await client.query(
-    `INSERT INTO iam_policy_history
-       (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+    `INSERT INTO grant_history
+       (org, sequence, occurred_at, change, cause, actor_id, actor_class, grant_id,
         principal_kind, principal_id, principal_relation, relation, resource_kind, resource_id, data)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
     [
@@ -2777,7 +2777,7 @@ async function appendPermissionHistory(
       entry.cause,
       entry.actorId,
       entry.actorClass,
-      entry.policyId,
+      entry.grantId,
       entry.principalKind,
       entry.principalId,
       entry.principalRelation,
@@ -2788,7 +2788,7 @@ async function appendPermissionHistory(
     ],
   );
   await client.query(
-    `INSERT INTO iam_policy_history_heads (org, last_sequence, last_occurred_at) VALUES ($1, $2, $3)
+    `INSERT INTO grant_history_heads (org, last_sequence, last_occurred_at) VALUES ($1, $2, $3)
      ON CONFLICT (org) DO UPDATE SET last_sequence = excluded.last_sequence, last_occurred_at = excluded.last_occurred_at`,
     [entry.org, sequence, occurredAt],
   );

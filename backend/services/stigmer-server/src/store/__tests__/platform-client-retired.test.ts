@@ -9,12 +9,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  policyNamesRetiredPlatformClient,
+  grantNamesRetiredPlatformClient,
   unreadablePlatformClientRowError,
 } from "../platform-client-retired.js";
-import { policyRow } from "./retired-instance-rows.js";
+import { grantRow } from "./retired-instance-rows.js";
 
-describe("policyNamesRetiredPlatformClient", () => {
+describe("grantNamesRetiredPlatformClient", () => {
   it.each([
     { principal: "identity_account:ida_1", resource: "platform_client:pcl_1", named: true },
     { principal: "platform_client:pcl_1", resource: "organization:org_1", named: true },
@@ -22,14 +22,14 @@ describe("policyNamesRetiredPlatformClient", () => {
     { principal: "identity_account:ida_1", resource: "oauth_app:oap_1", named: false },
   ])("$principal -> $resource: $named", ({ principal, resource, named }) => {
     expect(
-      policyNamesRetiredPlatformClient(
-        policyRow({ id: "iam_1", principal, relation: "viewer", resource }),
+      grantNamesRetiredPlatformClient(
+        grantRow({ id: "iam_1", principal, relation: "viewer", resource }),
       ),
     ).toBe(named);
   });
 
   it("throws on bytes that do not decode", () => {
-    expect(() => policyNamesRetiredPlatformClient(new Uint8Array([0x22, 0xff]))).toThrow();
+    expect(() => grantNamesRetiredPlatformClient(new Uint8Array([0x22, 0xff]))).toThrow();
   });
 });
 

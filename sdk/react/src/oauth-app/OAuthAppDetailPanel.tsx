@@ -12,7 +12,7 @@ import {
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import { useUpdateOAuthApp } from "./useUpdateOAuthApp.js";
 import { useDeleteOAuthApp } from "./useDeleteOAuthApp.js";
-import { PermissionGate } from "../iam-policy/PermissionGate.js";
+import { PermissionGate } from "../grant/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { parseAddressList } from "./addresses.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";

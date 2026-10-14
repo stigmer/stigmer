@@ -23,16 +23,16 @@ import { saveErrorMessage } from "../internal/maskedEdit.js";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   ApiResourceRefSchema,
-  IamPolicySpecSchema,
-} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+  GrantSpecSchema,
+} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { ApiKeyCreatedAlert } from "../api-key/ApiKeyCreatedAlert.js";
 import { useUpdateIdentityAccount } from "../identity-account/useUpdateIdentityAccount.js";
-import { RoleSelector } from "../iam-policy/RoleSelector.js";
-import { useCreateIamPolicy } from "../iam-policy/useCreateIamPolicy.js";
-import { useDeleteIamPolicy } from "../iam-policy/useDeleteIamPolicy.js";
-import { useResourceAccess } from "../iam-policy/useResourceAccess.js";
+import { RoleSelector } from "../grant/RoleSelector.js";
+import { useCreateGrant } from "../grant/useCreateGrant.js";
+import { useDeleteGrant } from "../grant/useDeleteGrant.js";
+import { useResourceAccess } from "../grant/useResourceAccess.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { SERVICE_ACCOUNT_OMITTED_ROLES } from "./copy.js";
 import { CreateServiceAccountKeyForm } from "./CreateServiceAccountKeyForm.js";
@@ -256,8 +256,8 @@ function RoleSection({
 }) {
   const access = useResourceAccess(org ? { kind: "organization", id: org } : null);
   const current = orgRoleOf(access.members, accountId);
-  const { create: grant, isCreating } = useCreateIamPolicy();
-  const { remove: revoke, isDeleting } = useDeleteIamPolicy();
+  const { create: grant, isCreating } = useCreateGrant();
+  const { remove: revoke, isDeleting } = useDeleteGrant();
   const [selected, setSelected] = useState<IamRole | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
@@ -268,7 +268,7 @@ function RoleSection({
   const handleSave = useCallback(async (role: IamRole) => {
     setError(null);
     const specFor = (relation: string) =>
-      create(IamPolicySpecSchema, {
+      create(GrantSpecSchema, {
         principal: create(ApiResourceRefSchema, { kind: "identity_account", id: accountId }),
         resource: create(ApiResourceRefSchema, { kind: "organization", id: org }),
         relation,

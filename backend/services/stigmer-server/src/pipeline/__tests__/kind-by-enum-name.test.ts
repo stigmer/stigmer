@@ -2,14 +2,14 @@
  * Pins `kindByEnumName` (pipeline/apiresource-meta.ts), the lookup for the
  * SECOND kind vocabulary the contract carries. A resource's own `kind`
  * field is the `kind_meta.name` ("ChannelApp"; `getKindEnum`, the #545
- * lesson). An `ApiResourceRef.kind` — the IamPolicy spec's principal and
+ * lesson). An `ApiResourceRef.kind` — the Grant spec's principal and
  * resource, the FGA object type — is the enum MEMBER name ("channel_app"),
  * which is what every SDK call site sends and what the cloud's
  * `kindFromSpecString` resolved before this entry.
  *
  * Two properties are load-bearing and pinned here rather than assumed:
  *
- *   - EXACT match, never canonicalised. The IamPolicy id is derived from
+ *   - EXACT match, never canonicalised. The Grant id is derived from
  *     the spec's text, so a lenient matcher that admitted
  *     "Organization" beside "organization" would mint two rows for one
  *     grant, or force the domain to rewrite caller input before storing
@@ -36,7 +36,7 @@ describe("kindByEnumName — an ApiResourceRef.kind is the enum member name", ()
     ["identity_account", ApiResourceKind.identity_account],
     ["channel_app", ApiResourceKind.channel_app],
     ["agent", ApiResourceKind.agent],
-    ["iam_policy", ApiResourceKind.iam_policy],
+    ["grant", ApiResourceKind.grant],
   ])("%s resolves to its kind", (name, kind) => {
     expect(kindByEnumName(name)).toBe(kind);
   });

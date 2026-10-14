@@ -373,7 +373,6 @@ const TS_CLIENT_FIELD_NAMES = new Map<string, string>([
   ["agentshare", "agentShare"],
   ["federationissuer", "federationIssuer"],
   ["identityaccount", "identityAccount"],
-  ["iampolicy", "iamPolicy"],
   ["apikey", "apiKey"],
 ]);
 

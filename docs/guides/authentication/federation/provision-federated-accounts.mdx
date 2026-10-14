@@ -532,12 +532,12 @@ fields that haven't changed. Identity keys (`org`, `federationIssuerRef`,
 When a user leaves your platform, revoke their Stigmer access with
 `deprovisionFederatedAccount`. You choose between two modes:
 
-- **Revoke only** (`deleteAccount: false`) — Removes all IAM Policies for this
-  account in the Organization. The account still exists but can't access
-  anything. Use this when you might re-enable access later.
-- **Revoke and delete** (`deleteAccount: true`) — Removes IAM Policies **and**
-  deletes the Identity Account. Use this when the user is permanently leaving
-  and can no longer sign in to your auth provider.
+- **Revoke only** (`deleteAccount: false`) — Removes all Grants for this account
+  in the Organization. The account still exists but can't access anything. Use
+  this when you might re-enable access later.
+- **Revoke and delete** (`deleteAccount: true`) — Removes Grants **and** deletes
+  the Identity Account. Use this when the user is permanently leaving and can no
+  longer sign in to your auth provider.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -621,8 +621,7 @@ IdentityAccount deprovisioned = client.identityAccounts().deprovisionFederatedAc
 ## What's next
 
 You've provisioned a federated account, but the user can't access any resources
-yet. An authenticated request without matching IAM Policies returns
-`403 Forbidden`.
+yet. An authenticated request without matching Grants returns `403 Forbidden`.
 
 Next: [Grant access](/docs/guides/authentication/federation/grant-access) to
 give federated users roles on your Organization.

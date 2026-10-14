@@ -8,8 +8,8 @@ import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/
 import { AgentChannelListSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { ChannelAppsSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
-import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
-import { CheckAuthorizationResultSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
+import { CheckAuthorizationResultSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import {
   ScenarioPlayer,
@@ -245,7 +245,7 @@ export function ConnectSlackChannel() {
       ),
       // The panel gates its connect affordance on the caller's real
       // permissions; the demo viewer is an editor.
-      connectFixture(IamPolicyQueryController, "checkMyPermission", () =>
+      connectFixture(GrantQueryController, "checkMyPermission", () =>
         create(CheckAuthorizationResultSchema, { isAuthorized: true }),
       ),
     ],

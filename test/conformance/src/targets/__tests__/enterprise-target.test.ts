@@ -146,7 +146,7 @@ function stubClients(target: Target): Seen {
         create: async () => ({ metadata: { slug: "conformance-acme", id: ORG_ID } }),
         delete: async (input: unknown) => void seen.deletedOrganizations.push(input),
       },
-      iamPolicyCommand: {
+      grantCommand: {
         create: async (input: unknown) => (seen.grants.push(input), {}),
         delete: async () => ({}),
       },

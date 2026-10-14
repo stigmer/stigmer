@@ -14,7 +14,7 @@ public class GeneratedClient {
     public final ChannelAppClient channelapp;
     public final EvaluatorClient evaluator;
     public final FederationIssuerClient federationIssuer;
-    public final IamPolicyClient iamPolicy;
+    public final GrantClient grant;
     public final IdentityAccountClient identityAccount;
     public final InvitationClient invitation;
     public final LicenseClient license;
@@ -43,7 +43,7 @@ public class GeneratedClient {
         this.channelapp = new ChannelAppClient(channel);
         this.evaluator = new EvaluatorClient(channel);
         this.federationIssuer = new FederationIssuerClient(channel);
-        this.iamPolicy = new IamPolicyClient(channel);
+        this.grant = new GrantClient(channel);
         this.identityAccount = new IdentityAccountClient(channel);
         this.invitation = new InvitationClient(channel);
         this.license = new LicenseClient(channel);

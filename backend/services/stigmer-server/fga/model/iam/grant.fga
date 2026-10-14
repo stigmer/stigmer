@@ -1,0 +1,48 @@
+module iam
+
+# ========================================
+# GRANT TYPE (Organization-scoped)
+# ========================================
+# A grant is an access row: the authorization record, not a protected
+# resource. No RPC authorizes against a grant: the Grant lanes ask about
+# the grant's resource, and `get` about the loaded row's resource.
+# The type is declared because the model declares every open-source kind
+# (src/authorization/model/__tests__/registry.test.ts), so a caller who
+# names a grant as a grant target gets the model's answer, a denial,
+# rather than the evaluator's fault for an undeclared target.
+#
+# Permission pattern: the organization's admins (owners included) and the
+# grant's creator own it; the admins view it.
+#
+# Tuples: open source derives these from the row; an edition that stores
+# tuples writes none for a grant, so there every check here is a denial.
+# - grant:grant1#organization@organization:acme
+# - grant:grant1#owner@identity_account:alice
+
+type grant
+  relations
+    # ========================================
+    # PARENT ORGANIZATION
+    # ========================================
+    define organization: [organization]
+    
+    # ========================================
+    # OWNERSHIP
+    # ========================================
+    define owner: [identity_account] or admin from organization
+    
+    # Viewers (org admins can view)
+    define viewer: admin from organization
+    
+    # ========================================
+    # CRUD OPERATIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: owner
+    define can_delete: owner
+    
+    # ========================================
+    # ACCESS MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+    define can_view_access: viewer

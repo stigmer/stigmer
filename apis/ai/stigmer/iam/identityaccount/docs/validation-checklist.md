@@ -49,10 +49,10 @@ When the FederationIssuer provisions accounts manually (`create_accounts_on_sign
 
 ### Confusing IdentityAccount ID with IDP ID
 
-The `metadata.id` (e.g., `ia-01HQUSER123`) is Stigmer's internal ID. The `spec.idp_id` (e.g., `auth0|abc123`) is the external provider's identifier. Use `metadata.id` in IamPolicy principal references, not `idp_id`.
+The `metadata.id` (e.g., `ia-01HQUSER123`) is Stigmer's internal ID. The `spec.idp_id` (e.g., `auth0|abc123`) is the external provider's identifier. Use `metadata.id` in Grant principal references, not `idp_id`.
 
 ```yaml no-validate="a wrong and a right value side by side"
-# Wrong in an IamPolicy — using idp_id as principal ID
+# Wrong in a Grant — using idp_id as principal ID
 spec:
   principal:
     kind: identity_account
@@ -67,7 +67,7 @@ spec:
 
 ### Deleting an Account Does Not Revoke Active Tokens
 
-Deleting an IdentityAccount removes it from Stigmer's database and cleans up IAM policies. However, Auth0 tokens issued before deletion may remain valid until they expire. Invalidate Auth0 sessions separately if immediate revocation is required.
+Deleting an IdentityAccount removes it from Stigmer's database and cleans up its grants. However, Auth0 tokens issued before deletion may remain valid until they expire. Invalidate Auth0 sessions separately if immediate revocation is required.
 
 ### Deleting a Federated Account Does Not Block a Just-In-Time Sign-In
 

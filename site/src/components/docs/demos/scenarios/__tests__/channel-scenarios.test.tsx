@@ -4,7 +4,9 @@
  * channels through AgentChannelQueryController/listByAgent (none before
  * the demo plays) and the organization's channel apps through
  * ChannelAppQueryController/list (none for Slack, the registered Meta app
- * for WhatsApp).
+ * for WhatsApp); and the caller's permission check through
+ * GrantQueryController/checkMyPermission, which says yes, so the panel
+ * shows its connect affordance to the demo's editor.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render } from "@testing-library/react";
@@ -15,6 +17,8 @@ import { AgentChannelListSchema } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
 import { ChannelAppsSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
+import { CheckAuthorizationResultSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
 
 import { ConnectSlackChannel } from "../connect-slack-channel/index";
 import { ConnectWhatsAppChannel } from "../connect-whatsapp-channel/index";
@@ -63,5 +67,14 @@ describe("the channel connect demos", () => {
     expect(channels.entries).toEqual([]);
     const channelApps = fromJson(ChannelAppsSchema, await ask(fixtures, ChannelAppQueryController, "list"));
     expect(channelApps.entries).toHaveLength(apps);
+  });
+
+  it.each([
+    ["Slack", ConnectSlackChannel],
+    ["WhatsApp", ConnectWhatsAppChannel],
+  ] as const)("%s answers the caller's permission check yes", async (_name, Scenario) => {
+    const fixtures = fixturesOf(Scenario);
+    const answer = fromJson(CheckAuthorizationResultSchema, await ask(fixtures, GrantQueryController, "checkMyPermission"));
+    expect(answer.isAuthorized).toBe(true);
   });
 });

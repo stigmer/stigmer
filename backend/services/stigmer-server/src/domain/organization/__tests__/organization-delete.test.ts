@@ -13,7 +13,7 @@
  *     cannot be taken until the purge finishes, and then it can;
  *   - a slot step's refusal answers its own code and copy, and leaves the
  *     organization, its rows and its name, unmarked;
- *   - the organization's policy rows are revoked before the answer, as
+ *   - the organization's grant rows are revoked before the answer, as
  *     principal and as resource: a revocation fault answers Internal with
  *     fixed copy, leaves the organization and its owner row, unmarked, and
  *     a retry completes the delete;
@@ -22,8 +22,8 @@
  *   - a create of a deleted organization's slug once the purge finished
  *     makes a new organization, which no row of the old one names.
  *
- * The policy store is the library's in-memory double, composed as the
- * IamPolicy store driver so a test can make one row's delete fault; the
+ * The grant store is the library's in-memory double, composed as the
+ * Grant store driver so a test can make one row's delete fault; the
  * grant path, the role lifecycle, the chain and the purge are the
  * library's own. The test unit's purge stage holds an organization the
  * test names until it lets go, so the arms can look between the delete's
@@ -47,8 +47,8 @@ import {
   vi,
 } from "vitest";
 
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
-import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
@@ -68,10 +68,10 @@ import {
   setOperatorIdentity,
 } from "../../../pipeline/steps/defaults.js";
 import {
-  fakeIamPolicyStore,
+  fakeGrantStore,
   orgRole,
   triple,
-} from "../../iampolicy/__tests__/support.js";
+} from "../../grant/__tests__/support.js";
 
 const OPERATOR_EMAIL = "operator@example.com";
 const REFUSED_SLUG = "delete-refused";
@@ -91,16 +91,16 @@ async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
 }
 
 describe("organization delete (composed server, trusted-local posture)", () => {
-  const policies = fakeIamPolicyStore();
-  /** A policy id whose delete faults while set: the store answering an error mid-revocation. */
+  const grants = fakeGrantStore();
+  /** A grant id whose delete faults while set: the store answering an error mid-revocation. */
   let faultingDelete: string | undefined;
-  const faultablePolicies = {
-    ...policies,
+  const faultableGrants = {
+    ...grants,
     async deleteById(id: string): Promise<void> {
       if (id === faultingDelete) {
-        throw new Error("policy store unavailable");
+        throw new Error("grant store unavailable");
       }
-      await policies.deleteById(id);
+      await grants.deleteById(id);
     },
   };
 
@@ -135,7 +135,7 @@ describe("organization delete (composed server, trusted-local posture)", () => {
     gateSteps: new Map<GateSlotName, ReadonlyArray<PipelineStep<DescMessage>>>([
       ["org-delete:pre-delete", [slotStep]],
     ]),
-    drivers: { iamPolicyStore: faultablePolicies },
+    drivers: { grantStore: faultableGrants },
     orgPurge: { stages: [holdStage] },
   };
 
@@ -145,15 +145,15 @@ describe("organization delete (composed server, trusted-local posture)", () => {
   let organizations: Client<typeof OrganizationCommandController>;
   let organizationQuery: Client<typeof OrganizationQueryController>;
   /** The platform's own pipeline: the in-process transport's `internal` caller. */
-  let platform: Client<typeof IamPolicyCommandController>;
+  let platform: Client<typeof GrantCommandController>;
 
-  function rowsNaming(org: string): IamPolicy[] {
-    return [...policies.rows.values()].filter(
-      (policy) =>
-        (policy.spec?.resource?.kind === "organization" &&
-          policy.spec.resource.id === org) ||
-        (policy.spec?.principal?.kind === "organization" &&
-          policy.spec.principal.id === org),
+  function rowsNaming(org: string): Grant[] {
+    return [...grants.rows.values()].filter(
+      (grant) =>
+        (grant.spec?.resource?.kind === "organization" &&
+          grant.spec.resource.id === org) ||
+        (grant.spec?.principal?.kind === "organization" &&
+          grant.spec.principal.id === org),
     );
   }
 
@@ -170,8 +170,8 @@ describe("organization delete (composed server, trusted-local posture)", () => {
       spec: { description: "created by the organization delete test" },
     });
     const id = created.metadata?.id ?? "";
-    await platform.bootstrapPolicy(orgRole(OUTSIDER, "member", id));
-    await platform.bootstrapPolicy(
+    await platform.bootstrapGrant(orgRole(OUTSIDER, "member", id));
+    await platform.bootstrapGrant(
       triple({ kind: "organization", id }, "organization", {
         kind: "agent",
         id: AGENT,
@@ -217,7 +217,7 @@ describe("organization delete (composed server, trusted-local posture)", () => {
     organizations = createClient(OrganizationCommandController, transport);
     organizationQuery = createClient(OrganizationQueryController, transport);
     platform = createClient(
-      IamPolicyCommandController,
+      GrantCommandController,
       server.inProcessTransport,
     );
   });
@@ -334,7 +334,7 @@ describe("organization delete (composed server, trusted-local posture)", () => {
 
     expect(failed.code).toBe(Code.Internal);
     expect(failed.rawMessage).toBe(
-      "failed to remove the organization's access policies",
+      "failed to remove the organization's grants",
     );
     expect(
       (await organizationQuery.get({ value: "delete-faults" })).metadata?.id,

@@ -20,7 +20,7 @@ const EMPTY_ROLES: readonly IamRole[] = Object.freeze([]);
 
 /**
  * Returns the roles that can be granted on the given resource kind
- * via IAM policies.
+ * by a Grant.
  *
  * An empty array means no user-grantable roles exist — the resource is
  * either owner-only, inherits authorization from a parent, is self-owned,
@@ -44,7 +44,7 @@ export function hasGrantableRoles(kind: ApiResourceKind): boolean {
  * Whether the given role can be granted on the given resource kind.
  *
  * Use this for client-side pre-validation before calling
- * `iamPolicy.create()` — it mirrors the backend's
+ * `grant.create()` — it mirrors the backend's
  * `ValidateGrantableRole` step.
  */
 export function isRoleGrantable(

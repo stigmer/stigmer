@@ -77,8 +77,8 @@ import {
 import { resolveName } from "../../pipeline/steps/names.js";
 import { refuseServiceAccountCaller } from "../../pipeline/steps/refuse-service-account.js";
 import { fittedSlug } from "../../pipeline/steps/slug.js";
-import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
-import { organizationRole } from "../iampolicy/specs.js";
+import type { GrantPath } from "../grant/grant-path.js";
+import { organizationRole } from "../grant/specs.js";
 import { isServiceAccount } from "./actor.js";
 import {
   SERVICE_ACCOUNTS_NEED_SIGN_IN_MESSAGE,
@@ -105,7 +105,7 @@ export interface ServiceAccountDeps {
   /** The lifecycle the account's controller fires; its optional `onServiceAccountLinked` is the link. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly createAccount: CreateAccount;
-  readonly grantPath: Pick<IamPolicyGrantPath, "grant">;
+  readonly grantPath: Pick<GrantPath, "grant">;
   /** Whether sign-in is on; false under the trusted-local posture. */
   readonly signInRequired: boolean;
 }

@@ -94,7 +94,7 @@ sequenceDiagram
   Platform->>Stigmer: 1. Register Federation Issuer
   Note right of Stigmer: Manual only:
   Platform->>Stigmer: 2. createFederatedAccount(sub, email, name)
-  Platform->>Stigmer: 3. Grant org role via IAM Policy
+  Platform->>Stigmer: 3. Grant org role
   User->>Platform: 4. Sign in on platform
   Platform-->>User: 5. Issue JWT
   User->>Stigmer: 6. Call API with JWT
@@ -162,8 +162,8 @@ For the full setup guide, see
 ## Authorization
 
 Having an Identity Account is necessary but not sufficient. The account also
-needs **IAM Policies** that grant it access to specific resources. An IAM Policy
-binds three things:
+needs **Grants** that give it access to specific resources. A Grant binds three
+things:
 
 - **WHO** --- the Identity Account (principal)
 - **WHAT** --- the resource (Organization, Vault, Agent, etc.)
@@ -173,7 +173,7 @@ binds three things:
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1
-kind: IamPolicy
+kind: Grant
 spec:
   principal:
     kind: identity_account
@@ -184,7 +184,7 @@ spec:
   relation: admin
 ```
 
-Without a matching IAM Policy, an authenticated user gets `403 Forbidden`.
+Without a matching Grant, an authenticated user gets `403 Forbidden`.
 
 ## What's next
 
@@ -205,4 +205,4 @@ For API reference details, see
 [FederationIssuer](/docs/sdk/resources/federation-issuer),
 [IdentityAccount](/docs/sdk/resources/identity-account),
 [Organization](/docs/sdk/resources/organization), and
-[IamPolicy](/docs/sdk/resources/iam-policy).
+[Grant](/docs/sdk/resources/grant).

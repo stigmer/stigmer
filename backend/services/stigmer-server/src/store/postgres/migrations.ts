@@ -57,7 +57,7 @@ import type { StoreLogger } from "../logger.js";
 import {
   AGENT_KIND as RETIREMENT_AGENT_KIND,
   PLUGIN_KIND,
-  POLICY_KIND as RETIREMENT_POLICY_KIND,
+  GRANT_KIND_AT_STEP as RETIREMENT_GRANT_KIND,
   RETIRED_MCP_SERVER_KIND,
   RETIREMENT_PAGE_SIZE as SERVER_RETIREMENT_PAGE_SIZE,
   RetirementFacts,
@@ -67,7 +67,7 @@ import {
   migrateAgentRow,
   migrateSessionRow as migrateSessionRowForPlugins,
   pluginFactsOf,
-  policyNamesRetired,
+  grantNamesRetired,
   serverFactsOf,
   unreadableRowError as unreadableRetiredServerRowError,
 } from "../mcp-server-retired.js";
@@ -82,14 +82,14 @@ import {
 
 import {
   AGENT_KIND,
-  POLICY_KIND,
+  GRANT_KIND_AT_STEP,
   RETIRED_INSTANCE_KIND,
   RETIREMENT_PAGE_SIZE,
   SESSION_KIND,
   agentFactsOf,
   instanceAgentIdOf,
   migrateSessionRow,
-  policyNamesRetiredInstance,
+  grantNamesRetiredInstance,
   unreadableRowError,
 } from "../agent-instance-retired.js";
 import type { InstanceAgent } from "../agent-instance-retired.js";
@@ -118,38 +118,40 @@ import {
 import {
   RETIRED_WORKFLOW_INSTANCE_KIND,
   WORKFLOW_RETIREMENT_PAGE_SIZE,
-  WORKFLOW_RETIREMENT_POLICY_KIND,
-  policyNamesRetiredWorkflowInstance,
+  WORKFLOW_RETIREMENT_GRANT_KIND,
+  grantNamesRetiredWorkflowInstance,
   unreadableWorkflowRowError,
 } from "../workflow-instance-retired.js";
 import {
   PLATFORM_CLIENT_RETIRED_PAGE_SIZE,
-  PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+  PLATFORM_CLIENT_RETIRED_GRANT_KIND,
   RETIRED_PLATFORM_CLIENT_KIND,
-  policyNamesRetiredPlatformClient,
+  grantNamesRetiredPlatformClient,
   unreadablePlatformClientRowError,
 } from "../platform-client-retired.js";
 import {
   KIND_TABLES,
   KIND_RENAME_PAGE_SIZE,
-  KIND_RENAME_POLICY_KIND,
+  KIND_RENAME_GRANT_KIND,
   FEDERATION_ISSUER_RENAME_V30,
+  GRANT_RENAME_V34,
   RUN_RENAME_V18,
   RUN_RENAME_V21,
-  rekeyedPolicy,
+  movedGrant,
+  rekeyedGrant,
   renamedKindRow,
   unreadableKindRenameRowError,
 } from "../kind-rename.js";
-import type { KindRename, RekeyedPolicy } from "../kind-rename.js";
+import type { KindRename, RekeyedGrant } from "../kind-rename.js";
 import {
   AGENT_RUN_KIND,
   AGENT_RUN_RETIRED_PAGE_SIZE,
   RETIRED_WORKFLOW_KINDS,
   RETIRED_WORKFLOW_TABLES,
   WORKFLOW_RETIRED_PAGE_SIZE,
-  WORKFLOW_RETIRED_POLICY_KIND,
+  WORKFLOW_RETIRED_GRANT_KIND,
   migrateAgentRunRow,
-  policyNamesRetiredWorkflowKind,
+  grantNamesRetiredWorkflowKind,
   unreadableRetiredWorkflowRowError,
 } from "../workflow-retired.js";
 import {
@@ -158,10 +160,10 @@ import {
 } from "../account-slugs-repaired.js";
 import {
   ENVIRONMENT_RETIRED_PAGE_SIZE,
-  ENVIRONMENT_RETIRED_POLICY_KIND,
+  ENVIRONMENT_RETIRED_GRANT_KIND,
   RETIRED_ENVIRONMENT_KIND,
   RETIRED_ENVIRONMENT_TABLES,
-  policyNamesRetiredEnvironment,
+  grantNamesRetiredEnvironment,
   unreadableRetiredEnvironmentRowError,
 } from "../environment-retired.js";
 import { RETIRED_EXECUTION_CONTEXT_KIND } from "../execution-context-retired.js";
@@ -261,8 +263,11 @@ export const SCHEMA_VERSION_32 = 32;
 /** v33: the platform client rows removed, with every grant naming one. */
 export const SCHEMA_VERSION_33 = 33;
 
+/** v34: the IAM policy is a grant: its names, its ids and its history's tables. */
+export const SCHEMA_VERSION_34 = 34;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_33;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_34;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -336,6 +341,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_31, migrateToV31],
       [SCHEMA_VERSION_32, (migrating) => migrateToV32(migrating, logger)],
       [SCHEMA_VERSION_33, migrateToV33],
+      [SCHEMA_VERSION_34, migrateToV34],
     ];
 
     for (const [version, migrate] of chain) {
@@ -802,7 +808,7 @@ async function migrateToV8(client: PoolClient): Promise<void> {
  *   instance, with `updated_at` bumped the way the store's writes bump it,
  *   so the list index re-derives the row (its key changed with the
  *   session's revision) the way it re-derives any unproven row.
- * - Every IamPolicy row is read in keyset pages, and the ones naming an
+ * - Every grant row is read in keyset pages, and the ones naming an
  *   instance as resource or principal are deleted with their list keys,
  *   their history kept, as the store deletes a policy.
  * - The instance rows, their history and their list keys are then
@@ -894,20 +900,20 @@ async function migrateToV9(client: PoolClient): Promise<void> {
     }
   });
 
-  const retiredPolicies: string[] = [];
-  await forEachRow(POLICY_KIND, (row) => {
+  const retiredGrantIds: string[] = [];
+  await forEachRow(GRANT_KIND_AT_STEP, (row) => {
     try {
-      if (policyNamesRetiredInstance(new Uint8Array(row.data))) {
-        retiredPolicies.push(row.id);
+      if (grantNamesRetiredInstance(new Uint8Array(row.data))) {
+        retiredGrantIds.push(row.id);
       }
     } catch (error) {
-      throw unreadableRowError(POLICY_KIND, row.id, error);
+      throw unreadableRowError(GRANT_KIND_AT_STEP, row.id, error);
     }
   });
   for (const table of ["resource_list_keys", "resources"]) {
     await client.query(
       `DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`,
-      [POLICY_KIND, retiredPolicies],
+      [GRANT_KIND_AT_STEP, retiredGrantIds],
     );
   }
 
@@ -989,7 +995,7 @@ async function migrateToV11(client: PoolClient): Promise<void> {
  * v12: the workflow instance kind is removed (workflow-instance-retired.ts
  * says what leaves and why an unreadable row fails the step).
  *
- * - Every IamPolicy row is read in keyset pages, and the ones naming an
+ * - Every grant row is read in keyset pages, and the ones naming an
  *   instance as resource or principal are deleted with their list keys,
  *   their history kept, as the store deletes a policy.
  * - The instance rows, their history and their list keys are then
@@ -1002,7 +1008,7 @@ async function migrateToV11(client: PoolClient): Promise<void> {
  * out of the step, and the transaction makes it whole or nothing.
  */
 async function migrateToV12(client: PoolClient): Promise<void> {
-  const retiredPolicies: string[] = [];
+  const retiredGrantIds: string[] = [];
   for (let after = ""; ; ) {
     const rows = (
       await client.query<{ id: string; data: Buffer }>(
@@ -1010,17 +1016,17 @@ async function migrateToV12(client: PoolClient): Promise<void> {
          WHERE kind = $1 AND id > $2
          ORDER BY id
          LIMIT $3`,
-        [WORKFLOW_RETIREMENT_POLICY_KIND, after, WORKFLOW_RETIREMENT_PAGE_SIZE],
+        [WORKFLOW_RETIREMENT_GRANT_KIND, after, WORKFLOW_RETIREMENT_PAGE_SIZE],
       )
     ).rows;
     for (const row of rows) {
       try {
-        if (policyNamesRetiredWorkflowInstance(new Uint8Array(row.data))) {
-          retiredPolicies.push(row.id);
+        if (grantNamesRetiredWorkflowInstance(new Uint8Array(row.data))) {
+          retiredGrantIds.push(row.id);
         }
       } catch (error) {
         throw unreadableWorkflowRowError(
-          WORKFLOW_RETIREMENT_POLICY_KIND,
+          WORKFLOW_RETIREMENT_GRANT_KIND,
           row.id,
           error,
         );
@@ -1034,7 +1040,7 @@ async function migrateToV12(client: PoolClient): Promise<void> {
   for (const table of ["resource_list_keys", "resources"]) {
     await client.query(
       `DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`,
-      [WORKFLOW_RETIREMENT_POLICY_KIND, retiredPolicies],
+      [WORKFLOW_RETIREMENT_GRANT_KIND, retiredGrantIds],
     );
   }
 
@@ -1054,12 +1060,12 @@ async function migrateToV13(client: PoolClient): Promise<void> {
 }
 
 /**
- * One rename of a kind (kind-rename.ts), shared by v13, v16 and v30.
+ * One rename of a kind (kind-rename.ts), shared by v13, v16, v30 and v34.
  *
  * - Every row of the kind is read in keyset pages under its old name and
  *   rewritten when its bytes spell the kind the old way; then every table
  *   keyed by kind renames the kind.
- * - Every IamPolicy row is read in keyset pages, and the ones naming the
+ * - Every grant row is read in keyset pages, and the ones naming the
  *   old kind are re-keyed: the old row leaves with its list keys, its
  *   history kept, and the new row is written unproven with `updated_at`
  *   stamped, so the list index derives its keys the way it derives any
@@ -1118,27 +1124,27 @@ async function renameKind(client: PoolClient, rename: KindRename): Promise<void>
     ]);
   }
 
-  const rekeyed: Array<{ from: string; policy: RekeyedPolicy }> = [];
-  await forEachRow(KIND_RENAME_POLICY_KIND, (row) => {
+  const rekeyed: Array<{ from: string; grant: RekeyedGrant }> = [];
+  await forEachRow(KIND_RENAME_GRANT_KIND, (row) => {
     try {
-      const policy = rekeyedPolicy(rename, new Uint8Array(row.data));
-      if (policy !== undefined) {
-        rekeyed.push({ from: row.id, policy });
+      const grant = rekeyedGrant(rename, new Uint8Array(row.data));
+      if (grant !== undefined) {
+        rekeyed.push({ from: row.id, grant });
       }
     } catch (error) {
-      throw unreadableKindRenameRowError(rename, KIND_RENAME_POLICY_KIND, row.id, error);
+      throw unreadableKindRenameRowError(rename, KIND_RENAME_GRANT_KIND, row.id, error);
     }
   });
-  for (const { from, policy } of rekeyed) {
+  for (const { from, grant } of rekeyed) {
     for (const table of ["resource_list_keys", "resources"]) {
       await client.query(`DELETE FROM ${table} WHERE kind = $1 AND id = $2`, [
-        KIND_RENAME_POLICY_KIND,
+        KIND_RENAME_GRANT_KIND,
         from,
       ]);
     }
     await client.query(
       `INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, now())`,
-      [KIND_RENAME_POLICY_KIND, policy.id, Buffer.from(policy.data)],
+      [KIND_RENAME_GRANT_KIND, grant.id, Buffer.from(grant.data)],
     );
   }
 }
@@ -1148,7 +1154,7 @@ async function renameKind(client: PoolClient, rename: KindRename): Promise<void>
  * (workflow-retired.ts says what leaves, what each agent run becomes and
  * why an unreadable row fails the step).
  *
- * - Every IamPolicy row is read in keyset pages, and the ones naming a
+ * - Every grant row is read in keyset pages, and the ones naming a
  *   retired kind as resource or principal are deleted with their list
  *   keys, their history kept, as the store deletes a policy.
  * - Every agent run is read in keyset pages and rewritten when it carries
@@ -1192,18 +1198,18 @@ async function migrateToV14(client: PoolClient): Promise<void> {
     }
   };
 
-  const retiredPolicies: string[] = [];
+  const retiredGrantIds: string[] = [];
   await forEachRow(
-    WORKFLOW_RETIRED_POLICY_KIND,
+    WORKFLOW_RETIRED_GRANT_KIND,
     WORKFLOW_RETIRED_PAGE_SIZE,
     (row) => {
       try {
-        if (policyNamesRetiredWorkflowKind(new Uint8Array(row.data))) {
-          retiredPolicies.push(row.id);
+        if (grantNamesRetiredWorkflowKind(new Uint8Array(row.data))) {
+          retiredGrantIds.push(row.id);
         }
       } catch (error) {
         throw unreadableRetiredWorkflowRowError(
-          WORKFLOW_RETIRED_POLICY_KIND,
+          WORKFLOW_RETIRED_GRANT_KIND,
           row.id,
           error,
         );
@@ -1213,7 +1219,7 @@ async function migrateToV14(client: PoolClient): Promise<void> {
   for (const table of ["resource_list_keys", "resources"]) {
     await client.query(
       `DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`,
-      [WORKFLOW_RETIRED_POLICY_KIND, retiredPolicies],
+      [WORKFLOW_RETIRED_GRANT_KIND, retiredGrantIds],
     );
   }
 
@@ -1287,7 +1293,7 @@ async function migrateToV16(client: PoolClient): Promise<void> {
 
 /**
  * v17: vaults replace the Environment kind (../environment-retired.ts says
- * what leaves and why nothing is carried). Every IamPolicy row is read in
+ * what leaves and why nothing is carried). Every grant row is read in
  * keyset pages, and the ones naming an environment as resource or principal
  * are deleted with their list keys, their history kept, as the store
  * deletes a policy. Every environment row is then deleted from every table
@@ -1299,7 +1305,7 @@ async function migrateToV16(client: PoolClient): Promise<void> {
  * chain's advisory lock and transaction make the step whole or nothing.
  */
 async function migrateToV17(client: PoolClient): Promise<void> {
-  const retiredPolicies: string[] = [];
+  const retiredGrantIds: string[] = [];
   for (let after = ""; ; ) {
     const rows = (
       await client.query<{ id: string; data: Buffer }>(
@@ -1307,17 +1313,17 @@ async function migrateToV17(client: PoolClient): Promise<void> {
          WHERE kind = $1 AND id > $2
          ORDER BY id
          LIMIT $3`,
-        [ENVIRONMENT_RETIRED_POLICY_KIND, after, ENVIRONMENT_RETIRED_PAGE_SIZE],
+        [ENVIRONMENT_RETIRED_GRANT_KIND, after, ENVIRONMENT_RETIRED_PAGE_SIZE],
       )
     ).rows;
     for (const row of rows) {
       try {
-        if (policyNamesRetiredEnvironment(new Uint8Array(row.data))) {
-          retiredPolicies.push(row.id);
+        if (grantNamesRetiredEnvironment(new Uint8Array(row.data))) {
+          retiredGrantIds.push(row.id);
         }
       } catch (error) {
         throw unreadableRetiredEnvironmentRowError(
-          ENVIRONMENT_RETIRED_POLICY_KIND,
+          ENVIRONMENT_RETIRED_GRANT_KIND,
           row.id,
           error,
         );
@@ -1331,7 +1337,7 @@ async function migrateToV17(client: PoolClient): Promise<void> {
   for (const table of ["resource_list_keys", "resources"]) {
     await client.query(
       `DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`,
-      [ENVIRONMENT_RETIRED_POLICY_KIND, retiredPolicies],
+      [ENVIRONMENT_RETIRED_GRANT_KIND, retiredGrantIds],
     );
   }
 
@@ -1574,16 +1580,16 @@ async function migrateToV21(client: PoolClient, logger: StoreLogger): Promise<vo
 
   const serverIds = facts.serverIds();
   const memberSkillIds = facts.memberSkillIds();
-  const retiredPolicies: string[] = [];
-  await forEachRow(RETIREMENT_POLICY_KIND, (row) => {
-    if (policyNamesRetired(row.data, serverIds, memberSkillIds)) {
-      retiredPolicies.push(row.id);
+  const retiredGrantIds: string[] = [];
+  await forEachRow(RETIREMENT_GRANT_KIND, (row) => {
+    if (grantNamesRetired(row.data, serverIds, memberSkillIds)) {
+      retiredGrantIds.push(row.id);
     }
   });
   for (const table of ["resource_list_keys", "resources"]) {
     await client.query(`DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`, [
-      RETIREMENT_POLICY_KIND,
-      retiredPolicies,
+      RETIREMENT_GRANT_KIND,
+      retiredGrantIds,
     ]);
   }
   await client.query(`DELETE FROM resource_audit WHERE kind = $1 AND resource_id = ANY($2::text[])`, [
@@ -2028,9 +2034,9 @@ async function migrateToV30(client: PoolClient): Promise<void> {
       )
     ).rows;
     for (const row of rows) {
-      let policy: RekeyedPolicy | undefined;
+      let grant: RekeyedGrant | undefined;
       try {
-        policy = rekeyedPolicy(rename, new Uint8Array(row.data));
+        grant = rekeyedGrant(rename, new Uint8Array(row.data));
       } catch (error) {
         throw unreadableKindRenameRowError(rename, "iam_policy_history", `${row.org}/${row.sequence}`, error);
       }
@@ -2041,7 +2047,7 @@ async function migrateToV30(client: PoolClient): Promise<void> {
                 policy_id = COALESCE($3, policy_id),
                 data = COALESCE($4, data)
           WHERE org = $5 AND sequence = $6`,
-        [fromKind, toKind, policy?.id ?? null, policy === undefined ? null : Buffer.from(policy.data), row.org, row.sequence],
+        [fromKind, toKind, grant?.id ?? null, grant === undefined ? null : Buffer.from(grant.data), row.org, row.sequence],
       );
     }
     if (rows.length < KIND_RENAME_PAGE_SIZE) {
@@ -2104,7 +2110,7 @@ async function migrateToV32(client: PoolClient, logger: StoreLogger): Promise<vo
  * v33: the platform client kind is removed (../platform-client-retired.ts
  * says what leaves, what stays and why an unreadable row fails the step).
  *
- * - Every IamPolicy row is read in keyset pages, and the ones naming a
+ * - Every grant row is read in keyset pages, and the ones naming a
  *   client as resource or principal are deleted with their list keys,
  *   their history kept, as the store deletes a policy.
  * - The client rows then leave every table that keys a row by kind.
@@ -2115,7 +2121,7 @@ async function migrateToV32(client: PoolClient, logger: StoreLogger): Promise<vo
  * out of the step, and the transaction makes it whole or nothing.
  */
 async function migrateToV33(client: PoolClient): Promise<void> {
-  const retiredPolicies: string[] = [];
+  const retiredGrantIds: string[] = [];
   for (let after = ""; ; ) {
     const rows = (
       await client.query<{ id: string; data: Buffer }>(
@@ -2124,7 +2130,7 @@ async function migrateToV33(client: PoolClient): Promise<void> {
          ORDER BY id
          LIMIT $3`,
         [
-          PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+          PLATFORM_CLIENT_RETIRED_GRANT_KIND,
           after,
           PLATFORM_CLIENT_RETIRED_PAGE_SIZE,
         ],
@@ -2132,12 +2138,12 @@ async function migrateToV33(client: PoolClient): Promise<void> {
     ).rows;
     for (const row of rows) {
       try {
-        if (policyNamesRetiredPlatformClient(new Uint8Array(row.data))) {
-          retiredPolicies.push(row.id);
+        if (grantNamesRetiredPlatformClient(new Uint8Array(row.data))) {
+          retiredGrantIds.push(row.id);
         }
       } catch (error) {
         throw unreadablePlatformClientRowError(
-          PLATFORM_CLIENT_RETIRED_POLICY_KIND,
+          PLATFORM_CLIENT_RETIRED_GRANT_KIND,
           row.id,
           error,
         );
@@ -2151,12 +2157,117 @@ async function migrateToV33(client: PoolClient): Promise<void> {
   for (const table of ["resource_list_keys", "resources"]) {
     await client.query(
       `DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`,
-      [PLATFORM_CLIENT_RETIRED_POLICY_KIND, retiredPolicies],
+      [PLATFORM_CLIENT_RETIRED_GRANT_KIND, retiredGrantIds],
     );
   }
   for (const table of KIND_TABLES) {
     await client.query(`DELETE FROM ${table} WHERE kind = $1`, [
       RETIRED_PLATFORM_CLIENT_KIND,
     ]);
+  }
+}
+
+/**
+ * v34: the IAM policy is a grant (kind-rename.ts says why its ids move
+ * when no other kind's do).
+ *
+ * - The kind `iam_policy` and its kind string `IamPolicy` become `grant`
+ *   and `Grant` by the same transformation as v13 (`renameKind`), with this
+ *   step's frozen names (`GRANT_RENAME_V34`).
+ * - Every grant row is then read in keyset pages and moved from `iamp_X`
+ *   to `grt_X`, its bytes' id with it, and its list keys follow; a row
+ *   already at its `grt_` id is left as it is, and a row whose id is not
+ *   the one its triple derives fails the step, naming it.
+ * - The permission history's tables, their primary-key indexes and the
+ *   time index (v27, v31) take the kind's name, and the history's
+ *   `policy_id` column becomes `grant_id`. Every entry is read in keyset
+ *   pages on `(org, sequence)` and moved the same way; numbers and times
+ *   are kept.
+ *
+ * The rows are collected before any id moves, so no page reads an id the
+ * step already wrote. The chain's advisory lock keeps a second instance's
+ * boot out of the step, and the transaction makes it whole or nothing.
+ */
+async function migrateToV34(client: PoolClient): Promise<void> {
+  const rename = GRANT_RENAME_V34;
+  const [, grantKind] = rename.kind;
+  await renameKind(client, rename);
+
+  const moved: Array<{ from: string; grant: RekeyedGrant }> = [];
+  for (let after = ""; ; ) {
+    const rows = (
+      await client.query<{ id: string; data: Buffer }>(
+        `SELECT id, data FROM resources
+         WHERE kind = $1 AND id > $2
+         ORDER BY id
+         LIMIT $3`,
+        [grantKind, after, KIND_RENAME_PAGE_SIZE],
+      )
+    ).rows;
+    for (const row of rows) {
+      let grant: RekeyedGrant | undefined;
+      try {
+        grant = movedGrant(row.id, new Uint8Array(row.data));
+      } catch (error) {
+        throw unreadableKindRenameRowError(rename, grantKind, row.id, error);
+      }
+      if (grant !== undefined) {
+        moved.push({ from: row.id, grant });
+      }
+    }
+    if (rows.length < KIND_RENAME_PAGE_SIZE) {
+      break;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+  for (const { from, grant } of moved) {
+    await client.query(
+      `UPDATE resources SET id = $1, data = $2 WHERE kind = $3 AND id = $4`,
+      [grant.id, Buffer.from(grant.data), grantKind, from],
+    );
+    await client.query(
+      `UPDATE resource_list_keys SET id = $1 WHERE kind = $2 AND id = $3`,
+      [grant.id, grantKind, from],
+    );
+  }
+
+  await client.query(`
+    ALTER TABLE iam_policy_history RENAME TO grant_history;
+    ALTER INDEX iam_policy_history_pkey RENAME TO grant_history_pkey;
+    ALTER TABLE grant_history RENAME COLUMN policy_id TO grant_id;
+    ALTER INDEX iam_policy_history_by_time RENAME TO grant_history_by_time;
+    ALTER TABLE iam_policy_history_heads RENAME TO grant_history_heads;
+    ALTER INDEX iam_policy_history_heads_pkey RENAME TO grant_history_heads_pkey;
+  `);
+  for (let afterOrg = "", afterSequence = 0; ; ) {
+    const rows = (
+      await client.query<{ org: string; sequence: string; grant_id: string; data: Buffer }>(
+        `SELECT org, sequence, grant_id, data FROM grant_history
+         WHERE (org COLLATE "C", sequence) > ($1 COLLATE "C", $2)
+         ORDER BY org COLLATE "C", sequence
+         LIMIT $3`,
+        [afterOrg, afterSequence, KIND_RENAME_PAGE_SIZE],
+      )
+    ).rows;
+    for (const row of rows) {
+      let grant: RekeyedGrant | undefined;
+      try {
+        grant = movedGrant(row.grant_id, new Uint8Array(row.data));
+      } catch (error) {
+        throw unreadableKindRenameRowError(rename, "grant_history", `${row.org}/${row.sequence}`, error);
+      }
+      if (grant !== undefined) {
+        await client.query(
+          `UPDATE grant_history SET grant_id = $1, data = $2 WHERE org = $3 AND sequence = $4`,
+          [grant.id, Buffer.from(grant.data), row.org, row.sequence],
+        );
+      }
+    }
+    if (rows.length < KIND_RENAME_PAGE_SIZE) {
+      return;
+    }
+    const last = rows[rows.length - 1]!;
+    afterOrg = last.org;
+    afterSequence = Number(last.sequence);
   }
 }

@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * A team's members: the access list on the team itself. A membership is an
- * IAM policy row `identity_account:<p> member team:<t>`, so listing,
+ * A team's members: the access list on the team itself. A membership is a
+ * grant row `identity_account:<p> member team:<t>`, so listing,
  * adding and removing members is the share flow on `{ kind: "team", id }`
  * with the one role a team grants, `member`. There is no role choice to
  * make, so this panel composes the picker and the shared access row
@@ -27,10 +27,10 @@ import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import { planUpgradeFeature, UpgradeNotice } from "../billing/UpgradeNotice.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
-import { AccessRow, accessEntryKey } from "../iam-policy/AccessRow.js";
-import { PermissionGate } from "../iam-policy/PermissionGate.js";
-import { PrincipalPicker, type SelectedGrantee } from "../iam-policy/PrincipalPicker.js";
-import { useShareFlow } from "../iam-policy/useShareFlow.js";
+import { AccessRow, accessEntryKey } from "../grant/AccessRow.js";
+import { PermissionGate } from "../grant/PermissionGate.js";
+import { PrincipalPicker, type SelectedGrantee } from "../grant/PrincipalPicker.js";
+import { useShareFlow } from "../grant/useShareFlow.js";
 
 /** Props for {@link TeamMembersPanel}. */
 export interface TeamMembersPanelProps {

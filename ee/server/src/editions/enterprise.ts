@@ -27,7 +27,7 @@
  * else generated and kept there; a server run as several replicas sets the
  * variable so they share one key), which the library generates unasked for
  * open source alone, registers the grant scope every host
- * registers beside the identity unit (iam/policy/roles.ts; a single-instance
+ * registers beside the identity unit (iam/grant/roles.ts; a single-instance
  * driver, so never inside that unit), refuses a top-level organization to
  * an account the operator did not list when a list is set
  * (`STIGMER_ORGANIZATION_CREATORS`, editions/organization-creators.ts),
@@ -75,10 +75,10 @@
  *   - no unit declares the require-authentication posture: the library's
  *     own refusal of an edition above open source with no sign-in names
  *     the variable an operator sets;
- *   - the permission history: no unit registers `drivers.iamPolicyStore`,
- *     so the library's own policy store serves, and the edition this host
+ *   - the permission history: no unit registers `drivers.grantStore`,
+ *     so the library's own grant store serves, and the edition this host
  *     declares opens it to record every access row change in the row's
- *     transaction (the library's `iam_policy_history`, beside its rows).
+ *     transaction (the library's `grant_history`, beside its rows).
  *     The same edition serves the history back (the library's
  *     `listAccessHistory`), so no unit serves a reader either. A lapsed
  *     license keeps its edition, so it keeps recording and reading
@@ -110,7 +110,7 @@ import {
 
 import { newEnterpriseIdentityExtension } from "../extension/enterprise-identity.js";
 import { newGrowthGateStep } from "../iam/growth-gate.js";
-import { newKindMetaPolicyGrantScope } from "../iam/policy/roles.js";
+import { newKindMetaGrantScope } from "../iam/grant/roles.js";
 import { newLicenseGrowthGate } from "../license/growth.js";
 import { newLicenseStatusProvider } from "../license/status.js";
 import { trustedLicenseKeys } from "../license/trusted-keys.js";
@@ -217,7 +217,7 @@ export async function composeEnterprise(
       licenseStatus: newLicenseStatusProvider({ keyId: verdict.keyId, claims: verdict.claims }),
       platformTokenKeys: openSourcePlatformTokenKeyRing(options.keyLoader),
       outboundEgress: egressPolicy,
-      policyGrantScope: newKindMetaPolicyGrantScope(),
+      grantScope: newKindMetaGrantScope(),
     },
     gateSteps: new Map<GateSlotName, ReadonlyArray<PipelineStep<DescMessage>>>([
       [

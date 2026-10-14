@@ -38,8 +38,8 @@ const STRING_TO_ROLE: Record<string, IamRole> = {
 /**
  * Converts an IamRole enum value to its FGA relation string.
  *
- * This is the string used in `IamPolicySpec.relation` when creating
- * or deleting IAM policies.
+ * This is the string used in `GrantSpec.relation` when creating
+ * or deleting grants.
  *
  * @example iamRoleToString(IamRole.admin) // "admin"
  */

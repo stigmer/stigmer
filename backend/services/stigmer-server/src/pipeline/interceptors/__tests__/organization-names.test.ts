@@ -5,8 +5,8 @@
  *   - every organization a request names by slug reaches the handler as
  *     its id: `metadata.org`, a reference's `org` nested in a spec, a
  *     top-level `org`, the Organization service's own annotated id, and a
- *     policy ref whose kind is organization;
- *   - an id, an empty value, a name nothing holds and a policy ref of
+ *     grant ref whose kind is organization;
+ *   - an id, an empty value, a name nothing holds and a grant ref of
  *     another kind pass untouched, and a request that needs nothing is
  *     handed on as it came;
  *   - each distinct name is looked up once, and the caller's message is
@@ -40,8 +40,8 @@ import { describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
-import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
@@ -106,10 +106,10 @@ function harness(resolver: OrganizationNameResolver) {
           return create(OrganizationSchema);
         },
       });
-      router.service(IamPolicyCommandController, {
-        bootstrapPolicy: (request) => {
+      router.service(GrantCommandController, {
+        bootstrapGrant: (request) => {
           seen.push(request);
-          return create(IamPolicySchema);
+          return create(GrantSchema);
         },
       });
     },
@@ -128,7 +128,7 @@ function harness(resolver: OrganizationNameResolver) {
     agents: createClient(AgentCommandController, transport),
     search: createClient(SearchService, transport),
     organizations: createClient(OrganizationQueryController, transport),
-    policies: createClient(IamPolicyCommandController, transport),
+    grants: createClient(GrantCommandController, transport),
   };
 }
 
@@ -163,13 +163,13 @@ describe("the organization-name resolver", () => {
     expect(input.metadata?.org, "the caller's message is untouched").toBe("acme");
   });
 
-  it("resolves a top-level org, the Organization service's annotated id, and a policy ref of kind organization", async () => {
+  it("resolves a top-level org, the Organization service's annotated id, and a grant ref of kind organization", async () => {
     const resolver = resolverOf({ acme: ACME });
-    const { search, organizations, policies, seen } = harness(resolver);
+    const { search, organizations, grants, seen } = harness(resolver);
 
     await search.search({ org: "acme" });
     await organizations.get({ value: "acme" });
-    await policies.bootstrapPolicy({
+    await grants.bootstrapGrant({
       principal: { kind: "identity_account", id: "acme" },
       resource: { kind: "organization", id: "acme" },
       relation: "member",
@@ -177,13 +177,13 @@ describe("the organization-name resolver", () => {
 
     expect((seen[0] as unknown as { org: string }).org).toBe(ACME);
     expect((seen[1] as unknown as { value: string }).value).toBe(ACME);
-    const policy = seen[2] as unknown as {
+    const grant = seen[2] as unknown as {
       principal?: { id: string };
       resource?: { id: string };
     };
-    expect(policy.resource?.id).toBe(ACME);
+    expect(grant.resource?.id).toBe(ACME);
     expect(
-      policy.principal?.id,
+      grant.principal?.id,
       "a ref of another kind is not an organization",
     ).toBe("acme");
   });

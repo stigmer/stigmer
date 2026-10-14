@@ -12,7 +12,7 @@
  * person who founds an organization after provisioning owns it (the
  * organization's creator row), and a person who provisions after an
  * organization exists is its member (arm 5). A suite that needs a person
- * with another role grants it through IamPolicy as the founder.
+ * with another role grants it through Grant as the founder.
  *
  * `logs` holds every line the server wrote at info and above, parsed, so
  * a suite can read what the grant path records (its cause, its actor)

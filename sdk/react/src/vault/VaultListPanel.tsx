@@ -18,7 +18,7 @@ import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ManageAccessButton } from "../access/ManageAccessButton.js";
-import { PermissionGate } from "../iam-policy/PermissionGate.js";
+import { PermissionGate } from "../grant/PermissionGate.js";
 import { useStigmer } from "../hooks.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import {

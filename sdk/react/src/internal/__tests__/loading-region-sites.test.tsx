@@ -27,7 +27,7 @@ import { ApiKeyListPanel } from "../../api-key/ApiKeyListPanel.js";
 import { BillingSection } from "../../billing/BillingSection.js";
 import { ChannelAppListPanel } from "../../channel-app/ChannelAppListPanel.js";
 import { VaultListPanel } from "../../vault/VaultListPanel.js";
-import { OrgMembersPanel } from "../../iam-policy/OrgMembersPanel.js";
+import { OrgMembersPanel } from "../../grant/OrgMembersPanel.js";
 import { FederationIssuerListPanel } from "../../federation-issuer/FederationIssuerListPanel.js";
 import { InvitationRedemption } from "../../invitation/InvitationRedemption.js";
 import { OAuthAppListPanel } from "../../oauth-app/OAuthAppListPanel.js";
@@ -108,7 +108,7 @@ const SITES: readonly Site[] = [
     name: "OrgMembersPanel",
     label: "Loading members",
     client: {
-      iamPolicy: { listResourceAccessByPrincipal: pending, checkMyPermission: pending },
+      grant: { listResourceAccessByPrincipal: pending, checkMyPermission: pending },
       identityAccount: { whoAmI: pending },
     },
     ui: <OrgMembersPanel org="org_acme" />,
@@ -139,7 +139,7 @@ const SITES: readonly Site[] = [
     client: {
       ...ORG_PROVIDER_CALLS,
       vault: { getMine: pending, list: pending },
-      iamPolicy: { checkMyPermission: pending },
+      grant: { checkMyPermission: pending },
     },
     ui: (
       <OrgProvider>

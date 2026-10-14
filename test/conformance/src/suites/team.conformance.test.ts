@@ -16,7 +16,7 @@
 //     the organization's list; an outsider is refused all three;
 //   - update changes the description under an update_mask and refuses a
 //     request with none; rename moves the slug and keeps the id;
-//   - joining a team is an IamPolicy grant of `member` on it, and sharing a
+//   - joining a team is an Grant grant of `member` on it, and sharing a
 //     private agent with the team reaches its members and nobody else in the
 //     organization; deleting the team takes the share back, and the deleted
 //     team reads as any team the caller may not see (PERMISSION_DENIED: a
@@ -226,8 +226,8 @@ describe.skipIf(!teamsServed)("Team conformance — the team lane (teams served)
     const team = await cast.admin.teamCommand.create(makeTeam({ org: cast.org, name: uniqueName("agent-team") }));
     const teamId = team.metadata?.id ?? "";
 
-    await clients.iamPolicyCommand.create(teamMembership(teamId, cast.memberId));
-    await clients.iamPolicyCommand.create(teamShare(teamId, "viewer", { kind: "agent", id: agentId }));
+    await clients.grantCommand.create(teamMembership(teamId, cast.memberId));
+    await clients.grantCommand.create(teamShare(teamId, "viewer", { kind: "agent", id: agentId }));
 
     expect((await cast.member.agentQuery.get({ value: agentId })).metadata?.id).toBe(agentId);
     await expectGrpcCode(
@@ -247,11 +247,11 @@ describe.skipIf(!teamsServed)("Team conformance — the team lane (teams served)
     );
   });
 
-  it("[rpc:IamPolicyCommandController.create] a person outside the organization cannot be added to its team: FAILED_PRECONDITION naming the organization", async () => {
+  it("[rpc:GrantCommandController.create] a person outside the organization cannot be added to its team: FAILED_PRECONDITION naming the organization", async () => {
     const team = await createTeam(cast.admin, cast.org, "closed");
 
     const refused = await expectGrpcCode(
-      () => clients.iamPolicyCommand.create(teamMembership(team.metadata?.id ?? "", cast.outsiderId)),
+      () => clients.grantCommand.create(teamMembership(team.metadata?.id ?? "", cast.outsiderId)),
       Code.FailedPrecondition,
       "adding an outsider to a team",
     );

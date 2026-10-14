@@ -6,7 +6,7 @@ import {
   type OAuthApp,
 } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { TokenEndpointAuthMethod } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
-import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { StigmerContext } from "../../context";
 import { OAuthAppDetailPanel } from "../OAuthAppDetailPanel";
@@ -54,7 +54,7 @@ function renderPanel(
 ) {
   const client = {
     oauthapp: { update },
-    iamPolicy: { checkMyPermission },
+    grant: { checkMyPermission },
   } as never;
   return render(
     <StigmerContext.Provider value={client}>
@@ -161,7 +161,7 @@ describe("OAuthAppDetailPanel rename", () => {
     const onUpdated = vi.fn();
     const client = {
       oauthapp: { rename },
-      iamPolicy: { checkMyPermission: async () => ({ isAuthorized: true }) },
+      grant: { checkMyPermission: async () => ({ isAuthorized: true }) },
     } as never;
     render(
       <StigmerContext.Provider value={client}>

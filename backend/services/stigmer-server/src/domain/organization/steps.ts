@@ -18,7 +18,7 @@
  * (authorization/credential-binding.ts), except a child of that
  * organization, which its managers create (children.ts).
  *
- * The delete revokes the organization's policy rows BEFORE its row is
+ * The delete revokes the organization's grant rows BEFORE its row is
  * deleted, and fails the delete when it cannot, so nothing that grants on
  * the organization outlives it.
  *
@@ -50,12 +50,12 @@ import {
   SHOULD_CREATE_KEY,
 } from "../../pipeline/steps/load-for-apply.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
-import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
+import type { GrantPath } from "../grant/grant-path.js";
 import { liveOrganizationName, refusalForHeldName } from "./names.js";
 import { slugRenamedError } from "../../pipeline/steps/names.js";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
@@ -279,7 +279,7 @@ export function newLoadExistingOrganizationStep(
 }
 
 /**
- * Revokes every policy row that names the organization, as principal or as
+ * Revokes every grant row that names the organization, as principal or as
  * resource, before the delete removes its row: the rows its members hold
  * on it, and the scope link every organization-scoped resource holds to
  * it. Runs after the `org-delete:pre-delete` slot and before
@@ -295,15 +295,15 @@ export function newLoadExistingOrganizationStep(
  * organization in place, and a retry resumes where the revocation stopped
  * (the grant path revokes the organization's owners last, so the owner
  * who retries still can). The grant path fires the composed driver's
- * `onPolicyRevoked` before each row, so a composition's tuples go with
- * their rows. The post-delete CleanupIamPolicies still runs: it catches
+ * `onRevoked` before each row, so a composition's tuples go with
+ * their rows. The post-delete CleanupGrants still runs: it catches
  * whatever a concurrent write named the organization with in between.
  */
-export function newRevokeOrganizationPoliciesStep<Desc extends DescMessage>(
-  grantPath: IamPolicyGrantPath,
+export function newRevokeOrganizationGrantsStep<Desc extends DescMessage>(
+  grantPath: GrantPath,
 ): PipelineStep<Desc> {
   return {
-    name: "RevokeOrganizationPolicies",
+    name: "RevokeOrganizationGrants",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
       const organization = ctx.get(EXISTING_RESOURCE_KEY) as
         | Organization
@@ -311,8 +311,8 @@ export function newRevokeOrganizationPoliciesStep<Desc extends DescMessage>(
       const id = organization?.metadata?.id ?? "";
       if (id === "") {
         throw internalError(
-          new Error("organization delete reached RevokeOrganizationPolicies without its loaded row"),
-          "failed to remove the organization's access policies",
+          new Error("organization delete reached RevokeOrganizationGrants without its loaded row"),
+          "failed to remove the organization's grants",
         );
       }
       try {
@@ -326,7 +326,7 @@ export function newRevokeOrganizationPoliciesStep<Desc extends DescMessage>(
       } catch (error) {
         throw internalError(
           error,
-          "failed to remove the organization's access policies",
+          "failed to remove the organization's grants",
         );
       }
     },

@@ -8,8 +8,8 @@
  * is exactly `compareCreatedAtDesc` (store/list-index.ts states it).
  *
  * Every row is re-checked against the organization and the subject it was
- * asked for, whatever the index returned, as the IamPolicy adapter
- * re-checks its principal (domain/iampolicy/resource-store.ts): it keeps
+ * asked for, whatever the index returned, as the Grant adapter
+ * re-checks its principal (domain/grant/resource-store.ts): it keeps
  * the "" subject exact, which reads the whole organization because an
  * empty value is no key. Undecodable rows are skipped — one bad record
  * must not take recall or the cap down. A store fault is

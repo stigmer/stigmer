@@ -65,7 +65,7 @@ function createMockStigmer(overrides: MockOverrides = {}) {
       rotateShareLink:
         overrides.rotateShareLink ?? vi.fn().mockResolvedValue({}),
     },
-    iamPolicy: {
+    grant: {
       checkMyPermission: vi
         .fn()
         .mockImplementation((input: { relation: string }) =>

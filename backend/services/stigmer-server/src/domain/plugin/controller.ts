@@ -86,7 +86,7 @@ import {
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import {
-  newCleanupIamPoliciesStep,
+  newCleanupGrantsStep,
   newRecordVisibilityBeforeUpdateStep,
   newUpdateVisibilityTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
@@ -507,7 +507,7 @@ async function deletePlugin(
     .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.plugin))
     .addStep(newSweepPluginEvalsAfterDeleteStep<DeleteDesc>(deps.pluginEvals))
     .addStep(
-      newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
+      newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
     )
     .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
     .build()

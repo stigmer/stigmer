@@ -124,7 +124,7 @@ interface MockClient {
   };
   // The slug field asks can_delete (whoever may delete may rename);
   // denied unless a test grants it.
-  iamPolicy: { checkMyPermission: ReturnType<typeof vi.fn> };
+  grant: { checkMyPermission: ReturnType<typeof vi.fn> };
   // The vaults inline editor's picker lists the org's vaults, and offers
   // My vault only when the viewer is the schedule's creator.
   vault: { list: ReturnType<typeof vi.fn> };
@@ -170,7 +170,7 @@ function makeClient(schedule: Schedule): MockClient {
         return stored;
       }),
     },
-    iamPolicy: {
+    grant: {
       checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: false }),
     },
     vault: {
@@ -636,12 +636,12 @@ describe("ScheduleDetailView", () => {
 
   it("renames the schedule from its slug field, for whoever may delete it, and reports the new slug", async () => {
     const client = makeClient(makeSchedule());
-    client.iamPolicy.checkMyPermission.mockResolvedValue({ isAuthorized: true });
+    client.grant.checkMyPermission.mockResolvedValue({ isAuthorized: true });
     const onRenamed = vi.fn();
     renderView(client, { editable: true, onRenamed });
 
     const field = await screen.findByLabelText("Slug");
-    expect(client.iamPolicy.checkMyPermission).toHaveBeenCalledWith(
+    expect(client.grant.checkMyPermission).toHaveBeenCalledWith(
       expect.objectContaining({ relation: "can_delete" }),
     );
     fireEvent.change(field, { target: { value: "weekly-fee-reminders" } });

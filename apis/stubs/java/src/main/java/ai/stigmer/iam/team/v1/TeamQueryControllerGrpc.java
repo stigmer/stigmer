@@ -7,7 +7,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * TeamQueryController provides read operations for teams.
  * Every member of an organization can see its teams, so anyone who can share
  * a resource can pick a team to share it with. Who is in a team is read
- * through the IAM policy service's access list on the team.
+ * through the Grant service's access list on the team.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -175,7 +175,7 @@ public final class TeamQueryControllerGrpc {
    * TeamQueryController provides read operations for teams.
    * Every member of an organization can see its teams, so anyone who can share
    * a resource can pick a team to share it with. Who is in a team is read
-   * through the IAM policy service's access list on the team.
+   * through the Grant service's access list on the team.
    * </pre>
    */
   public interface AsyncService {
@@ -217,7 +217,7 @@ public final class TeamQueryControllerGrpc {
    * TeamQueryController provides read operations for teams.
    * Every member of an organization can see its teams, so anyone who can share
    * a resource can pick a team to share it with. Who is in a team is read
-   * through the IAM policy service's access list on the team.
+   * through the Grant service's access list on the team.
    * </pre>
    */
   public static abstract class TeamQueryControllerImplBase
@@ -234,7 +234,7 @@ public final class TeamQueryControllerGrpc {
    * TeamQueryController provides read operations for teams.
    * Every member of an organization can see its teams, so anyone who can share
    * a resource can pick a team to share it with. Who is in a team is read
-   * through the IAM policy service's access list on the team.
+   * through the Grant service's access list on the team.
    * </pre>
    */
   public static final class TeamQueryControllerStub
@@ -290,7 +290,7 @@ public final class TeamQueryControllerGrpc {
    * TeamQueryController provides read operations for teams.
    * Every member of an organization can see its teams, so anyone who can share
    * a resource can pick a team to share it with. Who is in a team is read
-   * through the IAM policy service's access list on the team.
+   * through the Grant service's access list on the team.
    * </pre>
    */
   public static final class TeamQueryControllerBlockingV2Stub
@@ -343,7 +343,7 @@ public final class TeamQueryControllerGrpc {
    * TeamQueryController provides read operations for teams.
    * Every member of an organization can see its teams, so anyone who can share
    * a resource can pick a team to share it with. Who is in a team is read
-   * through the IAM policy service's access list on the team.
+   * through the Grant service's access list on the team.
    * </pre>
    */
   public static final class TeamQueryControllerBlockingStub
@@ -396,7 +396,7 @@ public final class TeamQueryControllerGrpc {
    * TeamQueryController provides read operations for teams.
    * Every member of an organization can see its teams, so anyone who can share
    * a resource can pick a team to share it with. Who is in a team is read
-   * through the IAM policy service's access list on the team.
+   * through the Grant service's access list on the team.
    * </pre>
    */
   public static final class TeamQueryControllerFutureStub

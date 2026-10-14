@@ -65,7 +65,7 @@ function mockClient(options: { admin?: boolean; keys?: ProviderKey[]; setError?:
     },
     subscription: { getEntitlements: vi.fn() },
     plan: { list: vi.fn() },
-    iamPolicy: { checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: options.admin ?? true }) },
+    grant: { checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: options.admin ?? true }) },
   };
 }
 

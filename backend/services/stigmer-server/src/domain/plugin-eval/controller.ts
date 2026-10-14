@@ -43,7 +43,7 @@ import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import {
-  newCleanupIamPoliciesStep,
+  newCleanupGrantsStep,
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newAuthorizeResolvedTargetStep } from "../../pipeline/steps/authorize-resolved-target.js";
@@ -237,7 +237,7 @@ async function deletePluginEval(
     .addStep(newDeletePluginEvalTriesStep(deps.store, deps.sessions, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.plugin_eval))
-    .addStep(newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger))
+    .addStep(newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger))
     .build()
     .execute(reqCtx);
   return chainResult<PluginEval>(reqCtx.get(EXISTING_RESOURCE_KEY), "deleted plugin eval");

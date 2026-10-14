@@ -12,7 +12,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { setTimeout as delay } from "node:timers/promises";
 import type { ConformanceClients } from "../harness/clients";
-import { organizationRole } from "./iampolicies";
+import { organizationRole } from "./grants";
 import { DEFAULT_POLL_MS, DEFAULT_TIMEOUT_MS } from "./run-poll";
 import { uniqueOrg } from "./naming";
 
@@ -98,14 +98,14 @@ export async function createChildOrganization(
  * (trusted-local), the grant changes nothing.
  */
 export async function takeAdminIn(
-  clients: Pick<ConformanceClients, "identityAccountQuery" | "iamPolicyCommand">,
+  clients: Pick<ConformanceClients, "identityAccountQuery" | "grantCommand">,
   childOrg: string,
 ): Promise<void> {
   const me = (await clients.identityAccountQuery.whoAmI({})).metadata?.id ?? "";
   if (me === "") {
     throw new Error("whoAmI answered no account; the caller cannot take a role in the child organization");
   }
-  await clients.iamPolicyCommand.create(organizationRole(me, "admin", childOrg));
+  await clients.grantCommand.create(organizationRole(me, "admin", childOrg));
 }
 
 /**

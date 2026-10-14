@@ -79,7 +79,7 @@ import {
   type AgentEvalOptions,
 } from "../support/agent-evals";
 import { makeAgent } from "../support/agents";
-import { organizationRole, policyTriple } from "../support/iampolicies";
+import { organizationRole, grantTriple } from "../support/grants";
 import { uniqueName, uniqueOrg } from "../support/naming";
 import {
   PLUGIN_EVAL_NOT_STARTED_ERROR,
@@ -601,7 +601,7 @@ describe("AgentEval — who may run and read an eval", () => {
   // A fresh person holding exactly `role` in `org`, granted by the founder.
   async function personWith(lane: EnforcingLane, org: string, role: string): Promise<ConformanceClients> {
     const person = await lane.provisionIdentity();
-    await lane.clients.iamPolicyCommand.create(organizationRole(await lane.accountIdOf(person), role, org));
+    await lane.clients.grantCommand.create(organizationRole(await lane.accountIdOf(person), role, org));
     return person;
   }
 
@@ -655,8 +655,8 @@ describe("AgentEval — who may run and read an eval", () => {
     const org = (await laneTenancy(lane)).org;
     const agent = await laneAgent(lane, org, ApiResourceVisibility.visibility_private);
     const editor = await lane.provisionMember({ org });
-    await lane.clients.iamPolicyCommand.create(
-      policyTriple({ kind: "identity_account", id: await lane.accountIdOf(editor) }, "editor", {
+    await lane.clients.grantCommand.create(
+      grantTriple({ kind: "identity_account", id: await lane.accountIdOf(editor) }, "editor", {
         kind: "agent",
         id: agent.metadata!.id,
       }),

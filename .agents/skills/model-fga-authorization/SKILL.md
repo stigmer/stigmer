@@ -81,7 +81,7 @@ evaluator. Commit the regenerated JSON with the source; CI's
 - A removed relation: its derived rule goes with it, since the model refuses a
   rule for a relation the type does not define. No server code changes its
   answer: the evaluator answers a permission a type does not define with false,
-  and an edition that runs OpenFGA must answer it the same way (the IamPolicy
+  and an edition that runs OpenFGA must answer it the same way (the Grant
   conformance suite asks one on a run).
 - A shape the evaluator does not run (`but not`, a wildcard, a condition): the
   reader

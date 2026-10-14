@@ -55,7 +55,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { ref } from "../support/iampolicies";
+import { ref } from "../support/grants";
 import { freshSubject } from "../support/identityaccounts";
 import type { InitShape } from "../support/init-shape";
 import { uniqueName } from "../support/naming";
@@ -151,7 +151,7 @@ async function requireLane(): Promise<EnforcingLane> {
 
 // The roles a principal holds on the organization, read by its owner.
 async function organizationRolesOf(org: string, accountId: string): Promise<string[]> {
-  const { roles } = await clients.iamPolicyQuery.getPrincipalResourceRoles({
+  const { roles } = await clients.grantQuery.getPrincipalResourceRoles({
     principal: ref("identity_account", accountId),
     resource: ref("organization", org),
   });
