@@ -32,8 +32,8 @@ A run that waits for your approval and then carries on stays one trace: each
 turn is a root span in it, and your tool shows the latest turn's name.
 
 `stigmer.run.kind` tells runs apart: `conversation`, `schedule`, `judge` (an AI
-judge grading another run) or `eval-try` (one try of an eval run). Filter on
-it to keep the judge's grades out of a view of your users' runs.
+judge grading another run) or `eval-try` (one try of an eval run). Filter on it
+to keep the judge's grades out of a view of your users' runs.
 
 The Cursor engine makes its model calls inside Cursor's service, so a Cursor run
 shows its tokens as one total, not per call. Langfuse prices no `invoke_agent`
