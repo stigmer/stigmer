@@ -14,8 +14,8 @@
  *   - a pass that removes nothing logs nothing; a fault is logged with
  *     what was removed before it, never thrown;
  *   - start runs a pass at once and is a no-op the second time; the
- *     interval runs more passes; stop waits for the pass in flight, which
- *     ends before its next batch;
+ *     interval runs more passes, but never a second beside one in flight;
+ *     stop waits for the pass in flight, which ends before its next batch;
  *   - a window that is not a positive whole number of days refuses to
  *     construct.
  */
@@ -169,6 +169,30 @@ describe("the runner's loop", () => {
     expect(passes).toBeGreaterThan(1);
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(store.calls).toHaveLength(passes);
+  });
+
+  it("starts no second pass on the interval while one is still running", async () => {
+    let release: (count: number) => void = () => {};
+    let calls = 0;
+    const loop = new AccessHistoryRetentionRunner({
+      policies: {
+        pruneChanges: () => {
+          calls += 1;
+          return new Promise<number>((resolve) => {
+            release = resolve;
+          });
+        },
+      },
+      retentionDays: 30,
+      logger: recordingLogger([]),
+      now: () => NOW,
+      intervalMs: 5,
+    });
+    loop.start();
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(calls).toBe(1);
+    release(0);
+    await loop.stop();
   });
 
   it("stop waits for the pass in flight, which ends before its next batch", async () => {
