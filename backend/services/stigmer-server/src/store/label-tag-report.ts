@@ -14,12 +14,15 @@
  * as an unknown field 7 of the metadata, which is how they are found.
  *
  * Why a report and not a rewrite. The edge validates requests, not stored
- * rows: an update whose mask leaves labels and tags out keeps the stored
- * values and succeeds, and only a write that sends a breaking value is
- * refused. Rewriting would guess what a person meant by a label, and
- * stripping annotations would touch archived versions' bytes for nothing.
- * The warning says which rows hold what, so an operator fixes them at
- * their next edit.
+ * rows, and the state validation an update runs on the merged row skips
+ * labels and tags the write left exactly as stored
+ * (pipeline/steps/validation.ts). So an update whose mask leaves labels
+ * and tags out keeps the stored values and succeeds; a write that sends a
+ * value the rules refuse (a request carrying it, or an update that changes
+ * the field to it) is refused. Rewriting would guess what a person meant
+ * by a label, and stripping annotations would touch archived versions'
+ * bytes for nothing. The warning says which rows hold what, so an operator
+ * fixes them at their next edit.
  *
  * A row whose kind has no entry ({@link RESOURCE_SCHEMAS}) is not read; a
  * row that does not decode is counted as unreadable in the same line.
@@ -142,7 +145,7 @@ export class LabelTagTally {
       return;
     }
     logger.warn(
-      "stored labels, tags or annotations break the rules a write now applies; nothing was changed, and a write that sends them is refused until they are fixed",
+      "stored labels, tags or annotations break the rules a write now applies; nothing was changed: an update that leaves them out of its mask keeps them, and a write that sends them is refused until they are fixed",
       {
         kind: this.kindName,
         labels: this.labels,

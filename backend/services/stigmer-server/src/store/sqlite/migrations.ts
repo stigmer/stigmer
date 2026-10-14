@@ -1925,7 +1925,7 @@ function migrateToV35(db: DatabaseSync): void {
 
 /**
  * v36: labels and tags gain their rules and annotations leave resource
- * metadata — the Postgres driver's v31 in this engine's terms
+ * metadata — the Postgres driver's v32 in this engine's terms
  * (../label-tag-report.ts says what a row is found to hold). Each kind's
  * rows are read in keyset pages, and the ones whose stored labels, tags or
  * annotations the rules refuse are named in one warning per kind. Nothing
