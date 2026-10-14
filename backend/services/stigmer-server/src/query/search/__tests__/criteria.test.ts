@@ -14,8 +14,10 @@ import {
 
 import { getKindMeta } from "../../../pipeline/apiresource-meta.js";
 import {
-  DEFAULT_PAGE_SIZE,
-  MAX_PAGE_SIZE,
+  LIST_PAGE_DEFAULT_SIZE,
+  LIST_PAGE_MAX_SIZE,
+} from "../../../pipeline/steps/list-page.js";
+import {
   MAX_QUERY_LENGTH,
   SearchCriteria,
   searchIndexedKinds,
@@ -25,14 +27,14 @@ function criteria(overrides?: {
   kinds?: ApiResourceKind[];
   query?: string;
   org?: string;
-  pageNumber?: number;
+  offset?: number;
   pageSize?: number;
 }): SearchCriteria {
   return SearchCriteria.create(
     overrides?.kinds ?? [],
     overrides?.query ?? "",
     overrides?.org ?? "",
-    overrides?.pageNumber ?? 1,
+    overrides?.offset ?? 0,
     overrides?.pageSize ?? 20,
   );
 }
@@ -80,13 +82,13 @@ describe("SearchCriteria normalization (Go NewSearchCriteria)", () => {
       kinds: [ApiResourceKind.agent, ApiResourceKind.skill],
       query: "kubernetes",
       org: "acme",
-      pageNumber: 2,
+      offset: 50,
       pageSize: 50,
     });
     expect(c.kinds()).toEqual([ApiResourceKind.agent, ApiResourceKind.skill]);
     expect(c.query()).toBe("kubernetes");
     expect(c.orgFilter()).toBe("acme");
-    expect(c.pageNumber()).toBe(2);
+    expect(c.offset()).toBe(50);
     expect(c.pageSize()).toBe(50);
   });
 
@@ -107,18 +109,18 @@ describe("SearchCriteria normalization (Go NewSearchCriteria)", () => {
     expect(c.query().length).toBe(MAX_QUERY_LENGTH);
   });
 
-  it("clamps the page number: 0 and negatives normalize to 1", () => {
-    expect(criteria({ pageNumber: 0 }).pageNumber()).toBe(1);
-    expect(criteria({ pageNumber: -5 }).pageNumber()).toBe(1);
-    expect(criteria({ pageNumber: 3 }).pageNumber()).toBe(3);
+  it("keeps the rank position a token carried; a negative one reads as the first page", () => {
+    expect(criteria({ offset: 0 }).offset()).toBe(0);
+    expect(criteria({ offset: -5 }).offset()).toBe(0);
+    expect(criteria({ offset: 40 }).offset()).toBe(40);
   });
 
-  it("clamps the page size: <1 → default, >100 → max", () => {
-    expect(criteria({ pageSize: 0 }).pageSize()).toBe(DEFAULT_PAGE_SIZE);
-    expect(criteria({ pageSize: -1 }).pageSize()).toBe(DEFAULT_PAGE_SIZE);
-    expect(criteria({ pageSize: 1000 }).pageSize()).toBe(MAX_PAGE_SIZE);
-    expect(criteria({ pageSize: MAX_PAGE_SIZE }).pageSize()).toBe(
-      MAX_PAGE_SIZE,
+  it("sizes the page as every list does: <1 → the default, >100 → the maximum", () => {
+    expect(criteria({ pageSize: 0 }).pageSize()).toBe(LIST_PAGE_DEFAULT_SIZE);
+    expect(criteria({ pageSize: -1 }).pageSize()).toBe(LIST_PAGE_DEFAULT_SIZE);
+    expect(criteria({ pageSize: 1000 }).pageSize()).toBe(LIST_PAGE_MAX_SIZE);
+    expect(criteria({ pageSize: LIST_PAGE_MAX_SIZE }).pageSize()).toBe(
+      LIST_PAGE_MAX_SIZE,
     );
   });
 });
@@ -178,10 +180,3 @@ describe("effectiveKinds (the #440 contract)", () => {
   });
 });
 
-describe("offset", () => {
-  it("computes the zero-indexed row offset (Go Offset)", () => {
-    expect(criteria({ pageNumber: 1, pageSize: 20 }).offset()).toBe(0);
-    expect(criteria({ pageNumber: 2, pageSize: 20 }).offset()).toBe(20);
-    expect(criteria({ pageNumber: 3, pageSize: 50 }).offset()).toBe(100);
-  });
-});

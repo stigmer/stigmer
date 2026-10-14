@@ -4,6 +4,11 @@
  * Deliberately NOT the domain pipeline library — Go's query side doesn't
  * use its pipeline either; queries have no persist/audit lifecycle.
  *
+ * Pages follow the relevance order, which has no keyset, so a page token
+ * carries the rank position the next page starts at and the request's
+ * fingerprint, through the token codec every list uses (list-page.ts): a
+ * token is refused for a request other than the one it was issued to.
+ *
  * Step 1's protovalidate run is Go's defensive twin: the interceptor
  * chain has already validated the request on every wire and in-process
  * path (chain position 3; Go server.go:246 "protovalidate runs first"),
@@ -30,6 +35,13 @@ import type {
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import { invalidArgumentError } from "../../pipeline/errors.js";
+import {
+  decodeListPageToken,
+  encodeListPageToken,
+  listPageFingerprint,
+} from "../../pipeline/steps/list-page.js";
+import type { ListPageTokenCursor } from "../../pipeline/steps/list-page.js";
 import { apiResourceKindName } from "../../store/proto-fields.js";
 import { SearchCriteria } from "./criteria.js";
 import type { SearchPagedResult } from "./paged-result.js";
@@ -69,14 +81,26 @@ export class SearchHandler {
       throw new Error(`validation failed: ${validation.error.message}`);
     }
 
+    const fingerprint = listPageFingerprint({
+      kinds: request.kinds,
+      query: request.query,
+      org: request.org,
+    });
+    // A token's refusal is the codec's own InvalidArgument, raised before
+    // the criteria so it is never wrapped (controller.ts passes it on).
+    const offset =
+      request.pageToken === ""
+        ? 0
+        : positionOf(decodeListPageToken(request.pageToken, fingerprint));
+
     let criteria: SearchCriteria;
     try {
       criteria = SearchCriteria.create(
         request.kinds,
         request.query,
         request.org,
-        request.page?.num ?? 0,
-        request.page?.size ?? 0,
+        offset,
+        request.pageSize,
       );
     } catch (error) {
       throw new Error(
@@ -106,19 +130,36 @@ export class SearchHandler {
       );
     }
 
+    const next = criteria.offset() + criteria.pageSize();
     const response = create(SearchResponseSchema, {
       entries: [...result.results],
       countsByKind: { ...result.countsByKind },
-      totalCount: result.totalCount,
-      totalPages: result.totalPages,
+      nextPageToken:
+        next < result.totalCount
+          ? encodeListPageToken(NO_CURSOR, fingerprint, next)
+          : "",
     });
 
     this.logger.debug("Search completed", {
       results: response.entries.length,
-      total: response.totalCount,
+      total: result.totalCount,
       has_query: criteria.hasQuery(),
     });
 
     return response;
   }
+}
+
+/**
+ * A search token's cursor: the relevance order has no row cursor, so the
+ * token's cursor fields are empty and its position is the rank.
+ */
+const NO_CURSOR = { createdAt: "", id: "" } as const;
+
+/** The rank a search token carries; a token with no position is not one of search's. */
+function positionOf(token: ListPageTokenCursor): number {
+  if (token.position === undefined) {
+    throw invalidArgumentError("invalid page_token");
+  }
+  return token.position;
 }

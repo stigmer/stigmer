@@ -4,7 +4,9 @@
  * InvalidArgument arms CARRY the wrapped handler text, everything else
  * sanitizes to the static Internal copy (#478) — including the
  * deliberately-quirky Go arm where a store error containing "invalid"
- * answers InvalidArgument with its raw text. Driven through
+ * answers InvalidArgument with its raw text — and the rank token: a walk
+ * reads every match once, and a token from another query or none at all
+ * is the codec's InvalidArgument, passed through unwrapped. Driven through
  * createRouterTransport so the mapping is proven at the ConnectRPC
  * boundary, not by calling private functions.
  */
@@ -15,7 +17,10 @@ import { describe, expect, it } from "vitest";
 
 import { ListRecentActivityRequestSchema } from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
 import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/query_pb";
-import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import {
+  SearchRequestSchema,
+  SearchResultSchema,
+} from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 
 import { createLogger } from "../../../boot/logger.js";
@@ -29,7 +34,7 @@ import { registerActivityServices } from "../../activity/controller.js";
 import { registerSearchServices } from "../controller.js";
 import { SearchHandler } from "../handler.js";
 import type { SearchQueryStore } from "../query-store.js";
-import { emptyResult } from "../paged-result.js";
+import { emptyResult, newSearchPagedResult } from "../paged-result.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -105,6 +110,67 @@ describe("search error mapping (Go toGRPCError)", () => {
     );
     expect(error.code).toBe(Code.InvalidArgument);
     expect(error.rawMessage).toContain("validation failed");
+  });
+});
+
+describe("search pages by a rank token", () => {
+  const ids = ["r0", "r1", "r2", "r3", "r4"];
+  const ranked: SearchQueryStore = {
+    search: (criteria) =>
+      Promise.resolve(
+        newSearchPagedResult(
+          ids
+            .slice(criteria.offset(), criteria.offset() + criteria.pageSize())
+            .map((id) => create(SearchResultSchema, { id })),
+          { agent: ids.length },
+          ids.length,
+        ),
+      ),
+    rebuildIndex: () => Promise.resolve(0),
+  };
+
+  it("walks every match once, in rank order, and the last page carries no token", async () => {
+    const client = searchClientOver(ranked);
+    const pages: string[][] = [];
+    let pageToken = "";
+    do {
+      const page = await client.search(
+        create(SearchRequestSchema, { query: "x", pageSize: 2, pageToken }),
+      );
+      pages.push(page.entries.map((entry) => entry.id));
+      expect(page.countsByKind).toEqual({ agent: 5 });
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+    expect(pages).toEqual([["r0", "r1"], ["r2", "r3"], ["r4"]]);
+  });
+
+  it("refuses a token issued for another query, and a token that is not one", async () => {
+    const client = searchClientOver(ranked);
+    const first = await client.search(
+      create(SearchRequestSchema, { query: "x", pageSize: 2 }),
+    );
+    const other = await grpcError(
+      client.search(
+        create(SearchRequestSchema, {
+          query: "y",
+          pageSize: 2,
+          pageToken: first.nextPageToken,
+        }),
+      ),
+    );
+    expect([other.code, other.rawMessage]).toEqual([
+      Code.InvalidArgument,
+      "page_token was issued for a different request",
+    ]);
+    const garbage = await grpcError(
+      client.search(
+        create(SearchRequestSchema, { query: "x", pageToken: "not-a-token" }),
+      ),
+    );
+    expect([garbage.code, garbage.rawMessage]).toEqual([
+      Code.InvalidArgument,
+      "invalid page_token",
+    ]);
   });
 });
 
