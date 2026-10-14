@@ -99,7 +99,7 @@ export async function awaitRunHealth(
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const list = await clients.scoreQuery.listByRun({ runId });
-    const health = list.items.find((score) => score.spec?.metric === RUN_HEALTH);
+    const health = list.entries.find((score) => score.spec?.metric === RUN_HEALTH);
     if (health !== undefined) {
       return health;
     }

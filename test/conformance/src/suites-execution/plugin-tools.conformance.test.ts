@@ -209,7 +209,7 @@ describe("[rpc:PluginCommandController.listTools] Plugin tools conformance — a
     expect(after.status?.audit?.specAudit?.updatedAt).toEqual(before.status?.audit?.specAudit?.updatedAt);
     expect(after.status?.audit?.statusAudit?.updatedAt).toEqual(before.status?.audit?.statusAudit?.updatedAt);
     const versionsAfter = await clients.pluginQuery.listVersions({ org, slug: plugin.metadata!.slug });
-    expect(versionsAfter.totalCount).toBe(versionsBefore.totalCount);
+    expect(versionsAfter.entries.length).toBe(versionsBefore.entries.length);
   });
 
   it("classifies an unreachable server as FailedPrecondition with the reachability guidance", async () => {

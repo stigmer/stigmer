@@ -4,7 +4,7 @@
 // The server's ready line only proves the listeners are up; this probe proves
 // the gRPC pipeline and backing store answer real requests before any test
 // runs.
-// findMyOrganizations takes Empty and runs no validation, so it is a pure store
+// listMine takes Empty and runs no validation, so it is a pure store
 // probe with no request to construct. Shared by every managed target (local
 // CRUD, local-execution) so they gate on one identical readiness definition.
 import { setTimeout as delay } from "node:timers/promises";
@@ -21,7 +21,7 @@ export async function awaitGrpcReady(
   let lastError: unknown;
   while (Date.now() < deadline) {
     try {
-      await clients.organizationQuery.findMyOrganizations({});
+      await clients.organizationQuery.listMine({});
       return;
     } catch (err) {
       lastError = err;

@@ -5,7 +5,7 @@
 // What this pins, against the shipped entry (local-single-org; every other
 // target reports SKIPPED through `singleOrganization`):
 //   - the server made its organization at its first start, and says so:
-//     getServerInfo answers single_org, and findMyOrganizations lists exactly
+//     getServerInfo answers single_org, and listMine lists exactly
 //     one, whose own metadata.org is empty;
 //   - a request that names no organization acts in that one, for one method
 //     of each shape the contract has: an annotated create (agent, session,
@@ -61,7 +61,7 @@ describe.skipIf(!capabilities.singleOrganization)(
       target = createTarget();
       await target.setup();
       clients = target.clients();
-      const mine = await clients.organizationQuery.findMyOrganizations({});
+      const mine = await clients.organizationQuery.listMine({});
       theOrganization = mine.entries[0]?.metadata?.id ?? "";
     });
 
@@ -69,10 +69,10 @@ describe.skipIf(!capabilities.singleOrganization)(
       await target?.teardown();
     });
 
-    it("[rpc:PlatformQueryController.getServerInfo] [rpc:OrganizationQueryController.findMyOrganizations] the server made one organization and says it fills it", async () => {
+    it("[rpc:PlatformQueryController.getServerInfo] [rpc:OrganizationQueryController.listMine] the server made one organization and says it fills it", async () => {
       const info = await clients.platformQuery.getServerInfo({});
       expect(info.singleOrg).toBe(true);
-      const mine = await clients.organizationQuery.findMyOrganizations({});
+      const mine = await clients.organizationQuery.listMine({});
       expect(mine.entries).toHaveLength(1);
       expect(theOrganization).not.toBe("");
       expect(mine.entries[0]?.metadata?.org).toBe("");
@@ -100,7 +100,7 @@ describe.skipIf(!capabilities.singleOrganization)(
       expect(created.metadata?.org).toBe(theOrganization);
 
       const listed = await clients.vaultQuery.list({ org: NOBODY });
-      expect(listed.items.map((vault) => vault.metadata?.id)).toContain(
+      expect(listed.entries.map((vault) => vault.metadata?.id)).toContain(
         created.metadata?.id,
       );
     });
@@ -180,7 +180,7 @@ describe.skipIf(!capabilities.singleOrganization)(
       expect(refusal.findDetails(ErrorInfoSchema)).toMatchObject([
         { reason: "ORGANIZATION_LIMIT_REACHED", metadata: { limit: "1" } },
       ]);
-      const mine = await clients.organizationQuery.findMyOrganizations({});
+      const mine = await clients.organizationQuery.listMine({});
       expect(mine.entries).toHaveLength(1);
     });
 
@@ -193,7 +193,7 @@ describe.skipIf(!capabilities.singleOrganization)(
       expect(refusal.findDetails(ErrorInfoSchema)).toMatchObject([
         { reason: "ORGANIZATION_IS_SINGLE", metadata: { org: theOrganization } },
       ]);
-      const mine = await clients.organizationQuery.findMyOrganizations({});
+      const mine = await clients.organizationQuery.listMine({});
       expect(mine.entries.map((org) => org.metadata?.id)).toEqual([
         theOrganization,
       ]);

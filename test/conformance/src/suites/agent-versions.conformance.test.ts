@@ -87,15 +87,15 @@ describe("Agent versions — what a write records", () => {
     expect(v1.status?.versionHash, "create records the first version").toMatch(/^[a-f0-9]{64}$/);
     await applyAgent(org, name, "v1");
     let history = await clients.agentQuery.listVersions({ org, slug: v1.metadata!.slug });
-    expect(history.totalCount, "an unchanged apply records no version").toBe(1);
+    expect(history.entries, "an unchanged apply records no version").toHaveLength(1);
 
     const v2 = await applyAgent(org, name, "v2");
     expect(v2.status?.versionHash).not.toBe(v1.status?.versionHash);
     expect(v2.metadata?.version?.previousVersionId).toBe(v1.status?.versionHash);
     history = await clients.agentQuery.listVersions({ org, slug: v1.metadata!.slug });
-    expect(history.totalCount).toBe(2);
-    expect(history.versions[0]?.versionHash, "newest first").toBe(v2.status?.versionHash);
-    expect(history.versions.filter((entry) => entry.isCurrent).map((entry) => entry.versionHash)).toEqual([
+    expect(history.entries).toHaveLength(2);
+    expect(history.entries[0]?.versionHash, "newest first").toBe(v2.status?.versionHash);
+    expect(history.entries.filter((entry) => entry.isCurrent).map((entry) => entry.versionHash)).toEqual([
       v2.status?.versionHash,
     ]);
   });
@@ -110,8 +110,8 @@ describe("Agent versions — what a write records", () => {
     expect(back.status?.versionHash).toBe(a.status?.versionHash);
 
     const history = await clients.agentQuery.listVersions({ org, slug: a.metadata!.slug });
-    expect(history.totalCount, "rollback appends no row").toBe(2);
-    expect(history.versions.filter((entry) => entry.isCurrent).map((entry) => entry.versionHash)).toEqual([
+    expect(history.entries, "rollback appends no row").toHaveLength(2);
+    expect(history.entries.filter((entry) => entry.isCurrent).map((entry) => entry.versionHash)).toEqual([
       a.status?.versionHash,
     ]);
   });
@@ -193,7 +193,7 @@ describe("Agent versions — tags", () => {
     expect(head.metadata?.version?.tag).toBe("stable");
 
     const history = await clients.agentQuery.listVersions({ org, slug });
-    expect(history.versions.filter((entry) => entry.tag === "stable").map((entry) => entry.versionHash)).toEqual([
+    expect(history.entries.filter((entry) => entry.tag === "stable").map((entry) => entry.versionHash)).toEqual([
       v2.status?.versionHash,
     ]);
     const prior = await clients.agentQuery.getByReference({ org, slug, version: v1.status!.versionHash });
@@ -220,8 +220,8 @@ describe("Agent versions — tags", () => {
     expect(retagged.status?.versionHash).toBe(v1.status?.versionHash);
     expect(retagged.metadata?.version?.tag).toBe("prod");
     const history = await clients.agentQuery.listVersions({ org, slug: v1.metadata!.slug });
-    expect(history.totalCount, "an unchanged apply records no version").toBe(1);
-    expect(history.versions.map((entry) => entry.tag)).toEqual(["prod"]);
+    expect(history.entries, "an unchanged apply records no version").toHaveLength(1);
+    expect(history.entries.map((entry) => entry.tag)).toEqual(["prod"]);
   });
 
   it("[rpc:AgentCommandController.apply] a repoint (A→B→A) naming the tag moves it back; one naming none shows the tag the version holds", async () => {
@@ -234,8 +234,8 @@ describe("Agent versions — tags", () => {
     expect(back.status?.versionHash).toBe(v1.status?.versionHash);
     expect(back.metadata?.version?.tag).toBe("stable");
     const history = await clients.agentQuery.listVersions({ org, slug: v1.metadata!.slug });
-    expect(history.totalCount).toBe(2);
-    expect(history.versions.filter((entry) => entry.tag === "stable").map((entry) => entry.versionHash)).toEqual([
+    expect(history.entries).toHaveLength(2);
+    expect(history.entries.filter((entry) => entry.tag === "stable").map((entry) => entry.versionHash)).toEqual([
       v1.status?.versionHash,
     ]);
 

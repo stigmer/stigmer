@@ -332,7 +332,7 @@ describe("Vault conformance — values are write-only", () => {
       saved,
       await clients.vaultQuery.getMine({ org }),
       await clients.vaultQuery.get({ value: saved.metadata!.id }),
-      ...(await clients.vaultQuery.list({ org })).items,
+      ...(await clients.vaultQuery.list({ org })).entries,
     ];
     for (const read of reads) {
       expect(shownValues(read), "a read shows names, never values").toEqual([]);
@@ -418,9 +418,9 @@ describe("[rpc:VaultQueryController.list] Vault conformance — list", () => {
     await createShared(other.org);
 
     const listed = await clients.vaultQuery.list({ org });
-    const ids = listed.items.map((vault) => vault.metadata?.id).sort();
+    const ids = listed.entries.map((vault) => vault.metadata?.id).sort();
     expect(ids).toEqual([shared.metadata!.id, mine.metadata!.id].sort());
-    expect(listed.totalCount).toBe(2);
+    expect(listed.entries).toHaveLength(2);
   });
 
   it("rejects a list with no org (InvalidArgument)", () =>
@@ -467,9 +467,9 @@ describe("Vault conformance — a person's own vault, between people", () => {
     );
 
     const membersList = await member.vaultQuery.list({ org: tenancy.org });
-    expect(membersList.items.map((vault) => vault.metadata?.id)).toEqual([members.metadata!.id]);
+    expect(membersList.entries.map((vault) => vault.metadata?.id)).toEqual([members.metadata!.id]);
     const foundersList = await lane.clients.vaultQuery.list({ org: tenancy.org });
-    expect(foundersList.items.map((vault) => vault.metadata?.id)).toEqual([founders.metadata!.id]);
+    expect(foundersList.entries.map((vault) => vault.metadata?.id)).toEqual([founders.metadata!.id]);
   });
 
   it("[rpc:VaultCommandController.create] a member cannot create a shared vault; an admin can, and org visibility lets the member use it", async (ctx) => {

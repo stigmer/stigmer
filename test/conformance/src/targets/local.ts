@@ -53,7 +53,6 @@ export class LocalTarget implements TargetProfile {
     // one operator to everything. Enforcement on open source is proven on
     // the OIDC sibling this target lends through enforcingLane().
     enforcingAuthorizer: false,
-    organizationEnumeration: true,
     versionTagging: true,
     skillArtifactTransferLane: true,
     // No Temporal behind this target at all — schedules cannot fire.

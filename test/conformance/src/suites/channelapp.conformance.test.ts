@@ -81,7 +81,7 @@ describe("ChannelApp conformance — CRUD & identity", () => {
     expect(slack?.signingSecret).toBe(CHANNELAPP_REDACTED_MARKER);
   });
 
-  it("[rpc:ChannelAppQueryController.get] [rpc:ChannelAppQueryController.getByReference] [rpc:ChannelAppQueryController.listByOrg] get, getByReference, and listByOrg resolve the app, all redacted", async () => {
+  it("[rpc:ChannelAppQueryController.get] [rpc:ChannelAppQueryController.getByReference] [rpc:ChannelAppQueryController.list] get, getByReference, and list resolve the app, all redacted", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createSlackAppFixture(org);
 
@@ -98,7 +98,7 @@ describe("ChannelApp conformance — CRUD & identity", () => {
     });
     expect(byRef.metadata?.id).toBe(created.metadata?.id);
 
-    const listed = await clients.channelAppQuery.listByOrg({ org });
+    const listed = await clients.channelAppQuery.list({ org });
     const match = listed.entries.find((app) => app.metadata?.id === created.metadata?.id);
     expect(match, "the created app appears in its org's list").toBeDefined();
     const listedSlack =

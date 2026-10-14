@@ -531,7 +531,7 @@ describe("IdentityAccount conformance — the OIDC lane on a sibling server", ()
       "a key whose owner's account was deleted, after the owner signed up again",
     );
     expect(
-      (await asUser.apiKeyQuery.findAll({})).entries.map((k) => k.metadata?.id),
+      (await asUser.apiKeyQuery.list({})).entries.map((k) => k.metadata?.id),
       "the returning person holds none of the old keys",
     ).not.toContain(key.metadata?.id);
   });

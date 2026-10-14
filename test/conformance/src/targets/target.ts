@@ -54,12 +54,6 @@ export interface CapabilityFlags {
   // multiTenant: tenancy (many organizations, no enumeration) and enforcement are different facts — an enforcing
   // self-host is single-tenant.
   enforcingAuthorizer: boolean;
-  // OrganizationQuery.find enumerates every organization. True for local OSS,
-  // which is single-tenant and returns them all. False for cloud, where
-  // enumerating every tenant's org is not a tenant capability — cloud leaves
-  // find unrouted and answers Unimplemented; tenants use findMyOrganizations
-  // (proto documents find as platform-admin/administrative use only).
-  organizationEnumeration: boolean;
   // The dedicated AgentCommandController.tagVersion mutation RPC is
   // implemented. Where true, the agent-versions suite runs its tagVersion
   // cases; where false, it skips them and pins nothing about the RPC (version
