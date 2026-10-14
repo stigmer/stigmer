@@ -27,6 +27,13 @@
  * write handed no record, and pages exactly at both orders' edges; a
  * store that keeps none answers no change after a recorded write. Every
  * edition above open source serves the history, so its store keeps one.
+ * Retention's removal is held to its promise through the port alone: the
+ * kit cannot back-date a change, so each cutoff is a time it read back
+ * from `listChanges`, and the changes it expects removed are the ones read
+ * back before it. What goes is a prefix of each organization, the oldest
+ * first, and the numbering continues after it. Same-millisecond changes
+ * across a batch boundary need back-dating, so they are the Store kit's
+ * (store/__tests__/store-contract.ts).
  *
  * What the kit deliberately does not carry: open source's derived-id
  * refusal and its primary-key read, the cloud's column layout and SQLSTATE
@@ -554,6 +561,38 @@ function sequencesOf(changes: ReadonlyArray<PolicyChange>): number[] {
 
 const FIXED_WIDTH_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
+/** Waits past the clock's millisecond, so changes written either side of it are timed apart. */
+function nextMillisecond(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 3));
+}
+
+/** Each organization's kept changes, oldest first, as `org:sequence`. */
+async function keptChanges(
+  store: IamPolicyStore,
+  orgs: ReadonlyArray<string>,
+): Promise<string[]> {
+  const kept: string[] = [];
+  for (const org of orgs) {
+    for (const change of await store.listChanges(org, { limit: 100, after: 0n })) {
+      kept.push(`${org}:${change.sequence}`);
+    }
+  }
+  return kept;
+}
+
+/** Records one grant per organization named, in order, each timed after the one before. */
+async function grantInTurn(
+  store: IamPolicyStore,
+  orgs: ReadonlyArray<string>,
+): Promise<void> {
+  let n = 0;
+  for (const org of orgs) {
+    n += 1;
+    await store.save(policyRow(orgRole(`ida_${n}`, "member", org)), recordOf("grant", org));
+    await nextMillisecond();
+  }
+}
+
 /** The history cases of a store that keeps one. */
 const HISTORY_CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> = [
   [
@@ -633,12 +672,83 @@ const HISTORY_CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> = [
       );
     },
   ],
+  [
+    "with a history, a removal takes only the changes recorded before the instant, a prefix of each organization, and the numbering continues",
+    async ({ store }) => {
+      await grantInTurn(store, ["acme", "globex", "acme", "globex", "acme"]);
+      const [cutoffChange] = await store.listChanges("acme", { limit: 1, before: 3n });
+      const cutoff = cutoffChange?.occurredAt ?? "";
+      const all = [
+        ...(await store.listChanges("acme", { limit: 10, after: 0n })),
+        ...(await store.listChanges("globex", { limit: 10, after: 0n })),
+      ];
+      const expectedKept = all
+        .filter((change) => change.occurredAt >= cutoff)
+        .map((change) => `${change.organizationId}:${change.sequence}`);
+
+      assert.equal(
+        await store.pruneChanges(new Date(cutoff), 100),
+        all.length - expectedKept.length,
+        "the removal answers how many changes it removed",
+      );
+      assert.deepEqual(
+        await keptChanges(store, ["acme", "globex"]),
+        expectedKept,
+        "only the changes recorded before the instant go, in every organization",
+      );
+      assert.deepEqual(
+        expectedKept,
+        ["acme:2", "acme:3", "globex:2"],
+        "what goes is a prefix of each organization's numbers",
+      );
+      await store.save(policyRow(orgRole("ida_late", "member", "acme")), recordOf("grant", "acme"));
+      assert.deepEqual(
+        sequencesOf(await store.listChanges("acme", { limit: 1 })),
+        [4],
+        "the numbering continues after a removal",
+      );
+    },
+  ],
+  [
+    "with a history, a limit removes the oldest first and leaves the rest for the next call",
+    async ({ store }) => {
+      await grantInTurn(store, ["acme", "globex", "acme", "acme", "globex"]);
+      const cutoff = new Date(Date.now() + 60_000);
+      const orgs = ["acme", "globex"];
+      assert.equal(await store.pruneChanges(cutoff, 2), 2, "a call removes at most its limit");
+      assert.deepEqual(
+        await keptChanges(store, orgs),
+        ["acme:2", "acme:3", "globex:2"],
+        "the oldest two go first, across organizations",
+      );
+      assert.equal(await store.pruneChanges(cutoff, 2), 2);
+      assert.deepEqual(await keptChanges(store, orgs), ["globex:2"], "the next call takes the next oldest");
+      assert.equal(await store.pruneChanges(cutoff, 2), 1, "a short last batch");
+      assert.equal(await store.pruneChanges(cutoff, 2), 0, "nothing is left to remove");
+      assert.equal(
+        await store.lastChangeSequence("acme"),
+        3n,
+        "an organization whose every change was removed still reads its last number",
+      );
+      assert.equal(await store.lastChangeSequence("nowhere"), 0n, "an organization with no history reads 0");
+      await store.save(policyRow(orgRole("ida_late", "member", "globex")), recordOf("grant", "globex"));
+      assert.deepEqual(
+        await keptChanges(store, orgs),
+        ["globex:3"],
+        "an organization whose every change was removed continues its numbering",
+      );
+      await assert.rejects(
+        store.pruneChanges(cutoff, 0),
+        "a limit that is not a positive integer must reject",
+      );
+    },
+  ],
 ];
 
 /** The case of a store that keeps no history. */
 const NO_HISTORY_CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> = [
   [
-    "without a history, a recorded write leaves no change to read",
+    "without a history, a recorded write leaves no change to read and a removal removes nothing",
     async ({ store }) => {
       await store.save(policyRow(orgRole(ALICE, "admin", "acme")), recordOf("grant", "acme"));
       assert.deepEqual(
@@ -646,6 +756,12 @@ const NO_HISTORY_CASES: ReadonlyArray<PortContractDeclaration<IamPolicyStore>> =
         [],
         "a store that keeps no history answers no changes",
       );
+      assert.equal(
+        await store.pruneChanges(new Date(Date.now() + 60_000), 10),
+        0,
+        "a store that keeps no history removes nothing",
+      );
+      assert.equal(await store.lastChangeSequence("acme"), 0n, "a store that keeps no history reads 0");
     },
   ],
 ];

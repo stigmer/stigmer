@@ -128,7 +128,9 @@ type AgentSpec struct {
 	// or headers; anyone who may edit the agent may keep or remove them. A
 	// server's tools are named mcp__<name>__<tool> in tools and
 	// disallowed_tools. A run logs in with the vault connection saved at the
-	// server's address, or calls it with no login when there is none; a
+	// server's address, else a vault secret named <NAME>_ACCESS_TOKEN (the
+	// server's name upper-cased, each other character written as _), which is
+	// sent to this server, or calls it with no login when there is neither; a
 	// header that names Authorization itself takes that login from its
 	// ${NAME} instead, and the run then needs it. Each ${NAME} in a header
 	// value is filled from the run's values and sent to this server only,
@@ -264,8 +266,8 @@ func (x *AgentSpec) GetMcpServers() []*AgentMcpServer {
 type AgentMcpServer struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The server's name in this agent, which names its tools
-	// mcp__<name>__<tool>: lowercase letters, digits and hyphens, starting
-	// with a letter and not ending with a hyphen.
+	// mcp__<name>__<tool>: 2 to 63 lowercase letters, digits and hyphens,
+	// starting with a letter and not ending with a hyphen.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The server's address: an https URL, or http on this machine.
 	Url string `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`

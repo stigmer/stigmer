@@ -197,7 +197,9 @@ message AgentSpec {
   // or headers; anyone who may edit the agent may keep or remove them. A
   // server's tools are named mcp__<name>__<tool> in tools and
   // disallowed_tools. A run logs in with the vault connection saved at the
-  // server's address, or calls it with no login when there is none; a
+  // server's address, else a vault secret named <NAME>_ACCESS_TOKEN (the
+  // server's name upper-cased, each other character written as _), which is
+  // sent to this server, or calls it with no login when there is neither; a
   // header that names Authorization itself takes that login from its
   // ${NAME} instead, and the run then needs it. Each ${NAME} in a header
   // value is filled from the run's values and sent to this server only,
@@ -205,23 +207,26 @@ message AgentSpec {
   // secret goes in a vault and the header names it.
   //
   // @internal
-  // The save refuses a name used twice, the platform's own server names and
-  // any name starting with stigmer, an address the plugin reader would
+  // The save refuses a name used twice, the platform's own server names,
+  // any name starting with stigmer and the name plugin (its tools would read
+  // as a plugin's), an address the plugin reader would
   // refuse (https, or http on a loopback host; no credentials or fragment),
   // a header named twice in any letter case, a ${...} that is not a
   // variable name, and a plugin's own directory (${CLAUDE_PLUGIN_ROOT} and
   // its spellings). A ${NAME} no env entry declares is a required secret,
   // except the platform's own variables, which the runner fills. The login
   // without an Authorization header is the optional value
-  // <NAME>_ACCESS_TOKEN, found at the server's address.
+  // <NAME>_ACCESS_TOKEN, found at the server's address. Like every key a
+  // tool reads, that key is the server's alone: the agent's own env
+  // declaring it gives the shell nothing.
   repeated AgentMcpServer mcp_servers = 18 [(buf.validate.field).repeated.max_items = 20];
 }
 
 // AgentMcpServer is an MCP server written in an agent, reached over HTTP.
 message AgentMcpServer {
   // The server's name in this agent, which names its tools
-  // mcp__<name>__<tool>: lowercase letters, digits and hyphens, starting
-  // with a letter and not ending with a hyphen.
+  // mcp__<name>__<tool>: 2 to 63 lowercase letters, digits and hyphens,
+  // starting with a letter and not ending with a hyphen.
   string name = 1 [(buf.validate.field).string = {
     max_len: 63
     pattern: "^[a-z][a-z0-9-]*[a-z0-9]$"

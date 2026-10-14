@@ -240,8 +240,11 @@ export const SCHEMA_VERSION_29 = 29;
 /** v30: the identity provider is a federation issuer: its names and the grants that name it. */
 export const SCHEMA_VERSION_30 = 30;
 
+/** v31: the permission history indexed by time, for retention (DDL only). */
+export const SCHEMA_VERSION_31 = 31;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_30;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_31;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -312,6 +315,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_28, migrateToV28],
       [SCHEMA_VERSION_29, (migrating) => migrateToV29(migrating, logger)],
       [SCHEMA_VERSION_30, migrateToV30],
+      [SCHEMA_VERSION_31, migrateToV31],
     ];
 
     for (const [version, migrate] of chain) {
@@ -2027,4 +2031,19 @@ async function migrateToV30(client: PoolClient): Promise<void> {
     afterOrg = last.org;
     afterSequence = Number(last.sequence);
   }
+}
+
+/**
+ * v31: the permission history indexed by time, for retention
+ * (../permission-history.ts, "Removal"). The removal deletes the entries
+ * before a cutoff ordered by `(occurred_at, org, sequence)`, a batch at a
+ * time; the index is that order exactly, so each batch is a walk that
+ * stops at its limit instead of a scan of every organization's entries.
+ * The SQLite driver's v35 in this engine's terms.
+ */
+async function migrateToV31(client: PoolClient): Promise<void> {
+  await client.query(`
+    CREATE INDEX iam_policy_history_by_time
+      ON iam_policy_history (occurred_at, org, sequence)
+  `);
 }

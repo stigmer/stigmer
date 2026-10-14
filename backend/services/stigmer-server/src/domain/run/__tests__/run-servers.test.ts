@@ -6,8 +6,7 @@
  * A header value's keys are declared by the agent's own env when it
  * declares them, a platform variable as optional and no secret, anything
  * else left for the planner to read as a required secret. Two agents of
- * the run writing a server of one name are refused naming both; the same
- * server met twice is one.
+ * the run writing a server of one name are refused naming both.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";

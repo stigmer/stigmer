@@ -64,7 +64,9 @@ export const CENSUS_TABLES: Readonly<Record<string, CensusClass>> = {
   session_events: "org-column",
   session_event_heads: "org-column",
   // The permission history is the audit trail of who could reach what, so
-  // an organization's delete leaves it in place (store/permission-history.ts).
+  // an organization's delete leaves it in place; retention removes its
+  // entries once they are older than the window, never its head
+  // (store/permission-history.ts).
   iam_policy_history: "kept",
   iam_policy_history_heads: "kept",
   // A registered OAuth client is the login server's, shared by every

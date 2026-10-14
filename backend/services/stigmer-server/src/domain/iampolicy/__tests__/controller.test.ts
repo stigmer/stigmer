@@ -307,6 +307,7 @@ async function harness(options: {
               ],
         ),
         edition: options.edition ?? ServerEdition.oss,
+        retentionDays: undefined,
         logger: silent,
       });
     },

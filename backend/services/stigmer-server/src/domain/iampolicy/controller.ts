@@ -246,6 +246,12 @@ export interface IamPolicyControllerDeps {
    * which keeps no history (access-history.ts).
    */
   readonly edition: ServerEdition;
+  /**
+   * The composition's access-history window in days
+   * (`ServerExtension.accessHistoryRetentionDays`), which every page of
+   * the history states; undefined when none is declared (kept for good).
+   */
+  readonly retentionDays: number | undefined;
   readonly logger: Logger;
 }
 

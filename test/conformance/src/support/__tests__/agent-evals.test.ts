@@ -221,7 +221,7 @@ describe("the copy the suites assert", () => {
       "none of the plugins this eval runs has eval cases at the version the agent attaches",
     );
     expect(agentEvalOtherPluginToolMessage("mcp__plugin_x_a__*", "plugin_x_a")).toBe(
-      "allow_tools entry 'mcp__plugin_x_a__*' names MCP server 'plugin_x_a', which is none of the agent's own servers or its plugins'",
+      "allow_tools entry 'mcp__plugin_x_a__*' names MCP server 'plugin_x_a', which is none of the agent's plugins'",
     );
     expect(PLUGIN_NOT_SELECTED_REASON).toBe("not selected");
     expect(PLUGIN_NO_CASES_REASON).toBe("no eval cases at this version");

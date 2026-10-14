@@ -127,6 +127,7 @@ import {
   PERMISSION_HISTORY_COLUMNS,
   permissionHistoryBounds,
   permissionHistoryEntryOf,
+  permissionHistoryPruneBounds,
   permissionHistoryRecordOf,
 } from "../permission-history.js";
 import type {
@@ -1247,6 +1248,34 @@ export class PostgresStore implements Store {
       [org, bound === undefined ? null : bound.toString(), limit],
     );
     return (result.rows as Array<Record<string, unknown>>).map(permissionHistoryRecordOf);
+  }
+
+  async prunePermissionHistory(before: Date, limit: number): Promise<number> {
+    const { cutoff, limit: batch } = permissionHistoryPruneBounds(before, limit);
+    // No lock: an entry still being written is stamped after the cutoff, so
+    // it is never a candidate. The order matches the index, and the
+    // (org, sequence) tie-break keeps two entries sharing a millisecond in
+    // number order across a batch boundary.
+    const result = await this.open().query(
+      `DELETE FROM iam_policy_history
+       WHERE (org, sequence) IN (
+         SELECT org, sequence FROM iam_policy_history
+         WHERE occurred_at < $1
+         ORDER BY occurred_at, org, sequence
+         LIMIT $2
+       )`,
+      [cutoff, batch],
+    );
+    return result.rowCount ?? 0;
+  }
+
+  async permissionHistoryHead(org: string): Promise<bigint> {
+    const result = await this.open().query(
+      `SELECT last_sequence FROM iam_policy_history_heads WHERE org = $1`,
+      [org],
+    );
+    const head = result.rows[0] as { last_sequence: string } | undefined;
+    return head === undefined ? 0n : BigInt(head.last_sequence);
   }
 
   async listAuditRecords(

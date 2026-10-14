@@ -1,7 +1,8 @@
 /**
  * Pins ValidateMcpServers (domain/agent/steps.ts), the step that holds an
  * agent's own MCP servers to what the proto's per-field rules cannot say:
- * a name used once, never the platform's or one starting "stigmer"; an
+ * a name used once, never the platform's, one starting "stigmer" or
+ * "plugin"; an
  * address the plugin reader accepts (https, or http on a loopback host; no
  * credentials or fragment) that names no variable; a header named once in
  * any letter case; and a `${...}` in a header value only in the runner's
@@ -74,10 +75,10 @@ describe("ValidateMcpServers", () => {
     );
   });
 
-  it.each(["stigmer-memory", "stigmer-channels", "stigmer-conversation", "stigmer", "stigmerx"])(
+  it.each(["stigmer-memory", "stigmer-channels", "stigmer-conversation", "stigmer", "stigmerx", "plugin"])(
     "refuses the reserved name %s",
     (name) => {
-      expect(refusalOf([{ name }]).rawMessage).toContain(`server '${name}' takes a name the platform keeps`);
+      expect(refusalOf([{ name }]).rawMessage).toContain(`server '${name}' takes a reserved name`);
     },
   );
 

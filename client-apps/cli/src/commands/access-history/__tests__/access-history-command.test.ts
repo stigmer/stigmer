@@ -10,7 +10,11 @@
 //     each, following every page; a bad --after is refused before anything
 //     is sent;
 //   - an open-source server's refusal reaches the user as the server wrote
-//     it.
+//     it;
+//   - retention: the table is followed by how long the server keeps the
+//     history (JSON and YAML stay pure), and an export whose start the
+//     server removed says which entries on stderr, stdout still pure JSON
+//     Lines.
 //
 // The backend client is stubbed at its module seam; the config file is real
 // (HOME redirected).
@@ -40,6 +44,9 @@ const backend = vi.hoisted(() => ({
   reads: [] as ListAccessHistoryInput[],
   refuse: false,
   empty: false,
+  /** The oldest entry the server keeps; the ones before it were removed. */
+  oldest: 1n,
+  retentionDays: 0,
 }));
 
 function entry(sequence: number, change = AccessChange.granted) {
@@ -78,17 +85,19 @@ vi.mock("../../../backend.js", async () => {
               );
             }
             // Two entries a page, so every walk follows a token.
-            const ordered = backend.empty
-              ? []
-              : input.afterSequence === undefined
-                ? [...ALL].reverse()
-                : ALL.filter((e) => e.sequence > (input.afterSequence ?? 0n));
+            const kept = backend.empty ? [] : ALL.filter((e) => e.sequence >= backend.oldest);
+            const ordered =
+              input.afterSequence === undefined
+                ? [...kept].reverse()
+                : kept.filter((e) => e.sequence > (input.afterSequence ?? 0n));
             const start = input.pageToken === "" ? 0 : Number(input.pageToken);
             const size = Math.min(input.pageSize, 2);
             const end = start + size;
             return create(AccessHistoryPageSchema, {
               entries: ordered.slice(start, end),
               nextPageToken: end < ordered.length ? String(end) : "",
+              oldestSequence: kept.length === 0 ? 0n : backend.oldest,
+              retentionDays: backend.retentionDays,
             });
           },
         },
@@ -136,6 +145,8 @@ describe("stigmer access-history", () => {
     backend.reads.length = 0;
     backend.refuse = false;
     backend.empty = false;
+    backend.oldest = 1n;
+    backend.retentionDays = 0;
     originalHome = process.env.HOME;
     home = mkdtempSync(join(tmpdir(), "stigmer-access-history-"));
     process.env.HOME = home;
@@ -213,6 +224,32 @@ describe("stigmer access-history", () => {
     expect(await exitOf(["access-history", "export", "--after", "4.5"])).toBe(ExitCode.Usage);
     expect(await exitOf(["access-history", "export", "--after", "9999999999999999999"])).toBe(ExitCode.Usage);
     expect(backend.reads).toEqual([]);
+  });
+
+  it("follows the table with how long the server keeps the history, and leaves JSON pure", async () => {
+    const forGood = await run(["access-history", "list"]);
+    expect(forGood.stdout.trimEnd().split("\n").at(-1)).toBe("Kept for good.");
+
+    backend.retentionDays = 365;
+    const windowed = await run(["access-history", "list"]);
+    expect(windowed.stdout.trimEnd().split("\n").at(-1)).toBe("Entries older than 365 days are removed.");
+    const json = await run(["access-history", "list", "-o", "json"]);
+    expect(() => JSON.parse(json.stdout) as unknown).not.toThrow();
+    expect(json.stdout).not.toContain("removed.");
+  });
+
+  it("says on stderr which entries after --after the server removed, and writes only entries to stdout", async () => {
+    backend.oldest = 3n;
+    backend.retentionDays = 365;
+    const { stdout, stderr } = await run(["access-history", "export"]);
+    expect(stderr).toBe("entries 1 to 2 are no longer kept: this server removes entries older than 365 days\n");
+    const lines = stdout.trimEnd().split("\n").map((line) => JSON.parse(line) as { sequence: string });
+    expect(lines.map((line) => line.sequence)).toEqual(["3", "4"]);
+
+    const caughtUp = await run(["access-history", "export", "--after", "2"]);
+    expect(caughtUp.stderr).toBe("");
+    const single = await run(["access-history", "export", "--after", "1"]);
+    expect(single.stderr).toBe("entry 2 is no longer kept: this server removes entries older than 365 days\n");
   });
 
   it("passes an open-source server's refusal through as the server wrote it", async () => {

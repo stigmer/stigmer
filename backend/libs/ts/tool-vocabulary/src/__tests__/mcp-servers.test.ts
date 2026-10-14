@@ -22,6 +22,11 @@ describe("isReservedMcpServerName", () => {
     expect(isReservedMcpServerName("stigmer-tools")).toBe(true);
   });
 
+  it("reserves plugin, which would read as a plugin's server in a tool name", () => {
+    expect(isReservedMcpServerName("plugin")).toBe(true);
+    expect(isReservedMcpServerName("plugins")).toBe(false);
+  });
+
   it("leaves every other name to the agent", () => {
     expect(isReservedMcpServerName("zendesk")).toBe(false);
     expect(isReservedMcpServerName("my-stigmer")).toBe(false);

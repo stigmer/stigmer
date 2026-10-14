@@ -895,7 +895,7 @@ AgentMcpServer is an MCP server written in an agent, reached over HTTP.
 
 <TypeTable
   type={{
-    name: { type: "string", description: "The server's name in this agent, which names its tools mcp__<name>__<tool>: lowercase letters, digits and hyphens, starting with a letter and not ending with a hyphen." },
+    name: { type: "string", description: "The server's name in this agent, which names its tools mcp__<name>__<tool>: 2 to 63 lowercase letters, digits and hyphens, starting with a letter and not ending with a hyphen." },
     url: { type: "string", description: "The server's address: an https URL, or http on this machine." },
     headers: { type: "Record<string, string>", description: "Headers sent with every request to this server." },
   }}

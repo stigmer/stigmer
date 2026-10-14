@@ -3,6 +3,7 @@
 import { create } from "@bufbuild/protobuf";
 import {
   type AccessHistoryEntry,
+  type AccessHistoryPage,
   ListAccessHistoryInputSchema,
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { useStigmer } from "../hooks.js";
@@ -14,10 +15,20 @@ export interface UseAccessHistoryOptions {
   readonly pageSize?: number;
 }
 
+/** How long the server keeps the history, as its first page says. */
+export interface AccessHistoryRetention {
+  /** Days the server keeps the history; 0 when it keeps it for good. */
+  readonly days: number;
+  /** The lowest number the organization still holds; 0 when it holds none. */
+  readonly oldestSequence: bigint;
+}
+
 /** Return value of {@link useAccessHistory}. */
 export interface UseAccessHistoryReturn {
   /** The organization's access history, newest first: the first page, then every page loaded since. */
   readonly entries: readonly AccessHistoryEntry[];
+  /** How long the server keeps the history, from the first page; `null` until it loads. */
+  readonly retention: AccessHistoryRetention | null;
   /** `true` while older entries exist beyond what is loaded. */
   readonly hasMore: boolean;
   /** Load the next, older page. No-op while one is loading or when nothing follows. */
@@ -45,6 +56,10 @@ export interface UseAccessHistoryReturn {
  * `null` otherwise, which keeps it idle. An open-source server keeps no
  * history and answers UNIMPLEMENTED.
  *
+ * A server may keep the history for a limited time, set by its operator;
+ * `retention` says how long, and the oldest number the organization still
+ * holds, from the first page.
+ *
  * To hand the whole history to another tool, use `exportAccessHistory`
  * and `accessHistoryJsonLine` from `@stigmer/sdk`.
  *
@@ -59,7 +74,7 @@ export function useAccessHistory(
 ): UseAccessHistoryReturn {
   const stigmer = useStigmer();
   const pageSize = options.pageSize ?? 50;
-  const pages = useCursorPages<AccessHistoryEntry>(
+  const pages = useCursorPages<AccessHistoryEntry, AccessHistoryPage>(
     org
       ? (pageToken) =>
           stigmer.iamPolicy.listAccessHistory(
@@ -69,8 +84,13 @@ export function useAccessHistory(
     [org, pageSize, stigmer],
     (entry) => entry.sequence.toString(),
   );
+  const firstPage = pages.firstPage;
   return {
     entries: pages.items,
+    retention:
+      firstPage === null
+        ? null
+        : { days: firstPage.retentionDays, oldestSequence: firstPage.oldestSequence },
     hasMore: pages.hasMore,
     loadMore: pages.loadMore,
     isLoadingMore: pages.isLoadingMore,

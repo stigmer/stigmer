@@ -13,11 +13,15 @@
 //     a real admin and a real member of one organization; a target with no
 //     enforcing lane skips them visibly;
 //   - the shape arms run on the primary, on every target: a server named
-//     twice, a platform name, an address that is not https (or http on this
-//     machine), a name or header outside the grammar, all INVALID_ARGUMENT.
+//     twice, a reserved name, an address that is not https (or http on
+//     this machine), a name or header outside the grammar, all
+//     INVALID_ARGUMENT.
 //
-// What a run does with a server (its tools, its login, its values) is the
-// execution suite's (suites-execution/agent-mcp-servers-run).
+// What a run plans for a server (its values, its login at its address, the
+// version it is read at) is pinned by the server's run-values suite
+// (backend/services/stigmer-server/src/domain/vault/__tests__/resolve.test.ts);
+// what a run does with it, by the execution suites once the runner starts
+// an agent's own servers.
 import { clone, create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -167,8 +171,9 @@ describe("an agent's own MCP servers: who may write them", () => {
 describe("an agent's own MCP servers: what a server may be", () => {
   it.each([
     ["a name used twice", [ZENDESK, { ...ZENDESK, url: "https://other.example.com/mcp" }], "is listed more than once"],
-    ["a platform server's name", [{ ...ZENDESK, name: "stigmer-memory" }], "takes a name the platform keeps"],
-    ["a name starting stigmer", [{ ...ZENDESK, name: "stigmer-crm" }], "takes a name the platform keeps"],
+    ["a platform server's name", [{ ...ZENDESK, name: "stigmer-memory" }], "takes a reserved name"],
+    ["a name starting stigmer", [{ ...ZENDESK, name: "stigmer-crm" }], "takes a reserved name"],
+    ["the name plugin", [{ ...ZENDESK, name: "plugin" }], "takes a reserved name"],
     ["an http address off this machine", [{ ...ZENDESK, url: "http://acme-co.zendesk.com/mcp" }], "has an address that is not https"],
     ["a variable in the address", [{ ...ZENDESK, url: "https://${TENANT}.zendesk.com/mcp" }], "names a variable in its url"],
     ["a header named twice", [{ ...ZENDESK, headers: { "X-Key": "a", "x-key": "b" } }], "more than once"],
