@@ -18,7 +18,11 @@
 //   - a kind that belongs to no organization stays that way (an API key's
 //     metadata.org is empty);
 //   - a second organization is refused with ORGANIZATION_LIMIT_REACHED, and
-//     deleting the one with ORGANIZATION_IS_SINGLE.
+//     deleting the one with ORGANIZATION_IS_SINGLE;
+//   - Anthropic's SDK, pointed at the install with whatever key it sends,
+//     reads a session there (the Managed Agents lane as a laptop install
+//     serves it; the lane's other arms run on the library entry,
+//     session-events-managed-agents.conformance.test.ts).
 //
 // Deliberately out of scope: which field each method fills (the server's own
 // inventory test holds docs/single-organization.md to the rule; the
@@ -43,6 +47,7 @@ import {
   vaultTarget,
 } from "../support/vaults";
 import { uniqueName } from "../support/naming";
+import { managedAgentsClient } from "../support/managed-agents";
 import { makeSession } from "../support/sessions";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -136,6 +141,16 @@ describe.skipIf(!capabilities.singleOrganization)(
         }),
       );
       expect(session.metadata?.org).toBe(theOrganization);
+    });
+
+    it("Anthropic's SDK reads a session of the one organization with whatever key it sends", async () => {
+      const session = await clients.sessionCommand.create(
+        makeSession({ org: NOBODY, name: uniqueName("ma-session") }),
+      );
+      const sdk = managedAgentsClient(target.managedAgentsBaseUrl(), { apiKey: "any-key-at-all" });
+      const page = await sdk.beta.sessions.events.list(session.metadata?.id ?? "");
+      expect(page.data).toEqual([]);
+      expect(page.next_page).toBeNull();
     });
 
     it("[rpc:SearchService.search] search with no organization searches the one", async () => {
