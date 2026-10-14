@@ -351,7 +351,11 @@ describe("Run file review — the session's choice", () => {
     );
     expect(use, "the flowed edit remains in the turn's log").toBeDefined();
     expect(use!.state).toBe("completed");
-    expect(use!.input, "an observational tool use keeps its input").toMatchObject({ file_path: path });
+    // The input the tool ran with, which the log records as it was: the
+    // native harness's path normalization (runner middleware/path-normalization.ts)
+    // rewrites the model's workspace-relative path to the virtual root's
+    // absolute form before the tool starts, and the tool's start carries that.
+    expect(use!.input, "an observational tool use keeps its input").toMatchObject({ file_path: `/${path}` });
 
     const kept = await reviewFileByPath(clients, reviewed.sessionId, set, path, "keep");
     expect(kept.reconcileRunId, "a keep has nothing to put back").toBe("");
