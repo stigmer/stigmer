@@ -62,7 +62,7 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@d1031067263f94b142dd6c0ce24c5eb9d02d52a0 # master branch
+        uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # master branch
         with:
           toolchain: stable
 
@@ -76,7 +76,7 @@ jobs:
       # Cargo-native version stamping (analogue of maven versions:set / the python
       # regex). Prebuilt binary so it installs in seconds.
       - name: Install cargo-edit
-        uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        uses: taiki-e/install-action@f7e5d7c961414b23f5b25b2da9294395d08513ad # v2.87.26
         with:
           tool: cargo-edit
 
