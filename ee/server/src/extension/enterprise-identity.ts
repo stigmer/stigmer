@@ -14,14 +14,14 @@
  *   - gateSteps: RemoveOrganizationIdentity on `org-delete:pre-delete` (an
  *     organization's delete removes its teams, providers and invitations
  *     before it answers, or fails; iam/organization-delete.ts); and
- *     OrganizationGrantGate on `iam-policy-create:pre-side-effect-gate` (a
+ *     OrganizationGrantGate on `grant-create:pre-side-effect-gate` (a
  *     grant stays inside the resource's organization: a team grant is
  *     checked against the team, which exists and is the resource's
  *     organization's, a new member or a person a resource is shared with
  *     is one of its viewers; iam/team/grant-gate.ts);
  *   - services: FederationIssuer, Invitation and Team, kinds open source
  *     does not serve. Their grant and revoke lanes reach the library's grant
- *     path through one client (iam/policy/grant-path-client.ts);
+ *     path through one client (iam/grant/grant-path-client.ts);
  *   - orgPurge: the `identity` stage, the same three removals again as the
  *     organization's purge (whatever was written between the slot and the
  *     deletion mark), declaring the provider, team and invitation kinds
@@ -259,8 +259,8 @@ export function newEnterpriseIdentityExtension(
       composed().listReadScope.restrictListEntries(caller, kind, entries),
   };
   const authorizationQueries: Pick<AuthorizationQueryEngine, "check"> = {
-    check: (policy, contextual) =>
-      composed().authorizationQueries.check(policy, contextual),
+    check: (grant, contextual) =>
+      composed().authorizationQueries.check(grant, contextual),
   };
   // The sign-in routing and the deprovision's reach read the library's
   // children of an organization.
@@ -293,7 +293,7 @@ export function newEnterpriseIdentityExtension(
     findByResourceKindAndRelation: (kind, relation) =>
       composed().grants.findByResourceKindAndRelation(kind, relation),
   };
-  const policies = newGrantPathClient(transportRef);
+  const grants = newGrantPathClient(transportRef);
   // The server's one name table: a team's and a provider's slug is a name
   // there like every named kind's, claimed before the row, released after
   // it, and read by every lookup by slug (@stigmer/server's names steps).
@@ -321,7 +321,7 @@ export function newEnterpriseIdentityExtension(
   const federatedVerifier = newStoreBackedFederatedVerifier({
     providers,
     accounts: ports.accounts,
-    policies,
+    grants: grants,
     childOrganizations,
     signInGrants: ports.signInGrants,
     jwks: tenantJwks,
@@ -335,14 +335,14 @@ export function newEnterpriseIdentityExtension(
     providers,
     names,
     accounts: ports.accounts,
-    policies,
+    grants: grants,
     invalidate: invalidateIssuers,
     logger,
   });
-  const teamRemoval = newTeamRemoval({ teams, names, policies, logger });
+  const teamRemoval = newTeamRemoval({ teams, names, grants: grants, logger });
   const invitationRemoval = newInvitationRemoval({
     invitations: ports.invitations,
-    policies,
+    grants: grants,
     logger,
   });
 
@@ -358,7 +358,7 @@ export function newEnterpriseIdentityExtension(
     try {
       const report = await reconcileOrganizationLinks(kind, await rows(), {
         grantStore,
-        policies,
+        grants: grants,
         organizations,
       });
       if (report.converged > 0) {
@@ -418,7 +418,7 @@ export function newEnterpriseIdentityExtension(
   // alone; a provider's first, and one kind's failed read never skips the
   // next.
   async function revokeOwnerRows(): Promise<void> {
-    await reconcileOwnerRows(ENTERPRISE_OWNER_ROW_KINDS, { grantStore, policies, logger });
+    await reconcileOwnerRows(ENTERPRISE_OWNER_ROW_KINDS, { grantStore, grants: grants, logger });
   }
 
   const rowReaders = new Map<ApiResourceKind, ResourceRowReader>([
@@ -433,7 +433,7 @@ export function newEnterpriseIdentityExtension(
     drivers: {
       identityFederation: newIdentityFederation({
         accounts: ports.accounts,
-        policies,
+        grants: grants,
         providers,
         childOrganizations,
         logger,
@@ -453,7 +453,7 @@ export function newEnterpriseIdentityExtension(
         ],
       ],
       [
-        "iam-policy-create:pre-side-effect-gate",
+        "grant-create:pre-side-effect-gate",
         [
           newOrganizationGrantGateStep({
             teams,
@@ -497,7 +497,7 @@ export function newEnterpriseIdentityExtension(
         authorizer,
         logger,
         store: ports.invitations,
-        policies,
+        grants: grants,
         lifecycle,
         listReadScope,
         organizations,

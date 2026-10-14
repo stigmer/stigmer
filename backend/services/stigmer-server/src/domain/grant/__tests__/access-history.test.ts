@@ -5,7 +5,7 @@
  * proof over a licensed server and Postgres is Enterprise's
  * enterprise-access-history.postgres.test.ts.
  *
- * Fakes: the domain's in-memory IamPolicyStore (support.ts), which keeps a
+ * Fakes: the domain's in-memory GrantStore (support.ts), which keeps a
  * history as a store composed above open source does, written through its
  * own `save` and `deleteById` with change records; the identity-account
  * fake for the people; a stub principal display for a team; a recording
@@ -101,7 +101,7 @@ function stampCaller(identity: CallerIdentity): Interceptor {
 interface Harness {
   readonly query: Client<typeof GrantQueryController>;
   readonly checks: AuthzCheck[];
-  readonly policies: ReturnType<typeof fakeGrantStore>;
+  readonly grants: ReturnType<typeof fakeGrantStore>;
   /** Writes a row with its change record, as the grant path does. */
   grant(spec: GrantSpec, record?: Partial<GrantChangeRecord>): Promise<void>;
   revoke(spec: GrantSpec, record?: Partial<GrantChangeRecord>): Promise<void>;
@@ -124,14 +124,14 @@ async function harness(options: {
   edition?: ServerEdition;
   decision?: AuthzDecision;
   gate?: PipelineStep<DescMessage>;
-  policies?: GrantStore;
+  grants?: GrantStore;
   principalDisplay?: PrincipalDisplay;
   /** The answer to `can_view` on the organization: who sees what it holds (a parent's admin does not). */
   canView?: AuthzDecision;
   /** The composition's access-history window; undefined keeps everything. */
   retentionDays?: number;
 } = {}): Promise<Harness> {
-  const policies = fakeGrantStore();
+  const grants = fakeGrantStore();
   const accounts = fakeIdentityAccountStore();
   for (const [id, firstName, lastName] of [
     [ANA, "Ana", "Silva"],
@@ -167,13 +167,13 @@ async function harness(options: {
         listAccessHistory: (input, ctx) =>
           listAccessHistory(
             {
-              policies: options.policies ?? policies,
+              grants: options.grants ?? grants,
               authorizer,
               principalDisplay: options.principalDisplay ?? teams,
               gateSteps: new Map(
                 options.gate === undefined
                   ? []
-                  : [["iam-policy-list-access-history:pre-read", [options.gate]]],
+                  : [["grant-list-access-history:pre-read", [options.gate]]],
               ),
               edition: options.edition ?? ServerEdition.enterprise,
               retentionDays: options.retentionDays,
@@ -202,10 +202,10 @@ async function harness(options: {
   return {
     query: createClient(GrantQueryController, transport),
     checks,
-    policies,
-    grant: (spec, record) => policies.save(rowOf(spec), recordOf(record)),
+    grants: grants,
+    grant: (spec, record) => grants.save(rowOf(spec), recordOf(record)),
     revoke: (spec, record) =>
-      policies.deleteById(grantIdFor(spec), recordOf({ cause: "revoke", ...record })),
+      grants.deleteById(grantIdFor(spec), recordOf({ cause: "revoke", ...record })),
   };
 }
 
@@ -269,7 +269,7 @@ describe("listAccessHistory's chain", () => {
   it("runs the gate slot after authorizing and before any read", async () => {
     const reads: string[] = [];
     const base = fakeGrantStore();
-    const policies: GrantStore = {
+    const grants: GrantStore = {
       ...base,
       listChanges: (org, page) => {
         reads.push(org);
@@ -282,13 +282,13 @@ describe("listAccessHistory's chain", () => {
         throw new ConnectError("the plan does not include the access history", Code.FailedPrecondition);
       },
     };
-    const h = await harness({ gate, policies });
+    const h = await harness({ gate, grants: grants });
     const error = await rejection(h.query.listAccessHistory({ org: ACME }));
     expect(error.code).toBe(Code.FailedPrecondition);
     expect(h.checks).toHaveLength(1);
     expect(reads).toEqual([]);
 
-    const denied = await harness({ gate, policies, decision: { kind: "deny", reason: "not an admin" } });
+    const denied = await harness({ gate, grants: grants, decision: { kind: "deny", reason: "not an admin" } });
     expect((await rejection(denied.query.listAccessHistory({ org: ACME }))).code).toBe(
       Code.PermissionDenied,
     );
@@ -297,14 +297,14 @@ describe("listAccessHistory's chain", () => {
   it("reads a page size above the most a page holds as that most", async () => {
     const limits: number[] = [];
     const base = fakeGrantStore();
-    const policies: GrantStore = {
+    const grants: GrantStore = {
       ...base,
       listChanges: (org, page) => {
         limits.push(page.limit);
         return base.listChanges(org, page);
       },
     };
-    const h = await harness({ policies });
+    const h = await harness({ grants: grants });
     await h.query.listAccessHistory({ org: ACME, pageSize: 101 });
     // The page, then the oldest kept entry.
     expect(limits).toEqual([LIST_PAGE_MAX_SIZE + 1, 1]);
@@ -320,11 +320,11 @@ describe("listAccessHistory's chain", () => {
 
   it("answers a store fault as INTERNAL with a static message", async () => {
     const base = fakeGrantStore();
-    const policies: GrantStore = {
+    const grants: GrantStore = {
       ...base,
       listChanges: () => Promise.reject(new Error("connection reset by peer")),
     };
-    const h = await harness({ policies });
+    const h = await harness({ grants: grants });
     const error = await rejection(h.query.listAccessHistory({ org: ACME }));
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).toBe("failed to read the access history");
@@ -519,7 +519,7 @@ describe("listAccessHistory's retention", () => {
     for (let n = 1; n <= 4; n += 1) {
       await h.grant(orgRole(`ida_${n}`, "member", ACME));
     }
-    await h.policies.pruneChanges(LATER, 2);
+    await h.grants.pruneChanges(LATER, 2);
 
     const newest = await h.query.listAccessHistory({ org: ACME, pageSize: 1 });
     expect(sequences(newest.entries)).toEqual([4]);
@@ -536,7 +536,7 @@ describe("listAccessHistory's retention", () => {
     for (let n = 1; n <= 3; n += 1) {
       await h.grant(orgRole(`ida_${n}`, "member", ACME));
     }
-    await h.policies.pruneChanges(LATER, 10);
+    await h.grants.pruneChanges(LATER, 10);
 
     const follow = await h.query.listAccessHistory({ org: ACME, afterSequence: 1n });
     expect(follow.entries).toEqual([]);
@@ -554,7 +554,7 @@ describe("listAccessHistory's retention", () => {
       return create(GrantSchema, { metadata: { id: grantIdFor(spec) }, spec });
     };
     let grantDuringOldestRead = true;
-    const policies: GrantStore = {
+    const grants: GrantStore = {
       ...base,
       listChanges: async (org, page) => {
         const changes = await base.listChanges(org, page);
@@ -569,7 +569,7 @@ describe("listAccessHistory's retention", () => {
       await base.save(rowOf(n), recordOf);
     }
     await base.pruneChanges(LATER, 10);
-    const h = await harness({ policies, retentionDays: 365 });
+    const h = await harness({ grants: grants, retentionDays: 365 });
 
     const page = await h.query.listAccessHistory({ org: ACME, afterSequence: 1n });
     expect(page.entries).toEqual([]);
@@ -596,7 +596,7 @@ describe("listAccessHistory's retention", () => {
   it("never reports an entry the page returned as removed when a pass runs between the page and the oldest read", async () => {
     const base = fakeGrantStore();
     let pruneAfterPage = true;
-    const policies: GrantStore = {
+    const grants: GrantStore = {
       ...base,
       listChanges: async (org, page) => {
         const changes = await base.listChanges(org, page);
@@ -607,7 +607,7 @@ describe("listAccessHistory's retention", () => {
         return changes;
       },
     };
-    const h = await harness({ policies, retentionDays: 7 });
+    const h = await harness({ grants: grants, retentionDays: 7 });
     const recordOf = (organizationId: string): GrantChangeRecord => ({
       actor: { id: ANA, callerClass: "user" },
       cause: "grant",
@@ -628,14 +628,14 @@ describe("listAccessHistory's retention", () => {
 
   it("answers a fault reading the oldest kept entry as INTERNAL with a static message", async () => {
     const base = fakeGrantStore();
-    const policies: GrantStore = {
+    const grants: GrantStore = {
       ...base,
       listChanges: (org, page) =>
         page.limit === 1 && "after" in page && page.after === 0n
           ? Promise.reject(new Error("connection reset by peer"))
           : base.listChanges(org, page),
     };
-    const h = await harness({ policies });
+    const h = await harness({ grants: grants });
     const error = await rejection(h.query.listAccessHistory({ org: ACME }));
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).toBe("failed to read the access history");

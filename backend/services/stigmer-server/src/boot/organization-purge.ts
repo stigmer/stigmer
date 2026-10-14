@@ -18,7 +18,7 @@
  * that serves a kind no reader can read). Every kind the composition
  * serves whose contract scopes it to an organization or to a parent that
  * is must be owned by exactly one of: a core kind purge (or the core's
- * policy cleanup, for `iam_policy`, whose rows name no organization and go
+ * policy cleanup, for `grant`, whose rows name no organization and go
  * with each resource and with the organization itself), a unit stage's
  * declared `kinds`, a unit's declared retention. None is a kind whose rows
  * would outlive the organization unnoticed; two is two owners that would
@@ -137,7 +137,7 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
  * The kinds the core removes, stated before anything is composed so boot
  * checks coverage before its first side effect: every kind purge's kind
  * (organization-purge-inventory.test.ts holds this list equal to
- * `newCoreKindPurges`), and `iam_policy`, which no kind purge lists because
+ * `newCoreKindPurges`), and `grant`, which no kind purge lists because
  * its rows name no organization (each resource's purge revokes the rows
  * naming it, and the final stage the organization's).
  */

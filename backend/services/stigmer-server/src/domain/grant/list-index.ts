@@ -1,5 +1,5 @@
 /**
- * The IamPolicy list index (store/list-index.ts): `principal` is the key
+ * The Grant list index (store/list-index.ts): `principal` is the key
  * the open-source adapter's `findByPrincipal` reads (resource-store.ts).
  * It is not a lane's index: the built-in authorizer reads a person's rows,
  * and the rows granted to each team they belong to, on every check and

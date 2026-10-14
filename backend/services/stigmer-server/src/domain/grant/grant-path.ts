@@ -1,7 +1,7 @@
 /**
- * The ONE grant and revoke path of the IamPolicy domain, moved from the
- * cloud's former iam/policy/service.ts into open source so every edition writes and
- * deletes a policy row the same way. Its callers: the IamPolicy command
+ * The ONE grant and revoke path of the Grant domain, moved from the
+ * cloud's former iam/grant/service.ts into open source so every edition writes and
+ * deletes a policy row the same way. Its callers: the Grant command
  * controller (user grants and the three system RPCs), the built-in role
  * lifecycle (the organization creator's `owner` row; cleanup on delete)
  * and the membership rules (first-sign-in roles). Nothing else builds,
@@ -17,12 +17,12 @@
  *     retry works); the reverse order was the fail-open incident class
  *     ("revoke access" silently becoming "keep access forever").
  * "Tuple" here is whatever the composed ResourceAuthorizationLifecycle does
- * in `onPolicyGranted` and `onPolicyRevoked`; with none composed, or one
+ * in `onGranted` and `onRevoked`; with none composed, or one
  * without the two optional hooks, the path writes rows and notifies
  * nothing (the OSS posture: rows are the record).
  *
  * The row for a triple is found BY TRIPLE, never by derived id. Open
- * source's rows carry the derived id (constants.ts policyIdFor), so the
+ * source's rows carry the derived id (constants.ts grantIdFor), so the
  * two lookups would agree here; the cloud's Java-era rows carry random
  * `iamp_<ulid>` ids and must revoke and deduplicate through this same
  * code, so `findByTriple` (the pair's rows filtered by relation) is the
@@ -86,7 +86,7 @@
  * derived, never granted.
  *
  * Who and why. Every method takes the caller, and the grants take the door
- * they came through (change.ts `PolicyChangeCause`); the revokes know
+ * they came through (change.ts `GrantChangeCause`); the revokes know
  * theirs. For every access row it writes or deletes, the path hands the
  * store a change record (the actor, the cause, the row's organization), so
  * an edition that keeps a permission history writes it in the same atomic
@@ -189,7 +189,7 @@ const AUTHORSHIP_RELATIONS: ReadonlySet<string> = new Set([
 ]);
 
 export interface GrantResult {
-  readonly policy: Grant;
+  readonly grant: Grant;
   /** True when the triple was already held: no row was written, the hook still fired. */
   readonly duplicate: boolean;
 }
@@ -198,7 +198,7 @@ export interface GrantPath {
   /**
    * Grant the triple as `caller`, through the door `cause` names: gate,
    * find by triple, write the row when absent (the caller's audit stamp),
-   * then `onPolicyGranted` — on the duplicate arm too. A hook throw fails
+   * then `onGranted` — on the duplicate arm too. A hook throw fails
    * the grant with the row in place.
    */
   grant(
@@ -207,8 +207,8 @@ export interface GrantPath {
     cause: GrantChangeCause,
   ): Promise<GrantResult>;
   /**
-   * Revoke the triple as `caller` (IamPolicy.delete's door): gate, find by
-   * triple, `onPolicyRevoked` (with the row, or with the spec alone on the
+   * Revoke the triple as `caller` (Grant.delete's door): gate, find by
+   * triple, `onRevoked` (with the row, or with the spec alone on the
    * absent arm), then delete the row. A hook throw leaves row and tuple.
    * Answers the revoked row, or `undefined` when there was none.
    */
@@ -271,7 +271,7 @@ export type OrganizationDepartureHandler = (
 ) => Promise<void>;
 
 export interface GrantPathDeps {
-  readonly policies: GrantStore;
+  readonly grants: GrantStore;
   readonly resources: StoredResources;
   /** The composition's departure handler (departure.ts); undefined does nothing more than the sweep. */
   readonly departures?: OrganizationDepartureHandler;
@@ -292,7 +292,7 @@ type OrganizationOf = (resource: ApiResourceRef) => Promise<string>;
 export function newGrantPath(
   deps: GrantPathDeps,
 ): GrantPath {
-  const { policies, resources, lifecycle, logger, departures } = deps;
+  const { grants: grants, resources, lifecycle, logger, departures } = deps;
 
   /**
    * The organization a resource belongs to: through its scope links, or,
@@ -308,7 +308,7 @@ export function newGrantPath(
       return resource.id;
     }
     const hierarchy = await resolveHierarchy(
-      policies,
+      grants,
       resource.kind,
       resource.id,
       true,
@@ -342,30 +342,30 @@ export function newGrantPath(
     spec: GrantSpec,
   ): Promise<Grant | undefined> {
     const { principal, resource } = refsOf(spec);
-    const onPair = await policies.findByPrincipalAndResource(
+    const onPair = await grants.findByPrincipalAndResource(
       principal.kind,
       principal.id,
       resource.kind,
       resource.id,
     );
     return onPair.find(
-      (policy) =>
-        policy.spec !== undefined &&
-        policy.spec.relation === spec.relation &&
-        policy.spec.principal?.relation === principal.relation,
+      (grant) =>
+        grant.spec !== undefined &&
+        grant.spec.relation === spec.relation &&
+        grant.spec.principal?.relation === principal.relation,
     );
   }
 
   /** The revoke order for one row: its record resolved, the hook, then the delete. */
   async function revokeRow(
-    policy: Grant,
+    grant: Grant,
     change: Change,
     organizationOf: OrganizationOf = organizationOfResource,
   ): Promise<void> {
-    const spec = policy.spec;
+    const spec = grant.spec;
     if (spec === undefined) {
       throw new Error(
-        `policy ${policy.metadata?.id ?? "?"} has no spec — corrupt row`,
+        `policy ${grant.metadata?.id ?? "?"} has no spec — corrupt row`,
       );
     }
     const record = await recordFor(spec, change, organizationOf);
@@ -373,10 +373,10 @@ export function newGrantPath(
     if (affiliation !== undefined) {
       await lifecycle?.onOrganizationAffiliationChanging?.(affiliation);
     }
-    await lifecycle?.onRevoked?.({ spec, policy });
-    const id = policy.metadata?.id ?? "";
-    await policies.deleteById(id, record);
-    logger.info("iam policy revoked", fieldsOf(id, spec, change, record));
+    await lifecycle?.onRevoked?.({ spec, grant: grant });
+    const id = grant.metadata?.id ?? "";
+    await grants.deleteById(id, record);
+    logger.info("grant revoked", fieldsOf(id, spec, change, record));
     if (affiliation !== undefined) {
       await lifecycle?.onOrganizationAffiliationChanged?.(affiliation);
     }
@@ -387,20 +387,20 @@ export function newGrantPath(
     accountId: string,
     organizationId: string,
   ): Promise<boolean> {
-    const held = await policies.findByPrincipal(ACCOUNT_KIND, accountId);
+    const held = await grants.findByPrincipal(ACCOUNT_KIND, accountId);
     return held.some(
-      (policy) =>
-        policy.spec?.resource?.kind === ORGANIZATION_KIND &&
-        policy.spec.resource.id === organizationId,
+      (grant) =>
+        grant.spec?.resource?.kind === ORGANIZATION_KIND &&
+        grant.spec.resource.id === organizationId,
     );
   }
 
   /** Whether the row records the resource's creator as its author. */
   async function isAuthorship(
-    policy: Grant,
+    grant: Grant,
     accountId: string,
   ): Promise<boolean> {
-    const spec = policy.spec;
+    const spec = grant.spec;
     if (
       spec?.resource === undefined ||
       !AUTHORSHIP_RELATIONS.has(spec.relation)
@@ -423,15 +423,15 @@ export function newGrantPath(
     const actor = grantActorOf(caller);
     const change: Change = { actor, cause: "left_organization" };
     const inThisOrganization: OrganizationOf = async () => organizationId;
-    const held = await policies.findByPrincipal(ACCOUNT_KIND, accountId);
+    const held = await grants.findByPrincipal(ACCOUNT_KIND, accountId);
     let revoked = 0;
-    for (const policy of held) {
-      const resource = policy.spec?.resource;
+    for (const grant of held) {
+      const resource = grant.spec?.resource;
       if (resource === undefined || resource.kind === ORGANIZATION_KIND) {
         continue;
       }
       const hierarchy = await resolveHierarchy(
-        policies,
+        grants,
         resource.kind,
         resource.id,
         true,
@@ -440,14 +440,14 @@ export function newGrantPath(
         (level) =>
           level.kind === ORGANIZATION_KIND && level.id === organizationId,
       );
-      if (!inOrganization || (await isAuthorship(policy, accountId))) {
+      if (!inOrganization || (await isAuthorship(grant, accountId))) {
         continue;
       }
-      await revokeRow(policy, change, inThisOrganization);
+      await revokeRow(grant, change, inThisOrganization);
       revoked++;
     }
     if (revoked > 0) {
-      logger.info("iam policy organization access swept", {
+      logger.info("organization access swept", {
         identityAccountId: accountId,
         organizationId,
         revoked: String(revoked),
@@ -469,16 +469,16 @@ export function newGrantPath(
           Code.InvalidArgument,
         );
       }
-      let policy = await findByTriple(spec);
-      let duplicate = policy !== undefined;
-      if (policy === undefined) {
+      let grant = await findByTriple(spec);
+      let duplicate = grant !== undefined;
+      if (grant === undefined) {
         const fresh = buildRow(spec, caller);
         const record = await recordFor(spec, change, organizationOfResource);
         try {
-          await policies.save(fresh, record);
-          policy = fresh;
+          await grants.save(fresh, record);
+          grant = fresh;
           logger.info(
-            "iam policy granted",
+            "grant created",
             fieldsOf(grantIdFor(spec), spec, change, record),
           );
         } catch (error) {
@@ -493,25 +493,25 @@ export function newGrantPath(
           if (winner === undefined) {
             throw error;
           }
-          policy = winner;
+          grant = winner;
           duplicate = true;
         }
       }
       if (duplicate) {
         logger.debug(
-          "iam policy already held",
-          fieldsOf(policy.metadata?.id ?? "", spec, change, undefined),
+          "grant already held",
+          fieldsOf(grant.metadata?.id ?? "", spec, change, undefined),
         );
       }
       // Deliberately unconditional: a duplicate re-grant is the
       // inline heal for a row whose tuple never landed.
-      await lifecycle?.onGranted?.({ policy, duplicate });
+      await lifecycle?.onGranted?.({ grant: grant, duplicate });
       // The same unconditional heal for the affiliation the row stands for.
       const affiliation = affiliationOf(spec);
       if (affiliation !== undefined) {
         await lifecycle?.onOrganizationAffiliationChanged?.(affiliation);
       }
-      return { policy, duplicate };
+      return { grant: grant, duplicate };
     },
 
     async revokeBySpec(spec, caller): Promise<Grant | undefined> {
@@ -521,7 +521,7 @@ export function newGrantPath(
       if (existing === undefined) {
         // No row: a composition still deletes the bare tuple (one written
         // before the row mirror existed); converges the store either way.
-        await lifecycle?.onRevoked?.({ spec, policy: undefined });
+        await lifecycle?.onRevoked?.({ spec, grant: undefined });
         const affiliation = affiliationOf(spec);
         if (affiliation !== undefined) {
           // Nothing was deleted; re-deriving from the rows heals a tuple
@@ -547,12 +547,12 @@ export function newGrantPath(
         actor: grantActorOf(caller),
         cause: "resource_deleted",
       };
-      const asPrincipal = await policies.findByPrincipal(ref.kind, ref.id);
-      const asResource = await policies.findByResource(ref.kind, ref.id);
+      const asPrincipal = await grants.findByPrincipal(ref.kind, ref.id);
+      const asResource = await grants.findByResource(ref.kind, ref.id);
       // The ref's own scope link is one of its resource-side rows and goes
       // before its owners, so its organization is read once, up front.
       const refOrganization = asResource.some(
-        (policy) => policy.spec !== undefined && grantsAccess(policy.spec),
+        (grant) => grant.spec !== undefined && grantsAccess(grant.spec),
       )
         ? await organizationOfResource(ref)
         : "";
@@ -560,14 +560,14 @@ export function newGrantPath(
         resource.kind === ref.kind && resource.id === ref.id
           ? refOrganization
           : organizationOfResource(resource);
-      const isOwner = (policy: Grant): boolean =>
-        policy.spec?.relation === OWNER_RELATION;
-      for (const policy of distinctById([
+      const isOwner = (grant: Grant): boolean =>
+        grant.spec?.relation === OWNER_RELATION;
+      for (const grant of distinctById([
         ...asPrincipal,
-        ...asResource.filter((policy) => !isOwner(policy)),
+        ...asResource.filter((row) => !isOwner(row)),
         ...asResource.filter(isOwner),
       ])) {
-        await revokeRow(policy, change, organizationOf);
+        await revokeRow(grant, change, organizationOf);
       }
     },
 
@@ -578,14 +578,14 @@ export function newGrantPath(
     ): Promise<void> {
       const actor = grantActorOf(caller);
       const change: Change = { actor, cause: "organization_access_revoked" };
-      const direct = await policies.findByPrincipalAndResource(
+      const direct = await grants.findByPrincipalAndResource(
         kindEnumName(ApiResourceKind.identity_account),
         identityAccountId,
         kindEnumName(ApiResourceKind.organization),
         organizationId,
       );
-      for (const policy of direct) {
-        await revokeRow(policy, change);
+      for (const grant of direct) {
+        await revokeRow(grant, change);
       }
       await sweepOrganization(identityAccountId, organizationId, caller);
     },
@@ -594,23 +594,23 @@ export function newGrantPath(
 
 /** The row for a fresh grant: the contract's identity strings, the derived id, the caller's stamp. */
 function buildRow(spec: GrantSpec, caller: CallerIdentity): Grant {
-  const policy = create(GrantSchema, {
+  const grant = create(GrantSchema, {
     apiVersion: GRANT_API_VERSION,
     kind: GRANT_KIND,
     metadata: create(ApiResourceMetadataSchema, { id: grantIdFor(spec) }),
     spec,
   });
-  setAuditFieldsForCreate(GrantSchema, policy, caller);
-  return policy;
+  setAuditFieldsForCreate(GrantSchema, grant, caller);
+  return grant;
 }
 
 /** One row per id, at its first position. */
 function distinctById(
-  policies: ReadonlyArray<Grant>,
+  grants: ReadonlyArray<Grant>,
 ): ReadonlyArray<Grant> {
   const seen = new Set<string>();
-  return policies.filter((policy) => {
-    const id = policy.metadata?.id ?? "";
+  return grants.filter((grant) => {
+    const id = grant.metadata?.id ?? "";
     if (seen.has(id)) {
       return false;
     }
@@ -630,7 +630,7 @@ function fieldsOf(
   record: GrantChangeRecord | undefined,
 ): Record<string, string> {
   return {
-    policyId: id,
+    grantId: id,
     relation: spec.relation,
     principalKind: spec.principal?.kind ?? "",
     principalId: spec.principal?.id ?? "",

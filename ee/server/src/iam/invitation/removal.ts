@@ -42,7 +42,7 @@ export interface InvitationRemoval {
 
 export interface InvitationRemovalDeps {
   readonly invitations: Pick<InvitationStore, "findIdsByOrg" | "deleteById">;
-  readonly policies: Pick<GrantPathClient, "cleanupResourceGrants">;
+  readonly grants: Pick<GrantPathClient, "cleanupResourceGrants">;
   readonly logger: Logger;
 }
 
@@ -52,7 +52,7 @@ export function newInvitationRemoval(deps: InvitationRemovalDeps): InvitationRem
       let failed = 0;
       for (const id of await deps.invitations.findIdsByOrg(orgId)) {
         try {
-          await deps.policies.cleanupResourceGrants(
+          await deps.grants.cleanupResourceGrants(
             create(ApiResourceRefSchema, { kind: INVITATION_KIND_NAME, id }),
             actingFor,
           );

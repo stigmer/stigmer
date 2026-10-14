@@ -136,7 +136,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history on a licens
     });
     alice = await signIn(booted, issuer, "operator|alice");
     acme = await createOrganization(alice, "acme");
-    const policies = createClient(GrantCommandController, alice.transport);
+    const grants = createClient(GrantCommandController, alice.transport);
 
     bob = await signIn(booted, issuer, "operator|bob");
     const invitation = await createClient(InvitationCommandController, alice.transport).create({
@@ -148,7 +148,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history on a licens
     await createClient(InvitationCommandController, bob.transport).redeem({ token: invitation.status?.token ?? "" });
 
     raj = await signIn(booted, issuer, "operator|raj");
-    await policies.create(grant(ref("identity_account", raj.accountId), "member", ref("organization", acme)));
+    await grants.create(grant(ref("identity_account", raj.accountId), "member", ref("organization", acme)));
     const agent = await createClient(AgentCommandController, alice.transport).create({
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Agent",
@@ -156,11 +156,11 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history on a licens
       spec: { description: "billing", instructions: "You help with billing." },
     });
     agentId = agent.metadata?.id ?? "";
-    await policies.create(grant(ref("identity_account", raj.accountId), "editor", ref("agent", agentId)));
-    await policies.revokeOrgAccess({ identityAccountId: raj.accountId, org: acme });
+    await grants.create(grant(ref("identity_account", raj.accountId), "editor", ref("agent", agentId)));
+    await grants.revokeOrgAccess({ identityAccountId: raj.accountId, org: acme });
 
     mia = await signIn(booted, issuer, "operator|mia");
-    await policies.create(grant(ref("identity_account", mia.accountId), "member", ref("organization", acme)));
+    await grants.create(grant(ref("identity_account", mia.accountId), "member", ref("organization", acme)));
 
     const child = await createClient(OrganizationCommandController, alice.transport).create({
       apiVersion: "tenancy.stigmer.ai/v1",
@@ -171,9 +171,9 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history on a licens
     acmeEu = child.metadata?.id ?? "";
     kim = await signIn(booted, issuer, "operator|kim");
     // Kim administers the child; Lee is a member of it.
-    await policies.create(grant(ref("identity_account", kim.accountId), "admin", ref("organization", acmeEu)));
+    await grants.create(grant(ref("identity_account", kim.accountId), "admin", ref("organization", acmeEu)));
     lee = await signIn(booted, issuer, "operator|lee");
-    await policies.create(grant(ref("identity_account", lee.accountId), "member", ref("organization", acmeEu)));
+    await grants.create(grant(ref("identity_account", lee.accountId), "member", ref("organization", acmeEu)));
     // Something the child holds that its parent's admins do not see: a
     // private agent, and Lee's role on it.
     const secret = await createClient(AgentCommandController, kim.transport).create({

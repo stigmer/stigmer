@@ -13,7 +13,7 @@ module iam
 # (`affiliated`, organization.fga), narrowed to exclude guests: guests
 # hold `organization#guest`, never viewer, so a guest is never a member.
 # Leaving the organization ends every team-derived grant on the next
-# check; the IamPolicy grant path also deletes the membership rows, so a
+# check; the Grant grant path also deletes the membership rows, so a
 # person who rejoins is not a member again until an admin adds them.
 #
 # Members only: nobody administers a team but the organization's admins,
@@ -26,9 +26,9 @@ module iam
 #
 # FGA tuples on creation:
 # - team:tm_abc#organization@organization:acme
-# Membership (an IamPolicy grant of `member` on the team):
+# Membership (a Grant grant of `member` on the team):
 # - team:tm_abc#member@identity_account:alice
-# A share with the team (an IamPolicy grant naming the team's members):
+# A share with the team (a Grant grant naming the team's members):
 # - agent:agt_xyz#viewer@team:tm_abc#member
 
 type team
@@ -58,9 +58,9 @@ type team
     define can_delete: admin from organization
 
     # ========================================
-    # IAM POLICY MANAGEMENT
+    # ACCESS MANAGEMENT
     # ========================================
-    # Membership is granted and revoked through the IAM policy service,
+    # Membership is granted and revoked through the grant service,
     # so managing members is granting access on the team.
     define can_grant_access: admin from organization
     define can_view_access: viewer

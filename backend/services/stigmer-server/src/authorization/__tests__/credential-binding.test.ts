@@ -131,7 +131,7 @@ interface Fixture {
 function fixture(
   rows: ReadonlyArray<{ kind: ApiResourceKind; id: string; row: Message }>,
   ports: {
-    policies?: ReadonlyArray<Grant>;
+    grants?: ReadonlyArray<Grant>;
     readers?: ReadonlyMap<
       ApiResourceKind,
       { findById(id: string): Promise<Message | undefined> }
@@ -163,9 +163,9 @@ function fixture(
     },
     deps: {
       store,
-      policies: {
+      grants: {
         findById: (id) =>
-          Promise.resolve(ports.policies?.find((p) => p.metadata?.id === id)),
+          Promise.resolve(ports.grants?.find((p) => p.metadata?.id === id)),
       },
       ...(ports.readers === undefined ? {} : { rowReaders: ports.readers }),
       ...(ports.accounts === undefined
@@ -562,7 +562,7 @@ describe("the rule, for a caller bound to one organization", () => {
   it("reads the substitutable policy port and a unit's reader, never the store, for their kinds", async () => {
     const team = row("team", "tm_b", BETA);
     const f = fixture([], {
-      policies: [
+      grants: [
         create(GrantSchema, { metadata: { id: "pol_a", org: ALPHA } }),
       ],
       readers: new Map([

@@ -134,7 +134,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
   (fixture) => {
     describe.skipIf(fixture.skip)("authorize", () => {
       let opened: OpenedStore;
-      let policies: GrantStore;
+      let grants: GrantStore;
       let accounts: IdentityAccountStore;
       let storeReads: number;
 
@@ -154,7 +154,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
       ) {
         return newBuiltInAuthorizer({
           store: overrides.store ?? countingStore(opened.store),
-          policies,
+          grants: grants,
           accounts,
           edition: overrides.edition ?? ServerEdition.oss,
           logger: silentLogger,
@@ -174,7 +174,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
       }
 
       async function grant(spec: ReturnType<typeof orgRole>) {
-        await policies.save(
+        await grants.save(
           create(GrantSchema, {
             apiVersion: GRANT_API_VERSION,
             kind: GRANT_KIND,
@@ -206,7 +206,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
       beforeEach(async () => {
         opened = await fixture.open();
         storeReads = 0;
-        policies = newResourceGrantStore(opened.store, { keepsHistory: false });
+        grants = newResourceGrantStore(opened.store, { keepsHistory: false });
         accounts = newResourceIdentityAccountStore(opened.store);
         for (const who of [FOUNDER, ADMIN, MEMBER, OUTSIDER]) {
           await provision(who);
@@ -676,7 +676,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           });
           const decision = await newBuiltInAuthorizer({
             store: opened.store,
-            policies,
+            grants: grants,
             accounts,
             edition: ServerEdition.oss,
             logger: silentLogger,
@@ -703,11 +703,11 @@ describe.each(driverFixtures(SEEDED_KINDS))(
                 return opened.store.getResource(kind, id, schema);
               },
             },
-            policies: {
-              ...policies,
+            grants: {
+              ...grants,
               findByPrincipal(principalKind, principalId) {
                 reads.policies += 1;
-                return policies.findByPrincipal(principalKind, principalId);
+                return grants.findByPrincipal(principalKind, principalId);
               },
             },
             accounts: {

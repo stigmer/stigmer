@@ -332,14 +332,14 @@ export async function keysOf(server: ComposedServer, accountId: string): Promise
     .filter((key) => key.status?.audit?.specAudit?.createdBy?.id === accountId).length;
 }
 
-/** How many policy rows name `id` as an identity account, principal or resource. */
+/** How many grant rows name `id` as an identity account, principal or resource. */
 export async function grantRowsNaming(server: ComposedServer, id: string): Promise<number> {
   const rows = await server.store.listResources(ApiResourceKind.grant);
   return rows
     .map((data) => fromBinary(GrantSchema, data))
     .filter(
-      (policy) =>
-        (policy.spec?.principal?.kind === "identity_account" && policy.spec.principal.id === id) ||
-        (policy.spec?.resource?.kind === "identity_account" && policy.spec.resource.id === id),
+      (row) =>
+        (row.spec?.principal?.kind === "identity_account" && row.spec.principal.id === id) ||
+        (row.spec?.resource?.kind === "identity_account" && row.spec.resource.id === id),
     ).length;
 }

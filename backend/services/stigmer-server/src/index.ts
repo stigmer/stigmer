@@ -295,10 +295,10 @@ export type {
   SessionEventStoreContractFixture,
 } from "./store/session-events-contract.js";
 export { sessionEventStoreContract } from "./store/session-events-contract.js";
-// The IamPolicy seams: the store PORT a
-// composition drives the domain's grant path through (drivers.iamPolicyStore;
-// a driver throws DuplicatePolicyError for a held id) and its vitest-free
-// contract kit; the grant scope (drivers.policyGrantScope — which kinds an
+// The Grant seams: the store PORT a
+// composition drives the domain's grant path through (drivers.grantStore;
+// a driver throws DuplicateGrantError for a held id) and its vitest-free
+// contract kit; the grant scope (drivers.grantScope — which kinds an
 // edition grants on, with which roles; open source's default is the
 // organization alone); and the tuple-half query engine
 // (drivers.authorizationQueries — the three graph questions only an
@@ -324,11 +324,11 @@ export type {
 } from "./domain/grant/store-contract.js";
 export { grantStoreContract } from "./domain/grant/store-contract.js";
 // The owner rule's refusal, the one sentence every door that grants the
-// owner role answers when its caller is no owner: the IamPolicy lanes here,
+// owner role answers when its caller is no owner: the Grant lanes here,
 // and an edition's own lanes that grant a role on a person's behalf (an
 // owner invitation).
 export { OWNER_ASSIGNMENT_DENIED_MESSAGE } from "./domain/grant/constants.js";
-export type { GrantScope } from "./extensions/policy-grant-scope.js";
+export type { GrantScope } from "./extensions/grant-scope.js";
 export type { AuthorizationQueryEngine } from "./extensions/authorization-queries.js";
 // How an access list names a grantee that is not a person
 // (drivers.principalDisplay): a team, in the editions that serve teams.

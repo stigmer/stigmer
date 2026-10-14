@@ -1,10 +1,10 @@
 /**
- * IamPolicy domain constants: the derived
+ * Grant domain constants: the derived
  * policy id and the one spelling of a triple it hashes, the kinds the
  * legacy-creator rule scans, and the byte-pinned wire copy.
  *
  * The derived id. A policy's id is a pure function of its triple:
- * `iamp_` + `derivedId` (pipeline/steps/defaults.ts, the encoder shared
+ * `grt_` + `derivedId` (pipeline/steps/defaults.ts, the encoder shared
  * with the identity account) over the triple's canonical text. The text
  * IS the tuple notation the contract's own comment documents
  * (`principal.kind:principal.id#principal.relation@resource.kind:resource.id#relation`,
@@ -19,7 +19,7 @@
  * character pattern, so an id or relation holding one of the three
  * delimiters could spell another triple's text (`a#b` with an empty
  * qualifier and `a` with qualifier `b#` read alike). `malformedTripleField`
- * names such a field; `policyIdFor` refuses to hash such a spec; the grant
+ * names such a field; `grantIdFor` refuses to hash such a spec; the grant
  * path turns the same check into INVALID_ARGUMENT before any read or write.
  * No legitimate reference carries a delimiter: every kind is an enum member
  * name, every id a `prefix_ulid`, a slug or the public wildcard `*`, every
@@ -31,7 +31,7 @@
  * personal and stay with their creator; they never appear
  * here.
  *
- * The copy moved from the cloud's iam/policy/handlers.ts as-is: the CLI,
+ * The copy moved from the cloud's iam/grant/handlers.ts as-is: the CLI,
  * console and SDK show these sentences verbatim, so they are contract. The
  * new sentences are the two edition refusals (the federation shape), the
  * unknown permission, the unknown principal kind (the resource sentence's
@@ -49,8 +49,8 @@ import type {
 import { kindEnumName } from "../../pipeline/apiresource-meta.js";
 import { derivedId } from "../../pipeline/steps/defaults.js";
 
-/** The kind's id prefix (kind_meta `iam_policy.id_prefix`). */
-export const GRANT_ID_PREFIX = "iamp";
+/** The kind's id prefix (kind_meta `grant.id_prefix`). */
+export const GRANT_ID_PREFIX = "grt";
 
 /**
  * The proto's `api_version` const (api.proto). The cloud's Java-era rows
@@ -58,7 +58,7 @@ export const GRANT_ID_PREFIX = "iamp";
  * this domain writes carries the contract's value.
  */
 export const GRANT_API_VERSION = "iam.stigmer.ai/v1";
-export const GRANT_KIND = "IamPolicy";
+export const GRANT_KIND = "Grant";
 
 /** The three characters the canonical text is built from; none may appear inside a field. */
 export const TRIPLE_DELIMITERS: ReadonlyArray<string> = [":", "#", "@"];
@@ -185,7 +185,7 @@ export const SERVER_ORGANIZATION_ROLES_OWED = "owed";
  * account) and a team
  * of people. A row whose principal is a RESOURCE
  * (`identity_account:X#organization@organization:A`, `#child_org`) is a
- * structural link, and structural links are `bootstrapPolicy`'s — the
+ * structural link, and structural links are `bootstrapGrant`'s — the
  * platform's own lane, which skips role validation by design.
  *
  * Why the rule is load-bearing: the read side treats every principal
@@ -219,9 +219,9 @@ export const TEAM_MEMBERS_RELATION = "member";
 // Byte-pinned copy (the cloud handlers' sentences, moved as-is).
 // ---------------------------------------------------------------------------
 
-/** get on a missing policy (NOT_FOUND). */
+/** get on a missing grant (NOT_FOUND). */
 export function grantNotFoundMessage(id: string): string {
-  return `IAM policy not found: ${id}`;
+  return `Grant not found: ${id}`;
 }
 
 /** A grant on a kind whose kind_meta lists no grantable roles (INVALID_ARGUMENT, every edition). */

@@ -288,7 +288,7 @@ describe("child organizations — managed by the parent, never read by it", () =
     ).toBe(customer.id);
   });
 
-  it("[rpc:IamPolicyCommandController.create] a parent admin who joins the child shows in its access list, and then reads", async (ctx) => {
+  it("[rpc:GrantCommandController.create] a parent admin who joins the child shows in its access list, and then reads", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     const parent = await tenancy(on);

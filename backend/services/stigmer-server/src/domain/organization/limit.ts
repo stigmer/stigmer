@@ -69,7 +69,7 @@ export const SINGLE_ORGANIZATION_SLUG = "stigmer";
  * by every start that settles the fill, whoever made it (the server's own
  * boot step, or an older release's console or CLI before the server held
  * one). It is a recorded fact the membership rules read
- * (iampolicy/membership.ts: arms 3 and 4 answer `owner` on that
+ * (grant/membership.ts: arms 3 and 4 answer `owner` on that
  * organization, and the laptop operator account is nobody there), never
  * the creator stamp: under sign-in the server makes it as nobody
  * (`"system"`), so the stamp cannot say whose it is. It does not decide

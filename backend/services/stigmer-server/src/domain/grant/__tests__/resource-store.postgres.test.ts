@@ -1,5 +1,5 @@
 /**
- * Runs the IamPolicyStore port-contract kit (../store-contract.ts) over the
+ * Runs the GrantStore port-contract kit (../store-contract.ts) over the
  * OSS adapter (../resource-store.ts) on both drivers through the drivers'
  * own fixtures (sqlite always; Postgres under TEST_DATABASE_URL), opened
  * with and without the permission history, and pins the behaviours that
@@ -54,7 +54,7 @@ import { orgRole } from "./support.js";
 /** The kit's contract lines, pinned: a dropped or renamed case is a visible diff here. */
 const CONTRACT_CASE_NAMES = [
   "save then findById round-trips the policy",
-  "a second save under a held triple is DuplicatePolicyError, and the first row stands",
+  "a second save under a held triple is DuplicateGrantError, and the first row stands",
   "findByPrincipalAndResource answers every relation on the pair and nothing on another",
   "findByPrincipal and findByResource answer each side of a row",
   "findByResourceWithRelations filters to the allowlist; an empty allowlist matches nothing",
@@ -65,7 +65,7 @@ const CONTRACT_CASE_NAMES = [
   "a change record changes nothing about the row: save and deleteById behave as without one",
   "deleteById of an unknown id resolves",
   "a disconnected store is an infrastructure fault, never 'not found'",
-  "two concurrent saves of one triple end in one row and DuplicatePolicyErrors only",
+  "two concurrent saves of one triple end in one row and DuplicateGrantErrors only",
 ] as const;
 
 /** The history lines, pinned the same way, by whether the store keeps one. */
@@ -91,7 +91,7 @@ interface HistoryEntry {
 }
 
 const HISTORY_SQL = `SELECT org, sequence, change, cause, actor_id, actor_class, policy_id
-  FROM iam_policy_history ORDER BY org, sequence`;
+  FROM grant_history ORDER BY org, sequence`;
 
 function historyEntryOf(row: Record<string, unknown>): HistoryEntry {
   return {
@@ -155,7 +155,7 @@ const postgresFixture: DriverFixture = {
     );
     await store.deleteResourcesByKind(ApiResourceKind.grant);
     const raw = new pg.Pool({ connectionString: postgresDatabase.databaseUrl, max: 1 });
-    await raw.query(`TRUNCATE iam_policy_history, iam_policy_history_heads`);
+    await raw.query(`TRUNCATE grant_history, grant_history_heads`);
     return {
       store,
       async history() {
@@ -175,7 +175,7 @@ afterAll(async () => {
 });
 
 describe.each([sqliteFixture, postgresFixture])(
-  "IamPolicyStore over the OSS adapter ($name)",
+  "GrantStore over the OSS adapter ($name)",
   (fixture) => {
     describe.skipIf(fixture.skip).each([
       { keepsHistory: false },
@@ -217,7 +217,7 @@ describe.each([sqliteFixture, postgresFixture])(
       });
 
       it("refuses to save a policy whose id is not its triple's derived id", async () => {
-        const policies = newResourceGrantStore(opened.store, {
+        const grants = newResourceGrantStore(opened.store, {
           keepsHistory: false,
         });
         const spec = orgRole("ida_wtr3jcf281yfk9xx61kj59fsme", "admin", "acme");
@@ -225,11 +225,11 @@ describe.each([sqliteFixture, postgresFixture])(
           apiVersion: GRANT_API_VERSION,
           kind: GRANT_KIND,
           metadata: create(ApiResourceMetadataSchema, {
-            id: "iamp_01hzzzzzzzzzzzzzzzzzzzzzzz",
+            id: "grt_01hzzzzzzzzzzzzzzzzzzzzzzz",
           }),
           spec,
         });
-        await expect(policies.save(stray)).rejects.toThrow(
+        await expect(grants.save(stray)).rejects.toThrow(
           "policy id must be derived from its triple",
         );
         expect(
@@ -244,8 +244,8 @@ describe.each([sqliteFixture, postgresFixture])(
           }),
           spec,
         });
-        await policies.save(derived);
-        expect((await policies.findById(grantIdFor(spec)))?.spec).toEqual(
+        await grants.save(derived);
+        expect((await grants.findById(grantIdFor(spec)))?.spec).toEqual(
           spec,
         );
       });
@@ -268,7 +268,7 @@ describe.each([sqliteFixture, postgresFixture])(
             return typeof value === "function" ? value.bind(store) : value;
           },
         });
-        const policies = newResourceGrantStore(counted, {
+        const grants = newResourceGrantStore(counted, {
           keepsHistory: false,
         });
         for (const [principal, relation] of [
@@ -277,7 +277,7 @@ describe.each([sqliteFixture, postgresFixture])(
           ["ida_0hlf2yb5mhkgb3bdzkkrptqf4d", "member"],
         ] as const) {
           const spec = orgRole(principal, relation, "acme");
-          await policies.save(
+          await grants.save(
             create(GrantSchema, {
               apiVersion: GRANT_API_VERSION,
               kind: GRANT_KIND,
@@ -288,16 +288,16 @@ describe.each([sqliteFixture, postgresFixture])(
             }),
           );
         }
-        const found = await policies.findByPrincipal(
+        const found = await grants.findByPrincipal(
           "identity_account",
           "ida_wtr3jcf281yfk9xx61kj59fsme",
         );
-        expect(found.map((policy) => policy.spec?.relation).sort()).toEqual([
+        expect(found.map((grant) => grant.spec?.relation).sort()).toEqual([
           "admin",
           "member",
         ]);
         expect(
-          await policies.findByPrincipal(
+          await grants.findByPrincipal(
             "team",
             "ida_wtr3jcf281yfk9xx61kj59fsme",
           ),
@@ -305,14 +305,14 @@ describe.each([sqliteFixture, postgresFixture])(
         expect(scans).toBe(0);
       });
 
-      it("ends two concurrent saves of one triple in one row, one winner and DuplicatePolicyErrors only", async () => {
-        const policies = newResourceGrantStore(opened.store, {
+      it("ends two concurrent saves of one triple in one row, one winner and DuplicateGrantErrors only", async () => {
+        const grants = newResourceGrantStore(opened.store, {
           keepsHistory: true,
         });
         const spec = orgRole("ida_wtr3jcf281yfk9xx61kj59fsme", "member", "acme");
         const outcomes = await Promise.allSettled(
           Array.from({ length: 6 }, () =>
-            policies.save(grantOf(spec), record("grant", "acme")),
+            grants.save(grantOf(spec), record("grant", "acme")),
           ),
         );
         expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
@@ -338,26 +338,26 @@ describe.each([sqliteFixture, postgresFixture])(
       });
 
       it("kept: one entry per change the grant path records, none for a duplicate, an id not held or a structural row", async () => {
-        const policies = newResourceGrantStore(opened.store, {
+        const grants = newResourceGrantStore(opened.store, {
           keepsHistory: true,
         });
         const ana = orgRole("ida_wtr3jcf281yfk9xx61kj59fsme", "member", "acme");
         const raj = orgRole("ida_0hlf2yb5mhkgb3bdzkkrptqf4d", "admin", "acme");
-        await policies.save(grantOf(ana), record("grant", "acme"));
+        await grants.save(grantOf(ana), record("grant", "acme"));
         await expect(
-          policies.save(grantOf(ana), record("grant", "acme")),
+          grants.save(grantOf(ana), record("grant", "acme")),
         ).rejects.toBeInstanceOf(DuplicateGrantError);
-        await policies.save(grantOf(raj), {
+        await grants.save(grantOf(raj), {
           actor: { id: "ida_server", callerClass: "internal" },
           cause: "first_sign_in",
           organizationId: "acme",
         });
-        await policies.deleteById(grantIdFor(ana), record("left_organization", "acme"));
-        await policies.deleteById(grantIdFor(ana), record("left_organization", "acme"));
-        await policies.deleteById("iamp_01hzzzzzzzzzzzzzzzzzzzzzzz", record("revoke", "acme"));
+        await grants.deleteById(grantIdFor(ana), record("left_organization", "acme"));
+        await grants.deleteById(grantIdFor(ana), record("left_organization", "acme"));
+        await grants.deleteById("grt_01hzzzzzzzzzzzzzzzzzzzzzzz", record("revoke", "acme"));
         const structural = orgRole("ida_structural0000000000000000", "member", "beta");
-        await policies.save(grantOf(structural));
-        await policies.deleteById(grantIdFor(structural));
+        await grants.save(grantOf(structural));
+        await grants.deleteById(grantIdFor(structural));
 
         expect(await opened.history()).toEqual([
           {
@@ -367,7 +367,7 @@ describe.each([sqliteFixture, postgresFixture])(
             cause: "grant",
             actorId: "ida_ana",
             actorClass: "user",
-            policyId: grantIdFor(ana),
+            grantId: grantIdFor(ana),
           },
           {
             org: "acme",
@@ -376,7 +376,7 @@ describe.each([sqliteFixture, postgresFixture])(
             cause: "first_sign_in",
             actorId: "ida_server",
             actorClass: "internal",
-            policyId: grantIdFor(raj),
+            grantId: grantIdFor(raj),
           },
           {
             org: "acme",
@@ -385,20 +385,20 @@ describe.each([sqliteFixture, postgresFixture])(
             cause: "left_organization",
             actorId: "ida_ana",
             actorClass: "user",
-            policyId: grantIdFor(ana),
+            grantId: grantIdFor(ana),
           },
         ]);
       });
 
       it("not kept: the records change nothing and nothing is written", async () => {
-        const policies = newResourceGrantStore(opened.store, {
+        const grants = newResourceGrantStore(opened.store, {
           keepsHistory: false,
         });
         const ana = orgRole("ida_wtr3jcf281yfk9xx61kj59fsme", "member", "acme");
-        await policies.save(grantOf(ana), record("grant", "acme"));
-        expect((await policies.findById(grantIdFor(ana)))?.spec).toEqual(ana);
-        await policies.deleteById(grantIdFor(ana), record("revoke", "acme"));
-        expect(await policies.findById(grantIdFor(ana))).toBeUndefined();
+        await grants.save(grantOf(ana), record("grant", "acme"));
+        expect((await grants.findById(grantIdFor(ana)))?.spec).toEqual(ana);
+        await grants.deleteById(grantIdFor(ana), record("revoke", "acme"));
+        expect(await grants.findById(grantIdFor(ana))).toBeUndefined();
         expect(await opened.history()).toEqual([]);
       });
     });

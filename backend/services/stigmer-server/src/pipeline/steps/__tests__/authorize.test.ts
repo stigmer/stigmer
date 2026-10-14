@@ -292,11 +292,11 @@ describe("check-target resolution (never a throw — byte-identity)", () => {
     ]);
   });
 
-  // The IamPolicy RPCs name their target inside the
+  // The Grant RPCs name their target inside the
   // request as a STRING kind (`ApiResourceRef.kind`, "organization"), so
   // `resource_kind_path` resolves a string through the kind enum's names.
   // The option had no user before this entry; a numeric field still works.
-  it("resource_kind_path over a string field resolves through the kind enum's names (IamPolicy create)", async () => {
+  it("resource_kind_path over a string field resolves through the kind enum's names (Grant create)", async () => {
     const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
     const method = GrantCommandController.method.create;
     const step = newAuthorizeStep(method, authorizer);
@@ -418,19 +418,19 @@ describe("authorizeDirect (the direct-handler arm)", () => {
     ]);
   });
 
-  // The IamPolicy `get(IamPolicyId)` lane. Its
+  // The Grant `get(GrantId)` lane. Its
   // annotation names a permission and NO kind, because the target is the
   // loaded row's resource — kind AND id are server-side state. The
   // override carries both; the annotation still owns the permission and
   // the copy.
-  it("the target override may carry the resource KIND too — the IamPolicy get lane", async () => {
+  it("the target override may carry the resource KIND too — the Grant get lane", async () => {
     const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
     const method = GrantQueryController.method.get;
     await authorizeDirect(
       method,
       authorizer,
       testCallerIdentity(),
-      create(method.input, { value: "iamp_01row" }),
+      create(method.input, { value: "grt_01row" }),
       { resourceKind: ApiResourceKind.organization, resourceId: "acme" },
     );
     expect(checks).toEqual([
@@ -452,7 +452,7 @@ describe("authorizeDirect (the direct-handler arm)", () => {
       method,
       authorizer,
       testCallerIdentity(),
-      create(method.input, { value: "iamp_01row" }),
+      create(method.input, { value: "grt_01row" }),
       { resourceId: "acme" },
     );
     expect(checks[0]?.resourceKind).toBe(

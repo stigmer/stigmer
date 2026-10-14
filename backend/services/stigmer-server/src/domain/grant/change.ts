@@ -3,7 +3,7 @@
  * through which door, and in which organization. The grant path
  * (grant-path.ts) builds one for every row it writes or deletes that
  * grants access, and hands it to the store beside the row
- * (`IamPolicyStore.save` and `deleteById`), so an edition that keeps a
+ * (`GrantStore.save` and `deleteById`), so an edition that keeps a
  * permission history writes it in the same atomic unit as the row: the
  * Cloud's own policy store, and the library's adapter in every edition
  * above open source (resource-store.ts, store/permission-history.ts). Open
@@ -38,9 +38,9 @@ import { kindEnumName } from "../../pipeline/apiresource-meta.js";
 /**
  * The door a change came through. Stored bytes in an edition's history.
  *
- *   - `grant`: IamPolicy.create, a grant on the user lane.
- *   - `revoke`: IamPolicy.delete.
- *   - `structural`: IamPolicy.bootstrapPolicy, the server recording what a
+ *   - `grant`: Grant.create, a grant on the user lane.
+ *   - `revoke`: Grant.delete.
+ *   - `structural`: Grant.bootstrapGrant, the server recording what a
  *     resource's creation or visibility implies (its creator's authorship,
  *     its audience).
  *   - `organization_access_revoked`: revokeOrgAccess and its system twin,
@@ -48,7 +48,7 @@ import { kindEnumName } from "../../pipeline/apiresource-meta.js";
  *   - `left_organization`: the sweep that follows a person's last role on
  *     an organization, revoking what they held on its resources.
  *   - `resource_deleted`: the rows that die with a deleted resource
- *     (cleanupResourcePolicies, the built-in lifecycle's delete cleanup,
+ *     (cleanupResourceGrants, the built-in lifecycle's delete cleanup,
  *     an organization's revoke before its row goes).
  *   - `organization_created`: open source's creator `owner` row.
  *   - `first_sign_in`: open source's membership rules for a new account.
@@ -88,7 +88,7 @@ export interface GrantActor {
  * What the store is handed beside an access row it writes or deletes. An
  * implementation that keeps a history records exactly one entry for it, in
  * the same atomic unit as the row change, and none when the row did not
- * change (IamPolicyStore, store.ts).
+ * change (GrantStore, store.ts).
  */
 export interface GrantChangeRecord {
   readonly actor: GrantActor;
@@ -103,7 +103,7 @@ export interface GrantChangeRecord {
 
 /**
  * Which recorded changes one read of an organization's history returns
- * (`IamPolicyStore.listChanges`): newest first, below `before` when given;
+ * (`GrantStore.listChanges`): newest first, below `before` when given;
  * or, with `after`, oldest first, above it. At most `limit`, a positive
  * integer, either way.
  */
@@ -121,14 +121,14 @@ export interface GrantChange {
   readonly change: "granted" | "revoked";
   readonly actor: GrantActor;
   /**
-   * The stored cause: a `PolicyChangeCause` when this binary wrote it, but
+   * The stored cause: a `GrantChangeCause` when this binary wrote it, but
    * a reader may meet one a later binary added, so it reads as a string.
    */
   readonly cause: string;
   /** The organization the change was recorded in. */
   readonly organizationId: string;
   /** The row as granted, or as it stood when revoked. */
-  readonly policy: Grant;
+  readonly grant: Grant;
 }
 
 const ACCOUNT_KIND = kindEnumName(ApiResourceKind.identity_account);

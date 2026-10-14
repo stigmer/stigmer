@@ -196,7 +196,7 @@ function harness(
   } as unknown as IdentityAccountService;
   const beingDeletedReads = [...(initial.beingDeletedReads ?? [])];
   const unreachable = new Set(initial.unreachable ?? initial.childrenBeingDeleted ?? []);
-  const policies = {
+  const grants = {
     bootstrapRevokeOrgAccess: (accountId: string, org: string) => {
       if (recorded.revokeFailure !== undefined) {
         return Promise.reject(recorded.revokeFailure);
@@ -248,7 +248,7 @@ function harness(
   };
   const federation = newIdentityFederation({
     accounts,
-    policies,
+    grants: grants,
     providers,
     childOrganizations,
     logger,

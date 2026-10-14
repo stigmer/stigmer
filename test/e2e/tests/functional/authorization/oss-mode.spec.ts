@@ -23,7 +23,7 @@ test.describe("OSS Mode - Authorization UI", () => {
     await page.goto("/settings/members");
     await page.waitForLoadState("networkidle");
 
-    // The row half of IAM policies is served by open source: the page
+    // The row half of grants is served by open source: the page
     // renders the members panel, never a cloud-only notice.
     await expect(page.getByText(/not available in local mode/i)).not.toBeVisible();
     const members = page.getByRole("list", { name: "Organization members" });

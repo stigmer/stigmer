@@ -8,7 +8,7 @@
  *
  * Chain: Authorize (can_view_access_history on the organization, by the
  * annotation) → ValidateProto → the open-source refusal →
- * [iam-policy-list-access-history:pre-read] → the read. The refusal comes
+ * [grant-list-access-history:pre-read] → the read. The refusal comes
  * after Authorize, as the tuple-half queries' does (controller.ts
  * `requireQueryEngine`), so a caller learns the edition only once allowed
  * to ask. The slot is where a host refuses a read its own rules forbid
@@ -146,7 +146,7 @@ export const CAUSE_ON_WIRE: Readonly<Record<GrantChangeCause, AccessChangeCause>
 
 /** What the read needs from the controller's deps. */
 export interface AccessHistoryDeps {
-  readonly policies: GrantStore;
+  readonly grants: GrantStore;
   readonly authorizer: Authorizer;
   readonly principalDisplay: PrincipalDisplay | undefined;
   readonly gateSteps: ResolvedGateSteps;
@@ -170,7 +170,7 @@ export async function listAccessHistory(
     ctx.values.get(apiResourceKindKey),
   );
   const pipeline = newPipeline<typeof ListAccessHistoryInputSchema>(
-    "iampolicy-listAccessHistory",
+    "grant-listAccessHistory",
     deps.logger,
   )
     .addStep(
@@ -183,7 +183,7 @@ export async function listAccessHistory(
     .addStep(newRefuseWithoutHistoryStep(deps.edition));
   for (const step of stepsForSlot<typeof ListAccessHistoryInputSchema>(
     deps.gateSteps,
-    "iam-policy-list-access-history:pre-read",
+    "grant-list-access-history:pre-read",
   )) {
     pipeline.addStep(step);
   }
@@ -256,7 +256,7 @@ async function readAccessHistory(
 
   let changes: ReadonlyArray<GrantChange>;
   try {
-    changes = await deps.policies.listChanges(input.org, page);
+    changes = await deps.grants.listChanges(input.org, page);
   } catch (error) {
     throw internalError(error, "failed to read the access history");
   }
@@ -297,8 +297,8 @@ async function oldestKeptSequence(
   let last: bigint;
   try {
     // The head first: whatever commits after it is numbered above it.
-    last = await deps.policies.lastChangeSequence(org);
-    held = (await deps.policies.listChanges(org, { limit: 1, after: 0n })).at(0)?.sequence;
+    last = await deps.grants.lastChangeSequence(org);
+    held = (await deps.grants.listChanges(org, { limit: 1, after: 0n })).at(0)?.sequence;
   } catch (error) {
     throw internalError(error, "failed to read the access history");
   }
@@ -313,7 +313,7 @@ async function oldestKeptSequence(
 
 /** Whether a change is about the organization itself rather than a resource in it. */
 function aboutOrganization(change: GrantChange, org: string): boolean {
-  const resource = change.policy.spec?.resource;
+  const resource = change.grant.spec?.resource;
   return resource?.kind === kindEnumName(ApiResourceKind.organization) && resource.id === org;
 }
 
@@ -327,7 +327,7 @@ async function nameEntries(
   let actors: ReadonlyMap<string, ApiResourceRefView>;
   try {
     principals = await resolvePrincipalViews(
-      changes.map((change) => change.policy),
+      changes.map((change) => change.grant),
       displayResolver,
       deps.principalDisplay,
     );
@@ -339,7 +339,7 @@ async function nameEntries(
   }
 
   return changes.map((change) => {
-    const spec = change.policy.spec;
+    const spec = change.grant.spec;
     const principal = spec?.principal;
     const resource = spec?.resource;
     const resourceKind = kindByEnumName(resource?.kind ?? "");

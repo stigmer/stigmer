@@ -1,5 +1,5 @@
 // Pins the pure arms of the enforcing lane (harness/enforcing-lane.ts): the
-// grant message a lane hands IamPolicy create/delete, the steps that move a
+// grant message a lane hands Grant create/delete, the steps that move a
 // member to exactly one role, and the set of organizations a newcomer is
 // revoked on. The lanes themselves boot servers and are exercised by the
 // conformance suites; what is decided without a server is decided here, and
@@ -87,7 +87,7 @@ describe("newSiblingEnforcingLane", () => {
           entries: [{ metadata: { id: "org_kept" } }, { metadata: { id: "org_other" } }],
         }),
       },
-      iamPolicyCommand: {
+      grantCommand: {
         revokeOrgAccess: async (input: unknown) => {
           revoked.push(input);
           return {};

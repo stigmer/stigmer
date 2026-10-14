@@ -121,11 +121,11 @@ function rig(
   };
   const asked: Asked[] = [];
   const queries: Pick<AuthorizationQueryEngine, "check"> = {
-    check: (policy) => {
+    check: (grant) => {
       const question = {
-        user: `${policy.principal?.kind ?? ""}:${policy.principal?.id ?? ""}`,
-        relation: policy.relation,
-        object: `${policy.resource?.kind ?? ""}:${policy.resource?.id ?? ""}`,
+        user: `${grant.principal?.kind ?? ""}:${grant.principal?.id ?? ""}`,
+        relation: grant.relation,
+        object: `${grant.resource?.kind ?? ""}:${grant.resource?.id ?? ""}`,
       };
       asked.push(question);
       const result = answer(question);

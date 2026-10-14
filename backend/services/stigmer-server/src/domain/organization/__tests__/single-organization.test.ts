@@ -124,10 +124,10 @@ function clientsAt(port: number) {
 }
 
 describe("the open-source edition's one organization (composed as main.ts composes it, trusted-local)", () => {
-  const policies = fakeGrantStore();
+  const grants = fakeGrantStore();
   const policyUnit: ServerExtension = {
     name: "fake-policies",
-    drivers: { grantStore: policies },
+    drivers: { grantStore: grants },
   };
 
   let dir: string;
@@ -141,14 +141,14 @@ describe("the open-source edition's one organization (composed as main.ts compos
   let stigmerId: string;
 
   function ownersOf(org: string): ReadonlyArray<string> {
-    return [...policies.rows.values()]
+    return [...grants.rows.values()]
       .filter(
-        (policy) =>
-          policy.spec?.resource?.kind === "organization" &&
-          policy.spec.resource.id === org &&
-          policy.spec.relation === "owner",
+        (grant) =>
+          grant.spec?.resource?.kind === "organization" &&
+          grant.spec.resource.id === org &&
+          grant.spec.relation === "owner",
       )
-      .map((policy) => policy.spec?.principal?.id ?? "");
+      .map((grant) => grant.spec?.principal?.id ?? "");
   }
 
   beforeAll(async () => {

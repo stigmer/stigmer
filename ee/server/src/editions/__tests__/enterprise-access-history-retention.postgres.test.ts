@@ -86,7 +86,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
 
   async function sequencesOf(org: string): Promise<number[]> {
     const rows = await db.pool.query<{ sequence: string }>(
-      `SELECT sequence FROM iam_policy_history WHERE org = $1 ORDER BY sequence`,
+      `SELECT sequence FROM grant_history WHERE org = $1 ORDER BY sequence`,
       [org],
     );
     return rows.rows.map((row) => Number(row.sequence));
@@ -94,7 +94,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
 
   async function headOf(org: string): Promise<number | undefined> {
     const rows = await db.pool.query<{ last_sequence: string }>(
-      `SELECT last_sequence FROM iam_policy_history_heads WHERE org = $1`,
+      `SELECT last_sequence FROM grant_history_heads WHERE org = $1`,
       [org],
     );
     const head = rows.rows[0];
@@ -109,9 +109,9 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
     acme = await createOrganization(alice, "acme");
     const raj = await signIn(booted, issuer, "operator|raj");
     const mia = await signIn(booted, issuer, "operator|mia");
-    const policies = createClient(GrantCommandController, alice.transport);
-    await policies.create(grant(ref("identity_account", raj.accountId), "member", ref("organization", acme)));
-    await policies.create(grant(ref("identity_account", mia.accountId), "member", ref("organization", acme)));
+    const grants = createClient(GrantCommandController, alice.transport);
+    await grants.create(grant(ref("identity_account", raj.accountId), "member", ref("organization", acme)));
+    await grants.create(grant(ref("identity_account", mia.accountId), "member", ref("organization", acme)));
 
     doomed = await createOrganization(alice, "doomed");
     await createClient(OrganizationCommandController, alice.transport).delete({ value: doomed });
@@ -139,7 +139,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
     expect(acmeBefore.length).toBeGreaterThanOrEqual(3);
     expect(doomedBefore.length).toBeGreaterThan(0);
     await db.pool.query(
-      `UPDATE iam_policy_history SET occurred_at = $1
+      `UPDATE grant_history SET occurred_at = $1
        WHERE (org = $2 AND sequence <= 2) OR org = $3`,
       [LONG_AGO, acme, doomed],
     );
@@ -191,7 +191,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history's retention
     await booted?.close();
     booted = undefined;
     const kept = await sequencesOf(acme);
-    await db.pool.query(`UPDATE iam_policy_history SET occurred_at = $1 WHERE org = $2`, [LONG_AGO, acme]);
+    await db.pool.query(`UPDATE grant_history SET occurred_at = $1 WHERE org = $2`, [LONG_AGO, acme]);
 
     booted = await boot(undefined);
 

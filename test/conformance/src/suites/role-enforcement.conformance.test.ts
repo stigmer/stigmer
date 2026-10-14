@@ -83,7 +83,7 @@
 // runner entry fills it); executions (a Class A target stages no run);
 // the run gate (run-gate.conformance.test.ts), list isolation for an
 // outsider (list-read-scoping), the direct handlers
-// (direct-handler-authorization) and the IamPolicy RPCs (iampolicy) — each
+// (direct-handler-authorization) and the Grant RPCs (grant) — each
 // rides the same lane in its own file; the per-RPC refusal copy, pinned
 // where each RPC's contract lives (this suite asserts the CODE, the
 // question being who may, not what the sentence says).
@@ -1010,7 +1010,7 @@ describe("role enforcement — the organization: membership, the console's gate"
     );
   });
 
-  it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_edit, organization) is false for a member and true for an admin", async (ctx) => {
+  it("[rpc:GrantQueryController.checkMyPermission] checkMyPermission(can_edit, organization) is false for a member and true for an admin", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const tenancy = await lane.provisionTenancy();
     fixtures.defer(() => lane.cleanupTenancy(tenancy).catch(() => undefined));
@@ -1036,7 +1036,7 @@ describe("role enforcement — the organization: membership, the console's gate"
 });
 
 describe("role enforcement — the platform: no organization role holds a platform capability", () => {
-  it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_manage_plans, platform:stigmer) is false for an owner", async (ctx) => {
+  it("[rpc:GrantQueryController.checkMyPermission] checkMyPermission(can_manage_plans, platform:stigmer) is false for an owner", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const result = await lane.clients.grantQuery.checkMyPermission({
       resource: ref("platform", "stigmer"),

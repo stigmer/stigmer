@@ -17,8 +17,8 @@
  *   - identity-account store + identity federation (the first domain
  *     whose persistence is a PORT, and the four federated RPC arms only
  *     one edition serves)
- *   - IamPolicy store + policy grant scope + authorization queries (the
- *     IamPolicy domain's row half served in every edition; the store
+ *   - Grant store + policy grant scope + authorization queries (the
+ *     Grant domain's row half served in every edition; the store
  *     port, which kinds an edition grants on, and the tuple-half query
  *     engine only an authorization backend can answer)
  *   - principal display (how an access list names a grantee that is not
@@ -72,7 +72,7 @@ import type { OutboundEgressPolicy } from "./outbound-egress.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { MeteredUsageProvider } from "./metered-usage.js";
 import type { OrganizationDirectory } from "./organization-directory.js";
-import type { GrantScope } from "./policy-grant-scope.js";
+import type { GrantScope } from "./grant-scope.js";
 import type { PrincipalDisplay } from "./principal-display.js";
 import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
 import type { ResourceRowReader } from "./resource-row-reader.js";
@@ -127,13 +127,13 @@ export interface ExtensionDrivers {
   /**
    * The resource-authorization lifecycle seam (single-instance point). When
    * composed, the three shared tuple steps
-   * (CreateAuthorizationTuples / CleanupIamPolicies /
+   * (CreateAuthorizationTuples / CleanupGrants /
    * UpdateVisibilityTuples) deliver resolved events to it, and the
-   * IamPolicy grant path delivers the two policy hooks. Corrected
+   * Grant grant path delivers the two policy hooks. Corrected
    * 2026-09-13: when absent, the steps no-op, but
    * open source is no longer record-less — the composition root installs
-   * the built-in role lifecycle (domain/iampolicy/role-lifecycle.ts),
-   * which writes IamPolicy rows, whenever no extension
+   * the built-in role lifecycle (domain/grant/role-lifecycle.ts),
+   * which writes Grant rows, whenever no extension
    * registers an Authorizer (resource-authorization.ts header).
    */
   readonly resourceAuthorizationLifecycle?: ResourceAuthorizationLifecycle;
@@ -233,12 +233,12 @@ export interface ExtensionDrivers {
    */
   readonly identityFederation?: IdentityFederation;
   /**
-   * The IamPolicy store driver (single-instance point). The IamPolicy
+   * The Grant store driver (single-instance point). The Grant
    * domain's persistence is a PORT like the
    * identity-account domain's: when composed, every row the one grant
    * path writes, deletes or reads — user grants, the structural
    * bootstrap lanes, the access lists and counts — goes through this
-   * driver (the cloud serves the domain over its own `cloud.iam_policy`
+   * driver (the cloud serves the domain over its own `cloud.grant`
    * table this way, legacy random ids included). When absent, the OSS
    * adapter over the generic Store installs at the compose.ts
    * consumption site — OSS behavior byte-identical.
@@ -248,7 +248,7 @@ export interface ExtensionDrivers {
    * The policy grant scope (single-instance point):
    * which kinds a user may grant a role on in this edition, with which
    * roles. Narrows the proto's `grantable_roles`, total over the enum,
-   * synchronous (policy-grant-scope.ts carries the reasons). When
+   * synchronous (grant-scope.ts carries the reasons). When
    * composed, ValidateGrantableRole and checkMyPermission's
    * `can_grant_access` arm read it; when absent, open source's
    * organization-only default installs at the compose.ts consumption
@@ -261,7 +261,7 @@ export interface ExtensionDrivers {
    * questions — checkAuthorization, the two
    * listAuthorized*Ids, a checkMyPermission with contextual policies —
    * only an authorization backend can answer over its own graph. When
-   * composed, the IamPolicy query controller dispatches to it after its
+   * composed, the Grant query controller dispatches to it after its
    * own trust checks; when absent, those RPC arms refuse UNIMPLEMENTED
    * with the edition reason — the identityFederation absent shape.
    */

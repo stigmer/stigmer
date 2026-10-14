@@ -28,7 +28,7 @@
  *     grant the grant scope keeps Enterprise.
  *   - `organization` and `identity_account` deleted: every row naming the
  *     resource on either side goes, through the grant path's bidirectional
- *     cleanup — the delete chains' CleanupIamPolicies step calls this, so
+ *     cleanup — the delete chains' CleanupGrants step calls this, so
  *     the rows die with the resource.
  *
  * Who the row is FOR, and who it says wrote it. The event's caller is the

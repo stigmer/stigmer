@@ -206,7 +206,7 @@ function rig(
     },
   };
   const unused = (): Promise<never> => Promise.reject(new Error("not a lane this suite drives"));
-  const policies: GrantPathClient = {
+  const grants: GrantPathClient = {
     bootstrapGrant: unused,
     create: async (spec, as) => {
       await options.onGrant?.();
@@ -248,7 +248,7 @@ function rig(
             write: (line: string) => void (options.warnings ?? options.errors)?.push(line),
           }),
     store,
-    policies,
+    grants: grants,
     lifecycle: {
       onResourceCreated: async (event) => {
         await options.onCreated?.();
@@ -268,12 +268,12 @@ function rig(
       find: options.organization ?? ((org) => Promise.resolve(org === "acme" ? acme : undefined)),
     },
     authorizationQueries: {
-      check: (policy) => {
-        creatorChecks.push(`${policy.relation} ${policy.principal?.id ?? ""}`);
+      check: (grant) => {
+        creatorChecks.push(`${grant.relation} ${grant.principal?.id ?? ""}`);
         if (options.creatorFault !== undefined) {
           return Promise.reject(options.creatorFault);
         }
-        return Promise.resolve(options.creatorHolds?.(policy.relation) ?? true);
+        return Promise.resolve(options.creatorHolds?.(grant.relation) ?? true);
       },
     },
   };

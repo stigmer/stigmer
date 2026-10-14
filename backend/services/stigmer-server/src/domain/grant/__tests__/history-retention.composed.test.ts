@@ -88,15 +88,15 @@ async function bootWithOldEntries(accessHistoryRetentionDays: number | undefined
   });
   servers.push(server);
   for (const n of [1, 2, 3]) {
-    const policy = create(GrantSchema, {
-      metadata: { id: `iamp_retention_${n}` },
+    const grant = create(GrantSchema, {
+      metadata: { id: `grt_retention_${n}` },
       spec: {
         principal: { kind: "identity_account", id: `ida_${n}` },
         relation: "member",
         resource: { kind: "organization", id: "acme" },
       },
     });
-    await server.store.insertResource(ApiResourceKind.grant, `iamp_retention_${n}`, GrantSchema, policy, {
+    await server.store.insertResource(ApiResourceKind.grant, `grt_retention_${n}`, GrantSchema, grant, {
       cause: "grant",
       actorId: "ida_ana",
       actorClass: "user",
@@ -106,7 +106,7 @@ async function bootWithOldEntries(accessHistoryRetentionDays: number | undefined
   const db = new DatabaseSync(path.join(dir, "stigmer.db"));
   try {
     db.prepare(
-      `UPDATE iam_policy_history SET occurred_at = '2000-01-01T00:00:00.000Z' WHERE org = 'acme' AND sequence <= 2`,
+      `UPDATE grant_history SET occurred_at = '2000-01-01T00:00:00.000Z' WHERE org = 'acme' AND sequence <= 2`,
     ).run();
   } finally {
     db.close();

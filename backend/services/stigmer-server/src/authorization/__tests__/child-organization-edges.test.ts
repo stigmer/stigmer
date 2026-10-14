@@ -82,7 +82,7 @@ describe("the loader's read of an organization's children", () => {
     const source = newDerivedTupleSource(
       {
         store,
-        policies: {} as unknown as GrantStore,
+        grants: {} as unknown as GrantStore,
         accounts: { findById: () => Promise.resolve(undefined) },
       },
       { accountId: "acc_1", aliases: new Set(["acc_1"]) },

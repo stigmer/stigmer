@@ -1,15 +1,15 @@
 /**
- * Open source's PolicyGrantScope: the ORGANIZATION grants the roles its
+ * Open source's GrantScope: the ORGANIZATION grants the roles its
  * `kind_meta` lists —
  * owner, admin, member, viewer — and no other kind grants anything. This
  * is what lights the console's Members page in every edition while a
  * viewer on one agent, the per-resource grant, stays what the Enterprise
  * and Cloud editions add by composing a wider scope
- * (extensions/policy-grant-scope.ts carries the contract every scope is
+ * (extensions/grant-scope.ts carries the contract every scope is
  * held to: narrows the proto, total over the enum, synchronous).
  *
  * Installed by the composition root when no unit registers
- * `drivers.policyGrantScope` — the `newPermissiveSingleTeamAuthorizer`
+ * `drivers.grantScope` — the `newPermissiveSingleTeamAuthorizer`
  * shape: the default lives with the domain that defines its semantics and
  * is called at the `??` site, never held by the registry.
  *
@@ -22,7 +22,7 @@
  */
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import type { GrantScope } from "../../extensions/policy-grant-scope.js";
+import type { GrantScope } from "../../extensions/grant-scope.js";
 import { grantableRolesFor } from "../../pipeline/apiresource-meta.js";
 
 /** The open-source default: organization → its proto roles; every other kind → none. */

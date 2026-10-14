@@ -2,7 +2,7 @@
  * Pins grantable-role resolution against the REAL proto kind_meta metadata
  * (the reflection path this module rides) and the grant scope built on
  * it: narrows nothing, total over the enum, synchronous (the three
- * invariants the OSS `PolicyGrantScope` contract states).
+ * invariants the OSS `GrantScope` contract states).
  */
 import { describe, expect, it } from "vitest";
 
@@ -31,7 +31,7 @@ describe("grantable roles from kind_meta", () => {
   });
 });
 
-describe("the PolicyGrantScope built on it (drivers.policyGrantScope)", () => {
+describe("the GrantScope built on it (drivers.grantScope)", () => {
   it("narrows nothing: every kind grants exactly its kind_meta roles, synchronously", () => {
     const scope = newKindMetaGrantScope();
     for (const kind of [

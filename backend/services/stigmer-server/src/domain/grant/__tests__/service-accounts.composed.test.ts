@@ -1,5 +1,5 @@
 /**
- * Pins the IamPolicy chains' service-account rules (steps.ts, the module
+ * Pins the Grant chains' service-account rules (steps.ts, the module
  * header's last paragraph) through a composed server with sign-in on and
  * the built-in Authorizer, over the wire:
  *
@@ -59,7 +59,7 @@ async function rolesOf(principal: string): Promise<string[]> {
 }
 
 beforeAll(async () => {
-  at = await bootSignInServer("iampolicy-service-accounts");
+  at = await bootSignInServer("grant-service-accounts");
   await provision(at, FOUNDER);
   org = await foundOrganization(at.as(FOUNDER), "policy-acme");
   personId = await provision(at, PERSON);

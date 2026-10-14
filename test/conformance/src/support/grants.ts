@@ -1,4 +1,4 @@
-// Constants and fixtures for the IamPolicy domain (the row half served ONCE
+// Constants and fixtures for the Grant domain (the row half served ONCE
 // by @stigmer/server in every edition).
 // Domain: conformance support.
 //
@@ -21,7 +21,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 
 export const GRANT_API_VERSION = "iam.stigmer.ai/v1";
-export const GRANT_KIND = "IamPolicy";
+export const GRANT_KIND = "Grant";
 
 // The four kind_meta roles of the organization, in the proto's order — the
 // one role set open source grants on. Declared on
@@ -31,7 +31,7 @@ export { ORGANIZATION_ROLES, type OrganizationRole } from "../targets/target";
 
 // get for an unknown id (the Java copy, kept by the cloud's handler).
 export function grantNotFoundMessage(id: string): string {
-  return `IAM policy not found: ${id}`;
+  return `Grant not found: ${id}`;
 }
 
 // create on a kind whose kind_meta lists no grantable roles — system-managed
@@ -51,7 +51,7 @@ export function roleNotGrantableMessage(
 
 // create whose principal is neither a person nor a team: a role is granted to
 // an identity account or to a team's members; a row naming any other resource
-// as its principal is a structural link and bootstrapPolicy's. The sentence
+// as its principal is a structural link and bootstrapGrant's. The sentence
 // names both grantee kinds in every edition: the principal check admits a
 // team everywhere, and an edition that serves no teams refuses the team's
 // role afterwards. Every edition, after position 1 — the caller's right on

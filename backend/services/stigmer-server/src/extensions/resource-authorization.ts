@@ -37,19 +37,19 @@
  * while the only writer of authorization records was the cloud's tuple
  * driver. The seam now records authorization at lifecycle points in EVERY
  * edition: open source's built-in role lifecycle
- * (domain/iampolicy/role-lifecycle.ts) writes
- * IamPolicy rows (the organization creator's `owner` row; cleanup on
+ * (domain/grant/role-lifecycle.ts) writes
+ * Grant rows (the organization creator's `owner` row; cleanup on
  * delete), and a composed driver writes tuples too. The two POLICY hooks below are the
- * other direction of the same seam — the IamPolicy domain's one grant and
- * revoke path (domain/iampolicy/grant-path.ts) telling the driver that a
+ * other direction of the same seam — the Grant domain's one grant and
+ * revoke path (domain/grant/grant-path.ts) telling the driver that a
  * row was written or is about to be deleted, so a composition can mirror
  * the row as a tuple. Their order is an invariant, fixed by the
  * path and stated on each event:
- *   - onPolicyGranted: SYNCHRONOUS, AFTER the row is persisted; fires on
+ *   - onGranted: SYNCHRONOUS, AFTER the row is persisted; fires on
  *     the duplicate arm too (the inline heal for a row whose tuple never
  *     landed). A throw fails the request with the row in place — the
  *     caller's retry or a boot backfill heals it.
- *   - onPolicyRevoked: SYNCHRONOUS, BEFORE the row is deleted. A throw
+ *   - onRevoked: SYNCHRONOUS, BEFORE the row is deleted. A throw
  *     leaves row and tuple, so a retry converges; the reverse order was
  *     the fail-open incident class ("revoke" silently becoming "keep").
  *     On the absent arm (no row for the spec) it fires with the spec and
@@ -254,7 +254,7 @@ export interface OrganizationPoliciesChangedEvent {
 }
 
 /**
- * Fired synchronously AFTER an IamPolicy row is persisted by the domain's
+ * Fired synchronously AFTER a Grant row is persisted by the domain's
  * grant path — and on the duplicate arm, when the triple was already held
  * and no row was written, so a composition heals a row whose tuple never
  * landed (the inline heal). `policy` is the row as stored: on the
@@ -262,20 +262,20 @@ export interface OrganizationPoliciesChangedEvent {
  * one on a composition that predates derived ids.
  */
 export interface GrantedEvent {
-  readonly policy: Grant;
+  readonly grant: Grant;
   /** True when the triple was already held and this grant wrote nothing. */
   readonly duplicate: boolean;
 }
 
 /**
- * Fired synchronously BEFORE an IamPolicy row is deleted by the domain's
+ * Fired synchronously BEFORE a Grant row is deleted by the domain's
  * grant path. `spec` is always the triple being revoked; `policy` is the
  * row found for it, or `undefined` on the absent arm — the spec alone is
  * enough to name the tuple a composition still deletes then.
  */
 export interface RevokedEvent {
   readonly spec: GrantSpec;
-  readonly policy: Grant | undefined;
+  readonly grant: Grant | undefined;
 }
 
 /**
@@ -344,7 +344,7 @@ export interface ResourceAuthorizationLifecycle {
   onRevoked?(event: RevokedEvent): Promise<void>;
   /**
    * OPTIONAL: synchronous, BEFORE a row naming an account on an
-   * organization is deleted, ahead of that row's `onPolicyRevoked`. A
+   * organization is deleted, ahead of that row's `onRevoked`. A
    * driver removes the organization's `affiliated` tuple for the account
    * here, so a crash anywhere after it leaves the person denied, never
    * admitted. A throw leaves every row in place for the retry. Absent

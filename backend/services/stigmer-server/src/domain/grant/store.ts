@@ -1,11 +1,11 @@
 /**
- * The IamPolicyStore PORT: the
- * storage contract the IamPolicy domain writes and reads through, cut from
- * the cloud's row store (iam/policy/store.ts) to what BOTH editions call.
+ * The GrantStore PORT: the
+ * storage contract the Grant domain writes and reads through, cut from
+ * the cloud's row store (iam/grant/store.ts) to what BOTH editions call.
  * The second OSS domain whose persistence is a port rather than the
  * generic Store (the identity account was the first): the cloud serves the
- * same controller over its own `cloud.iam_policy` table by registering an
- * implementation as `drivers.iamPolicyStore`, so the domain's grant path
+ * same controller over its own `cloud.grant` table by registering an
+ * implementation as `drivers.grantStore`, so the domain's grant path
  * and handlers take this interface, never `Store`. Open source's own
  * implementation is resource-store.ts over the generic Store.
  *
@@ -24,7 +24,7 @@
  * kit (store-contract.ts, exported), which the OSS adapter's test iterates
  * on both drivers and a composition's driver test iterates too:
  *   - `save` is create-only in effect: a save under a held ID raises
- *     DuplicatePolicyError, never a silent overwrite. Under derived ids a
+ *     DuplicateGrantError, never a silent overwrite. Under derived ids a
  *     held triple IS a held id, which is what the kit exercises; where a
  *     composition still holds legacy random ids, "one row per triple" is
  *     the grant path's by-triple read (grant-path.ts), not this promise;
@@ -52,7 +52,7 @@
  * for every access row it writes or deletes. An implementation that keeps
  * a permission history writes exactly one entry for it in the SAME atomic
  * unit as the row change, and none when the row did not change: a held id
- * raises DuplicatePolicyError before anything is written, and deleting an
+ * raises DuplicateGrantError before anything is written, and deleting an
  * id that is not held records nothing. History equals the row changes
  * exactly, with nothing to filter or heal. An implementation may keep no
  * history and ignore the record; the library's adapter keeps one only when
@@ -67,7 +67,7 @@
  * order with no gaps, and times that never go back, so "everything after
  * N", asked again later, never skips a change that committed late. A store
  * that keeps no history answers an empty list. The kit's history section
- * (`iamPolicyStoreContract` with `keepsHistory`) holds a store to this.
+ * (`grantStoreContract` with `keepsHistory`) holds a store to this.
  *
  * Retention. A host may declare how long the history is kept; the
  * library's retention runner (history-retention.ts) then calls
@@ -98,13 +98,13 @@ import type {
 export class DuplicateGrantError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
     super(message, options);
-    this.name = "DuplicatePolicyError";
+    this.name = "DuplicateGrantError";
   }
 }
 
 export interface GrantStore {
-  /** Insert; a held id raises DuplicatePolicyError. `record`: the change to keep, when the row grants access. */
-  save(policy: Grant, record?: GrantChangeRecord): Promise<void>;
+  /** Insert; a held id raises DuplicateGrantError. `record`: the change to keep, when the row grants access. */
+  save(grant: Grant, record?: GrantChangeRecord): Promise<void>;
   /** Removes the row; no error when it does not exist. `record`: as for `save`, kept only when a row was removed. */
   deleteById(id: string, record?: GrantChangeRecord): Promise<void>;
   findById(id: string): Promise<Grant | undefined>;

@@ -128,7 +128,7 @@ function rig(
         return Promise.resolve();
       },
     },
-    policies: {
+    grants: {
       cleanupResourceGrants: (ref: ApiResourceRef, actingFor?: string) => {
         actors.push(actingFor);
         order.push(`grants:${ref.kind}:${ref.id}`);
@@ -330,7 +330,7 @@ describe("the provider's name release", () => {
         store: { findByIssuer: () => Promise.resolve([]) },
         deleteAccount: () => Promise.resolve(),
       },
-      policies: { cleanupResourceGrants: () => Promise.resolve() },
+      grants: { cleanupResourceGrants: () => Promise.resolve() },
       invalidate: () => {},
       logger: createLogger({
         level: "error",

@@ -203,7 +203,7 @@ function rig(store: InMemoryIssuerStore = new InMemoryIssuerStore()): Rig {
     resourceAuthorizationLifecycle: LIFECYCLE,
     childOrganizations: refusingPort<ChildOrganizations>("childOrganizations"),
     identityAccounts: refusingPort<ComposedIdentityAccounts>("identityAccounts"),
-    grants: refusingPort<ComposedGrants>("iamPolicies"),
+    grants: refusingPort<ComposedGrants>("grants"),
     inProcessTransport: organizations,
     resourceNames: inMemoryNames().resourceNames,
   });

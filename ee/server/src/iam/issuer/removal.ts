@@ -100,7 +100,7 @@ export interface IssuerRemovalDeps {
   readonly accounts: Pick<IdentityAccountService, "deleteAccount"> & {
     readonly store: Pick<IdentityAccountStore, "findByIssuer">;
   };
-  readonly policies: Pick<GrantPathClient, "cleanupResourceGrants">;
+  readonly grants: Pick<GrantPathClient, "cleanupResourceGrants">;
   /** The federated verifier's issuer-cache invalidation. */
   readonly invalidate: () => void;
   readonly logger: Logger;
@@ -148,7 +148,7 @@ export function newIssuerRemoval(deps: IssuerRemovalDeps): IssuerRemoval {
         await deps.accounts.deleteAccount(account, actingFor);
       }
     }
-    await deps.policies.cleanupResourceGrants(
+    await deps.grants.cleanupResourceGrants(
       create(ApiResourceRefSchema, { kind: FEDERATION_ISSUER_KIND_NAME, id }),
       actingFor,
     );

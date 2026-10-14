@@ -1,5 +1,5 @@
 /**
- * Pins the IamPolicy domain through a composed OSS server in the
+ * Pins the Grant domain through a composed OSS server in the
  * trusted-local posture — the open-source behaviours the conformance suite
  * cannot express cross-edition:
  *
@@ -83,7 +83,7 @@ async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
   throw new Error("expected the call to fail");
 }
 
-describe("iampolicy domain (composed server, trusted-local posture)", () => {
+describe("grant domain (composed server, trusted-local posture)", () => {
   let dir: string;
   let server: ComposedServer;
   let transport: Transport;
@@ -98,7 +98,7 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
   let seq = 0;
 
   beforeAll(async () => {
-    dir = mkdtempSync(path.join(tmpdir(), "iampolicy-domain-test-"));
+    dir = mkdtempSync(path.join(tmpdir(), "grant-domain-test-"));
     setOperatorIdentity(OPERATOR_EMAIL, OPERATOR_NAME);
     server = await composeServer({
       config: loadConfig({
@@ -148,7 +148,7 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
       apiVersion: "tenancy.stigmer.ai/v1",
       kind: "Organization",
       metadata: { name: slug, slug, org: "" },
-      spec: { description: "created by the iampolicy domain test" },
+      spec: { description: "created by the grant domain test" },
     });
     return { slug, id: created.metadata?.id ?? "" };
   }
@@ -345,11 +345,11 @@ describe("iampolicy domain (composed server, trusted-local posture)", () => {
       const got = await query.get({ value: created.metadata?.id ?? "" });
       expect(got.spec).toEqual(created.spec);
       const error = await grpcError(() =>
-        query.get({ value: "iamp_00000000000000000000000000" }),
+        query.get({ value: "grt_00000000000000000000000000" }),
       );
       expect(error.code).toBe(Code.NotFound);
       expect(error.rawMessage).toBe(
-        grantNotFoundMessage("iamp_00000000000000000000000000"),
+        grantNotFoundMessage("grt_00000000000000000000000000"),
       );
     });
   });

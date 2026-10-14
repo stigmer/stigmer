@@ -1,17 +1,17 @@
 /**
- * IamPolicy pipeline steps: the domain-local
+ * Grant pipeline steps: the domain-local
  * steps the six command chains splice after the shared `Authorize` and
  * `ValidateProto`. The write itself is never here — every step that writes
  * calls the ONE grant and revoke path (grant-path.ts, which owns the
  * row-and-tuple orderings, the by-triple read and the wire refusals) and leaves
- * its answer under POLICY_RESULT_KEY for the handler. The chains are
+ * its answer under GRANT_RESULT_KEY for the handler. The chains are
  * deliberately short: `Authorize → ValidateProto → <one of these>`, with
  * only the owner steps (the last section) before the write on the three
  * caller lanes, so the pipeline executor's fault mapping (a step's ConnectError keeps its code;
  * a raw store fault becomes the sanitized INTERNAL) covers the path's two
  * error shapes with no second idiom in the handlers.
  *
- * ValidateGrantableRole (the `create` chain only; `bootstrapPolicy` is the
+ * ValidateGrantableRole (the `create` chain only; `bootstrapGrant` is the
  * structural lane and skips it) is the one step with branching logic. It
  * runs BEFORE Grant — the cloud's validate-before-write order, so a held
  * legacy row under a role the kind does not grant is refused rather than
@@ -33,7 +33,7 @@
  *      USER_GRANT_PRINCIPAL_KINDS): a person grants roles to people and to
  *      teams of people, and to nothing else. A row whose principal is a
  *      resource is a structural link (the hierarchy walk's parent edge),
- *      which is `bootstrapPolicy`'s to write; through this lane it would
+ *      which is `bootstrapGrant`'s to write; through this lane it would
  *      let a right on one organization read another's members. Last, so
  *      every answer the cloud's create gives today is unchanged and only
  *      the row it should never have written is refused. A person names no
@@ -50,7 +50,7 @@
  * grants a team nothing without a branch of its own. Whether the team
  * exists and belongs to the resource's organization needs a read, which
  * this synchronous step does not make: that is the
- * `iam-policy-create:pre-side-effect-gate` slot's, spliced after it.
+ * `grant-create:pre-side-effect-gate` slot's, spliced after it.
  *
  * Owner is assigned by owners. Every caller of the member lanes holds
  * `can_grant_access` (admin) already, so an admin grants every role up to
@@ -102,7 +102,7 @@ import type {
 import { IamPermission, IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Authorizer } from "../../extensions/authorizer.js";
-import type { GrantScope } from "../../extensions/policy-grant-scope.js";
+import type { GrantScope } from "../../extensions/grant-scope.js";
 import {
   grantableRolesFor,
   kindEnumName,
@@ -258,12 +258,12 @@ export function newGrantStep(
     async execute(
       ctx: RequestContext<typeof GrantSpecSchema>,
     ): Promise<void> {
-      const { policy } = await grantPath.grant(
+      const { grant: grant } = await grantPath.grant(
         ctx.input,
         ctx.callerIdentity,
         cause,
       );
-      ctx.set(GRANT_RESULT_KEY, policy);
+      ctx.set(GRANT_RESULT_KEY, grant);
     },
   };
 }
@@ -342,14 +342,14 @@ export interface OwnerRoleChange {
  */
 async function organizationOwners<Desc extends DescMessage>(
   ctx: RequestContext<Desc>,
-  policies: GrantStore,
+  grants: GrantStore,
   organizationId: string,
 ): Promise<ReadonlySet<string>> {
   const held = ctx.get(ORGANIZATION_OWNERS_KEY);
   if (held instanceof Set) {
     return held as ReadonlySet<string>;
   }
-  const rows = await policies.findByResourceWithRelations(
+  const rows = await grants.findByResourceWithRelations(
     ORGANIZATION_KIND_NAME,
     organizationId,
     [OWNER_RELATION],
@@ -380,13 +380,13 @@ export function specOwnerRoleChange(
 
 /** `revokeOrgAccess`: the removal touches owner exactly when the account holds it. */
 export function orgAccessOwnerRoleChange(
-  policies: GrantStore,
+  grants: GrantStore,
 ): (
   ctx: RequestContext<typeof RevokeOrgAccessInputSchema>,
 ) => Promise<OwnerRoleChange | undefined> {
   return async (ctx) => {
     const { identityAccountId, org: organizationId } = ctx.input;
-    const owners = await organizationOwners(ctx, policies, organizationId);
+    const owners = await organizationOwners(ctx, grants, organizationId);
     return owners.has(identityAccountId)
       ? { organizationId, accountId: identityAccountId }
       : undefined;
@@ -424,7 +424,7 @@ export function newAuthorizeOwnerAssignmentStep<Desc extends DescMessage>(
 
 /** A revoke or removal may not leave the organization with no owner; see the module header. */
 export function newKeepOneOwnerStep<Desc extends DescMessage>(
-  policies: GrantStore,
+  grants: GrantStore,
   ownerRoleChange: (ctx: RequestContext<Desc>) => Promise<OwnerRoleChange | undefined>,
 ): PipelineStep<Desc> {
   return {
@@ -437,7 +437,7 @@ export function newKeepOneOwnerStep<Desc extends DescMessage>(
       if (change === undefined) {
         return;
       }
-      const owners = await organizationOwners(ctx, policies, change.organizationId);
+      const owners = await organizationOwners(ctx, grants, change.organizationId);
       if (owners.has(change.accountId) && owners.size === 1) {
         throw new ConnectError(LAST_OWNER_MESSAGE, Code.FailedPrecondition);
       }

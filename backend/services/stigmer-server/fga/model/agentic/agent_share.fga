@@ -61,7 +61,7 @@ type agent_share
     define can_delete: owner
 
     # ========================================
-    # IAM POLICY MANAGEMENT
+    # ACCESS MANAGEMENT
     # ========================================
     define can_grant_access: owner
     define can_view_access: viewer

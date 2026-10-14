@@ -489,7 +489,7 @@ the same tag). The declared set is read from the committed generated sources of
 - **A tag is literal in the source.** The static check scans the files, so a
   tag built at runtime is invisible to it. In an `it.each` whose table cell is
   the title's `%s` and serves only as a label, the tag goes in that cell
-  (`"[rpc:IamPolicyCommandController.bootstrapPolicy] bootstrapPolicy"`);
+  (`"[rpc:GrantCommandController.bootstrapGrant] bootstrapGrant"`);
   otherwise on the inner titles.
 - **A new waiver is declared.** A pull request that waives an RPC not waived
   at its base, or moves a waiver from `proven-elsewhere` to `gap`, carries one
@@ -543,7 +543,7 @@ targets — with one contract for people (`provisionIdentity`, `provisionMember`
 `provisionWithRole`) and tenancies. The same arm therefore runs on the cloud
 and on both open-source store drivers, which is what makes the authorization
 suites (`run-gate`, `list-read-scoping`, `direct-handler-authorization`,
-`role-enforcement`, the enforcing blocks of `iampolicy` and `organization`) a
+`role-enforcement`, the enforcing blocks of `grant` and `organization`) a
 cross-edition contract rather than a cloud-only one.
 Where a newcomer arrives holding roles (open source's membership rules make
 every later arrival a member of every organization), the lane revokes them

@@ -9,7 +9,7 @@
  * What it registers, and nothing else: the federated verifier; the
  * IdentityFederation capability and the team principal display; the
  * removal on `org-delete:pre-delete`; the organization grant
- * gate on `iam-policy-create:pre-side-effect-gate`; the FederationIssuer,
+ * gate on `grant-create:pre-side-effect-gate`; the FederationIssuer,
  * Invitation and Team services; the row readers of its three kinds; the
  * hand-over, which refuses a composition with no list scope or no
  * authorization check; and the start its boot repairs run on. No removal
@@ -17,7 +17,7 @@
  *
  * The boot repair is pinned here too, run through the unit's start after
  * the hand-over, over fakes of the ports it reads and an in-process
- * organization and IamPolicy service (the transport the composition hands
+ * organization and Grant service (the transport the composition hands
  * it), because it is the one piece of
  * the domain whose failure is silent: an invitation or a team left
  * unlinked is invisible to its own organization's admins, and nothing
@@ -257,7 +257,7 @@ function refusingComposition(overrides: Partial<ComposedServices> = {}): Compose
     resourceAuthorizationLifecycle: undefined,
     childOrganizations: refusingPort<ChildOrganizations>("childOrganizations"),
     identityAccounts: refusingPort<ComposedIdentityAccounts>("identityAccounts"),
-    grants: refusingPort<ComposedGrants>("iamPolicies"),
+    grants: refusingPort<ComposedGrants>("grants"),
     inProcessTransport: createRouterTransport(() => {}),
     resourceNames: refusingPort<ResourceNameStore>("resourceNames"),
     ...overrides,
@@ -286,10 +286,10 @@ describe("the enterprise-identity unit", () => {
     expect(drivers?.principalDisplay).toBeDefined();
   });
 
-  it("puts exactly one step, OrganizationGrantGate, on iam-policy-create:pre-side-effect-gate", () => {
+  it("puts exactly one step, OrganizationGrantGate, on grant-create:pre-side-effect-gate", () => {
     expect(
       unit()
-        .gateSteps?.get("iam-policy-create:pre-side-effect-gate")
+        .gateSteps?.get("grant-create:pre-side-effect-gate")
         ?.map((step) => step.name),
     ).toEqual(["OrganizationGrantGate"]);
   });
@@ -304,7 +304,7 @@ describe("the enterprise-identity unit", () => {
 
   it("fills no other slot and guards no caller", () => {
     expect([...(unit().gateSteps?.keys() ?? [])].sort()).toEqual([
-      "iam-policy-create:pre-side-effect-gate",
+      "grant-create:pre-side-effect-gate",
       "org-delete:pre-delete",
     ]);
     expect(unit().callerGuards ?? []).toHaveLength(0);

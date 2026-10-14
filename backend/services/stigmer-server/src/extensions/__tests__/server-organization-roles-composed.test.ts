@@ -1,7 +1,7 @@
 /**
  * Pins, end to end, the roles on the organization a one-organization server
  * makes itself under sign-in, when the store it boots on already holds people
- * (domain/iampolicy/membership.ts `ensureRolesOnServerOrganization`).
+ * (domain/grant/membership.ts `ensureRolesOnServerOrganization`).
  *
  * Three boots over ONE data directory:
  *   1. A server that holds any number of organizations (an older open-source
@@ -21,7 +21,7 @@
  * which owns it; booted again with sign-in and no operator email, the first
  * person to sign in owns it and the next is a member, as on a fresh sign-in
  * install. The laptop account's stamp and owner row are nobody's on that
- * organization (domain/iampolicy/membership.ts). The same holds for an
+ * organization (domain/grant/membership.ts). The same holds for an
  * organization an older release's laptop made (`acme`, through its console
  * or CLI): the one organization a server holds is the server's, whoever
  * made it.

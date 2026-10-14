@@ -1,6 +1,6 @@
 /**
  * The organization grant gate: the step on
- * `iam-policy-create:pre-side-effect-gate`, the IAM policy `create` chain
+ * `grant-create:pre-side-effect-gate`, the grant `create` chain
  * after ValidateGrantableRole and before the write. A grant stays inside
  * the organization of the resource it is made on. The model agrees: it
  * admits a direct grant only while its holder is in the object's

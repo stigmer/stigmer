@@ -53,13 +53,13 @@ export interface TeamRemovalDeps {
   readonly teams: Pick<TeamStore, "findById" | "findIdsByOrg" | "deleteById">;
   /** The server's one name table: a removed team's slug is let go after its row. */
   readonly names: NameTable;
-  readonly policies: Pick<GrantPathClient, "cleanupResourceGrants">;
+  readonly grants: Pick<GrantPathClient, "cleanupResourceGrants">;
   readonly logger: Logger;
 }
 
 export function newTeamRemoval(deps: TeamRemovalDeps): TeamRemoval {
   async function remove(id: string, actingFor: string): Promise<void> {
-    await deps.policies.cleanupResourceGrants(
+    await deps.grants.cleanupResourceGrants(
       create(ApiResourceRefSchema, { kind: TEAM_KIND_NAME, id }),
       actingFor,
     );

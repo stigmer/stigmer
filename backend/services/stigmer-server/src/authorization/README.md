@@ -9,12 +9,12 @@ Authorizer). It is not a domain: it drives ports the registry declares
 `extensions/schedule-fire-caller.ts`, `extensions/list-read-scope.ts`) by
 reading aggregates it does not own — resources through the generic `Store`,
 accounts through the `IdentityAccountStore` port, roles through the
-`IamPolicyStore` port — and writes nothing.
+`GrantStore` port — and writes nothing.
 
 The idea, once: authorization is one OpenFGA model (`../../fga/model`, compiled
 into `model/data/authorization-model.json`), and every tuple it reads is derived
 from a row by `kind_meta.authorization` except the one that is a fact, the
-IamPolicy row. An edition that runs OpenFGA applies that model and stores the
+Grant row. An edition that runs OpenFGA applies that model and stores the
 tuples; this server evaluates the same bytes over the same tuples, derived from
 the row when a check asks instead of stored. One model and one meaning of
 authorization in every edition; the hosted edition stores what open source
@@ -63,7 +63,7 @@ computes.
   pipeline leaf `pipeline/steps/authorization-facts.ts`, the read-time twin of
   the tuple lifecycle's create-time resolution, pinned equal to it.
 - `derived-tuples.ts` — the derivation (the cloud driver's shapes, from the
-  facts) and the source that joins it with the person's IamPolicy rows, read
+  facts) and the source that joins it with the person's Grant rows, read
   once per source, and with the rows granted to each team the person holds
   `member` on (one read more per team; open source serves no team, so its
   callers never pay it). The two edition-specific facts live here: the
@@ -106,7 +106,7 @@ computes.
   that does not decode skipped; the `internal` class keeps everything (the
   in-process skip); a fault throws and is never an empty answer; an undeclared
   kind is a consumer bug, loud.
-- `policy-check.ts` — the one query-engine verb a unit asks, "is this policy
+- `grant-check.ts` — the one query-engine verb a unit asks, "is this policy
   held", answered by the evaluator for a person by account id or for any other
   object; handed to units as the composition's `authorizationQueries` under
   the built-in posture. Contextual policies and userset principals are refused.

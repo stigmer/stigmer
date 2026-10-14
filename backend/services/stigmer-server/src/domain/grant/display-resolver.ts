@@ -5,7 +5,7 @@
  * row per distinct id, the port's own line) and renders the
  * ApiResourceRefView shape access listings carry: display name, email,
  * avatar, identity origin. Moved from the cloud's iam/account/
- * display-resolver.ts; built by the IamPolicy controller over the accounts
+ * display-resolver.ts; built by the Grant controller over the accounts
  * port it already holds, never composed as a seam — the data is a domain
  * READ, the same in every edition.
  *

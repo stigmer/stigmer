@@ -145,7 +145,7 @@
  * (SYSTEM_OPERATOR_IDENTITY_ID, the one home of that word). The
  * rules classify stamps by shape and consult no account store.
  *
- * Reads. Policy rows through the IamPolicyStore PORT (`policies`, the
+ * Reads. Policy rows through the GrantStore PORT (`policies`, the
  * same instance the grant path writes through) — never around it.
  * Organizations and blueprints through the generic Store, decoded with
  * each kind's own schema (CREATOR_SCAN_SCHEMAS: the envelope shares its
@@ -203,7 +203,7 @@ import type { GrantStore } from "./store.js";
 export interface MembershipRulesDeps {
   readonly grantPath: GrantPath;
   /** The port the grant path writes through — read here for "holds a row", "zero rows", "has an owner". */
-  readonly policies: GrantStore;
+  readonly grants: GrantStore;
   readonly store: Store;
   /** STIGMER_OPERATOR_EMAIL as the operator seam holds it; "" when unconfigured. */
   readonly operatorEmail: string;
@@ -388,7 +388,7 @@ function createdAtMillisOf(account: IdentityAccount): number {
 }
 
 export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
-  const { grantPath, policies, store, operatorEmail } = deps;
+  const { grantPath, grants: grants, store, operatorEmail } = deps;
   const everyPersonJoins = deps.edition === ServerEdition.oss;
 
   async function scan(kind: ApiResourceKind): Promise<ScannedResource[]> {
@@ -452,7 +452,7 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
   async function organizationsHeldBy(
     accountId: string,
   ): Promise<ReadonlySet<string>> {
-    const rows = await policies.findByPrincipal(IDENTITY_ACCOUNT, accountId);
+    const rows = await grants.findByPrincipal(IDENTITY_ACCOUNT, accountId);
     return new Set(
       rows
         .filter((row) => row.spec?.resource?.kind === ORGANIZATION)
@@ -524,7 +524,7 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
       const serverOrganization =
         world.serverOrganization !== "" &&
         organization.id === world.serverOrganization;
-      const rows = await policies.findByResource(ORGANIZATION, organization.id);
+      const rows = await grants.findByResource(ORGANIZATION, organization.id);
       const role = roleFor({
         accountId,
         subject,
@@ -679,7 +679,7 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
       // named the way every other trusted-local write names it.
       const actor = accountAsCaller(operator);
       for (const organization of await scanOrganizations()) {
-        const owners = await policies.findByResourceWithRelations(
+        const owners = await grants.findByResourceWithRelations(
           ORGANIZATION,
           organization.id,
           [relationOf(IamRole.owner)],

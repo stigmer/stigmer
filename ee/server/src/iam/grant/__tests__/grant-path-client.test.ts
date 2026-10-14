@@ -1,6 +1,6 @@
 /**
  * Pins the composition's client of the OSS grant path: each method reaches
- * the IamPolicyCommandController RPC of the same name over the in-process
+ * the GrantCommandController RPC of the same name over the in-process
  * transport with its input unchanged; no caller header rides the call, so
  * the OSS interceptor mints the `internal` class the three system RPCs
  * admit; the transport is resolved lazily and a call before it is wired is
@@ -9,7 +9,7 @@
  * object would drag the inner response's transport metadata through the
  * outer serving handler). The structural lane refuses a team as principal
  * before any RPC, because a grant to a team must meet the team grant gate
- * on IamPolicy.create, while a team as resource passes through.
+ * on Grant.create, while a team as resource passes through.
  */
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -57,7 +57,7 @@ function recordingRoutes(received: Received, refuse?: ConnectError) {
         throw refuse;
       }
     };
-    const row = create(GrantSchema, { metadata: { id: "iamp_answer" } });
+    const row = create(GrantSchema, { metadata: { id: "grt_answer" } });
     router.service(GrantCommandController, {
       create: (input, ctx) => {
         record("create", input, ctx.requestHeader);
@@ -99,10 +99,10 @@ describe("each method is the RPC of the same name, input unchanged, no caller he
   it("bootstrapGrant, create and delete carry the spec", async () => {
     const { received, client } = wired();
     expect((await client.bootstrapGrant(GRANT)).metadata?.id).toBe(
-      "iamp_answer",
+      "grt_answer",
     );
-    expect((await client.create(GRANT)).metadata?.id).toBe("iamp_answer");
-    expect((await client.delete(GRANT)).metadata?.id).toBe("iamp_answer");
+    expect((await client.create(GRANT)).metadata?.id).toBe("grt_answer");
+    expect((await client.delete(GRANT)).metadata?.id).toBe("grt_answer");
     expect(received.calls.map((c) => c.rpc)).toEqual([
       "bootstrapGrant",
       "create",
@@ -163,7 +163,7 @@ describe("the structural lane and teams", () => {
     expect(refusal).toBeInstanceOf(ConnectError);
     expect(refusal).toMatchObject({
       code: Code.Internal,
-      rawMessage: "a grant to a team is made through IamPolicy.create, never the structural lane",
+      rawMessage: "a grant to a team is made through Grant.create, never the structural lane",
     });
     expect(received.calls, "nothing reached the controller").toEqual([]);
 
@@ -183,7 +183,7 @@ describe("the transport seam", () => {
     await expect(client.bootstrapGrant(GRANT)).rejects.toMatchObject({
       code: Code.Internal,
       rawMessage:
-        "iam policy grant path used before the in-process transport was wired",
+        "grant path used before the in-process transport was wired",
     });
   });
 

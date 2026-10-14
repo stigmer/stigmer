@@ -247,7 +247,7 @@ describe("service accounts with sign-in on (built-in Authorizer)", () => {
     ).toEqual([`viewer@${acme}`]);
     const granted = at.logs.filter(
       (line) =>
-        line.message === "iam policy granted" && line["principalId"] === id,
+        line.message === "grant created" && line["principalId"] === id,
     );
     expect(granted).toHaveLength(1);
     expect(granted[0]).toMatchObject({

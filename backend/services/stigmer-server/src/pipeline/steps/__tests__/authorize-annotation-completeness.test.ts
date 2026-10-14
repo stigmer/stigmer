@@ -22,7 +22,7 @@
  * that names NO kind (static or by path) is outside this invariant: the
  * check is then about the kind, not the id.
  *
- * The IamPolicy contract is the one place that shape exists, and it is
+ * The Grant contract is the one place that shape exists, and it is
  * pinned here by descriptor, not by served route, so the arm turns green
  * when the ANNOTATIONS land and not when the service is first served.
  * Of its nine `rpc.config`
@@ -30,7 +30,7 @@
  * `listResourceAccessByPrincipal`, `getPrincipalResourceRoles` by
  * `resource_kind_path` (the spec's `resource.kind`, a STRING the resolver
  * reads by enum name) + `field_path`; `revokeOrgAccess` and
- * `getPrincipalsCount` statically. `get(IamPolicyId)` names no kind BY
+ * `getPrincipalsCount` statically. `get(GrantId)` names no kind BY
  * DESIGN: its target is inside the row it loads, so it is the one
  * load-then-authorize lane (`authorizeDirect` with the override's
  * resourceKind + resourceId, the getByEmail precedent). The two
@@ -157,7 +157,7 @@ describe("authorization annotations name where the resource id comes from", () =
   });
 });
 
-describe("the IamPolicy contract names its targets (read by descriptor)", () => {
+describe("the Grant contract names its targets (read by descriptor)", () => {
   const targets = annotationTargets([
     GrantCommandController,
     GrantQueryController,

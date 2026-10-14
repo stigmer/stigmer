@@ -5,7 +5,7 @@
  *
  * An access list ("who has access to this agent, with which roles") names
  * every grantee. People are resolved by the core from the identity-account
- * port (domain/iampolicy/display-resolver.ts), the same in every edition.
+ * port (domain/grant/display-resolver.ts), the same in every edition.
  * A grantee of another kind — a team, in the Enterprise and Cloud editions
  * — lives in a store only that edition holds, so its name comes from this
  * point. Absent (open source, which grants to no team), such a grantee

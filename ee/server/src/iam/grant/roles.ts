@@ -1,5 +1,5 @@
 /**
- * This edition's grant scope — `drivers.policyGrantScope` — and the proto
+ * This edition's grant scope — `drivers.grantScope` — and the proto
  * read it is made of; and `isPersonCaller`, who may acquire an
  * organization role at all.
  *
@@ -13,7 +13,7 @@
  *
  * What this module does not carry: the assignable-relation allowlist and
  * the role display table are the library's (its five roles and their copy
- * are in `@stigmer/server`'s `domain/iampolicy/roles.ts`, and its access
+ * are in `@stigmer/server`'s `domain/grant/roles.ts`, and its access
  * lists read them).
  */
 import { getOption, hasOption } from "@bufbuild/protobuf";
@@ -45,7 +45,7 @@ export function grantableRolesFor(
 }
 
 /**
- * The PolicyGrantScope that grants what each kind's `kind_meta` lists, and
+ * The GrantScope that grants what each kind's `kind_meta` lists, and
  * narrows nothing: what an edition that serves per-resource sharing wants.
  * The OSS `ValidateGrantableRole` step intersects the proto's
  * `grantable_roles` with the scope, so an edition can only NARROW what a
@@ -60,8 +60,8 @@ export function newKindMetaGrantScope(): GrantScope {
  * Whether the caller is a person acting as themselves, and so may acquire
  * an organization role through their own act: redeeming an invitation,
  * founding an organization. The rule is open source's ("the roles are
- * people's": in `@stigmer/server`, `domain/iampolicy/role-lifecycle.ts` and
- * `@stigmer/server`'s `domain/iampolicy/membership.ts` admit only the
+ * people's": in `@stigmer/server`, `domain/grant/role-lifecycle.ts` and
+ * `@stigmer/server`'s `domain/grant/membership.ts` admit only the
  * `user` class), stated again here because a host of this code runs its own
  * lifecycle and its own lanes, where that rule would otherwise never run.
  *

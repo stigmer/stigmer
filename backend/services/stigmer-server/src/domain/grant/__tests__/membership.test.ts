@@ -61,7 +61,7 @@
  * it is non-empty and not the unconfigured laptop's "system" placeholder;
  * the rules classify stamps by shape and consult no account store.
  *
- * The rules read policy rows through the IamPolicyStore PORT (`policies`,
+ * The rules read policy rows through the GrantStore PORT (`policies`,
  * the same instance the grant path writes through), never around it.
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -134,7 +134,7 @@ function account(sub: string, email: string): IdentityAccount {
 describe("membership rules", () => {
   let temp: ReturnType<typeof tempStore>;
   let store: Store;
-  let policies: FakeGrantStore;
+  let grants: FakeGrantStore;
   let grantPath: GrantPath;
   let rules: MembershipRules;
 
@@ -147,11 +147,11 @@ describe("membership rules", () => {
     return newMembershipRules({
       grantPath: newGrantPath({
         resources: NO_STORED_RESOURCES,
-        policies: port,
+        grants: port,
         lifecycle: undefined,
         logger: silentLogger,
       }),
-      policies: port,
+      grants: port,
       store,
       operatorEmail,
       edition,
@@ -161,16 +161,16 @@ describe("membership rules", () => {
   beforeEach(() => {
     temp = tempStore();
     store = temp.store;
-    policies = fakeGrantStore();
+    grants = fakeGrantStore();
     grantPath = newGrantPath({
       resources: NO_STORED_RESOURCES,
-      policies,
+      grants: grants,
       lifecycle: undefined,
       logger: silentLogger,
     });
     rules = newMembershipRules({
       grantPath,
-      policies,
+      grants: grants,
       store,
       operatorEmail: OPERATOR_EMAIL,
       edition: ServerEdition.oss,
@@ -260,7 +260,7 @@ describe("membership rules", () => {
   }
 
   function rolesOf(accountId: string): ReadonlyArray<string> {
-    return [...policies.rows.values()]
+    return [...grants.rows.values()]
       .filter((p) => p.spec?.principal?.id === accountId)
       .map((p) => `${p.spec?.relation}@${p.spec?.resource?.id}`)
       .sort();
@@ -310,7 +310,7 @@ describe("membership rules", () => {
 
   /** The audit actor ids of every row, in insertion order — who each grant was written AS. */
   function actorsOf(): ReadonlyArray<string> {
-    return [...policies.rows.values()].map(
+    return [...grants.rows.values()].map(
       (p) => p.status?.audit?.specAudit?.createdBy?.id ?? "",
     );
   }
@@ -367,7 +367,7 @@ describe("membership rules", () => {
         "acme",
         userCaller(alice.metadata!.id),
       );
-      expect(policies.rows.size).toBe(0);
+      expect(grants.rows.size).toBe(0);
       // A second creator stamp keeps the "no other person created anything here" arm from firing on its own.
       await seedAgent("agt_alice", "acme", alice.metadata!.id);
       const mallory = account("auth0|mallory", "mallory@example.com");
@@ -386,7 +386,7 @@ describe("membership rules", () => {
         "acme",
         userCaller(alice.metadata!.id),
       );
-      expect(policies.rows.size).toBe(0);
+      expect(grants.rows.size).toBe(0);
       // No blueprint at all: only the organization's own creator stamp stands between mallory and admin.
       const mallory = account("auth0|mallory", "mallory@example.com");
 
@@ -399,7 +399,7 @@ describe("membership rules", () => {
       await seedOrg("acme", "auth0|alice");
       const alice = account("auth0|alice", "alice@example.com");
       await rules.onAccountCreated(alice, userCaller(alice.metadata!.id));
-      const unconfigured = rulesOver(policies, "");
+      const unconfigured = rulesOver(grants, "");
       const nobody = account("auth0|nobody", "");
 
       await unconfigured.onAccountCreated(
@@ -417,13 +417,13 @@ describe("membership rules", () => {
       const healthy = fakeGrantStore();
       const flaky: GrantStore = {
         ...healthy,
-        async save(policy) {
+        async save(grant) {
           // The first organization's row lands; the second save fails once.
           if (healthy.rows.size === 1 && faultsLeft > 0) {
             faultsLeft -= 1;
             throw new Error("disk full");
           }
-          await healthy.save(policy);
+          await healthy.save(grant);
         },
       };
       const flakyRules = rulesOver(flaky);
@@ -519,7 +519,7 @@ describe("membership rules", () => {
     it("with no organization yet, writes nothing — the creator rule runs when the organization is created", async () => {
       const alice = account("auth0|alice", "alice@example.com");
       await rules.onAccountCreated(alice, userCaller(alice.metadata!.id));
-      expect(policies.rows.size).toBe(0);
+      expect(grants.rows.size).toBe(0);
     });
 
     it("never grants a runner, machine or internal caller a role", async () => {
@@ -531,18 +531,18 @@ describe("membership rules", () => {
           callerClass,
         });
       }
-      expect(policies.rows.size).toBe(0);
+      expect(grants.rows.size).toBe(0);
     });
 
     it("skips an organization the account already holds a row on — a second run writes nothing new", async () => {
       await seedOrg("acme", "auth0|alice");
       const alice = account("auth0|alice", "alice@example.com");
       await rules.onAccountCreated(alice, userCaller(alice.metadata!.id));
-      const before = [...policies.rows.keys()];
+      const before = [...grants.rows.keys()];
 
       await rules.onAccountCreated(alice, userCaller(alice.metadata!.id));
 
-      expect([...policies.rows.keys()]).toEqual(before);
+      expect([...grants.rows.keys()]).toEqual(before);
     });
   });
 
@@ -554,11 +554,11 @@ describe("membership rules", () => {
       const operatorId = operator.metadata!.id;
 
       await rules.ensureOperatorOwnership(operator);
-      const after = [...policies.rows.keys()].sort();
+      const after = [...grants.rows.keys()].sort();
       await rules.ensureOperatorOwnership(operator);
 
       expect(rolesOf(operatorId)).toEqual(["owner@acme", "owner@globex"]);
-      expect([...policies.rows.keys()].sort()).toEqual(after);
+      expect([...grants.rows.keys()].sort()).toEqual(after);
     });
 
     it("makes the operator owner of no child organization", async () => {
@@ -587,7 +587,7 @@ describe("membership rules", () => {
 
       await rules.ensureOperatorOwnership(operator);
 
-      const [row] = [...policies.rows.values()];
+      const [row] = [...grants.rows.values()];
       const actor = row?.status?.audit?.specAudit?.createdBy;
       expect(actor?.id).toBe(operator.metadata!.id);
       expect(actor?.email).toBe(OPERATOR_EMAIL);
@@ -614,7 +614,7 @@ describe("membership rules", () => {
     });
 
     it("with no operator email configured, the first person to sign in owns it", async () => {
-      const unconfigured = rulesOver(policies, "");
+      const unconfigured = rulesOver(grants, "");
       const first = account("auth0|first", "first@example.com");
       await unconfigured.onAccountCreated(
         first,
@@ -1035,7 +1035,7 @@ describe("membership rules", () => {
 
   describe("above the open-source edition", () => {
     it("a stranger who signs in joins no organization, while the founder, the operator and the fresh install's first caller still get their roles", async () => {
-      const enterprise = rulesOver(policies, OPERATOR_EMAIL, ServerEdition.enterprise);
+      const enterprise = rulesOver(grants, OPERATOR_EMAIL, ServerEdition.enterprise);
       await seedOrg("acme", "auth0|alice");
       await seedAgent("agt_alice", "acme", "auth0|alice");
       await seedOrg("globex", "auth0|alice");
@@ -1070,7 +1070,7 @@ describe("membership rules", () => {
     });
 
     it("the reconciliation grants no membership either", async () => {
-      const enterprise = rulesOver(policies, OPERATOR_EMAIL, ServerEdition.enterprise);
+      const enterprise = rulesOver(grants, OPERATOR_EMAIL, ServerEdition.enterprise);
       await seedOrg("acme", "auth0|alice");
       await seedAgent("agt_alice", "acme", "auth0|alice");
       const alice = await seedAccount("auth0|alice", "alice@example.com", 1);
@@ -1139,12 +1139,12 @@ describe("membership rules", () => {
       await seedAccount("auth0|alice", "alice@example.com", 100);
       await rules.ensureRolesForExistingAccounts();
       const marker = await store.bootstrapState.get(ROLES_RECONCILED_KEY);
-      const before = [...policies.rows.keys()];
+      const before = [...grants.rows.keys()];
       await seedAccount("auth0|late", "late@example.com", 400);
 
       await rules.ensureRolesForExistingAccounts();
 
-      expect([...policies.rows.keys()]).toEqual(before);
+      expect([...grants.rows.keys()]).toEqual(before);
       expect(await store.bootstrapState.get(ROLES_RECONCILED_KEY)).toBe(marker);
     });
 
@@ -1178,7 +1178,7 @@ describe("membership rules", () => {
       await rules.ensureRolesForExistingAccounts();
 
       expect(rolesOf(bot.metadata!.id)).toEqual([]);
-      expect(policies.rows.size).toBe(0);
+      expect(grants.rows.size).toBe(0);
     });
 
     it("accounts are reconciled in creation order — arm 4 hands an unclaimed organization to the first sign-in, not to whoever sorts first by id", async () => {
@@ -1216,12 +1216,12 @@ describe("membership rules", () => {
       const healthy = fakeGrantStore();
       const flaky: GrantStore = {
         ...healthy,
-        async save(policy) {
+        async save(grant) {
           if (healthy.rows.size === 1 && faultsLeft > 0) {
             faultsLeft -= 1;
             throw new Error("disk full");
           }
-          await healthy.save(policy);
+          await healthy.save(grant);
         },
       };
       const flakyRules = rulesOver(flaky);
@@ -1246,17 +1246,17 @@ describe("membership rules", () => {
       await seedOrg("acme", "auth0|alice");
       await seedAccount("auth0|alice", "alice@example.com", 100);
       await rules.ensureRolesForExistingAccounts();
-      expect(policies.rows.size).toBe(1);
-      policies.rows.clear();
+      expect(grants.rows.size).toBe(1);
+      grants.rows.clear();
 
       await rules.ensureRolesForExistingAccounts();
 
-      expect(policies.rows.size).toBe(0);
+      expect(grants.rows.size).toBe(0);
     });
 
     it("zero accounts still sets the marker — a fresh install is reconciled from its first boot", async () => {
       await rules.ensureRolesForExistingAccounts();
-      expect(policies.rows.size).toBe(0);
+      expect(grants.rows.size).toBe(0);
       expect(await store.bootstrapState.get(ROLES_RECONCILED_KEY)).not.toBe("");
     });
   });
@@ -1268,7 +1268,7 @@ describe("membership rules", () => {
 
       await rules.ensureRolesOnServerOrganization();
 
-      expect(policies.rows.size).toBe(0);
+      expect(grants.rows.size).toBe(0);
       expect(
         await store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY),
       ).toBe("");
@@ -1313,11 +1313,11 @@ describe("membership rules", () => {
       await store.bootstrapState.set(SINGLE_ORG_KEY, "stigmer");
       await seedAccount("auth0|operator", OPERATOR_EMAIL, 100);
       await rules.ensureRolesOnServerOrganization();
-      policies.rows.clear();
+      grants.rows.clear();
 
       await rules.ensureRolesOnServerOrganization();
 
-      expect(policies.rows.size).toBe(0);
+      expect(grants.rows.size).toBe(0);
     });
 
     it("a store that already held its organization owes nothing: no role granted, and the marker written", async () => {
@@ -1328,7 +1328,7 @@ describe("membership rules", () => {
 
       await rules.ensureRolesOnServerOrganization();
 
-      expect(policies.rows.size).toBe(0);
+      expect(grants.rows.size).toBe(0);
       expect(
         await store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY),
       ).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
@@ -1340,7 +1340,7 @@ describe("membership rules", () => {
 
       await rules.ensureRolesOnServerOrganization();
 
-      expect(policies.rows.size).toBe(0);
+      expect(grants.rows.size).toBe(0);
       expect(
         await store.bootstrapState.get(SERVER_ORGANIZATION_ROLES_KEY),
       ).not.toBe("");

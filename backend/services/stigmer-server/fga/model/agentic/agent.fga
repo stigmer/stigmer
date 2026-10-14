@@ -139,7 +139,7 @@ type agent
     define can_execute: viewer
     
     # ========================================
-    # IAM POLICY MANAGEMENT
+    # ACCESS MANAGEMENT
     # ========================================
     define can_grant_access: owner
     

@@ -44,7 +44,7 @@ describe("grantsAccess", () => {
   });
 });
 
-describe("policyActorOf", () => {
+describe("grantActorOf", () => {
   it("keeps the caller's id and class and nothing else", () => {
     const caller: CallerIdentity = {
       identityId: "ida_1",

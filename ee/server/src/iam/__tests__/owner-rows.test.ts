@@ -29,7 +29,7 @@ import { createLogger } from "@stigmer/server";
 import { reconcileOwnerRows, revokeOwnerRows } from "../owner-rows.js";
 import type { OwnerRowKind } from "../owner-rows.js";
 
-function policy(
+function grant(
   principal: { kind: string; id: string },
   relation: string,
   resource: { kind: string; id: string },
@@ -66,7 +66,7 @@ function rig(
         );
       },
     },
-    policies: {
+    grants: {
       delete: (spec: GrantSpec) => {
         if (options.failDeletesFor?.has(spec.resource?.id ?? "") === true) {
           return Promise.reject(new Error("engine down"));
@@ -109,12 +109,12 @@ const ALL_NO_OWNER_KINDS: ReadonlyArray<OwnerRowKind> = [
 describe("revokeOwnerRows", () => {
   it("reads the kind's owner rows once and revokes each through the grant path, moving nothing else", async () => {
     const table = [
-      policy({ kind: "organization", id: "acme" }, "organization", PROVIDER),
-      policy({ kind: "identity_account", id: "ida_carol" }, "owner", PROVIDER),
-      policy({ kind: "identity_account", id: "ida_granted" }, "owner", PROVIDER),
-      policy({ kind: "identity_account", id: "ida_vince" }, "viewer", PROVIDER),
-      policy({ kind: "identity_account", id: "ida_carol" }, "creator", PROVIDER),
-      policy({ kind: "identity_account", id: "ida_carol" }, "owner", CHANNEL_APP),
+      grant({ kind: "organization", id: "acme" }, "organization", PROVIDER),
+      grant({ kind: "identity_account", id: "ida_carol" }, "owner", PROVIDER),
+      grant({ kind: "identity_account", id: "ida_granted" }, "owner", PROVIDER),
+      grant({ kind: "identity_account", id: "ida_vince" }, "viewer", PROVIDER),
+      grant({ kind: "identity_account", id: "ida_carol" }, "creator", PROVIDER),
+      grant({ kind: "identity_account", id: "ida_carol" }, "owner", CHANNEL_APP),
     ];
     const r = rig(table);
 
@@ -138,7 +138,7 @@ describe("revokeOwnerRows", () => {
   });
 
   it("revokes nothing on a second run", async () => {
-    const r = rig([policy({ kind: "identity_account", id: "ida_carol" }, "owner", CHANNEL_APP)]);
+    const r = rig([grant({ kind: "identity_account", id: "ida_carol" }, "owner", CHANNEL_APP)]);
 
     const first = await revokeOwnerRows(ApiResourceKind.channel_app, r.deps);
     const second = await revokeOwnerRows(ApiResourceKind.channel_app, r.deps);
@@ -150,8 +150,8 @@ describe("revokeOwnerRows", () => {
   it("reports one row's failure and revokes the rest", async () => {
     const r = rig(
       [
-        policy({ kind: "identity_account", id: "ida_carol" }, "owner", CHANNEL_APP),
-        policy({ kind: "identity_account", id: "ida_dan" }, "owner", { kind: "channel_app", id: "cha_b" }),
+        grant({ kind: "identity_account", id: "ida_carol" }, "owner", CHANNEL_APP),
+        grant({ kind: "identity_account", id: "ida_dan" }, "owner", { kind: "channel_app", id: "cha_b" }),
       ],
       { failDeletesFor: new Set(["cha_a"]) },
     );
@@ -166,11 +166,11 @@ describe("revokeOwnerRows", () => {
 describe("reconcileOwnerRows", () => {
   it("revokes every no-owner kind's owner rows in order and logs each under the kind's own words", async () => {
     const r = rig([
-      policy({ kind: "identity_account", id: "ida_carol" }, "owner", PROVIDER),
-      policy({ kind: "identity_account", id: "ida_carl" }, "owner", { kind: "invitation", id: "inv_1" }),
-      policy({ kind: "identity_account", id: "ida_dan" }, "owner", CHANNEL_APP),
-      policy({ kind: "identity_account", id: "ida_erin" }, "owner", { kind: "oauth_app", id: "oapp_a" }),
-      policy({ kind: "identity_account", id: "ida_vince" }, "viewer", CHANNEL_APP),
+      grant({ kind: "identity_account", id: "ida_carol" }, "owner", PROVIDER),
+      grant({ kind: "identity_account", id: "ida_carl" }, "owner", { kind: "invitation", id: "inv_1" }),
+      grant({ kind: "identity_account", id: "ida_dan" }, "owner", CHANNEL_APP),
+      grant({ kind: "identity_account", id: "ida_erin" }, "owner", { kind: "oauth_app", id: "oapp_a" }),
+      grant({ kind: "identity_account", id: "ida_vince" }, "viewer", CHANNEL_APP),
     ]);
 
     await reconcileOwnerRows(ALL_NO_OWNER_KINDS, r.deps);
@@ -206,8 +206,8 @@ describe("reconcileOwnerRows", () => {
   it("logs a kind whose read fails and still runs the next kind", async () => {
     const r = rig(
       [
-        policy({ kind: "identity_account", id: "ida_dan" }, "owner", CHANNEL_APP),
-        policy({ kind: "identity_account", id: "ida_erin" }, "owner", { kind: "oauth_app", id: "oapp_a" }),
+        grant({ kind: "identity_account", id: "ida_dan" }, "owner", CHANNEL_APP),
+        grant({ kind: "identity_account", id: "ida_erin" }, "owner", { kind: "oauth_app", id: "oapp_a" }),
       ],
       { failReadsFor: new Set(["channel_app"]) },
     );

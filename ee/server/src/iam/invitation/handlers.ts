@@ -178,7 +178,7 @@ export interface InvitationLaneDeps {
   readonly authorizer: Authorizer;
   readonly logger: Logger;
   readonly store: InvitationStore;
-  readonly policies: GrantPathClient;
+  readonly grants: GrantPathClient;
   /** The composition's one lifecycle driver: creation grants through the grant path. */
   readonly lifecycle: Pick<ResourceAuthorizationLifecycle, "onResourceCreated">;
   /** The composition's one list read scope, the same instance the driver slot holds. */
@@ -418,7 +418,7 @@ async function redeemInvitation(
   // a person granting themselves a role.
   const inviter = invitation.status?.audit?.specAudit?.createdBy?.id ?? "";
   try {
-    await deps.policies.create(role, inviter);
+    await deps.grants.create(role, inviter);
   } catch (grantError) {
     try {
       const released = await deps.store.releaseRedemption(invitationId, caller.identityId, redeemedAt);

@@ -295,15 +295,15 @@ export function newLoadExistingOrganizationStep(
  * organization in place, and a retry resumes where the revocation stopped
  * (the grant path revokes the organization's owners last, so the owner
  * who retries still can). The grant path fires the composed driver's
- * `onPolicyRevoked` before each row, so a composition's tuples go with
- * their rows. The post-delete CleanupIamPolicies still runs: it catches
+ * `onRevoked` before each row, so a composition's tuples go with
+ * their rows. The post-delete CleanupGrants still runs: it catches
  * whatever a concurrent write named the organization with in between.
  */
-export function newRevokeOrganizationPoliciesStep<Desc extends DescMessage>(
+export function newRevokeOrganizationGrantsStep<Desc extends DescMessage>(
   grantPath: GrantPath,
 ): PipelineStep<Desc> {
   return {
-    name: "RevokeOrganizationPolicies",
+    name: "RevokeOrganizationGrants",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
       const organization = ctx.get(EXISTING_RESOURCE_KEY) as
         | Organization
@@ -311,7 +311,7 @@ export function newRevokeOrganizationPoliciesStep<Desc extends DescMessage>(
       const id = organization?.metadata?.id ?? "";
       if (id === "") {
         throw internalError(
-          new Error("organization delete reached RevokeOrganizationPolicies without its loaded row"),
+          new Error("organization delete reached RevokeOrganizationGrants without its loaded row"),
           "failed to remove the organization's access policies",
         );
       }

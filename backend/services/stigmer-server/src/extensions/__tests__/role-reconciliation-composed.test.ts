@@ -30,7 +30,7 @@
  * the open-source OIDC self-host's shape, the same recipe
  * built-in-authorization-composed.test.ts boots). The per-arm proofs of
  * the reconciliation (order, the machine account, the fault, the half-run
- * database) are domain/iampolicy/__tests__/membership.test.ts; this file
+ * database) are domain/grant/__tests__/membership.test.ts; this file
  * is the upgrade's definition of done at the wire.
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -195,12 +195,12 @@ describe("role reconciliation (composed server, OIDC with no unit Authorizer, th
   });
 
   it("boot 3: every role removed after the marker stays removed — a reboot hands nothing back", async () => {
-    const policies = createClient(GrantCommandController, asFounder());
-    await policies.revokeOrgAccess({
+    const grants = createClient(GrantCommandController, asFounder());
+    await grants.revokeOrgAccess({
       identityAccountId: memberId,
       org: ORG,
     });
-    const lastOwner = await policies
+    const lastOwner = await grants
       .revokeOrgAccess({ identityAccountId: founderId, org: ORG })
       .then(
         () => undefined,

@@ -174,7 +174,7 @@ export interface FederatedVerifierDeps {
    */
   readonly providers: Pick<FederationIssuerStore, "findLive" | "isLive">;
   readonly accounts: IdentityAccountService;
-  readonly policies: GrantPathClient;
+  readonly grants: GrantPathClient;
   /** The provider organization's children, by the external id a token's claim carries. */
   readonly childOrganizations: Pick<ChildOrganizations, "findByExternalId">;
   /** The first sign-in of each (account, organization), which the sign-in role is granted on. */
@@ -615,7 +615,7 @@ async function settleSignInGrant(
   }
   const grant = signInRoleGrant(accountId, boundOrg, IamRole[role]);
   try {
-    await deps.policies.create(grant, providerId);
+    await deps.grants.create(grant, providerId);
   } catch (grantError) {
     deps.logger.error("federated sign-in role grant failed; the sign-in is refused", {
       accountId,
@@ -689,7 +689,7 @@ async function undoUnlessIssuerLive(
     await undo("delete the account", () => deps.accounts.deleteAccount(signedIn.account, providerId));
   } else if (settled.claimed && settled.granted !== undefined) {
     const granted = settled.granted;
-    await undo("revoke the sign-in role", () => deps.policies.delete(granted, providerId));
+    await undo("revoke the sign-in role", () => deps.grants.delete(granted, providerId));
   }
   if (settled.claimed) {
     await undo("release the first sign-in", () => deps.signInGrants.release(accountId, boundOrg));

@@ -139,7 +139,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
       "restrictListEntries and authorizedResourceIds",
       () => {
         let opened: OpenedStore;
-        let policies: GrantStore;
+        let grants: GrantStore;
         let accounts: IdentityAccountStore;
         let storeReads: { rows: number; scans: number };
         let accountReads: number;
@@ -167,7 +167,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         }
 
         async function grant(spec: ReturnType<typeof orgRole>) {
-          await policies.save(
+          await grants.save(
             create(GrantSchema, {
               apiVersion: GRANT_API_VERSION,
               kind: GRANT_KIND,
@@ -199,7 +199,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         ): ListReadScope {
           return newBuiltInListReadScope({
             store: countingStore(),
-            policies,
+            grants: grants,
             accounts: {
               findById: (id) => {
                 accountReads += 1;
@@ -236,7 +236,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           storeReads = { rows: 0, scans: 0 };
           accountReads = 0;
           rows.clear();
-          policies = newResourceGrantStore(opened.store, { keepsHistory: false });
+          grants = newResourceGrantStore(opened.store, { keepsHistory: false });
           accounts = newResourceIdentityAccountStore(opened.store);
           for (const [id, subject] of [
             [FOUNDER, "auth0|founder"],
@@ -573,8 +573,8 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           it("a store fault THROWS — never an empty answer (an empty set means 'authorized to see nothing')", async () => {
             const fault = new Error("connection reset");
             const faulting = scope({
-              policies: {
-                ...policies,
+              grants: {
+                ...grants,
                 findByPrincipal: () => Promise.reject(fault),
               },
             });
@@ -696,11 +696,11 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             let principalReads = 0;
             await restrictListByReadScope(
               scope({
-                policies: {
-                  ...policies,
+                grants: {
+                  ...grants,
                   findByPrincipal(principalKind, principalId) {
                     principalReads += 1;
-                    return policies.findByPrincipal(principalKind, principalId);
+                    return grants.findByPrincipal(principalKind, principalId);
                   },
                 },
               }),

@@ -53,7 +53,7 @@ import {
 
 const ROW_CREATED = new Date("2026-09-22T10:00:00Z");
 
-function policy(principal: { kind: string; id: string }, relation: string, providerId: string): Grant {
+function grant(principal: { kind: string; id: string }, relation: string, providerId: string): Grant {
   return create(GrantSchema, {
     spec: create(GrantSpecSchema, {
       principal: create(ApiResourceRefSchema, principal),
@@ -64,7 +64,7 @@ function policy(principal: { kind: string; id: string }, relation: string, provi
 }
 
 function rig(options: {
-  policies?: ReadonlyMap<string, ReadonlyArray<Grant>>;
+  grants?: ReadonlyMap<string, ReadonlyArray<Grant>>;
   organizations?: ReadonlyMap<string, OrganizationFacts>;
   failWritesFor?: ReadonlySet<string>;
 }) {
@@ -72,9 +72,9 @@ function rig(options: {
   const lookedUp: string[] = [];
   const deps = {
     grantStore: {
-      findByResource: (_kind: string, id: string) => Promise.resolve(options.policies?.get(id) ?? []),
+      findByResource: (_kind: string, id: string) => Promise.resolve(options.grants?.get(id) ?? []),
     },
-    policies: {
+    grants: {
       bootstrapGrant: (spec: GrantSpec) => {
         if (options.failWritesFor?.has(spec.resource?.id ?? "") === true) {
           return Promise.reject(new Error("engine down"));
@@ -104,8 +104,8 @@ const live = (createdAt: Date | undefined): OrganizationFacts => ({
 describe("reconcileOrganizationLinks", () => {
   it("writes exactly the organization link for a row missing it, and nothing for a row that has it", async () => {
     const r = rig({
-      policies: new Map([
-        ["fis_linked", [policy({ kind: "organization", id: "acme" }, "organization", "fis_linked")]],
+      grants: new Map([
+        ["fis_linked", [grant({ kind: "organization", id: "acme" }, "organization", "fis_linked")]],
       ]),
       organizations: new Map([["acme", live(new Date("2026-01-01T00:00:00Z"))]]),
     });
@@ -131,12 +131,12 @@ describe("reconcileOrganizationLinks", () => {
 
   it("counts only the exact triple as the link, never an organization's row on another relation or another organization's link", async () => {
     const r = rig({
-      policies: new Map([
+      grants: new Map([
         [
           "fis_platform",
           [
-            policy({ kind: "organization", id: "tenant" }, "viewer", "fis_platform"),
-            policy({ kind: "organization", id: "elsewhere" }, "organization", "fis_platform"),
+            grant({ kind: "organization", id: "tenant" }, "viewer", "fis_platform"),
+            grant({ kind: "organization", id: "elsewhere" }, "organization", "fis_platform"),
           ],
         ],
       ]),

@@ -136,9 +136,9 @@ export async function provisionConsolePerson(
   return { token, accountId };
 }
 
-// The ordinary IamPolicy grant that makes an identity a `member` of an
-// organization — the Members-page grant, through IamPolicyCommandController.
-// create as the org's owner (never bootstrapPolicy, which is the operator
+// The ordinary Grant grant that makes an identity a `member` of an
+// organization — the Members-page grant, through GrantCommandController.
+// create as the org's owner (never bootstrapGrant, which is the operator
 // lane for grants the ordinary create cannot express). The general form,
 // any role, is the enforcing lane's `organizationRoleGrant`.
 export function organizationMemberGrant(organizationId: string, identityAccountId: string): GrantSpec {

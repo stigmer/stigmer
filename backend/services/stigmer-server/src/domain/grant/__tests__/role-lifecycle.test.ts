@@ -30,7 +30,7 @@
  *
  *   The rest of the contract
  *   - onVisibilityChanged is a no-op;
- *   - onPolicyGranted / onPolicyRevoked are NOT defined: those hooks are a
+ *   - onGranted / onRevoked are NOT defined: those hooks are a
  *     composed driver's tuple half, fired by the grant path, and the grant
  *     path's lifecycle is that driver (undefined in open source) — never
  *     this object, which sits ON TOP of the grant path. Acyclic by
@@ -133,7 +133,7 @@ function lifecycleOver(
   );
   const grantPath = newGrantPath({
     resources: NO_STORED_RESOURCES,
-    policies: store,
+    grants: store,
     lifecycle: undefined,
     logger: silentLogger,
   });

@@ -89,7 +89,7 @@ describe("kindServedByEdition — the kind's tier through the same table", () =>
     ).toBe(true);
   });
 
-  it("iam_policy is served by every edition once this entry flips it", () => {
+  it("grant is served by every edition once this entry flips it", () => {
     expect(
       kindServedByEdition(ApiResourceKind.grant, ServerEdition.oss),
     ).toBe(true);

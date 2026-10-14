@@ -41,7 +41,7 @@
  * gives: a team's grants outlive its row unless they die first.
  *
  * Membership is not a Team RPC: a person joins a team when they are
- * granted `member` on it through the IAM policy service, and the grant
+ * granted `member` on it through the grant service, and the grant
  * gate (grant-gate.ts) is where that grant is checked against the team.
  */
 import { create, fromBinary } from "@bufbuild/protobuf";

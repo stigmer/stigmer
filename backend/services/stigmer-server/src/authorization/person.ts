@@ -16,7 +16,7 @@
  *   same alias rule.
  *
  *   `personFor(caller, account)` — the pure half: the account id the
- *   IamPolicy rows name, and every string a creator stamp may carry for
+ *   Grant rows name, and every string a creator stamp may carry for
  *   the same human. A provisioned caller carries the account id and the
  *   account's issuer subject (rows the 3.14.x verifiers stamped with the
  *   raw `sub` still match — the alias rule); an unprovisioned one

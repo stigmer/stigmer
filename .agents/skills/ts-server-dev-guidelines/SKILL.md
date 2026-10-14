@@ -116,7 +116,7 @@ extends a chain only through the registered points; it never patches a step.
   tags the call like an external one. A new server-internal caller adds a
   narrow, method-segregated edge to the in-process clients and resolves it
   lazily when it is built before the routes exist. A domain port the composition
-  root injects (the identity-account create path, the IamPolicy grant path, the
+  root injects (the identity-account create path, the Grant grant path, the
   membership hook) may be called directly, because it is not an RPC. Either way,
   every `CallerIdentity` is built in
   `backend/services/stigmer-server/src/pipeline/interceptors/auth.ts` or, for an

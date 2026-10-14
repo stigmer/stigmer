@@ -1,16 +1,16 @@
 /**
- * An IamPolicy store held in memory: the library's IamPolicyStore port
+ * A Grant store held in memory: the library's GrantStore port
  * (`@stigmer/server`) plus the one read the Enterprise identity unit's
  * owner-row reconcile adds, `findByResourceKindAndRelation` (the unit's
  * `OwnerRowReads`, which this file matches by shape rather than import,
  * so it stays neutral). A host
  * that composes the unit on open source's own authorization registers one
- * store as the library's `drivers.iamPolicyStore` and hands the same one
+ * store as the library's `drivers.grantStore` and hands the same one
  * to the unit, so the grant path's writes are the rows the unit reads;
  * this is that store for the suites that compose it so.
  *
  * It is proven against the library's own port-contract kit
- * (`iamPolicyStoreContract`) where it is used
+ * (`grantStoreContract`) where it is used
  * (extension/__tests__/enterprise-identity.built-in.test.ts), so it is held
  * to the contract every driver is held to rather than to a reading of it.
  * `disconnect` turns every read and write into the rejection an outage is,
@@ -54,14 +54,14 @@ export class InMemoryGrantStore implements GrantStore {
     return [...this.rows.values()];
   }
 
-  async save(policy: Grant, record?: GrantChangeRecord): Promise<void> {
+  async save(grant: Grant, record?: GrantChangeRecord): Promise<void> {
     this.guard();
-    const id = policy.metadata?.id ?? "";
+    const id = grant.metadata?.id ?? "";
     if (this.rows.has(id)) {
-      throw new DuplicateGrantError(`IAM policy '${id}' already exists`);
+      throw new DuplicateGrantError(`grant '${id}' already exists`);
     }
-    this.rows.set(id, policy);
-    this.keep("granted", policy, record);
+    this.rows.set(id, grant);
+    this.keep("granted", grant, record);
   }
 
   async deleteById(id: string, record?: GrantChangeRecord): Promise<void> {
@@ -189,7 +189,7 @@ export class InMemoryGrantStore implements GrantStore {
     return [...this.rows.values()].filter((row) => row.spec !== undefined && matches(row.spec));
   }
 
-  private keep(change: GrantChange["change"], policy: Grant, record: GrantChangeRecord | undefined): void {
+  private keep(change: GrantChange["change"], grant: Grant, record: GrantChangeRecord | undefined): void {
     if (record === undefined) {
       return;
     }
@@ -203,13 +203,13 @@ export class InMemoryGrantStore implements GrantStore {
       actor: record.actor,
       cause: record.cause,
       organizationId: org,
-      policy,
+      grant,
     });
   }
 
   private guard(): void {
     if (this.down) {
-      throw new Error("the in-memory IAM policy store is disconnected");
+      throw new Error("the in-memory grant store is disconnected");
     }
   }
 }

@@ -48,7 +48,7 @@ import { ACCOUNT_TYPE } from "./tuples.js";
 export interface BuiltInGrantCheckDeps {
   readonly store: Store;
   /** The port the grant path writes through — the principal's rows are read from the same instance. */
-  readonly policies: GrantStore;
+  readonly grants: GrantStore;
   /** The account port: a person principal's aliases, and identity_account objects. */
   readonly accounts: Pick<IdentityAccountStore, "findById">;
   /** The readers of the kinds units keep themselves (`drivers.resourceRowReaders`). */
@@ -62,14 +62,14 @@ export function newBuiltInGrantCheck(
 ): Pick<AuthorizationQueryEngine, "check"> {
   const model = deps.model ?? builtInModel;
   return {
-    async check(policy, contextualPolicies) {
-      if (contextualPolicies.length > 0) {
+    async check(grant, contextualGrants) {
+      if (contextualGrants.length > 0) {
         throw new Error(
           "the built-in policy check evaluates held policies only — contextual policies are not supported",
         );
       }
-      const principalRef = policy.principal;
-      const resource = policy.resource;
+      const principalRef = grant.principal;
+      const resource = grant.resource;
       if (principalRef === undefined || resource === undefined) {
         throw new Error(
           "the built-in policy check needs a principal and a resource",
@@ -87,7 +87,7 @@ export function newBuiltInGrantCheck(
       const source = newDerivedTupleSource(
         {
           store: deps.store,
-          policies: deps.policies,
+          grants: deps.grants,
           accounts: deps.accounts,
           rowReaders: deps.rowReaders,
           model,
@@ -97,7 +97,7 @@ export function newBuiltInGrantCheck(
       return checkRelation(
         { model, source },
         { type: resource.kind, id: resource.id },
-        policy.relation,
+        grant.relation,
         principal,
       );
     },

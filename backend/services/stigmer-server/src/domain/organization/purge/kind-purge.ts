@@ -18,7 +18,7 @@
  *
  * Before the steps, every policy row naming the row is revoked through the
  * grant path, failing the batch on a fault. A delete chain's
- * CleanupIamPolicies is best-effort (it logs and lets the delete answer);
+ * CleanupGrants is best-effort (it logs and lets the delete answer);
  * a purge must leave nothing, and it is retried, so it fails instead. The
  * revocation comes first because the row is how a retry finds what is
  * left, and how the grant path resolves the row's organization: a fault

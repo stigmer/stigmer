@@ -165,11 +165,11 @@ describe("the organization-name resolver", () => {
 
   it("resolves a top-level org, the Organization service's annotated id, and a policy ref of kind organization", async () => {
     const resolver = resolverOf({ acme: ACME });
-    const { search, organizations, policies, seen } = harness(resolver);
+    const { search, organizations, policies: grants, seen } = harness(resolver);
 
     await search.search({ org: "acme" });
     await organizations.get({ value: "acme" });
-    await policies.bootstrapGrant({
+    await grants.bootstrapGrant({
       principal: { kind: "identity_account", id: "acme" },
       resource: { kind: "organization", id: "acme" },
       relation: "member",

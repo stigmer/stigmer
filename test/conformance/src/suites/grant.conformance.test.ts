@@ -1,12 +1,12 @@
-// Conformance suite for the IamPolicy domain (the ROW half
+// Conformance suite for the Grant domain (the ROW half
 // served ONCE by @stigmer/server in every edition: one grant and revoke
 // path, the row-driven access lists and counts, revokeOrgAccess,
 // checkMyPermission with one definition; the cloud composition serves it
 // over its own table through the store driver and mirrors every row to an
 // OpenFGA tuple through the two lifecycle hooks).
-// Domain: iam / iampolicy.
+// Domain: iam / grant.
 //
-// Drives IamPolicyCommandController + IamPolicyQueryController through the
+// Drives GrantCommandController + GrantQueryController through the
 // raw proto stubs and asserts the cross-edition contract.
 //
 // The caller is the organization's creator on every target — the local
@@ -242,8 +242,8 @@ async function rolesOf(
   return roles.roles.map((role) => role.code);
 }
 
-describe("IamPolicy conformance — the creator owns the organization", () => {
-  it("[rpc:IamPolicyQueryController.listResourceAccessByPrincipal] lists the creator as owner, not inherited, with the display fields whoAmI answers", async () => {
+describe("Grant conformance — the creator owns the organization", () => {
+  it("[rpc:GrantQueryController.listResourceAccessByPrincipal] lists the creator as owner, not inherited, with the display fields whoAmI answers", async () => {
     const me = await clients.identityAccountQuery.whoAmI({});
     const org = await createOwnedOrganization();
 
@@ -269,8 +269,8 @@ describe("IamPolicy conformance — the creator owns the organization", () => {
   });
 });
 
-describe("IamPolicy conformance — grants on the organization, the Members page's RPCs", () => {
-  it("[rpc:IamPolicyCommandController.create] [rpc:IamPolicyQueryController.getPrincipalsCount] create is idempotent: the same triple twice answers one policy, one row, one counted principal", async () => {
+describe("Grant conformance — grants on the organization, the Members page's RPCs", () => {
+  it("[rpc:GrantCommandController.create] [rpc:GrantQueryController.getPrincipalsCount] create is idempotent: the same triple twice answers one policy, one row, one counted principal", async () => {
     const org = await createOwnedOrganization();
     const member = syntheticAccountId();
     const spec = organizationRole(member, "member", org);
@@ -280,7 +280,7 @@ describe("IamPolicy conformance — grants on the organization, the Members page
     const first = await clients.grantCommand.create(spec);
     const second = await clients.grantCommand.create(spec);
 
-    expect(first.metadata?.id).toMatch(/^iamp_[0-9a-z]+$/);
+    expect(first.metadata?.id).toMatch(/^grt_[0-9a-z]+$/);
     expect(second.metadata?.id).toBe(first.metadata?.id);
     expect(first.spec).toEqual(spec);
     expect(await rolesOf(member, org)).toEqual(["member"]);
@@ -291,7 +291,7 @@ describe("IamPolicy conformance — grants on the organization, the Members page
     expect(count.count, "the creator and the member").toBe(2);
   });
 
-  it("[rpc:IamPolicyCommandController.delete] [rpc:IamPolicyCommandController.create] [rpc:IamPolicyQueryController.getPrincipalResourceRoles] a role change is delete then create, and the roles follow", async () => {
+  it("[rpc:GrantCommandController.delete] [rpc:GrantCommandController.create] [rpc:GrantQueryController.getPrincipalResourceRoles] a role change is delete then create, and the roles follow", async () => {
     const org = await createOwnedOrganization();
     const member = syntheticAccountId();
     const created = await clients.grantCommand.create(
@@ -310,7 +310,7 @@ describe("IamPolicy conformance — grants on the organization, the Members page
     expect(await rolesOf(member, org)).toEqual(["admin"]);
   });
 
-  it("[rpc:IamPolicyCommandController.create] every kind_meta role of the organization is grantable; a role it does not list is INVALID_ARGUMENT with the byte-pinned copy", async () => {
+  it("[rpc:GrantCommandController.create] every kind_meta role of the organization is grantable; a role it does not list is INVALID_ARGUMENT with the byte-pinned copy", async () => {
     const org = await createOwnedOrganization();
     const person = syntheticAccountId();
     for (const role of ORGANIZATION_ROLES) {
@@ -335,7 +335,7 @@ describe("IamPolicy conformance — grants on the organization, the Members page
     );
   });
 
-  it("[rpc:IamPolicyCommandController.revokeOrgAccess] revokeOrgAccess empties one principal's rows on one organization and touches nothing else", async () => {
+  it("[rpc:GrantCommandController.revokeOrgAccess] revokeOrgAccess empties one principal's rows on one organization and touches nothing else", async () => {
     const org = await createOwnedOrganization();
     const other = await createOwnedOrganization();
     const person = syntheticAccountId();
@@ -363,7 +363,7 @@ describe("IamPolicy conformance — grants on the organization, the Members page
     expect(await rolesOf(bystander, org)).toEqual(["member"]);
   });
 
-  it("[rpc:IamPolicyQueryController.get] get answers the row by id, and the byte-pinned NOT_FOUND copy for an unknown id", async () => {
+  it("[rpc:GrantQueryController.get] get answers the row by id, and the byte-pinned NOT_FOUND copy for an unknown id", async () => {
     const org = await createOwnedOrganization();
     const created = await clients.grantCommand.create(
       organizationRole(syntheticAccountId(), "member", org),
@@ -378,17 +378,17 @@ describe("IamPolicy conformance — grants on the organization, the Members page
     const error = await expectGrpcCode(
       () =>
         clients.grantQuery.get({
-          value: "iamp_00000000000000000000000000",
+          value: "grt_00000000000000000000000000",
         }),
       Code.NotFound,
       "get for an unknown policy id",
     );
     expect(error.rawMessage).toBe(
-      grantNotFoundMessage("iamp_00000000000000000000000000"),
+      grantNotFoundMessage("grt_00000000000000000000000000"),
     );
   });
 
-  it("[rpc:IamPolicyCommandController.delete] delete of an absent triple answers the default instance — Java's contract", async () => {
+  it("[rpc:GrantCommandController.delete] delete of an absent triple answers the default instance — Java's contract", async () => {
     const org = await createOwnedOrganization();
 
     // No row, no error, the empty message.
@@ -398,7 +398,7 @@ describe("IamPolicy conformance — grants on the organization, the Members page
     expect(deleted.metadata?.id ?? "").toBe("");
   });
 
-  it("[rpc:IamPolicyCommandController.create] a grant on a kind whose kind_meta lists no roles is INVALID_ARGUMENT with the system-managed copy in every edition", async () => {
+  it("[rpc:GrantCommandController.create] a grant on a kind whose kind_meta lists no roles is INVALID_ARGUMENT with the system-managed copy in every edition", async () => {
     // The target is the caller's OWN account so the authorization check
     // passes on cloud too (identity_account#can_grant_access: owner, and a
     // person owns their account): the refusal under test is the role
@@ -420,7 +420,7 @@ describe("IamPolicy conformance — grants on the organization, the Members page
     expect(error.rawMessage).toBe(noGrantableRolesMessage("identity_account"));
   });
 
-  it("[rpc:IamPolicyCommandController.create] a grant whose principal is another organization is INVALID_ARGUMENT with the principal copy, and links nothing", async () => {
+  it("[rpc:GrantCommandController.create] a grant whose principal is another organization is INVALID_ARGUMENT with the principal copy, and links nothing", async () => {
     // The caller owns `org`, so position 1 passes in every edition; what
     // is refused is the grantee. Were the row written, findScopeTuple
     // would read `other` as org's structural parent and the Members page's
@@ -457,10 +457,10 @@ describe("IamPolicy conformance — grants on the organization, the Members page
   });
 });
 
-describe("IamPolicy conformance — the three system RPCs refuse a wire user", () => {
+describe("Grant conformance — the three system RPCs refuse a wire user", () => {
   it.each([
     [
-      "[rpc:IamPolicyCommandController.bootstrapPolicy] bootstrapPolicy",
+      "[rpc:GrantCommandController.bootstrapGrant] bootstrapGrant",
       (org: string) =>
         clients.grantCommand.bootstrapGrant(
           grantTriple({ kind: "organization", id: org }, "organization", {
@@ -471,7 +471,7 @@ describe("IamPolicy conformance — the three system RPCs refuse a wire user", (
       BOOTSTRAP_GRANT_DENIED_MESSAGE,
     ],
     [
-      "[rpc:IamPolicyCommandController.cleanupResourcePolicies] cleanupResourcePolicies",
+      "[rpc:GrantCommandController.cleanupResourceGrants] cleanupResourceGrants",
       (org: string) =>
         clients.grantCommand.cleanupResourceGrants(
           ref("organization", org),
@@ -479,7 +479,7 @@ describe("IamPolicy conformance — the three system RPCs refuse a wire user", (
       CLEANUP_RESOURCE_GRANTS_DENIED_MESSAGE,
     ],
     [
-      "[rpc:IamPolicyCommandController.bootstrapRevokeOrgAccess] bootstrapRevokeOrgAccess",
+      "[rpc:GrantCommandController.bootstrapRevokeOrgAccess] bootstrapRevokeOrgAccess",
       (org: string) =>
         clients.grantCommand.bootstrapRevokeOrgAccess({
           identityAccountId: syntheticAccountId(),
@@ -505,8 +505,8 @@ describe("IamPolicy conformance — the three system RPCs refuse a wire user", (
   );
 });
 
-describe("IamPolicy conformance — checkMyPermission has one definition", () => {
-  it("[rpc:IamPolicyQueryController.checkMyPermission] can_view_access on an organization the caller owns is true", async () => {
+describe("Grant conformance — checkMyPermission has one definition", () => {
+  it("[rpc:GrantQueryController.checkMyPermission] can_view_access on an organization the caller owns is true", async () => {
     const org = await createOwnedOrganization();
     const result = await clients.grantQuery.checkMyPermission({
       resource: ref("organization", org),
@@ -515,7 +515,7 @@ describe("IamPolicy conformance — checkMyPermission has one definition", () =>
     expect(result.isAuthorized).toBe(true);
   });
 
-  it("[rpc:IamPolicyQueryController.checkMyPermission] a platform permission is false for an ordinary caller in every edition — the operator-only settings navigation stays hidden", async () => {
+  it("[rpc:GrantQueryController.checkMyPermission] a platform permission is false for an ordinary caller in every edition — the operator-only settings navigation stays hidden", async () => {
     // Open source: `platform` is enterprise-tiered, so nobody holds a
     // permission on it there (arm 1). Cloud: platform#operator is not the
     // conformance user (fga/model/platform.fga). The console's
@@ -527,7 +527,7 @@ describe("IamPolicy conformance — checkMyPermission has one definition", () =>
     expect(result.isAuthorized).toBe(false);
   });
 
-  it("[rpc:IamPolicyQueryController.checkMyPermission] an unknown permission is INVALID_ARGUMENT, quoted, never INTERNAL", async () => {
+  it("[rpc:GrantQueryController.checkMyPermission] an unknown permission is INVALID_ARGUMENT, quoted, never INTERNAL", async () => {
     const org = await createOwnedOrganization();
     const error = await expectGrpcCode(
       () =>
@@ -542,7 +542,7 @@ describe("IamPolicy conformance — checkMyPermission has one definition", () =>
   });
 });
 
-describe("IamPolicy conformance — the principal-trust rule runs before any engine", () => {
+describe("Grant conformance — the principal-trust rule runs before any engine", () => {
   // Both skip-authorization lanes ask about a PRINCIPAL; the rule is that a
   // user may ask only about their own account. It runs before the query engine
   // is even looked for, so `local` — which has no engine — answers it ahead of
@@ -550,14 +550,14 @@ describe("IamPolicy conformance — the principal-trust rule runs before any eng
   // here.
   it.each([
     [
-      "[rpc:IamPolicyQueryController.checkAuthorization] checkAuthorization",
+      "[rpc:GrantQueryController.checkAuthorization] checkAuthorization",
       (other: string, org: string) =>
         clients.grantQuery.checkAuthorization({
           grant: organizationRole(other, "admin", org),
         }),
     ],
     [
-      "[rpc:IamPolicyQueryController.listAuthorizedResourceIds] listAuthorizedResourceIds",
+      "[rpc:GrantQueryController.listAuthorizedResourceIds] listAuthorizedResourceIds",
       (other: string, _org: string) =>
         clients.grantQuery.listAuthorizedResourceIds({
           principal: ref("identity_account", other),
@@ -594,12 +594,12 @@ describe("IamPolicy conformance — the principal-trust rule runs before any eng
       SELF_ALIAS_MESSAGE,
     ],
   ] as const)(
-    "[rpc:IamPolicyQueryController.checkAuthorization] checkAuthorization with %s is INVALID_ARGUMENT with the pinned copy",
-    async (_name, policy, copy) => {
+    "[rpc:GrantQueryController.checkAuthorization] checkAuthorization with %s is INVALID_ARGUMENT with the pinned copy",
+    async (_name, grant, copy) => {
       const org = await createOwnedOrganization();
       const error = await expectGrpcCode(
         () =>
-          clients.grantQuery.checkAuthorization({ grant: policy(org) }),
+          clients.grantQuery.checkAuthorization({ grant: grant(org) }),
         Code.InvalidArgument,
         "checkAuthorization with a principal the trust rule refuses",
       );
@@ -608,7 +608,7 @@ describe("IamPolicy conformance — the principal-trust rule runs before any eng
   );
 });
 
-describe("IamPolicy conformance — a kind string that names no kind is refused before anything else", () => {
+describe("Grant conformance — a kind string that names no kind is refused before anything else", () => {
   // `Organization` is the kind_meta spelling and the realistic typo; the
   // match is exact by doctrine (kindByEnumName), because a lenient match
   // would let two spellings mint two rows for one grant. Every arm targets
@@ -624,7 +624,7 @@ describe("IamPolicy conformance — a kind string that names no kind is refused 
 
   it.each([
     [
-      "[rpc:IamPolicyCommandController.create] create",
+      "[rpc:GrantCommandController.create] create",
       (org: string) =>
         clients.grantCommand.create(
           grantTriple(
@@ -636,7 +636,7 @@ describe("IamPolicy conformance — a kind string that names no kind is refused 
       unknownResourceKindMessage(GARBAGE_KIND),
     ],
     [
-      "[rpc:IamPolicyCommandController.delete] delete",
+      "[rpc:GrantCommandController.delete] delete",
       (org: string) =>
         clients.grantCommand.delete(
           grantTriple(
@@ -648,7 +648,7 @@ describe("IamPolicy conformance — a kind string that names no kind is refused 
       unknownResourceKindMessage(GARBAGE_KIND),
     ],
     [
-      "[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission",
+      "[rpc:GrantQueryController.checkMyPermission] checkMyPermission",
       (org: string) =>
         clients.grantQuery.checkMyPermission({
           resource: ref(GARBAGE_KIND, org),
@@ -657,7 +657,7 @@ describe("IamPolicy conformance — a kind string that names no kind is refused 
       unknownResourceKindMessage(GARBAGE_KIND),
     ],
     [
-      "[rpc:IamPolicyQueryController.checkAuthorization] checkAuthorization",
+      "[rpc:GrantQueryController.checkAuthorization] checkAuthorization",
       async (org: string) =>
         clients.grantQuery.checkAuthorization({
           grant: grantTriple(
@@ -669,7 +669,7 @@ describe("IamPolicy conformance — a kind string that names no kind is refused 
       unknownResourceKindMessage(GARBAGE_KIND),
     ],
     [
-      "[rpc:IamPolicyQueryController.listAuthorizedResourceIds] listAuthorizedResourceIds",
+      "[rpc:GrantQueryController.listAuthorizedResourceIds] listAuthorizedResourceIds",
       async (_org: string) =>
         clients.grantQuery.listAuthorizedResourceIds({
           principal: ref("identity_account", await me()),
@@ -679,7 +679,7 @@ describe("IamPolicy conformance — a kind string that names no kind is refused 
       unknownResourceKindMessage(GARBAGE_KIND),
     ],
     [
-      "[rpc:IamPolicyQueryController.listAuthorizedPrincipalIds] listAuthorizedPrincipalIds",
+      "[rpc:GrantQueryController.listAuthorizedPrincipalIds] listAuthorizedPrincipalIds",
       (org: string) =>
         clients.grantQuery.listAuthorizedPrincipalIds({
           resource: ref(GARBAGE_KIND, org),
@@ -689,7 +689,7 @@ describe("IamPolicy conformance — a kind string that names no kind is refused 
       unknownResourceKindMessage(GARBAGE_KIND),
     ],
     [
-      "[rpc:IamPolicyQueryController.listResourceAccessByPrincipal] listResourceAccessByPrincipal",
+      "[rpc:GrantQueryController.listResourceAccessByPrincipal] listResourceAccessByPrincipal",
       (org: string) =>
         clients.grantQuery.listResourceAccessByPrincipal({
           resource: ref(GARBAGE_KIND, org),
@@ -697,7 +697,7 @@ describe("IamPolicy conformance — a kind string that names no kind is refused 
       unknownResourceKindMessage(GARBAGE_KIND),
     ],
     [
-      "[rpc:IamPolicyQueryController.getPrincipalResourceRoles] getPrincipalResourceRoles",
+      "[rpc:GrantQueryController.getPrincipalResourceRoles] getPrincipalResourceRoles",
       (org: string) =>
         clients.grantQuery.getPrincipalResourceRoles({
           principal: ref("identity_account", syntheticAccountId()),
@@ -706,7 +706,7 @@ describe("IamPolicy conformance — a kind string that names no kind is refused 
       unknownResourceKindMessage(GARBAGE_KIND),
     ],
     [
-      "[rpc:IamPolicyQueryController.getPrincipalsCount] getPrincipalsCount",
+      "[rpc:GrantQueryController.getPrincipalsCount] getPrincipalsCount",
       (org: string) =>
         clients.grantQuery.getPrincipalsCount({
           org,
@@ -728,8 +728,8 @@ describe("IamPolicy conformance — a kind string that names no kind is refused 
   );
 });
 
-describe("IamPolicy conformance — revokeOrgAccess is idempotent", () => {
-  it("[rpc:IamPolicyCommandController.revokeOrgAccess] revoking a person twice, and a person with no rows, both succeed and change nothing", async () => {
+describe("Grant conformance — revokeOrgAccess is idempotent", () => {
+  it("[rpc:GrantCommandController.revokeOrgAccess] revoking a person twice, and a person with no rows, both succeed and change nothing", async () => {
     const org = await createOwnedOrganization();
     const person = syntheticAccountId();
     const bystander = syntheticAccountId();
@@ -766,9 +766,9 @@ describe("IamPolicy conformance — revokeOrgAccess is idempotent", () => {
 });
 
 describe.skipIf(capabilities.perResourceGrants)(
-  "IamPolicy conformance — organization-only grants (the open-source scope)",
+  "Grant conformance — organization-only grants (the open-source scope)",
   () => {
-    it("[rpc:IamPolicyCommandController.create] a grant on an agent is UNIMPLEMENTED with the edition sentence, never INVALID_ARGUMENT or INTERNAL", async () => {
+    it("[rpc:GrantCommandController.create] a grant on an agent is UNIMPLEMENTED with the edition sentence, never INVALID_ARGUMENT or INTERNAL", async () => {
       const error = await expectGrpcCode(
         () =>
           clients.grantCommand.create(
@@ -784,7 +784,7 @@ describe.skipIf(capabilities.perResourceGrants)(
       expect(error.rawMessage).toBe(PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE);
     });
 
-    it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_grant_access) on an agent is false — the console hides the grant controls", async () => {
+    it("[rpc:GrantQueryController.checkMyPermission] checkMyPermission(can_grant_access) on an agent is false — the console hides the grant controls", async () => {
       const result = await clients.grantQuery.checkMyPermission({
         resource: ref("agent", ABSENT_AGENT),
         relation: "can_grant_access",
@@ -794,8 +794,8 @@ describe.skipIf(capabilities.perResourceGrants)(
   },
 );
 
-describe("IamPolicy conformance — the audience permission, in every edition", () => {
-  it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_manage_audience) on an agent the caller owns is true, whatever the edition grants per resource (stigmer#1495)", async () => {
+describe("Grant conformance — the audience permission, in every edition", () => {
+  it("[rpc:GrantQueryController.checkMyPermission] checkMyPermission(can_manage_audience) on an agent the caller owns is true, whatever the edition grants per resource (stigmer#1495)", async () => {
     // The console's visibility picker, Create share and Connect channel
     // mirror the server's can_manage_audience bar. Unlike can_grant_access,
     // the self-check never overrides it, so the owner is offered them in
@@ -815,7 +815,7 @@ describe("IamPolicy conformance — the audience permission, in every edition", 
 });
 
 describe.skipIf(!capabilities.perResourceGrants)(
-  "IamPolicy conformance — per-resource grants (the composed scope)",
+  "Grant conformance — per-resource grants (the composed scope)",
   () => {
     it("a grant on an agent the caller owns is admitted and revoked through the same path", async () => {
       const org = await createOwnedOrganization();
@@ -895,9 +895,9 @@ describe.skipIf(!capabilities.perResourceGrants)(
   },
 );
 
-describe("IamPolicy conformance — the access history, as each edition answers its owner", () => {
+describe("Grant conformance — the access history, as each edition answers its owner", () => {
   it.skipIf(capabilities.accessHistory !== "unimplemented")(
-    "[rpc:IamPolicyQueryController.listAccessHistory] an edition that keeps no history answers UNIMPLEMENTED with the edition sentence, after authorizing",
+    "[rpc:GrantQueryController.listAccessHistory] an edition that keeps no history answers UNIMPLEMENTED with the edition sentence, after authorizing",
     async () => {
       const org = await createOwnedOrganization();
       const error = await expectGrpcCode(
@@ -910,7 +910,7 @@ describe("IamPolicy conformance — the access history, as each edition answers 
   );
 
   it.skipIf(capabilities.accessHistory !== "plan-upgrade-required")(
-    "[rpc:IamPolicyQueryController.listAccessHistory] a plan without the access history refuses the read with PLAN_UPGRADE_REQUIRED, naming the feature",
+    "[rpc:GrantQueryController.listAccessHistory] a plan without the access history refuses the read with PLAN_UPGRADE_REQUIRED, naming the feature",
     async () => {
       const org = await createOwnedOrganization();
       const error = await expectGrpcCode(
@@ -926,20 +926,20 @@ describe("IamPolicy conformance — the access history, as each edition answers 
 });
 
 describe.skipIf(capabilities.authorizationQueries)(
-  "IamPolicy conformance — no authorization query engine composed",
+  "Grant conformance — no authorization query engine composed",
   () => {
     // Inputs that pass the boundary validator so the refusal under test is
     // the handler's: the capability is consulted before any lookup.
     it.each([
       [
-        "[rpc:IamPolicyQueryController.checkAuthorization] checkAuthorization",
+        "[rpc:GrantQueryController.checkAuthorization] checkAuthorization",
         (me: string, org: string) =>
           clients.grantQuery.checkAuthorization({
             grant: organizationRole(me, "admin", org),
           }),
       ],
       [
-        "[rpc:IamPolicyQueryController.listAuthorizedResourceIds] listAuthorizedResourceIds",
+        "[rpc:GrantQueryController.listAuthorizedResourceIds] listAuthorizedResourceIds",
         (me: string, _org: string) =>
           clients.grantQuery.listAuthorizedResourceIds({
             principal: ref("identity_account", me),
@@ -948,7 +948,7 @@ describe.skipIf(capabilities.authorizationQueries)(
           }),
       ],
       [
-        "[rpc:IamPolicyQueryController.listAuthorizedPrincipalIds] listAuthorizedPrincipalIds",
+        "[rpc:GrantQueryController.listAuthorizedPrincipalIds] listAuthorizedPrincipalIds",
         (_me: string, org: string) =>
           clients.grantQuery.listAuthorizedPrincipalIds({
             resource: ref("organization", org),
@@ -957,7 +957,7 @@ describe.skipIf(capabilities.authorizationQueries)(
           }),
       ],
       [
-        "[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission with contextual policies",
+        "[rpc:GrantQueryController.checkMyPermission] checkMyPermission with contextual policies",
         (me: string, org: string) =>
           clients.grantQuery.checkMyPermission({
             resource: ref("organization", org),
@@ -985,7 +985,7 @@ describe.skipIf(capabilities.authorizationQueries)(
 );
 
 describe.skipIf(!capabilities.authorizationQueries)(
-  "IamPolicy conformance — the tuple-half queries (the composed engine)",
+  "Grant conformance — the tuple-half queries (the composed engine)",
   () => {
     it("checkAuthorization answers the caller's own ownership; listAuthorized*Ids see the same graph", async () => {
       const me =
@@ -1058,7 +1058,7 @@ describe.skipIf(!capabilities.authorizationQueries)(
   },
 );
 
-describe("IamPolicy conformance — what only an enforcing Authorizer can show", () => {
+describe("Grant conformance — what only an enforcing Authorizer can show", () => {
   // On the target's ENFORCING LANE (targets/target.ts): the cloud's primary,
   // and on the managed local targets an open-source sibling in the OIDC
   // posture, whose built-in Authorizer answers these arms — so the outsider
@@ -1104,7 +1104,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
     ]
   > = [
     [
-      "[rpc:IamPolicyCommandController.create] create",
+      "[rpc:GrantCommandController.create] create",
       (using, org) =>
         using.grantCommand.create(
           organizationRole(syntheticAccountId(), "member", org),
@@ -1112,7 +1112,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
       GRANT_DENIED_MESSAGE,
     ],
     [
-      "[rpc:IamPolicyCommandController.delete] delete of an absent triple",
+      "[rpc:GrantCommandController.delete] delete of an absent triple",
       (using, org) =>
         using.grantCommand.delete(
           organizationRole(syntheticAccountId(), "member", org),
@@ -1120,7 +1120,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
       REVOKE_DENIED_MESSAGE,
     ],
     [
-      "[rpc:IamPolicyCommandController.revokeOrgAccess] revokeOrgAccess",
+      "[rpc:GrantCommandController.revokeOrgAccess] revokeOrgAccess",
       (using, org) =>
         using.grantCommand.revokeOrgAccess({
           identityAccountId: syntheticAccountId(),
@@ -1129,12 +1129,12 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
       REVOKE_ORG_ACCESS_DENIED_MESSAGE,
     ],
     [
-      "[rpc:IamPolicyQueryController.listAccessHistory] listAccessHistory",
+      "[rpc:GrantQueryController.listAccessHistory] listAccessHistory",
       (using, org) => using.grantQuery.listAccessHistory({ org }),
       VIEW_ACCESS_HISTORY_DENIED_MESSAGE,
     ],
     [
-      "[rpc:IamPolicyQueryController.listAuthorizedPrincipalIds] listAuthorizedPrincipalIds",
+      "[rpc:GrantQueryController.listAuthorizedPrincipalIds] listAuthorizedPrincipalIds",
       (using, org) =>
         using.grantQuery.listAuthorizedPrincipalIds({
           resource: ref("organization", org),
@@ -1144,7 +1144,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
       VIEW_AUTHORIZED_PRINCIPAL_IDS_DENIED_MESSAGE,
     ],
     [
-      "[rpc:IamPolicyQueryController.listResourceAccessByPrincipal] listResourceAccessByPrincipal",
+      "[rpc:GrantQueryController.listResourceAccessByPrincipal] listResourceAccessByPrincipal",
       (using, org) =>
         using.grantQuery.listResourceAccessByPrincipal({
           resource: ref("organization", org),
@@ -1152,7 +1152,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
       VIEW_RESOURCE_ACCESS_DENIED_MESSAGE,
     ],
     [
-      "[rpc:IamPolicyQueryController.getPrincipalResourceRoles] getPrincipalResourceRoles",
+      "[rpc:GrantQueryController.getPrincipalResourceRoles] getPrincipalResourceRoles",
       (using, org) =>
         using.grantQuery.getPrincipalResourceRoles({
           principal: ref("identity_account", syntheticAccountId()),
@@ -1161,7 +1161,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
       VIEW_PRINCIPAL_ROLES_DENIED_MESSAGE,
     ],
     [
-      "[rpc:IamPolicyQueryController.getPrincipalsCount] getPrincipalsCount",
+      "[rpc:GrantQueryController.getPrincipalsCount] getPrincipalsCount",
       (using, org) =>
         using.grantQuery.getPrincipalsCount({
           org,
@@ -1187,7 +1187,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
       },
     );
 
-    it("[rpc:IamPolicyQueryController.get] get of a row on that organization is PERMISSION_DENIED — the row is loaded, then its resource is the target", async (ctx) => {
+    it("[rpc:GrantQueryController.get] get of a row on that organization is PERMISSION_DENIED — the row is loaded, then its resource is the target", async (ctx) => {
       const lane = laneOrSkip(ctx);
       const org = await createOwnedOrganization(lane.clients, laneFixtures);
       const created = await lane.clients.grantCommand.create(
@@ -1205,7 +1205,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
       expect(error.rawMessage).toBe(VIEW_GRANTS_DENIED_MESSAGE);
     });
 
-    it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_view_access) answers false, never an error", async (ctx) => {
+    it("[rpc:GrantQueryController.checkMyPermission] checkMyPermission(can_view_access) answers false, never an error", async (ctx) => {
       const lane = laneOrSkip(ctx);
       const org = await createOwnedOrganization(lane.clients, laneFixtures);
       const them = await outsider(lane);
@@ -1237,7 +1237,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
       },
     );
 
-    it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_view_access) answers false — `not-found` is a denial, not an error", async (ctx) => {
+    it("[rpc:GrantQueryController.checkMyPermission] checkMyPermission(can_view_access) answers false — `not-found` is a denial, not an error", async (ctx) => {
       const lane = laneOrSkip(ctx);
       const result = await lane.clients.grantQuery.checkMyPermission({
         resource: ref("organization", ABSENT_ORG),
@@ -1254,7 +1254,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
     // the engine's validation error as INTERNAL. The run does not exist,
     // so the denial reaches the wire as the pipeline's NOT_FOUND for the
     // kind (kind_meta's name), exactly as a missing organization does.
-    it("[rpc:IamPolicyCommandController.create] a grant naming a run that does not exist is NOT_FOUND, never INTERNAL", async (ctx) => {
+    it("[rpc:GrantCommandController.create] a grant naming a run that does not exist is NOT_FOUND, never INTERNAL", async (ctx) => {
       const lane = laneOrSkip(ctx);
       const error = await expectGrpcCode(
         () =>
@@ -1273,7 +1273,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
       );
     });
 
-    it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_view_access) on a run answers false, never an error", async (ctx) => {
+    it("[rpc:GrantQueryController.checkMyPermission] checkMyPermission(can_view_access) on a run answers false, never an error", async (ctx) => {
       const lane = laneOrSkip(ctx);
       const result = await lane.clients.grantQuery.checkMyPermission({
         resource: ref("run", ABSENT_AGENT_EXECUTION),
@@ -1290,7 +1290,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
     // can_view_access is viewer's, and member ⊂ viewer) and is refused
     // when they try to make themselves owner (L83: can_grant_access is
     // admin's). Every edition enforces this rule.
-    it("[rpc:IamPolicyQueryController.listResourceAccessByPrincipal] [rpc:IamPolicyCommandController.create] sees the roster, and is refused promoting itself to owner", async (ctx) => {
+    it("[rpc:GrantQueryController.listResourceAccessByPrincipal] [rpc:GrantCommandController.create] sees the roster, and is refused promoting itself to owner", async (ctx) => {
       const lane = laneOrSkip(ctx);
       const org = await createOwnedOrganization(lane.clients, laneFixtures);
       const member = await outsider(lane);
@@ -1324,7 +1324,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
     // An admin holds can_grant_access and so grants every role up to
     // admin; the owner role also needs can_assign_roles, its owners'
     // (organization.fga). The founder is the organization's one owner.
-    it("[rpc:IamPolicyCommandController.create] [rpc:IamPolicyCommandController.delete] [rpc:IamPolicyCommandController.revokeOrgAccess] an admin grants up to admin, and is refused granting owner, revoking it and removing an owner", async (ctx) => {
+    it("[rpc:GrantCommandController.create] [rpc:GrantCommandController.delete] [rpc:GrantCommandController.revokeOrgAccess] an admin grants up to admin, and is refused granting owner, revoking it and removing an owner", async (ctx) => {
       const lane = laneOrSkip(ctx);
       const org = await createOwnedOrganization(lane.clients, laneFixtures);
       const founderId = await lane.accountIdOf(lane.clients);
@@ -1371,7 +1371,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
       expect(await rolesOf(admin.id, org, lane.clients)).toEqual(["admin"]);
     });
 
-    it("[rpc:IamPolicyCommandController.create] [rpc:IamPolicyCommandController.delete] [rpc:IamPolicyCommandController.revokeOrgAccess] the owner grants, revokes and removes owner, and the last owner is kept", async (ctx) => {
+    it("[rpc:GrantCommandController.create] [rpc:GrantCommandController.delete] [rpc:GrantCommandController.revokeOrgAccess] the owner grants, revokes and removes owner, and the last owner is kept", async (ctx) => {
       const lane = laneOrSkip(ctx);
       const org = await createOwnedOrganization(lane.clients, laneFixtures);
       const founderId = await lane.accountIdOf(lane.clients);
@@ -1418,7 +1418,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
   });
 });
 
-describe("IamPolicy conformance — the membership rules on an OIDC sibling", () => {
+describe("Grant conformance — the membership rules on an OIDC sibling", () => {
   const OPERATOR_EMAIL = "operator@conformance.example.com";
   let issuer: LocalOidcIssuer | undefined;
   let sibling: SiblingServer | undefined;
@@ -1535,7 +1535,7 @@ describe("IamPolicy conformance — the membership rules on an OIDC sibling", ()
   // and such a caller holds no role), and the rows the arm heals were
   // written before enforcement
   // existed. The rule is pinned over a seeded store in the server's own
-  // `domain/iampolicy/__tests__/membership.test.ts` ("a blueprint's creator
+  // `domain/grant/__tests__/membership.test.ts` ("a blueprint's creator
   // in someone else's organization becomes admin there").
 
   it("[rpc:IdentityAccountCommandController.provisionMyAccount] the operator's email is an admin on arrival", async (ctx) => {
@@ -1629,7 +1629,7 @@ describe("IamPolicy conformance — the membership rules on an OIDC sibling", ()
     ]);
   });
 
-  it("[rpc:IamPolicyQueryController.listResourceAccessByPrincipal] a real person's Members row carries the name the issuer's userinfo gave — first and last, the cloud's precedence", async (ctx) => {
+  it("[rpc:GrantQueryController.listResourceAccessByPrincipal] a real person's Members row carries the name the issuer's userinfo gave — first and last, the cloud's precedence", async (ctx) => {
     const lane = siblingOrSkip(ctx);
     // The shared arm above sees the trusted-local operator, whose name
     // lives in metadata.name. This is the OIDC person: their

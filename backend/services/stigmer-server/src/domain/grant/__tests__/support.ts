@@ -1,7 +1,7 @@
 /**
- * Test fixtures for the IamPolicy domain: an in-memory IamPolicyStore with
+ * Test fixtures for the Grant domain: an in-memory GrantStore with
  * the primary-key semantics the OSS adapter has (a second save under a held
- * id is DuplicatePolicyError), a recording lifecycle that captures the two
+ * id is DuplicateGrantError), a recording lifecycle that captures the two
  * policy hooks in the order they fire beside the store's writes, and spec
  * builders in
  * the contract's own vocabulary. Driver-backed fixtures live with the
@@ -133,7 +133,7 @@ export function fakeGrantStore(
   const heads = new Map<string, bigint>();
   const keep = (
     change: GrantChange["change"],
-    policy: Grant,
+    grant: Grant,
     record: GrantChangeRecord | undefined,
   ): void => {
     if (record === undefined) {
@@ -149,34 +149,34 @@ export function fakeGrantStore(
       actor: record.actor,
       cause: record.cause,
       organizationId: org,
-      policy,
+      grant: grant,
     });
   };
   const all = (): Grant[] => [...rows.values()];
   const matches = (
-    policy: Grant,
+    grant: Grant,
     principalKind?: string,
     principalId?: string,
     resourceKind?: string,
     resourceId?: string,
   ): boolean =>
     (principalKind === undefined ||
-      policy.spec?.principal?.kind === principalKind) &&
-    (principalId === undefined || policy.spec?.principal?.id === principalId) &&
+      grant.spec?.principal?.kind === principalKind) &&
+    (principalId === undefined || grant.spec?.principal?.id === principalId) &&
     (resourceKind === undefined ||
-      policy.spec?.resource?.kind === resourceKind) &&
-    (resourceId === undefined || policy.spec?.resource?.id === resourceId);
+      grant.spec?.resource?.kind === resourceKind) &&
+    (resourceId === undefined || grant.spec?.resource?.id === resourceId);
   return {
     rows,
     changes,
-    async save(policy, record) {
-      const id = policy.metadata?.id ?? "";
+    async save(grant, record) {
+      const id = grant.metadata?.id ?? "";
       if (rows.has(id)) {
-        throw new DuplicateGrantError(`IAM policy '${id}' already exists`);
+        throw new DuplicateGrantError(`grant '${id}' already exists`);
       }
-      rows.set(id, policy);
+      rows.set(id, grant);
       changes.push({ op: "save", id, record });
-      keep("granted", policy, record);
+      keep("granted", grant, record);
       recorded?.push({ kind: "row-save", id });
     },
     async deleteById(id, record) {
@@ -336,7 +336,7 @@ export function recordingLifecycle(
       }
       recorded.push({
         kind: "granted",
-        id: event.policy.metadata?.id ?? "",
+        id: event.grant.metadata?.id ?? "",
         duplicate: event.duplicate,
       });
     },
@@ -346,7 +346,7 @@ export function recordingLifecycle(
       }
       recorded.push({
         kind: "revoked",
-        id: event.policy?.metadata?.id,
+        id: event.grant?.metadata?.id,
         relation: event.spec.relation,
       });
     },

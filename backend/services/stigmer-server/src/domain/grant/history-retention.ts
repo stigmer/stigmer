@@ -13,7 +13,7 @@
  *
  * A pass computes its cutoff from its clock and the window, then asks the
  * store to remove the entries recorded before it a batch at a time
- * (`IamPolicyStore.pruneChanges`), until a batch comes back short or the
+ * (`GrantStore.pruneChanges`), until a batch comes back short or the
  * pass has run `HISTORY_RETENTION_MAX_BATCHES` of them; a backlog the cap
  * leaves (a year of history on a server's first start with a window)
  * clears over the next passes, oldest first. Each batch is its own
@@ -47,7 +47,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface AccessHistoryRetentionRunnerDeps {
   /** The composed policy store: the history it keeps is the one aged out. */
-  readonly policies: Pick<GrantStore, "pruneChanges">;
+  readonly grants: Pick<GrantStore, "pruneChanges">;
   /** The declared window, a positive whole number of days. */
   readonly retentionDays: number;
   readonly logger: Logger;
@@ -114,7 +114,7 @@ export class AccessHistoryRetentionRunner {
     let more = false;
     try {
       for (let batch = 0; batch < HISTORY_RETENTION_MAX_BATCHES && !this.stopped; batch++) {
-        const count = await this.deps.policies.pruneChanges(cutoff, HISTORY_RETENTION_BATCH);
+        const count = await this.deps.grants.pruneChanges(cutoff, HISTORY_RETENTION_BATCH);
         removed += count;
         more = count === HISTORY_RETENTION_BATCH;
         if (!more) {

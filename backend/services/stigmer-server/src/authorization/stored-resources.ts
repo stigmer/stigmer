@@ -1,6 +1,6 @@
 /**
  * The grant path's reads outside the policy rows (`StoredResources`,
- * domain/iampolicy/grant-path.ts): two facts only a resource's own row
+ * domain/grant/grant-path.ts): two facts only a resource's own row
  * holds.
  *
  *   - Its recorded creator. When an account leaves an organization, the

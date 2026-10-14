@@ -14,7 +14,7 @@
 //     is the target's primary caller.
 //   - newSiblingEnforcingLane: an open-source sibling booted in the OIDC
 //     posture against the harness's local issuer (the shape the
-//     identityaccount and iampolicy suites already use), with a founder the
+//     identityaccount and grant suites already use), with a founder the
 //     issuer mints and the server provisions.
 //
 // What the two hide from the arms:
@@ -67,7 +67,7 @@ const ORGANIZATION_API_VERSION = "tenancy.stigmer.ai/v1";
 const ORGANIZATION_KIND = "Organization";
 
 // `identity_account:<accountId>` holds `<role>` on `organization:<orgId>` —
-// the Members-page grant, as IamPolicyCommandController.create and .delete
+// the Members-page grant, as GrantCommandController.create and .delete
 // both take it. The resource id is the organization's ID (its FGA object),
 // which for this one kind equals its slug.
 export function organizationRoleGrant(
@@ -246,7 +246,7 @@ export async function newSiblingEnforcingLane(
         // Deliberately NO STIGMER_OPERATOR_EMAIL: the operator-email rule
         // would make one person an admin of every organization, and this
         // lane's people hold exactly what the arms gave them. The
-        // membership-rules block of the iampolicy suite keeps its own
+        // membership-rules block of the grant suite keeps its own
         // sibling for that rule.
       },
       // The readiness gate presents a subject nobody else uses; under the

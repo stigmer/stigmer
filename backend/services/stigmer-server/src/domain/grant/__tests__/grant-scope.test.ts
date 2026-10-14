@@ -1,12 +1,12 @@
 /**
- * Pins open source's default PolicyGrantScope (domain/iampolicy/grant-scope.ts):
+ * Pins open source's default GrantScope (domain/grant/grant-scope.ts):
  * the organization grants
  * the roles its `kind_meta` lists and no other kind grants anything.
  * Per-resource grants — a viewer on one agent — are what the Enterprise and
  * Cloud editions add through a composed scope; open source's Members page
  * is the one grant surface this default lights.
  *
- * The contract every scope is held to (extensions/policy-grant-scope.ts),
+ * The contract every scope is held to (extensions/grant-scope.ts),
  * proven here on the default so a composed driver has a shape to match:
  *
  *   - it NARROWS the proto: the organization's answer IS

@@ -135,7 +135,7 @@ function harness(
       events.push("grant");
       if (options.failGrant === true) throw new Error("policy store down");
       granted.push({ spec, caller, cause });
-      return { policy: create(GrantSchema), duplicate: false };
+      return { grant: create(GrantSchema), duplicate: false };
     },
   };
   const deps: UserTokenMintDeps = {

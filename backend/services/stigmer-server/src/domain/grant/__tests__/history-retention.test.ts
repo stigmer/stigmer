@@ -71,7 +71,7 @@ function runner(
   options: { readonly retentionDays?: number; readonly intervalMs?: number } = {},
 ): AccessHistoryRetentionRunner {
   return new AccessHistoryRetentionRunner({
-    policies,
+    grants: policies,
     retentionDays: options.retentionDays ?? 30,
     logger: recordingLogger(logged),
     now: () => NOW,
@@ -175,7 +175,7 @@ describe("the runner's loop", () => {
     let release: (count: number) => void = () => {};
     let calls = 0;
     const loop = new AccessHistoryRetentionRunner({
-      policies: {
+      grants: {
         pruneChanges: () => {
           calls += 1;
           return new Promise<number>((resolve) => {
@@ -199,7 +199,7 @@ describe("the runner's loop", () => {
     let release: (count: number) => void = () => {};
     const calls: number[] = [];
     const loop = new AccessHistoryRetentionRunner({
-      policies: {
+      grants: {
         pruneChanges: () => {
           calls.push(calls.length);
           return new Promise<number>((resolve) => {

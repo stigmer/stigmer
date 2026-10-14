@@ -3,7 +3,7 @@
  * driven end to end over real Postgres: no unit registers a policy store,
  * so the library's own keeps the history, and the edition the license
  * unit declares is what opens it to. Every entry is read raw from the
- * library's `iam_policy_history` table (no reader exists yet).
+ * library's `grant_history` table (no reader exists yet).
  *
  * The story, as an organization lives it:
  *   - Alice founds Acme: her owner role is recorded as the organization's
@@ -85,7 +85,7 @@ async function historyOf(pool: Pool, org: string): Promise<Entry[]> {
     resource_id: string;
   }>(
     `SELECT sequence, change, cause, actor_id, actor_class, principal_id, relation, resource_kind, resource_id
-     FROM public.iam_policy_history WHERE org = $1 ORDER BY sequence`,
+     FROM public.grant_history WHERE org = $1 ORDER BY sequence`,
     [org],
   );
   return result.rows.map((row) => ({
@@ -102,7 +102,7 @@ async function historyOf(pool: Pool, org: string): Promise<Entry[]> {
 }
 
 async function countHistory(pool: Pool): Promise<number> {
-  const result = await pool.query<{ count: string }>(`SELECT COUNT(*) AS count FROM public.iam_policy_history`);
+  const result = await pool.query<{ count: string }>(`SELECT COUNT(*) AS count FROM public.grant_history`);
   return Number(result.rows[0]?.count ?? 0);
 }
 
@@ -187,8 +187,8 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the permission history on a li
 
   it("records a removed member's role as removed, and nothing for a row that did not change", async () => {
     const raj = await signIn(booted, issuer, "operator|raj");
-    const policies = createClient(GrantCommandController, alice.transport);
-    await policies.create(grant(ref("identity_account", raj.accountId), "member", ref("organization", acme)));
+    const grants = createClient(GrantCommandController, alice.transport);
+    await grants.create(grant(ref("identity_account", raj.accountId), "member", ref("organization", acme)));
     const agent = await createClient(AgentCommandController, alice.transport).create({
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Agent",
@@ -196,10 +196,10 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the permission history on a li
       spec: { description: "reviewer", instructions: "You review." },
     });
     const agentId = agent.metadata?.id ?? "";
-    await policies.create(grant(ref("identity_account", raj.accountId), "editor", ref("agent", agentId)));
+    await grants.create(grant(ref("identity_account", raj.accountId), "editor", ref("agent", agentId)));
     const from = await newest();
 
-    await policies.revokeOrgAccess({ identityAccountId: raj.accountId, org: acme });
+    await grants.revokeOrgAccess({ identityAccountId: raj.accountId, org: acme });
 
     const removed = await entriesSince(from);
     expect(removed).toEqual([

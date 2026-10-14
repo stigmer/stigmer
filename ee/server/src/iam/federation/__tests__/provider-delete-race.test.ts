@@ -140,7 +140,7 @@ function world(holds: Holds = {}) {
     },
   } as unknown as IdentityAccountService;
 
-  const policies = {
+  const grantPath = {
     create: (spec: GrantSpec) => {
       grants.push(spec);
       return Promise.resolve(undefined as never);
@@ -175,7 +175,7 @@ function world(holds: Holds = {}) {
   const verifier = newStoreBackedFederatedVerifier({
     providers,
     accounts: accountService,
-    policies,
+    grants: grantPath,
     childOrganizations: { findByExternalId: () => Promise.resolve(undefined) },
     signInGrants,
     fetchUserProfile: () => Promise.reject(new Error("no userinfo in this suite")),
@@ -191,7 +191,7 @@ function world(holds: Holds = {}) {
     providers,
     names,
     accounts: accountService,
-    policies,
+    grants: grantPath,
     invalidate: () => verifier.invalidate(),
     logger: SILENT_LOGGER,
   });

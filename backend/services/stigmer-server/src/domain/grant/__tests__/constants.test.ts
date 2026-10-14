@@ -1,14 +1,16 @@
 /**
- * Pins the IamPolicy domain's constants:
+ * Pins the Grant domain's constants:
  *
- *   - the policy-id derivation — `iamp_` + the top 130 bits of sha256 over
+ *   - the grant-id derivation — `grt_` + the top 130 bits of sha256 over
  *     the triple's canonical text as 26 lowercase Crockford-base32
  *     characters. The canonical text IS the tuple notation the contract's
  *     own comment documents (`principal.kind:principal.id#principal.relation
  *     @resource.kind:resource.id#relation`, spec.proto), so the natural key
  *     has one spelling and the primary key is the one home of "one row per
  *     triple". The golden vectors are wire-adjacent constants: a change
- *     re-addresses every policy open source ever wrote;
+ *     re-addresses every grant open source ever wrote. The
+ *     prefix moved from `iamp` to `grt` with the kind's rename and the
+ *     hash did not, so a stored id moves by its prefix alone;
  *   - `BLUEPRINT_KINDS` — the kinds an admin authors, the legacy-creator
  *     rule's whole scan; sessions and executions are personal
  *     and never appear here;
@@ -21,7 +23,7 @@
  *   - the canonical text's one weakness and its closure: `ApiResourceRef` fields carry no character pattern, so an
  *     id or relation holding `:`, `#` or `@` could spell another triple's
  *     text. `malformedTripleField` names the offending field and
- *     `policyIdFor` refuses to hash such a spec; the grant path turns the
+ *     `grantIdFor` refuses to hash such a spec; the grant path turns the
  *     same check into INVALID_ARGUMENT before any read or write.
  */
 import { create } from "@bufbuild/protobuf";
@@ -57,8 +59,9 @@ import {
   unknownPrincipalKindMessage,
   unknownResourceKindMessage,
 } from "../constants.js";
+import { derivedId } from "../../../pipeline/steps/defaults.js";
 
-const CROCKFORD_ID = /^iamp_[0-9abcdefghjkmnpqrstvwxyz]{26}$/;
+const CROCKFORD_ID = /^grt_[0-9abcdefghjkmnpqrstvwxyz]{26}$/;
 
 function spec(
   principal: { kind: string; id: string; relation?: string },
@@ -79,8 +82,8 @@ function spec(
 const ALICE = "ida_wtr3jcf281yfk9xx61kj59fsme";
 const AGENT = "agt_01hzzzzzzzzzzzzzzzzzzzzzzz";
 
-describe("policyIdFor — the derived policy id", () => {
-  it("pins the golden vectors (a change re-addresses every OSS policy)", () => {
+describe("grantIdFor — the derived grant id", () => {
+  it("pins the golden vectors (a change re-addresses every OSS grant)", () => {
     expect(
       grantIdFor(
         spec({ kind: "identity_account", id: ALICE }, "admin", {
@@ -88,7 +91,7 @@ describe("policyIdFor — the derived policy id", () => {
           id: "acme",
         }),
       ),
-    ).toBe("iamp_vkbjb6nvqm77vtwnr2bj0x95f9");
+    ).toBe("grt_vkbjb6nvqm77vtwnr2bj0x95f9");
     expect(
       grantIdFor(
         spec({ kind: "identity_account", id: ALICE }, "member", {
@@ -96,7 +99,7 @@ describe("policyIdFor — the derived policy id", () => {
           id: "acme",
         }),
       ),
-    ).toBe("iamp_8excwectzw4xzrphy43zpar661");
+    ).toBe("grt_8excwectzw4xzrphy43zpar661");
     // A structural link (the cloud's scope tuple) derives the same way: the
     // id is the triple's, whatever the relation means.
     expect(
@@ -106,7 +109,7 @@ describe("policyIdFor — the derived policy id", () => {
           id: AGENT,
         }),
       ),
-    ).toBe("iamp_e8ak7be793avgz5tk4abmew2fp");
+    ).toBe("grt_e8ak7be793avgz5tk4abmew2fp");
     // The public-viewer wildcard principal is a legal triple.
     expect(
       grantIdFor(
@@ -115,11 +118,20 @@ describe("policyIdFor — the derived policy id", () => {
           id: AGENT,
         }),
       ),
-    ).toBe("iamp_w5wqxkyrtbspjyp3jd6ce565q2");
+    ).toBe("grt_w5wqxkyrtbspjyp3jd6ce565q2");
+  });
+
+  it("kept the hash through the rename: an iamp_ id and its grt_ id share their 26 characters", () => {
+    const triple = spec({ kind: "identity_account", id: ALICE }, "admin", {
+      kind: "organization",
+      id: "acme",
+    });
+    expect(derivedId("iamp", canonicalTripleText(triple))).toBe("iamp_vkbjb6nvqm77vtwnr2bj0x95f9");
+    expect(grantIdFor(triple)).toBe("grt_vkbjb6nvqm77vtwnr2bj0x95f9");
   });
 
   it("has the shape of every minted id: prefix, underscore, 26 Crockford chars", () => {
-    expect(GRANT_ID_PREFIX).toBe("iamp");
+    expect(GRANT_ID_PREFIX).toBe("grt");
     expect(
       grantIdFor(
         spec({ kind: "identity_account", id: ALICE }, "viewer", {
@@ -285,7 +297,7 @@ describe("malformedTripleField — the delimiter check the id and the writer sha
 describe("the contract's identity strings", () => {
   it("stamps the proto's apiVersion const, not the Java-era value", () => {
     expect(GRANT_API_VERSION).toBe("iam.stigmer.ai/v1");
-    expect(GRANT_KIND).toBe("IamPolicy");
+    expect(GRANT_KIND).toBe("Grant");
   });
 });
 
@@ -339,8 +351,8 @@ describe("USER_GRANT_PRINCIPAL_KINDS — who a person may grant a role to", () =
 
 describe("byte-pinned copy", () => {
   it("moves the cloud's sentences as-is", () => {
-    expect(grantNotFoundMessage("iamp_x")).toBe(
-      "IAM policy not found: iamp_x",
+    expect(grantNotFoundMessage("grt_x")).toBe(
+      "Grant not found: grt_x",
     );
     expect(noGrantableRolesMessage("run")).toBe(
       "No roles can be granted on resource kind 'run'. Role assignments for this resource kind are system-managed.",

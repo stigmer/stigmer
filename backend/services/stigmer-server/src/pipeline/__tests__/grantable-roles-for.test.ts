@@ -1,9 +1,9 @@
 /**
  * Pins `grantableRolesFor` (pipeline/apiresource-meta.ts), the one read of
- * a kind's `kind_meta.authorization.grantable_roles` — what the IamPolicy
+ * a kind's `kind_meta.authorization.grantable_roles` — what the Grant
  * domain's ValidateGrantableRole consults FIRST (the proto says what can be
  * granted at all; the composed
- * PolicyGrantScope only narrows by edition) and what open source's
+ * GrantScope only narrows by edition) and what open source's
  * organization-only scope reads for the organization.
  *
  * Three properties are load-bearing and pinned here rather than assumed:
@@ -21,7 +21,7 @@
  *     `kindByEnumName`, which yields the unknown kind for anything it does
  *     not recognise and never throws (the module header). The unknown kind
  *     is the one enum member without `kind_meta`; it answers the empty
- *     list, as the cloud's `grantableRolesFor` (iam/policy/roles.ts) did.
+ *     list, as the cloud's `grantableRolesFor` (iam/grant/roles.ts) did.
  */
 import { getOption, hasOption } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -59,7 +59,7 @@ describe("grantableRolesFor — the proto's grantable roles per kind", () => {
   it.each([
     ["identity_account", ApiResourceKind.identity_account],
     ["api_key", ApiResourceKind.api_key],
-    ["iam_policy", ApiResourceKind.grant],
+    ["grant", ApiResourceKind.grant],
     ["invitation", ApiResourceKind.invitation],
     ["run", ApiResourceKind.run],
   ])(

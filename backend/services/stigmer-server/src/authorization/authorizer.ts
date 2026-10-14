@@ -47,7 +47,7 @@
  *
  * Cost, per check (as measured): the target row (1), the caller's
  * account (1 primary-key read; 2 for a caller a composition verifier left
- * idp-shaped), the person's IamPolicy rows (1 read of the port, once per
+ * idp-shaped), the person's Grant rows (1 read of the port, once per
  * source, indexed by principal on the OSS adapter; one more per team the
  * person holds, which open source never has — derived-tuples.ts), and one
  * row per parent hop the model walks.
@@ -95,7 +95,7 @@ import { formatObjectRef } from "./tuples.js";
  * answer not-found without evaluating. The cloud pins every kind here
  * inside its own `PROBE_EXEMPT_KINDS`, which is why this set is exported.
  *
- * `iam_policy` is reachable as a target through the IamPolicy RPCs' own
+ * `grant` is reachable as a target through the Grant RPCs' own
  * `resource.kind` (a caller may name it); the grant scope refuses such a
  * target after the Authorize step in both editions, and the arm here
  * keeps the wire the same on the way there.
@@ -125,7 +125,7 @@ export const UNSERVED_KIND_DENY_REASON =
 export interface BuiltInAuthorizerDeps {
   readonly store: Store;
   /** The port the grant path writes through — the person's rows are read from the same instance. */
-  readonly policies: GrantStore;
+  readonly grants: GrantStore;
   /** The account port: the caller's account, and identity_account targets. */
   readonly accounts: AccountsByCaller;
   /** The served edition (`extensions.edition`); above `oss`, boot has checked every served kind's rows are readable. */
@@ -170,7 +170,7 @@ export function newBuiltInAuthorizer(deps: BuiltInAuthorizerDeps): Authorizer {
         const source = newDerivedTupleSource(
           {
             store: deps.store,
-            policies: deps.policies,
+            grants: deps.grants,
             accounts: deps.accounts,
             rowReaders: deps.rowReaders,
             model,

@@ -236,7 +236,7 @@ describe.skipIf(!enforcementServed)(
       expect(viaMobile?.mintedBy).toBe(mobile.accountId);
     });
 
-    it("[rpc:IamPolicyQueryController.listResourceAccessByPrincipal] a person a first sign-in creates holds the sign-in role once, and the access list names them an app user", async () => {
+    it("[rpc:GrantQueryController.listResourceAccessByPrincipal] a person a first sign-in creates holds the sign-in role once, and the access list names them an app user", async () => {
       const context = await tenancy({ signInRole: IamRole.member });
       const admin = await minter(context.org);
       const userId = uniqueName("user");

@@ -88,7 +88,7 @@ import { sessionListIndex } from "../../session/list-index.js";
 import { newReleaseExternalIdStep } from "../children.js";
 import { organizationListIndex } from "../list-index.js";
 import { newRetireOrganizationSlugStep } from "../names.js";
-import { newRevokeOrganizationPoliciesStep } from "../steps.js";
+import { newRevokeOrganizationGrantsStep } from "../steps.js";
 import type { KindPurge } from "./kind-purge.js";
 
 /** The core stages' names, as the deletion record and the logs carry them. */
@@ -349,7 +349,7 @@ export function newFinalStage(deps: FinalStageDeps): OrganizationPurgeStage {
       await deps.store.deleteScheduleFiresByOrg(id);
       await deps.store.sessionEvents.deleteByOrg(id);
       await newPipeline<DeleteInput>("organization-purge-final", deps.logger)
-        .addStep(newRevokeOrganizationPoliciesStep<DeleteInput>(deps.grantPath))
+        .addStep(newRevokeOrganizationGrantsStep<DeleteInput>(deps.grantPath))
         .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))
         .addStep(newDeleteResourceStep(deps.store))
         .addStep(newRetireOrganizationSlugStep<DeleteInput>(deps.store, deps.logger))

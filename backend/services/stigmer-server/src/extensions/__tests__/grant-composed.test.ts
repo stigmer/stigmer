@@ -34,7 +34,7 @@
  *     nothing; an owner row deleted underneath is written back at
  *     the next boot.
  * The positive proof of the RPCs over these rows is
- * domain/iampolicy/__tests__/iampolicy.test.ts.
+ * domain/grant/__tests__/grant.test.ts.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -85,10 +85,10 @@ async function grantsIn(server: ComposedServer): Promise<Grant[]> {
 
 /** `<relation>@<organization id>` for every row `accountId` holds, sorted. */
 function rolesHeldBy(
-  policies: ReadonlyArray<Grant>,
+  grants: ReadonlyArray<Grant>,
   accountId: string,
 ): ReadonlyArray<string> {
-  return policies
+  return grants
     .filter((p) => p.spec?.principal?.id === accountId)
     .map((p) => `${p.spec?.relation}@${p.spec?.resource?.id}`)
     .sort();
@@ -103,7 +103,7 @@ function organizationInput(slug: string) {
   };
 }
 
-describe("iam-policy posture (composed server, a unit's own Authorizer: nothing built in is installed)", () => {
+describe("grant posture (composed server, a unit's own Authorizer: nothing built in is installed)", () => {
   let dir: string;
   let server: ComposedServer;
   let port: number;
@@ -118,7 +118,7 @@ describe("iam-policy posture (composed server, a unit's own Authorizer: nothing 
   };
 
   beforeAll(async () => {
-    dir = mkdtempSync(path.join(tmpdir(), "iam-policy-composed-"));
+    dir = mkdtempSync(path.join(tmpdir(), "grant-composed-"));
     const unit: ServerExtension = {
       name: "fake-iam",
       requireAuthentication: true,
@@ -214,7 +214,7 @@ describe("built-in authorization posture (composed server, OIDC with no Authoriz
   let foundedAfterId = "";
 
   beforeAll(async () => {
-    dir = mkdtempSync(path.join(tmpdir(), "iam-policy-built-in-oidc-"));
+    dir = mkdtempSync(path.join(tmpdir(), "grant-built-in-oidc-"));
     // The unit vouches for tokens and declares the posture, and registers
     // NO Authorizer — the open-source OIDC self-host's shape.
     const unit: ServerExtension = {
@@ -256,15 +256,15 @@ describe("built-in authorization posture (composed server, OIDC with no Authoriz
     ).provisionMyAccount({});
     expect(account.metadata?.id).toBe(creatorId);
 
-    const policies = await grantsIn(server);
-    expect(rolesHeldBy(policies, creatorId)).toEqual([
+    const grants = await grantsIn(server);
+    expect(rolesHeldBy(grants, creatorId)).toEqual([
       `owner@${foundedBeforeId}`,
     ]);
-    expect(policies).toHaveLength(1);
-    expect(policies[0]?.metadata?.id).toBe(
+    expect(grants).toHaveLength(1);
+    expect(grants[0]?.metadata?.id).toBe(
       grantIdFor(orgRole(creatorId, "owner", foundedBeforeId)),
     );
-    expect(policies[0]?.status?.audit?.specAudit?.createdBy?.id).toBe(
+    expect(grants[0]?.status?.audit?.specAudit?.createdBy?.id).toBe(
       creatorId,
     );
   });
@@ -277,12 +277,12 @@ describe("built-in authorization posture (composed server, OIDC with no Authoriz
     foundedAfterId = created.metadata?.id ?? "";
     expect(foundedAfterId).toMatch(/^org_[0-9a-z]{26}$/);
 
-    const policies = await grantsIn(server);
-    expect(rolesHeldBy(policies, creatorId)).toEqual(
+    const grants = await grantsIn(server);
+    expect(rolesHeldBy(grants, creatorId)).toEqual(
       [`owner@${foundedAfterId}`, `owner@${foundedBeforeId}`].sort(),
     );
     expect(
-      policies.find((p) => p.spec?.resource?.id === foundedAfterId)?.status
+      grants.find((p) => p.spec?.resource?.id === foundedAfterId)?.status
         ?.audit?.specAudit?.createdBy?.id,
     ).toBe(creatorId);
   });
@@ -298,11 +298,11 @@ describe("built-in authorization posture (composed server, OIDC with no Authoriz
     const after = (await grantsIn(server)).map((p) => p.metadata?.id).sort();
     await accounts.provisionMyAccount({});
 
-    const policies = await grantsIn(server);
-    expect(rolesHeldBy(policies, newcomerId)).toEqual(
+    const grants = await grantsIn(server);
+    expect(rolesHeldBy(grants, newcomerId)).toEqual(
       [`member@${foundedAfterId}`, `member@${foundedBeforeId}`].sort(),
     );
-    expect(policies.map((p) => p.metadata?.id).sort()).toEqual(after);
+    expect(grants.map((p) => p.metadata?.id).sort()).toEqual(after);
   });
 });
 
@@ -331,7 +331,7 @@ describe("built-in authorization posture (composed server, trusted-local: the op
   }
 
   beforeAll(async () => {
-    dir = mkdtempSync(path.join(tmpdir(), "iam-policy-built-in-local-"));
+    dir = mkdtempSync(path.join(tmpdir(), "grant-built-in-local-"));
     setOperatorIdentity(OPERATOR_EMAIL, "The Operator");
     await boot();
   });
@@ -350,9 +350,9 @@ describe("built-in authorization posture (composed server, trusted-local: the op
     laptopOrgId = created.metadata?.id ?? "";
     expect(laptopOrgId).toMatch(/^org_[0-9a-z]{26}$/);
 
-    const policies = await grantsIn(server);
-    expect(rolesHeldBy(policies, operatorId)).toEqual([`owner@${laptopOrgId}`]);
-    expect(policies[0]?.status?.audit?.specAudit?.createdBy?.id).toBe(
+    const grants = await grantsIn(server);
+    expect(rolesHeldBy(grants, operatorId)).toEqual([`owner@${laptopOrgId}`]);
+    expect(grants[0]?.status?.audit?.specAudit?.createdBy?.id).toBe(
       operatorId,
     );
   });

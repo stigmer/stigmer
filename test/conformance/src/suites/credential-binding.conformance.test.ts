@@ -319,7 +319,7 @@ describe("credential binding — a credential that names an organization works t
     expect(read.metadata?.id).toBe(elsewhere);
   });
 
-  it("[rpc:IamPolicyQueryController.checkAuthorization] a key limited to A gets false when it asks about a resource of B", async (ctx) => {
+  it("[rpc:GrantQueryController.checkAuthorization] a key limited to A gets false when it asks about a resource of B", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     if (!target.capabilities.authorizationQueries) {
@@ -351,7 +351,7 @@ describe("credential binding — a credential that names an organization works t
     expect(bound.isAuthorized, "the key limited to A may not").toBe(false);
   });
 
-  it("[rpc:IamPolicyQueryController.checkMyPermission] a key limited to A gets false when it asks, with contextual policies, about a resource of B", async (ctx) => {
+  it("[rpc:GrantQueryController.checkMyPermission] a key limited to A gets false when it asks, with contextual policies, about a resource of B", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     if (!target.capabilities.authorizationQueries) {
@@ -370,7 +370,7 @@ describe("credential binding — a credential that names an organization works t
     const question = {
       resource: ref("vault", elsewhere),
       relation: "can_view",
-      contextualPolicies: [
+      contextualGrants: [
         grantTriple({ kind: "identity_account", id: personId }, "member", {
           kind: "organization",
           id: a.org,

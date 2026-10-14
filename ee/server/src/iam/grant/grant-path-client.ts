@@ -1,5 +1,5 @@
 /**
- * The composition's client of the OSS IamPolicy grant path.
+ * The composition's client of the OSS Grant grant path.
  * `@stigmer/server`'s grant path is the ONE code that writes or deletes a
  * policy row in every edition, and it is deliberately not exported: a
  * composition reaches it as in-process RPCs, so every write — the
@@ -18,8 +18,8 @@
  *     rows, and a child organization's `parent_org` and `child_org` edges.
  *     One principal is
  *     refused here, before any RPC: a TEAM. A grant to a team rides
- *     `IamPolicy.create` so the team grant gate on
- *     `iam-policy-create:pre-side-effect-gate` checks the team belongs to
+ *     `Grant.create` so the team grant gate on
+ *     `grant-create:pre-side-effect-gate` checks the team belongs to
  *     the resource's organization; the structural lane runs no gate, so a
  *     team principal written through it would reach across organizations
  *     unchecked. A team as the RESOURCE stays the structural lane's (its
@@ -99,13 +99,13 @@ export interface GrantPathClient {
 }
 
 const NOT_WIRED =
-  "iam policy grant path used before the in-process transport was wired";
+  "grant path used before the in-process transport was wired";
 
 /** The team's kind as an `ApiResourceRef.kind` spells it. */
 const TEAM_KIND = ApiResourceKind[ApiResourceKind.team];
 
 const TEAM_PRINCIPAL_REFUSED =
-  "a grant to a team is made through IamPolicy.create, never the structural lane";
+  "a grant to a team is made through Grant.create, never the structural lane";
 
 export function newGrantPathClient(
   transportRef: TransportRef,

@@ -69,7 +69,7 @@ const NOT_FILLED = "the Enterprise account service was called before the composi
 export function newEnterpriseAccounts(): EnterpriseAccounts {
   let accounts: ComposedServices["identityAccounts"] | undefined;
   const transportRef: TransportRef = {};
-  const policies = newGrantPathClient(transportRef);
+  const grants = newGrantPathClient(transportRef);
 
   function domain(): ComposedServices["identityAccounts"] {
     if (accounts === undefined) {
@@ -153,7 +153,7 @@ export function newEnterpriseAccounts(): EnterpriseAccounts {
       if (transport === undefined) {
         throw new Error(NOT_FILLED);
       }
-      await policies.cleanupResourceGrants(
+      await grants.cleanupResourceGrants(
         create(ApiResourceRefSchema, { kind: "identity_account", id: accountId }),
         actingFor,
       );

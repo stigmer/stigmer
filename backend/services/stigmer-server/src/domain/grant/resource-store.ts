@@ -1,8 +1,8 @@
 /**
- * The open-source IamPolicyStore: the port (store.ts) over the generic
+ * The open-source GrantStore: the port (store.ts) over the generic
  * Store, rows of the `resources` table by kind. The composition root
  * installs it when no extension registers
- * `drivers.iamPolicyStore`.
+ * `drivers.grantStore`.
  *
  * Reads. `findById` is a PRIMARY-KEY read. `findByPrincipal` is an
  * INDEXED read through the kind's list index (list-index.ts), because the
@@ -14,18 +14,18 @@
  * (kind, id) predicate decides, so the answer is exact whatever the index
  * returns, and the store keeps it exact while an older binary still
  * writes (store/interface.ts, `queryResources`). Every other find decodes
- * `listResources(iam_policy)` and filters in memory: they serve the grant
+ * `listResources(grant)` and filters in memory: they serve the grant
  * path, the access lists and a boot reconcile, not the check, and the row
  * count behind them is members × organizations on a self-host. The filters are the cloud
  * store's WHERE clauses restated over the proto (store.ts names each), so
  * a driver's test over either edition reads the same contract.
  *
  * Writes. `save` refuses a policy whose id is not its triple's derived id
- * (constants.ts policyIdFor): open source has no legacy random ids, and a
+ * (constants.ts grantIdFor): open source has no legacy random ids, and a
  * stray id would break the primary key's promise of one row per triple.
  * It then stores the row through the Store's create-only
  * `insertResource`, whose answer decides a held id: false raises
- * DuplicatePolicyError. The store's key decides a race, so of two
+ * DuplicateGrantError. The store's key decides a race, so of two
  * concurrent saves of one triple exactly one fulfils and the other is the
  * duplicate the grant path already answers. `deleteById` is
  * `deleteResource`.
@@ -125,26 +125,26 @@ export function newResourceGrantStore(
   }
 
   async function where(
-    predicate: (policy: Grant) => boolean,
+    predicate: (grant: Grant) => boolean,
   ): Promise<ReadonlyArray<Grant>> {
     return (await all()).filter(predicate);
   }
 
   return {
-    async save(policy, record): Promise<void> {
-      const id = policy.metadata?.id ?? "";
-      if (policy.spec === undefined || id !== grantIdFor(policy.spec)) {
+    async save(grant, record): Promise<void> {
+      const id = grant.metadata?.id ?? "";
+      if (grant.spec === undefined || id !== grantIdFor(grant.spec)) {
         throw new Error("policy id must be derived from its triple");
       }
       const inserted = await store.insertResource(
         KIND,
         id,
         GrantSchema,
-        policy,
+        grant,
         permissionChangeOf(options, record),
       );
       if (!inserted) {
-        throw new DuplicateGrantError(`IAM policy '${id}' already exists`);
+        throw new DuplicateGrantError(`grant '${id}' already exists`);
       }
     },
 
@@ -160,11 +160,11 @@ export function newResourceGrantStore(
       });
       return rows
         .map((row) => fromBinary(GrantSchema, row.data))
-        .filter((policy) => onPrincipal(policy, principalKind, principalId));
+        .filter((grant) => onPrincipal(grant, principalKind, principalId));
     },
 
     findByResource(resourceKind, resourceId) {
-      return where((policy) => onResource(policy, resourceKind, resourceId));
+      return where((grant) => onResource(grant, resourceKind, resourceId));
     },
 
     findByPrincipalAndResource(
@@ -174,17 +174,17 @@ export function newResourceGrantStore(
       resourceId,
     ) {
       return where(
-        (policy) =>
-          onPrincipal(policy, principalKind, principalId) &&
-          onResource(policy, resourceKind, resourceId),
+        (grant) =>
+          onPrincipal(grant, principalKind, principalId) &&
+          onResource(grant, resourceKind, resourceId),
       );
     },
 
     findByResourceWithRelations(resourceKind, resourceId, relations) {
       return where(
-        (policy) =>
-          onResource(policy, resourceKind, resourceId) &&
-          relations.includes(relationOf(policy)),
+        (grant) =>
+          onResource(grant, resourceKind, resourceId) &&
+          relations.includes(relationOf(grant)),
       );
     },
 
@@ -195,15 +195,15 @@ export function newResourceGrantStore(
       relations,
     ): Promise<number> {
       const principals = new Set<string>();
-      for (const policy of await all()) {
+      for (const grant of await all()) {
         if (
-          onResource(policy, resourceKind, resourceId) &&
-          relations.includes(relationOf(policy)) &&
+          onResource(grant, resourceKind, resourceId) &&
+          relations.includes(relationOf(grant)) &&
           (principalKind === undefined ||
-            policy.spec?.principal?.kind === principalKind)
+            grant.spec?.principal?.kind === principalKind)
         ) {
           principals.add(
-            `${policy.spec?.principal?.kind ?? ""}:${policy.spec?.principal?.id ?? ""}`,
+            `${grant.spec?.principal?.kind ?? ""}:${grant.spec?.principal?.id ?? ""}`,
           );
         }
       }
@@ -212,9 +212,9 @@ export function newResourceGrantStore(
 
     findByResourceKindAndRelation(resourceKind, relation) {
       return where(
-        (policy) =>
-          policy.spec?.resource?.kind === resourceKind &&
-          relationOf(policy) === relation,
+        (grant) =>
+          grant.spec?.resource?.kind === resourceKind &&
+          relationOf(grant) === relation,
       );
     },
 
@@ -227,7 +227,7 @@ export function newResourceGrantStore(
         actor: { id: record.actorId, callerClass: record.actorClass },
         cause: record.cause,
         organizationId: record.org,
-        policy: fromBinary(GrantSchema, record.data),
+        grant: fromBinary(GrantSchema, record.data),
       }));
     },
 
@@ -241,29 +241,29 @@ export function newResourceGrantStore(
 
     async findScopeTuple(resourceKind, resourceId) {
       return (await all()).find(
-        (policy) =>
-          onResource(policy, resourceKind, resourceId) &&
+        (grant) =>
+          onResource(grant, resourceKind, resourceId) &&
           !NON_STRUCTURAL_PRINCIPAL_KINDS.includes(
-            policy.spec?.principal?.kind ?? "",
+            grant.spec?.principal?.kind ?? "",
           ) &&
-          !NON_STRUCTURAL_RELATIONS.includes(relationOf(policy)),
+          !NON_STRUCTURAL_RELATIONS.includes(relationOf(grant)),
       );
     },
   };
 }
 
-function onPrincipal(policy: Grant, kind: string, id: string): boolean {
+function onPrincipal(grant: Grant, kind: string, id: string): boolean {
   return (
-    policy.spec?.principal?.kind === kind && policy.spec?.principal?.id === id
+    grant.spec?.principal?.kind === kind && grant.spec?.principal?.id === id
   );
 }
 
-function onResource(policy: Grant, kind: string, id: string): boolean {
+function onResource(grant: Grant, kind: string, id: string): boolean {
   return (
-    policy.spec?.resource?.kind === kind && policy.spec?.resource?.id === id
+    grant.spec?.resource?.kind === kind && grant.spec?.resource?.id === id
   );
 }
 
-function relationOf(policy: Grant): string {
-  return policy.spec?.relation ?? "";
+function relationOf(grant: Grant): string {
+  return grant.spec?.relation ?? "";
 }

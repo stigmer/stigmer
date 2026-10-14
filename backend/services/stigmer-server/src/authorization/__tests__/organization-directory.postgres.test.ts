@@ -76,7 +76,7 @@ describe.each(
 )("the built-in organization directory on $name", (fixture) => {
   describe.skipIf(fixture.skip)("listMyOrganizationIds", () => {
     let opened: OpenedStore;
-    let policies: GrantStore;
+    let grants: GrantStore;
     let accounts: IdentityAccountStore;
     let principalReads: number;
 
@@ -96,7 +96,7 @@ describe.each(
     }
 
     async function grant(spec: ReturnType<typeof orgRole>) {
-      await policies.save(
+      await grants.save(
         create(GrantSchema, {
           apiVersion: GRANT_API_VERSION,
           kind: GRANT_KIND,
@@ -109,11 +109,11 @@ describe.each(
     function directory() {
       return newBuiltInOrganizationDirectory({
         store: opened.store,
-        policies: {
-          ...policies,
+        grants: {
+          ...grants,
           findByPrincipal(principalKind, principalId) {
             principalReads += 1;
-            return policies.findByPrincipal(principalKind, principalId);
+            return grants.findByPrincipal(principalKind, principalId);
           },
         },
         accounts,
@@ -123,7 +123,7 @@ describe.each(
     beforeEach(async () => {
       opened = await fixture.open();
       principalReads = 0;
-      policies = newResourceGrantStore(opened.store, { keepsHistory: false });
+      grants = newResourceGrantStore(opened.store, { keepsHistory: false });
       accounts = newResourceIdentityAccountStore(opened.store);
       for (const [id, subject] of [
         [FOUNDER, "auth0|founder"],
@@ -154,7 +154,7 @@ describe.each(
       let accountReads = 0;
       const dir = newBuiltInOrganizationDirectory({
         store: opened.store,
-        policies,
+        grants: grants,
         accounts: {
           findById: (id) => {
             accountReads += 1;
@@ -221,7 +221,7 @@ describe.each(
       const fault = new Error("connection reset");
       const dir = newBuiltInOrganizationDirectory({
         store: opened.store,
-        policies: { ...policies, findByPrincipal: () => Promise.reject(fault) },
+        grants: { ...grants, findByPrincipal: () => Promise.reject(fault) },
         accounts,
       });
       await expect(dir.listMyOrganizationIds(resolved(FOUNDER))).rejects.toBe(

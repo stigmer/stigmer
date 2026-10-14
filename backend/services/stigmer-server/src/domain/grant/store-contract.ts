@@ -1,9 +1,9 @@
 /**
- * The IamPolicyStore PORT-CONTRACT KIT: every behavior an implementation of store.ts
+ * The GrantStore PORT-CONTRACT KIT: every behavior an implementation of store.ts
  * must satisfy identically, as cases a driver's test iterates. Open source
  * runs them over its own adapter (resource-store.ts) on sqlite and Postgres
  * in __tests__/resource-store.postgres.test.ts; a composition runs the SAME cases
- * over the store it registers as `drivers.iamPolicyStore`, so "the port holds" is
+ * over the store it registers as `drivers.grantStore`, so "the port holds" is
  * one statement
  * proven per driver, never restated per repository.
  *
@@ -42,7 +42,7 @@
  * are one case here; a composition's legacy random ids are the grant
  * path's by-triple read to converge (store.ts header), not a store promise.
  *
- * The duplicate arm checks `instanceof DuplicatePolicyError` on the
+ * The duplicate arm checks `instanceof DuplicateGrantError` on the
  * exported class, because that is how the grant path's race arm catches
  * it: a driver throwing a lookalike fails here for the reason it would
  * fail a grant.
@@ -123,34 +123,34 @@ function orgRole(
  * triple's derived id, and a creator stamp so two rows for one triple can
  * be told apart ("the first row stands").
  */
-function grantRow(policySpec: GrantSpec, createdBy = ALICE): Grant {
+function grantRow(grantSpec: GrantSpec, createdBy = ALICE): Grant {
   return create(GrantSchema, {
     apiVersion: GRANT_API_VERSION,
     kind: GRANT_KIND,
     metadata: create(ApiResourceMetadataSchema, {
-      id: grantIdFor(policySpec),
+      id: grantIdFor(grantSpec),
     }),
-    spec: policySpec,
+    spec: grantSpec,
     status: { audit: { specAudit: { createdBy: { id: createdBy } } } },
   });
 }
 
-function idOf(policy: Grant): string {
-  const id = policy.metadata?.id ?? "";
+function idOf(grant: Grant): string {
+  const id = grant.metadata?.id ?? "";
   assert.notEqual(id, "", "a fixture policy must carry an id");
   return id;
 }
 
-function relationsOf(policies: ReadonlyArray<Grant>): string[] {
-  return policies.map((policy) => policy.spec?.relation ?? "").sort();
+function relationsOf(grants: ReadonlyArray<Grant>): string[] {
+  return grants.map((grant) => grant.spec?.relation ?? "").sort();
 }
 
 async function saveAll(
   store: GrantStore,
-  policies: ReadonlyArray<Grant>,
+  grants: ReadonlyArray<Grant>,
 ): Promise<void> {
-  for (const policy of policies) {
-    await store.save(policy);
+  for (const grant of grants) {
+    await store.save(grant);
   }
 }
 
@@ -158,30 +158,30 @@ const CASES: ReadonlyArray<PortContractDeclaration<GrantStore>> = [
   [
     "save then findById round-trips the policy",
     async ({ store }) => {
-      const policy = grantRow(orgRole(ALICE, "admin", "acme"));
-      await store.save(policy);
-      const found = await store.findById(idOf(policy));
+      const grant = grantRow(orgRole(ALICE, "admin", "acme"));
+      await store.save(grant);
+      const found = await store.findById(idOf(grant));
       assert.ok(found !== undefined, "a saved policy must be readable by id");
       assert.ok(
-        equals(GrantSchema, found, policy),
+        equals(GrantSchema, found, grant),
         "findById must return the policy exactly as it was saved",
       );
       assert.equal(
-        await store.findById("iamp_00000000000000000000000000"),
+        await store.findById("grt_00000000000000000000000000"),
         undefined,
         "an unknown id must read as undefined, not as an error",
       );
     },
   ],
   [
-    "a second save under a held triple is DuplicatePolicyError, and the first row stands",
+    "a second save under a held triple is DuplicateGrantError, and the first row stands",
     async ({ store }) => {
       const triple = orgRole(ALICE, "admin", "acme");
       await store.save(grantRow(triple, ALICE));
       await assert.rejects(
         store.save(grantRow(triple, BOB)),
         DuplicateGrantError,
-        "save under a held id must raise the exported DuplicatePolicyError, never overwrite",
+        "save under a held id must raise the exported DuplicateGrantError, never overwrite",
       );
       const standing = await store.findById(grantIdFor(triple));
       assert.equal(
@@ -417,11 +417,11 @@ const CASES: ReadonlyArray<PortContractDeclaration<GrantStore>> = [
   [
     "deleteById removes the row; the triple is free to be granted again",
     async ({ store }) => {
-      const policy = grantRow(orgRole(ALICE, "admin", "acme"));
-      await store.save(policy);
-      await store.deleteById(idOf(policy));
+      const grant = grantRow(orgRole(ALICE, "admin", "acme"));
+      await store.save(grant);
+      await store.deleteById(idOf(grant));
       assert.equal(
-        await store.findById(idOf(policy)),
+        await store.findById(idOf(grant)),
         undefined,
         "a deleted policy must not be readable by id",
       );
@@ -436,7 +436,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<GrantStore>> = [
         "a deleted policy must not be readable by its pair",
       );
       await assert.doesNotReject(
-        store.save(policy),
+        store.save(grant),
         "the triple of a deleted policy must be savable again",
       );
     },
@@ -449,26 +449,26 @@ const CASES: ReadonlyArray<PortContractDeclaration<GrantStore>> = [
         cause: "grant",
         organizationId: "acme",
       };
-      const policy = grantRow(orgRole(ALICE, "admin", "acme"));
-      await store.save(policy, record);
-      const found = await store.findById(idOf(policy));
+      const grant = grantRow(orgRole(ALICE, "admin", "acme"));
+      await store.save(grant, record);
+      const found = await store.findById(idOf(grant));
       assert.ok(
-        found !== undefined && equals(GrantSchema, found, policy),
+        found !== undefined && equals(GrantSchema, found, grant),
         "a policy saved with a record must read back exactly as saved",
       );
       await assert.rejects(
         store.save(grantRow(orgRole(ALICE, "admin", "acme"), BOB), record),
         DuplicateGrantError,
-        "a held id with a record must still raise DuplicatePolicyError",
+        "a held id with a record must still raise DuplicateGrantError",
       );
-      await store.deleteById(idOf(policy), { ...record, cause: "revoke" });
+      await store.deleteById(idOf(grant), { ...record, cause: "revoke" });
       assert.equal(
-        await store.findById(idOf(policy)),
+        await store.findById(idOf(grant)),
         undefined,
         "a policy deleted with a record must be gone",
       );
       await assert.doesNotReject(
-        store.deleteById(idOf(policy), { ...record, cause: "revoke" }),
+        store.deleteById(idOf(grant), { ...record, cause: "revoke" }),
         "deleting an id that is not held, with a record, must resolve",
       );
     },
@@ -477,7 +477,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<GrantStore>> = [
     "deleteById of an unknown id resolves",
     async ({ store }) => {
       await assert.doesNotReject(
-        store.deleteById("iamp_00000000000000000000000000"),
+        store.deleteById("grt_00000000000000000000000000"),
         "deleting an id that is not held must resolve, not reject",
       );
     },
@@ -513,7 +513,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<GrantStore>> = [
     },
   ],
   [
-    "two concurrent saves of one triple end in one row and DuplicatePolicyErrors only",
+    "two concurrent saves of one triple end in one row and DuplicateGrantErrors only",
     async ({ store }) => {
       const triple = orgRole(ALICE, "admin", "acme");
       const results = await Promise.allSettled([
@@ -524,7 +524,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<GrantStore>> = [
         if (result.status === "rejected") {
           assert.ok(
             result.reason instanceof DuplicateGrantError,
-            `a losing concurrent save must fail as DuplicatePolicyError, got ${String(result.reason)}`,
+            `a losing concurrent save must fail as DuplicateGrantError, got ${String(result.reason)}`,
           );
         }
       }
@@ -612,7 +612,7 @@ const HISTORY_CASES: ReadonlyArray<PortContractDeclaration<GrantStore>> = [
         DuplicateGrantError,
       );
       await store.save(structural);
-      await store.deleteById("iamp_00000000000000000000000000", recordOf("revoke", "acme"));
+      await store.deleteById("grt_00000000000000000000000000", recordOf("revoke", "acme"));
       await store.deleteById(idOf(granted), recordOf("organization_access_revoked", "acme"));
       await store.save(elsewhere, recordOf("grant", "globex"));
 
@@ -629,7 +629,7 @@ const HISTORY_CASES: ReadonlyArray<PortContractDeclaration<GrantStore>> = [
         assert.deepEqual(change.actor, { id: BOB, callerClass: "user" }, "the actor reads back as recorded");
         assert.equal(change.organizationId, "acme", "the organization reads back as recorded");
         assert.ok(
-          equals(GrantSchema, change.policy, granted),
+          equals(GrantSchema, change.grant, granted),
           "the change carries the row as granted, or as it stood when revoked",
         );
         assert.match(change.occurredAt, FIXED_WIDTH_UTC, "times are fixed-width UTC with milliseconds");

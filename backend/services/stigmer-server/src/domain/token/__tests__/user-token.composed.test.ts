@@ -213,7 +213,7 @@ describe("what a mint does", () => {
     }
     const accountId = accountIdFor(`stgm_pc|${acme}|u-role`);
     const granted = at.logs.filter(
-      (line) => line.message === "iam policy granted" && line["principalId"] === accountId,
+      (line) => line.message === "grant created" && line["principalId"] === accountId,
     );
     expect(granted).toHaveLength(1);
     expect(granted[0]).toMatchObject({
@@ -225,8 +225,8 @@ describe("what a mint does", () => {
     const rows = await at.server.store.listResources(ApiResourceKind.grant);
     const held = rows
       .map((row) => fromBinary(GrantSchema, row))
-      .filter((policy) => policy.spec?.principal?.id === accountId)
-      .map((policy) => `${policy.spec?.relation}@${policy.spec?.resource?.id}`);
+      .filter((grant) => grant.spec?.principal?.id === accountId)
+      .map((grant) => `${grant.spec?.relation}@${grant.spec?.resource?.id}`);
     expect(held).toContain(`member@${acme}`);
     expect(held).not.toContain(`viewer@${acme}`);
   });

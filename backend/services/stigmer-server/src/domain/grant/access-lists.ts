@@ -2,8 +2,8 @@
  * Access-list machinery: the row-driven answer to
  * "who has access, with which roles" behind `listResourceAccessByPrincipal`
  * — the Java ResourceHierarchyResolver and PrincipalEnricher ports, moved
- * as-is from the cloud's iam/policy/access-lists.ts so every edition
- * renders an access list the same way over its own IamPolicyStore.
+ * as-is from the cloud's iam/grant/access-lists.ts so every edition
+ * renders an access list the same way over its own GrantStore.
  *
  * The hierarchy walk climbs the resource's scope tuples (child →
  * organization → platform, at most five steps, `platform` terminal) in the
@@ -12,7 +12,7 @@
  * states the exclusions). Inherited grants carry their owning level so the
  * console can say "inherited from organization". On open source no chain
  * seeds scope links (a policy is the authorization record, not a protected
- * resource — the IamPolicy chains splice no tuple step), so the walk is one
+ * resource — the Grant chains splice no tuple step), so the walk is one
  * level unless the platform's own pipeline bootstrapped a link.
  *
  * Display enrichment is a seam (`PrincipalDisplayResolver`) because the
@@ -85,7 +85,7 @@ export interface HierarchyLevel {
  * scope parent.
  */
 export async function resolveHierarchy(
-  policies: GrantStore,
+  grants: GrantStore,
   resourceKind: string,
   resourceId: string,
   includeInherited: boolean,
@@ -101,7 +101,7 @@ export async function resolveHierarchy(
     depth < MAX_HIERARCHY_DEPTH && !TERMINAL_KINDS.has(currentKind);
     depth++
   ) {
-    const scopeTuple = await policies.findScopeTuple(currentKind, currentId);
+    const scopeTuple = await grants.findScopeTuple(currentKind, currentId);
     const parent = scopeTuple?.spec?.principal;
     if (parent === undefined) {
       break;
@@ -131,37 +131,37 @@ export interface PrincipalDisplayResolver {
  * fallback shape (name = id) everywhere else.
  */
 export async function buildPrincipalAccessList(
-  policies: GrantStore,
+  grantStore: GrantStore,
   displayResolver: PrincipalDisplayResolver,
   principalDisplay: PrincipalDisplay | undefined,
   hierarchy: ReadonlyArray<HierarchyLevel>,
 ): Promise<ReadonlyArray<PrincipalAccess>> {
   interface GrantAtLevel {
-    readonly policy: Grant;
+    readonly grant: Grant;
     readonly isInherited: boolean;
     readonly level: HierarchyLevel;
   }
   const grants: GrantAtLevel[] = [];
   for (const [index, level] of hierarchy.entries()) {
-    const rows = await policies.findByResourceWithRelations(
+    const rows = await grantStore.findByResourceWithRelations(
       level.kind,
       level.id,
       assignableRelations(),
     );
-    for (const policy of rows) {
-      grants.push({ policy, isInherited: index > 0, level });
+    for (const grant of rows) {
+      grants.push({ grant: grant, isInherited: index > 0, level });
     }
   }
   if (grants.length === 0) {
     return [];
   }
   const departed = await accountsOutsideOrganization(
-    policies,
+    grantStore,
     hierarchy,
-    grants.map((grant) => grant.policy),
+    grants.map((grant) => grant.grant),
   );
   const current = grants.filter((grant) => {
-    const principal = grant.policy.spec?.principal;
+    const principal = grant.grant.spec?.principal;
     return !(principal?.kind === ACCOUNT_KIND && departed.has(principal.id));
   });
   if (current.length === 0) {
@@ -169,7 +169,7 @@ export async function buildPrincipalAccessList(
   }
 
   const enriched = await resolvePrincipalViews(
-    current.map((g) => g.policy),
+    current.map((g) => g.grant),
     displayResolver,
     principalDisplay,
   );
@@ -179,7 +179,7 @@ export async function buildPrincipalAccessList(
     { principal: ApiResourceRefView; roles: RoleGrant[] }
   >();
   for (const grant of current) {
-    const principal = grant.policy.spec?.principal;
+    const principal = grant.grant.spec?.principal;
     if (principal === undefined) {
       continue;
     }
@@ -205,7 +205,7 @@ export async function buildPrincipalAccessList(
       };
       grouped.set(key, entry);
     }
-    entry.roles.push(buildGrant(grant.policy, grant.isInherited, grant.level));
+    entry.roles.push(buildGrant(grant.grant, grant.isInherited, grant.level));
   }
 
   return [...grouped.values()].map((entry) =>
@@ -222,7 +222,7 @@ export async function buildPrincipalAccessList(
  * list and for a resource no organization holds.
  */
 async function accountsOutsideOrganization(
-  policies: GrantStore,
+  grants: GrantStore,
   hierarchy: ReadonlyArray<HierarchyLevel>,
   rows: ReadonlyArray<Grant>,
 ): Promise<ReadonlySet<string>> {
@@ -232,7 +232,7 @@ async function accountsOutsideOrganization(
   }
   const levels = hierarchy.some((level) => level.kind === ORGANIZATION_KIND)
     ? hierarchy
-    : await resolveHierarchy(policies, resource.kind, resource.id, true);
+    : await resolveHierarchy(grants, resource.kind, resource.id, true);
   const organization = levels.find((level) => level.kind === ORGANIZATION_KIND);
   if (organization === undefined) {
     return new Set();
@@ -245,11 +245,11 @@ async function accountsOutsideOrganization(
   }
   const outside = new Set<string>();
   for (const account of accounts) {
-    const held = await policies.findByPrincipal(ACCOUNT_KIND, account);
+    const held = await grants.findByPrincipal(ACCOUNT_KIND, account);
     const inOrganization = held.some(
-      (policy) =>
-        policy.spec?.resource?.kind === ORGANIZATION_KIND &&
-        policy.spec.resource.id === organization.id,
+      (grant) =>
+        grant.spec?.resource?.kind === ORGANIZATION_KIND &&
+        grant.spec.resource.id === organization.id,
     );
     if (!inOrganization) {
       outside.add(account);
@@ -315,13 +315,13 @@ function withRelation(
 }
 
 function buildGrant(
-  policy: Grant,
+  grant: Grant,
   isInherited: boolean,
   level: HierarchyLevel,
 ): RoleGrant {
   return create(RoleGrantSchema, {
     role: roleInfoFromRelation(
-      policy.spec?.relation ?? "",
+      grant.spec?.relation ?? "",
       kindByEnumName(level.kind),
     ),
     isInherited,

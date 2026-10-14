@@ -1,21 +1,21 @@
 /**
- * The policy-grant-scope driver point: WHICH kinds a user may grant a role
+ * The grant-scope driver point: WHICH kinds a user may grant a role
  * on in this
  * edition, and with which roles. Single instance, registered as
- * `drivers.policyGrantScope` (the identityFederation shape: a driver point
+ * `drivers.grantScope` (the identityFederation shape: a driver point
  * whose absence is open source's own behaviour). Absent, the composition
  * root installs `newOrganizationOnlyGrantScope()`
- * (domain/iampolicy/grant-scope.ts): the organization grants the roles its
+ * (domain/grant/grant-scope.ts): the organization grants the roles its
  * `kind_meta` lists — owner, admin, member, viewer — and no other
  * kind grants anything. Per-resource grants (a viewer on one agent) are
  * what the Enterprise and Cloud editions add by registering a wider scope;
  * the cloud registers every kind's `kind_meta` roles.
  *
- * Who reads it: the IamPolicy command controller's ValidateGrantableRole on
+ * Who reads it: the Grant command controller's ValidateGrantableRole on
  * `create` — AFTER the proto (`grantableRolesFor` in
  * pipeline/apiresource-meta.ts, the source of "what can be granted at
  * all"; a kind that lists no roles is system-managed in every edition and
- * refused before the scope is asked) and never on `bootstrapPolicy`, the
+ * refused before the scope is asked) and never on `bootstrapGrant`, the
  * structural lane — and `checkMyPermission`'s second arm, which answers
  * `can_grant_access` false for a kind outside the scope so the console's
  * existing PermissionGate hides grant controls without a new SDK surface.
@@ -38,7 +38,7 @@
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
-/** The grant-scope contract (single-instance point, ExtensionDrivers.policyGrantScope). */
+/** The grant-scope contract (single-instance point, ExtensionDrivers.grantScope). */
 export interface GrantScope {
   /**
    * The roles a user may grant on a resource of `kind` in this edition — a

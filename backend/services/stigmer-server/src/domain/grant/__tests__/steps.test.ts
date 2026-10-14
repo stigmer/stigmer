@@ -1,5 +1,5 @@
 /**
- * Pins steps.ts: the IamPolicy chains' domain-local
+ * Pins steps.ts: the Grant chains' domain-local
  * steps. The one with branching logic is ValidateGrantableRole: the wire
  * refusal first (an unknown kind is
  * `Unknown resource kind`, never a role sentence), then the three arms in
@@ -17,7 +17,7 @@
  * list it, and granted nowhere under open source's scope.
  *
  * Grant and Revoke are proven for the one thing a step adds over the
- * grant path: the result they leave under POLICY_RESULT_KEY (the revoke
+ * grant path: the result they leave under GRANT_RESULT_KEY (the revoke
  * of an absent triple leaves the default instance, Java's contract).
  *
  * The two owner steps: a change that grants, revokes or removes an
@@ -55,7 +55,7 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { createLogger } from "../../../boot/logger.js";
 import type { Authorizer, AuthzCheck } from "../../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
-import type { GrantScope } from "../../../extensions/policy-grant-scope.js";
+import type { GrantScope } from "../../../extensions/grant-scope.js";
 import { trustedLocalIdentityFor } from "../../../pipeline/interceptors/auth.js";
 import { grantableRolesFor } from "../../../pipeline/apiresource-meta.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
@@ -210,7 +210,7 @@ describe("ValidateGrantableRole", () => {
     );
   });
 
-  it("arm 4: a principal that is not a person is refused — a role names an account; a structural link is bootstrapPolicy's", async () => {
+  it("arm 4: a principal that is not a person is refused — a role names an account; a structural link is bootstrapGrant's", async () => {
     const error = await refusal(() =>
       organizationOnly.execute(
         contextOf(
@@ -457,11 +457,11 @@ describe("ValidateGrantableRole", () => {
   });
 });
 
-describe("Grant and Revoke leave their result under POLICY_RESULT_KEY", () => {
+describe("Grant and Revoke leave their result under GRANT_RESULT_KEY", () => {
   function pathOverFreshStore() {
     return newGrantPath({
       resources: NO_STORED_RESOURCES,
-      policies: fakeGrantStore(),
+      grants: fakeGrantStore(),
       lifecycle: undefined,
       logger: silent,
     });
@@ -549,7 +549,7 @@ describe("owner is assigned by owners", () => {
     const store = fakeGrantStore();
     const path = newGrantPath({
       resources: NO_STORED_RESOURCES,
-      policies: store,
+      grants: store,
       lifecycle: undefined,
       logger: silent,
     });

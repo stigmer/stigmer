@@ -125,7 +125,7 @@ export interface OrganizationLinkReport {
 
 export interface OrganizationLinkDeps {
   readonly grantStore: Pick<GrantStore, "findByResource">;
-  readonly policies: Pick<GrantPathClient, "bootstrapGrant">;
+  readonly grants: Pick<GrantPathClient, "bootstrapGrant">;
   readonly organizations: OrganizationLookup;
 }
 
@@ -165,7 +165,7 @@ export async function reconcileOrganizationLinks(
         orphaned.push({ id, org, reason });
         continue;
       }
-      await deps.policies.bootstrapGrant(
+      await deps.grants.bootstrapGrant(
         create(GrantSpecSchema, {
           principal: create(ApiResourceRefSchema, { kind: ORGANIZATION, id: org }),
           relation: ORGANIZATION,
@@ -220,18 +220,18 @@ export function newInProcessOrganizationLookup(transportRef: TransportRef): Orga
 }
 
 async function hasOrganizationLink(
-  policyStore: Pick<GrantStore, "findByResource">,
+  grantStore: Pick<GrantStore, "findByResource">,
   kindName: string,
   id: string,
   org: string,
 ): Promise<boolean> {
-  const policies = await policyStore.findByResource(kindName, id);
-  return policies.some(
-    (policy) =>
-      policy.spec?.relation === ORGANIZATION &&
-      policy.spec.principal?.kind === ORGANIZATION &&
-      policy.spec.principal.id === org &&
-      policy.spec.principal.relation === "",
+  const grants = await grantStore.findByResource(kindName, id);
+  return grants.some(
+    (grant) =>
+      grant.spec?.relation === ORGANIZATION &&
+      grant.spec.principal?.kind === ORGANIZATION &&
+      grant.spec.principal.id === org &&
+      grant.spec.principal.relation === "",
   );
 }
 

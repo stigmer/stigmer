@@ -1,5 +1,5 @@
 /**
- * The IamPolicy domain's wire refusals: the ONE place a kind string that came
+ * The Grant domain's wire refusals: the ONE place a kind string that came
  * off the wire, or a whole policy triple, is turned into INVALID_ARGUMENT
  * with the domain's byte-pinned copy (constants.ts). Three callers share
  * it so the rule cannot drift between them — the grant path (before any

@@ -292,7 +292,7 @@ function verifierOf(
   } as unknown as IdentityAccountService;
   // The JIT grant is a ROLE grant to a person: the user lane (`create`),
   // where ValidateGrantableRole runs; the fake offers that method only.
-  const policies = {
+  const grants = {
     create: (spec: GrantSpec) => {
       if (fakes.grantFails === "non-error") {
         return Promise.reject("fga unavailable");
@@ -322,7 +322,7 @@ function verifierOf(
   return newStoreBackedFederatedVerifier({
     providers: providerStore,
     accounts,
-    policies,
+    grants: grants,
     childOrganizations,
     signInGrants: fakes.signInGrants,
     fetchUserProfile: (endpoint: string) => {
@@ -1027,7 +1027,7 @@ describe("store-backed federated verifier: the profile and the token's shape", (
     const verifier = newStoreBackedFederatedVerifier({
       providers: providerStore,
       accounts: { store: {} } as never,
-      policies: {} as never,
+      grants: {} as never,
       childOrganizations: {} as never,
       signInGrants: inMemorySignInGrants(),
       fetchUserProfile: () => Promise.reject(new Error("unused")),

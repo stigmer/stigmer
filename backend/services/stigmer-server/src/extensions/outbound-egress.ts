@@ -1,7 +1,7 @@
 /**
  * The outbound-egress driver point: WHICH addresses this edition's control
  * plane may dial when it reaches a URL a user supplied. Single instance,
- * registered as `drivers.outboundEgress` (the policyGrantScope shape: a
+ * registered as `drivers.outboundEgress` (the grantScope shape: a
  * driver point whose absence is open source's own behaviour). Absent, the
  * composition root installs `relaxedEgressPolicy()`: everything but the
  * link-local range is allowed, because a server beside a self-hosted

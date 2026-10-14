@@ -11,7 +11,7 @@
  * chosen on the hosted edition's row counts and sizes (2026-09-23: every
  * other org-scoped kind held under a hundred rows and a hundred kilobytes).
  * A kind also joins when a port read on every authorization check would
- * otherwise decode the whole kind: `iam_policy`, whose adapter reads a
+ * otherwise decode the whole kind: `grant`, whose adapter reads a
  * person's rows by principal (measured 2026-09-24: about 4.6 microseconds
  * per row per read, 47 ms a check at ten thousand rows on sqlite). And a
  * kind joins when the execution create path reads it: `memory`, whose

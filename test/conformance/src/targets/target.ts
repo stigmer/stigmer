@@ -247,12 +247,12 @@ export interface CapabilityFlags {
   // versionTagging posture): the boundary is an
   // observable contract, never an absence to skip past.
   federatedIdentityAccounts: boolean;
-  // IamPolicy `create` admits a grant on kinds BEYOND the organization: an
+  // Grant `create` admits a grant on kinds BEYOND the organization: an
   // agent, a skill, an MCP server — the per-resource sharing the
-  // console's "Manage access" dialog drives. The IamPolicy domain is core
+  // console's "Manage access" dialog drives. The Grant domain is core
   // in every edition (the row half: one grant path, the Members page, the
   // organization roles), but WHICH kinds a user may grant on is the composed
-  // grant scope (`drivers.policyGrantScope`): open source's default is the
+  // grant scope (`drivers.grantScope`): open source's default is the
   // organization and nothing else.
   //
   // True for cloud, whose cloud-iam unit registers every kind's kind_meta
@@ -264,7 +264,7 @@ export interface CapabilityFlags {
   // kind_meta lists no roles) is INVALID_ARGUMENT everywhere and rides no
   // flag.
   perResourceGrants: boolean;
-  // The TUPLE-half queries of IamPolicyQueryController are served here:
+  // The TUPLE-half queries of GrantQueryController are served here:
   // checkAuthorization, listAuthorizedResourceIds, listAuthorizedPrincipalIds,
   // and checkMyPermission carrying contextual policies — the questions only
   // a relationship graph (OpenFGA) can answer, behind
@@ -435,7 +435,7 @@ export interface DirectLoginTenant {
 }
 
 // The four kind_meta roles of the organization, in the proto's order — the
-// words an IamPolicy grant carries as `relation`, and the rungs the model
+// words a Grant grant carries as `relation`, and the rungs the model
 // reads (each implies the ones after it). The one role set open source
 // grants on; support/grants re-exports it.
 export const ORGANIZATION_ROLES = ["owner", "admin", "member", "viewer"] as const;
@@ -799,7 +799,7 @@ export interface TargetProfile {
   // A platform-operator caller with a tenancy of its own (stigmer#547) — see
   // PrivilegedScope. Absent where no operator credential exists: hermetic
   // cloud runs bootstrap one (a conf-operator user granted operator on
-  // platform:stigmer via the production bootstrapPolicy RPC), but
+  // platform:stigmer via the production bootstrapGrant RPC), but
   // pre-provisioned/deployed endpoints deliberately carry none — operator
   // credentials against a real deployment is the permanent skip the stigmer#547
   // ruling recorded — so privileged-lane assertions skip there.

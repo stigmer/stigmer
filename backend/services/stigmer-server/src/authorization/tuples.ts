@@ -7,21 +7,21 @@
  * row is an account or the holder of a relation on an object, which is
  * why a check needs no context parameter. Nothing here is
  * stored: open source derives every tuple from a row (derived-tuples.ts)
- * or reads it from an IamPolicy row, and this module only names what a
+ * or reads it from a Grant row, and this module only names what a
  * tuple IS.
  *
  * `Person` is the caller as the evaluator sees them: the account id the
- * IamPolicy rows name, and every string a creator stamp may carry for the
+ * Grant rows name, and every string a creator stamp may carry for the
  * same human — the account id and the account's issuer subject (rows the
  * 3.14.x verifiers stamped with the raw `sub`). A tuple naming
  * `identity_account:<x>` matches the person when `x` is one of the
  * aliases; rows are read by the account id alone, because every row open
- * source writes names an account (domain/iampolicy/role-lifecycle.ts).
+ * source writes names an account (domain/grant/role-lifecycle.ts).
  * The type is named here; the construction (`personFor`, `resolvePerson`)
  * is person.ts's, so this module stays vocabulary with no I/O.
  *
  * The string forms (`agent:x`, `organization:acme#viewer`) are the
- * notation the cloud's store tests and the IamPolicy proto both use; parse
+ * notation the cloud's store tests and the Grant proto both use; parse
  * and format are here so the kit and the tests never spell them a second
  * way. The wildcard notation `type:*` is refused by the parser: the model
  * has no line that admits one, so a fixture or a policy that spells it is
@@ -86,7 +86,7 @@ export interface RowLoader {
 
 /** The caller as the model sees them. */
 export interface Person {
-  /** The id the IamPolicy rows name. */
+  /** The id the Grant rows name. */
   readonly accountId: string;
   /** Every string a creator stamp may carry for this person; always contains `accountId`. */
   readonly aliases: ReadonlySet<string>;
@@ -161,7 +161,7 @@ export function formatSubject(subject: Subject): string {
   }
 }
 
-/** `object#relation@subject` — the IamPolicy proto's own tuple notation. */
+/** `object#relation@subject` — the Grant proto's own tuple notation. */
 export function formatTuple(tuple: Tuple): string {
   return `${formatObjectRef(tuple.object)}#${tuple.relation}@${formatSubject(tuple.subject)}`;
 }

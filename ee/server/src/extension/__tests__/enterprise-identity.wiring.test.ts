@@ -70,11 +70,11 @@ describe("the identity unit's wiring", () => {
       "transport",
       "transportRef",
       "policies",
-      "policyStore",
+      "grantStore",
     ]);
     expect(composed.size, "instances the hand-over takes").toBeGreaterThan(8);
     expect([...composed].filter((name) => members.has(name)), "a composition instance taken as a port").toEqual([]);
-    expect(unit).toMatch(/^\s*iamPolicies: services\.iamPolicies,\s*$/m);
+    expect(unit).toMatch(/^\s*grants: services\.grants,\s*$/m);
     expect(unit).toMatch(/async start\(\): Promise<void> \{/);
   });
 

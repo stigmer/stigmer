@@ -422,7 +422,7 @@ function createRpc(
 
 function guardInternalRpc(caller: CallerIdentity): void {
   // The one definition of "the platform's own pipelines"
-  // (extensions/identity.ts), shared with the IamPolicy system RPCs.
+  // (extensions/identity.ts), shared with the Grant system RPCs.
   if (isPlatformPipelineCaller(caller)) {
     return;
   }
@@ -532,7 +532,7 @@ async function deleteAccount(
       },
     })
     .addStep({
-      name: "RevokeAccountPolicies",
+      name: "RevokeAccountGrants",
       async execute(ctx) {
         try {
           await deps.grantPath.cleanupResource(

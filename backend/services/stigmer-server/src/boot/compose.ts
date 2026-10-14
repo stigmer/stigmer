@@ -38,7 +38,7 @@ import {
 } from "../authorization/credential-binding.js";
 import { newBuiltInListReadScope } from "../authorization/list-read-scope.js";
 import { newBuiltInOrganizationDirectory } from "../authorization/organization-directory.js";
-import { newBuiltInGrantCheck } from "../authorization/policy-check.js";
+import { newBuiltInGrantCheck } from "../authorization/grant-check.js";
 import { builtInModel } from "../authorization/model/index.js";
 import {
   authorizationPostureOf,
@@ -552,13 +552,13 @@ export async function composeServer(
   const identityAccounts =
     extensions.drivers.identityAccountStore ??
     newResourceIdentityAccountStore(store);
-  // The IamPolicy row half: the store PORT bound the same way
-  // (`drivers.iamPolicyStore`; open source's adapter over `store`
+  // The Grant row half: the store PORT bound the same way
+  // (`drivers.grantStore`; open source's adapter over `store`
   // when absent) and the domain's ONE grant and revoke path built over it.
   // The grant path's lifecycle is the composed DRIVER — the cloud's tuple
   // hooks — never the built-in lifecycle below, which sits ON TOP of the
   // grant path; that direction keeps the two acyclic. Both
-  // bindings are what the IamPolicy controller registers over (routes).
+  // bindings are what the Grant controller registers over (routes).
   // An edition above open source keeps the permission history: the
   // edition is the composition's one declaration of that difference, so
   // open source's adapter records every access row change in the row's
@@ -569,12 +569,12 @@ export async function composeServer(
       keepsHistory: extensions.edition !== ServerEdition.oss,
     });
   // A person's departure from an organization deletes their My vault there
-  // (domain/iampolicy/departure.ts). The handler needs the vault service,
+  // (domain/grant/departure.ts). The handler needs the vault service,
   // which needs the secret facade built further down, so it is bound once
   // both exist; the grant path only calls it at request time.
   let myVaultDeparture: OrganizationDepartureHandler | undefined;
   const grantPath = newGrantPath({
-    policies: grants,
+    grants: grants,
     resources: newStoredResources(store),
     lifecycle: extensions.drivers.resourceAuthorizationLifecycle,
     logger,
@@ -587,7 +587,7 @@ export async function composeServer(
     },
   });
   // The tuple-lifecycle driver: undefined = the three
-  // shared tuple steps (CreateAuthorizationTuples / CleanupIamPolicies /
+  // shared tuple steps (CreateAuthorizationTuples / CleanupGrants /
   // UpdateVisibilityTuples) no-op before any resolution work — OSS
   // behavior byte-identical. Handed to every resource controller as an
   // explicit dependency, the same threading as the authorizer.
@@ -629,7 +629,7 @@ export async function composeServer(
   const membership = builtInAuthorization
     ? newMembershipRules({
         grantPath: grantPath,
-        policies: grants,
+        grants: grants,
         store,
         operatorEmail: operatorIdentity.email,
         edition: extensions.edition,
@@ -662,7 +662,7 @@ export async function composeServer(
         })
       : newExecutionScopedRunnerCredentialProvider(runnerAuthService));
   // The ONE composed Authorizer, bound here — after the store,
-  // the account port and the IamPolicy port it reads — and handed to every
+  // the account port and the Grant port it reads — and handed to every
   // controller as an explicit dependency; the Authorize step at position 1
   // of every chain calls it. By posture: an extension's registration;
   // open source's built-in Authorizer (authorization/authorizer.ts — the
@@ -681,7 +681,7 @@ export async function composeServer(
     (authorizationPosture === "built-in"
       ? newBuiltInAuthorizer({
           store,
-          policies: grants,
+          grants: grants,
           accounts: identityAccounts,
           rowReaders: extensions.drivers.resourceRowReaders,
           edition: extensions.edition,
@@ -693,7 +693,7 @@ export async function composeServer(
     (authorizationPosture === "built-in"
       ? newBuiltInOrganizationDirectory({
           store,
-          policies: grants,
+          grants: grants,
           accounts: identityAccounts,
           rowReaders: extensions.drivers.resourceRowReaders,
         })
@@ -716,7 +716,7 @@ export async function composeServer(
     (authorizationPosture === "built-in"
       ? newBuiltInListReadScope({
           store,
-          policies: grants,
+          grants: grants,
           accounts: identityAccounts,
           rowReaders: extensions.drivers.resourceRowReaders,
           logger,
@@ -730,14 +730,14 @@ export async function composeServer(
   // unit's own consumer of the composed services is bound by
   // construction; only the raw drivers above are unbound, and nothing
   // past this point sees them. It reads a target's organization from the
-  // row where the built-in authorizer would (the IamPolicy and
+  // row where the built-in authorizer would (the Grant and
   // identity-account ports a composition may substitute, then the units'
   // row readers, then the generic store), which is why every posture, not
   // only the built-in one, refuses a served kind no reader can read.
   const credentialBinding = newCredentialBinding({
     store,
     rowReaders: extensions.drivers.resourceRowReaders,
-    policies: grants,
+    grants: grants,
     identityAccounts,
     lifecycle: organizationLifecycle,
   });
@@ -1661,7 +1661,7 @@ export async function composeServer(
     extensions.accessHistoryRetentionDays === undefined
       ? undefined
       : new AccessHistoryRetentionRunner({
-          policies: grants,
+          grants: grants,
           retentionDays: extensions.accessHistoryRetentionDays,
           logger,
         });
@@ -1751,10 +1751,10 @@ export async function composeServer(
       // chain below), so no service account could ever authenticate.
       signInRequired: requireAuthentication,
     });
-    // IamPolicy: the ROW half served once by open source in
+    // Grant: the ROW half served once by open source in
     // every edition over the store port and the grant path bound in the
     // identity stage. A composition adds what differs per edition through
-    // the registry — a wider grant scope (`drivers.policyGrantScope`; the
+    // the registry — a wider grant scope (`drivers.grantScope`; the
     // default is open source's organization-only scope, installed at this
     // `??` site like the permissive Authorizer) and the tuple-half query
     // engine (`drivers.authorizationQueries`; absent, those RPCs refuse
@@ -1762,7 +1762,7 @@ export async function composeServer(
     // authorization record, not a protected resource.
     registerGrantServices(router, {
       grantPath: grantPath,
-      policies: grants,
+      grants: grants,
       accounts: identityAccounts,
       authorizer,
       grantScope:
@@ -2319,7 +2319,7 @@ export async function composeServer(
       (authorizationPosture === "built-in"
         ? newBuiltInGrantCheck({
             store,
-            policies: grants,
+            grants: grants,
             accounts: identityAccounts,
             rowReaders: extensions.drivers.resourceRowReaders,
           })
@@ -2386,7 +2386,7 @@ export async function composeServer(
         });
         // Under sign-in the organization is made as nobody, after the
         // role reconciliation above ran: the people a store already held
-        // get their roles on it here, once (domain/iampolicy/membership.ts).
+        // get their roles on it here, once (domain/grant/membership.ts).
         if (authorizationPosture === "built-in" && membership !== undefined) {
           await membership.ensureRolesOnServerOrganization();
         }

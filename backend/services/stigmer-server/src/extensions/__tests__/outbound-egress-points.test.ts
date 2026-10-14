@@ -1,6 +1,6 @@
 /**
  * Pins the outboundEgress driver point in the single-instance shape the
- * registry already enforces for policyGrantScope and licenseStatus:
+ * registry already enforces for grantScope and licenseStatus:
  *
  *   - `drivers.outboundEgress` — the address policy the composition root
  *     builds the McpServer slice's one guarded fetch from; single instance;

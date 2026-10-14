@@ -92,7 +92,7 @@ function grantPath(failing: boolean | (() => boolean) = false) {
     vaults,
   });
   return newGrantPath({
-    policies: fakeGrantStore(recorded),
+    grants: fakeGrantStore(recorded),
     resources: NO_STORED_RESOURCES,
     lifecycle: undefined,
     logger: silentLogger,

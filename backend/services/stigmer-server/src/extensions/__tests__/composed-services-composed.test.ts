@@ -168,7 +168,7 @@ describe("onComposed: a unit receives the composition's own instances", () => {
       onResourceDeleted: () => Promise.resolve(),
       onVisibilityChanged: () => Promise.resolve(),
     };
-    const policies: GrantStore = {
+    const grants: GrantStore = {
       save: () => Promise.resolve(),
       deleteById: () => Promise.resolve(),
       findById: () => Promise.resolve(undefined),
@@ -197,7 +197,7 @@ describe("onComposed: a unit receives the composition's own instances", () => {
           listReadScope,
           authorizationQueries: queries,
           resourceAuthorizationLifecycle: lifecycle,
-          grantStore: policies,
+          grantStore: grants,
           resourceRowReaders: new Map([
             [ApiResourceKind.federation_issuer, noRows],
             [ApiResourceKind.invitation, noRows],
@@ -247,7 +247,7 @@ describe("onComposed: a unit receives the composition's own instances", () => {
     expect(received?.authorizationQueries).toBe(queries);
     expect(received?.resourceAuthorizationLifecycle).toBe(lifecycle);
     expect(received?.inProcessTransport).toBe(server.inProcessTransport);
-    expect(received?.grants).toBe(policies);
+    expect(received?.grants).toBe(grants);
   });
 
   it("under open source's own authorization hands the built-in Authorizer, list scope and policy check, and no lifecycle", async () => {
@@ -321,8 +321,8 @@ describe("onComposed: the policy store binding under open source's own authoriza
         },
       }),
     ]);
-    const policies = received?.grants;
-    if (policies === undefined) {
+    const grants = received?.grants;
+    if (grants === undefined) {
       throw new Error("the unit received no policy store");
     }
     const spec = create(GrantSpecSchema, {
@@ -336,16 +336,16 @@ describe("onComposed: the policy store binding under open source's own authoriza
     );
 
     expect(
-      (await policies.findByResource("team", "tem_acme")).map(
-        (policy) => policy.metadata?.id,
+      (await grants.findByResource("team", "tem_acme")).map(
+        (grant) => grant.metadata?.id,
       ),
     ).toEqual([id]);
-    expect((await policies.findScopeTuple("team", "tem_acme"))?.metadata?.id).toBe(
+    expect((await grants.findScopeTuple("team", "tem_acme"))?.metadata?.id).toBe(
       id,
     );
     expect(
-      (await policies.findByResourceKindAndRelation("team", "organization")).map(
-        (policy) => policy.metadata?.id,
+      (await grants.findByResourceKindAndRelation("team", "organization")).map(
+        (grant) => grant.metadata?.id,
       ),
     ).toEqual([id]);
   });

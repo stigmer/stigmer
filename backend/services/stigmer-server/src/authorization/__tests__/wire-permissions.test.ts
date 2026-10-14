@@ -16,7 +16,7 @@
  *     define answers `deny` in the built-in evaluator and a validation
  *     error in OpenFGA, so such an RPC refuses every caller, dark until
  *     someone runs it under enforcement;
- *   - the permission of every `resource_kind_path` lane (the IamPolicy
+ *   - the permission of every `resource_kind_path` lane (the Grant
  *     lanes, whose kind is the request's) is defined on every kind whose
  *     `kind_meta` lists grantable roles, because each such kind is one the
  *     grant path admits;
@@ -40,7 +40,7 @@
  *
  * Outside the pin, as in the annotation-completeness precedent: `is_public`
  * and `is_skip_authorization` methods (their annotation is never
- * resolved), and a `config` that names no kind (`IamPolicyQueryController.get`,
+ * resolved), and a `config` that names no kind (`GrantQueryController.get`,
  * which authorizes the loaded policy's resource).
  *
  * What does not hold today is pinned, never dropped: `KNOWN_GAPS` lists
@@ -80,13 +80,13 @@ const KNOWN_GAPS: ReadonlyArray<string> = [];
 
 /**
  * The RPCs that write grants, the only ones that ask can_grant_access: the
- * IamPolicy lanes and an invitation's create (which carries a role the
+ * Grant lanes and an invitation's create (which carries a role the
  * redeem grants).
  */
 const GRANT_LANES: ReadonlyArray<string> = [
-  "ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/create",
-  "ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/delete",
-  "ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/revokeOrgAccess",
+  "ai.stigmer.iam.grant.v1.GrantCommandController/create",
+  "ai.stigmer.iam.grant.v1.GrantCommandController/delete",
+  "ai.stigmer.iam.grant.v1.GrantCommandController/revokeOrgAccess",
   "ai.stigmer.iam.invitation.v1.InvitationCommandController/create",
 ];
 
@@ -134,7 +134,7 @@ describe("the contract asks the model only what the model defines", () => {
     return out;
   }
 
-  it("reads the whole contract, the IamPolicy lanes included", () => {
+  it("reads the whole contract, the Grant lanes included", () => {
     const questions = annotated();
     expect(services.length).toBeGreaterThan(60);
     expect(questions.length).toBeGreaterThan(150);
@@ -143,7 +143,7 @@ describe("the contract asks the model only what the model defines", () => {
 
   it("asks can_grant_access only on the grant lanes; every other change of who reaches a resource asks can_manage_audience", () => {
     // The self-check answers can_grant_access false on every kind the
-    // edition grants no roles on (domain/iampolicy/controller.ts, its second
+    // edition grants no roles on (domain/grant/controller.ts, its second
     // arm), so a console gate that mirrors an RPC asking it hides the control
     // from the owner wherever that holds (stigmer#1495). A new RPC that
     // changes an audience without writing a grant asks can_manage_audience.

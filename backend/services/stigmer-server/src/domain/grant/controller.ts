@@ -1,12 +1,12 @@
 /**
- * IamPolicy controller — the ROW half of the IamPolicy contract served
+ * Grant controller — the ROW half of the Grant contract served
  * ONCE by @stigmer/server in
  * every edition, all fourteen RPCs. The behavioural reference is the
- * cloud's former iam/policy/handlers.ts (the Java pipelines rendered flat),
+ * cloud's former iam/grant/handlers.ts (the Java pipelines rendered flat),
  * which this module replaced; the byte-pinned copy moved with it
  * (constants.ts). The cloud keeps what differs per
- * edition and registers it: its row store (`drivers.iamPolicyStore`), its
- * grant scope (`drivers.policyGrantScope`), its OpenFGA query engine
+ * edition and registers it: its row store (`drivers.grantStore`), its
+ * grant scope (`drivers.grantScope`), its OpenFGA query engine
  * (`drivers.authorizationQueries`) and the tuple mirror in the lifecycle
  * driver's two policy hooks — and reaches the write lanes here as
  * in-process RPCs, never through an exported constructor.
@@ -21,7 +21,7 @@
  * shape; the identity-account lookups' precedent). No chain here splices
  * a tuple step: a policy is the authorization record, not a protected
  * resource — the cloud builds policies outside any chain, no RPC
- * authorizes against a policy (the model declares the `iam_policy` type
+ * authorizes against a policy (the model declares the `grant` type
  * only because it declares every open-source kind), and seeding scope
  * links for a row would recurse (the ts-server guideline records this
  * exception).
@@ -39,7 +39,7 @@
  *     team only on the roles its kind lets a team hold (steps.ts) and,
  *     where an edition serves teams, only a team the create gate slot
  *     admits — a row naming a resource as its principal is the
- *     structural link the hierarchy walk follows, `bootstrapPolicy`'s to
+ *     structural link the hierarchy walk follows, `bootstrapGrant`'s to
  *     write, and through this lane would have let a right on one
  *     organization list another's members. The cloud's former create had
  *     the gap; this lane closes it in every edition.
@@ -52,7 +52,7 @@
  *   - `listAuthorizedPrincipalIds` is annotation-driven: the same target `listResourceAccessByPrincipal` checks.
  *   - `get` is the one load-then-authorize lane: its target is the ROW's
  *     resource, handed to the annotation's evaluation as an override.
- *   - the three system RPCs (`bootstrapPolicy`, `cleanupResourcePolicies`,
+ *   - the three system RPCs (`bootstrapGrant`, `cleanupResourceGrants`,
  *     `bootstrapRevokeOrgAccess`) admit the platform's own pipelines only
  *     (`isPlatformPipelineCaller`) and refuse a wire user
  *     PERMISSION_DENIED with the annotation's own `error_msg`, BEFORE the
@@ -89,8 +89,8 @@
  * INTERNAL, never softened into a denial.
  *
  * Proven by __tests__/controller.test.ts (every arm, over a router
- * transport with fakes), __tests__/iampolicy.test.ts (the composed
- * trusted-local server) and the iampolicy conformance suite.
+ * transport with fakes), __tests__/grant.test.ts (the composed
+ * trusted-local server) and the grant conformance suite.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage, DescMethod } from "@bufbuild/protobuf";
@@ -145,7 +145,7 @@ import { stepsForSlot } from "../../extensions/gate-slots.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { isPlatformPipelineCaller } from "../../extensions/identity.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
-import type { GrantScope } from "../../extensions/policy-grant-scope.js";
+import type { GrantScope } from "../../extensions/grant-scope.js";
 import type { PrincipalDisplay } from "../../extensions/principal-display.js";
 import {
   kindByEnumName,
@@ -218,7 +218,7 @@ export type GrantAccounts = AccountsByCaller & AccountsByIds;
 
 export interface GrantControllerDeps {
   readonly grantPath: GrantPath;
-  readonly policies: GrantStore;
+  readonly grants: GrantStore;
   readonly accounts: GrantAccounts;
   /** The ONE composed Authorizer — position 1 of every chain and every direct handler's `authorizeDirect`. */
   readonly authorizer: Authorizer;
@@ -236,8 +236,8 @@ export interface GrantControllerDeps {
   readonly principalDisplay: PrincipalDisplay | undefined;
   /**
    * The merged gate steps; `create` splices
-   * `iam-policy-create:pre-side-effect-gate` and `listAccessHistory`
-   * `iam-policy-list-access-history:pre-read`.
+   * `grant-create:pre-side-effect-gate` and `listAccessHistory`
+   * `grant-list-access-history:pre-read`.
    */
   readonly gateSteps: ResolvedGateSteps;
   /**
@@ -255,7 +255,7 @@ export interface GrantControllerDeps {
   readonly logger: Logger;
 }
 
-/** Registers both IamPolicy services on the router (routes stage). */
+/** Registers both Grant services on the router (routes stage). */
 export function registerGrantServices(
   router: ConnectRouter,
   deps: GrantControllerDeps,
@@ -340,7 +340,7 @@ function guardSystemRpc(method: DescMethod, caller: CallerIdentity): void {
  * `create`: the wire refusal, then Authorize → ValidateProto →
  * RefuseServiceAccountMembershipChange → ValidateGrantableRole →
  * RefuseServiceAccountOwner → AuthorizeOwnerAssignment →
- * [iam-policy-create:pre-side-effect-gate] → Grant.
+ * [grant-create:pre-side-effect-gate] → Grant.
  */
 function createGrant(
   deps: GrantControllerDeps,
@@ -359,7 +359,7 @@ function createGrant(
 }
 
 /**
- * The grant chain both `create` and `bootstrapPolicy` run; only the user
+ * The grant chain both `create` and `bootstrapGrant` run; only the user
  * lane validates the role, asks for an owner's authority when it grants
  * owner, and runs the create gate slot — bootstrap writes structural
  * relations no scope would admit and no edition gates. `cause` is the
@@ -380,7 +380,7 @@ async function grantThroughChain(
     kindOf(ctx),
   );
   const pipeline = newPipeline<typeof GrantSpecSchema>(
-    `iampolicy-${method.localName}`,
+    `grant-${method.localName}`,
     deps.logger,
   )
     .addStep(newAuthorizeStep(method, deps.authorizer))
@@ -394,7 +394,7 @@ async function grantThroughChain(
     );
     for (const step of stepsForSlot<typeof GrantSpecSchema>(
       deps.gateSteps,
-      "iam-policy-create:pre-side-effect-gate",
+      "grant-create:pre-side-effect-gate",
     )) {
       pipeline.addStep(step);
     }
@@ -425,14 +425,14 @@ async function deleteGrant(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof GrantSpecSchema>("iampolicy-delete", deps.logger)
+  await newPipeline<typeof GrantSpecSchema>("grant-delete", deps.logger)
     .addStep(newAuthorizeStep(method, deps.authorizer))
     .addStep(newRefuseServiceAccountMembershipChangeStep(deps.accounts))
     .addStep(newValidateProtoStep())
     .addStep(
       newAuthorizeOwnerAssignmentStep(deps.authorizer, specOwnerRoleChange),
     )
-    .addStep(newKeepOneOwnerStep(deps.policies, specOwnerRoleChange))
+    .addStep(newKeepOneOwnerStep(deps.grants, specOwnerRoleChange))
     .addStep(newRevokeStep(deps.grantPath))
     .build()
     .execute(reqCtx);
@@ -460,17 +460,17 @@ async function revokeOrgAccess(
     kindOf(ctx),
   );
   const pipeline = newPipeline<typeof RevokeOrgAccessInputSchema>(
-    `iampolicy-${method.localName}`,
+    `grant-${method.localName}`,
     deps.logger,
   )
     .addStep(newAuthorizeStep(method, deps.authorizer))
     .addStep(newRefuseServiceAccountOrgAccessStep(deps.accounts))
     .addStep(newValidateProtoStep());
   if (guardOwners) {
-    const ownerRoleChange = orgAccessOwnerRoleChange(deps.policies);
+    const ownerRoleChange = orgAccessOwnerRoleChange(deps.grants);
     pipeline
       .addStep(newAuthorizeOwnerAssignmentStep(deps.authorizer, ownerRoleChange))
-      .addStep(newKeepOneOwnerStep(deps.policies, ownerRoleChange));
+      .addStep(newKeepOneOwnerStep(deps.grants, ownerRoleChange));
   }
   await pipeline
     .addStep(newRevokeOrgAccessStep(deps.grantPath))
@@ -492,7 +492,7 @@ async function cleanupResourceGrants(
     kindOf(ctx),
   );
   await newPipeline<typeof ApiResourceRefSchema>(
-    "iampolicy-cleanupResourcePolicies",
+    "grant-cleanupResourceGrants",
     deps.logger,
   )
     .addStep(newAuthorizeStep(method, deps.authorizer))
@@ -527,17 +527,17 @@ async function get(
   id: GrantId,
   ctx: HandlerContext,
 ): Promise<Grant> {
-  const policy = await read(
-    () => deps.policies.findById(id.value),
-    "failed to load IAM policy",
+  const grant = await read(
+    () => deps.grants.findById(id.value),
+    "failed to load grant",
   );
-  if (policy === undefined) {
+  if (grant === undefined) {
     throw new ConnectError(grantNotFoundMessage(id.value), Code.NotFound);
   }
   // A stored row is not wire input: its kind resolves without a refusal
   // sentence (a legacy row with an unknown kind is the Authorizer's to
   // deny, as position 1 would), and its id is the target.
-  const { resource } = refsOf(specOfRow(policy));
+  const { resource } = refsOf(specOfRow(grant));
   await authorizeDirect(
     GrantQueryController.method.get,
     deps.authorizer,
@@ -545,7 +545,7 @@ async function get(
     id,
     { resourceKind: kindByEnumName(resource.kind), resourceId: resource.id },
   );
-  return policy;
+  return grant;
 }
 
 /** The one definition — see the module header for the order and its reasons. */
@@ -571,15 +571,15 @@ async function checkMyPermission(
       kind: kindEnumName(ApiResourceKind.identity_account),
       id: await callerPrincipalId(deps, caller),
     });
-    const policy = create(GrantSpecSchema, {
+    const grant = create(GrantSpecSchema, {
       principal,
       relation: input.relation,
       resource,
     });
-    if (!(await bindingReaches(deps, caller, policy))) {
+    if (!(await bindingReaches(deps, caller, grant))) {
       return create(CheckAuthorizationResultSchema, { isAuthorized: false });
     }
-    const allowed = await engine.check(policy, input.contextualGrants);
+    const allowed = await engine.check(grant, input.contextualGrants);
     return create(CheckAuthorizationResultSchema, { isAuthorized: allowed });
   }
 
@@ -624,14 +624,14 @@ async function checkAuthorization(
   ctx: HandlerContext,
 ): Promise<CheckAuthorizationResult> {
   const caller = requireAuthenticated(callerIdentityOf(ctx));
-  const policy = requireInputGrant(input.grant);
-  await enforcePrincipalTrust(deps, caller, policy.principal);
-  requireWellFormedTriple(policy);
+  const grant = requireInputGrant(input.grant);
+  await enforcePrincipalTrust(deps, caller, grant.principal);
+  requireWellFormedTriple(grant);
   const engine = requireQueryEngine(deps);
-  if (!(await bindingReaches(deps, caller, policy))) {
+  if (!(await bindingReaches(deps, caller, grant))) {
     return create(CheckAuthorizationResultSchema, { isAuthorized: false });
   }
-  const allowed = await engine.check(policy, input.contextualGrants);
+  const allowed = await engine.check(grant, input.contextualGrants);
   return create(CheckAuthorizationResultSchema, { isAuthorized: allowed });
 }
 
@@ -650,13 +650,13 @@ async function checkAuthorization(
 async function bindingReaches(
   deps: GrantControllerDeps,
   caller: CallerIdentity,
-  policy: GrantSpec,
+  grant: GrantSpec,
 ): Promise<boolean> {
   try {
     const verdict = await deps.credentialBinding.verdict(caller, {
-      kind: kindByEnumName(policy.resource?.kind ?? ""),
-      id: policy.resource?.id ?? "",
-      permission: policy.relation,
+      kind: kindByEnumName(grant.resource?.kind ?? ""),
+      id: grant.resource?.id ?? "",
+      permission: grant.relation,
     });
     return verdict !== "outside";
   } catch (error) {
@@ -740,13 +740,13 @@ async function listResourceAccessByPrincipal(
   );
   const entries = await read(async () => {
     const hierarchy = await resolveHierarchy(
-      deps.policies,
+      deps.grants,
       resource.kind,
       resource.id,
       input.includeInherited,
     );
     return buildPrincipalAccessList(
-      deps.policies,
+      deps.grants,
       displayResolver,
       deps.principalDisplay,
       hierarchy,
@@ -774,7 +774,7 @@ async function getPrincipalResourceRoles(
   );
   const rows = await read(
     () =>
-      deps.policies.findByPrincipalAndResource(
+      deps.grants.findByPrincipalAndResource(
         principal.kind,
         principal.id,
         resource.kind,
@@ -783,7 +783,7 @@ async function getPrincipalResourceRoles(
     "failed to load principal roles",
   );
   const roles = rows
-    .map((policy) => policy.spec?.relation ?? "")
+    .map((grant) => grant.spec?.relation ?? "")
     .filter(isAssignableRole)
     .map((relation) =>
       roleInfoFromRelation(relation, kindByEnumName(resource.kind)),
@@ -810,7 +810,7 @@ async function getPrincipalsCount(
   );
   const count = await read(
     () =>
-      deps.policies.countDistinctPrincipalsByResource(
+      deps.grants.countDistinctPrincipalsByResource(
         kindEnumName(ApiResourceKind.organization),
         input.org,
         principalKind,
@@ -914,27 +914,27 @@ function requireRef(ref: ApiResourceRef | undefined): ApiResourceRef {
 }
 
 /** Boundary-validated required policy input — absence here is a contract bug. */
-function requireInputGrant(policy: GrantSpec | undefined): GrantSpec {
-  if (policy === undefined) {
+function requireInputGrant(grant: GrantSpec | undefined): GrantSpec {
+  if (grant === undefined) {
     throw internalError(
       new Error("required policy missing after boundary validation"),
       "required policy missing after boundary validation",
     );
   }
-  return policy;
+  return grant;
 }
 
 /** A stored row's spec — a row without one is corrupt storage, an infrastructure fault. */
-function specOfRow(policy: Grant): GrantSpec {
-  if (policy.spec === undefined) {
+function specOfRow(grant: Grant): GrantSpec {
+  if (grant.spec === undefined) {
     throw internalError(
       new Error(
-        `policy ${policy.metadata?.id ?? "?"} has no spec — corrupt row`,
+        `policy ${grant.metadata?.id ?? "?"} has no spec — corrupt row`,
       ),
-      "failed to load IAM policy",
+      "failed to load grant",
     );
   }
-  return policy.spec;
+  return grant.spec;
 }
 
 /** A direct handler's store read: a fault is INTERNAL with a static message, never "not found". */

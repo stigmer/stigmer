@@ -4,7 +4,7 @@
  * What it pins:
  *   - CORE_PURGED_KINDS, the list boot checks coverage with before its
  *     first side effect, is exactly the kinds of `newCoreKindPurges` plus
- *     `iam_policy`, each kind purged once;
+ *     `grant`, each kind purged once;
  *   - the open-source edition's served organization-scoped kinds are all
  *     owned by the core, so it boots with no unit contributing anything;
  *   - a wider edition's kinds that units serve are refused until a unit
@@ -57,7 +57,7 @@ afterEach(async () => {
 });
 
 describe("the core's kind purges", () => {
-  it("CORE_PURGED_KINDS is the kind purges' kinds plus iam_policy, each purged once", () => {
+  it("CORE_PURGED_KINDS is the kind purges' kinds plus grant, each purged once", () => {
     const purges = newCoreKindPurges({
       store: fx.store,
       logger: silentLogger,

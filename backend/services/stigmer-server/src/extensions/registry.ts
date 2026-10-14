@@ -33,10 +33,10 @@
  * points at the identity-accounts stage (the store driver,
  * ahead of the boot-time operator ensure) and the routes stage (the
  * federation capability and the provision slot's steps, into the
- * identity-account controller); the IamPolicy points at
+ * identity-account controller); the Grant points at
  * the same two stages — the store driver where the grant path is built,
  * beside the identity-account store, and the grant scope and the query
- * engine into the IamPolicy controller at the routes stage.
+ * engine into the Grant controller at the routes stage.
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -58,7 +58,7 @@ import type { IdentityFederation } from "./identity-federation.js";
 import type { LicenseStatusProvider } from "./license-status.js";
 import type { OutboundEgressPolicy } from "./outbound-egress.js";
 import type { ListReadScope } from "./list-read-scope.js";
-import type { GrantScope } from "./policy-grant-scope.js";
+import type { GrantScope } from "./grant-scope.js";
 import type { PrincipalDisplay } from "./principal-display.js";
 import type { ModelCatalogProvider } from "../modelcatalog/model-catalog-provider.js";
 import {
@@ -154,7 +154,7 @@ export interface ServerExtension {
    * positive integer; undeclared compositions keep every entry. When one
    * is declared the library's retention runner removes, every hour, the
    * entries older than the window from the composed policy store
-   * (domain/iampolicy/history-retention.ts), and every page of the history
+   * (domain/grant/history-retention.ts), and every page of the history
    * says how long it is kept. Declared on an open-source composition it
    * refuses the boot: open source keeps no history. The library reads no
    * setting for it; each host reads its own and its unit declares it.
@@ -365,7 +365,7 @@ export interface ResolvedExtensionDrivers {
    */
   readonly identityFederation: IdentityFederation | undefined;
   /**
-   * The IamPolicy store driver — undefined = the compose.ts
+   * The Grant store driver — undefined = the compose.ts
    * stage that builds the grant path installs the OSS adapter over the
    * generic Store, OSS behavior byte-identical.
    */
@@ -735,7 +735,7 @@ export function resolveExtensions(
     if (unit.drivers?.grantStore !== undefined) {
       if (grantStoreDeclaredBy !== undefined) {
         throw new Error(
-          `extension '${unit.name}' registers an IamPolicyStore, but '${grantStoreDeclaredBy}' already did — exactly one may be composed`,
+          `extension '${unit.name}' registers an GrantStore, but '${grantStoreDeclaredBy}' already did — exactly one may be composed`,
         );
       }
       grantStore = unit.drivers.grantStore;
@@ -745,7 +745,7 @@ export function resolveExtensions(
     if (unit.drivers?.grantScope !== undefined) {
       if (grantScopeDeclaredBy !== undefined) {
         throw new Error(
-          `extension '${unit.name}' registers a PolicyGrantScope, but '${grantScopeDeclaredBy}' already did — exactly one may be composed`,
+          `extension '${unit.name}' registers a GrantScope, but '${grantScopeDeclaredBy}' already did — exactly one may be composed`,
         );
       }
       grantScope = unit.drivers.grantScope;

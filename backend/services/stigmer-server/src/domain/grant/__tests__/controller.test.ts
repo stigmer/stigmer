@@ -2,9 +2,9 @@
  * Pins controller.ts at the handler level, over a
  * router transport with fakes — the query/search controller.test.ts
  * shape — so every arm of the fourteen RPCs is proven without booting a
- * server; the composed proof over real boots is iampolicy.test.ts.
+ * server; the composed proof over real boots is grant.test.ts.
  *
- * Fakes: the domain's in-memory IamPolicyStore (support.ts) with a real
+ * Fakes: the domain's in-memory GrantStore (support.ts) with a real
  * grant path over it; the identity-account fake store for
  * `accountForCaller` and display enrichment; a RECORDING Authorizer whose
  * decision each arm sets; a recording AuthorizationQueryEngine; the
@@ -24,8 +24,8 @@
  *   - get loads before it authorizes (NOT_FOUND with no Authorizer call;
  *     the row's kind and id as the target); delete authorizes before it
  *     loads; create validates the role before it writes, then runs the
- *     `iam-policy-create:pre-side-effect-gate` slot, whose refusal leaves
- *     no row; bootstrapPolicy never runs that slot;
+ *     `grant-create:pre-side-effect-gate` slot, whose refusal leaves
+ *     no row; bootstrapGrant never runs that slot;
  *   - owner is assigned by owners: an admin is refused granting owner,
  *     revoking it and removing an owner, after position 1 and before any
  *     write; an owner is allowed each; the last owner is kept; the
@@ -69,7 +69,7 @@ import type {
 import type { CredentialBinding } from "../../../extensions/credential-binding.js";
 import { boundOrgOf } from "../../../extensions/identity.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
-import type { GrantScope } from "../../../extensions/policy-grant-scope.js";
+import type { GrantScope } from "../../../extensions/grant-scope.js";
 import { createApiResourceInterceptor } from "../../../pipeline/interceptors/apiresource.js";
 import type { PipelineStep } from "../../../pipeline/pipeline.js";
 import {
@@ -174,8 +174,8 @@ function recordingEngine(): RecordingEngine {
   const calls: Array<{ method: string; args: unknown[] }> = [];
   return {
     calls,
-    check(policy, contextual) {
-      calls.push({ method: "check", args: [policy, contextual] });
+    check(grant, contextual) {
+      calls.push({ method: "check", args: [grant, contextual] });
       return Promise.resolve(true);
     },
     listResourceIds(principal, relation, resourceKind, contextual) {
@@ -200,7 +200,7 @@ interface Harness {
   readonly query: Client<typeof GrantQueryController>;
   readonly authorizer: RecordingAuthorizer;
   readonly engine: RecordingEngine | undefined;
-  readonly policies: ReturnType<typeof fakeGrantStore>;
+  readonly grants: ReturnType<typeof fakeGrantStore>;
 }
 
 /**
@@ -251,7 +251,7 @@ async function harness(options: {
   scope?: GrantScope;
   createGate?: PipelineStep<DescMessage>;
 }): Promise<Harness> {
-  const policies = fakeGrantStore();
+  const grants = fakeGrantStore();
   const accounts = fakeIdentityAccountStore();
   await accounts.save(
     create(IdentityAccountSchema, {
@@ -278,7 +278,7 @@ async function harness(options: {
   const engine = options.engine === true ? recordingEngine() : undefined;
   const grantPath = newGrantPath({
     resources: NO_STORED_RESOURCES,
-    policies,
+    grants: grants,
     lifecycle: undefined,
     logger: silent,
   });
@@ -286,7 +286,7 @@ async function harness(options: {
     (router) => {
       registerGrantServices(router, {
         grantPath,
-        policies,
+        grants: grants,
         accounts,
         authorizer,
         grantScope: options.scope ?? newOrganizationOnlyGrantScope(),
@@ -301,7 +301,7 @@ async function harness(options: {
             ? []
             : [
                 [
-                  "iam-policy-create:pre-side-effect-gate",
+                  "grant-create:pre-side-effect-gate",
                   [options.createGate],
                 ],
               ],
@@ -325,7 +325,7 @@ async function harness(options: {
     query: createClient(GrantQueryController, transport),
     authorizer,
     engine,
-    policies,
+    grants: grants,
   };
 }
 
@@ -352,12 +352,12 @@ describe("the three system RPCs", () => {
     [name: string, copy: string, call: (h: Harness) => Promise<unknown>]
   > = [
     [
-      "bootstrapPolicy",
+      "bootstrapGrant",
       "unauthorized to bootstrap policy - can_bootstrap_iam permission required",
       (h) => h.command.bootstrapGrant(structural),
     ],
     [
-      "cleanupResourcePolicies",
+      "cleanupResourceGrants",
       "unauthorized to cleanup resource policies - can_bootstrap_iam permission required",
       (h) => h.command.cleanupResourceGrants(ref("agent", "agt_1")),
     ],
@@ -400,11 +400,11 @@ describe("the three system RPCs", () => {
     });
   }
 
-  it("bootstrapPolicy writes structural relations no role validation would admit", async () => {
+  it("bootstrapGrant writes structural relations no role validation would admit", async () => {
     const h = await harness({ caller: machine });
     const seeded = await h.command.bootstrapGrant(structural);
     expect(seeded.metadata?.id).toBe(grantIdFor(structural));
-    expect(h.policies.rows.size).toBe(1);
+    expect(h.grants.rows.size).toBe(1);
   });
 });
 
@@ -416,17 +416,17 @@ describe("each lane hands the store its own door and its caller", () => {
     await h.command.create(member);
     await h.command.delete(member);
     const actor = { id: alice.identityId, callerClass: "user" };
-    expect(h.policies.changes.map((change) => [change.op, change.record])).toEqual([
+    expect(h.grants.changes.map((change) => [change.op, change.record])).toEqual([
       ["save", { actor, cause: "grant", organizationId: "acme" }],
       ["delete", { actor, cause: "revoke", organizationId: "acme" }],
     ]);
   });
 
-  it("bootstrapPolicy records a structural change and cleanupResourcePolicies a deleted resource", async () => {
+  it("bootstrapGrant records a structural change and cleanupResourceGrants a deleted resource", async () => {
     const h = await harness({ caller: machine });
     await h.command.bootstrapGrant(member);
     await h.command.cleanupResourceGrants(ref("organization", "acme"));
-    expect(h.policies.changes.map((change) => change.record?.cause)).toEqual([
+    expect(h.grants.changes.map((change) => change.record?.cause)).toEqual([
       "structural",
       "resource_deleted",
     ]);
@@ -495,11 +495,11 @@ describe("checkMyPermission", () => {
     expect(result.isAuthorized).toBe(true);
     const [call] = h.engine?.calls ?? [];
     expect(call?.method).toBe("check");
-    const [policy, passed] = call?.args as [GrantSpec, GrantSpec[]];
-    expect(policy.principal?.kind).toBe("identity_account");
-    expect(policy.principal?.id).toBe(OPERATOR_ID);
-    expect(policy.relation).toBe("can_view");
-    expect(policy.resource?.id).toBe("acme");
+    const [grant, passed] = call?.args as [GrantSpec, GrantSpec[]];
+    expect(grant.principal?.kind).toBe("identity_account");
+    expect(grant.principal?.id).toBe(OPERATOR_ID);
+    expect(grant.relation).toBe("can_view");
+    expect(grant.resource?.id).toBe("acme");
     expect(passed).toHaveLength(1);
     expect(h.authorizer.checks).toEqual([]);
   });
@@ -658,8 +658,8 @@ describe("checkAuthorization's principal-trust rule (the cloud's three refusals 
 
   it("a user stamped by EMAIL may ask about their own ACCOUNT id — the trust rule compares accounts, not stamps", async () => {
     const h = await harness({ caller: operator, engine: true });
-    const policy = acmeAdmin({ kind: "identity_account", id: OPERATOR_ID });
-    const result = await h.query.checkAuthorization({ grant: policy });
+    const grant = acmeAdmin({ kind: "identity_account", id: OPERATOR_ID });
+    const result = await h.query.checkAuthorization({ grant: grant });
     expect(result.isAuthorized).toBe(true);
     expect(h.engine?.calls[0]?.method).toBe("check");
     expect((h.engine?.calls[0]?.args[0] as GrantSpec).principal?.id).toBe(
@@ -867,11 +867,11 @@ describe("the row reads", () => {
   it("get loads THEN authorizes: NOT_FOUND with the pinned copy and no Authorizer call; a found row's resource is the target", async () => {
     const h = await harness({ caller: alice });
     const missing = await refusal(() =>
-      h.query.get({ value: "iamp_00000000000000000000000000" }),
+      h.query.get({ value: "grt_00000000000000000000000000" }),
     );
     expect(missing.code).toBe(Code.NotFound);
     expect(missing.rawMessage).toBe(
-      grantNotFoundMessage("iamp_00000000000000000000000000"),
+      grantNotFoundMessage("grt_00000000000000000000000000"),
     );
     expect(h.authorizer.checks).toEqual([]);
 
@@ -977,7 +977,7 @@ describe("the write lanes' order", () => {
   it("create validates the role BEFORE the write: a held row under a non-grantable role is INVALID_ARGUMENT, not the duplicate", async () => {
     const h = await harness({ caller: alice });
     const legacy = orgRole(ALICE_ID, "editor", "acme");
-    await h.policies.save(
+    await h.grants.save(
       create(GrantSchema, {
         metadata: { id: grantIdFor(legacy) },
         spec: legacy,
@@ -1014,7 +1014,7 @@ describe("the write lanes' order", () => {
         resourceId: "acme",
       },
     ]);
-    expect(h.policies.rows.size).toBe(0);
+    expect(h.grants.rows.size).toBe(0);
   });
 
   it("create grants to people only: an organization as the principal is INVALID_ARGUMENT after position 1, and no row is written", async () => {
@@ -1033,10 +1033,10 @@ describe("the write lanes' order", () => {
     expect(error.code).toBe(Code.InvalidArgument);
     expect(error.rawMessage).toBe(principalNotGrantableMessage("organization"));
     expect(h.authorizer.checks).toHaveLength(1);
-    expect(h.policies.rows.size).toBe(0);
+    expect(h.grants.rows.size).toBe(0);
   });
 
-  it("the same shape through bootstrapPolicy is a structural link and is admitted — the two lanes split on who the principal is", async () => {
+  it("the same shape through bootstrapGrant is a structural link and is admitted — the two lanes split on who the principal is", async () => {
     const h = await harness({ caller: internal });
     const link = triple({ kind: "organization", id: "other" }, "member", {
       kind: "organization",
@@ -1044,7 +1044,7 @@ describe("the write lanes' order", () => {
     });
     const seeded = await h.command.bootstrapGrant(link);
     expect(seeded.metadata?.id).toBe(grantIdFor(link));
-    expect(h.policies.rows.size).toBe(1);
+    expect(h.grants.rows.size).toBe(1);
   });
 
   it("a scope that narrows the organization's roles is honoured by create", async () => {
@@ -1061,7 +1061,7 @@ describe("the write lanes' order", () => {
     );
   });
 
-  it("create runs the iam-policy-create gate slot after the role check and before the write; a refusing gate leaves no row", async () => {
+  it("create runs the grant-create gate slot after the role check and before the write; a refusing gate leaves no row", async () => {
     const seen: string[] = [];
     const refusingGate: PipelineStep<DescMessage> = {
       name: "RefuseForTest",
@@ -1080,10 +1080,10 @@ describe("the write lanes' order", () => {
     expect(error.code).toBe(Code.FailedPrecondition);
     expect(error.rawMessage).toBe("refused by the gate");
     expect(seen).toEqual(["gate"]);
-    expect(h.policies.rows.size).toBe(0);
+    expect(h.grants.rows.size).toBe(0);
   });
 
-  it("bootstrapPolicy, the platform's structural lane, never runs the create gate slot", async () => {
+  it("bootstrapGrant, the platform's structural lane, never runs the create gate slot", async () => {
     const seen: string[] = [];
     const h = await harness({
       caller: internal,
@@ -1096,7 +1096,7 @@ describe("the write lanes' order", () => {
     });
     await h.command.bootstrapGrant(orgRole(ALICE_ID, "member", "acme"));
     expect(seen).toEqual([]);
-    expect(h.policies.rows.size).toBe(1);
+    expect(h.grants.rows.size).toBe(1);
   });
 });
 
@@ -1119,7 +1119,7 @@ describe("owner is assigned by owners, on the three caller lanes", () => {
   ): Promise<void> {
     const path = newGrantPath({
       resources: NO_STORED_RESOURCES,
-      policies: h.policies,
+      grants: h.grants,
       lifecycle: undefined,
       logger: silent,
     });
@@ -1140,7 +1140,7 @@ describe("owner is assigned by owners, on the three caller lanes", () => {
     expect(error.rawMessage).toBe(OWNER_ASSIGNMENT_DENIED_MESSAGE);
     expect(h.authorizer.checks.at(-1)).toEqual(assignRolesOnAcme);
     expect(seen).toEqual([]);
-    expect(h.policies.rows.size).toBe(0);
+    expect(h.grants.rows.size).toBe(0);
 
     // Every role up to admin is still hers to grant, and asks nothing more.
     await h.command.create(orgRole("ida_bob", "admin", "acme"));
@@ -1160,7 +1160,7 @@ describe("owner is assigned by owners, on the three caller lanes", () => {
     );
     expect(remove.code).toBe(Code.PermissionDenied);
     expect(remove.rawMessage).toBe(OWNER_ASSIGNMENT_DENIED_MESSAGE);
-    expect(asAlice.policies.rows.size).toBe(2);
+    expect(asAlice.grants.rows.size).toBe(2);
   });
 
   it("an owner grants, revokes and removes owner, but never the last one", async () => {
@@ -1171,7 +1171,7 @@ describe("owner is assigned by owners, on the three caller lanes", () => {
     await h.command.delete(orgRole("ida_bob", "owner", "acme"));
     await h.command.create(orgRole("ida_bob", "owner", "acme"));
     await h.command.revokeOrgAccess({ identityAccountId: "ida_bob", org: "acme" });
-    expect([...h.policies.rows.values()].map((row) => row.spec?.principal?.id)).toEqual(["ida_alice"]);
+    expect([...h.grants.rows.values()].map((row) => row.spec?.principal?.id)).toEqual(["ida_alice"]);
 
     const revoke = await refusal(() => h.command.delete(orgRole("ida_alice", "owner", "acme")));
     expect(revoke.code).toBe(Code.FailedPrecondition);
@@ -1181,7 +1181,7 @@ describe("owner is assigned by owners, on the three caller lanes", () => {
     );
     expect(remove.code).toBe(Code.FailedPrecondition);
     expect(remove.rawMessage).toBe(LAST_OWNER_MESSAGE);
-    expect(h.policies.rows.size).toBe(1);
+    expect(h.grants.rows.size).toBe(1);
   });
 
   it("the bootstrap twins run neither owner step: the platform removes the last owner", async () => {
@@ -1189,7 +1189,7 @@ describe("owner is assigned by owners, on the three caller lanes", () => {
     await acmeWith(h, [["ida_root", "owner"]]);
     h.authorizer.decision = adminOfAcme;
     await h.command.bootstrapRevokeOrgAccess({ identityAccountId: "ida_root", org: "acme" });
-    expect(h.policies.rows.size).toBe(0);
+    expect(h.grants.rows.size).toBe(0);
     expect(h.authorizer.checks.map((check) => check.permission)).not.toContain(IamPermission.can_assign_roles);
   });
 });

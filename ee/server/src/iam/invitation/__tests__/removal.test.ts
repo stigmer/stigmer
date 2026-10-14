@@ -41,7 +41,7 @@ function rig(failFor: ReadonlySet<string> = new Set()) {
         await invitations.deleteById(id);
       },
     },
-    policies: {
+    grants: {
       cleanupResourceGrants: (ref: ApiResourceRef, actingFor?: string) => {
         actors.push(actingFor);
         order.push(`grants:${ref.kind}:${ref.id}`);

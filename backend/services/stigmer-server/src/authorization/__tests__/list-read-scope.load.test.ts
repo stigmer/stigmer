@@ -13,7 +13,7 @@
  *
  * Two axes. The CANDIDATE count (1k and 10k rows of the listed kind) and
  * the POLICY TABLE every check and every list batch reads a person's rows
- * from through the IamPolicy port (indexed by principal on the OSS
+ * from through the Grant port (indexed by principal on the OSS
  * adapter; resource-store.ts).
  * Every shape runs at an Enterprise-sized population: one organization of
  * 1,000 members in 50 teams of 20, teams granted `viewer` on half the
@@ -345,7 +345,7 @@ const PAGE_SHAPES: ReadonlyArray<PageShape> = [
   },
 ];
 
-/** The Enterprise population's IamPolicy rows at candidate size `n`. */
+/** The Enterprise population's Grant rows at candidate size `n`. */
 function populationGrants(n: number): GrantSpec[] {
   const specs: GrantSpec[] = [
     orgRole(FOUNDER, "owner", ORG),
@@ -415,7 +415,7 @@ describe.each(
 )("the built-in evaluator's cost on $name", (fixture) => {
   describe.skipIf(fixture.skip)("measured", () => {
     let opened: OpenedStore;
-    let policies: GrantStore;
+    let grants: GrantStore;
     let accounts: IdentityAccountStore;
 
     async function save(type: string, facts: FixtureRowFacts): Promise<object> {
@@ -457,7 +457,7 @@ describe.each(
 
     beforeEach(async () => {
       opened = await fixture.open();
-      policies = newResourceGrantStore(opened.store, { keepsHistory: false });
+      grants = newResourceGrantStore(opened.store, { keepsHistory: false });
       accounts = newResourceIdentityAccountStore(opened.store);
       for (const [id, subject] of [
         [FOUNDER, "auth0|founder"],
@@ -523,7 +523,7 @@ describe.each(
             }
             const scope = newBuiltInListReadScope({
               store: opened.store,
-              policies,
+              grants: grants,
               accounts,
               logger: silentLogger,
               model: builtInModel,
@@ -569,7 +569,7 @@ describe.each(
           }
           const scope = newBuiltInListReadScope({
             store: opened.store,
-            policies,
+            grants: grants,
             accounts,
             logger: silentLogger,
             model: builtInModel,
@@ -613,7 +613,7 @@ describe.each(
             await save("agent", enterpriseAgentRow(agent));
             const authorizer = newBuiltInAuthorizer({
               store: opened.store,
-              policies,
+              grants: grants,
               accounts,
               edition: ServerEdition.oss,
               logger: silentLogger,

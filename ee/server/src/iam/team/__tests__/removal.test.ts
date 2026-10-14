@@ -45,7 +45,7 @@ function rig(failFor: ReadonlySet<string> = new Set()) {
         await teams.deleteById(id);
       },
     },
-    policies: {
+    grants: {
       cleanupResourceGrants: (ref: ApiResourceRef, actingFor?: string) => {
         actors.push(actingFor);
         order.push(`grants:${ref.kind}:${ref.id}`);
@@ -119,7 +119,7 @@ describe("the team's name release", () => {
           release: () => Promise.reject(new Error("name table down")),
         },
       } as unknown as Parameters<typeof newTeamRemoval>[0]["names"],
-      policies: { cleanupResourceGrants: () => Promise.resolve() },
+      grants: { cleanupResourceGrants: () => Promise.resolve() },
       logger: createLogger({
         level: "error",
         pretty: false,

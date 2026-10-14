@@ -433,20 +433,20 @@ const consumerGuestTokenMinting: GuestTokenMinting = {
 };
 
 /**
- * A consumer-shaped IamPolicy store driver: the PORT the IamPolicy
+ * A consumer-shaped Grant store driver: the PORT the Grant
  * domain's grant path writes and reads through when
- * a composition registers one — the cloud's `cloud.iam_policy` store takes
- * this position (registered below as `drivers.iamPolicyStore`).
+ * a composition registers one — the cloud's `cloud.grant` store takes
+ * this position (registered below as `drivers.grantStore`).
  * `save` is create-only in effect: a held id raises the exported
- * DuplicatePolicyError so the grant path's race arm (re-read the winner by
+ * DuplicateGrantError so the grant path's race arm (re-read the winner by
  * triple; answer it as the duplicate) works over a consumer driver exactly
  * as over the OSS adapter.
  */
 const consumerGrantStore: GrantStore = {
-  save: (policy: Grant) =>
+  save: (grant: Grant) =>
     Promise.reject(
       new DuplicateGrantError(
-        `IAM policy '${policy.metadata?.id ?? ""}' already exists`,
+        `grant '${grant.metadata?.id ?? ""}' already exists`,
       ),
     ),
   deleteById: () => Promise.resolve(),
@@ -466,7 +466,7 @@ const consumerGrantStore: GrantStore = {
 };
 
 /**
- * The IamPolicy port-contract kit over the consumer's driver: a composition's
+ * The Grant port-contract kit over the consumer's driver: a composition's
  * driver test iterates these cases with its own
  * framework so the same contract the OSS adapter passes is what the driver
  * is held to. Compile-only here: this package proves the exported shape,
@@ -518,13 +518,13 @@ const consumerGrantScope: GrantScope = {
  */
 const consumerAuthorizationQueries: AuthorizationQueryEngine = {
   check: (
-    policy: GrantSpec,
-    contextualPolicies: ReadonlyArray<GrantSpec>,
+    grant: GrantSpec,
+    contextualGrants: ReadonlyArray<GrantSpec>,
   ) =>
     Promise.resolve(
-      policy.principal?.kind === "identity_account" &&
-        policy.resource?.kind === "organization" &&
-        contextualPolicies.length === 0,
+      grant.principal?.kind === "identity_account" &&
+        grant.resource?.kind === "organization" &&
+        contextualGrants.length === 0,
     ),
   listResourceIds: (
     principal: ApiResourceRef,
@@ -1441,9 +1441,9 @@ export const fakeExtension: ServerExtension = {
     // persisted or found inside provisionMyAccount — the cloud's
     // first-organization step rides it.
     ["identity-account-provision:post-persist", [consumerGateStep()]],
-    // The seventh: the IamPolicy create chain, before the grant is written
+    // The seventh: the Grant create chain, before the grant is written
     // — where an edition that serves teams refuses a team it cannot admit.
-    ["iam-policy-create:pre-side-effect-gate", [consumerGateStep()]],
+    ["grant-create:pre-side-effect-gate", [consumerGateStep()]],
     // The eighth: the organization create chain before Persist — where a
     // limit on which organizations may exist refuses with nothing written.
     ["org-create:pre-side-effect-gate", [consumerGateStep()]],
@@ -1453,7 +1453,7 @@ export const fakeExtension: ServerExtension = {
     ["org-delete:pre-delete", [consumerGateStep()]],
     // The tenth: the access history's read before anything is read — where
     // a host refuses a read its own rules forbid (the Cloud, by plan).
-    ["iam-policy-list-access-history:pre-read", [consumerGateStep()]],
+    ["grant-list-access-history:pre-read", [consumerGateStep()]],
   ]),
   statusTransitionHooks: {
     observers: [statusObserver],
@@ -1500,7 +1500,7 @@ export const fakeExtension: ServerExtension = {
     // consumer's own store, and the federated arms only it can serve.
     identityAccountStore: consumerIdentityAccountStore,
     identityFederation: consumerIdentityFederation,
-    // The IamPolicy seams: the IamPolicy domain served over the
+    // The Grant seams: the Grant domain served over the
     // consumer's own store, the kinds it grants on, and the tuple-half
     // queries only its authorization backend can answer.
     grantStore: consumerGrantStore,

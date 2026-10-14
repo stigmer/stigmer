@@ -1,13 +1,13 @@
 /**
- * Pins the three registry points the IamPolicy domain adds and the one
+ * Pins the three registry points the Grant domain adds and the one
  * contract it widens, in the
  * driver-point shape the registry already enforces for
  * identityAccountStore and identityFederation:
  *
- *   - `drivers.iamPolicyStore` — the store driver (the cloud serves the
- *     domain over cloud.iam_policy through it); single instance; absent =
+ *   - `drivers.grantStore` — the store driver (the cloud serves the
+ *     domain over cloud.grant through it); single instance; absent =
  *     the OSS adapter over the generic Store;
- *   - `drivers.policyGrantScope` — which kinds a user may grant on and
+ *   - `drivers.grantScope` — which kinds a user may grant on and
  *     with which roles; single instance; absent =
  *     open source's default, the organization and nothing else;
  *   - `drivers.authorizationQueries` — the tuple-half query engine;
@@ -18,8 +18,8 @@
  *   - `drivers.principalDisplay` — how an access list names a grantee
  *     that is not a person (a team); single instance; absent = the id
  *     fallback shape;
- *   - `ResourceAuthorizationLifecycle` gains the OPTIONAL `onPolicyGranted`
- *     and `onPolicyRevoked`: a unit's lifecycle that carries them
+ *   - `ResourceAuthorizationLifecycle` gains the OPTIONAL `onGranted`
+ *     and `onRevoked`: a unit's lifecycle that carries them
  *     resolves through the existing single-instance point with both hooks
  *     intact, and one that implements only the three required methods
  *     still resolves — the widening is additive.
@@ -28,7 +28,7 @@ import { describe, expect, it } from "vitest";
 
 import type { GrantStore } from "../../domain/grant/store.js";
 import type { AuthorizationQueryEngine } from "../authorization-queries.js";
-import type { GrantScope } from "../policy-grant-scope.js";
+import type { GrantScope } from "../grant-scope.js";
 import type { PrincipalDisplay } from "../principal-display.js";
 import { resolveExtensions } from "../registry.js";
 import type { ResourceAuthorizationLifecycle } from "../resource-authorization.js";
@@ -61,7 +61,7 @@ const engine: AuthorizationQueryEngine = {
   listPrincipalIds: unimplemented,
 };
 
-describe("the iamPolicyStore driver point", () => {
+describe("the grantStore driver point", () => {
   it("is undefined with no extensions — the OSS adapter serves", () => {
     expect(resolveExtensions([]).drivers.grantStore).toBeUndefined();
   });
@@ -80,12 +80,12 @@ describe("the iamPolicyStore driver point", () => {
         { name: "store-b", drivers: { grantStore: store } },
       ]),
     ).toThrowError(
-      /extension 'store-b' registers an IamPolicyStore, but 'store-a' already did/,
+      /extension 'store-b' registers an GrantStore, but 'store-a' already did/,
     );
   });
 });
 
-describe("the policyGrantScope driver point", () => {
+describe("the grantScope driver point", () => {
   it("is undefined with no extensions — open source grants on organizations only", () => {
     expect(resolveExtensions([]).drivers.grantScope).toBeUndefined();
   });
@@ -104,7 +104,7 @@ describe("the policyGrantScope driver point", () => {
         { name: "scope-b", drivers: { grantScope: scope } },
       ]),
     ).toThrowError(
-      /extension 'scope-b' registers a PolicyGrantScope, but 'scope-a' already did/,
+      /extension 'scope-b' registers a GrantScope, but 'scope-a' already did/,
     );
   });
 });

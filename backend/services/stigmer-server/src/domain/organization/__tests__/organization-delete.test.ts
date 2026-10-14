@@ -23,7 +23,7 @@
  *     makes a new organization, which no row of the old one names.
  *
  * The policy store is the library's in-memory double, composed as the
- * IamPolicy store driver so a test can make one row's delete fault; the
+ * Grant store driver so a test can make one row's delete fault; the
  * grant path, the role lifecycle, the chain and the purge are the
  * library's own. The test unit's purge stage holds an organization the
  * test names until it lets go, so the arms can look between the delete's
@@ -91,16 +91,16 @@ async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
 }
 
 describe("organization delete (composed server, trusted-local posture)", () => {
-  const policies = fakeGrantStore();
+  const grants = fakeGrantStore();
   /** A policy id whose delete faults while set: the store answering an error mid-revocation. */
   let faultingDelete: string | undefined;
   const faultableGrants = {
-    ...policies,
+    ...grants,
     async deleteById(id: string): Promise<void> {
       if (id === faultingDelete) {
         throw new Error("policy store unavailable");
       }
-      await policies.deleteById(id);
+      await grants.deleteById(id);
     },
   };
 
@@ -148,12 +148,12 @@ describe("organization delete (composed server, trusted-local posture)", () => {
   let platform: Client<typeof GrantCommandController>;
 
   function rowsNaming(org: string): Grant[] {
-    return [...policies.rows.values()].filter(
-      (policy) =>
-        (policy.spec?.resource?.kind === "organization" &&
-          policy.spec.resource.id === org) ||
-        (policy.spec?.principal?.kind === "organization" &&
-          policy.spec.principal.id === org),
+    return [...grants.rows.values()].filter(
+      (grant) =>
+        (grant.spec?.resource?.kind === "organization" &&
+          grant.spec.resource.id === org) ||
+        (grant.spec?.principal?.kind === "organization" &&
+          grant.spec.principal.id === org),
     );
   }
 

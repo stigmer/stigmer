@@ -7,7 +7,7 @@
  * (read through the row readers it registers). The host is the least an
  * Enterprise host can be: a unit that declares the edition and the
  * require-authentication posture, signs its callers in with one verifier,
- * and registers one IamPolicy store the library's grant path writes and
+ * and registers one Grant store the library's grant path writes and
  * the unit's repairs read; its people hold accounts in the library's own
  * store, as people who have signed in before do. Everything else is the
  * library's.
@@ -49,7 +49,7 @@
  * until its row exists. A host that serves these kinds keeps its own
  * inventory of the whole contract and names this suite as their home.
  *
- * The in-memory IamPolicy store is first held to the library's own
+ * The in-memory Grant store is first held to the library's own
  * port-contract kit, so the answers below rest on a store the contract
  * vouches for.
  */
@@ -100,7 +100,7 @@ import {
 } from "@stigmer/server";
 import type { ComposedServer, IdentityVerifier, ServerExtension } from "@stigmer/server";
 
-import { InMemoryGrantStore } from "../../__test-utils__/in-memory-iam-policy-store.js";
+import { InMemoryGrantStore } from "../../__test-utils__/in-memory-grant-store.js";
 import { foreignId, kindMetaOf, mintedIdPattern } from "../../__test-utils__/minted-id.js";
 import { refusingPort } from "../../__test-utils__/refusing-doubles.js";
 import type { IdentityAccountService } from "../../iam/account/port.js";
@@ -185,7 +185,7 @@ function grant(
   return create(GrantSpecSchema, { principal, relation, resource });
 }
 
-describe("the in-memory IamPolicy store this suite composes", () => {
+describe("the in-memory Grant store this suite composes", () => {
   for (const contractCase of grantStoreContract(async () => {
     const store = new InMemoryGrantStore();
     return {
@@ -591,10 +591,10 @@ describe("the Enterprise identity unit on open source's own authorization (compo
     });
 
     it("adds one of the organization's viewers and refuses an outsider before anything is written", async () => {
-      const policies = createClient(GrantCommandController, as(ANA));
-      await policies.create(grant(ref("identity_account", VIC), "member", ref("team", teamId)));
+      const grants = createClient(GrantCommandController, as(ANA));
+      await grants.create(grant(ref("identity_account", VIC), "member", ref("team", teamId)));
       const refused = await refusalOf(
-        policies.create(grant(ref("identity_account", OUTSIDER), "member", ref("team", teamId))),
+        grants.create(grant(ref("identity_account", OUTSIDER), "member", ref("team", teamId))),
       );
       expect(refused.code).toBe(Code.FailedPrecondition);
       expect(refused.rawMessage).toBe(
@@ -643,10 +643,10 @@ describe("the Enterprise identity unit on open source's own authorization (compo
     });
 
     it("leaving the organization removes access through the team at once, and rejoining restores it", async () => {
-      const policies = createClient(GrantCommandController, as(ANA));
-      await policies.revokeOrgAccess({ identityAccountId: VIC, org: ACME });
+      const grants = createClient(GrantCommandController, as(ANA));
+      await grants.revokeOrgAccess({ identityAccountId: VIC, org: ACME });
       expect(await canViewAgent(VIC, agentId)).toBe(false);
-      await policies.create(grant(ref("identity_account", VIC), "viewer", ref("organization", ACME)));
+      await grants.create(grant(ref("identity_account", VIC), "viewer", ref("organization", ACME)));
       expect(await canViewAgent(VIC, agentId)).toBe(true);
     });
 

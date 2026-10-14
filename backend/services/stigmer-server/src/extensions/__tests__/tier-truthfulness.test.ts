@@ -209,12 +209,12 @@ describe("tier truthfulness against the empty composition", () => {
     expect(served.has("identityaccount")).toBe(true);
   });
 
-  it("iam_policy is open_source and served — the row half lives in open source", () => {
+  it("grant is open_source and served — the row half lives in open source", () => {
     const served = servedKindSegments(server.routes);
     expect(getKindMeta(ApiResourceKind.grant).tier).toBe(
       ResourceTier.open_source,
     );
-    expect(served.has("iampolicy")).toBe(true);
+    expect(served.has("grant")).toBe(true);
   });
 });
 
