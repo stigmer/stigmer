@@ -156,6 +156,7 @@ class AgentInput:
     harness: int = 0
     plugins: list[ResourceRef] = field(default_factory=list)
     subagents: list[ResourceRef] = field(default_factory=list)
+    mcp_servers: list[AgentMcpServerInput] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.Agent:
         spec = spec_pb2.AgentSpec(
@@ -186,6 +187,8 @@ class AgentInput:
             _ref = ref._to_proto()
             _ref.kind = 40
             spec.subagents.append(_ref)
+        for item in self.mcp_servers:
+            spec.mcp_servers.append(item._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -318,5 +321,23 @@ class RunConfigInput:
             thinking_mode=self.thinking_mode,
             max_tool_result_chars=self.max_tool_result_chars,
         )
+        return msg
+
+
+@dataclass
+class AgentMcpServerInput:
+    """SDK input type for AgentMcpServer."""
+
+    name: str = ""
+    url: str = ""
+    headers: dict[str, str] = field(default_factory=dict)
+
+    def _to_proto(self) -> spec_pb2.AgentMcpServer:
+        msg = spec_pb2.AgentMcpServer(
+            name=self.name,
+            url=self.url,
+        )
+        if self.headers:
+            msg.headers.update(self.headers)
         return msg
 

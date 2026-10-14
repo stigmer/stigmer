@@ -300,9 +300,9 @@ public interface AgentEvalSpecOrBuilder extends
    * within the agent's own tool lists: name the agent's working tools here
    * (Skill for its skills, Agent for its hand-offs to subagents). A
    * specifier in parentheses, as in Bash(npm test *), grants the whole
-   * tool. A plugin's MCP tools are named either way: Claude Code's
-   * mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt; or Stigmer's
-   * mcp__&lt;server&gt;__&lt;tool&gt;.
+   * tool. A plugin's MCP tools are named as Claude Code names them,
+   * mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;; the tools of a server written in
+   * the agent itself are mcp__&lt;server&gt;__&lt;tool&gt;.
    * </pre>
    *
    * <code>repeated string allow_tools = 12 [json_name = "allowTools", (.buf.validate.field) = { ... }</code>
@@ -319,9 +319,9 @@ public interface AgentEvalSpecOrBuilder extends
    * within the agent's own tool lists: name the agent's working tools here
    * (Skill for its skills, Agent for its hand-offs to subagents). A
    * specifier in parentheses, as in Bash(npm test *), grants the whole
-   * tool. A plugin's MCP tools are named either way: Claude Code's
-   * mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt; or Stigmer's
-   * mcp__&lt;server&gt;__&lt;tool&gt;.
+   * tool. A plugin's MCP tools are named as Claude Code names them,
+   * mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;; the tools of a server written in
+   * the agent itself are mcp__&lt;server&gt;__&lt;tool&gt;.
    * </pre>
    *
    * <code>repeated string allow_tools = 12 [json_name = "allowTools", (.buf.validate.field) = { ... }</code>
@@ -337,9 +337,9 @@ public interface AgentEvalSpecOrBuilder extends
    * within the agent's own tool lists: name the agent's working tools here
    * (Skill for its skills, Agent for its hand-offs to subagents). A
    * specifier in parentheses, as in Bash(npm test *), grants the whole
-   * tool. A plugin's MCP tools are named either way: Claude Code's
-   * mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt; or Stigmer's
-   * mcp__&lt;server&gt;__&lt;tool&gt;.
+   * tool. A plugin's MCP tools are named as Claude Code names them,
+   * mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;; the tools of a server written in
+   * the agent itself are mcp__&lt;server&gt;__&lt;tool&gt;.
    * </pre>
    *
    * <code>repeated string allow_tools = 12 [json_name = "allowTools", (.buf.validate.field) = { ... }</code>
@@ -356,9 +356,9 @@ public interface AgentEvalSpecOrBuilder extends
    * within the agent's own tool lists: name the agent's working tools here
    * (Skill for its skills, Agent for its hand-offs to subagents). A
    * specifier in parentheses, as in Bash(npm test *), grants the whole
-   * tool. A plugin's MCP tools are named either way: Claude Code's
-   * mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt; or Stigmer's
-   * mcp__&lt;server&gt;__&lt;tool&gt;.
+   * tool. A plugin's MCP tools are named as Claude Code names them,
+   * mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;; the tools of a server written in
+   * the agent itself are mcp__&lt;server&gt;__&lt;tool&gt;.
    * </pre>
    *
    * <code>repeated string allow_tools = 12 [json_name = "allowTools", (.buf.validate.field) = { ... }</code>
@@ -370,9 +370,9 @@ public interface AgentEvalSpecOrBuilder extends
 
   /**
    * <pre>
-   * Runs the plugins' MCP servers for real, with the organization's
-   * connections. Off by default: a try cannot call the plugins' MCP tools,
-   * as in Claude Code's evals without mocks.
+   * Runs the agent's and its plugins' MCP servers for real, with the
+   * organization's connections. Off by default: a try cannot call their MCP
+   * tools, as in Claude Code's evals without mocks.
    * </pre>
    *
    * <code>bool real_mcp_servers = 13 [json_name = "realMcpServers"];</code>
@@ -467,9 +467,9 @@ public interface AgentEvalSpecOrBuilder extends
 
   /**
    * <pre>
-   * Starts the plugins' real MCP servers for the servers no mock answers,
-   * as Claude Code's --allow-real-servers; mocked tools still answer from
-   * their files. Their tools still need allow_tools.
+   * Starts the real MCP servers no mock answers, the agent's own and its
+   * plugins', as Claude Code's --allow-real-servers; mocked tools still
+   * answer from their files. Their tools still need allow_tools.
    * </pre>
    *
    * <code>bool allow_real_servers = 16 [json_name = "allowRealServers"];</code>

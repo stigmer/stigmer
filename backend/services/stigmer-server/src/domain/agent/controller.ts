@@ -5,8 +5,10 @@
  * agent lists this one as a subagent, cascades same-org shares before the
  * agent row, and leaves the sessions that pin it, whose next turn fails
  * naming the agent that is gone. Create and update pin each subagent the
- * agent lists (subagents.ts). There is no default agent to
- * serve: a session with no agent runs the built-in assistant.
+ * agent lists (subagents.ts), and let only an organization's admins add
+ * or change the agent's own MCP servers (guard-mcp-servers.ts). There is
+ * no default agent to serve: a session with no agent runs the built-in
+ * assistant.
  *
  * Agents are versioned (versions.ts): every create and update hashes the
  * stored spec, records a version when the spec is new to the agent, points
@@ -148,9 +150,11 @@ import {
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { agentSearchExtractor } from "./search-extractor.js";
+import { newGuardMcpServersStep } from "./guard-mcp-servers.js";
 import {
   newCascadeDeleteSharesStep,
   newValidateHooksStep,
+  newValidateMcpServersStep,
   newValidatePluginListStep,
 } from "./steps.js";
 import { newCascadeDeleteEvaluatorsStep } from "../evaluator/cascade.js";
@@ -253,7 +257,9 @@ async function createAgent(
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
+    .addStep(newGuardMcpServersStep(deps.authorizer))
     .addStep(newValidateHooksStep())
+    .addStep(newValidateMcpServersStep())
     .addStep(newValidateSubagentListStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newValidatePluginListStep(deps.store))
@@ -311,7 +317,9 @@ async function update(
       .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newNormalizeReferencesStep(deps.store))
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
+      .addStep(newGuardMcpServersStep(deps.authorizer))
       .addStep(newValidateHooksStep())
+      .addStep(newValidateMcpServersStep())
       .addStep(newValidateSubagentListStep())
       .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
       .addStep(newValidatePluginListStep(deps.store))

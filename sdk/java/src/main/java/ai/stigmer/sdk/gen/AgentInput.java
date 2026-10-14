@@ -3,6 +3,7 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.agent.v1.Agent;
+import ai.stigmer.agentic.agent.v1.AgentMcpServer;
 import ai.stigmer.agentic.agent.v1.AgentSpec;
 import ai.stigmer.agentic.agent.v1.HookSource;
 import ai.stigmer.agentic.plugin.v1.HookConfig;
@@ -40,6 +41,7 @@ public final class AgentInput {
     private final Harness harness;
     private final java.util.List<ResourceRef> plugins;
     private final java.util.List<ResourceRef> subagents;
+    private final java.util.List<AgentMcpServerInput> mcpServers;
 
     private AgentInput(Builder builder) {
         this.id = builder.id;
@@ -61,6 +63,7 @@ public final class AgentInput {
         this.harness = builder.harness;
         this.plugins = builder.plugins;
         this.subagents = builder.subagents;
+        this.mcpServers = builder.mcpServers;
     }
 
     Agent toProto() {
@@ -112,6 +115,11 @@ public final class AgentInput {
             for (ResourceRef item : this.subagents) {
                 spec.addSubagents(item.toProto().toBuilder()
                     .setKind(ApiResourceKind.agent).build());
+            }
+        }
+        if (this.mcpServers != null) {
+            for (AgentMcpServerInput item : this.mcpServers) {
+                spec.addMcpServers(item.toProto());
             }
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
@@ -166,6 +174,7 @@ public final class AgentInput {
         private Harness harness;
         private java.util.List<ResourceRef> plugins;
         private java.util.List<ResourceRef> subagents;
+        private java.util.List<AgentMcpServerInput> mcpServers;
 
         private Builder() {}
 
@@ -193,6 +202,7 @@ public final class AgentInput {
         public Builder harness(Harness harness) { this.harness = harness; return this; }
         public Builder plugins(java.util.List<ResourceRef> plugins) { this.plugins = plugins; return this; }
         public Builder subagents(java.util.List<ResourceRef> subagents) { this.subagents = subagents; return this; }
+        public Builder mcpServers(java.util.List<AgentMcpServerInput> mcpServers) { this.mcpServers = mcpServers; return this; }
 
         public AgentInput build() { return new AgentInput(this); }
     }
@@ -463,6 +473,49 @@ public final class AgentInput {
             public Builder maxToolResultChars(int maxToolResultChars) { this.maxToolResultChars = maxToolResultChars; return this; }
 
             public RunConfigInput build() { return new RunConfigInput(this); }
+        }
+    }
+
+    /** SDK input type for AgentMcpServer. */
+    public static final class AgentMcpServerInput {
+        private final String name;
+        private final String url;
+        private final java.util.Map<String, String> headers;
+
+        private AgentMcpServerInput(Builder builder) {
+            this.name = builder.name;
+            this.url = builder.url;
+            this.headers = builder.headers;
+        }
+
+        AgentMcpServer toProto() {
+            AgentMcpServer.Builder builder = AgentMcpServer.newBuilder();
+            if (this.name != null) {
+                builder.setName(this.name);
+            }
+            if (this.url != null) {
+                builder.setUrl(this.url);
+            }
+            if (this.headers != null && !this.headers.isEmpty()) {
+                builder.putAllHeaders(this.headers);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String name;
+            private String url;
+            private java.util.Map<String, String> headers;
+
+            private Builder() {}
+
+            public Builder name(String name) { this.name = name; return this; }
+            public Builder url(String url) { this.url = url; return this; }
+            public Builder headers(java.util.Map<String, String> headers) { this.headers = headers; return this; }
+
+            public AgentMcpServerInput build() { return new AgentMcpServerInput(this); }
         }
     }
 }

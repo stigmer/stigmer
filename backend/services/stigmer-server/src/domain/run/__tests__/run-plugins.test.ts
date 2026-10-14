@@ -131,7 +131,7 @@ function ref(org: string, slug: string, version = ""): ApiResourceReference {
 describe("runPluginReferences", () => {
   /** A subagent at its pinned version, listing `plugins`. */
   function subagent(name: string, org: string, plugins: ApiResourceReference[]): RunSubagent {
-    return { name, org, spec: create(AgentSpecSchema, { plugins }) };
+    return { id: `agt_${name}`, name, org, versionHash: "", spec: create(AgentSpecSchema, { plugins }) };
   }
 
   it("adds each subagent's plugins after the agent's and the conversation's, only where neither names one, the first subagent winning", () => {

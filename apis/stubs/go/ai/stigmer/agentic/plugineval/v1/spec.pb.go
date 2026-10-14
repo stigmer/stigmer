@@ -120,8 +120,8 @@ type PluginEvalSpec struct {
 	// A specifier in parentheses, as in Bash(npm test *), is accepted and
 	// grants the whole tool: every Stigmer tool list reads a specifier that
 	// way. Each try runs in a fresh workspace of its own. A plugin's MCP tools
-	// are named either way: Claude Code's mcp__plugin_<plugin>_<server>__<tool>
-	// or Stigmer's mcp__<server>__<tool>.
+	// are named as Claude Code names them,
+	// mcp__plugin_<plugin>_<server>__<tool>.
 	AllowTools []string `protobuf:"bytes,12,rep,name=allow_tools,json=allowTools,proto3" json:"allow_tools,omitempty"`
 	// Runs the plugin's MCP servers for real, with the organization's
 	// connections. Off by default: a try cannot call the plugin's MCP tools,

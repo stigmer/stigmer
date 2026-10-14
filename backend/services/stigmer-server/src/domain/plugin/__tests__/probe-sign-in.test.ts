@@ -28,7 +28,7 @@ import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 
 import { createLogger } from "../../../boot/logger.js";
-import { accessTokenVariable, probeSignIns } from "../probe-sign-in.js";
+import { probeSignIns } from "../probe-sign-in.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -279,13 +279,3 @@ describe("probeSignIns — what is never asked", () => {
   });
 });
 
-describe("accessTokenVariable", () => {
-  it("upper-cases the server's name, every non-alphanumeric run one underscore, trimmed", () => {
-    expect(accessTokenVariable("linear")).toBe("LINEAR_ACCESS_TOKEN");
-    expect(accessTokenVariable("my-server.v2")).toBe(
-      "MY_SERVER_V2_ACCESS_TOKEN",
-    );
-    expect(accessTokenVariable("-edge-")).toBe("EDGE_ACCESS_TOKEN");
-    expect(accessTokenVariable("--")).toBe("MCP_ACCESS_TOKEN");
-  });
-});

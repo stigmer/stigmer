@@ -36,7 +36,7 @@ class ExecutionValues(_message.Message):
     def __init__(self, agent: _Optional[_Mapping[str, str]] = ..., tools: _Optional[_Iterable[_Union[ToolValues, _Mapping]]] = ..., repositories: _Optional[_Iterable[_Union[RepositoryValues, _Mapping]]] = ..., plugins: _Optional[_Iterable[_Union[PluginValues, _Mapping]]] = ..., subagents: _Optional[_Iterable[_Union[SubagentValues, _Mapping]]] = ...) -> None: ...
 
 class ToolValues(_message.Message):
-    __slots__ = ("plugin_id", "server", "url", "values")
+    __slots__ = ("plugin_id", "agent_id", "server", "url", "values")
     class ValuesEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -45,14 +45,16 @@ class ToolValues(_message.Message):
         value: str
         def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
     PLUGIN_ID_FIELD_NUMBER: _ClassVar[int]
+    AGENT_ID_FIELD_NUMBER: _ClassVar[int]
     SERVER_FIELD_NUMBER: _ClassVar[int]
     URL_FIELD_NUMBER: _ClassVar[int]
     VALUES_FIELD_NUMBER: _ClassVar[int]
     plugin_id: str
+    agent_id: str
     server: str
     url: str
     values: _containers.ScalarMap[str, str]
-    def __init__(self, plugin_id: _Optional[str] = ..., server: _Optional[str] = ..., url: _Optional[str] = ..., values: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    def __init__(self, plugin_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., server: _Optional[str] = ..., url: _Optional[str] = ..., values: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class PluginValues(_message.Message):
     __slots__ = ("plugin_id", "values")

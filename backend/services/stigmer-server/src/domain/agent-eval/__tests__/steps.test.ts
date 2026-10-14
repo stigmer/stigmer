@@ -36,7 +36,7 @@
  *   - a chain built wrong (the agent, the version, the cancel's target or
  *     the delete's row never stashed) fails loudly as INTERNAL.
  */
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -45,6 +45,7 @@ import type { PluginFiles } from "@stigmer/plugin-package";
 import { inMemoryPluginFiles } from "@stigmer/plugin-package";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentMcpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
 import type { AgentEval } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
 import {
@@ -314,6 +315,25 @@ describe("ResolveAgentEvalDefaults", () => {
     const refused = await failure(() => newResolveAgentEvalDefaultsStep(temp.store).execute(evaluated(row)));
     expect(refused.code).toBe(Code.InvalidArgument);
     expect(refused.rawMessage).toBe(PLUGIN_EVAL_REAL_SERVERS_CONFLICT_MESSAGE);
+  });
+
+  it("keeps an entry naming one of the version's own servers and refuses one naming a server it does not write", async () => {
+    const withServer = clone(AgentSchema, AGENT);
+    withServer.spec!.mcpServers = [create(AgentMcpServerSchema, { name: "zendesk", url: "https://acme-co.zendesk.com/mcp" })];
+    await temp.store.saveResource(ApiResourceKind.agent, AGENT_ID, AgentSchema, withServer);
+    await temp.store.saveResource(ApiResourceKind.plugin, "plg_1", PluginSchema, THERMOS);
+    const kept = evalRow("", PluginEvalPhase.unspecified);
+    kept.spec!.allowTools = ["mcp__zendesk__search", "mcp__plugin_thermos_github__*"];
+    const ctx = evaluated(kept);
+    await newResolveAgentEvalDefaultsStep(temp.store).execute(ctx);
+    expect(ctx.newState.spec?.allowTools).toEqual(["mcp__zendesk__search", "mcp__plugin_thermos_github__*"]);
+    const other = evalRow("", PluginEvalPhase.unspecified);
+    other.spec!.allowTools = ["mcp__github__*"];
+    const refused = await failure(() => newResolveAgentEvalDefaultsStep(temp.store).execute(evaluated(other)));
+    expect(refused.code).toBe(Code.InvalidArgument);
+    expect(refused.rawMessage).toBe(
+      "allow_tools entry 'mcp__github__*' names MCP server 'github', which is none of the servers the agent or its subagents write",
+    );
   });
 
   it("keeps an entry naming an attached plugin's own server, stamps the version's hash and mints the id", async () => {

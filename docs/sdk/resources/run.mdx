@@ -1831,11 +1831,13 @@ RunValueDeclarer names who declared a value a turn uses.
 <TypeTable
   type={{
     kind: { type: "RunValueDeclarerKind", description: "Agent, tool, plugin or repository.", typeDescriptionLink: "#runvaluedeclarerkind" },
-    name: { type: "string", description: "The agent's name; a tool's name as plugin:<plugin>:<server>; the plugin's name; or the repository entry's name." },
+    name: { type: "string", description: "The agent's name; a tool's name, as plugin:<plugin>:<server> for a plugin's server or the server's own name for one written in an agent; the plugin's name; or the repository entry's name." },
     repositoryUrl: { type: "string", description: "The repository's URL; empty for an agent, a tool or a plugin." },
-    pluginId: { type: "string", description: "The plugin that declared it: a tool's plugin, or the plugin whose hooks read it; empty for an agent or a repository." },
-    server: { type: "string", description: "The tool's server name in its plugin; empty for everything else." },
+    pluginId: { type: "string", description: "The plugin that declared it: a plugin's tool's plugin, or the plugin whose hooks read it; empty for everything else." },
+    server: { type: "string", description: "The tool's server name in its plugin or its agent; empty for everything else." },
     pluginDigest: { type: "string", description: "The archive of the tool's plugin this run planned (the plugin's digest); empty for everything else." },
+    agentId: { type: "string", description: "The agent whose own server the tool is; empty for everything else." },
+    agentVersion: { type: "string", description: "The version of that agent this run planned (its version hash); empty for everything else." },
   }}
 />
 

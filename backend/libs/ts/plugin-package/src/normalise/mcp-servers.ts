@@ -389,9 +389,10 @@ function readHttp(name: string, raw: JsonObject, ctx: Ctx, references: Set<strin
  * The open format's URL rule: absolute HTTP(S), no user information, no
  * fragment, HTTPS unless the host is loopback. Applied in every dialect
  * because the runner's `HttpServerConfig.url` must be a URI and a plugin
- * that fails here would fail there.
+ * that fails here would fail there. Exported for the server, which holds a
+ * server written in an agent to the same rule.
  */
-function isAcceptableServerUrl(value: string): boolean {
+export function isAcceptableServerUrl(value: string): boolean {
   let url: URL;
   try {
     url = new URL(value);
