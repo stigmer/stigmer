@@ -1,6 +1,6 @@
 /**
  * Provision & grant playback — walkthrough of the check-then-create
- * provisioning pattern and IAM Policy role grant.
+ * provisioning pattern and its role Grant.
  *
  * Covers both the "Provision federated accounts" and "Grant access" guide
  * pages in a single scenario. Ported from the in-repo inline demo; the timeline
@@ -60,7 +60,7 @@ export const CREATE_CODE = [
 
 export const GRANT_CODE = [
   "// onboard-user.ts — Grant organization role",
-  "await stigmer.iamPolicy.create({",
+  "await stigmer.grant.create({",
   "  principal: {",
   '    kind: "identity_account",',
   "    id: account.metadata.id,",
@@ -153,7 +153,7 @@ export const provisionGrantSteps: ScenarioStep<ProvisionGrantStep>[] = [
     delayMs: 3000,
     data: { view: "code-grant" },
     narration:
-      "Create an IAM Policy to grant Jane the viewer role on the organization. This authorizes her to access resources within the org.",
+      "Create a Grant giving Jane the viewer role on the organization. This authorizes her to access resources within the org.",
   },
   {
     delayMs: 3500,

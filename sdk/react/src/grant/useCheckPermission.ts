@@ -61,7 +61,7 @@ interface SettledCheck {
  * Hook that checks whether the current user has a specific permission
  * on a resource.
  *
- * Wraps `iamPolicy.checkMyPermission()` — the dedicated self-check RPC
+ * Wraps `grant.checkMyPermission()` — the dedicated self-check RPC
  * where the server derives the principal from the authenticated token
  * (the client never names a principal) — with caching and configurable
  * degradation. The RPC is served in every edition and its answer has one

@@ -168,7 +168,7 @@ error state.
 
 Redeems an invitation by its shareable token. The server validates
 that the invitation is active, not expired, and not at its
-redemption limit, then creates an IAM policy granting the
+redemption limit, then creates a grant of the
 configured role to the authenticated user.
 
 The redeemer's identity is resolved from the authentication header
@@ -192,7 +192,7 @@ function useRedeemInvitation(): UseRedeemInvitationReturn
     clearError: { type: "() => void", description: "Reset `error` to `null`." },
     error: { type: "Error | null", description: "Error from the last failed redeem, or `null` when healthy." },
     isRedeeming: { type: "boolean", description: "`true` while the redeem request is in flight." },
-    redeem: { type: "(token: string) => Promise<Invitation>", description: "Redeem an invitation by its token.  Creates an IAM policy granting the invitation's configured role to the authenticated user on the invitation's organization. Resolves with the updated Invitation so callers can access the organization and role information for post-redemption UI (e.g. \"You've joined Acme as viewer\")." },
+    redeem: { type: "(token: string) => Promise<Invitation>", description: "Redeem an invitation by its token.  Creates a grant of the invitation's configured role to the authenticated user on the invitation's organization. Resolves with the updated Invitation so callers can access the organization and role information for post-redemption UI (e.g. \"You've joined Acme as viewer\")." },
   }}
 />
 
@@ -286,7 +286,7 @@ Self-contained panel for managing organization invitation links.
 Displays the organization's invitations, newest first, a page at a
 time with "Load more" while the server holds more, with inline actions
 (copy link, revoke) and a create form for generating new invite
-links. Follows the same pattern as [`OrgMembersPanel`](/docs/sdk/react/iam-policy#orgmemberspanel): a
+links. Follows the same pattern as [`OrgMembersPanel`](/docs/sdk/react/grant#orgmemberspanel): a
 single embeddable component that handles the full management flow.
 
 The component composes three invitation hooks internally:
@@ -296,7 +296,7 @@ The component composes three invitation hooks internally:
 
 The server serves an organization's invitations only to callers who
 hold `can_grant_access` on it, so gate the mount on that permission,
-as [`InvitationsSection`](/docs/sdk/react/settings#invitationssection) does with [`PermissionGate`](/docs/sdk/react/iam-policy#permissiongate).
+as [`InvitationsSection`](/docs/sdk/react/settings#invitationssection) does with [`PermissionGate`](/docs/sdk/react/grant#permissiongate).
 
 All visual properties flow through `--stgm-*` design tokens.
 

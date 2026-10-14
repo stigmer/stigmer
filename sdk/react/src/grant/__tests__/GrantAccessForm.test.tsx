@@ -23,8 +23,8 @@ import type { GranteeCandidate } from "../useGranteeCandidates";
 
 const createGrant = vi.hoisted(() => vi.fn(async (_spec: GrantSpec) => ({})));
 
-vi.mock("../useCreateIamPolicy.js", () => ({
-  useCreateIamPolicy: () => ({
+vi.mock("../useCreateGrant.js", () => ({
+  useCreateGrant: () => ({
     create: createGrant,
     isCreating: false,
     error: null,

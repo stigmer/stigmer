@@ -65,7 +65,7 @@ function createMockStigmer(overrides?: {
       update: overrides?.update ?? vi.fn(async () => ORG),
     },
     platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
-    iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
+    grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
   } as never;
 }
 
@@ -141,7 +141,7 @@ describe("OrgProfilePanel federation-issuer summary", () => {
     const client = {
       organization: { get: vi.fn(async () => ORG), update: vi.fn(async () => ORG) },
       federationIssuer: { list: vi.fn(async () => ({ entries: providers, nextPageToken: "" })) },
-      iamPolicy: { checkMyPermission },
+      grant: { checkMyPermission },
       platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
     };
     render(
@@ -219,7 +219,7 @@ describe("OrgProfilePanel rename", () => {
         update: vi.fn(async () => ORG),
         rename,
       },
-      iamPolicy: { checkMyPermission },
+      grant: { checkMyPermission },
       platform: { getServerInfo: vi.fn(async () => ({ singleOrg })) },
     };
     render(
@@ -326,7 +326,7 @@ describe("OrgProfilePanel rename", () => {
           // The section's child-organization list: an organization with none.
           listChildOrgs: vi.fn(async () => ({ entries: [], nextPageToken: "" })),
         },
-        iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
+        grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
         platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
       };
       render(
@@ -418,7 +418,7 @@ describe("OrgProfilePanel rename", () => {
     const rename = vi.fn(async () => RENAMED);
     const client = {
       organization: { get, update: vi.fn(async () => ORG), rename },
-      iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
+      grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
       platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
     };
     render(

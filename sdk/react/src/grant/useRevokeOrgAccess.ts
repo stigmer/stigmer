@@ -27,7 +27,7 @@ export interface UseRevokeOrgAccessReturn {
 }
 
 /**
- * Behavior hook that wraps `iamPolicy.revokeOrgAccess()` with
+ * Behavior hook that wraps `grant.revokeOrgAccess()` with
  * loading/error state.
  *
  * Removes a person from an organization: their roles on it, what was

@@ -8,7 +8,7 @@ import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useCreateGrant}. */
 export interface UseCreateGrantReturn {
-  /** Grant access by creating an IAM policy binding. */
+  /** Grant access by creating a grant. */
   readonly create: (spec: GrantSpec) => Promise<Grant>;
   /** `true` while the create request is in flight. */
   readonly isCreating: boolean;
@@ -19,17 +19,17 @@ export interface UseCreateGrantReturn {
 }
 
 /**
- * Behavior hook that wraps `iamPolicy.create()` with loading/error
+ * Behavior hook that wraps `grant.create()` with loading/error
  * state.
  *
- * Creates an IAM policy binding — granting a principal (identity
+ * Creates a grant — giving a principal (identity
  * account, team, etc.) a specific role on a resource. The caller
- * provides the full {@link IamPolicySpec} with `principal`, `resource`,
+ * provides the full {@link GrantSpec} with `principal`, `resource`,
  * and `relation` (the role string, e.g. "admin").
  *
  * @example
  * ```tsx
- * const { create, isCreating, error } = useCreateIamPolicy();
+ * const { create, isCreating, error } = useCreateGrant();
  *
  * await create({
  *   principal: { kind: "identity_account", id: accountId },

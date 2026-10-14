@@ -63,8 +63,8 @@ vi.mock("../useOwnerAssignment.js", () => ({
 vi.mock("../useRevokeOrgAccess.js", () => ({
   useRevokeOrgAccess: () => ({ revoke: async () => {}, isRevoking: false, error: null }),
 }));
-vi.mock("../useCreateIamPolicy.js", () => ({
-  useCreateIamPolicy: () => ({
+vi.mock("../useCreateGrant.js", () => ({
+  useCreateGrant: () => ({
     create: async (spec: GrantSpec) => {
       state.calls.push(`create ${spec.relation}`);
       if (state.createFails) {
@@ -74,8 +74,8 @@ vi.mock("../useCreateIamPolicy.js", () => ({
     isCreating: false,
   }),
 }));
-vi.mock("../useDeleteIamPolicy.js", () => ({
-  useDeleteIamPolicy: () => ({
+vi.mock("../useDeleteGrant.js", () => ({
+  useDeleteGrant: () => ({
     remove: async (spec: GrantSpec) => {
       state.calls.push(`delete ${spec.relation}`);
     },

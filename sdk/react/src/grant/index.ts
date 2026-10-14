@@ -37,12 +37,12 @@ export {
 export {
   useCreateGrant,
   type UseCreateGrantReturn,
-} from "./useCreateIamPolicy.js";
+} from "./useCreateGrant.js";
 
 export {
   useDeleteGrant,
   type UseDeleteGrantReturn,
-} from "./useDeleteIamPolicy.js";
+} from "./useDeleteGrant.js";
 
 export {
   useRevokeOrgAccess,

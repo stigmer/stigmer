@@ -14,7 +14,7 @@ import { StigmerContext } from "../../context";
 vi.mock("../TeamMembersPanel.js", () => ({
   TeamMembersPanel: () => <div data-testid="members" />,
 }));
-vi.mock("../../iam-policy/PermissionGate.js", () => ({
+vi.mock("../../grant/PermissionGate.js", () => ({
   PermissionGate: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
@@ -38,7 +38,7 @@ describe("TeamDetailPanel save payload", () => {
     const update = vi.fn(async (_resource: Team, _paths: string[]) => TEAM);
     render(
       <StigmerContext.Provider
-        value={{ team: { update }, iamPolicy: { checkMyPermission: async () => ({ isAuthorized: false }) } } as never}
+        value={{ team: { update }, grant: { checkMyPermission: async () => ({ isAuthorized: false }) } } as never}
       >
         <TeamDetailPanel team={TEAM} org="org_acme" />
       </StigmerContext.Provider>,
@@ -69,7 +69,7 @@ describe("TeamDetailPanel rename", () => {
     const onUpdated = vi.fn();
     const client = {
       team: { rename },
-      iamPolicy: { checkMyPermission: async () => ({ isAuthorized: true }) },
+      grant: { checkMyPermission: async () => ({ isAuthorized: true }) },
     } as never;
     render(
       <StigmerContext.Provider value={client}>

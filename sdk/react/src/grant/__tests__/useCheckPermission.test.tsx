@@ -20,7 +20,7 @@ import {
 } from "../useCheckPermission";
 
 function createMockStigmer(checkMyPermission: ReturnType<typeof vi.fn>) {
-  return { iamPolicy: { checkMyPermission } } as never;
+  return { grant: { checkMyPermission } } as never;
 }
 
 function wrapper(client: unknown) {

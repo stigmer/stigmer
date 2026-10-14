@@ -51,7 +51,7 @@ function renderPanel(
 ) {
   const client = {
     federationIssuer: { update },
-    iamPolicy: { checkMyPermission },
+    grant: { checkMyPermission },
   } as never;
   return render(
     <StigmerContext.Provider value={client}>
@@ -140,7 +140,7 @@ describe("FederationIssuerDetailPanel sign-in settings", () => {
   function renderPlain(update: ReturnType<typeof vi.fn>) {
     const client = {
       federationIssuer: { update },
-      iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
+      grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
     } as never;
     return render(
       <StigmerContext.Provider value={client}>
@@ -189,7 +189,7 @@ describe("FederationIssuerDetailPanel rename", () => {
     const onUpdated = vi.fn();
     const client = {
       federationIssuer: { rename },
-      iamPolicy: { checkMyPermission: async () => ({ isAuthorized: true }) },
+      grant: { checkMyPermission: async () => ({ isAuthorized: true }) },
     } as never;
     render(
       <StigmerContext.Provider value={client}>

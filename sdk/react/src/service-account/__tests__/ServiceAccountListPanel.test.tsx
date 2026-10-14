@@ -57,7 +57,7 @@ function wrapper({ children }: { children: ReactNode }) {
         });
       },
     },
-    iamPolicy: {
+    grant: {
       listResourceAccessByPrincipal: async () => {
         asked.accessReads++;
         return create(ResourceAccessByPrincipalListSchema, {

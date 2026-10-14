@@ -142,7 +142,7 @@ export const USER_TOKEN_CHECKS: readonly CheckItem[] = [
     status: "pass",
   },
   {
-    label: "IAM Policy check",
+    label: "Grant check",
     detail: "viewer on org_acme (token's org)",
     status: "pass",
   },
@@ -203,7 +203,7 @@ export const tokenFlowSteps: ScenarioStep<TokenFlowStep>[] = [
     delayMs: 3000,
     data: { view: "stigmer-validates-user-token" },
     narration:
-      "When Jane's browser calls the Stigmer API, the minted token is verified in-process. The signature, issuer, expiry, and IAM policy are all checked, and the token works in your organization only.",
+      "When Jane's browser calls the Stigmer API, the minted token is verified in-process. The signature, issuer, expiry, and grants are all checked, and the token works in your organization only.",
     interactions: [
       { atPercent: 0.12, type: "set_cursor", target: "check-0" },
       { atPercent: 0.3, type: "set_cursor", target: "check-1" },

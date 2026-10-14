@@ -14,7 +14,7 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 // Default: no account (a single-user server answers whoAmI NOT_FOUND), the
 // case in which every session is served as before.
 let whoAmI: UseWhoAmIReturn = { account: null, isLoading: false, error: null };
-vi.mock("../../iam-policy/useWhoAmI", () => ({
+vi.mock("../../grant/useWhoAmI", () => ({
   useWhoAmI: () => whoAmI,
 }));
 

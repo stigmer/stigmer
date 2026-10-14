@@ -42,7 +42,7 @@ function renderPanel(checkMyPermission: ReturnType<typeof vi.fn>) {
   const client = {
     baseUrl: "https://api.stigmer.ai",
     channelapp: { update: vi.fn(), delete: vi.fn() },
-    iamPolicy: { checkMyPermission },
+    grant: { checkMyPermission },
   } as never;
   return render(
     <StigmerContext.Provider value={client}>
@@ -129,7 +129,7 @@ describe("ChannelAppDetailPanel rename", () => {
     const onUpdated = vi.fn();
     const client = {
       channelapp: { rename },
-      iamPolicy: { checkMyPermission: async () => ({ isAuthorized: true }) },
+      grant: { checkMyPermission: async () => ({ isAuthorized: true }) },
     } as never;
     render(
       <StigmerContext.Provider value={client}>

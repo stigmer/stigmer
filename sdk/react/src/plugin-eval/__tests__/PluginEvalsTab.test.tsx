@@ -115,7 +115,7 @@ function client(
       create: vi.fn(async () => opts.started),
       cancel: vi.fn(async (id: string) => byId.get(id)),
     },
-    iamPolicy: {
+    grant: {
       checkMyPermission: vi.fn(() =>
         opts.check === "pending"
           ? new Promise<never>(() => undefined)
@@ -134,11 +134,11 @@ function client(
  */
 async function permissionSettled(mock: ReturnType<typeof client>): Promise<void> {
   await vi.waitFor(() =>
-    expect(mock.iamPolicy.checkMyPermission).toHaveBeenCalled(),
+    expect(mock.grant.checkMyPermission).toHaveBeenCalled(),
   );
   await act(async () => {
     await Promise.allSettled(
-      mock.iamPolicy.checkMyPermission.mock.results.map(
+      mock.grant.checkMyPermission.mock.results.map(
         (result) => result.value as Promise<unknown>,
       ),
     );
@@ -187,7 +187,7 @@ describe("PluginEvalsTab", () => {
     render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
     await screen.findByText("No evals have run yet.");
     await vi.waitFor(() =>
-      expect(mock.iamPolicy.checkMyPermission).toHaveBeenCalledWith(
+      expect(mock.grant.checkMyPermission).toHaveBeenCalledWith(
         expect.objectContaining({
           resource: expect.objectContaining({ kind: "plugin", id: "plg_1" }),
           relation: "can_edit",
@@ -420,7 +420,7 @@ describe("PluginEvalsTab", () => {
         await permissionSettled(mock);
       } else {
         await vi.waitFor(() =>
-          expect(mock.iamPolicy.checkMyPermission).toHaveBeenCalled(),
+          expect(mock.grant.checkMyPermission).toHaveBeenCalled(),
         );
       }
       expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();

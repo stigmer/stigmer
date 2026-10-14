@@ -41,16 +41,16 @@ vi.mock("../useResourceAccess.js", () => ({
     refetch: stubs.refetch,
   }),
 }));
-vi.mock("../useCreateIamPolicy.js", () => ({
-  useCreateIamPolicy: () => ({
+vi.mock("../useCreateGrant.js", () => ({
+  useCreateGrant: () => ({
     create: async () => ({}),
     isCreating: false,
     error: null,
     clearError: () => {},
   }),
 }));
-vi.mock("../useDeleteIamPolicy.js", () => ({
-  useDeleteIamPolicy: () => ({
+vi.mock("../useDeleteGrant.js", () => ({
+  useDeleteGrant: () => ({
     remove: stubs.remove,
     isDeleting: false,
     error: null,

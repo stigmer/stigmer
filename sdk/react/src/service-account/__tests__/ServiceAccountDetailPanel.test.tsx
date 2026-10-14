@@ -68,7 +68,7 @@ function wrapper({ children }: { children: ReactNode }) {
         return ACCOUNT;
       },
     },
-    iamPolicy: {
+    grant: {
       listResourceAccessByPrincipal: async () =>
         create(ResourceAccessByPrincipalListSchema, {
           entries: [

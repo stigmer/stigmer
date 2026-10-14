@@ -47,7 +47,7 @@ export interface UseAccessHistoryReturn {
 
 /**
  * Data hook that pages an organization's access history through
- * `IamPolicyQueryController.listAccessHistory`, newest first: every time
+ * `GrantQueryController.listAccessHistory`, newest first: every time
  * someone was given or lost access, who did it, why and when.
  *
  * The server answers only the organization's owners and administrators,

@@ -82,7 +82,7 @@ function createMockStigmer(overrides: MockOverrides = {}) {
       list: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
       getByReference: vi.fn().mockRejectedValue(new Error("not found")),
     },
-    iamPolicy: {
+    grant: {
       checkMyPermission:
         overrides.checkMyPermission ??
         vi.fn().mockResolvedValue({ isAuthorized: true }),
@@ -842,7 +842,7 @@ describe("AgentChannelsPanel", () => {
       channelapp: {
         list: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
       },
-      iamPolicy: {
+      grant: {
         checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: true }),
       },
     } as never;

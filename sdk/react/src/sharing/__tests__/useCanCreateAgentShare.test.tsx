@@ -16,7 +16,7 @@ type PermissionInput = {
  */
 function createMockStigmer(answers: Record<string, boolean> = {}) {
   return {
-    iamPolicy: {
+    grant: {
       checkMyPermission: vi.fn(async (input: PermissionInput) => ({
         isAuthorized: answers[input.relation] ?? true,
       })),

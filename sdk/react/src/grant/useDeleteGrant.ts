@@ -8,7 +8,7 @@ import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useDeleteGrant}. */
 export interface UseDeleteGrantReturn {
-  /** Revoke access by deleting an IAM policy binding. */
+  /** Revoke access by deleting a grant. */
   readonly remove: (spec: GrantSpec) => Promise<Grant>;
   /** `true` while the delete request is in flight. */
   readonly isDeleting: boolean;
@@ -19,16 +19,16 @@ export interface UseDeleteGrantReturn {
 }
 
 /**
- * Behavior hook that wraps `iamPolicy.delete()` with loading/error
+ * Behavior hook that wraps `grant.delete()` with loading/error
  * state.
  *
- * Removes an IAM policy binding — revoking a principal's role on a
- * resource. The caller provides the same {@link IamPolicySpec} that was
+ * Removes a grant — revoking a principal's role on a
+ * resource. The caller provides the same {@link GrantSpec} that was
  * used when creating the binding.
  *
  * @example
  * ```tsx
- * const { remove, isDeleting, error } = useDeleteIamPolicy();
+ * const { remove, isDeleting, error } = useDeleteGrant();
  *
  * await remove({
  *   principal: { kind: "identity_account", id: accountId },

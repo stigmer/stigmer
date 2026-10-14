@@ -22,7 +22,7 @@ type PermissionInput = {
 /** A server whose answers are the relations the reader holds on the session. */
 function serverGranting(held: readonly string[]) {
   return {
-    iamPolicy: {
+    grant: {
       checkMyPermission: vi.fn(async (input: PermissionInput) => ({
         isAuthorized: held.includes(input.relation),
       })),
@@ -46,7 +46,7 @@ describe("useSessionAccess", () => {
   it("lets a viewer neither send nor decide", async () => {
     const client = serverGranting([]);
     const { result } = accessOf(client, "ses_1");
-    await waitFor(() => expect(client.iamPolicy.checkMyPermission).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(client.grant.checkMyPermission).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(result.current).toEqual({ canSend: false, canDecide: false }));
   });
 
@@ -58,9 +58,9 @@ describe("useSessionAccess", () => {
   it("lets an owner send and decide, asking about that conversation", async () => {
     const client = serverGranting(["can_create_run_in", "can_edit"]);
     const { result } = accessOf(client, "ses_1");
-    await waitFor(() => expect(client.iamPolicy.checkMyPermission).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(client.grant.checkMyPermission).toHaveBeenCalledTimes(2));
     expect(result.current).toEqual({ canSend: true, canDecide: true });
-    const asked = client.iamPolicy.checkMyPermission.mock.calls.map((call) => call[0]);
+    const asked = client.grant.checkMyPermission.mock.calls.map((call) => call[0]);
     expect(asked.map((input) => input.relation).sort()).toEqual(["can_create_run_in", "can_edit"]);
     for (const input of asked) {
       expect(input.resource).toMatchObject({ kind: "session", id: "ses_1" });
@@ -71,6 +71,6 @@ describe("useSessionAccess", () => {
     const client = serverGranting([]);
     const { result } = accessOf(client, null);
     expect(result.current).toEqual({ canSend: true, canDecide: true });
-    expect(client.iamPolicy.checkMyPermission).not.toHaveBeenCalled();
+    expect(client.grant.checkMyPermission).not.toHaveBeenCalled();
   });
 });

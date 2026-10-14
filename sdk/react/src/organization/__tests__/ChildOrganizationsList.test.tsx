@@ -49,7 +49,7 @@ function clientWith(options: {
     checkMyPermission,
     client: {
       organization: { listChildOrgs },
-      iamPolicy: { checkMyPermission },
+      grant: { checkMyPermission },
       platform: {
         getServerInfo: vi.fn(async () => ({ singleOrg: options.singleOrg ?? false })),
       },

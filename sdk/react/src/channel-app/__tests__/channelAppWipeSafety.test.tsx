@@ -46,7 +46,7 @@ function renderPanel(update: ReturnType<typeof vi.fn>) {
     baseUrl: "https://api.stigmer.ai",
     channelapp: { update, delete: vi.fn(async () => ({})) },
     // The credentials form is gated on can_edit; this is the creator's view.
-    iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
+    grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
   } as never;
   return render(
     <StigmerContext.Provider value={client}>

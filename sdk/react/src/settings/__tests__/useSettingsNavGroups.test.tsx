@@ -19,7 +19,7 @@ let verdicts: Record<string, boolean> = {};
 let checkedRelations: string[] = [];
 let checks: (readonly [unknown, string, { fail?: string } | undefined])[] = [];
 
-vi.mock("../../iam-policy/useCheckPermission", () => ({
+vi.mock("../../grant/useCheckPermission", () => ({
   useCheckPermission: (
     ...args: [unknown, string, { fail?: string } | undefined]
   ) => {

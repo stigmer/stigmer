@@ -43,7 +43,7 @@ function createMockStigmer(org: Organization, canEdit = true) {
       update: vi.fn(async () => org),
       updatePolicies: vi.fn(async (_input: UpdateOrganizationPoliciesInput) => org),
     },
-    iamPolicy: {
+    grant: {
       checkMyPermission: vi.fn(async () => ({ isAuthorized: canEdit })),
     },
   };

@@ -45,7 +45,7 @@ function renderField({
 }) {
   const client = {
     agent: { rename: vi.fn(rename) },
-    iamPolicy: {
+    grant: {
       checkMyPermission: vi.fn(async (_input: Relation) => ({
         isAuthorized: allowed,
       })),
@@ -74,9 +74,9 @@ describe("ResourceSlugField", () => {
   it("shows the fallback to a caller who may not delete the resource, after asking can_delete on it", async () => {
     const { client } = renderField({ allowed: false });
     await waitFor(() =>
-      expect(client.iamPolicy.checkMyPermission).toHaveBeenCalled(),
+      expect(client.grant.checkMyPermission).toHaveBeenCalled(),
     );
-    const [asked] = client.iamPolicy.checkMyPermission.mock.calls[0]!;
+    const [asked] = client.grant.checkMyPermission.mock.calls[0]!;
     expect(asked.relation).toBe("can_delete");
     expect(asked.resource).toMatchObject({ kind: "agent", id: "agt_1" });
     expect(screen.getByText("read-only test-bot")).toBeTruthy();

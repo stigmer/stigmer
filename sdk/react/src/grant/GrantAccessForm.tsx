@@ -2,12 +2,12 @@
 
 /**
  * The grant form: choose who (a person, or a team where the resource can be
- * shared with teams) and which role, then create the IAM policy.
+ * shared with teams) and which role, then create the grant.
  *
  * The role list follows the chosen grantee: a team is offered only the
  * kind's team roles. Switching the choice from a person to a team clears a
  * role the team cannot hold instead of submitting it for the server to
- * refuse. The policy's grantee is built only through `granteeRef`, so a
+ * refuse. The grant's grantee is built only through `granteeRef`, so a
  * team always reaches the wire as its members.
  */
 import { useCallback, useState, type FormEvent } from "react";
@@ -28,7 +28,7 @@ import {
   isRoleTeamGrantable,
   type Grantee,
 } from "@stigmer/sdk";
-import { useCreateGrant } from "./useCreateIamPolicy.js";
+import { useCreateGrant } from "./useCreateGrant.js";
 import { RoleSelector } from "./RoleSelector.js";
 import { PrincipalPicker, type SelectedGrantee } from "./PrincipalPicker.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
@@ -53,8 +53,8 @@ export interface GrantAccessFormProps {
   readonly includeTeams?: boolean;
   /** Grantees that already have access (shown disabled in the picker). */
   readonly excludeGrantees?: readonly Grantee[];
-  /** Fired after a policy is successfully created. */
-  readonly onGranted?: (policy: Grant) => void;
+  /** Fired after a grant is successfully created. */
+  readonly onGranted?: (grant: Grant) => void;
   /** Fired when the user cancels. */
   readonly onCancel?: () => void;
   /** Additional CSS class names for the root container. */
@@ -98,7 +98,7 @@ export function GrantAccessForm({
   onCancel,
   className,
 }: GrantAccessFormProps) {
-  const { create: createPolicy, isCreating, error, clearError } =
+  const { create: createGrant, isCreating, error, clearError } =
     useCreateGrant();
 
   const [grantee, setGrantee] = useState<SelectedGrantee | null>(null);
@@ -136,10 +136,10 @@ export function GrantAccessForm({
           }),
           relation: iamRoleToString(selectedRole),
         });
-        const policy = await createPolicy(spec);
-        onGranted?.(policy);
+        const grant = await createGrant(spec);
+        onGranted?.(grant);
       } catch {
-        // error state is managed by useCreateIamPolicy
+        // error state is managed by useCreateGrant
       }
     },
     [
@@ -148,7 +148,7 @@ export function GrantAccessForm({
       grantee,
       resourceKindString,
       resourceId,
-      createPolicy,
+      createGrant,
       clearError,
       onGranted,
     ],

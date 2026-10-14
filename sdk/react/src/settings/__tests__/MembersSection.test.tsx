@@ -1,7 +1,7 @@
 /**
  * Pins MembersSection's edition posture:
  * the Members page renders the members panel in EVERY edition —
- * `iam_policy` is an open-source kind since the row half moved into
+ * `grant` is an open-source kind since the row half moved into
  * @stigmer/server — and says how people join on an edition that serves
  * no invitations. The cloud (invitations served) shows no such sentence.
  * The panel itself is proven by its own tests; it is stubbed here.
@@ -35,7 +35,7 @@ const providers = vi.hoisted(() => ({ list: [] as FederationIssuer[] }));
 vi.mock("../../federation-issuer/useFederationIssuerList.js", () => ({
   useFederationIssuerList: () => ({ federationIssuers: providers.list }),
 }));
-vi.mock("../../iam-policy/OrgMembersPanel.js", () => ({
+vi.mock("../../grant/OrgMembersPanel.js", () => ({
   OrgMembersPanel: ({ org, serviceAccountsHref }: { org: string; serviceAccountsHref?: string }) => (
     <div data-testid="members-panel" data-service-accounts-href={serviceAccountsHref ?? ""}>
       panel for {org}

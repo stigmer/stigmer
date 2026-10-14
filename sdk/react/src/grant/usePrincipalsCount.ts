@@ -23,7 +23,7 @@ export interface UsePrincipalsCountReturn {
  * Data hook that fetches the count of principals with access to an
  * organization.
  *
- * Wraps `iamPolicy.getPrincipalsCount()`: every principal of the kind
+ * Wraps `grant.getPrincipalsCount()`: every principal of the kind
  * that holds a role on the organization. For identity accounts that
  * includes the accounts a mint created for the organization's own
  * product, its service accounts and any machine

@@ -77,7 +77,7 @@ function client(
       create: vi.fn(async () => opts.started),
       cancel: vi.fn(async (id: string) => byId.get(id)),
     },
-    iamPolicy: {
+    grant: {
       checkMyPermission: vi.fn(() =>
         opts.check === "pending"
           ? new Promise<never>(() => undefined)
@@ -91,10 +91,10 @@ function client(
 
 /** Waits until the `can_edit` check has answered, or failed, and the tab has read it. */
 async function permissionSettled(mock: ReturnType<typeof client>): Promise<void> {
-  await vi.waitFor(() => expect(mock.iamPolicy.checkMyPermission).toHaveBeenCalled());
+  await vi.waitFor(() => expect(mock.grant.checkMyPermission).toHaveBeenCalled());
   await act(async () => {
     await Promise.allSettled(
-      mock.iamPolicy.checkMyPermission.mock.results.map((result) => result.value as Promise<unknown>),
+      mock.grant.checkMyPermission.mock.results.map((result) => result.value as Promise<unknown>),
     );
   });
 }
@@ -147,7 +147,7 @@ describe("AgentEvalsTab", () => {
     const mock = client([], { canEdit: false });
     render(<AgentEvalsTab agent={agentWith(["thermos"])} />, { wrapper: wrap(mock) });
     await permissionSettled(mock);
-    expect(mock.iamPolicy.checkMyPermission).toHaveBeenCalledWith(
+    expect(mock.grant.checkMyPermission).toHaveBeenCalledWith(
       expect.objectContaining({
         resource: expect.objectContaining({ kind: "agent", id: "agt_1" }),
         relation: "can_edit",
@@ -168,7 +168,7 @@ describe("AgentEvalsTab", () => {
       if (check === "fails") {
         await permissionSettled(mock);
       } else {
-        await vi.waitFor(() => expect(mock.iamPolicy.checkMyPermission).toHaveBeenCalled());
+        await vi.waitFor(() => expect(mock.grant.checkMyPermission).toHaveBeenCalled());
       }
       expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
       expect(screen.queryByRole("button", { name: "Run evals" })).toBeNull();

@@ -54,7 +54,7 @@ function renderPanel(
 ) {
   const client = {
     oauthapp: { update },
-    iamPolicy: { checkMyPermission },
+    grant: { checkMyPermission },
   } as never;
   return render(
     <StigmerContext.Provider value={client}>
@@ -161,7 +161,7 @@ describe("OAuthAppDetailPanel rename", () => {
     const onUpdated = vi.fn();
     const client = {
       oauthapp: { rename },
-      iamPolicy: { checkMyPermission: async () => ({ isAuthorized: true }) },
+      grant: { checkMyPermission: async () => ({ isAuthorized: true }) },
     } as never;
     render(
       <StigmerContext.Provider value={client}>

@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * A team's members: the access list on the team itself. A membership is an
- * IAM policy row `identity_account:<p> member team:<t>`, so listing,
+ * A team's members: the access list on the team itself. A membership is a
+ * grant row `identity_account:<p> member team:<t>`, so listing,
  * adding and removing members is the share flow on `{ kind: "team", id }`
  * with the one role a team grants, `member`. There is no role choice to
  * make, so this panel composes the picker and the shared access row

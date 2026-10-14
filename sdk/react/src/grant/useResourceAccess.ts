@@ -41,7 +41,7 @@ export interface UseResourceAccessReturn {
  * Data hook that fetches the list of principals and their roles on a
  * resource.
  *
- * Wraps `iamPolicy.listResourceAccessByPrincipal()`. Returns each
+ * Wraps `grant.listResourceAccessByPrincipal()`. Returns each
  * principal with full display information (`ApiResourceRefView`) and
  * all their role grants, optionally including roles inherited from
  * parent resources.
@@ -49,7 +49,7 @@ export interface UseResourceAccessReturn {
  * Pass `null` as `resource` to skip fetching (stable no-op).
  *
  * **Generic** — works for organizations, agents, vaults, or any
- * resource kind that has IAM policies.
+ * resource kind that has grants.
  *
  * @param resource - The resource to query access for, or `null` to skip.
  * @param options  - Optional configuration.

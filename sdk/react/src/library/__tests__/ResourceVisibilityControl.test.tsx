@@ -26,7 +26,7 @@ import { ResourceVisibilityControl } from "../ResourceVisibilityControl";
 import type { VisibilityLevelOption } from "../visibilityLevels";
 import type { VisibilityResourceKind } from "../useUpdateVisibility";
 
-vi.mock("../../iam-policy/PermissionGate", () => ({
+vi.mock("../../grant/PermissionGate", () => ({
   PermissionGate: ({
     relation,
     resource,

@@ -1160,7 +1160,7 @@ export type {
   EvalAgentRef,
 } from "./agent-eval/index.js";
 
-// IAM Policy — data hooks, behavior hooks, headless hook, and styled components for access management
+// Grant — data hooks, behavior hooks, headless hook, and styled components for access management
 export {
   useGrantableRoles,
   useRoleSelector,

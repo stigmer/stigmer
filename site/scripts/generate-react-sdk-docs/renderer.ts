@@ -55,7 +55,7 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
     slugs: [
       "organization",
       "team",
-      "iam-policy",
+      "grant",
       "access",
       "federation-issuer",
       "identity-account",

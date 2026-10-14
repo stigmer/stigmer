@@ -37,8 +37,8 @@ import {
 import { useResourceAvailable } from "../deployment-mode.js";
 import { toError } from "../internal/toError.js";
 import { useResourceAccess, type ResourceAccessRef } from "./useResourceAccess.js";
-import { useCreateGrant } from "./useCreateIamPolicy.js";
-import { useDeleteGrant } from "./useDeleteIamPolicy.js";
+import { useCreateGrant } from "./useCreateGrant.js";
+import { useDeleteGrant } from "./useDeleteGrant.js";
 import { useGrantableRoles } from "./useGrantableRoles.js";
 
 /** Identifies a resource for the share flow. */

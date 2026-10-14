@@ -27,7 +27,7 @@ function createMockStigmer(overrides: {
     },
     // The detail panel gates its credentials form and deletion on the
     // caller's permissions; these cases are the creator's view.
-    iamPolicy: {
+    grant: {
       checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: true }),
     },
   } as never;
