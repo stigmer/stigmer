@@ -11,10 +11,10 @@ import {
   type Table,
 } from "@tanstack/react-table";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import type { ListParams, ListResult } from "@stigmer/sdk";
-import { useFetch } from "../../internal/useFetch.js";
+import { useTokenPages } from "../../internal/useTokenPages.js";
 import type {
   WorkbenchColumnDef,
+  WorkbenchListFn,
   SortValue,
   SortDirection,
 } from "../types.js";
@@ -26,17 +26,15 @@ import type {
 /** Options for {@link useResourceCollection}. */
 export interface UseResourceCollectionOptions<TData = SearchResult> {
   /**
-   * Async function that fetches a page of resources.
-   * The hook passes `ListParams` (org, query, page) and expects
-   * `ListResult` back. Pass `null` to disable fetching (idle state).
+   * Reads one page of resources: the hook passes the organization, the
+   * query, the page size and the page's token, and shows the page it gets
+   * back. Pass `null` to disable fetching (idle state).
    */
-  readonly listFn: ((params: ListParams) => Promise<ListResult>) | null;
+  readonly listFn: WorkbenchListFn<TData> | null;
   /** Organization id to scope the query (a slug is also accepted). Pass `null` to disable fetching. */
   readonly org: string | null;
   /** Text search query. No debouncing is applied — the consumer controls timing. */
   readonly query?: string;
-  /** Current page number (1-indexed). @default 1 */
-  readonly page?: number;
   /** Page size. @default 20 */
   readonly pageSize?: number;
   /** Active sort. When provided, the column header shows the sort indicator. */
@@ -64,7 +62,7 @@ export interface UseResourceCollectionOptions<TData = SearchResult> {
    * (e.g. applying a manifest or deleting a row) without remounting:
    * bump a counter and pass it here. The current page stays rendered
    * with an `isRefetching` shimmer — no full-list flash. A change to
-   * this token alone never resets pagination or sort.
+   * this token alone never moves the page or the sort.
    */
   readonly refetchToken?: unknown;
 }
@@ -75,14 +73,18 @@ export interface UseResourceCollectionOptions<TData = SearchResult> {
 
 /** Return value of {@link useResourceCollection}. */
 export interface UseResourceCollectionReturn<TData = SearchResult> {
-  /** The fetched data items for the current page. */
+  /** The fetched data items for the shown page. */
   readonly items: readonly TData[];
-  /** Total number of matching items across all pages. */
-  readonly totalCount: number;
-  /** Total number of pages. */
-  readonly totalPages: number;
-  /** The current page number (mirrors input). */
-  readonly currentPage: number;
+  /** The shown page's number, 1 on the first page. */
+  readonly pageNumber: number;
+  /** `true` when a page follows the shown one. */
+  readonly hasNextPage: boolean;
+  /** `true` when a page was shown before this one. */
+  readonly hasPreviousPage: boolean;
+  /** Show the next page. */
+  readonly nextPage: () => void;
+  /** Show the page before. */
+  readonly previousPage: () => void;
   /** `true` during the initial data fetch (no data yet). */
   readonly isLoading: boolean;
   /** `true` during a background refetch while stale data is shown. */
@@ -109,23 +111,12 @@ export interface UseResourceCollectionReturn<TData = SearchResult> {
 
 const DEFAULT_PAGE_SIZE = 20;
 
-interface CollectionData {
-  entries: readonly SearchResult[];
-  totalCount: number;
-  totalPages: number;
-}
-
-const INITIAL_DATA: CollectionData = {
-  entries: [],
-  totalCount: 0,
-  totalPages: 0,
-};
-
 /**
  * Headless hook that manages resource collection state: data fetching,
  * sorting, selection, and pagination.
  *
- * Wraps `useFetch` for data and `@tanstack/react-table` for table state
+ * Pages by token (next and previous, no total) and wraps
+ * `@tanstack/react-table` for table state
  * (sorting, selection, column visibility). The hook itself produces no
  * DOM — it returns data, state, and a TanStack Table instance that view
  * components (`ResourceTable`, `ResourceCards`, `ResourceList`) consume.
@@ -136,10 +127,9 @@ const INITIAL_DATA: CollectionData = {
  * @example
  * ```tsx
  * const collection = useResourceCollection({
- *   listFn: (params) => stigmer.agent.list(params),
+ *   listFn: createLibraryListFn(stigmer, ApiResourceKind.agent),
  *   org: "acme",
  *   query: debouncedQuery,
- *   page: 1,
  *   columns: agentColumns,
  * });
  * ```
@@ -151,7 +141,6 @@ export function useResourceCollection<TData = SearchResult>(
     listFn,
     org,
     query = "",
-    page = 1,
     pageSize = DEFAULT_PAGE_SIZE,
     sort = null,
     onSortChange,
@@ -161,28 +150,17 @@ export function useResourceCollection<TData = SearchResult>(
     refetchToken,
   } = options;
 
-  // --- Data fetching via useFetch -----------------------------------------
-  const { data, isLoading, isRefetching, error, refetch } = useFetch<CollectionData>(
+  // --- Data fetching, one page at a time --------------------------------
+  const pages = useTokenPages<TData>(
     listFn && org
-      ? async () => {
-          const params: ListParams = {
-            org,
-            query: query || undefined,
-            page: { num: page, size: pageSize },
-          };
-          const result = await listFn(params as Parameters<typeof listFn>[0]);
-          return {
-            entries: [...result.entries],
-            totalCount: result.totalCount,
-            totalPages: result.totalPages,
-          };
-        }
+      ? (pageToken) =>
+          listFn({ org, query: query || undefined, pageSize, pageToken })
       : null,
-    [listFn, org, query, page, pageSize, refetchToken],
-    INITIAL_DATA,
+    [listFn, org, query, pageSize],
+    refetchToken,
   );
-
-  const items = data.entries as unknown as readonly TData[];
+  const { isLoading, isRefetching, error, refetch } = pages;
+  const items = pages.entries;
 
   // --- TanStack Table sorting bridge --------------------------------------
   const sortingState: SortingState = useMemo(() => {
@@ -212,8 +190,8 @@ export function useResourceCollection<TData = SearchResult>(
   // --- Row selection state ------------------------------------------------
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
-  // Clear selection when page or query changes to prevent stale refs.
-  const clearKey = `${page}-${query}`;
+  // Clear selection when the page or query changes to prevent stale refs.
+  const clearKey = `${pages.pageNumber}-${query}`;
   const prevClearKey = useRef(clearKey);
   useEffect(() => {
     if (prevClearKey.current !== clearKey) {
@@ -257,9 +235,11 @@ export function useResourceCollection<TData = SearchResult>(
 
   return {
     items,
-    totalCount: data.totalCount,
-    totalPages: data.totalPages,
-    currentPage: page,
+    pageNumber: pages.pageNumber,
+    hasNextPage: pages.hasNext,
+    hasPreviousPage: pages.hasPrevious,
+    nextPage: pages.next,
+    previousPage: pages.previous,
     isLoading,
     isRefetching,
     error,

@@ -40,13 +40,12 @@ export interface UseConversationListReturn {
   /**
    * Conversations, newest activity first: the polled head page followed
    * by the accumulated older pages, deduplicated by conversation
-   * identity (offset pages drift under live activity — a conversation
-   * that moved up between fetches appears once, in its head position),
-   * with any {@link applyServerState} rows overriding both.
+   * identity (a conversation that gains activity while older pages load
+   * moves to the head, and appears once, in its head position), with any
+   * {@link applyServerState} rows overriding both. A list carries no
+   * total; the inbox badge counts through `useConversationsWantsHumanCount`.
    */
   readonly conversations: readonly ChannelConversation[];
-  /** Exact total for the current filter, from the server. */
-  readonly totalCount: number;
   /** `true` while more conversations exist beyond what is loaded. */
   readonly hasMore: boolean;
   /** Load the next older page. No-op while one is already loading. */
@@ -77,7 +76,8 @@ export interface UseConversationListReturn {
 
 interface HeadPage {
   readonly items: readonly ChannelConversation[];
-  readonly totalCount: number;
+  /** The token after the head page; `""` when it is the whole list. */
+  readonly nextPageToken: string;
   /**
    * The apply-sequence at the moment this fetch STARTED. The overlay
    * (see {@link useConversationList}) may only be cleared by a page
@@ -86,7 +86,13 @@ interface HeadPage {
   readonly seq: number;
 }
 
-const EMPTY_HEAD: HeadPage = { items: [], totalCount: 0, seq: 0 };
+const EMPTY_HEAD: HeadPage = { items: [], nextPageToken: "", seq: 0 };
+
+/** Older pages loaded after the head, and the token after the last of them. */
+interface OlderPages {
+  readonly pages: readonly (readonly ChannelConversation[])[];
+  readonly nextPageToken: string;
+}
 
 /** Rows adopted from command answers, waiting for the head to catch up. */
 interface Overlay {
@@ -115,8 +121,9 @@ function activityMillisOf(conversation: ChannelConversation): number {
  * ChannelConversationListFilter}).
  *
  * The head page rides `useFetch` and polls; older pages accumulate via
- * {@link UseConversationListReturn.loadMore} and are merged with head
- * precedence — the server's offset pagination shifts under live activity,
+ * {@link UseConversationListReturn.loadMore}, each continuing from the
+ * token after the last one loaded, and are merged with head precedence —
+ * a conversation that gains activity moves above the pages already read,
  * so identity dedup (head copy wins: it is the fresher read) is what
  * keeps a moving conversation from rendering twice.
  *
@@ -166,10 +173,10 @@ export function useConversationList(
             org,
             agentChannelId,
             filter,
-            pageInfo: { num: 1, size: pageSize },
+            pageSize,
           }),
         );
-        return { items: result.items, totalCount: result.totalCount, seq };
+        return { items: result.entries, nextPageToken: result.nextPageToken, seq };
       }
     : null;
 
@@ -192,8 +199,7 @@ export function useConversationList(
 
   // Older pages, keyed by the same identity deps as the head fetch; the
   // epoch fences in-flight loadMore answers across an identity change.
-  const [olderPages, setOlderPages] = useState<readonly ChannelConversation[][]>([]);
-  const [loadedThroughPage, setLoadedThroughPage] = useState(1);
+  const [older, setOlder] = useState<OlderPages | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<Error | null>(null);
   const [overlay, setOverlay] = useState<Overlay>(EMPTY_OVERLAY);
@@ -201,8 +207,7 @@ export function useConversationList(
 
   useEffect(() => {
     epochRef.current += 1;
-    setOlderPages([]);
-    setLoadedThroughPage(1);
+    setOlder(null);
     setIsLoadingMore(false);
     setLoadMoreError(null);
     setOverlay(EMPTY_OVERLAY);
@@ -231,10 +236,13 @@ export function useConversationList(
     if (head.seq >= overlay.seq) setOverlay(EMPTY_OVERLAY);
   }, [head, overlay]);
 
+  // The token after the last page loaded: the head's until an older page
+  // arrives, then that page's.
+  const tailToken = older !== null ? older.nextPageToken : head.nextPageToken;
+
   const loadMore = useCallback(() => {
-    if (!org || isLoadingMore) return;
+    if (!org || isLoadingMore || tailToken === "") return;
     const epoch = epochRef.current;
-    const nextPage = loadedThroughPage + 1;
     setIsLoadingMore(true);
     setLoadMoreError(null);
 
@@ -244,14 +252,17 @@ export function useConversationList(
           org,
           agentChannelId,
           filter,
-          pageInfo: { num: nextPage, size: pageSize },
+          pageSize,
+          pageToken: tailToken,
         }),
       )
       .then(
         (result) => {
           if (epochRef.current !== epoch) return;
-          setOlderPages((pages) => [...pages, result.items]);
-          setLoadedThroughPage(nextPage);
+          setOlder((current) => ({
+            pages: [...(current?.pages ?? []), result.entries],
+            nextPageToken: result.nextPageToken,
+          }));
           setIsLoadingMore(false);
         },
         (err) => {
@@ -260,12 +271,12 @@ export function useConversationList(
           setIsLoadingMore(false);
         },
       );
-  }, [org, agentChannelId, filter, pageSize, stigmer, isLoadingMore, loadedThroughPage]);
+  }, [org, agentChannelId, filter, pageSize, stigmer, isLoadingMore, tailToken]);
 
   const conversations = useMemo(() => {
     const seen = new Set<string>();
     const merged: ChannelConversation[] = [];
-    for (const conversation of [...head.items, ...olderPages.flat()]) {
+    for (const conversation of [...head.items, ...(older?.pages.flat() ?? [])]) {
       const identity = identityOf(conversation);
       if (seen.has(identity)) continue;
       seen.add(identity);
@@ -293,14 +304,13 @@ export function useConversationList(
       seen.add(identity);
     }
     return merged;
-  }, [head.items, olderPages, overlay, agentChannelId, filter]);
+  }, [head.items, older, overlay, agentChannelId, filter]);
 
-  const hasMore = conversations.length < head.totalCount;
+  const hasMore = tailToken !== "";
 
   return useMemo(
     () => ({
       conversations,
-      totalCount: head.totalCount,
       hasMore,
       loadMore,
       isLoadingMore,
@@ -313,7 +323,6 @@ export function useConversationList(
     }),
     [
       conversations,
-      head.totalCount,
       hasMore,
       loadMore,
       isLoadingMore,

@@ -583,7 +583,7 @@ export const samples = {
   },
 
   /**
-   * An `Organizations` response for `findMyOrganizations` — what
+   * An `Organizations` response for `listMine` — what
    * `OrgProvider` fetches to drive the org switcher.
    * Default: a single {@link samples.organization}.
    */
@@ -787,34 +787,37 @@ export const samples = {
   /** A session list response. Defaults to one demo session. */
   sessionList(entries?: Session[]): SessionList {
     const items = entries ?? [samples.session()];
-    return create(SessionListSchema, {
-      entries: items,
-      totalPages: 1,
-    });
+    return create(SessionListSchema, { entries: items });
   },
 
   /** A run list response. Defaults to one demo run. */
   runList(entries?: Run[]): RunList {
     const items = entries ?? [samples.run()];
-    return create(RunListSchema, {
-      entries: items,
-      totalPages: 1,
-    });
+    return create(RunListSchema, { entries: items });
   },
 
   /**
-   * A search response for list hooks (`useAgentList`, `useSkillList`, etc.).
-   * Defaults to one search result matching the specified kind.
+   * A search response for search-backed hooks (`useAgentSearch`, the
+   * Library's count cards). Defaults to one search result; the per-kind
+   * counts default to the entries' own kinds, and no page follows.
    */
   searchResponse(
     entries?: SearchResult[],
-    totalCount?: number,
+    options?: {
+      readonly countsByKind?: Readonly<Record<string, number>>;
+      readonly nextPageToken?: string;
+    },
   ): SearchResponse {
     const items = entries ?? [samples.searchResult()];
+    const countsByKind: Record<string, number> = {};
+    for (const item of items) {
+      const kind = ApiResourceKind[item.kind] ?? String(item.kind);
+      countsByKind[kind] = (countsByKind[kind] ?? 0) + 1;
+    }
     return create(SearchResponseSchema, {
       entries: items,
-      totalCount: totalCount ?? items.length,
-      totalPages: 1,
+      countsByKind: options?.countsByKind ?? countsByKind,
+      nextPageToken: options?.nextPageToken ?? "",
     });
   },
 

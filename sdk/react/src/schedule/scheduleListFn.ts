@@ -3,10 +3,9 @@
 // Schedules are the one Library kind NOT backed by the search service: the
 // generic `SearchResult` summary cannot carry the operational fields a
 // schedule list exists to show (`next_fire_at`, enabled/paused state, last
-// run), while the direct `listSchedules` query returns full `Schedule`
-// protos and was explicitly shaped for "the org-context view a console tab
-// needs". Both consoles consume this single implementation — inlining it
-// per-app would duplicate correctness-bearing pagination logic.
+// run), while the direct `list` query returns full `Schedule` protos and was
+// explicitly shaped for "the org-context view a console tab needs". Both
+// consoles consume this single implementation, so the paging lives once.
 
 import { create } from "@bufbuild/protobuf";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
@@ -15,8 +14,7 @@ import {
   type ListSchedulesRequest,
   type ScheduleList,
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
-import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import type { ListParams, ListResult } from "@stigmer/sdk";
+import type { WorkbenchListFn } from "../resource-workbench/types.js";
 
 /** The slice of the Stigmer client this module needs (mockable in tests). */
 export interface ScheduleListClient {
@@ -25,83 +23,49 @@ export interface ScheduleListClient {
   };
 }
 
-/** One page of schedules, with pagination totals. */
+/** One page of schedules, newest first. */
 export interface SchedulePage {
-  /** Full `Schedule` protos (spec + status) for the requested page. */
-  readonly items: readonly Schedule[];
-  /** Total schedules in the org (across all pages). */
-  readonly totalCount: number;
-  /** Total pages at the requested page size. */
-  readonly totalPages: number;
+  /** Full `Schedule` protos (spec + status) for the page. */
+  readonly entries: readonly Schedule[];
+  /** Set when more schedules follow; `""` on the last page. */
+  readonly nextPageToken: string;
 }
 
 const DEFAULT_PAGE_SIZE = 20;
 
 /**
- * Fetch one page of an organization's schedules via the direct query.
- *
- * Handles a verified split between the two server editions: cloud slices
- * pages server-side, while the OSS server documents that it ignores
- * `page_info` and returns every matching schedule. A server that
- * paginated can never return more rows than the requested size, so an
- * overflowing response is the tell that the server ignored pagination —
- * only then is the page sliced locally (absolute indices into the full
- * list). A cloud page passes through untouched.
+ * Fetch one page of an organization's schedules via the direct query:
+ * the page `pageToken` names (`""` for the first), at most `pageSize`.
  */
 export async function listSchedulesPage(
   client: ScheduleListClient,
   org: string,
-  page: { readonly num?: number; readonly size?: number } = {},
+  page: { readonly pageSize?: number; readonly pageToken?: string } = {},
 ): Promise<SchedulePage> {
-  const size = page.size && page.size > 0 ? page.size : DEFAULT_PAGE_SIZE;
-  const num = page.num && page.num > 0 ? page.num : 1;
-
   const result = await client.schedule.list(
     create(ListSchedulesRequestSchema, {
       org,
-      pageInfo: { num, size },
+      pageSize: page.pageSize && page.pageSize > 0 ? page.pageSize : DEFAULT_PAGE_SIZE,
+      pageToken: page.pageToken ?? "",
     }),
   );
-
-  const items =
-    result.items.length > size
-      ? result.items.slice((num - 1) * size, num * size)
-      : result.items;
-
-  return {
-    items,
-    totalCount: result.totalCount,
-    totalPages: Math.ceil(result.totalCount / size),
-  };
+  return { entries: result.entries, nextPageToken: result.nextPageToken };
 }
 
 /**
- * Build a `ResourceWorkbench`-compatible `listFn` over the direct
- * schedule query.
+ * Build a `ResourceWorkbench` data source over the direct schedule query.
+ * Consumers type their workbench as `ResourceWorkbench<Schedule>` and pass
+ * `getItemId={(s) => s.metadata?.id}`.
  *
- * The returned entries are full `Schedule` protos occupying the
- * `SearchResult` slot of `ListResult` — `ResourceWorkbench` is generic
- * over its row type (`useResourceCollection` casts entries through to
- * `TData`), and this is the one documented place where that cast
- * happens. Consumers type their workbench as
- * `ResourceWorkbench<Schedule>` and pass `getItemId={(s) => s.metadata?.id}`.
- *
- * `params.query` is ignored: schedules have no server-side text search
+ * `request.query` is ignored: schedules have no server-side text search
  * (render the workbench with `searchable={false}`).
  */
 export function createScheduleListFn(
   client: ScheduleListClient,
-): (params: ListParams) => Promise<ListResult> {
-  return async (params: ListParams): Promise<ListResult> => {
-    const { items, totalCount, totalPages } = await listSchedulesPage(
-      client,
-      params.org,
-      params.page ?? {},
-    );
-    return {
-      entries: items as unknown as SearchResult[],
-      totalCount,
-      totalPages,
-    };
-  };
+): WorkbenchListFn<Schedule> {
+  return (request) =>
+    listSchedulesPage(client, request.org, {
+      pageSize: request.pageSize,
+      pageToken: request.pageToken,
+    });
 }

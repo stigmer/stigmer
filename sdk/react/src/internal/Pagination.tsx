@@ -4,9 +4,10 @@
  * Shared previous/next pager for paginated SDK tables.
  *
  * Lists page by token and carry no total, so the control says where the
- * reader is ("Page 3") and whether a page follows, never "of N". Its
- * consumers are the resource workbench, `ScheduleFiresTable` and the
- * marketplace catalog, each driven by `useTokenPages`.
+ * reader is ("Page 3") and whether a page follows. A view that pages a
+ * set it holds in memory knows its page count and passes it ("Page 3 of
+ * 7"). Its consumers are `ScheduleFiresTable` (by token) and the
+ * marketplace catalog (in memory).
  *
  * Internal (not barrel-exported): the public contract is each table
  * component, not this control.
@@ -26,6 +27,8 @@ export interface PaginationProps {
   readonly onPrevious: () => void;
   /** Show the next page. */
   readonly onNext: () => void;
+  /** The number of pages, when the view knows it (a set held in memory). */
+  readonly pageCount?: number;
   /** Accessible label naming what is being paginated (e.g. "Run history pagination"). */
   readonly ariaLabel: string;
   /** Additional CSS classes for the root container. */
@@ -44,6 +47,7 @@ export function Pagination({
   hasNext,
   onPrevious,
   onNext,
+  pageCount,
   ariaLabel,
   className,
 }: PaginationProps) {
@@ -62,7 +66,7 @@ export function Pagination({
         Previous
       </button>
       <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
-        Page {pageNumber}
+        {pageCount === undefined ? `Page ${pageNumber}` : `Page ${pageNumber} of ${pageCount}`}
       </span>
       <button
         type="button"

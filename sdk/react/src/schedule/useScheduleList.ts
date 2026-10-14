@@ -2,41 +2,40 @@
 
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
-import { listSchedulesPage, type SchedulePage } from "./scheduleListFn.js";
+import { useCursorPages } from "../internal/useCursorPages.js";
+import { listSchedulesPage } from "./scheduleListFn.js";
 
 /** Options for {@link useScheduleList}. */
 export interface UseScheduleListOptions {
-  /** Maximum schedules per page. @default 20 */
+  /** Maximum schedules per page, the first and each `loadMore`. @default 20 */
   readonly pageSize?: number;
-  /** Page number (1-indexed). @default 1 */
-  readonly page?: number;
 }
 
 /** Return value of {@link useScheduleList}. */
 export interface UseScheduleListReturn {
-  /** Full `Schedule` protos (spec + status) for the current page. */
+  /** Full `Schedule` protos (spec + status), the first page then each page loaded since. */
   readonly schedules: readonly Schedule[];
-  /** Total number of schedules in the organization. */
-  readonly totalCount: number;
-  /** Total pages available at the current page size. */
-  readonly totalPages: number;
-  /** The current page number (mirrors the `page` option). */
-  readonly currentPage: number;
+  /** `true` while the server holds schedules beyond those loaded. */
+  readonly hasMore: boolean;
+  /** Load the next page. No-op while one is loading or when nothing follows. */
+  readonly loadMore: () => void;
+  /** `true` while a `loadMore` read is in flight. */
+  readonly isLoadingMore: boolean;
+  /** Error from the last failed `loadMore`, or `null`. */
+  readonly loadMoreError: Error | null;
   /** `true` while the initial fetch is in flight. */
   readonly isLoading: boolean;
   /** `true` while a background refetch is in flight. */
   readonly isRefetching: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
-  /** Discard cached data and re-fetch the current page from the server. */
+  /** Re-read the first page; pages loaded since stay. */
   readonly refetch: () => void;
 }
 
-const INITIAL_PAGE: SchedulePage = { items: [], totalCount: 0, totalPages: 0 };
-
 /**
- * Data hook that fetches a paginated list of an organization's schedules.
+ * Data hook that lists an organization's schedules, newest first, a page at
+ * a time (`hasMore` / `loadMore`; a list carries no total).
  *
  * Backed by the direct `listSchedules` query — not the search service —
  * so each entry is a full `Schedule` proto with the operational status
@@ -48,8 +47,7 @@ const INITIAL_PAGE: SchedulePage = { items: [], totalCount: 0, totalPages: 0 };
  *
  * @example
  * ```tsx
- * const { schedules, totalCount, isLoading } = useScheduleList("isc", {
- *   page: 1,
+ * const { schedules, hasMore, loadMore, isLoading } = useScheduleList("isc", {
  *   pageSize: 20,
  * });
  * ```
@@ -60,24 +58,22 @@ export function useScheduleList(
 ): UseScheduleListReturn {
   const stigmer = useStigmer();
   const pageSize = options?.pageSize;
-  const page = options?.page ?? 1;
 
-  const { data, isLoading, isRefetching, error, refetch } = useFetch<SchedulePage>(
-    org
-      ? () => listSchedulesPage(stigmer, org, { num: page, size: pageSize })
-      : null,
-    [stigmer, org, page, pageSize],
-    INITIAL_PAGE,
+  const pages = useCursorPages<Schedule>(
+    org ? (pageToken) => listSchedulesPage(stigmer, org, { pageSize, pageToken }) : null,
+    [stigmer, org, pageSize],
+    (schedule) => schedule.metadata?.id ?? "",
   );
 
   return {
-    schedules: data.items,
-    totalCount: data.totalCount,
-    totalPages: data.totalPages,
-    currentPage: page,
-    isLoading,
-    isRefetching,
-    error,
-    refetch,
+    schedules: pages.items,
+    hasMore: pages.hasMore,
+    loadMore: pages.loadMore,
+    isLoadingMore: pages.isLoadingMore,
+    loadMoreError: pages.loadMoreError,
+    isLoading: pages.isLoading,
+    isRefetching: pages.isRefetching,
+    error: pages.error,
+    refetch: pages.refetch,
   };
 }

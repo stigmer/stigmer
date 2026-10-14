@@ -3,7 +3,7 @@
 import { create } from "@bufbuild/protobuf";
 import {
   ChannelConversationListFilter,
-  ListChannelConversationsInputSchema,
+  CountChannelConversationsInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
 import { useMemo } from "react";
 import { useStigmer } from "../hooks.js";
@@ -44,11 +44,11 @@ export interface UseConversationsWantsHumanCountReturn {
  * Data hook for the sidebar's Conversations badge: how many
  * conversations want a human right now, org-wide.
  *
- * The count IS the filtered list's `total_count` — one page-size-1 read
- * with `filter_wants_human`, zero dedicated RPCs. Because
- * the badge and the wants-human list filter share one server-side
- * predicate, the number shown and the list it leads to can never
- * disagree.
+ * The count is `countConversations` with `filter_wants_human`: the
+ * server counts with the same predicate the wants-human list filters by,
+ * over the same channels, so the number shown and the list it leads to
+ * can never disagree. A list carries no total; the count is its own
+ * answer.
  *
  * Pass `null` to skip fetching (no active org).
  */
@@ -62,14 +62,13 @@ export function useConversationsWantsHumanCount(
 
   const fetchFn = org
     ? async (): Promise<number> => {
-        const result = await stigmer.agentChannel.listConversations(
-          create(ListChannelConversationsInputSchema, {
+        const result = await stigmer.agentChannel.countConversations(
+          create(CountChannelConversationsInputSchema, {
             org,
             filter: ChannelConversationListFilter.filter_wants_human,
-            pageInfo: { num: 1, size: 1 },
           }),
         );
-        return result.totalCount;
+        return result.count;
       }
     : null;
 

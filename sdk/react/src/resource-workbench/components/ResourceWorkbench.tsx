@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ListParams, ListResult } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import type {
   WorkbenchColumnDef,
+  WorkbenchListFn,
   FilterDef,
   FilterValue,
   SortValue,
@@ -37,10 +37,13 @@ import { OrgSlugText } from "../../organization/OrgSlugText.js";
 /** Props for {@link ResourceWorkbench}. */
 export interface ResourceWorkbenchProps<TData = SearchResult> {
   /**
-   * Async function that fetches a page of resources. Receives `ListParams`
-   * and returns `ListResult`. Pass `null` to disable fetching.
+   * Reads one page of resources (`WorkbenchListFn`): the workbench passes
+   * the organization, the search box's text, the page size and the page's
+   * token. Pass `null` to disable fetching. `createLibraryListFn` builds
+   * one for agents, skills and plugins; `createScheduleListFn` for
+   * schedules.
    */
-  readonly listFn: ((params: ListParams) => Promise<ListResult>) | null;
+  readonly listFn: WorkbenchListFn<TData> | null;
   /** Organization id (a slug is also accepted). Pass `null` to disable fetching. */
   readonly org: string | null;
 
@@ -195,7 +198,7 @@ const DEBOUNCE_MS = 300;
  * @example
  * ```tsx
  * <ResourceWorkbench
- *   listFn={(params) => stigmer.agent.list(params)}
+ *   listFn={createLibraryListFn(stigmer, ApiResourceKind.agent)}
  *   org={activeOrg}
  *   columns={agentColumns}
  *   filterDefs={agentFilterDefs}
@@ -254,14 +257,6 @@ export function ResourceWorkbench<TData = SearchResult>({
     queryDebounceMs: DEBOUNCE_MS,
   });
 
-  // --- Pagination --------------------------------------------------------
-  const [page, setPage] = useState(1);
-  const prevQueryRef = useRef(filtersHook.debouncedQuery);
-  if (prevQueryRef.current !== filtersHook.debouncedQuery) {
-    prevQueryRef.current = filtersHook.debouncedQuery;
-    setPage(1);
-  }
-
   // --- Columns -----------------------------------------------------------
   // A server that holds one organization never names it: its organization
   // column goes (ORG_COLUMN_ID), and stays out until the server has said
@@ -277,10 +272,9 @@ export function ResourceWorkbench<TData = SearchResult>({
 
   // --- Collection data ---------------------------------------------------
   const collection = useResourceCollection<TData>({
-    listFn: listFn as ((params: ListParams) => Promise<ListResult>) | null,
+    listFn,
     org,
     query: filtersHook.debouncedQuery,
-    page,
     sort: filtersHook.sort,
     onSortChange: filtersHook.setSort,
     columns: shownColumns as WorkbenchColumnDef<TData>[],
@@ -312,7 +306,7 @@ export function ResourceWorkbench<TData = SearchResult>({
   const showEmpty =
     !collection.isLoading && !collection.error && collection.items.length === 0;
   const showContent = collection.items.length > 0;
-  const showPagination = collection.totalPages > 1;
+  const showPagination = collection.hasNextPage || collection.hasPreviousPage;
 
   // --- Selected IDs as Set for cards/list views --------------------------
   const selectedIdSet = selection.selectedIds;
@@ -462,10 +456,11 @@ export function ResourceWorkbench<TData = SearchResult>({
 
           {showPagination && (
             <PaginationBar
-              currentPage={collection.currentPage}
-              totalPages={collection.totalPages}
-              totalCount={collection.totalCount}
-              onPageChange={setPage}
+              pageNumber={collection.pageNumber}
+              hasPreviousPage={collection.hasPreviousPage}
+              hasNextPage={collection.hasNextPage}
+              onPreviousPage={collection.previousPage}
+              onNextPage={collection.nextPage}
             />
           )}
         </div>
@@ -622,16 +617,23 @@ function SkeletonPlaceholder({
 // Pagination
 // ---------------------------------------------------------------------------
 
+/**
+ * Next and previous over a list that pages by token: it says which page is
+ * shown and whether another follows, never "of N" or a result count, since
+ * a list carries no total.
+ */
 function PaginationBar({
-  currentPage,
-  totalPages,
-  totalCount,
-  onPageChange,
+  pageNumber,
+  hasPreviousPage,
+  hasNextPage,
+  onPreviousPage,
+  onNextPage,
 }: {
-  readonly currentPage: number;
-  readonly totalPages: number;
-  readonly totalCount: number;
-  readonly onPageChange: (page: number) => void;
+  readonly pageNumber: number;
+  readonly hasPreviousPage: boolean;
+  readonly hasNextPage: boolean;
+  readonly onPreviousPage: () => void;
+  readonly onNextPage: () => void;
 }) {
   const navBtnClass = cn(
     "stg:inline-flex stg:items-center stg:rounded-md stg:p-1.5",
@@ -644,29 +646,25 @@ function PaginationBar({
   return (
     <nav
       aria-label="Pagination"
-      className="stg:flex stg:items-center stg:justify-between stg:border-t stg:border-border stg:pt-3"
+      className="stg:flex stg:items-center stg:justify-end stg:border-t stg:border-border stg:pt-3"
     >
-      <span className="stg:text-xs stg:text-muted-foreground">
-        {totalCount.toLocaleString()}{" "}
-        {totalCount === 1 ? "result" : "results"}
-      </span>
       <div className="stg:flex stg:items-center stg:gap-2">
         <button
           type="button"
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage <= 1}
+          onClick={onPreviousPage}
+          disabled={!hasPreviousPage}
           aria-label="Previous page"
           className={navBtnClass}
         >
           <ChevronLeftIcon />
         </button>
         <span className="stg:text-xs stg:text-muted-foreground">
-          Page {currentPage} of {totalPages}
+          Page {pageNumber}
         </span>
         <button
           type="button"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage >= totalPages}
+          onClick={onNextPage}
+          disabled={!hasNextPage}
           aria-label="Next page"
           className={navBtnClass}
         >

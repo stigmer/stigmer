@@ -25,6 +25,11 @@ export interface ResourceCountCardProps {
    */
   readonly count?: number;
   /**
+   * `true` when `count` is what a first page holds and more follow (a list
+   * with no total, such as schedules): the card reads "100+".
+   */
+  readonly countIsLowerBound?: boolean;
+  /**
    * Whether the count is being fetched. Shows a skeleton pulse when
    * `count` is not yet available.
    */
@@ -110,6 +115,7 @@ export function ResourceCountCard({
   icon,
   label,
   count,
+  countIsLowerBound = false,
   isLoading = false,
   href,
   onClick,
@@ -137,7 +143,7 @@ export function ResourceCountCard({
         />
       ) : (
         <div className="stg:mt-3 stg:text-2xl stg:font-semibold stg:tabular-nums stg:text-foreground">
-          {count !== undefined ? count.toLocaleString() : "\u2014"}
+          {count !== undefined ? formatCount(count, countIsLowerBound) : "\u2014"}
         </div>
       )}
       <div className="stg:mt-1 stg:text-sm stg:text-muted-foreground">{label}</div>
@@ -149,7 +155,7 @@ export function ResourceCountCard({
       <a
         href={href}
         onClick={onClick}
-        aria-label={buildAriaLabel(label, count, isLoading)}
+        aria-label={buildAriaLabel(label, count, countIsLowerBound, isLoading)}
         className={rootClasses}
       >
         {content}
@@ -162,7 +168,7 @@ export function ResourceCountCard({
       <button
         type="button"
         onClick={onClick}
-        aria-label={buildAriaLabel(label, count, isLoading)}
+        aria-label={buildAriaLabel(label, count, countIsLowerBound, isLoading)}
         className={rootClasses}
       >
         {content}
@@ -177,12 +183,21 @@ export function ResourceCountCard({
 // Utilities
 // ---------------------------------------------------------------------------
 
+function formatCount(count: number, isLowerBound: boolean): string {
+  return isLowerBound ? `${count.toLocaleString()}+` : count.toLocaleString();
+}
+
 function buildAriaLabel(
   label: string,
   count: number | undefined,
+  countIsLowerBound: boolean,
   isLoading: boolean,
 ): string {
-  if (count !== undefined) return `${label}: ${count.toLocaleString()}`;
+  if (count !== undefined) {
+    return countIsLowerBound
+      ? `${label}: more than ${count.toLocaleString()}`
+      : `${label}: ${count.toLocaleString()}`;
+  }
   if (isLoading) return `${label}: loading`;
   return label;
 }

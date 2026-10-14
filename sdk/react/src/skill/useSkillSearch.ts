@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
-import { useStigmer } from "../hooks.js";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   useResourceSearch,
   type UseResourceSearchOptions,
@@ -16,7 +15,8 @@ export type UseSkillSearchReturn = UseResourceSearchReturn;
 /**
  * Data hook that searches skills available in the given organization.
  *
- * Wraps `stigmer.skill.list()` with debounced search, loading/error
+ * Lists the organization's skills, newest first, while nothing is typed
+ * and searches them once something is, with a debounce, loading/error
  * tracking, and cancellation-safe fetching. Platform builders use this
  * when they want full control over rendering; the {@link SkillPicker}
  * styled component uses it internally.
@@ -30,11 +30,5 @@ export function useSkillSearch(
   org: string,
   options?: UseSkillSearchOptions,
 ): UseSkillSearchReturn {
-  const stigmer = useStigmer();
-  const listFn = useCallback(
-    (params: Parameters<typeof stigmer.skill.list>[0]) =>
-      stigmer.skill.list(params),
-    [stigmer],
-  );
-  return useResourceSearch(listFn, org, options);
+  return useResourceSearch(ApiResourceKind.skill, org, options);
 }

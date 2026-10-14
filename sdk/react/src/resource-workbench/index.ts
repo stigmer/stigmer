@@ -13,6 +13,9 @@ export type {
   ResourceAction,
   BulkAction,
   WorkbenchState,
+  WorkbenchPageRequest,
+  WorkbenchPage,
+  WorkbenchListFn,
 } from "./types.js";
 export { ORG_COLUMN_ID } from "./types.js";
 

@@ -15,6 +15,7 @@ import { EmptyState } from "../empty-state/EmptyState.js";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { channelSessionExternalUserKey } from "../session/channelOrigin.js";
 import { useChannelSessions } from "./useChannelSessions.js";
+import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 
 /** Props for {@link ChannelConversationsDialog}. */
 export interface ChannelConversationsDialogProps {
@@ -110,9 +111,8 @@ function ChannelConversationsDialogBody({
 }) {
   const channelName =
     channel.metadata?.name || channel.metadata?.slug || "this channel";
-  const { sessions, isLoading, error } = useChannelSessions(
-    channel.metadata?.id ?? "",
-  );
+  const { sessions, isLoading, error, hasMore, loadMore, isLoadingMore, loadMoreError } =
+    useChannelSessions(channel.metadata?.id ?? "");
 
   return (
     <div className="stg:flex stg:max-h-[70vh] stg:flex-col">
@@ -168,6 +168,12 @@ function ChannelConversationsDialogBody({
             ))}
           </ul>
         )}
+        <LoadMoreFooter
+          hasMore={hasMore}
+          loadMore={loadMore}
+          isLoadingMore={isLoadingMore}
+          loadMoreError={loadMoreError}
+        />
       </div>
     </div>
   );

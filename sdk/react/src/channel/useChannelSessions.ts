@@ -7,7 +7,7 @@ import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchann
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ListSessionsByChannelRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { useStigmer } from "../hooks.js";
-import { useFetch } from "../internal/useFetch.js";
+import { useCursorPages } from "../internal/useCursorPages.js";
 
 /** Return value of {@link useChannelSessions}. */
 export interface UseChannelSessionsReturn {
@@ -31,6 +31,14 @@ export interface UseChannelSessionsReturn {
   readonly error: Error | null;
   /** Re-fetch the conversations from the server. */
   readonly refetch: () => void;
+  /** `true` while the server holds entries beyond those loaded. */
+  readonly hasMore: boolean;
+  /** Load the next page. No-op while one is loading or when nothing follows. */
+  readonly loadMore: () => void;
+  /** `true` while a `loadMore` read is in flight. */
+  readonly isLoadingMore: boolean;
+  /** Error from the last failed `loadMore`, or `null`. */
+  readonly loadMoreError: Error | null;
 }
 
 /**
@@ -57,20 +65,26 @@ export interface UseChannelSessionsReturn {
 export function useChannelSessions(channelId: string): UseChannelSessionsReturn {
   const stigmer = useStigmer();
 
-  const fetchFn = channelId
-    ? async () => {
-        const result = await stigmer.session.listByChannel(
-          create(ListSessionsByChannelRequestSchema, { channelId }),
-        );
-        return result.entries;
-      }
-    : null;
-
-  const { data: sessions, isLoading, isRefetching, error, refetch } = useFetch(
-    fetchFn,
+  const pages = useCursorPages<Session>(
+    channelId
+      ? (pageToken) =>
+          stigmer.session.listByChannel(
+            create(ListSessionsByChannelRequestSchema, { channelId, pageToken }),
+          )
+      : null,
     [channelId, stigmer],
-    [] as Session[],
+    (session) => session.metadata?.id ?? "",
   );
 
-  return { sessions, isLoading, isRefetching, error, refetch };
+  return {
+    sessions: pages.items,
+    hasMore: pages.hasMore,
+    loadMore: pages.loadMore,
+    isLoadingMore: pages.isLoadingMore,
+    loadMoreError: pages.loadMoreError,
+    isLoading: pages.isLoading,
+    isRefetching: pages.isRefetching,
+    error: pages.error,
+    refetch: pages.refetch,
+  };
 }

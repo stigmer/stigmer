@@ -3,7 +3,7 @@
 /**
  * The API keys that speak for one service account, with revoke: the same
  * rows and inline confirmation as a person's own key list, fed by
- * `apiKey.findByAccount` instead of the caller's own keys. Revoking is the
+ * `apiKey.listByAccount` instead of the caller's own keys. Revoking is the
  * ordinary key delete, which the organization's admins may make on a
  * service account's key.
  */
