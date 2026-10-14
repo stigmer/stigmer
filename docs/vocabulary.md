@@ -72,6 +72,7 @@ definitions, API names, and examples follow below.
 | **Agent hour**        | agent hours      | ---                                    | agent hours            | `included_agent_hours`, `per_agent_hour_micros` | agent hours       |
 | **Working time**      | ---              | working time                           | working time           | `working_seconds`                               | working time      |
 | **Team**              | teams            | ---                                    | Team                   | Team, `kind: team`                              | Team              |
+| **Grant**             | ---              | ---                                    | Grant                  | Grant, `kind: Grant`                            | Grant             |
 | **Vault**             | vault            | vault ("your keys and logins")         | Vault                  | Vault, `kind: Vault`                            | vault             |
 | **Preference**        | preferences      | preference ("standing context")        | Preference             | `spec.preferences.standing_context`             | Preference        |
 | **Federation Issuer** | ---              | identity provider (Auth0, Okta, …)     | Federation Issuer      | FederationIssuer, `kind: FederationIssuer`      | Federation Issuer |
@@ -1001,13 +1002,13 @@ who made the change, why, and when.
 
 - **Capitalize**: No. "access history" in prose; "Access history" as a console
   heading.
-- **API surface**: `IamPolicyQueryController.listAccessHistory`, answering
+- **API surface**: `GrantQueryController.listAccessHistory`, answering
   `AccessHistoryEntry` items; the permission `can_view_access_history`. CLI:
   `stigmer access-history list|export`.
 - **Context rule**: "access history" for what people read. "Permission history"
-  is the operator's word for the stored table (`iam_policy_history`), in
-  self-hosting docs only. Never "audit log": it records access changes, not
-  everything people did.
+  is the operator's word for the stored table (`grant_history`), in self-hosting
+  docs only. Never "audit log": it records access changes, not everything people
+  did.
 - **Note**: Kept by Stigmer Enterprise and Stigmer Cloud, read by an
   Organization's owners and admins. Each Organization numbers its entries in
   order with no gaps (`sequence`), which is what lets a tool export "everything
@@ -1037,7 +1038,7 @@ Stigmer without creating Stigmer-native accounts.
 
 - **Capitalize**: No. "Identity federation" is a pattern, not a Stigmer resource
   type. Do not capitalize "federation" unless it starts a sentence.
-- **Related resources**: Federation Issuer, Identity Account, IAM Policy.
+- **Related resources**: Federation Issuer, Identity Account, Grant.
 - **Context rule**: Use in federation guides and concept pages. On the sales
   site, say "your users sign in with their existing credentials" without naming
   the mechanism. In quickstart, avoid unless the tutorial covers federation
@@ -1088,8 +1089,8 @@ Organization takes it away.
 - **Capitalize**: Yes, when referring to the Stigmer resource. "Your team" in
   its everyday sense stays lowercase.
 - **API surface**: `kind: team`, prefix `tm`. proto: `iam/team/v1/spec.proto`. A
-  membership is an IAM Policy granting `member` on the Team; a share with a Team
-  names it as `team:<id>#member`.
+  membership is a Grant of `member` on the Team; a share with a Team names it as
+  `team:<id>#member`.
 - **Key fields**: `description`. The members are the access list on the Team,
   not a field.
 - **Editions**: Stigmer Enterprise and Cloud. The open-source edition grants
@@ -1151,6 +1152,36 @@ Organization.
   kind's sentence states.
 - **Editions**: Every edition grants the Organization's roles. Granting a role
   on one resource is Enterprise and Cloud.
+
+---
+
+#### Grant
+
+One role given to one principal on one resource: Alice is Viewer on an
+Organization, a Team is Editor on an Agent. Who holds what on a resource is the
+set of its grants.
+
+- **Capitalize**: Yes, when referring to the Stigmer resource ("create a
+  Grant"). "grant" in lowercase is the act ("grant Viewer").
+- **API surface**: `kind: Grant` (enum `grant`), prefix `grt`. proto:
+  `iam/grant/v1/spec.proto`. `GrantCommandController` creates and deletes
+  grants; `GrantQueryController` reads them and answers the permission checks
+  they decide (`checkMyPermission`, `checkAuthorization`). A Grant's id is
+  derived from its principal, resource and role, so one grant is only ever one
+  record.
+- **Key fields**: `principal`, `resource`, `relation` (the role).
+- **Context rule**: Google Cloud calls the same record a **binding** and the
+  whole set on a resource a **policy**; Stigmer calls the record a Grant and
+  never calls the set a policy. In concepts and how-to, "Grant"; in reference,
+  `Grant`. On the sales site, say "give people access".
+- **Note**: A Session's **grant** is another meaning: allowing every call of one
+  kind for the rest of the run (`grantPermission`, the event
+  `stigmer.permission.grant`, the console's approve-all button; see
+  [Approval flow](#approval-flow-human-in-the-loop)). No record stores it, and
+  it is never a Grant.
+- **Former names**: `IamPolicy` (`kind: IamPolicy`, "IAM Policy"), whose ids
+  read `iamp_`; stored grants moved to `grt_` with the rename. Do not use it in
+  new writing.
 
 ---
 

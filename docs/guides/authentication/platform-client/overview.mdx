@@ -209,7 +209,7 @@ create accounts on first encounter:
 - **`create_accounts_on_sign_in: true`** — creates an IdentityAccount the first
   time `mintUserToken` meets a `user_id` that has none.
 - **`sign_in_role`** — the role that new account receives on your Organization.
-  Unset grants nothing, so your backend grants roles with IAM Policies.
+  Unset grants nothing, so your backend creates a Grant for each role.
   `sign_in_role` requires `create_accounts_on_sign_in`. `owner` is refused:
   Organization ownership is always assigned explicitly.
 

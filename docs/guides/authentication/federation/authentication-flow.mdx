@@ -43,7 +43,7 @@ sequenceDiagram
   API->>API: 6. Validate signature, issuer, audience
   API->>DB: 7. Resolve sub → Identity Account
   Note right of DB: JIT: auto-provision if new<br/>Bind the token to one Organization
-  API->>FGA: 8. Check IAM Policy
+  API->>FGA: 8. Check grants
   FGA-->>API: 9. Authorized
   API-->>App: 10. Response
 `}
@@ -109,15 +109,15 @@ in to its bound Organization, Stigmer grants the Federation Issuer's
 `signInRole` there, when one is set.
 
 **Step 8--9: Check authorization.** Stigmer checks whether the resolved Identity
-Account has an IAM Policy granting it the required permission on the target
-resource. If no matching policy exists, the request fails with `403 Forbidden`.
-A target outside the token's bound Organization also fails with `403 Forbidden`,
-whatever roles the user holds there, unless it belongs to no Organization (the
-user's own account and API keys) or is a blueprint the bound Organization's
-parent shares with its child organizations, which the request reads or runs.
-With a `signInRole`, the grant at the first sign-in creates the IAM Policy, so
-step 8 succeeds for the bound Organization. With manual provisioning, your
-backend must create IAM Policies explicitly.
+Account has a Grant giving it the required permission on the target resource. If
+no matching grant exists, the request fails with `403 Forbidden`. A target
+outside the token's bound Organization also fails with `403 Forbidden`, whatever
+roles the user holds there, unless it belongs to no Organization (the user's own
+account and API keys) or is a blueprint the bound Organization's parent shares
+with its child organizations, which the request reads or runs. With a
+`signInRole`, the first sign-in creates the Grant, so step 8 succeeds for the
+bound Organization. With manual provisioning, your backend must create Grants
+explicitly.
 
 **Step 10: Response.** The request proceeds normally and the response is
 returned.
@@ -140,10 +140,10 @@ JWTs presented to Stigmer must contain these standard OIDC claims:
 When authentication or authorization fails, Stigmer returns specific error codes
 so you can diagnose issues:
 
-| Error              | Meaning                                      | Common cause                                                                                                            |
-| ------------------ | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `401 Unauthorized` | Token validation failed                      | Wrong issuer, wrong audience, expired token, unknown `sub`, missing or unknown external id claim                        |
-| `403 Forbidden`    | Token is valid but the user lacks permission | No IAM Policy grants the required relation on the resource, or the resource is in another Organization than the token's |
+| Error              | Meaning                                      | Common cause                                                                                                      |
+| ------------------ | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `401 Unauthorized` | Token validation failed                      | Wrong issuer, wrong audience, expired token, unknown `sub`, missing or unknown external id claim                  |
+| `403 Forbidden`    | Token is valid but the user lacks permission | No Grant gives the required relation on the resource, or the resource is in another Organization than the token's |
 
 ### Distinguishing 401 causes
 
@@ -268,18 +268,18 @@ Use `getByExternalSub` with the token's `sub` claim. If this returns
 </Step>
 <Step>
 
-### Check IAM Policies
+### Check grants
 
 If you get `403`, the account exists but lacks permissions. Use
 `getPrincipalResourceRoles` to check what roles the account has on the target
-resource. If empty, create the missing IAM Policy.
+resource. If empty, create the missing Grant.
 
 With JIT provisioning, a `403` usually means `signInRole` is unset. The account
 was provisioned automatically (identity established) but no role was granted (no
 authorization). Either set `signInRole` on the Federation Issuer or create the
-IAM Policy manually. Stigmer grants the sign-in role only at an account's first
+Grant manually. Stigmer grants the sign-in role only at an account's first
 sign-in to an Organization, so an account that already signed in there gets no
-role from setting `signInRole` later; grant it with an IAM Policy.
+role from setting `signInRole` later; create a Grant for it.
 
 A `403` can also mean the request targets another Organization than the one the
 token is bound to. A token works only in the Federation Issuer's Organization,
@@ -315,7 +315,7 @@ The federation setup you've completed depends on your provisioning mode:
 | ---- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------- |
 | 1    | [Registered a Federation Issuer](/docs/guides/authentication/federation/register-federation-issuer) for your auth system | `federationIssuer.create`                |
 | 2    | [Provisioned federated accounts](/docs/guides/authentication/federation/provision-federated-accounts) for your users     | `identityAccount.createFederatedAccount` |
-| 3    | [Granted access](/docs/guides/authentication/federation/grant-access) via IAM Policies                                   | `iamPolicy.create`                       |
+| 3    | [Granted access](/docs/guides/authentication/federation/grant-access) via Grants                                         | `grant.create`                           |
 | 4    | Understood the runtime authentication flow (this page)                                                                   | ---                                      |
 
 Your platform's users can now call the Stigmer API with JWTs from your auth
@@ -331,8 +331,7 @@ authorization, and processes the request.
 - **API reference** ---
   [FederationIssuer](/docs/sdk/resources/federation-issuer),
   [IdentityAccount](/docs/sdk/resources/identity-account),
-  [IamPolicy](/docs/sdk/resources/iam-policy)
+  [Grant](/docs/sdk/resources/grant)
 - **React SDK** --- If you're building a custom UI,
   [federation-issuer hooks and components](/docs/sdk/react/federation-issuer)
-  and [IAM Policy hooks](/docs/sdk/react/iam-policy) provide ready-made building
-  blocks.
+  and [Grant hooks](/docs/sdk/react/grant) provide ready-made building blocks.
