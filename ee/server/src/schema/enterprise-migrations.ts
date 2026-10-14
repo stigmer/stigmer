@@ -1,6 +1,6 @@
 /**
  * The Enterprise schema chain: the tables the identity unit's stores keep
- * (identity providers and their routes, teams, invitations, the sign-in
+ * (federation issuers and their routes, teams, invitations, the sign-in
  * grant ledger), in their own Postgres schema `ee`, beside the OSS store's
  * `public` tables and any host's own schema in one database.
  *
@@ -28,16 +28,28 @@
  * invitations page over, `(org, created_at DESC, id COLLATE "C" DESC)`:
  * every list pages by token, newest first with ties in byte order
  * (postgres/keyset.ts), and the team index's default-collation id could not
- * serve that order.
+ * serve that order. v5 renames the identity provider's tables, their
+ * indexes and constraints, and the columns that name one, for the kind's
+ * new name, federation issuer, and rewrites each issuer row's kind string:
+ * a row carries its kind's name in its bytes, which a read returns and an
+ * update of a fetched row sends back under the contract's const. v1 to v4
+ * keep the old names: they are what a database that ran them holds.
+ *
+ * A version runs SQL, then, when it has one, its row rewrite, in the same
+ * transaction: v5's rows are decoded, which SQL cannot do. A row that does
+ * not decode fails the version, naming the row, and the transaction rolls
+ * back, the rule the library's own data migrations keep.
  *
  * The tables carry no foreign keys: an organization's rows go with it
  * through the unit's purge stage, and the policy rows that reference a
  * team or a provider live in another domain's store.
  */
+import { fromBinary, toBinary } from "@bufbuild/protobuf";
+import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import type { PoolClient } from "pg";
 
 /** Whatever version a database at this build's schema holds. */
-export const ENTERPRISE_SCHEMA_VERSION = 4;
+export const ENTERPRISE_SCHEMA_VERSION = 5;
 
 /** Advisory lock key for this chain: ASCII "STGMRE" + 0x01. */
 export const ENTERPRISE_MIGRATION_LOCK_KEY = 0x5354474d524501n;
@@ -46,6 +58,8 @@ export const ENTERPRISE_MIGRATION_LOCK_KEY = 0x5354474d524501n;
 export const ENTERPRISE_MIGRATIONS: ReadonlyArray<{
   readonly version: number;
   readonly statements: ReadonlyArray<string>;
+  /** Rows the version rewrites after its statements, in its transaction. */
+  readonly rewrite?: (client: PoolClient) => Promise<void>;
 }> = [
   {
     version: 1,
@@ -57,7 +71,7 @@ export const ENTERPRISE_MIGRATIONS: ReadonlyArray<{
       `INSERT INTO ee.schema_version (version) VALUES (1)`,
       // Identity providers: the payload is the truth; org and slug are the
       // reference read, is_sso the login page's discovery (dropped at v3),
-      // deleting_since the delete mark (iam/provider/postgres-store.ts says
+      // deleting_since the delete mark (iam/issuer/postgres-store.ts says
       // why each column exists).
       `CREATE TABLE ee.iam_identity_provider (
          id TEXT PRIMARY KEY,
@@ -168,7 +182,73 @@ export const ENTERPRISE_MIGRATIONS: ReadonlyArray<{
          ON ee.iam_identity_provider (org, created_at DESC, id COLLATE "C" DESC)`,
     ],
   },
+  {
+    version: 5,
+    statements: [
+      // The identity provider is a federation issuer: its tables, their
+      // indexes and constraints, and the columns that name one.
+      `ALTER TABLE ee.iam_identity_provider RENAME TO iam_federation_issuer`,
+      `ALTER TABLE ee.iam_federation_issuer
+         RENAME CONSTRAINT iam_identity_provider_pkey TO iam_federation_issuer_pkey`,
+      `ALTER INDEX ee.iam_identity_provider_org_slug RENAME TO iam_federation_issuer_org_slug`,
+      `ALTER INDEX ee.iam_identity_provider_org_created RENAME TO iam_federation_issuer_org_created`,
+      `ALTER TABLE ee.iam_identity_provider_route RENAME TO iam_federation_issuer_route`,
+      `ALTER TABLE ee.iam_federation_issuer_route
+         RENAME CONSTRAINT iam_identity_provider_route_pkey TO iam_federation_issuer_route_pkey`,
+      `ALTER TABLE ee.iam_federation_issuer_route
+         RENAME COLUMN identity_provider_id TO federation_issuer_id`,
+      `ALTER INDEX ee.iam_identity_provider_route_provider RENAME TO iam_federation_issuer_route_issuer`,
+      `ALTER TABLE ee.iam_sign_in_grants
+         RENAME COLUMN identity_provider_id TO federation_issuer_id`,
+    ],
+    rewrite: renameIssuerKindStrings,
+  },
 ];
+
+/** How many issuer rows v5 decodes per page. */
+export const ISSUER_RENAME_PAGE_SIZE = 500;
+
+/**
+ * v5's row rewrite: every issuer row whose bytes spell the kind
+ * `IdentityProvider` is written back spelling `FederationIssuer`, read in
+ * keyset pages on its id in byte order; every other byte is kept, its id
+ * (an `idp_` one included) among them.
+ */
+async function renameIssuerKindStrings(client: PoolClient): Promise<void> {
+  for (let after = ""; ; ) {
+    const rows = (
+      await client.query<{ id: string; data: Buffer }>(
+        `SELECT id, data FROM ee.iam_federation_issuer
+          WHERE id COLLATE "C" > $1 ORDER BY id COLLATE "C" LIMIT $2`,
+        [after, ISSUER_RENAME_PAGE_SIZE],
+      )
+    ).rows;
+    for (const row of rows) {
+      let data: Uint8Array | undefined;
+      try {
+        const issuer = fromBinary(FederationIssuerSchema, new Uint8Array(row.data));
+        if (issuer.kind === "IdentityProvider") {
+          issuer.kind = "FederationIssuer";
+          data = toBinary(FederationIssuerSchema, issuer);
+        }
+      } catch (error) {
+        throw new Error(
+          `the federation issuer row ${row.id} cannot be read for the rename of the identity provider: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          { cause: error },
+        );
+      }
+      if (data !== undefined) {
+        await client.query(`UPDATE ee.iam_federation_issuer SET data = $1 WHERE id = $2`, [Buffer.from(data), row.id]);
+      }
+    }
+    if (rows.length < ISSUER_RENAME_PAGE_SIZE) {
+      return;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+}
 
 /** How far {@link runEnterpriseMigrations} goes. */
 export interface EnterpriseMigrationOptions {
@@ -204,6 +284,7 @@ export async function runEnterpriseMigrations(
         for (const statement of migration.statements) {
           await client.query(statement);
         }
+        await migration.rewrite?.(client);
         await client.query("UPDATE ee.schema_version SET version = $1", [migration.version]);
         await client.query("COMMIT");
       } catch (error) {

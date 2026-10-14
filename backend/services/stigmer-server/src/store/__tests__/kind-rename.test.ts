@@ -1,7 +1,7 @@
 /**
- * Pins the driver-neutral half of the run kind's renames (../run-rename.ts)
+ * Pins the driver-neutral half of a kind's renames (../kind-rename.ts)
  * over rows built the way each release before a rename wrote them
- * (run-rename-rows.ts), for both steps the module serves:
+ * (run-rename-rows.ts for runs), for every step the module serves:
  *   - a run's kind string reads as the contract's name at the step's end
  *     after the rewrite, and a run already past the step is left alone;
  *   - at the last step, the fetched run passes the contract's own
@@ -11,23 +11,28 @@
  *     and a grant on another kind is not;
  *   - bytes that do not decode throw (the step must not pass over them);
  *   - each step's names are frozen literals, so a later rename cannot
- *     change what an earlier step did.
+ *     change what an earlier step did;
+ *   - at v30, an identity provider's row and the grants naming one become
+ *     the federation issuer's, keeping its idp_ id, and the fetched row
+ *     passes the contract's validation.
  */
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { createValidator } from "@bufbuild/protovalidate";
 import { describe, expect, it } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 
 import { policyIdFor } from "../../domain/iampolicy/constants.js";
 import {
+  FEDERATION_ISSUER_RENAME_V30,
   RUN_RENAME_V18,
   RUN_RENAME_V21,
-  rekeyedRunPolicy,
-  renamedRunRow,
-  unreadableRunRenameRowError,
-} from "../run-rename.js";
+  rekeyedPolicy,
+  renamedKindRow,
+  unreadableKindRenameRowError,
+} from "../kind-rename.js";
 import { policyRow } from "./retired-instance-rows.js";
 import {
   AGENT_RUN_NAMES,
@@ -43,6 +48,11 @@ describe("each step's names are frozen literals", () => {
     expect(RUN_RENAME_V21.kind).toEqual(["agent_run", "run"]);
     expect(RUN_RENAME_V21.kindString).toEqual(["AgentRun", "Run"]);
   });
+
+  it("v30 renamed the identity provider to a federation issuer", () => {
+    expect(FEDERATION_ISSUER_RENAME_V30.kind).toEqual(["identity_provider", "federation_issuer"]);
+    expect(FEDERATION_ISSUER_RENAME_V30.kindString).toEqual(["IdentityProvider", "FederationIssuer"]);
+  });
 });
 
 describe.each([
@@ -51,25 +61,25 @@ describe.each([
 ])("$step", ({ rename, before, after }) => {
   const [fromKind, toKind] = rename.kind;
 
-  describe("renamedRunRow", () => {
+  describe("renamedKindRow", () => {
     it("rewrites the kind string and keeps the run's id", () => {
-      const migrated = renamedRunRow(rename, runBytes("aex_1", "ses_1", before));
+      const migrated = renamedKindRow(rename, runBytes("aex_1", "ses_1", before));
       expect(migrated).toEqual(runBytes("aex_1", "ses_1", after));
       expect(fromBinary(RunSchema, migrated!).metadata?.id).toBe("aex_1");
     });
 
     it("leaves a run already past the step alone", () => {
-      expect(renamedRunRow(rename, runBytes("aex_1", "ses_1", after))).toBeUndefined();
+      expect(renamedKindRow(rename, runBytes("aex_1", "ses_1", after))).toBeUndefined();
     });
 
     it("throws on bytes that do not decode", () => {
-      expect(() => renamedRunRow(rename, new Uint8Array([0x22, 0xff]))).toThrow();
+      expect(() => renamedKindRow(rename, new Uint8Array([0x22, 0xff]))).toThrow();
     });
   });
 
-  describe("rekeyedRunPolicy", () => {
+  describe("rekeyedPolicy", () => {
     it("re-keys a grant on a run to the id its renamed triple derives", () => {
-      const rekeyed = rekeyedRunPolicy(
+      const rekeyed = rekeyedPolicy(
         rename,
         policyRow({
           id: "iamp_old",
@@ -87,7 +97,7 @@ describe.each([
     });
 
     it("re-keys a grant whose principal is a run", () => {
-      const rekeyed = rekeyedRunPolicy(
+      const rekeyed = rekeyedPolicy(
         rename,
         policyRow({
           id: "iamp_old",
@@ -101,7 +111,7 @@ describe.each([
 
     it("leaves a grant with no spec alone", () => {
       expect(
-        rekeyedRunPolicy(
+        rekeyedPolicy(
           rename,
           toBinary(IamPolicySchema, create(IamPolicySchema, { metadata: { id: "iamp_bare" } })),
         ),
@@ -111,7 +121,7 @@ describe.each([
     it("leaves a grant on another kind, or on the kind already renamed, alone", () => {
       for (const resource of ["agent:agt_1", `${toKind}:aex_1`]) {
         expect(
-          rekeyedRunPolicy(
+          rekeyedPolicy(
             rename,
             policyRow({ id: "iamp_other", principal: "identity_account:ida_1", relation: "viewer", resource }),
           ),
@@ -121,17 +131,55 @@ describe.each([
   });
 
   it("names the rename and the row in an unreadable row's failure", () => {
-    const error = unreadableRunRenameRowError(rename, fromKind, "aex_bad", new Error("bad wire"));
+    const error = unreadableKindRenameRowError(rename, fromKind, "aex_bad", new Error("bad wire"));
     expect(error.message).toBe(`the ${fromKind} row aex_bad cannot be read for ${rename.label}: bad wire`);
   });
 });
 
 describe("after the last step", () => {
   it("a fetched run passes the contract's own validation, so it can be sent back through update", () => {
-    const run = fromBinary(RunSchema, renamedRunRow(RUN_RENAME_V21, runBytes("aex_1", "ses_1", AGENT_RUN_NAMES))!);
+    const run = fromBinary(RunSchema, renamedKindRow(RUN_RENAME_V21, runBytes("aex_1", "ses_1", AGENT_RUN_NAMES))!);
     const kindViolations = createValidator()
       .validate(RunSchema, run)
       .violations?.filter((v) => v.toString().startsWith("kind:"));
     expect(kindViolations ?? []).toEqual([]);
+  });
+});
+
+describe("v30", () => {
+  const issuerBytes = (kindString: string): Uint8Array =>
+    toBinary(
+      FederationIssuerSchema,
+      create(FederationIssuerSchema, {
+        apiVersion: "iam.stigmer.ai/v1",
+        kind: kindString,
+        metadata: { id: "idp_1", name: "Acme Okta", slug: "acme-okta", org: "org_1" },
+        spec: { expectedAudience: "https://api.acme.example", allowedIssuers: ["https://acme.okta.example"] },
+      }),
+    );
+
+  it("rewrites an identity provider's kind string and keeps its idp_ id", () => {
+    const migrated = renamedKindRow(FEDERATION_ISSUER_RENAME_V30, issuerBytes("IdentityProvider"));
+    expect(migrated).toEqual(issuerBytes("FederationIssuer"));
+    expect(fromBinary(FederationIssuerSchema, migrated!).metadata?.id).toBe("idp_1");
+    expect(renamedKindRow(FEDERATION_ISSUER_RENAME_V30, issuerBytes("FederationIssuer"))).toBeUndefined();
+  });
+
+  it("a fetched issuer passes the contract's own validation, so it can be sent back through update", () => {
+    const issuer = fromBinary(FederationIssuerSchema, renamedKindRow(FEDERATION_ISSUER_RENAME_V30, issuerBytes("IdentityProvider"))!);
+    const kindViolations = createValidator()
+      .validate(FederationIssuerSchema, issuer)
+      .violations?.filter((v) => v.toString().startsWith("kind:"));
+    expect(kindViolations ?? []).toEqual([]);
+  });
+
+  it("re-keys a grant on an identity provider to the federation issuer's triple, keeping its id", () => {
+    const rekeyed = rekeyedPolicy(
+      FEDERATION_ISSUER_RENAME_V30,
+      policyRow({ id: "iamp_old", principal: "identity_account:ida_1", relation: "viewer", resource: "identity_provider:idp_1" }),
+    );
+    const migrated = fromBinary(IamPolicySchema, rekeyed!.data);
+    expect(migrated.spec?.resource).toMatchObject({ kind: "federation_issuer", id: "idp_1" });
+    expect(rekeyed!.id).toBe(policyIdFor(migrated.spec!));
   });
 });

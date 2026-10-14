@@ -30,7 +30,7 @@ describe("the FederationIssuer store's Postgres adapter", () => {
   });
 
   it("returns a driver error that is not a unique violation as it was", async () => {
-    const fault = Object.assign(new Error("null value in column"), { code: "23502", constraint: "iam_identity_provider_pkey" });
+    const fault = Object.assign(new Error("null value in column"), { code: "23502", constraint: "iam_federation_issuer_pkey" });
     await expect(newFederationIssuerStore(failingPool(fault)).insert(provider)).rejects.toBe(fault);
   });
 });

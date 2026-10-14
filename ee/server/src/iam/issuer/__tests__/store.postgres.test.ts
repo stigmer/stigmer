@@ -1,5 +1,5 @@
 /**
- * The FederationIssuer row store over the real `ee.iam_identity_provider`
+ * The FederationIssuer row store over the real `ee.iam_federation_issuer`
  * and route side table, through the real Enterprise schema chain (one throwaway
  * database for the file). Pins what the in-memory store the unit suites
  * use promises in its name:
@@ -53,7 +53,7 @@ async function listed(store: FederationIssuerStore, org: string): Promise<Federa
   );
 }
 
-describe.skipIf(!TEST_DATABASE_URL)("the FederationIssuer store over ee.iam_identity_provider", () => {
+describe.skipIf(!TEST_DATABASE_URL)("the FederationIssuer store over ee.iam_federation_issuer", () => {
   let database: ProvisionedEnterpriseDatabase;
   let store: FederationIssuerStore;
 
@@ -171,7 +171,7 @@ describe.skipIf(!TEST_DATABASE_URL)("the FederationIssuer store over ee.iam_iden
     expect(await swapOnCurrent(changed)).toEqual({ kind: "replaced" });
     expect((await store.findById("fis_rp"))?.metadata?.name).toBe("After");
     const columns = await database.pool.query<{ org: string; slug: string }>(
-      "SELECT org, slug FROM ee.iam_identity_provider WHERE id = $1",
+      "SELECT org, slug FROM ee.iam_federation_issuer WHERE id = $1",
       ["fis_rp"],
     );
     expect(columns.rows, "the lookup columns are kept").toEqual([{ org: "acme", slug: "rp" }]);
@@ -255,7 +255,7 @@ describe.skipIf(!TEST_DATABASE_URL)("the FederationIssuer store holds the port's
   });
 
   async function makeFixture(): Promise<FederationIssuerStoreContractFixture> {
-    await database.pool.query("TRUNCATE ee.iam_identity_provider_route, ee.iam_identity_provider");
+    await database.pool.query("TRUNCATE ee.iam_federation_issuer_route, ee.iam_federation_issuer");
     const pool = new Pool({ connectionString: database.databaseUrl, max: 4 });
     let ended = false;
     const end = async (): Promise<void> => {

@@ -63,6 +63,10 @@
  * session without them, and every other kind's row, keeps its bytes; a
  * session it cannot decode fails the step, naming the row, and leaves the
  * database at v17.
+ * v30 renames the identity provider kind to federation_issuer by v13's
+ * transformation: from a store at v29, the name claims an edition made for
+ * its issuers name the new kind with their idp_ ids, and every grant on one
+ * is re-keyed to the id its new triple derives, so a revoke finds it.
  * A step's starting database is built by running the chain up to the step
  * before it.
  * Newer schemas are refused without writes or reconciliation; refusal
@@ -117,6 +121,7 @@ import {
   SCHEMA_VERSION_27,
   SCHEMA_VERSION_28,
   SCHEMA_VERSION_29,
+  SCHEMA_VERSION_30,
   runMigrations,
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
@@ -156,7 +161,7 @@ import { PostgresStore } from "../store.js";
 import { agentExecutionListIndex } from "../../../domain/run/list-index.js";
 import { policyIdFor } from "../../../domain/iampolicy/constants.js";
 import { iamPolicyListIndex } from "../../../domain/iampolicy/list-index.js";
-import { RUN_KIND_TABLES, RUN_RENAME_PAGE_SIZE } from "../../run-rename.js";
+import { KIND_TABLES, KIND_RENAME_PAGE_SIZE } from "../../kind-rename.js";
 import {
   AGENT_RUN_NAMES,
   EXECUTION_NAMES,
@@ -1901,7 +1906,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       it("reads runs across keyset pages, missing none past the first page", async () => {
         const client = await v12Client();
         try {
-          const total = RUN_RENAME_PAGE_SIZE + 3;
+          const total = KIND_RENAME_PAGE_SIZE + 3;
           for (let i = 0; i < total; i++) {
             // Mixed case and punctuation order differently under a
             // linguistic collation than as bytes; the keyset compares and
@@ -2695,7 +2700,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       async function expectRuns(client: pg.Client, audit: Uint8Array): Promise<void> {
         await migrateTo(db.databaseUrl, SCHEMA_VERSION_16);
         expect(await version(client)).toBe(SCHEMA_VERSION_16);
-        for (const table of RUN_KIND_TABLES) {
+        for (const table of KIND_TABLES) {
           expect(await count(client, table, "agent_run"), table).toBe(0);
           expect(await count(client, table, "agent_execution"), table).toBe(0);
         }
@@ -2766,7 +2771,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       it("reads runs across keyset pages, missing none past the first page", async () => {
         const client = await clientAt(SCHEMA_VERSION_15);
         try {
-          const total = RUN_RENAME_PAGE_SIZE + 3;
+          const total = KIND_RENAME_PAGE_SIZE + 3;
           for (let i = 0; i < total; i++) {
             // Mixed case and punctuation order differently under a
             // linguistic collation than as bytes; the keyset compares and
@@ -2894,7 +2899,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           await migrateTo(db.databaseUrl, SCHEMA_VERSION_17);
 
           expect(await version(client)).toBe(SCHEMA_VERSION_17);
-          for (const table of RUN_KIND_TABLES) {
+          for (const table of KIND_TABLES) {
             expect(await count(client, table, "environment"), table).toBe(0);
           }
           const policies = (
@@ -3176,6 +3181,73 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             "expires_at",
             "used_at",
           ]);
+        } finally {
+          await client.end();
+        }
+      });
+    });
+
+    describe("v30: the identity provider is a federation issuer", () => {
+      const seededAt = new Date("2026-10-14T00:00:00Z");
+      const org = "org_01jz0000000000000000000000";
+      const grant = (kind: string) => ({
+        id: "iamp_on_issuer",
+        principal: "identity_account:ida_2",
+        relation: "viewer",
+        resource: `${kind}:idp_1`,
+      });
+      const linkGrant = (kind: string) => ({
+        id: "iamp_issuer_link",
+        principal: "organization:org_1",
+        relation: "organization",
+        resource: `${kind}:idp_1`,
+      });
+
+      it("renames the issuers' name claims and re-keys every grant naming one, from a store at v29", async () => {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_29);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        try {
+          await client.query(
+            `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ('identity_provider', $1, 'acme-okta', 'idp_1', 'current', $2)`,
+            [org, seededAt],
+          );
+          for (const held of [grant("identity_provider"), linkGrant("identity_provider")]) {
+            await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('iam_policy', $1, $2, $3)`, [
+              held.id,
+              Buffer.from(policyRow(held)),
+              seededAt,
+            ]);
+            await client.query(
+              `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', $1, 'principal', $2, '')`,
+              [held.id, held.principal.split(":")[1] ?? ""],
+            );
+          }
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_30);
+
+          const version = Number(
+            (await client.query(`SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`)).rows[0].version,
+          );
+          expect(version).toBe(SCHEMA_VERSION_30);
+          const names = (
+            await client.query<{ kind: string; id: string }>(`SELECT kind, id FROM resource_names WHERE name = 'acme-okta'`)
+          ).rows;
+          expect(names).toEqual([{ kind: "federation_issuer", id: "idp_1" }]);
+          for (const held of [grant, linkGrant]) {
+            const renamed = policyIdFor(fromBinary(IamPolicySchema, policyRow(held("federation_issuer"))).spec!);
+            const rows = (
+              await client.query<{ id: string; data: Buffer }>(
+                `SELECT id, data FROM resources WHERE kind = 'iam_policy' AND id IN ($1, $2)`,
+                [held("identity_provider").id, renamed],
+              )
+            ).rows;
+            expect(rows.map((r) => r.id)).toEqual([renamed]);
+            expect(fromBinary(IamPolicySchema, new Uint8Array(rows[0]!.data)).spec?.resource).toMatchObject({
+              kind: "federation_issuer",
+              id: "idp_1",
+            });
+          }
         } finally {
           await client.end();
         }

@@ -17,8 +17,8 @@ import { newSignInGrantLedger } from "../iam/federation/postgres-sign-in-grants.
 import type { SignInGrantLedger } from "../iam/federation/sign-in-grants.js";
 import { newInvitationStore } from "../iam/invitation/postgres-store.js";
 import type { InvitationStore } from "../iam/invitation/store.js";
-import { newFederationIssuerStore } from "../iam/provider/postgres-store.js";
-import type { FederationIssuerStore } from "../iam/provider/store.js";
+import { newFederationIssuerStore } from "../iam/issuer/postgres-store.js";
+import type { FederationIssuerStore } from "../iam/issuer/store.js";
 import { newTeamStore } from "../iam/team/postgres-store.js";
 import type { TeamStore } from "../iam/team/store.js";
 import { runEnterpriseMigrations } from "./enterprise-migrations.js";

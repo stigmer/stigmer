@@ -1,6 +1,6 @@
 /**
  * The FederationIssuer chains' own steps: the reads the OSS chain steps
- * need done over the composition's table (`ee.iam_identity_provider`),
+ * need done over the composition's table (`ee.iam_federation_issuer`),
  * because the library's versions read its Store. Each keeps the OSS step's
  * name, and each refusal keeps the provider's own copy, so a failure log
  * reads like the library's and a caller reads what it always read. A

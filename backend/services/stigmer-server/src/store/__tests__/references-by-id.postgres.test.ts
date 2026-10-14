@@ -156,6 +156,46 @@ describe("a federated identity account at the rewrite", () => {
     ).toThrow(/the identity_account row 'ida_01fed' is a federated account/);
   });
 
+  it("finds the federated reference by its number, so a row read under the name it had at this step is refused too", () => {
+    // IdentityAccountSpec's field 8 was identity_provider_ref when this step
+    // was written and is federation_issuer_ref now: the step reads neither name.
+    const { OPTIONAL } = FieldDescriptorProto_Label;
+    const { MESSAGE } = FieldDescriptorProto_Type;
+    const registry = createFileRegistry(
+      create(FileDescriptorProtoSchema, {
+        name: "test/account_at_rewrite.proto",
+        package: "test.account",
+        syntax: "proto3",
+        dependency: [file_ai_stigmer_commons_apiresource_io.proto.name],
+        messageType: [
+          {
+            name: "Account",
+            field: [{ name: "spec", jsonName: "spec", number: 4, label: OPTIONAL, type: MESSAGE, typeName: ".test.account.Spec" }],
+          },
+          {
+            name: "Spec",
+            field: [
+              {
+                name: "identity_provider_ref",
+                jsonName: "identityProviderRef",
+                number: 8,
+                label: OPTIONAL,
+                type: MESSAGE,
+                typeName: ".ai.stigmer.commons.apiresource.ApiResourceReference",
+              },
+            ],
+          },
+        ],
+      }),
+      () => file_ai_stigmer_commons_apiresource_io,
+    );
+    const account = registry.getMessage("test.account.Account")!;
+    const row = create(account, { spec: { identityProviderRef: { org: ACME, slug: "okta" } } });
+    expect(() =>
+      new ReferenceRewrite(NAMES).rewrite({ kind: "identity_account", schema: account }, "ida_04old", toBinary(account, row)),
+    ).toThrow(/the identity_account row 'ida_04old' is a federated account/);
+  });
+
   it("passes an account no provider vouches for, an empty provider reference included", () => {
     const local = create(IdentityAccountSchema, { metadata: { id: "ida_02me", org: ACME }, spec: { isMachineAccount: false } });
     expect(new ReferenceRewrite(NAMES).rewrite(accounts, "ida_02me", toBinary(IdentityAccountSchema, local))).toBeUndefined();

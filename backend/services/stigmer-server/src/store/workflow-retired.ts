@@ -12,7 +12,7 @@
  * What leaves. Every row of the retired kinds (`RETIRED_WORKFLOW_KINDS`:
  * a workflow, a workflow run under either name it was stored under, and an
  * artifact, whose only producer was a workflow step's output) leaves every
- * table that keys a row by kind (run-rename.ts `RUN_KIND_TABLES`): the live
+ * table that keys a row by kind (kind-rename.ts `KIND_TABLES`): the live
  * rows, their history, their list keys and the names they held. No data of
  * those kinds is kept. Every IamPolicy row whose resource or principal is
  * one of those kinds leaves too (`policyNamesRetiredWorkflowKind`): a grant

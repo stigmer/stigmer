@@ -1,13 +1,13 @@
 /**
- * The IdentityProvider store's Postgres adapter over `ee.iam_identity_provider`
- * and its adapter-private route side table `ee.iam_identity_provider_route`,
+ * The FederationIssuer store's Postgres adapter over `ee.iam_federation_issuer`
+ * and its adapter-private route side table `ee.iam_federation_issuer_route`,
  * both created by the Enterprise schema chain (schema/enterprise-migrations.ts).
  *
  * Shape: an own-kind table: the proto binary is the row's truth, and each
  * lookup column exists for exactly one job:
  *
  *   org, slug    the insert race's backstop; UNIQUE
- *                (`iam_identity_provider_org_slug`). No read uses the
+ *                (`iam_federation_issuer_org_slug`). No read uses the
  *                slug: a reference and CheckDuplicate resolve a
  *                provider's name through the library's name table. Its
  *                `org` prefix serves the organization's sweep.
@@ -49,13 +49,13 @@ import type {
   IssuerSwapOutcome,
 } from "./store.js";
 
-const TABLE = "ee.iam_identity_provider";
-const ROUTE_TABLE = "ee.iam_identity_provider_route";
+const TABLE = "ee.iam_federation_issuer";
+const ROUTE_TABLE = "ee.iam_federation_issuer_route";
 
 /** The UNIQUE index an organization's slugs are held by. */
-const ORG_SLUG_CONSTRAINT = "iam_identity_provider_org_slug";
+const ORG_SLUG_CONSTRAINT = "iam_federation_issuer_org_slug";
 /** The side table's primary key: a route belongs to one provider. */
-const ROUTE_CONSTRAINT = "iam_identity_provider_route_pkey";
+const ROUTE_CONSTRAINT = "iam_federation_issuer_route_pkey";
 
 /** Postgres unique-violation SQLSTATE. */
 const UNIQUE_VIOLATION = "23505";
@@ -88,11 +88,11 @@ export function newFederationIssuerStore(pool: Pool): FederationIssuerStore {
   }
 
   async function providerIdByRoute(issuer: string, audience: string): Promise<string | undefined> {
-    const result = await pool.query<{ identity_provider_id: string }>(
-      `SELECT identity_provider_id FROM ${ROUTE_TABLE} WHERE issuer = $1 AND audience = $2`,
+    const result = await pool.query<{ federation_issuer_id: string }>(
+      `SELECT federation_issuer_id FROM ${ROUTE_TABLE} WHERE issuer = $1 AND audience = $2`,
       [issuer, audience],
     );
-    return result.rows[0]?.identity_provider_id;
+    return result.rows[0]?.federation_issuer_id;
   }
 
   return {
@@ -142,7 +142,7 @@ export function newFederationIssuerStore(pool: Pool): FederationIssuerStore {
         // The row is locked and held, so the UPDATE writes it.
         await client.query(`UPDATE ${TABLE} SET data = $2 WHERE id = $1`, [id, payloadOf(provider)]);
         await client.query(
-          `DELETE FROM ${ROUTE_TABLE} WHERE identity_provider_id = $1`,
+          `DELETE FROM ${ROUTE_TABLE} WHERE federation_issuer_id = $1`,
           [id],
         );
         const taken = await claimRoutes(client, id, columns.routes);
@@ -179,7 +179,7 @@ export function newFederationIssuerStore(pool: Pool): FederationIssuerStore {
     async deleteById(id): Promise<void> {
       await inTransaction(pool, async (client) => {
         await client.query(
-          `DELETE FROM ${ROUTE_TABLE} WHERE identity_provider_id = $1`,
+          `DELETE FROM ${ROUTE_TABLE} WHERE federation_issuer_id = $1`,
           [id],
         );
         await client.query(`DELETE FROM ${TABLE} WHERE id = $1`, [id]);
@@ -244,7 +244,7 @@ async function claimRoutes(
   for (const route of routes) {
     const refused = await claiming(() =>
       client.query(
-        `INSERT INTO ${ROUTE_TABLE} (issuer, audience, identity_provider_id) VALUES ($1, $2, $3)`,
+        `INSERT INTO ${ROUTE_TABLE} (issuer, audience, federation_issuer_id) VALUES ($1, $2, $3)`,
         [route.issuer, route.audience, id],
       ),
     );
