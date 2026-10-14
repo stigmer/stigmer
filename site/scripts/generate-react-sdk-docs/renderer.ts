@@ -38,13 +38,13 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
   },
   {
     label: "Agents",
-    slugs: ["agent", "agent-eval", "sharing", "channel", "channel-app", "conversation", "schedule"],
+    slugs: ["agent", "eval-run", "sharing", "channel", "channel-app", "conversation", "schedule"],
   },
   {
     label: "Tools & Knowledge",
     // memory is the agent's consent-gated knowledge about the user —
     // knowledge surface, not identity plumbing.
-    slugs: ["skill", "plugin", "plugin-eval", "library", "memory"],
+    slugs: ["skill", "plugin", "library", "memory"],
   },
   {
     label: "Vaults & Config",

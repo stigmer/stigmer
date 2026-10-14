@@ -1,6 +1,6 @@
 /**
- * How a run says the platform stopped it for one of a plugin-eval try's own
- * reasons, in words a person reads on the run and the eval parses back.
+ * How a run says the platform stopped it for one of an eval run try's own
+ * reasons, in words a person reads on the run and the eval run parses back.
  *
  * A run's status names no termination reason: a stopped run carries one
  * error sentence. The runner writes these sentences with

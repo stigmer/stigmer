@@ -170,7 +170,7 @@ export async function readEval(store: Store) {
 
 export const AGENT_ID = "agt_1";
 export const AGENT_HASH = "a".repeat(64);
-export const AGENT_EVAL_ID = "evr_agent";
+export const AGENT_EVAL_RUN_ID = "evr_agent";
 
 /** The agent under eval at AGENT_HASH, attaching the seeded plugin and running MODEL. */
 export async function seedAgent(
@@ -199,7 +199,7 @@ export async function seedAgent(
  * `pluginDigest`; `compared` compares that plugin, so each case runs
  * with and without it.
  */
-export async function seedAgentEval(
+export async function seedEvalRunOnAgent(
   store: Store,
   options: {
     readonly targets?: ReadonlyArray<{ readonly harness: Harness; readonly modelName: string }>;
@@ -211,10 +211,10 @@ export async function seedAgentEval(
 ): Promise<void> {
   await store.saveResource(
     ApiResourceKind.eval_run,
-    AGENT_EVAL_ID,
+    AGENT_EVAL_RUN_ID,
     EvalRunSchema,
     create(EvalRunSchema, {
-      metadata: { id: AGENT_EVAL_ID, org: ORG, name: AGENT_EVAL_ID },
+      metadata: { id: AGENT_EVAL_RUN_ID, org: ORG, name: AGENT_EVAL_RUN_ID },
       spec: {
         subject: { case: "agentId", value: AGENT_ID },
         agentVersion: AGENT_HASH,
@@ -241,8 +241,8 @@ export async function seedAgentEval(
   );
 }
 
-export async function readAgentEval(store: Store) {
-  return store.getResource(ApiResourceKind.eval_run, AGENT_EVAL_ID, EvalRunSchema);
+export async function readEvalRunOnAgent(store: Store) {
+  return store.getResource(ApiResourceKind.eval_run, AGENT_EVAL_RUN_ID, EvalRunSchema);
 }
 
 /** What the lane was asked, and how it answers. */

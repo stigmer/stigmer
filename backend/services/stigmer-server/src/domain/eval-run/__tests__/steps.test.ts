@@ -457,7 +457,7 @@ describe("ListEvalRunsByPlugin", () => {
 
 describe("ListEvalRunsByPlugin's label filter", () => {
   it("walks only the plugin's evals carrying every label named, a page at a time", async () => {
-    const labels = { suite: "nightly-plugin-evals", tier: "gold" };
+    const labels = { suite: "nightly-plugin", tier: "gold" };
     const labelled = (id: string, rowLabels: Record<string, string>) => {
       const row = evalRow(id, EvalRunPhase.completed, "plg_lbl");
       row.metadata!.labels = rowLabels;
@@ -465,7 +465,7 @@ describe("ListEvalRunsByPlugin's label filter", () => {
     };
     await labelled("evr_lbl_0", {});
     await labelled("evr_lbl_1", labels);
-    await labelled("evr_lbl_2", { suite: "nightly-plugin-evals" });
+    await labelled("evr_lbl_2", { suite: "nightly-plugin" });
     await labelled("evr_lbl_3", { ...labels, extra: "x" });
     const allow: Authorizer = { authorize: () => Promise.resolve({ kind: "allow" }) };
 

@@ -284,7 +284,7 @@ describe("the create's question and the agent's read", () => {
   });
 });
 
-describe("ResolveAgentEvalDefaults", () => {
+describe("ResolveEvalRunDefaults on an agent", () => {
   function evaluated(row: EvalRun) {
     const ctx = createCtx(row);
     ctx.set(EVAL_RUN_SUBJECT_KEY, { kind: "agent", org: ORG, row: AGENT } satisfies LoadedSubject);
@@ -418,7 +418,7 @@ describe("ResolveEvalRunDefaults with a compared plugin", () => {
   });
 });
 
-describe("ValidateAgentEvalTargets", () => {
+describe("ValidateEvalRunTargets on an agent", () => {
   it("passes a target the catalog runs, and refuses one naming a model it does not, naming the target", async () => {
     const row = evalRow("", EvalRunPhase.unspecified);
     row.spec!.targets = [
@@ -435,7 +435,7 @@ describe("ValidateAgentEvalTargets", () => {
   });
 });
 
-describe("PlanAgentEval", () => {
+describe("PlanEvalRun on an agent", () => {
   /** `count` cases, each with one regex grader. */
   function suiteOf(count: number, prefix = "case"): PluginFiles {
     return inMemoryPluginFiles(
@@ -617,7 +617,7 @@ describe("EnsureEvaluatedAgentStillExists", () => {
   });
 });
 
-describe("StartAgentEvalWorkflow", () => {
+describe("StartEvalRunWorkflow on an agent", () => {
   it("leaves the pending row as it is when the workflow starts", async () => {
     const row = await saved(evalRow("evr_1", EvalRunPhase.pending));
     const port = workflows();
@@ -713,7 +713,7 @@ describe("an eval run whose workflow ended without finishing", () => {
   });
 });
 
-describe("CancelAgentEval", () => {
+describe("CancelEvalRun on an agent", () => {
   function result(ctx: ReturnType<typeof idCtx>): EvalRun {
     return ctx.get(EVAL_RUN_RESULT_KEY) as EvalRun;
   }
@@ -788,7 +788,7 @@ describe("CancelAgentEval", () => {
   });
 });
 
-describe("ListAgentEvalsByAgent", () => {
+describe("ListEvalRunsByAgent", () => {
   function listCtx(caller = testCallerIdentity()) {
     return new RequestContext(
       ListEvalRunsByAgentRequestSchema,
@@ -826,7 +826,7 @@ describe("ListAgentEvalsByAgent", () => {
   });
 
   it("walks only the agent's evals carrying every label named, a page at a time", async () => {
-    const labels = { suite: "nightly-agent-evals", tier: "gold" };
+    const labels = { suite: "nightly-agent", tier: "gold" };
     const labelled = (id: string, rowLabels: Record<string, string>) => {
       const row = evalRow(id, EvalRunPhase.completed);
       row.metadata!.labels = rowLabels;
@@ -834,7 +834,7 @@ describe("ListAgentEvalsByAgent", () => {
     };
     await labelled("evr_lbl_0", {});
     await labelled("evr_lbl_1", labels);
-    await labelled("evr_lbl_2", { suite: "nightly-agent-evals" });
+    await labelled("evr_lbl_2", { suite: "nightly-agent" });
     await labelled("evr_lbl_3", { ...labels, extra: "x" });
     const allow: Authorizer = { authorize: () => Promise.resolve({ kind: "allow" }) };
 

@@ -78,7 +78,7 @@ let evalQuery: Client<typeof EvalRunQueryController>;
 let sessions: Client<typeof SessionCommandController>;
 
 beforeAll(async () => {
-  dir = mkdtempSync(path.join(tmpdir(), "plugin-eval-domain-test-"));
+  dir = mkdtempSync(path.join(tmpdir(), "eval-run-domain-test-"));
   server = await composeServer({
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",

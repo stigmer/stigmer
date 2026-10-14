@@ -99,7 +99,7 @@ async function seedOtherPlugins(): Promise<void> {
   }
 }
 
-async function seedAgentEval(
+async function seedEvalRunOnAgent(
   spec: { readonly targets?: Array<{ harness: Harness; modelName: string }>; readonly compareRefunds?: boolean } = {},
 ): Promise<void> {
   const compared = spec.compareRefunds === true;
@@ -149,11 +149,11 @@ async function seedAgentEval(
   );
 }
 
-async function seeded(spec?: Parameters<typeof seedAgentEval>[0]): Promise<void> {
+async function seeded(spec?: Parameters<typeof seedEvalRunOnAgent>[0]): Promise<void> {
   await seedAgent();
   await seedPlugin(temp.store);
   await seedOtherPlugins();
-  await seedAgentEval(spec);
+  await seedEvalRunOnAgent(spec);
 }
 
 function build() {
@@ -177,7 +177,7 @@ function build() {
   return { suite, cases, record: doubles.record, contexts };
 }
 
-async function readAgentEval() {
+async function readEvalRunOnAgent() {
   return temp.store.getResource(ApiResourceKind.eval_run, EVAL_ID, EvalRunSchema);
 }
 
@@ -192,7 +192,7 @@ describe("an eval run about an agent through the activities", () => {
       [2, "with"],
     ]);
 
-    const status = (await readAgentEval()).status!;
+    const status = (await readEvalRunOnAgent()).status!;
     expect(status.phase).toBe(EvalRunPhase.running);
     expect(status.triesTotal).toBe(2);
     const [thermos, refunds, style] = status.plugins;
@@ -247,7 +247,7 @@ describe("an eval run about an agent through the activities", () => {
       [0, "with"],
       [0, "without"],
     ]);
-    const status = (await readAgentEval()).status!;
+    const status = (await readEvalRunOnAgent()).status!;
     expect(status.plugins.map((plugin) => plugin.cases.length)).toEqual([0, 2, 0]);
     const start = (arm: "with" | "without"): CaseInput => ({
       evalId: EVAL_ID,
@@ -305,7 +305,7 @@ describe("an eval run about an agent through the activities", () => {
     await suite[RECORD_TRY_ACTIVITY_NAME](EVAL_ID, { ...cell, caseIndex: 2 }, result(0.5, 0.5));
     await suite[FINISH_EVAL_ACTIVITY_NAME](EVAL_ID, { phase: "completed" });
 
-    const status = (await readAgentEval()).status!;
+    const status = (await readEvalRunOnAgent()).status!;
     expect(status.phase).toBe(EvalRunPhase.completed);
     expect(status.plugins[0]?.cases[0]?.targets[0]?.withPlugin?.tries[0]?.state).toBe(EvalRunTryState.graded);
     expect(status.plugins[1]?.cases[0]?.targets[0]?.withPlugin?.tries[0]?.score).toBe(0.5);
@@ -322,7 +322,7 @@ describe("an eval run about an agent through the activities", () => {
     await temp.store.deleteResource(ApiResourceKind.plugin, REFUNDS_ID);
     const { suite } = build();
     expect(await suite[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID)).toEqual({ kind: "stop" });
-    const status = (await readAgentEval()).status!;
+    const status = (await readEvalRunOnAgent()).status!;
     expect(status.phase).toBe(EvalRunPhase.failed);
     expect(status.error).toBe(EVAL_SUBJECT_GONE_ERROR);
     expect(status.finishedAt).toBeDefined();
@@ -343,7 +343,7 @@ describe("an eval run about an agent through the activities", () => {
       attempt: () => 1,
     });
     expect(await suite[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID)).toEqual({ kind: "stop" });
-    const status = (await readAgentEval()).status!;
+    const status = (await readEvalRunOnAgent()).status!;
     expect(status.phase).toBe(EvalRunPhase.partial);
     expect(status.error).toBe("");
   });

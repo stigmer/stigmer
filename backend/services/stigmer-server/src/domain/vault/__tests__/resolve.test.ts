@@ -827,14 +827,14 @@ describe("which vaults a run uses", () => {
   });
 
   it("an eval run about an agent's vaults reach its tries, checked against their attacher", async () => {
-    const keys = await seedSharedVault(rig.store, ORG, "agent-eval-keys", { secrets: { A: "from-agent-eval" } });
+    const keys = await seedSharedVault(rig.store, ORG, "eval-run-keys", { secrets: { A: "from-eval-run" } });
     await rig.store.saveResource(
       ApiResourceKind.eval_run,
       "evr_nightly",
       EvalRunSchema,
       create(EvalRunSchema, {
         metadata: { id: "evr_nightly", name: "desk run", org: ORG },
-        spec: { subject: { case: "agentId", value: "agt_desk" }, vaults: [vaultRef("agent-eval-keys")] },
+        spec: { subject: { case: "agentId", value: "agt_desk" }, vaults: [vaultRef("eval-run-keys")] },
         status: { vaultAttachers: { [keys.metadata!.id]: ADMIN } },
       }),
     );
@@ -845,10 +845,10 @@ describe("which vaults a run uses", () => {
     };
     const revoked = await refusal(resolve(evalTry));
     expect(revoked.rawMessage).toContain(
-      "vault 'agent-eval-keys', named by eval run 'desk run', may no longer be used",
+      "vault 'eval-run-keys', named by eval run 'desk run', may no longer be used",
     );
     mayUse.add(`${ADMIN}:${keys.metadata!.id}`);
-    expect(await resolve(evalTry)).toEqual({ A: "from-agent-eval" });
+    expect(await resolve(evalTry)).toEqual({ A: "from-eval-run" });
   });
 
   it("an eval run about an agent that is gone, or of another organization, and a label naming no eval run contribute no vaults to its tries", async () => {

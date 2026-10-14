@@ -1,5 +1,5 @@
 /**
- * Pins what the plugin-eval worker factory hands the manager's
+ * Pins what the eval-run worker factory hands the manager's
  * createWorker: the eval queue from configuration (and the default queue
  * and its environment variable), every suite and case activity under its
  * byte-pinned name, and a workflow source (the prebuilt sibling bundle
@@ -40,7 +40,7 @@ afterEach(() => {
   delete process.env[QUEUE_VARIABLE];
 });
 
-describe("the plugin-eval worker factory", () => {
+describe("the eval-run worker factory", () => {
   it("builds a worker on the configured queue with every activity and a workflow source", async () => {
     const temp = tempStore();
     const patterns = newPatternPool(1);

@@ -587,7 +587,7 @@ const run = await stigmer.run.create({
   workspaceFileRefs: [],
   supersedesRunId: "...",
   conversationCatchup: {},
-  pluginEvalCase: {},
+  evalCase: {},
   reconcileFileReview: false,
   excludedPluginIds: [],
 });
@@ -615,7 +615,7 @@ run, err := client.Run.Create(ctx, &stigmer.RunInput{
   WorkspaceFileRefs:      []string{},
   SupersedesRunId:        "...",
   ConversationCatchup:    &stigmer.ConversationCatchupInput{},
-  PluginEvalCase:         &stigmer.PluginEvalCaseContextInput{},
+  EvalCase:               &stigmer.EvalCaseContextInput{},
   ReconcileFileReview:    false,
   ExcludedPluginIds:      []string{},
 })
@@ -643,7 +643,7 @@ run = client.runs.create(RunInput(
     workspace_file_refs=[],
     supersedes_run_id="...",
     conversation_catchup=None,
-    plugin_eval_case=None,
+    eval_case=None,
     reconcile_file_review=False,
     excluded_plugin_ids=[],
 ))
@@ -671,7 +671,7 @@ Run run = client.runs().create(RunInput.builder()
     .workspaceFileRefs(List.of())
     .supersedesRunId("...")
     .conversationCatchup(null)
-    .pluginEvalCase(null)
+    .evalCase(null)
     .reconcileFileReview(false)
     .excludedPluginIds(List.of())
     .build());
@@ -1060,7 +1060,7 @@ Input for creating or updating a Run.
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on." },
     supersedesRunId: { type: "string", description: "ID of the run this one supersedes via edit-and-resubmit (optional)." },
     conversationCatchup: { type: "ConversationCatchupInput", description: "Conversation events the agent has not yet seen, composed by the platform for this turn (optional).", typeDescriptionLink: "#conversationcatchupinput" },
-    pluginEvalCase: { type: "PluginEvalCaseContextInput", description: "What a plugin-eval case gives this try beyond its message: a starting folder, reference folders, an earlier conversation, variables and MCP stand-ins.", typeDescriptionLink: "#pluginevalcasecontextinput" },
+    evalCase: { type: "EvalCaseContextInput", description: "What an eval case gives this try beyond its message: a starting folder, reference folders, an earlier conversation, variables and MCP stand-ins.", typeDescriptionLink: "#evalcasecontextinput" },
     reconcileFileReview: { type: "boolean", description: "Set on a turn that only puts back the files a person undid after an earlier turn ended: it runs no model and carries no message." },
     excludedPluginIds: { type: "string[]", description: "Plugins this turn leaves out, by id, wherever the turn would take them from: its agent version, its conversation or one of its subagents." },
   }}
@@ -1189,21 +1189,21 @@ ConversationCatchup carries the channel-conversation events an agent missed, com
   }}
 />
 
-### PluginEvalCaseContextInput
+### EvalCaseContextInput
 
-PluginEvalCaseContext is what one plugin-eval case gives its try beyond the prompt: a starting folder, reference folders, an earlier conversation, variables, and stand-ins for the plugin's MCP servers.
+EvalCaseContext is what one eval case gives its try beyond the prompt: a starting folder, reference folders, an earlier conversation, variables, and stand-ins for the plugin's MCP servers.
 
 <TypeTable
   type={{
     pluginId: { type: "string", description: "ID of the plugin whose case this is." },
-    pluginDigest: { type: "string", description: "The plugin version (archive digest) the eval runs." },
+    pluginDigest: { type: "string", description: "The plugin version (archive digest) the eval run stamped." },
     suiteDir: { type: "string", description: "The suite's directory, as in \"evals\"." },
     caseDir: { type: "string", description: "The case's directory, as in \"evals/fix-the-test\"." },
     scaffoldScript: { type: "string", description: "The Bash script that builds the starting folder; empty for none." },
     addDirs: { type: "string[]", description: "Directories the agent may read during the run." },
     historyFile: { type: "string", description: "A Claude Code transcript (.jsonl) the try resumes; empty for none." },
     env: { type: "Record<string, string>", description: "EVAL_* variables the agent's shell and the plugin's hooks receive." },
-    mocks: { type: "PluginEvalMockServerInput[]", description: "The plugin's MCP servers answered by stand-ins, one per server.", typeDescriptionLink: "#pluginevalmockserverinput" },
+    mocks: { type: "EvalMockServerInput[]", description: "The plugin's MCP servers answered by stand-ins, one per server.", typeDescriptionLink: "#evalmockserverinput" },
     agentMockModel: { type: "string", description: "The model agent stand-ins answer with; empty uses the runner's default." },
     agentMockCallBudget: { type: "number", description: "Calls the agent stand-ins may answer in this try, together." },
     readFiles: { type: "string[]", description: "The files the case's graders read, relative to the workspace." },
@@ -1211,28 +1211,28 @@ PluginEvalCaseContext is what one plugin-eval case gives its try beyond the prom
   }}
 />
 
-### PluginEvalMockServerInput
+### EvalMockServerInput
 
-PluginEvalMockServer is one plugin MCP server answered by a stand-in.
+EvalMockServer is one plugin MCP server answered by a stand-in.
 
 <TypeTable
   type={{
     server: { type: "string", description: "The server's key in the plugin's MCP configuration." },
     segment: { type: "string", description: "The name the stand-in is registered under in the turn, the plugin server's own." },
-    tools: { type: "PluginEvalMockToolInput[]", description: "The mocked tools; a tool not listed is not offered.", typeDescriptionLink: "#pluginevalmocktoolinput" },
+    tools: { type: "EvalMockToolInput[]", description: "The mocked tools; a tool not listed is not offered.", typeDescriptionLink: "#evalmocktoolinput" },
     toolsFile: { type: "string", description: "The server's saved tools/list response, for real descriptions and input schemas; empty for none." },
   }}
 />
 
-### PluginEvalMockToolInput
+### EvalMockToolInput
 
-PluginEvalMockTool is one mocked tool and how it answers.
+EvalMockTool is one mocked tool and how it answers.
 
 <TypeTable
   type={{
     tool: { type: "string", description: "The tool's name." },
     file: { type: "string", description: "The mock file whose body answers, or instructs the agent stand-in." },
-    kind: { type: "PluginEvalMockKind", description: "How the tool answers.", typeDescriptionLink: "#pluginevalmockkind" },
+    kind: { type: "EvalMockKind", description: "How the tool answers.", typeDescriptionLink: "#evalmockkind" },
     error: { type: "boolean", description: "Whether a fixed answer is returned as a tool error." },
     expectJson: { type: "string", description: "The input guard, as the mock's expect block in JSON; empty for none." },
     abortWhen: { type: "string", description: "The only conditions under which an agent stand-in may end the run." },
@@ -1593,8 +1593,8 @@ RunStatus contains all run results and state.
     runConfig: { type: "RunConfig", description: "The settings this turn runs with: spec.run_config (or the saved settings of the surface it came through), the defaults of the agent version the turn runs, and the lane's operator profile, resolved by RunConfig's rule.", typeDescriptionLink: "#runconfig" },
     approvalMode: { type: "ApprovalMode", description: "How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never UNSPECIFIED.", typeDescriptionLink: "#approvalmode" },
     credentials: { type: "RunCredentials", description: "Whose logins and secrets this turn uses: decided once when the turn is created, and kept when it is recovered.", typeDescriptionLink: "#runcredentials" },
-    pluginEvalFiles: { type: "PluginEvalFiles", description: "The files a plugin eval's graders read, as the try's turn left them.", typeDescriptionLink: "#pluginevalfiles" },
-    stopCause: { type: "string", description: "Why the turn stopped, as one word: budget_reached (the cost cap or the tool-call limit), timeout (a stall or the workspace lock), infrastructure (the worker shut down or stopped answering), platform_stop, user (a pause or a cancel), model_error (the model provider failed the turn), failed (any other failure), eval_stopped (a plugin eval's mock or scaffold stopped the try) or review_resolved (a file review was settled)." },
+    evalFiles: { type: "EvalFiles", description: "The files an eval case's graders read, as the try's turn left them.", typeDescriptionLink: "#evalfiles" },
+    stopCause: { type: "string", description: "Why the turn stopped, as one word: budget_reached (the cost cap or the tool-call limit), timeout (a stall or the workspace lock), infrastructure (the worker shut down or stopped answering), platform_stop, user (a pause or a cancel), model_error (the model provider failed the turn), failed (any other failure), eval_stopped (an eval case's mock or scaffold stopped the try) or review_resolved (a file review was settled)." },
   }}
 />
 
@@ -1655,6 +1655,30 @@ DeclaredPreferences carries the standing preference texts injected into this run
   type={{
     orgContext: { type: "string", description: "The organization's standing context, verbatim." },
     userContext: { type: "string", description: "The calling user's standing context, verbatim." },
+  }}
+/>
+
+### EvalFile
+
+EvalFile is one file's content after the turn.
+
+<TypeTable
+  type={{
+    path: { type: "string", description: "The path as the case's graders name it." },
+    text: { type: "string", description: "The file's text." },
+    binary: { type: "boolean", description: "The file is not text." },
+    absent: { type: "boolean", description: "Nothing is at the path." },
+    unreadable: { type: "string", description: "The file could not be read, and why (too large, not a regular file, outside the workspace)." },
+  }}
+/>
+
+### EvalFiles
+
+EvalFiles is the content, after an eval try's turn, of each file its case's graders read (EvalCaseContext.read_files).
+
+<TypeTable
+  type={{
+    files: { type: "EvalFile[]", description: "Each file, once, in the order read_files names them.", typeDescriptionLink: "#evalfile" },
   }}
 />
 
@@ -1736,30 +1760,6 @@ LoadedVersions lists what a run loaded besides its agent: one list per kind, eac
   type={{
     skills: { type: "ApiResourceReference[]", description: "Skills, each at its version hash (SkillStatus.version_hash).", typeDescriptionLink: "#apiresourcereference" },
     plugins: { type: "ApiResourceReference[]", description: "Plugins, each at its archive's digest (PluginStatus.digest).", typeDescriptionLink: "#apiresourcereference" },
-  }}
-/>
-
-### PluginEvalFile
-
-PluginEvalFile is one file's content after the turn.
-
-<TypeTable
-  type={{
-    path: { type: "string", description: "The path as the case's graders name it." },
-    text: { type: "string", description: "The file's text." },
-    binary: { type: "boolean", description: "The file is not text." },
-    absent: { type: "boolean", description: "Nothing is at the path." },
-    unreadable: { type: "string", description: "The file could not be read, and why (too large, not a regular file, outside the workspace)." },
-  }}
-/>
-
-### PluginEvalFiles
-
-PluginEvalFiles is the content, after a plugin-eval try's turn, of each file its case's graders read (PluginEvalCaseContext.read_files).
-
-<TypeTable
-  type={{
-    files: { type: "PluginEvalFile[]", description: "Each file, once, in the order read_files names them.", typeDescriptionLink: "#pluginevalfile" },
   }}
 />
 
@@ -2152,14 +2152,14 @@ GitWriteBackMode controls the platform's git workflow for a git-backed workspace
 |-------|-------------|
 | `GIT_WRITE_BACK_BRANCH_AND_PR` | Create a branch and pull request from the agent's file changes after the run completes. |
 
-### PluginEvalMockKind
+### EvalMockKind
 
-PluginEvalMockKind is how a mocked tool answers.
+EvalMockKind is how a mocked tool answers.
 
 | Value | Description |
 |-------|-------------|
-| `plugin_eval_mock_kind_fixed` | The mock file's body, with its substitutions. |
-| `plugin_eval_mock_kind_agent` | A model acting as the server from the mock file's instructions. |
+| `eval_mock_kind_fixed` | The mock file's body, with its substitutions. |
+| `eval_mock_kind_agent` | A model acting as the server from the mock file's instructions. |
 
 ### ProviderKeySource
 

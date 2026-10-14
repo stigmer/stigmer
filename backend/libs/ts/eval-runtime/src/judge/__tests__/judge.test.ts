@@ -12,7 +12,7 @@
  *     message or subject change moves it on purpose, here, and the
  *     benchmark's calibration must then be run again;
  *   - JUDGE_INSTRUCTION_VERSION is pinned: it re-versions every judge,
- *     plugin eval and agent eval score, so it moves only on purpose.
+ *     eval run score, so it moves only on purpose.
  */
 import { describe, expect, it } from "vitest";
 

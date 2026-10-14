@@ -1,5 +1,5 @@
 /**
- * The plugin-eval worker factory: the suite and case workflows and their
+ * The eval-run worker factory: the suite and case workflows and their
  * activities on their own queue (config.ts), registered in the boot
  * workers list beside the grading worker and rebuilt by the manager on
  * every reconnect as it is (temporal/grading/worker.ts is the shape this
@@ -92,7 +92,7 @@ export function newEvalsWorkerFactory(deps: EvalsWorkerDeps): WorkerFactory {
       prebuiltSibling: new URL("./workflow-bundle-evals.js", import.meta.url),
     });
 
-    deps.logger.info("Creating plugin-eval Temporal worker", {
+    deps.logger.info("Creating eval-run Temporal worker", {
       queue: deps.config.stigmerQueue,
       workflow_source: workflowSource.kind,
     });

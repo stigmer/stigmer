@@ -6,7 +6,7 @@
  * variable follows the other queues' names.
  */
 
-/** The default plugin-eval queue. */
+/** The default eval-run queue. */
 export const DEFAULT_EVALS_QUEUE = "evals_stigmer";
 
 export class EvalsTemporalConfig {

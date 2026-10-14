@@ -53,7 +53,7 @@ function caseOf(name: string, tries: ReturnType<typeof graded>[], passed: boolea
   });
 }
 
-const agentEval = create(EvalRunSchema, {
+const onAgent = create(EvalRunSchema, {
   metadata: create(ApiResourceMetadataSchema, { id: "evr_1", org: "acme" }),
   spec: create(EvalRunSpecSchema, { subject: { case: "agentId", value: "agt_1" }, agentVersion: "f".repeat(64) }),
   status: create(EvalRunStatusSchema, {
@@ -92,7 +92,7 @@ const agentEval = create(EvalRunSchema, {
 
 describe("toResultDocument", () => {
   it("names the agent at its version, the totals and why the eval stopped", () => {
-    const doc = toResultDocument(agentEval, { subjectSlug: "support-desk" });
+    const doc = toResultDocument(onAgent, { subjectSlug: "support-desk" });
     expect(doc).toMatchObject({
       schemaVersion: 1,
       evalRunId: "evr_1",
@@ -106,7 +106,7 @@ describe("toResultDocument", () => {
   });
 
   it("gives each plugin a block in the plugin document's shape, one arm only", () => {
-    const [refunds, tracker] = toResultDocument(agentEval).plugins;
+    const [refunds, tracker] = toResultDocument(onAgent).plugins;
     expect(refunds).toMatchObject({
       plugin: { id: "plg_refunds", slug: "refunds", digest: "b".repeat(64), attached: true, compared: false },
       notRunReason: null,
@@ -136,7 +136,7 @@ describe("toResultDocument", () => {
   });
 
   it("keeps a plugin whose cases did not run, with its reason and no cases", () => {
-    const style = toResultDocument(agentEval).plugins[2];
+    const style = toResultDocument(onAgent).plugins[2];
     expect(style).toMatchObject({ notRunReason: "no eval cases at this version", cases: [], targets: [], costUsd: 0 });
   });
 

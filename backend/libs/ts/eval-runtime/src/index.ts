@@ -1,4 +1,4 @@
-// The package entry: re-exports what a plugin eval's server and runner both
+// The package entry: re-exports what an eval run's server and runner both
 // execute with (the transcript reader, the expect guard, mock rendering and
 // the try-stop wording), so neither reaches into a file path. Each module's
 // header carries its rules and trade-offs. It loads no `node:*` module, so a

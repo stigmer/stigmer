@@ -81,7 +81,7 @@ describe.each(
       );
     }
 
-    async function agentEval(id: string, createdBy: string): Promise<void> {
+    async function evalRunOnAgent(id: string, createdBy: string): Promise<void> {
       await opened.store.saveResource(
         ApiResourceKind.eval_run,
         id,
@@ -151,7 +151,7 @@ describe.each(
     });
 
     it("a try of an eval run about an agent acts as its creator while they may edit the agent, and is refused naming it once not", async () => {
-      await agentEval("evr_agent_by_id", PRIYA);
+      await evalRunOnAgent("evr_agent_by_id", PRIYA);
       asked.length = 0;
       expect((await mint().mintEvalRunCaller("acme", "evr_agent_by_id")).identityId).toBe(PRIYA);
       expect(asked, "the creator must still edit the eval run's agent").toEqual([`${PRIYA} can_edit agt_1`]);

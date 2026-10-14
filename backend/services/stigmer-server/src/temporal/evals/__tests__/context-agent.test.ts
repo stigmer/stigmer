@@ -30,7 +30,7 @@ import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { attachmentOf, newEvalContextLoader, otherServersOf } from "../context.js";
 import { tryToolsOf } from "../../../domain/eval-run/try-run.js";
 import {
-  AGENT_EVAL_ID,
+  AGENT_EVAL_RUN_ID,
   AGENT_HASH,
   DIGEST,
   MODEL,
@@ -38,7 +38,7 @@ import {
   PLUGIN_ID,
   catalog,
   seedAgent,
-  seedAgentEval,
+  seedEvalRunOnAgent,
   seedPlugin,
   suiteSource,
 } from "./support.js";
@@ -78,9 +78,9 @@ describe("an eval run's context about an agent", () => {
   it("reads the agent at its version and each plugin at its stamped digest", async () => {
     await seedAgent(temp.store);
     await seedPlugin(temp.store);
-    await seedAgentEval(temp.store);
+    await seedEvalRunOnAgent(temp.store);
     const source = suiteSource();
-    const context = await loader(source)(AGENT_EVAL_ID);
+    const context = await loader(source)(AGENT_EVAL_RUN_ID);
     if (context === undefined) throw new Error("no context");
     expect(context.agent).toEqual({ org: ORG, id: "agt_1", slug: "support-desk", versionHash: AGENT_HASH });
     expect(context.sources.map((entry) => [entry.digest, entry.pluginIndex])).toEqual([[DIGEST, 0]]);
@@ -94,8 +94,8 @@ describe("an eval run's context about an agent", () => {
   it("plans both arms when it compares the attached plugin, the without arm listing it and leaving it out", async () => {
     await seedAgent(temp.store);
     await seedPlugin(temp.store);
-    await seedAgentEval(temp.store, { compared: true });
-    const context = await loader()(AGENT_EVAL_ID);
+    await seedEvalRunOnAgent(temp.store, { compared: true });
+    const context = await loader()(AGENT_EVAL_RUN_ID);
     if (context === undefined) throw new Error("no context");
     expect([context.comparedPluginId, context.twoArms]).toEqual([PLUGIN_ID, true]);
     expect(new Set(context.matrix.cells.map((cell) => cell.arm))).toEqual(new Set(["with", "without"]));
@@ -110,8 +110,8 @@ describe("an eval run's context about an agent", () => {
   it("counts the agent's own servers among those a try turns off, unless the eval runs real servers", async () => {
     await seedAgent(temp.store, { mcpServers: [{ name: "zendesk", url: "https://acme-co.zendesk.com/mcp" }] });
     await seedPlugin(temp.store);
-    await seedAgentEval(temp.store);
-    const context = await loader()(AGENT_EVAL_ID);
+    await seedEvalRunOnAgent(temp.store);
+    const context = await loader()(AGENT_EVAL_RUN_ID);
     if (context === undefined) throw new Error("no context");
     expect(context.ownServers).toEqual([{ slug: "zendesk", key: "zendesk" }]);
     const others = otherServersOf(context, 0);
@@ -128,29 +128,29 @@ describe("an eval run's context about an agent", () => {
     await seedPlugin(temp.store);
     await temp.store.saveResource(
       ApiResourceKind.eval_run,
-      AGENT_EVAL_ID,
+      AGENT_EVAL_RUN_ID,
       EvalRunSchema,
-      create(EvalRunSchema, { metadata: { id: AGENT_EVAL_ID, org: ORG, name: AGENT_EVAL_ID } }),
+      create(EvalRunSchema, { metadata: { id: AGENT_EVAL_RUN_ID, org: ORG, name: AGENT_EVAL_RUN_ID } }),
     );
     const source = suiteSource();
-    expect(await loader(source)(AGENT_EVAL_ID)).toBeUndefined();
+    expect(await loader(source)(AGENT_EVAL_RUN_ID)).toBeUndefined();
     expect(source.reads).toBe(0);
   });
 
   it("is undefined when a stamped plugin version is gone, reading no suite", async () => {
     await seedAgent(temp.store);
     await seedPlugin(temp.store);
-    await seedAgentEval(temp.store, { pluginDigest: "9".repeat(64) });
+    await seedEvalRunOnAgent(temp.store, { pluginDigest: "9".repeat(64) });
     const source = suiteSource();
-    expect(await loader(source)(AGENT_EVAL_ID)).toBeUndefined();
+    expect(await loader(source)(AGENT_EVAL_RUN_ID)).toBeUndefined();
     expect(source.reads).toBe(0);
   });
 
   it("throws a store fault reading the agent's version rather than answering it gone", async () => {
     await seedAgent(temp.store);
     await seedPlugin(temp.store);
-    await seedAgentEval(temp.store);
-    const thrown = await loader(suiteSource(), faultyReadsOf(ApiResourceKind.agent))(AGENT_EVAL_ID).then(
+    await seedEvalRunOnAgent(temp.store);
+    const thrown = await loader(suiteSource(), faultyReadsOf(ApiResourceKind.agent))(AGENT_EVAL_RUN_ID).then(
       () => undefined,
       (error: unknown) => error,
     );

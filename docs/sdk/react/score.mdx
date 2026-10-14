@@ -202,7 +202,7 @@ runs.
     agent: { type: "Agent", description: "The agent whose runs the report counts.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
     className: { type: "string", description: "Additional CSS class names for the root element." },
     onNavigateToRun: { type: "(runId: string) => void", description: "Called with a run id when the person opens a flagged run; the host owns the route. Flagged runs are listed without links when omitted." },
-    onOpenEval: { type: "(evalId: string) => void", description: "Called with an agent eval's id when the person opens a version's eval; `AgentDetailView` opens its Evals tab on it. The eval column is plain text when omitted." },
+    onOpenEval: { type: "(evalId: string) => void", description: "Called with an eval run's id when the person opens a version's eval; `AgentDetailView` opens its Evals tab on it. The eval column is plain text when omitted." },
   }}
 />
 
@@ -222,7 +222,7 @@ reason for each flag ("the last call to create_ticket failed (step 7)"),
 and, where the run's agent has AI grading switched on, the judge chip:
 "Judge: grading…" while the grade is in progress, then "Judge: passed" or
 "Judge: 1 of 4 failed", which opens to each rubric's reason and the model
-that graded it. A try of a plugin eval carries the eval chip ("Eval:
+that graded it. A try of an eval run carries the eval chip ("Eval:
 passed", "Eval: 1 of 3 failed"), which opens to each check's verdict and
 reason. A run the platform could not grade says so quietly, with the
 reason.

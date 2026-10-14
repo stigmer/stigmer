@@ -138,8 +138,7 @@
       "outputs": [],
       "inputs": [
         "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/apis/ai/stigmer/agentic/agenteval/v1/**",
-        "$TURBO_ROOT$/apis/ai/stigmer/agentic/plugineval/v1/**",
+        "$TURBO_ROOT$/apis/ai/stigmer/agentic/evalrun/v1/**",
         "$TURBO_ROOT$/test/fixtures/tool-view/**"
       ]
     },

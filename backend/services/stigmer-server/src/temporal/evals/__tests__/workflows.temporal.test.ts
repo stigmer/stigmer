@@ -41,7 +41,7 @@ import {
   type SuitePlan,
 } from "../names.js";
 
-const TASK_QUEUE = "plugin-eval-workflow-test";
+const TASK_QUEUE = "eval-run-workflow-test";
 const WORKFLOWS_PATH = new URL("../workflows/index.ts", import.meta.url)
   .pathname;
 
