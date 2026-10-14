@@ -210,6 +210,18 @@ describe("the cloud target's people", () => {
     expect(execution.managedAgentsBaseUrl()).toBe("http://127.0.0.1:9");
   });
 
+  it("lends its enforcing lane an unprovisioned caller: a tenant token for a fresh subject, never provisioned", async () => {
+    const target = new CloudTarget();
+    primaryStub(target);
+    await target.setup();
+    const { presented } = presentingStub(target);
+
+    await (await target.enforcingLane()).unprovisionedCaller?.();
+
+    expect(presented).toHaveLength(1);
+    expect(subjectOf(presented[0] ?? "")).toMatch(/^auth0\|lane-unprovisioned-/);
+  });
+
   it("forgets the tenant at teardown", async () => {
     const target = new CloudTarget();
     primaryStub(target);

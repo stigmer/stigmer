@@ -124,6 +124,8 @@
 // visitor-isolation consequence of checkMyPermission through the composed
 // Authorizer (no guest caller exists in this harness).
 import { Code } from "@connectrpc/connect";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { AccessChange, AccessChangeCause } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
@@ -921,6 +923,41 @@ describe("IamPolicy conformance — the access history, as each edition answers 
       const [info] = error.findDetails(ErrorInfoSchema);
       expect(info?.reason).toBe("PLAN_UPGRADE_REQUIRED");
       expect(info?.metadata.feature).toBe("access_history");
+    },
+  );
+
+  it.skipIf(capabilities.accessHistory !== "served")(
+    "[rpc:IamPolicyQueryController.listAccessHistory] an edition that keeps the history answers its owner newest first: the grant they just made, back to the organization's creation",
+    async () => {
+      const founderId = (await clients.identityAccountQuery.whoAmI({})).metadata?.id ?? "";
+      expect(founderId, "the caller is a provisioned person").not.toBe("");
+      const org = await createOwnedOrganization();
+      const member = syntheticAccountId();
+      await clients.iamPolicyCommand.create(organizationRole(member, "member", org));
+
+      const page = await clients.iamPolicyQuery.listAccessHistory({ org });
+
+      // Numbered from 1 in the order they happened, read newest first.
+      const numbers = page.entries.map((entry) => Number(entry.sequence));
+      expect(numbers).toEqual(numbers.map((_, n) => numbers.length - n));
+      expect(page.entries[0]).toMatchObject({
+        change: AccessChange.granted,
+        cause: AccessChangeCause.grant,
+        actorClass: "user",
+        actor: { kind: "identity_account", id: founderId },
+        principal: { id: member },
+        role: { code: "member" },
+        resource: { kind: ApiResourceKind.organization, id: org },
+      });
+      expect(page.entries.at(-1)).toMatchObject({
+        sequence: 1n,
+        change: AccessChange.granted,
+        cause: AccessChangeCause.organization_created,
+        principal: { id: founderId },
+        role: { code: "owner" },
+      });
+      expect(page.retentionDays, "the target's server keeps the history for good").toBe(0);
+      expect(page.oldestSequence).toBe(1n);
     },
   );
 });

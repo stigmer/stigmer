@@ -112,6 +112,8 @@ export class LocalExecutionTarget implements TargetProfile {
     perResourceGrants: false,
     authorizationQueries: false,
     accessHistory: "unimplemented",
+    // No license key: open source.
+    licenseStatus: "absent",
   };
 
   private temporal: RunningTemporal | undefined;

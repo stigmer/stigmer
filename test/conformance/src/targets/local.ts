@@ -109,6 +109,8 @@ export class LocalTarget implements TargetProfile {
     perResourceGrants: false,
     authorizationQueries: false,
     accessHistory: "unimplemented",
+    // No license key: open source.
+    licenseStatus: "absent",
   };
 
   private server: RunningServer | undefined;

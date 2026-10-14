@@ -8,6 +8,7 @@
 // suite branches on (see target.ts).
 import { CloudTarget } from "./cloud";
 import { CloudExecutionTarget } from "./cloud-execution";
+import { EnterpriseTarget } from "./enterprise";
 import { LocalTarget } from "./local";
 import { LocalExecutionTarget } from "./local-execution";
 import { LocalSingleOrgTarget } from "./local-single-org";
@@ -25,6 +26,7 @@ const TARGET_FACTORIES: Record<string, () => TargetProfile> = {
   "local-single-org": () => new LocalSingleOrgTarget(),
   cloud: () => new CloudTarget(),
   "cloud-execution": () => new CloudExecutionTarget(),
+  enterprise: () => new EnterpriseTarget(),
 };
 
 export function createTarget(): TargetProfile {

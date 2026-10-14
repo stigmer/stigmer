@@ -1,0 +1,295 @@
+// Enterprise target: a licensed Stigmer Enterprise server, booted from source
+// as its own process.
+// Domain: conformance targets.
+//
+// A managed target, like the local ones: it owns the server's process, its
+// storage and its issuer. What it spawns is Enterprise's own test entry
+// (ee/server/test/conformance/licensed-server.ts): the shipped entry's
+// composition with a license that process signs for itself, run under the
+// repository root's tsx. Spawning a file by path is not importing it, so
+// nothing here reaches into ee/ (ee/README.md).
+//
+// The posture is the one a licensed server must run in, and the Cloud's
+// shape on a different engine:
+//
+//   - Postgres: a licensed server refuses any other store, so every server
+//     this target spawns gets a throwaway database (harness/postgres.ts,
+//     CONFORMANCE_POSTGRES_URL).
+//   - Signed-in callers: a licensed edition refuses to boot without the
+//     require-authentication posture, so the primary signs its people in
+//     through the harness's loopback issuer (STIGMER_OIDC_ISSUER), and the
+//     server's built-in Authorizer enforces the model on every row.
+//   - Many organizations, real people: the primary IS this target's
+//     enforcing lane, as the Cloud's is. A person is an issuer token for a
+//     fresh subject, then provisionMyAccount; a tenancy is an organization
+//     the founder creates and deletes by id (harness/people.ts, which the
+//     Cloud target shares). An Enterprise newcomer holds nothing, so the
+//     open-source sibling lane, which revokes the membership open source
+//     grants every arrival, is not this target's.
+//
+// The license the primary runs on is current and sets no organization
+// limit, because the suites create an organization per tenancy. A sibling
+// takes the terms, the egress posture and the creators rule the suite names
+// in its env (STIGMER_TEST_LICENSE_TERMS and the server's own variables),
+// with its own database.
+import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import {
+  startLocalOidcIssuer,
+  type LocalOidcIssuer,
+} from "@stigmer/test-support/local-oidc-issuer";
+import {
+  spawnServer,
+  type ProvisionedStorage,
+  type RunningServer,
+} from "@stigmer/test-support/server-process";
+import { ensureEnterpriseServerEntry, tsxLoaderUrl } from "@stigmer/test-support/ts-build";
+import {
+  createTransport,
+  makeClients,
+  type ConformanceClients,
+  type PresentingOptions,
+} from "../harness/clients";
+import { newPrimaryEnforcingLane } from "../harness/enforcing-lane";
+import { awaitGrpcReady } from "../harness/grpc-ready";
+import { PERSON_TOKEN_TTL_SECONDS, PrimaryPeople, provisionPerson } from "../harness/people";
+import { provisionPostgresStorage } from "../harness/postgres";
+import { freshSubject, optInToMemory } from "../support/identityaccounts";
+import { uniqueName } from "../support/naming";
+import type {
+  CapabilityFlags,
+  EnforcingLane,
+  SiblingServer,
+  SpawnSiblingOptions,
+  TargetProfile,
+  TenancyContext,
+} from "./target";
+
+export class EnterpriseTarget implements TargetProfile {
+  readonly name = "enterprise";
+  // The license unit declares the Enterprise edition once a key verifies.
+  readonly edition: ServerEdition = ServerEdition.enterprise;
+
+  readonly capabilities: CapabilityFlags = {
+    multiTenant: true,
+    // Many organizations, up to the license's limit, which the primary's
+    // license does not set.
+    singleOrganization: false,
+    // The built-in Authorizer enforces the model on the primary, which is
+    // therefore this target's enforcing lane (enforcingLane below).
+    enforcingAuthorizer: true,
+    // Library features every edition serves.
+    versionTagging: true,
+    skillArtifactTransferLane: true,
+    // No Temporal and no runner behind this target, as on the plain local
+    // target: schedules cannot fire, and no runner acts for anyone.
+    scheduleFiring: false,
+    runnerActsAsRunCreator: false,
+    // The reserved-label guard admits the platform operator only, and this
+    // server has none: the founder is an ordinary signed-in person, so the
+    // suite pins the guard's refusal.
+    clientReservedLabelWrites: false,
+    // The founder signs in as a person, as the Cloud's console person does,
+    // and opts in to memory on their own account at setup.
+    firstPartyMemoryCapture: true,
+    // The Cloud's own surfaces: no channel runtime, billing, plans, proxy,
+    // public lane, guest minting or metering in Enterprise.
+    channelMessaging: false,
+    billingGates: false,
+    billingEngine: false,
+    billingPlans: false,
+    sideChannelProxy: false,
+    publicLane: false,
+    guestMinting: false,
+    cloudTargetRefusesLocalPrograms: false,
+    runModelCallsMetered: false,
+    // The primary is an enforcing lane that mints user tokens.
+    userTokens: true,
+    // The license requires the require-authentication posture.
+    requiresAuthentication: true,
+    // The platform's own identity tenant is the Cloud's; Enterprise signs
+    // people in through the operator's issuer and creates no organization at
+    // sign-up, the two things the direct-login suite pins.
+    directLogin: false,
+    // The Enterprise identity unit composes federation.
+    federatedIdentityAccounts: true,
+    // The license unit registers every kind's kind_meta roles as the grant
+    // scope.
+    perResourceGrants: true,
+    // The tuple-half queries need a relationship graph; no Enterprise unit
+    // declares one, so the suite pins open source's refusal.
+    authorizationQueries: false,
+    // The Enterprise server keeps the access history and serves its read to
+    // the organization's owners.
+    accessHistory: "served",
+    // Cursor runs need no provider key here: no admission gates.
+    cursorRunsAdmitted: true,
+    // The primary runs on the license this target's entry signed.
+    licenseStatus: "licensed",
+  };
+
+  private server: RunningServer | undefined;
+  private storage: ProvisionedStorage | undefined;
+  private issuer: LocalOidcIssuer | undefined;
+  private conformanceClients: ConformanceClients | undefined;
+  // The tenancies the founder creates and the people the issuer signs in.
+  private readonly people = new PrimaryPeople({
+    founder: () => this.clients(),
+    freshToken: (caller) =>
+      this.requireIssuer(caller).mint({
+        sub: freshSubject(),
+        email: `${uniqueName("person")}@conformance.example.com`,
+        ttlSeconds: PERSON_TOKEN_TTL_SECONDS,
+      }),
+    clientsPresenting: (token) => this.clientsPresenting(token),
+  });
+
+  async setup(): Promise<void> {
+    const entry = await ensureEnterpriseServerEntry();
+    const issuer = await startLocalOidcIssuer();
+    this.issuer = issuer;
+    this.storage = await provisionPostgresStorage();
+    this.server = await spawnServer(process.execPath, {
+      args: ["--import", tsxLoaderUrl(), entry],
+      env: { ...this.storage.serverEnv, ...this.oidcEnv(issuer) },
+    });
+    // The founder: the first person, who founds every tenancy. The readiness
+    // gate presents their token before the account exists (admitted
+    // idp-shaped), then the first sign-in makes the account.
+    const founderToken = await issuer.mint({
+      sub: freshSubject(),
+      email: `${uniqueName("founder")}@conformance.example.com`,
+      ttlSeconds: PERSON_TOKEN_TTL_SECONDS,
+    });
+    const founder = this.clientsPresenting(founderToken);
+    await awaitGrpcReady(founder, () => this.server?.logTail() ?? "(no server)");
+    await provisionPerson(founderToken, () => founder);
+    this.conformanceClients = founder;
+    await optInToMemory(founder);
+  }
+
+  // The OIDC posture against the target's issuer.
+  private oidcEnv(issuer: LocalOidcIssuer): Record<string, string> {
+    return { STIGMER_OIDC_ISSUER: issuer.issuer, STIGMER_OIDC_AUDIENCE: issuer.audience };
+  }
+
+  private requireIssuer(caller: string): LocalOidcIssuer {
+    if (this.issuer === undefined) {
+      throw new Error(`EnterpriseTarget.setup() must be called before ${caller}()`);
+    }
+    return this.issuer;
+  }
+
+  // The primary enforces, so the lane is a view over this target's own
+  // provisioning; the issuer mints its unprovisioned caller.
+  async enforcingLane(): Promise<EnforcingLane> {
+    const issuer = this.requireIssuer("enforcingLane");
+    return newPrimaryEnforcingLane({
+      clients: this.clients(),
+      provisionTenancy: () => this.provisionTenancy(),
+      cleanupTenancy: (context) => this.cleanupTenancy(context),
+      provisionIdentity: () => this.provisionIdentity(),
+      provisionMember: (tenancy) => this.provisionMember(tenancy),
+      organizationIdOf: (tenancy) => this.people.organizationIdOf(tenancy, "enforcingLane"),
+      unprovisionedBearer: () =>
+        issuer.mint({
+          sub: freshSubject(),
+          email: `${uniqueName("lane-unprovisioned")}@conformance.example.com`,
+        }),
+      clientsPresenting: (bearerToken, options) => this.clientsPresenting(bearerToken, options),
+      managedAgentsBaseUrl: () => this.httpBaseUrl(),
+    });
+  }
+
+  // A second licensed server, on its own database, in the posture the
+  // suite's env names: its OIDC issuer, and any license terms, egress
+  // posture or creators rule (the header says which). Readiness is the
+  // harness's one gate, presented with the bearer the suite supplied.
+  async spawnSibling(options: SpawnSiblingOptions): Promise<SiblingServer> {
+    const entry = await ensureEnterpriseServerEntry();
+    const storage = await provisionPostgresStorage();
+    let server: RunningServer;
+    try {
+      server = await spawnServer(process.execPath, {
+        args: ["--import", tsxLoaderUrl(), entry],
+        env: { ...storage.serverEnv, ...options.env },
+      });
+    } catch (error) {
+      await storage.release();
+      throw error;
+    }
+    const clientsPresenting = (
+      bearerToken: string,
+      presenting: PresentingOptions = {},
+    ): ConformanceClients =>
+      makeClients(createTransport(server.baseUrl, { ...presenting, bearerToken }));
+    const teardown = async (): Promise<void> => {
+      await server.stop();
+      await storage.release();
+    };
+    try {
+      await awaitGrpcReady(clientsPresenting(options.readinessBearer), () => server.logTail());
+    } catch (error) {
+      await teardown();
+      throw error;
+    }
+    return { clientsPresenting, managedAgentsBaseUrl: () => server.baseUrl, teardown };
+  }
+
+  clients(): ConformanceClients {
+    if (this.conformanceClients === undefined) {
+      throw new Error("EnterpriseTarget.setup() must be called before clients()");
+    }
+    return this.conformanceClients;
+  }
+
+  anonymousClients(): ConformanceClients {
+    return makeClients(createTransport(this.httpBaseUrl()));
+  }
+
+  clientsPresenting(bearerToken: string, options: PresentingOptions = {}): ConformanceClients {
+    return makeClients(createTransport(this.httpBaseUrl(), { ...options, bearerToken }));
+  }
+
+  // The Managed Agents lane is on the unified port (target.ts).
+  managedAgentsBaseUrl(): string {
+    return this.httpBaseUrl();
+  }
+
+  // The library's own plain-HTTP lanes (the registry proxy) on the unified
+  // port: Enterprise composes onto the library and serves them unchanged.
+  httpBaseUrl(): string {
+    if (this.server === undefined) {
+      throw new Error("EnterpriseTarget.setup() must be called before httpBaseUrl()");
+    }
+    return this.server.baseUrl;
+  }
+
+  provisionTenancy(): Promise<TenancyContext> {
+    return this.people.provisionTenancy();
+  }
+
+  cleanupTenancy(context: TenancyContext): Promise<void> {
+    return this.people.cleanupTenancy(context);
+  }
+
+  // A fresh person holding no grant anywhere: the outsider.
+  provisionIdentity(): Promise<ConformanceClients> {
+    return this.people.provisionIdentity();
+  }
+
+  // A fresh person holding exactly `member` on the tenancy: the colleague.
+  provisionMember(tenancy: TenancyContext): Promise<ConformanceClients> {
+    return this.people.provisionMember(tenancy);
+  }
+
+  async teardown(): Promise<void> {
+    await this.server?.stop();
+    this.server = undefined;
+    await this.storage?.release();
+    this.storage = undefined;
+    await this.issuer?.close();
+    this.issuer = undefined;
+    this.conformanceClients = undefined;
+    this.people.forget();
+  }
+}

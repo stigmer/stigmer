@@ -30,7 +30,7 @@ import {
   identityAccountServiceContract,
   type IdentityAccountServiceUnderTest,
 } from "../../iam/account/port-contract.js";
-import { newTestSigner, writeTicket } from "../../license/__tests__/test-tickets.js";
+import { licenseClaims, newTestSigner, writeTicket } from "../../license/__tests__/test-tickets.js";
 import { newEnterpriseAccounts } from "../enterprise-accounts.js";
 import {
   bootEnterprise,
@@ -38,7 +38,6 @@ import {
   createIssuer,
   issueKey,
   keysOf,
-  licenseClaims,
   policyRowsNaming,
   signIn,
   testClock,

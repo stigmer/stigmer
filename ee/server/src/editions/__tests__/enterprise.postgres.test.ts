@@ -53,7 +53,7 @@ import {
 } from "../../__test-utils__/enterprise-postgres.js";
 import { startLoopbackIssuer, type LoopbackIssuer } from "../../__test-utils__/loopback-issuer.js";
 import { LICENSE_RENEWAL_REQUIRED } from "../../license/growth.js";
-import { newTestSigner, writeTicket } from "../../license/__tests__/test-tickets.js";
+import { licenseClaims, newTestSigner, writeTicket } from "../../license/__tests__/test-tickets.js";
 import { composeEnterprise, ENTERPRISE_NEEDS_POSTGRES } from "../enterprise.js";
 import {
   bootEnterprise,
@@ -62,7 +62,6 @@ import {
   federatedToken,
   grant,
   issueKey,
-  licenseClaims,
   providerRequest,
   ref,
   refusalOf,

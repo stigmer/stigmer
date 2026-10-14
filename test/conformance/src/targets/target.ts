@@ -285,11 +285,22 @@ export interface CapabilityFlags {
   // the history is recorded for every organization, but reading it is the
   // Enterprise plan's, which is quoted and never seeded, so the suite's
   // organizations meet the plan gate (FAILED_PRECONDITION, reason
-  // PLAN_UPGRADE_REQUIRED, feature access_history). No target here serves
-  // the read itself; Enterprise's composed suite
+  // PLAN_UPGRADE_REQUIRED, feature access_history). `served` for
+  // enterprise: a licensed server keeps the history and answers its owner's
+  // read. What each entry records is pinned by Enterprise's composed suite
   // (ee/server/src/editions/__tests__/enterprise-access-history.postgres.test.ts)
-  // and the handler suite prove it.
-  accessHistory: "unimplemented" | "plan-upgrade-required";
+  // and the handler suite; the arm here pins the read on the wire.
+  accessHistory: "unimplemented" | "plan-upgrade-required" | "served";
+  // What getLicenseStatus answers on this target's primary.
+  //
+  // `absent` for the open-source targets and the Cloud: neither holds a
+  // license key, so the answer carries no claims and names no key.
+  // `licensed` for enterprise: its primary runs on a license the test entry
+  // signed (ee/server/test/conformance/licensed-server.ts), so the answer is
+  // `valid` with the ticket's claims and the key it was signed with. The
+  // other states (expiring, lapsed, invalid) are the license suites' and
+  // the composed suites' to drive.
+  licenseStatus: "absent" | "licensed";
   // The billing ENGINE is served here: the 8 RPCs of BillingCommandController
   // and BillingQueryController (the organization's billing account and its
   // Stripe customer, the usage meter the run reports read, the model catalog's
