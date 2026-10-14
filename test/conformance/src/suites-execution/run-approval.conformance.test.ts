@@ -523,6 +523,23 @@ describe("the session answers a waiting call, and stops its turns", () => {
     await awaitIdleWith(clients, sessionId, "end_turn");
   });
 
+  it("[rpc:SessionCommandController.confirmToolUse] refuses an answer once the asking turn has finished: FailedPrecondition, and nothing recorded", async () => {
+    const { org } = await target.provisionTenancy();
+    const { agentRef } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_confirm_finished", "hello")], { done: false });
+    const sessionId = sessionIdOf(gated);
+    const [toolUseId] = await awaitRequiresAction(clients, sessionId, 1);
+    await clients.sessionCommand.interrupt({ sessionId });
+    await awaitPhase(clients, executionId, RunPhase.RUN_CANCELLED);
+
+    await expectGrpcCode(
+      () => clients.sessionCommand.confirmToolUse({ sessionId, toolUseId: toolUseId!, result: "allow" }),
+      Code.FailedPrecondition,
+      "an answer to a finished turn's ask",
+    );
+    expect(await answersOf(clients, sessionId, executionId), "the refused answer is not in the log").toEqual([]);
+  });
+
   it("[rpc:SessionCommandController.interrupt] stops a paused turn", async () => {
     const { org } = await target.provisionTenancy();
     const { agentRef } = await provisionGatedAgent(org);

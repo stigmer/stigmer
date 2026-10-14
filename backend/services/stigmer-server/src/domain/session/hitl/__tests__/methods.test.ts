@@ -26,6 +26,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import {
@@ -52,6 +53,7 @@ import { EngineWorkflowNotFoundError } from "../../../run/engine.js";
 import type { Store } from "../../../../store/interface.js";
 import type { ExecutionEngineState } from "../../../run/engine.js";
 import { capturedSet } from "../../../run/__tests__/file-review-seed.js";
+import { updateStatus } from "../../../run/update-status.js";
 import type { RunStatusTransition } from "../../../../extensions/status-hooks.js";
 import { registerSessionServices } from "../../controller.js";
 import type { SessionControllerDeps } from "../../controller.js";
@@ -253,6 +255,9 @@ describe("confirmToolUse", () => {
       "session.status_running",
     ]);
     expect(signalled).toEqual([RUN]);
+    // The turn's file record holds a set no one has reviewed: review never
+    // holds the gate, which is the turn's asks alone (stigmer#1471).
+    expect((await stored()).status?.fileChanges.map((cs) => cs.id)).toEqual([`${RUN}:0`]);
     expect(slotAnswers.map((a) => [a.toolUseId, a.toolCallId, a.result, a.grant, a.run.metadata?.id])).toEqual([
       [use("tc-1"), "tc-1", "allow", false, RUN],
     ]);
@@ -598,6 +603,10 @@ describe("the answer core's edges", () => {
     expect(observed.map((t) => [t.oldPhase, t.newPhase, t.run.metadata?.id])).toEqual([
       [RunPhase.RUN_WAITING_FOR_APPROVAL, RunPhase.RUN_FAILED, RUN],
     ]);
+    expect(
+      (await logAfterAsks()).filter((line) => line.startsWith("user.tool_confirmation")),
+      "the answer stays in the session's log",
+    ).toEqual([`user.tool_confirmation ${use("tc-1")} allow`]);
   });
 
   it("a workflow that no longer runs fails the run; a fault saving that is logged and the refusal stands", async () => {
@@ -622,6 +631,36 @@ describe("the answer core's edges", () => {
     expect((await refusal(confirm(use("tc-1"), "allow", "", d))).code).toBe(Code.FailedPrecondition);
     expect(lines.join("")).toContain("Failed to reconcile stale execution status");
     expect((await stored()).status?.phase).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
+  });
+
+  it("a runner's status write racing an answer never loses it: the answer is recorded once and the gate clears", async () => {
+    // The runner keeps writing the waiting turn's status while a person
+    // answers; both go through the run's lock-serialized write.
+    const updateDeps = {
+      store: temp.store,
+      logger: silentLogger,
+      authorizer: newPermissiveSingleTeamAuthorizer(),
+      sessionEventBroker: new SessionEventBroker(silentLogger),
+      statusObservers: [],
+      responseDecorators: [],
+    };
+    for (let i = 0; i < 20; i++) {
+      const runId = `run_race_${i}`;
+      await seedWaiting([{ id: "tc-1", name: "write" }], { runId });
+      await Promise.all([
+        updateStatus(
+          updateDeps,
+          create(RunUpdateStatusInputSchema, { runId, status: { phase: RunPhase.RUN_WAITING_FOR_APPROVAL } }),
+          testCallerIdentity(),
+        ),
+        confirm(use("tc-1", runId), "allow"),
+      ]);
+      const answers = (await temp.store.sessionEvents.list(SESSION, { order: "asc", limit: 1000 }))
+        .map(eventOf)
+        .filter((event) => event.event.case === "userToolConfirmation" && event.event.value.toolUseId === use("tc-1", runId));
+      expect(answers, `iteration ${i}: answer lost or doubled`).toHaveLength(1);
+      expect(await openCalls(runId), `iteration ${i}: the gate stayed open`).toEqual([]);
+    }
   });
 
   it("an answer that a stop overtakes is refused under the lock, records nothing and signals nothing", async () => {
