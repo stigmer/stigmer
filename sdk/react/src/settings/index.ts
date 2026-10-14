@@ -15,6 +15,8 @@ export type { MembersSectionProps } from "./MembersSection.js";
 export { OrgProfileSection } from "./OrgProfileSection.js";
 export { OrgPreferencesSection } from "./OrgPreferencesSection.js";
 export { OrgPoliciesSection } from "./OrgPoliciesSection.js";
+export { OrgEmbeddingSection } from "./OrgEmbeddingSection.js";
+export type { OrgEmbeddingSectionProps } from "./OrgEmbeddingSection.js";
 export { AccountPreferencesSection } from "./AccountPreferencesSection.js";
 export { MemorySection } from "./MemorySection.js";
 export { VaultsSection } from "./VaultsSection.js";

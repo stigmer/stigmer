@@ -118,7 +118,7 @@ name a My vault (below):
 | A [Schedule](/docs/sdk/resources/schedule)                                                                   | The vaults on the schedule (the console names its creator's My vault by default) |
 | A [public share link](/docs/guides/sharing/share-an-agent)                                                   | The vaults on the share                                                          |
 | A [Slack](/docs/guides/channels/connect-slack) or [WhatsApp](/docs/guides/channels/connect-whatsapp) channel | The vaults on the channel                                                        |
-| A user signed in through an integrator's app                                                                 | The vaults on the app's PlatformClient                                           |
+| A user signed in from an integrator's product                                                                | The vaults in the Organization's embedding settings                              |
 
 A visitor on a share link brings no keys of their own: anything a visitor's
 request names is dropped, so the share's vaults are what its runs use. Each time
@@ -127,10 +127,10 @@ may still use it, so taking away someone's access stops every surface they
 attached the vault to.
 
 A My vault can be attached only to its owner's own Schedule, which the owner
-sets up for their own work. A conversation, a share, a channel and a
-PlatformClient refuse it, because a conversation can have several people and
-each person's own vault serves only their own messages: a conversation includes
-My vault instead, and each sender then uses their own.
+sets up for their own work. A conversation, a share, a channel and an
+Organization's embedding settings refuse it, because a conversation can have
+several people and each person's own vault serves only their own messages: a
+conversation includes My vault instead, and each sender then uses their own.
 
 While a Schedule names its owner's My vault, only the owner who created it may
 change what it runs, because its runs use that person's credentials. Anyone else

@@ -5,7 +5,7 @@
     "service-accounts",
     "access-history",
     "federation",
-    "platform-client",
+    "product-users",
     "customer-keys"
   ]
 }

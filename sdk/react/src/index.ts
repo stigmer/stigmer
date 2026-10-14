@@ -1250,6 +1250,8 @@ export {
   useUpdateOrganization,
   useUpdateOrganizationPolicies,
   organizationPoliciesOf,
+  useUpdateOrganizationEmbedding,
+  organizationEmbeddingOf,
   useRenameOrganization,
   useOrgSlugForId,
   useOrgIdForRef,
@@ -1259,6 +1261,8 @@ export {
   OrgProfilePanel,
   OrgPreferencesPanel,
   OrgPoliciesPanel,
+  OrgEmbeddingPanel,
+  formatSignInRole,
   OrgSwitcher,
   useChildOrganizations,
   ChildOrganizationsList,
@@ -1279,6 +1283,9 @@ export type {
   OrgPoliciesPanelProps,
   OrganizationPoliciesValue,
   UseUpdateOrganizationPoliciesReturn,
+  OrgEmbeddingPanelProps,
+  OrganizationEmbeddingValue,
+  UseUpdateOrganizationEmbeddingReturn,
   OrgSwitcherProps,
   UseChildOrganizationsOptions,
   UseChildOrganizationsReturn,
@@ -1431,7 +1438,8 @@ export { ApiKeysSection } from "./settings/index.js";
 export { MembersSection } from "./settings/index.js";
 export type { MembersSectionProps } from "./settings/index.js";
 export { OrgProfileSection } from "./settings/index.js";
-export { OrgPreferencesSection, OrgPoliciesSection } from "./settings/index.js";
+export { OrgPreferencesSection, OrgPoliciesSection, OrgEmbeddingSection } from "./settings/index.js";
+export type { OrgEmbeddingSectionProps } from "./settings/index.js";
 export { AccountPreferencesSection } from "./settings/index.js";
 export { MemorySection } from "./settings/index.js";
 export { VaultsSection } from "./settings/index.js";
