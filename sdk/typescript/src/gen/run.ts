@@ -205,6 +205,7 @@ export interface RunInput {
   conversationCatchup?: ConversationCatchupInput;
   pluginEvalCase?: PluginEvalCaseContextInput;
   reconcileFileReview?: boolean;
+  excludedPluginIds?: string[];
 }
 
 /** SDK input type for SessionSpec. */
@@ -450,6 +451,7 @@ export function buildRunProto(input: RunInput): Run {
     conversationCatchup,
     pluginEvalCase,
     reconcileFileReview: input.reconcileFileReview,
+    excludedPluginIds: input.excludedPluginIds,
   }));
   if (input.sessionId) {
     spec.target = { case: "sessionId", value: input.sessionId };
@@ -626,5 +628,6 @@ export function toRunInput(resource: Run): RunInput {
     conversationCatchup: spec.conversationCatchup ? toConversationCatchupInput(spec.conversationCatchup) : undefined,
     pluginEvalCase: spec.pluginEvalCase ? toPluginEvalCaseContextInput(spec.pluginEvalCase) : undefined,
     reconcileFileReview: spec.reconcileFileReview || undefined,
+    excludedPluginIds: spec.excludedPluginIds?.length ? [...spec.excludedPluginIds] : undefined,
   };
 }

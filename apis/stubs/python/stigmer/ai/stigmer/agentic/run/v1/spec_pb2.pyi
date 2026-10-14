@@ -16,7 +16,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class RunSpec(_message.Message):
-    __slots__ = ("session_id", "session_spec", "message", "run_config", "interaction_mode", "build_from_plan", "structured_output_schema", "tools", "disallowed_tools", "append_system_prompt", "auto_approve_all", "attachments", "workspace_file_refs", "supersedes_run_id", "conversation_catchup", "plugin_eval_case", "reconcile_file_review")
+    __slots__ = ("session_id", "session_spec", "message", "run_config", "interaction_mode", "build_from_plan", "structured_output_schema", "tools", "disallowed_tools", "append_system_prompt", "auto_approve_all", "attachments", "workspace_file_refs", "supersedes_run_id", "conversation_catchup", "plugin_eval_case", "reconcile_file_review", "excluded_plugin_ids")
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     SESSION_SPEC_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
@@ -34,6 +34,7 @@ class RunSpec(_message.Message):
     CONVERSATION_CATCHUP_FIELD_NUMBER: _ClassVar[int]
     PLUGIN_EVAL_CASE_FIELD_NUMBER: _ClassVar[int]
     RECONCILE_FILE_REVIEW_FIELD_NUMBER: _ClassVar[int]
+    EXCLUDED_PLUGIN_IDS_FIELD_NUMBER: _ClassVar[int]
     session_id: str
     session_spec: _spec_pb2.SessionSpec
     message: str
@@ -51,7 +52,8 @@ class RunSpec(_message.Message):
     conversation_catchup: ConversationCatchup
     plugin_eval_case: _plugin_eval_case_pb2.PluginEvalCaseContext
     reconcile_file_review: bool
-    def __init__(self, session_id: _Optional[str] = ..., session_spec: _Optional[_Union[_spec_pb2.SessionSpec, _Mapping]] = ..., message: _Optional[str] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., interaction_mode: _Optional[_Union[_enum_pb2.InteractionMode, str]] = ..., build_from_plan: bool = ..., structured_output_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ..., append_system_prompt: _Optional[str] = ..., auto_approve_all: bool = ..., attachments: _Optional[_Iterable[_Union[Attachment, _Mapping]]] = ..., workspace_file_refs: _Optional[_Iterable[str]] = ..., supersedes_run_id: _Optional[str] = ..., conversation_catchup: _Optional[_Union[ConversationCatchup, _Mapping]] = ..., plugin_eval_case: _Optional[_Union[_plugin_eval_case_pb2.PluginEvalCaseContext, _Mapping]] = ..., reconcile_file_review: bool = ...) -> None: ...
+    excluded_plugin_ids: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, session_id: _Optional[str] = ..., session_spec: _Optional[_Union[_spec_pb2.SessionSpec, _Mapping]] = ..., message: _Optional[str] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., interaction_mode: _Optional[_Union[_enum_pb2.InteractionMode, str]] = ..., build_from_plan: bool = ..., structured_output_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ..., append_system_prompt: _Optional[str] = ..., auto_approve_all: bool = ..., attachments: _Optional[_Iterable[_Union[Attachment, _Mapping]]] = ..., workspace_file_refs: _Optional[_Iterable[str]] = ..., supersedes_run_id: _Optional[str] = ..., conversation_catchup: _Optional[_Union[ConversationCatchup, _Mapping]] = ..., plugin_eval_case: _Optional[_Union[_plugin_eval_case_pb2.PluginEvalCaseContext, _Mapping]] = ..., reconcile_file_review: bool = ..., excluded_plugin_ids: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class Attachment(_message.Message):
     __slots__ = ("filename", "storage_key", "mount_path", "content_type", "extract", "local_path")
