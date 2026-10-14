@@ -75,9 +75,9 @@ Schedule schedule = client.schedules().get("sch_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | Method | Description |
 |--------|-------------|
 | [`get`](#get) | Get a single schedule by ID. |
-| [`getByAgent`](#getbyagent) | Get all schedules of a specific agent. |
 | [`getByReference`](#getbyreference) | Get a schedule by its organization-scoped reference (org/slug). |
 | [`list`](#list) | List schedules with optional label filtering. |
+| [`listByAgent`](#listbyagent) | List the schedules of a specific agent, newest first. |
 | [`listFires`](#listfires) | List a schedule's fire history, newest first. |
 | [`apply`](#apply) | Create or update a schedule. |
 | [`create`](#create) | Create a schedule. |
@@ -121,55 +121,6 @@ Schedule schedule = client.schedules().get(id);
 | `id` | `string` | Schedule identifier. |
 
 **Returns**: [`Schedule`](#schedule)
-
-### getByAgent
-
-Get all schedules of a specific agent. Returns only schedules the caller has access to.
-
-This is how the agent's operational surfaces and CLI resolve an agent's existing schedules regardless of slug.
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const result = await stigmer.schedule.getByAgent({
-  agentId: "...",
-  pageInfo: {},
-  org: "...",
-});
-```
-</Tab>
-<Tab value="Go">
-```go
-result, err := client.Schedule.GetByAgent(ctx, &stigmer.GetSchedulesByAgentRequest{
-  AgentId:  "...",
-  PageInfo: &stigmer.PageInfoInput{},
-  Org:      "...",
-})
-```
-</Tab>
-<Tab value="Python">
-```python
-result = client.schedules.get_by_agent(GetSchedulesByAgentRequest(
-    agent_id="...",
-    page_info=None,
-    org="...",
-))
-```
-</Tab>
-<Tab value="Java">
-```java
-ScheduleList result = client.schedules().getByAgent(GetSchedulesByAgentRequest.builder()
-    .agentId("...")
-    .pageInfo(null)
-    .org("...")
-    .build());
-```
-</Tab>
-</SDKTabs>
-
-**Parameters**: [`GetSchedulesByAgentRequest`](#getschedulesbyagentrequest)
-
-**Returns**: [`ScheduleList`](#schedulelist)
 
 ### getByReference
 
@@ -236,16 +187,18 @@ List schedules with optional label filtering.
 const result = await stigmer.schedule.list({
   org: "...",
   labels: {},
-  pageInfo: {},
+  pageSize: 0,
+  pageToken: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 result, err := client.Schedule.List(ctx, &stigmer.ListSchedulesRequest{
-  Org:      "...",
-  Labels:   map[string]string{},
-  PageInfo: &stigmer.PageInfoInput{},
+  Org:       "...",
+  Labels:    map[string]string{},
+  PageSize:  0,
+  PageToken: "...",
 })
 ```
 </Tab>
@@ -254,7 +207,8 @@ result, err := client.Schedule.List(ctx, &stigmer.ListSchedulesRequest{
 result = client.schedules.list(ListSchedulesRequest(
     org="...",
     labels={},
-    page_info=None,
+    page_size=0,
+    page_token="...",
 ))
 ```
 </Tab>
@@ -263,7 +217,8 @@ result = client.schedules.list(ListSchedulesRequest(
 ScheduleList result = client.schedules().list(ListSchedulesRequest.builder()
     .org("...")
     .labels(Map.of())
-    .pageInfo(null)
+    .pageSize(0)
+    .pageToken("...")
     .build());
 ```
 </Tab>
@@ -272,6 +227,63 @@ ScheduleList result = client.schedules().list(ListSchedulesRequest.builder()
 **Parameters**: [`ListSchedulesRequest`](#listschedulesrequest)
 
 **Returns**: [`ScheduleList`](#schedulelist)
+
+**Every page**: `listAll` (Go `ListAll`, Python `list_all`, Java `listAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
+
+### listByAgent
+
+List the schedules of a specific agent, newest first. Returns only schedules the caller has access to.
+
+This is how the agent's operational surfaces and CLI resolve an agent's existing schedules regardless of slug.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.schedule.listByAgent({
+  agentId: "...",
+  org: "...",
+  pageSize: 0,
+  pageToken: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.Schedule.ListByAgent(ctx, &stigmer.ListSchedulesByAgentRequest{
+  AgentId:   "...",
+  Org:       "...",
+  PageSize:  0,
+  PageToken: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.schedules.list_by_agent(ListSchedulesByAgentRequest(
+    agent_id="...",
+    org="...",
+    page_size=0,
+    page_token="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ScheduleList result = client.schedules().listByAgent(ListSchedulesByAgentRequest.builder()
+    .agentId("...")
+    .org("...")
+    .pageSize(0)
+    .pageToken("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListSchedulesByAgentRequest`](#listschedulesbyagentrequest)
+
+**Returns**: [`ScheduleList`](#schedulelist)
+
+**Every page**: `listByAgentAll` (Go `ListByAgentAll`, Python `list_by_agent_all`, Java `listByAgentAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### listFires
 
@@ -284,7 +296,8 @@ Every fire leaves a row — including fires that created no run (a refused launc
 ```typescript
 const result = await stigmer.schedule.listFires({
   scheduleId: "...",
-  pageInfo: {},
+  pageSize: 0,
+  pageToken: "...",
 });
 ```
 </Tab>
@@ -292,7 +305,8 @@ const result = await stigmer.schedule.listFires({
 ```go
 result, err := client.Schedule.ListFires(ctx, &stigmer.ListScheduleFiresRequest{
   ScheduleId: "...",
-  PageInfo:   &stigmer.PageInfoInput{},
+  PageSize:   0,
+  PageToken:  "...",
 })
 ```
 </Tab>
@@ -300,7 +314,8 @@ result, err := client.Schedule.ListFires(ctx, &stigmer.ListScheduleFiresRequest{
 ```python
 result = client.schedules.list_fires(ListScheduleFiresRequest(
     schedule_id="...",
-    page_info=None,
+    page_size=0,
+    page_token="...",
 ))
 ```
 </Tab>
@@ -308,7 +323,8 @@ result = client.schedules.list_fires(ListScheduleFiresRequest(
 ```java
 ScheduleFireList result = client.schedules().listFires(ListScheduleFiresRequest.builder()
     .scheduleId("...")
-    .pageInfo(null)
+    .pageSize(0)
+    .pageToken("...")
     .build());
 ```
 </Tab>
@@ -317,6 +333,8 @@ ScheduleFireList result = client.schedules().listFires(ListScheduleFiresRequest.
 **Parameters**: [`ListScheduleFiresRequest`](#listschedulefiresrequest)
 
 **Returns**: [`ScheduleFireList`](#schedulefirelist)
+
+**Every page**: `listFiresAll` (Go `ListFiresAll`, Python `list_fires_all`, Java `listFiresAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### apply
 
@@ -820,15 +838,16 @@ Result of manually triggering a schedule.
   }}
 />
 
-### GetSchedulesByAgentRequest
+### ListSchedulesByAgentRequest
 
 Input for retrieving all schedules of a specific agent.
 
 <TypeTable
   type={{
     agentId: { type: "string", description: "Identifier of the agent whose schedules to retrieve.", required: true },
-    pageInfo: { type: "PageInfoInput", description: "Pagination options." },
     org: { type: "string", description: "Organization slug to scope the results to." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -838,8 +857,8 @@ Response containing a paginated list of schedules.
 
 <TypeTable
   type={{
-    totalCount: { type: "number", description: "Total number of schedules matching the query." },
-    items: { type: "ScheduleInput[]", description: "Schedules in the current page.", typeDescriptionLink: "#scheduleinput" },
+    entries: { type: "ScheduleInput[]", description: "Schedules in the current page.", typeDescriptionLink: "#scheduleinput" },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
   }}
 />
 
@@ -851,7 +870,8 @@ Input for listing schedules within an organization.
   type={{
     org: { type: "string", description: "Organization slug to scope the listing." },
     labels: { type: "Record<string, string>", description: "Filter by metadata labels." },
-    pageInfo: { type: "PageInfoInput", description: "Pagination options." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -862,7 +882,8 @@ Input for listing a schedule's fire history.
 <TypeTable
   type={{
     scheduleId: { type: "string", description: "Schedule whose fires to list.", required: true },
-    pageInfo: { type: "PageInfoInput", description: "Pagination options." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -872,8 +893,8 @@ Response containing a paginated list of schedule fires, newest first.
 
 <TypeTable
   type={{
-    totalCount: { type: "number", description: "Total number of recorded fires for the schedule." },
-    items: { type: "ScheduleFireInput[]", description: "Fires in the current page." },
+    entries: { type: "ScheduleFireInput[]", description: "Fires in the current page." },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
   }}
 />
 

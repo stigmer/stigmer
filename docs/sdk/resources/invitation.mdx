@@ -42,7 +42,7 @@ Invitation invitation = client.invitations().get("inv_01j5q3k7m8r2s4tnz2hfp0q0c3
 |--------|-------------|
 | [`get`](#get) | Get an invitation by its unique identifier. |
 | [`getByToken`](#getbytoken) | Get a preview of an invitation by its shareable token. |
-| [`listByOrg`](#listbyorg) | List all invitations belonging to an organization. |
+| [`list`](#list) | List the invitations belonging to an organization. |
 | [`create`](#create) | Create an invitation link for an organization. |
 | [`redeem`](#redeem) | Redeem an invitation to join an organization. |
 | [`revoke`](#revoke) | Revoke an active invitation, preventing further redemptions. |
@@ -125,16 +125,16 @@ InvitationPreview invitationPreview = client.invitations().getByToken(Invitation
 
 **Returns**: [`InvitationPreview`](#invitationpreview)
 
-### listByOrg
+### list
 
-List all invitations belonging to an organization.
+List the invitations belonging to an organization.
 
 Returns invitations ordered by creation time (newest first).
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const invitations = await stigmer.invitation.listByOrg({
+const invitations = await stigmer.invitation.list({
   org: "...",
   pageSize: 0,
   pageToken: "...",
@@ -143,7 +143,7 @@ const invitations = await stigmer.invitation.listByOrg({
 </Tab>
 <Tab value="Go">
 ```go
-invitations, err := client.Invitation.ListByOrg(ctx, &stigmer.ListInvitationsByOrgInput{
+invitations, err := client.Invitation.List(ctx, &stigmer.ListInvitationsInput{
   Org:       "...",
   PageSize:  0,
   PageToken: "...",
@@ -152,7 +152,7 @@ invitations, err := client.Invitation.ListByOrg(ctx, &stigmer.ListInvitationsByO
 </Tab>
 <Tab value="Python">
 ```python
-invitations = client.invitations.list_by_org(ListInvitationsByOrgInput(
+invitations = client.invitations.list(ListInvitationsInput(
     org="...",
     page_size=0,
     page_token="...",
@@ -161,7 +161,7 @@ invitations = client.invitations.list_by_org(ListInvitationsByOrgInput(
 </Tab>
 <Tab value="Java">
 ```java
-Invitations invitations = client.invitations().listByOrg(ListInvitationsByOrgInput.builder()
+Invitations invitations = client.invitations().list(ListInvitationsInput.builder()
     .org("...")
     .pageSize(0)
     .pageToken("...")
@@ -170,9 +170,11 @@ Invitations invitations = client.invitations().listByOrg(ListInvitationsByOrgInp
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`ListInvitationsByOrgInput`](#listinvitationsbyorginput)
+**Parameters**: [`ListInvitationsInput`](#listinvitationsinput)
 
 **Returns**: [`Invitations`](#invitations)
+
+**Every page**: `listAll` (Go `ListAll`, Python `list_all`, Java `listAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### create
 
@@ -354,15 +356,15 @@ RedeemInvitationInput is the request to redeem an invitation.
   }}
 />
 
-### ListInvitationsByOrgInput
+### ListInvitationsInput
 
-ListInvitationsByOrgInput specifies the organization whose invitations should be returned, newest first.
+ListInvitationsInput specifies the organization whose invitations should be returned, newest first.
 
 <TypeTable
   type={{
     org: { type: "string", description: "Organization slug to list invitations for." },
-    pageSize: { type: "number", description: "The most invitations to return; 0 returns every invitation and no token." },
-    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -373,7 +375,7 @@ Invitations contains a list of invitation resources: one page of an organization
 <TypeTable
   type={{
     entries: { type: "InvitationInput[]", description: "Invitation entries.", typeDescriptionLink: "#invitationinput" },
-    nextPageToken: { type: "string", description: "Set when more invitations may follow: pass it as page_token to continue." },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
   }}
 />
 

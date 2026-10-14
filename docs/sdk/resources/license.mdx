@@ -113,6 +113,8 @@ List issued licenses, optionally for one customer.
 ```typescript
 const licenses = await stigmer.license.list({
   customerId: "...",
+  pageSize: 0,
+  pageToken: "...",
 });
 ```
 </Tab>
@@ -120,6 +122,8 @@ const licenses = await stigmer.license.list({
 ```go
 licenses, err := client.License.List(ctx, &stigmer.ListLicensesInput{
   CustomerId: "...",
+  PageSize:   0,
+  PageToken:  "...",
 })
 ```
 </Tab>
@@ -127,6 +131,8 @@ licenses, err := client.License.List(ctx, &stigmer.ListLicensesInput{
 ```python
 licenses = client.licenses.list(ListLicensesInput(
     customer_id="...",
+    page_size=0,
+    page_token="...",
 ))
 ```
 </Tab>
@@ -134,6 +140,8 @@ licenses = client.licenses.list(ListLicensesInput(
 ```java
 Licenses licenses = client.licenses().list(ListLicensesInput.builder()
     .customerId("...")
+    .pageSize(0)
+    .pageToken("...")
     .build());
 ```
 </Tab>
@@ -142,6 +150,8 @@ Licenses licenses = client.licenses().list(ListLicensesInput.builder()
 **Parameters**: [`ListLicensesInput`](#listlicensesinput)
 
 **Returns**: [`Licenses`](#licenses)
+
+**Every page**: `listAll` (Go `ListAll`, Python `list_all`, Java `listAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### create
 
@@ -287,6 +297,8 @@ ListLicensesInput selects which licenses to list.
 <TypeTable
   type={{
     customerId: { type: "string", description: "When set, only licenses issued to this customer (LicenseCustomer.id) are returned; every license otherwise." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -297,6 +309,7 @@ Licenses contains a list of license resources.
 <TypeTable
   type={{
     entries: { type: "LicenseInput[]", description: "License entries.", typeDescriptionLink: "#licenseinput" },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
   }}
 />
 

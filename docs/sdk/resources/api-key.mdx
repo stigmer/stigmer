@@ -49,8 +49,8 @@ ApiKey apiKey = client.apiKeys().get("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
 |--------|-------------|
 | [`get`](#get) | Get an API key by its unique identifier. |
 | [`getByKeyHash`](#getbykeyhash) | Get an API key by its hashed key value. |
-| [`findAll`](#findall) | List all API keys belonging to the authenticated user. |
-| [`findByAccount`](#findbyaccount) | List the API keys that speak for an identity account. |
+| [`list`](#list) | List all API keys belonging to the authenticated user. |
+| [`listByAccount`](#listbyaccount) | List the API keys that speak for an identity account. |
 | [`create`](#create) | Create an API key for the authenticated user. |
 | [`update`](#update) | Update an API key: the fields update_mask names change, every other field keeps its stored value. |
 | [`delete`](#delete) | Delete an API key. |
@@ -130,38 +130,54 @@ ApiKey apiKey = client.apiKeys().getByKeyHash(ApiKeyHash.builder()
 
 **Returns**: [`ApiKey`](#apikey)
 
-### findAll
+### list
 
 List all API keys belonging to the authenticated user.
 
-Returns only the keys that speak for the identity account in the auth header; a service account's keys are listed with findByAccount.
+Returns only the keys that speak for the identity account in the auth header; a service account's keys are listed with listByAccount.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const apiKeys = await stigmer.apiKey.findAll();
+const apiKeys = await stigmer.apiKey.list({
+  pageSize: 0,
+  pageToken: "...",
+});
 ```
 </Tab>
 <Tab value="Go">
 ```go
-apiKeys, err := client.ApiKey.FindAll(ctx)
+apiKeys, err := client.ApiKey.List(ctx, &stigmer.ListApiKeysInput{
+  PageSize:  0,
+  PageToken: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-api_keys = client.api_keys.find_all()
+api_keys = client.api_keys.list(ListApiKeysInput(
+    page_size=0,
+    page_token="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ApiKeys apiKeys = client.apiKeys().findAll();
+ApiKeys apiKeys = client.apiKeys().list(ListApiKeysInput.builder()
+    .pageSize(0)
+    .pageToken("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
+**Parameters**: [`ListApiKeysInput`](#listapikeysinput)
+
 **Returns**: [`ApiKeys`](#apikeys)
 
-### findByAccount
+**Every page**: `listAll` (Go `ListAll`, Python `list_all`, Java `listAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
+
+### listByAccount
 
 List the API keys that speak for an identity account.
 
@@ -172,33 +188,47 @@ Authorization: Requires can_view on the identity account.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const apiKeys = await stigmer.apiKey.findByAccount(id);
+const apiKeys = await stigmer.apiKey.listByAccount({
+  accountId: "...",
+  pageSize: 0,
+  pageToken: "...",
+});
 ```
 </Tab>
 <Tab value="Go">
 ```go
-apiKeys, err := client.ApiKey.FindByAccount(ctx, id)
+apiKeys, err := client.ApiKey.ListByAccount(ctx, &stigmer.ListApiKeysByAccountInput{
+  AccountId: "...",
+  PageSize:  0,
+  PageToken: "...",
+})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-api_keys = client.api_keys.find_by_account(id)
+api_keys = client.api_keys.list_by_account(ListApiKeysByAccountInput(
+    account_id="...",
+    page_size=0,
+    page_token="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ApiKeys apiKeys = client.apiKeys().findByAccount(id);
+ApiKeys apiKeys = client.apiKeys().listByAccount(ListApiKeysByAccountInput.builder()
+    .accountId("...")
+    .pageSize(0)
+    .pageToken("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | `string` | API Key identifier. |
+**Parameters**: [`ListApiKeysByAccountInput`](#listapikeysbyaccountinput)
 
 **Returns**: [`ApiKeys`](#apikeys)
+
+**Every page**: `listByAccountAll` (Go `ListByAccountAll`, Python `list_by_account_all`, Java `listByAccountAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### create
 
@@ -468,6 +498,17 @@ ApiKeyHash identifies an API key by its hashed key value.
   }}
 />
 
+### ListApiKeysInput
+
+Input for listing the caller's own API keys, newest first.
+
+<TypeTable
+  type={{
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
+  }}
+/>
+
 ### ApiKeys
 
 ApiKeys contains a list of API key resources.
@@ -475,6 +516,19 @@ ApiKeys contains a list of API key resources.
 <TypeTable
   type={{
     entries: { type: "ApiKeyInput[]", description: "API key entries.", typeDescriptionLink: "#apikeyinput" },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
+  }}
+/>
+
+### ListApiKeysByAccountInput
+
+Input for listing the API keys that speak for one identity account, newest first.
+
+<TypeTable
+  type={{
+    accountId: { type: "string", description: "The identity account whose keys are listed.", required: true },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 

@@ -50,7 +50,8 @@ Every resource type has a typed client accessible as a property on `StigmerClien
 ## Common Operations
 
 ```python
-from stigmer import StigmerClient, AgentInput, ListParams, ResourceRef, Page
+from ai.stigmer.agentic.agent.v1 import io_pb2 as agent_io_pb2
+from stigmer import StigmerClient, AgentInput, ResourceRef
 
 with StigmerClient("sk_live_abc123") as client:
     # Create
@@ -77,12 +78,13 @@ with StigmerClient("sk_live_abc123") as client:
     # Delete
     deleted = client.agents.delete("agent-id")
 
-    # List (search-backed)
-    results = client.agents.list(ListParams(
-        org="my-org",
-        query="customer",
-        page=Page(num=1, size=20),
-    ))
+    # List: one page of the org's agents, newest first. A page carries
+    # next_page_token while more follow; page_size 0 asks for the default 50.
+    page = client.agents.list(agent_io_pb2.ListAgentsRequest(org="my-org", page_size=20))
+
+    # Every agent, page after page: list_all follows the tokens.
+    for a in client.agents.list_all(agent_io_pb2.ListAgentsRequest(org="my-org")):
+        print(a.metadata.slug)
 ```
 
 ## Cross-Resource Search

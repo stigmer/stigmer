@@ -377,85 +377,90 @@ try {
 
 ## Pagination
 
-The lists that grow without bound (Sessions and runs) page
-by cursor, newest first. Pass `pageSize` (at most 100; zero
-returns the whole list) and read `nextPageToken` from the result. Pass that
-token back as `pageToken` to get the next page. An empty token means you have
-the whole list. A page can hold fewer entries than `pageSize` and still carry a
-token, so keep going until the token is empty. The server does not count pages:
-`totalPages` is 1 on the last page and 0 while a token follows.
+Every list pages one way. A request takes `pageSize` and `pageToken`; a
+response carries `entries` and `nextPageToken`, newest first. A `pageSize` of 0
+asks for the default page of 50, and a size above 100 is read as 100. Pass a
+response's `nextPageToken` back as `pageToken` to get the next page; an empty
+token means the list is done. A page can hold fewer entries than `pageSize`,
+even none, and still carry a token, so keep going until the token is empty.
+Lists do not count their entries: a list says whether more follow, not how
+many there are.
 
-Other list methods page by number through `pageInfo`, as their reference pages
-show.
+Every list method has a page iterator beside it that follows the tokens for
+you: `list` has `listAll`, `listByAgent` has `listByAgentAll`, and so on
+(`ListAll` in Go, `list_all` in Python). Breaking out of the loop stops the
+reads.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-let pageToken = "";
-do {
-  const page = await stigmer.session.list({ org: "acme", pageSize: 25, pageToken });
-  for (const session of page.entries) {
-    console.log(session.metadata?.name);
-  }
-  pageToken = page.nextPageToken;
-} while (pageToken !== "");
+for await (const session of stigmer.session.listAll({ org: "acme" })) {
+  console.log(session.metadata?.name);
+}
+
+// Or one page at a time:
+const page = await stigmer.session.list({ org: "acme", pageSize: 25 });
+const next = await stigmer.session.list({ org: "acme", pageSize: 25, pageToken: page.nextPageToken });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-pageToken := ""
-for {
-    page, err := client.Session.List(ctx, &stigmer.ListSessionsRequest{
-        Org:       "acme",
-        PageSize:  25,
-        PageToken: pageToken,
-    })
+for s, err := range client.Session.ListAll(ctx, &sessionv1.ListSessionsRequest{Org: "acme"}) {
     if err != nil {
         log.Fatal(err)
     }
-    for _, s := range page.GetEntries() {
-        fmt.Println(s.GetMetadata().GetName())
-    }
-    pageToken = page.GetNextPageToken()
-    if pageToken == "" {
-        break
-    }
+    fmt.Println(s.GetMetadata().GetName())
 }
+
+// Or one page at a time:
+page, err := client.Session.List(ctx, &sessionv1.ListSessionsRequest{Org: "acme", PageSize: 25})
+if err != nil {
+    log.Fatal(err)
+}
+next, err := client.Session.List(ctx, &sessionv1.ListSessionsRequest{
+    Org:       "acme",
+    PageSize:  25,
+    PageToken: page.GetNextPageToken(),
+})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-page_token = ""
-while True:
-    page = client.sessions.list(ListSessionsRequest(
-        org="acme",
-        page_size=25,
-        page_token=page_token,
-    ))
-    for session in page.entries:
-        print(session.metadata.name)
-    page_token = page.next_page_token
-    if not page_token:
-        break
+from ai.stigmer.agentic.session.v1 import io_pb2
+
+for session in client.sessions.list_all(io_pb2.ListSessionsRequest(org="acme")):
+    print(session.metadata.name)
+
+# Or one page at a time:
+page = client.sessions.list(io_pb2.ListSessionsRequest(org="acme", page_size=25))
+next_page = client.sessions.list(io_pb2.ListSessionsRequest(
+    org="acme",
+    page_size=25,
+    page_token=page.next_page_token,
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-var pageToken = "";
-do {
-    var page = client.session.list(ListSessionsRequest.builder()
-        .org("acme")
-        .pageSize(25)
-        .pageToken(pageToken)
-        .build());
-    for (var session : page.getEntries()) {
-        System.out.println(session.getMetadata().getName());
-    }
-    pageToken = page.getNextPageToken();
-} while (!pageToken.isEmpty());
+import ai.stigmer.agentic.session.v1.ListSessionsRequest;
+
+for (var session : client.session.listAll(ListSessionsRequest.newBuilder().setOrg("acme").build())) {
+    System.out.println(session.getMetadata().getName());
+}
+
+// Or one page at a time:
+var page = client.session.list(ListSessionsRequest.newBuilder().setOrg("acme").setPageSize(25).build());
+var next = client.session.list(ListSessionsRequest.newBuilder()
+    .setOrg("acme")
+    .setPageSize(25)
+    .setPageToken(page.getNextPageToken())
+    .build());
 ```
 </Tab>
 </SDKTabs>
+
+`sessionv1` is
+`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1`.
 
 ## Streaming
 

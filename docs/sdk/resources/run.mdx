@@ -133,8 +133,6 @@ const getAgentUsageReportOutput = await stigmer.run.getAgentUsageReport({
   agentId: "...",
   fromDate: "...",
   toDate: "...",
-  pageSize: 0,
-  pageToken: "...",
   org: "...",
 });
 ```
@@ -142,12 +140,10 @@ const getAgentUsageReportOutput = await stigmer.run.getAgentUsageReport({
 <Tab value="Go">
 ```go
 getAgentUsageReportOutput, err := client.Run.GetAgentUsageReport(ctx, &stigmer.GetAgentUsageReportInput{
-  AgentId:   "...",
-  FromDate:  "...",
-  ToDate:    "...",
-  PageSize:  0,
-  PageToken: "...",
-  Org:       "...",
+  AgentId:  "...",
+  FromDate: "...",
+  ToDate:   "...",
+  Org:      "...",
 })
 ```
 </Tab>
@@ -157,8 +153,6 @@ get_agent_usage_report_output = client.runs.get_agent_usage_report(GetAgentUsage
     agent_id="...",
     from_date="...",
     to_date="...",
-    page_size=0,
-    page_token="...",
     org="...",
 ))
 ```
@@ -169,8 +163,6 @@ GetAgentUsageReportOutput getAgentUsageReportOutput = client.runs().getAgentUsag
     .agentId("...")
     .fromDate("...")
     .toDate("...")
-    .pageSize(0)
-    .pageToken("...")
     .org("...")
     .build());
 ```
@@ -516,6 +508,8 @@ RunList result = client.runs().list(ListRunsRequest.builder()
 
 **Returns**: [`RunList`](#runlist)
 
+**Every page**: `listAll` (Go `ListAll`, Python `list_all`, Java `listAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
+
 ### listBySession
 
 List all runs in a specific session.
@@ -562,6 +556,8 @@ RunList result = client.runs().listBySession(ListRunsBySessionRequest.builder()
 **Parameters**: [`ListRunsBySessionRequest`](#listrunsbysessionrequest)
 
 **Returns**: [`RunList`](#runlist)
+
+**Every page**: `listBySessionAll` (Go `ListBySessionAll`, Python `list_by_session_all`, Java `listBySessionAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### subscribe
 
@@ -1596,7 +1592,7 @@ ListRunsRequest specifies parameters for listing runs.
 
 <TypeTable
   type={{
-    pageSize: { type: "number", description: "The most runs to return, at most 100; zero returns them all." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
     pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
     phase: { type: "RunPhase", description: "Filter by run phase (optional).", typeDescriptionLink: "#runphase" },
     tags: { type: "string[]", description: "Filter by tags (optional)." },
@@ -1610,21 +1606,20 @@ RunList contains one page of runs, newest first.
 
 <TypeTable
   type={{
-    totalPages: { type: "number", description: "Not computed for this list: 1 when the response holds every run, 0 when next_page_token is set." },
     entries: { type: "RunInput[]", description: "Runs in this page, newest first.", typeDescriptionLink: "#runinput" },
-    nextPageToken: { type: "string", description: "Set when more runs may follow: pass it as page_token to continue." },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
   }}
 />
 
 ### ListRunsBySessionRequest
 
-ListRunsBySessionRequest lists all runs in a session.
+ListRunsBySessionRequest lists the runs of a session, newest first, one page at a time.
 
 <TypeTable
   type={{
     sessionId: { type: "string", description: "Session ID to filter by.", required: true },
-    pageSize: { type: "number", description: "Not read: a session's runs are returned whole." },
-    pageToken: { type: "string", description: "Not read: a session's runs are returned whole." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -1734,8 +1729,6 @@ GetAgentUsageReportInput requests a usage report for a specific agent within one
     agentId: { type: "string", description: "Agent ID to get usage report for." },
     fromDate: { type: "string", description: "Start of the time range, inclusive: a UTC calendar day (\"2026-03-01\", from its first instant) or an RFC 3339 instant." },
     toDate: { type: "string", description: "End of the time range, inclusive: a UTC calendar day (\"2026-03-13\", through its last instant) or an RFC 3339 instant." },
-    pageSize: { type: "number", description: "Maximum number of sessions to return per page." },
-    pageToken: { type: "string", description: "Token for pagination, obtained from previous response." },
     org: { type: "string", description: "Organization scope for the report: usage of this agent within this organization." },
   }}
 />
@@ -1753,7 +1746,6 @@ GetAgentUsageReportOutput returns aggregated usage for an agent.
     sessions: { type: "SessionUsageSummaryInput[]", description: "Per-session breakdown within the time range." },
     totalSessions: { type: "number", description: "Total number of sessions within the time range." },
     totalRuns: { type: "number", description: "Total number of runs within the time range." },
-    nextPageToken: { type: "string", description: "Token for the next page of sessions (empty if no more pages)." },
   }}
 />
 

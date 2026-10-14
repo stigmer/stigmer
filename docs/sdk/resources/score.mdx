@@ -70,8 +70,8 @@ Score score = client.scores().get("scr_01j5q3k7m8r2s4tnz2hfp0q0c3");
 |--------|-------------|
 | [`get`](#get) | Get a single score by ID. |
 | [`getAgentQualityReport`](#getagentqualityreport) | Get how one agent's runs in an organization went: grades counted in total, per day and per agent version. |
-| [`listByRun`](#listbyrun) | List every score of a run. |
-| [`listBySession`](#listbysession) | List every score of every run in a session. |
+| [`listByRun`](#listbyrun) | List the scores of a run, newest first. |
+| [`listBySession`](#listbysession) | List the scores of every run in a session, newest first. |
 | [`listFlaggedByAgent`](#listflaggedbyagent) | List the failed grades of one agent's runs in an organization, newest first: a failed health check, a failed judge verdict or a thumbs down. |
 | [`create`](#create) | Create a score on a completed run. |
 | [`update`](#update) | Update a score: the fields update_mask names change, every other field keeps its stored value. |
@@ -163,20 +163,24 @@ AgentQualityReport agentQualityReport = client.scores().getAgentQualityReport(Ge
 
 ### listByRun
 
-List every score of a run.
+List the scores of a run, newest first.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.score.listByRun({
   runId: "...",
+  pageSize: 0,
+  pageToken: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 result, err := client.Score.ListByRun(ctx, &stigmer.ListScoresByRunRequest{
-  RunId: "...",
+  RunId:     "...",
+  PageSize:  0,
+  PageToken: "...",
 })
 ```
 </Tab>
@@ -184,6 +188,8 @@ result, err := client.Score.ListByRun(ctx, &stigmer.ListScoresByRunRequest{
 ```python
 result = client.scores.list_by_run(ListScoresByRunRequest(
     run_id="...",
+    page_size=0,
+    page_token="...",
 ))
 ```
 </Tab>
@@ -191,6 +197,8 @@ result = client.scores.list_by_run(ListScoresByRunRequest(
 ```java
 ScoreList result = client.scores().listByRun(ListScoresByRunRequest.builder()
     .runId("...")
+    .pageSize(0)
+    .pageToken("...")
     .build());
 ```
 </Tab>
@@ -200,15 +208,19 @@ ScoreList result = client.scores().listByRun(ListScoresByRunRequest.builder()
 
 **Returns**: [`ScoreList`](#scorelist)
 
+**Every page**: `listByRunAll` (Go `ListByRunAll`, Python `list_by_run_all`, Java `listByRunAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
+
 ### listBySession
 
-List every score of every run in a session.
+List the scores of every run in a session, newest first.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
 const result = await stigmer.score.listBySession({
   sessionId: "...",
+  pageSize: 0,
+  pageToken: "...",
 });
 ```
 </Tab>
@@ -216,6 +228,8 @@ const result = await stigmer.score.listBySession({
 ```go
 result, err := client.Score.ListBySession(ctx, &stigmer.ListScoresBySessionRequest{
   SessionId: "...",
+  PageSize:  0,
+  PageToken: "...",
 })
 ```
 </Tab>
@@ -223,6 +237,8 @@ result, err := client.Score.ListBySession(ctx, &stigmer.ListScoresBySessionReque
 ```python
 result = client.scores.list_by_session(ListScoresBySessionRequest(
     session_id="...",
+    page_size=0,
+    page_token="...",
 ))
 ```
 </Tab>
@@ -230,6 +246,8 @@ result = client.scores.list_by_session(ListScoresBySessionRequest(
 ```java
 ScoreList result = client.scores().listBySession(ListScoresBySessionRequest.builder()
     .sessionId("...")
+    .pageSize(0)
+    .pageToken("...")
     .build());
 ```
 </Tab>
@@ -238,6 +256,8 @@ ScoreList result = client.scores().listBySession(ListScoresBySessionRequest.buil
 **Parameters**: [`ListScoresBySessionRequest`](#listscoresbysessionrequest)
 
 **Returns**: [`ScoreList`](#scorelist)
+
+**Every page**: `listBySessionAll` (Go `ListBySessionAll`, Python `list_by_session_all`, Java `listBySessionAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### listFlaggedByAgent
 
@@ -295,6 +315,8 @@ ScoreList result = client.scores().listFlaggedByAgent(ListFlaggedScoresByAgentRe
 **Parameters**: [`ListFlaggedScoresByAgentRequest`](#listflaggedscoresbyagentrequest)
 
 **Returns**: [`ScoreList`](#scorelist)
+
+**Every page**: `listFlaggedByAgentAll` (Go `ListFlaggedByAgentAll`, Python `list_flagged_by_agent_all`, Java `listFlaggedByAgentAll`) takes the same input and yields every entry, following `nextPageToken` from the token the input names.
 
 ### create
 
@@ -524,11 +546,13 @@ The changes an update makes to a score: the fields update_mask names, taken from
 
 ### ListScoresByRunRequest
 
-ListScoresByRunRequest lists every score of one run.
+ListScoresByRunRequest lists the scores of one run, newest first.
 
 <TypeTable
   type={{
     runId: { type: "string", description: "ID of the run whose scores to list." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -538,19 +562,20 @@ ScoreList is a list of scores.
 
 <TypeTable
   type={{
-    totalCount: { type: "number", description: "Number of scores in this response." },
-    items: { type: "ScoreInput[]", description: "The scores, newest first.", typeDescriptionLink: "#scoreinput" },
-    nextPageToken: { type: "string", description: "Set when more scores may follow: pass it as page_token to continue." },
+    entries: { type: "ScoreInput[]", description: "The scores, newest first.", typeDescriptionLink: "#scoreinput" },
+    nextPageToken: { type: "string", description: "Set when more entries may follow: pass it as page_token to continue." },
   }}
 />
 
 ### ListScoresBySessionRequest
 
-ListScoresBySessionRequest lists every score of every run in a session.
+ListScoresBySessionRequest lists the scores of every run in a session, newest first.
 
 <TypeTable
   type={{
     sessionId: { type: "string", description: "ID of the session whose runs' scores to list." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />
 
@@ -590,7 +615,7 @@ ListFlaggedScoresByAgentRequest lists the failed grades of one agent's runs in o
     org: { type: "string", description: "Organization whose runs are listed." },
     agentId: { type: "string", description: "ID of the agent whose runs are listed." },
     days: { type: "number", description: "How many days to look back, ending today, from 1 to 90." },
-    pageSize: { type: "number", description: "The most scores to return, at most 100; zero returns a page of 100." },
+    pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
     pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
   }}
 />

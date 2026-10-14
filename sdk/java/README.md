@@ -88,6 +88,8 @@ name, description and external id while keeping the entries as stored.
 import ai.stigmer.sdk.StigmerClient;
 import ai.stigmer.sdk.gen.*;
 import ai.stigmer.agentic.agent.v1.Agent;
+import ai.stigmer.agentic.agent.v1.AgentList;
+import ai.stigmer.agentic.agent.v1.ListAgentsRequest;
 
 try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
     // Create
@@ -118,12 +120,17 @@ try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
     // Delete
     client.agent.delete(agent.getMetadata().getId());
 
-    // List (search-backed)
-    ListResult results = client.agent.list(ListParams.builder()
-        .org("my-org")
-        .query("customer")
-        .page(Page.of(1, 20))
+    // List: one page of the org's agents, newest first. A page carries a
+    // next page token while more follow; page size 0 asks for the default 50.
+    AgentList page = client.agent.list(ListAgentsRequest.newBuilder()
+        .setOrg("my-org")
+        .setPageSize(20)
         .build());
+
+    // Every agent, page after page: listAll follows the tokens.
+    for (Agent a : client.agent.listAll(ListAgentsRequest.newBuilder().setOrg("my-org").build())) {
+        System.out.println(a.getMetadata().getSlug());
+    }
 }
 ```
 

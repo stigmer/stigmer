@@ -118,12 +118,15 @@ const updated = await stigmer.agent.update(
 // Delete
 const deleted = await stigmer.agent.delete("agent-id");
 
-// List (search-backed)
-const results = await stigmer.agent.list({
-  org: "my-org",
-  query: "customer",
-  page: { num: 1, size: 20 },
-});
+// List: one page of the org's agents, newest first. A page carries
+// nextPageToken while more follow; pageSize 0 asks for the default 50.
+const page = await stigmer.agent.list({ org: "my-org", pageSize: 20 });
+const next = await stigmer.agent.list({ org: "my-org", pageSize: 20, pageToken: page.nextPageToken });
+
+// Every agent, page after page: listAll follows the tokens.
+for await (const a of stigmer.agent.listAll({ org: "my-org" })) {
+  console.log(a.metadata?.slug);
+}
 ```
 
 ### Cross-resource search

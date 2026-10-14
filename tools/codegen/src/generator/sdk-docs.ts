@@ -19,7 +19,10 @@ import {
   isIDType,
   isSpecialType,
   isUpdateInputType,
+  pageIteratorName,
+  pagedListOf,
   pascalToSnake,
+  sdkMethodName,
   tsClientFieldName,
   tsMethodName,
   tsProtoFieldName,
@@ -433,6 +436,9 @@ function docWriteMethodsWithCommons(
 
   for (const m of methods) {
     docWriteMethodWithCommons(buf, m, cfg, names, hasInputType, documentedTypes, specSchema, methodTypeMap, commonsTypes);
+    if (pagedListOf(schema, m) !== undefined) {
+      docWritePageIterator(buf, m);
+    }
   }
 }
 
@@ -811,14 +817,24 @@ function docFormatInputJava(fields: DocFieldEntry[]): string {
 // Method collection, ordering, and overview table
 // =========================================================================
 
+// Methods under their SDK names: one client serves every service of a
+// resource package, so a renamed method is documented as callers call it.
 function docCollectMethods(schema: ServiceSchemaFile): MethodSchema[] {
   const methods: MethodSchema[] = [];
   for (const svc of schema.services) {
     for (const m of svc.methods) {
-      methods.push(m);
+      methods.push({ ...m, name: sdkMethodName(svc, m) });
     }
   }
   return methods;
+}
+
+// The page iterator every SDK emits beside a paged list.
+function docWritePageIterator(buf: string[], m: MethodSchema): void {
+  const all = pageIteratorName(m.name);
+  buf.push(
+    `**Every page**: \`${tsMethodName(all)}\` (Go \`${all}\`, Python \`${pascalToSnake(all)}\`, Java \`${tsMethodName(all)}\`) takes the same input and yields every entry, following \`nextPageToken\` from the token the input names.\n\n`,
+  );
 }
 
 // Queries first, then mutations, lifecycle operations, and utilities last.
