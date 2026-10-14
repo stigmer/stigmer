@@ -42,6 +42,10 @@ const ENTERPRISE_MATRIX: CapabilityFlags = {
   membershipOnArrival: false,
   cursorRunsAdmitted: true,
   licenseStatus: "licensed",
+  teams: "served",
+  invitations: true,
+  federationIssuers: true,
+  outboundEgress: "relaxed",
 };
 
 describe("the enterprise target's capability flags", () => {

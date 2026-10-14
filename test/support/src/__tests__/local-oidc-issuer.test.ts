@@ -20,6 +20,13 @@
 // `aud` = the client, `nonce` echoed) and, for `offline_access`, a refresh
 // token; /end-session exists only when asked for, so both of the console's
 // sign-out arms are drivable; every browser-facing document answers CORS.
+//
+// Under the `tls` option the issuer is an outside provider a server reads
+// over HTTPS: it spells itself `https://`, and a client that trusts the
+// certificate it was handed reads its discovery document and key set. The
+// certificate is the runner's loopback one, imported by path as the
+// conformance harness imports the runner's sources; the issuer itself
+// mints none.
 import {
   createHash,
   createPublicKey,
@@ -27,8 +34,11 @@ import {
   randomBytes,
 } from "node:crypto";
 
+import { get as httpsGet } from "node:https";
+
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { mintLoopbackCertificate } from "../../../../backend/services/runner/src/agent-proxy/loopback-certificate.ts";
 import {
   startLocalOidcIssuer,
   type LocalOidcIssuer,
@@ -374,5 +384,59 @@ describe("local OIDC issuer", () => {
 
   it("answers 404 for anything else", async () => {
     expect((await fetch(`${issuer.issuer}/nowhere`)).status).toBe(404);
+  });
+
+  it("mints for another audience when the caller names one, and for its own otherwise", async () => {
+    const other = await issuer.mint({ sub: "auth0|aud", email: "aud@example.com", audience: "stigmer:acme" });
+    expect(decodeClaims(other).aud).toBe("stigmer:acme");
+    const own = await issuer.mint({ sub: "auth0|aud", email: "aud@example.com" });
+    expect(decodeClaims(own).aud).toBe(issuer.audience);
+  });
+});
+
+/** GET over HTTPS trusting exactly `ca`; answers the status and the parsed body. */
+function getTrusting(url: string, ca: string): Promise<{ status: number; body: Record<string, unknown> }> {
+  return new Promise((resolve, reject) => {
+    httpsGet(url, { ca }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (chunk: Buffer) => chunks.push(chunk));
+      res.on("end", () => {
+        resolve({
+          status: res.statusCode ?? 0,
+          body: JSON.parse(Buffer.concat(chunks).toString("utf8")) as Record<string, unknown>,
+        });
+      });
+      res.on("error", reject);
+    }).on("error", reject);
+  });
+}
+
+describe("local OIDC issuer over TLS", () => {
+  const certificate = mintLoopbackCertificate();
+  let tlsIssuer: LocalOidcIssuer;
+
+  beforeAll(async () => {
+    tlsIssuer = await startLocalOidcIssuer({ tls: certificate });
+  });
+
+  afterAll(async () => {
+    await tlsIssuer.close();
+  });
+
+  it("spells itself https and serves its discovery document and key set to a client that trusts its certificate", async () => {
+    expect(tlsIssuer.issuer).toMatch(/^https:\/\/127\.0\.0\.1:\d+$/);
+    const discovery = await getTrusting(`${tlsIssuer.issuer}/.well-known/openid-configuration`, certificate.certPem);
+    expect(discovery.status).toBe(200);
+    expect(discovery.body.issuer).toBe(tlsIssuer.issuer);
+    expect(discovery.body.jwks_uri).toBe(`${tlsIssuer.issuer}/jwks`);
+    const jwks = await getTrusting(`${tlsIssuer.issuer}/jwks`, certificate.certPem);
+    expect(jwks.status).toBe(200);
+    expect(jwks.body.keys).toHaveLength(1);
+    expect(decodeClaims(await tlsIssuer.mint({ sub: "auth0|tls", email: "tls@example.com" })).iss).toBe(tlsIssuer.issuer);
+  });
+
+  it("is refused by a client that does not trust its certificate", async () => {
+    const other = mintLoopbackCertificate();
+    await expect(getTrusting(`${tlsIssuer.issuer}/jwks`, other.certPem)).rejects.toThrow();
   });
 });

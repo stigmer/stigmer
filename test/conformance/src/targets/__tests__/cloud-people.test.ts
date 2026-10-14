@@ -6,8 +6,11 @@
 // the tenancy by the organization's id and the account the first login made,
 // and teardown forgets the tenant. The Managed Agents lane is served on the
 // address the target dials, for its primary and its enforcing lane alike,
-// and the execution target answers its inner target's. The readiness probe
-// and the clients are stubbed; nothing here starts a server.
+// and the execution target answers its inner target's. Its sign-in issuer is
+// the tenant's; a teams tenancy is the plain one moved to the Team plan over
+// the webhook lane, released when the move fails, and keyed on the execution
+// target. The readiness probe, the plan move and the clients are stubbed;
+// nothing here starts a server.
 import { generateKeyPairSync } from "node:crypto";
 
 import { create } from "@bufbuild/protobuf";
@@ -21,6 +24,16 @@ import { CloudExecutionTarget } from "../cloud-execution";
 
 vi.mock("../../harness/grpc-ready", () => ({ awaitGrpcReady: async () => {} }));
 
+// The plan move is its own unit's (harness/__tests__/plan-move.test.ts);
+// here it records what the target asked of it, and fails when told to.
+const planMoves = vi.hoisted(() => ({ calls: [] as Array<{ webhook: unknown; org: string }>, fail: false }));
+vi.mock("../../harness/plan-move", () => ({
+  moveToTeamPlan: async (_owner: unknown, webhook: unknown, org: string) => {
+    planMoves.calls.push({ webhook, org });
+    if (planMoves.fail) throw new Error("the catalog lists no 'team' plan");
+  },
+}));
+
 const ORG_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
 const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
 const TENANT_ENV: Record<string, string> = {
@@ -32,6 +45,8 @@ const TENANT_ENV: Record<string, string> = {
   ).toString("base64"),
   [CLOUD_ENV.directLoginKid]: "tenant-key",
   [CLOUD_ENV.directLoginApiAudience]: "https://api.example.test",
+  [CLOUD_ENV.stripeWebhookAddress]: "http://127.0.0.1:7",
+  [CLOUD_ENV.stripeWebhookSecret]: "whsec_conformance",
 };
 
 function subjectOf(token: string): string {
@@ -251,6 +266,66 @@ describe("the cloud target's people", () => {
     await expect(lane.unprovisionedCaller?.()).rejects.toThrow(
       "CloudTarget.setup() must be called before enforcingLane()",
     );
+  });
+
+  it("names the tenant's issuer as the issuer its people sign in with, on both cloud targets", async () => {
+    expect(() => new CloudTarget().signInIssuer()).toThrow(
+      "CloudTarget.setup() must be called before signInIssuer()",
+    );
+    const target = new CloudTarget();
+    primaryStub(target);
+    await target.setup();
+    expect(target.signInIssuer()).toBe(TENANT_ENV[CLOUD_ENV.directLoginIssuer]);
+
+    const execution = new CloudExecutionTarget();
+    const inner = (execution as unknown as { cloud: CloudTarget }).cloud;
+    vi.spyOn(inner, "signInIssuer").mockReturnValue("https://inner.example.test/");
+    expect(execution.signInIssuer()).toBe("https://inner.example.test/");
+  });
+
+  it("gates teams by plan and dials user-supplied addresses strictly", () => {
+    const { capabilities } = new CloudTarget();
+    expect(capabilities.teams).toBe("plan-gated");
+    expect(capabilities.invitations).toBe(true);
+    expect(capabilities.federationIssuers).toBe(true);
+    expect(capabilities.outboundEgress).toBe("strict");
+    expect(new CloudExecutionTarget().capabilities).toEqual(capabilities);
+  });
+
+  it("moves a teams tenancy's organization to the Team plan over the environment's webhook lane, and releases it when the move fails", async () => {
+    planMoves.calls.length = 0;
+    planMoves.fail = false;
+    const target = new CloudTarget();
+    const deleted: unknown[] = [];
+    primaryStub(target, {
+      organizationCommand: {
+        create: async () => ({ metadata: { slug: "conformance-acme", id: ORG_ID } }),
+        delete: async (input: unknown) => (deleted.push(input), {}),
+      },
+    });
+    await target.setup();
+
+    expect(await target.provisionTeamsTenancy()).toEqual({ org: ORG_ID });
+    expect(planMoves.calls).toEqual([
+      { webhook: { baseUrl: "http://127.0.0.1:7", signingSecret: "whsec_conformance" }, org: ORG_ID },
+    ]);
+    expect(deleted).toEqual([]);
+
+    planMoves.fail = true;
+    await expect(target.provisionTeamsTenancy()).rejects.toThrow("the catalog lists no 'team' plan");
+    expect(deleted).toEqual([{ value: ORG_ID }]);
+    planMoves.fail = false;
+  });
+
+  it("keys the execution target's teams tenancy, as every tenancy there", async () => {
+    const execution = new CloudExecutionTarget();
+    const inner = (execution as unknown as { cloud: CloudTarget }).cloud;
+    vi.spyOn(inner, "provisionTeamsTenancy").mockResolvedValue({ org: ORG_ID });
+    const keyed: string[] = [];
+    vi.spyOn(inner, "keyTenancy").mockImplementation(async (org: string) => void keyed.push(org));
+
+    expect(await execution.provisionTeamsTenancy()).toEqual({ org: ORG_ID });
+    expect(keyed).toEqual([ORG_ID]);
   });
 
   it("forgets the tenant at teardown", async () => {

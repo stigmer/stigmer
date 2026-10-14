@@ -20,7 +20,7 @@ import { LocalPostgresExecutionTarget, LocalPostgresTarget } from "../local-post
 // The surfaces only an edition above open source composes: the Cloud's own,
 // and the ones Enterprise shares with it (many organizations, federation,
 // per-resource grants). Each is false on every open-source target, by the
-// edition boundary, not as a gap.
+// edition boundary, not as a gap. Teams are an enum, pinned beside them.
 const ABOVE_OPEN_SOURCE: ReadonlyArray<keyof CapabilityFlags> = [
   "multiTenant",
   "channelMessaging",
@@ -31,6 +31,8 @@ const ABOVE_OPEN_SOURCE: ReadonlyArray<keyof CapabilityFlags> = [
   "publicLane",
   "directLogin",
   "federatedIdentityAccounts",
+  "invitations",
+  "federationIssuers",
   "perResourceGrants",
   "authorizationQueries",
   "guestMinting",
@@ -44,6 +46,11 @@ describe("the open-source targets' capability flags", () => {
   it.each(targets.map((t) => [t.name, t] as const))("%s claims no surface only an edition above open source serves", (_name, target) => {
     const claimed = ABOVE_OPEN_SOURCE.filter((flag) => target.capabilities[flag]);
     expect(claimed).toEqual([]);
+  });
+
+  it.each(targets.map((t) => [t.name, t] as const))("%s serves no teams, and dials under the library's relaxed posture", (_name, target) => {
+    expect(target.capabilities.teams).toBe("unimplemented");
+    expect(target.capabilities.outboundEgress).toBe("relaxed");
   });
 
   it.each(targets.map((t) => [t.name, t] as const))("%s admits a Cursor run at create: open source asks no provider key", (_name, target) => {

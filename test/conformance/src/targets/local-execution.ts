@@ -116,6 +116,13 @@ export class LocalExecutionTarget implements TargetProfile {
     membershipOnArrival: true,
     // No license key: open source.
     licenseStatus: "absent",
+    // Open source registers no Team, Invitation or FederationIssuer
+    // service; the suites pin Unimplemented on every RPC.
+    teams: "unimplemented",
+    invitations: false,
+    federationIssuers: false,
+    // The library's default posture.
+    outboundEgress: "relaxed",
   };
 
   private temporal: RunningTemporal | undefined;
