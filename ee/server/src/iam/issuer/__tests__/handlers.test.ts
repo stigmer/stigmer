@@ -116,6 +116,7 @@ import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/
 import { InMemoryIssuerStore, storedIssuer } from "./in-memory-issuer-store.js";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { inMemoryNames } from "../../../__test-utils__/in-memory-names.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../__test-utils__/unbound-credential-binding.js";
 
 const ADMIN = "ida_admin";
 const JWKS = "https://idp.acme.test/.well-known/jwks.json";
@@ -268,6 +269,7 @@ function rig(
   };
   const invalidated = { count: 0 };
   const deps: FederationIssuerLaneDeps = {
+    credentialBinding: UNBOUND_CREDENTIAL_BINDING,
     // The caller's row, which the refusal of a service account reads.
     accounts: {
       findById: (id) =>

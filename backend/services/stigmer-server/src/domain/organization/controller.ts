@@ -55,6 +55,7 @@ import type { UpdateOrganizationInput } from "@stigmer/protos/ai/stigmer/tenancy
 import { UpdateOrganizationInputSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { CredentialBinding } from "../../extensions/credential-binding.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
@@ -178,6 +179,12 @@ export interface OrganizationControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
+  /**
+   * The composed credential binding: the persist and rename backstops
+   * refuse a credential that does not reach the row's organization
+   * (pipeline/steps/refuse-bound-elsewhere.ts).
+   */
+  readonly credentialBinding: CredentialBinding;
   /** The composed slot registrations — this domain's create and delete slots. */
   readonly gateSteps: ResolvedGateSteps;
   /** The one grant path: the delete revokes the organization's rows through it before its row goes. */
@@ -254,7 +261,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * (childOwnerAttribution). LinkChildOrganization hands an edition that
  * stores tuples the parent and child edges just before Persist, after the
  * claims: a link that fails stores nothing, and a failure after Persist
- * leaves a child its parent's admins already manage, so a retry (apply)
+ * leaves a child its parent's admins already administer, so a retry (apply)
  * converges through the update arm.
  *
  * The post-persist gate slot splices after Persist, before IndexSearch —
@@ -322,7 +329,7 @@ async function createOrganization(
     .addStep(newClaimOrganizationSlugStep(deps.store))
     .addStep(newClaimExternalIdStep(deps.store))
     .addStep(newLinkChildOrganizationStep(deps.authorizationLifecycle))
-    .addStep(newPersistStep(deps.store))
+    .addStep(newPersistStep(deps.store, deps.credentialBinding))
     // A child whose parent's delete marked it after ValidateChildOrganization
     // read it is deleted with it (deletion.ts, stigmer#1917).
     .addStep(newRefuseParentDeletingStep(deps.store, deps.purge))
@@ -405,7 +412,7 @@ async function update(
       .addStep(newPreservePoliciesStep())
       .addStep(newPreserveEmbeddingStep())
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
-      .addStep(newPersistStep(deps.store))
+      .addStep(newPersistStep(deps.store, deps.credentialBinding))
       .addStep(
         newIndexSearchStep(deps.store, organizationSearchExtractor, deps.logger),
       )

@@ -45,6 +45,7 @@ import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
 import { assignServerId, generateId } from "../../pipeline/steps/defaults.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { swapOntoLoadedRow } from "../../pipeline/steps/persist.js";
+import type { OrganizationAdmission } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -211,11 +212,13 @@ export function newValidateEvaluatorUpdateStep(): PipelineStep<
  */
 export function newPersistEvaluatorSettingsStep(
   store: Store,
+  binding: OrganizationAdmission,
 ): PipelineStep<typeof EvaluatorSchema> {
   return {
     name: "PersistEvaluatorSettings",
     async execute(ctx: RequestContext<typeof EvaluatorSchema>): Promise<void> {
-      refuseBoundElsewhere(
+      await refuseBoundElsewhere(
+        binding,
         ctx.callerIdentity,
         ctx.newState.metadata?.org ?? "",
       );

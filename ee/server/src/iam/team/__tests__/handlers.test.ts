@@ -68,6 +68,7 @@ import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/a
 import { inMemoryNames } from "../../../__test-utils__/in-memory-names.js";
 import { newLoadTeamByReferenceStep } from "../steps.js";
 import type { InMemoryNames } from "../../../__test-utils__/in-memory-names.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../__test-utils__/unbound-credential-binding.js";
 
 const ADMIN = "ida_admin";
 
@@ -123,6 +124,7 @@ function rig(
   };
   const deps: TeamLaneDeps = {
     authorizer,
+    credentialBinding: UNBOUND_CREDENTIAL_BINDING,
     logger: silent,
     teams,
     names,

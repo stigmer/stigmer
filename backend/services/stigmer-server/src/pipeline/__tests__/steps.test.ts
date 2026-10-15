@@ -78,6 +78,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { namingSaves } from "../../store/__tests__/named-saves.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../authorization/__tests__/unbound-credential-binding.js";
 
 const silentLogger: Logger = { debug() {}, info() {}, warn() {}, error() {} };
 
@@ -571,13 +572,13 @@ describe("delete steps + persist", () => {
 
   it("Persist saves newState and requires an id", async () => {
     const ctx = orgCtx(org({ id: "acme", slug: "acme" }));
-    await newPersistStep<typeof OrganizationSchema>(store).execute(ctx);
+    await newPersistStep<typeof OrganizationSchema>(store, UNBOUND_CREDENTIAL_BINDING).execute(ctx);
     const stored = await store.getResource(ORG, "acme", OrganizationSchema);
     expect(stored.metadata?.name).toBe("Acme");
 
     const noId = orgCtx(org());
     const error = await captureError(() =>
-      newPersistStep<typeof OrganizationSchema>(store).execute(noId),
+      newPersistStep<typeof OrganizationSchema>(store, UNBOUND_CREDENTIAL_BINDING).execute(noId),
     );
     expect((error as ConnectError).code).toBe(Code.Internal);
   });

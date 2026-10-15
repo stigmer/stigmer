@@ -212,7 +212,7 @@ export interface VisibilityChangedEvent {
  * `organization:<parentId>#child_org@organization:<childId>`. A throw fails
  * the create with nothing stored. Should the row's own write then fail,
  * the two edges name an id no row will hold and grant nothing; once the
- * row is stored, its parent's admins manage it, so a later failure in the
+ * row is stored, its parent's admins administer it, so a later failure in the
  * create is theirs to retry (apply) or to delete.
  */
 export interface ChildOrganizationLinkedEvent {

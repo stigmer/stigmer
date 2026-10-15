@@ -56,6 +56,7 @@ import type {
   ToolsTaskQueue,
   ToolsWorkflowInput,
 } from "../tools/engine.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -251,6 +252,7 @@ function deps(
     store: fakeStore(attempts),
     logger: silentLogger,
     authorizer: newPermissiveSingleTeamAuthorizer(),
+    credentialBinding: UNBOUND_CREDENTIAL_BINDING,
     engineState: () => ({ connected: false }),
     runnerAuth: runnerAuth(true),
     vaultResolver: planningResolver,

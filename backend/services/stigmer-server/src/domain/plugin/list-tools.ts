@@ -55,6 +55,7 @@ import {
   unavailableError,
 } from "../../pipeline/errors.js";
 import { authorizeDirect, authorizeResolvedResource } from "../../pipeline/steps/authorize.js";
+import type { OrganizationAdmission } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import { TOKEN_TYPE_EXECUTION_SCOPED } from "../../runnerauth/runnerauth.js";
@@ -94,6 +95,8 @@ export interface PluginToolsDeps {
   readonly logger: Logger;
   /** Evaluates the RPC's annotation (can_view on the plugin). */
   readonly authorizer: Authorizer;
+  /** The composed credential binding: a bound credential lists only in the organizations it reaches. */
+  readonly credentialBinding: OrganizationAdmission;
   readonly engineState: PluginToolsEngineStateProvider;
   /** Mints the listing's runner credential. */
   readonly runnerAuth: RunnerCredentialProvider;
@@ -130,9 +133,9 @@ export async function listTools(
   await authorizeDirect(PluginCommandController.method.listTools, deps.authorizer, identity, input);
   // The listing reads the caller's vault in this organization and records
   // its attempt there (and a hosting edition starts its sandbox there): a
-  // credential bound to another may not, and nor may a caller who cannot
-  // view that organization.
-  refuseBoundElsewhere(identity, input.org);
+  // credential that does not reach it may not, and nor may a caller who
+  // cannot view that organization.
+  await refuseBoundElsewhere(deps.credentialBinding, identity, input.org);
   await authorizeResolvedResource(
     deps.authorizer,
     identity,

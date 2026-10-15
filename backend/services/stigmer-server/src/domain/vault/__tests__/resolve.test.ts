@@ -134,6 +134,7 @@ import type { RunServer } from "../../run/run-servers.js";
 import { newVaultService } from "../service.js";
 import type { VaultRig } from "./support.js";
 import { openVaultRig, seedSharedVault, silentLogger } from "./support.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 const ORG = "acme";
 const ANA = "ida_ana";
@@ -2628,6 +2629,7 @@ describe("a stored value the server cannot open", () => {
       authorizer: useTable,
       secretService: secrets,
       vaults: newVaultService({
+        credentialBinding: UNBOUND_CREDENTIAL_BINDING,
         store: rig.store,
         logger: silentLogger,
         secretService: secrets,
@@ -2682,6 +2684,7 @@ describe("a stored value the server cannot open", () => {
     const cannot = await unopenable("tampered");
     const ana = testCallerIdentity({ identityId: ANA });
     const vaults = newVaultService({
+      credentialBinding: UNBOUND_CREDENTIAL_BINDING,
       store: rig.store,
       logger: silentLogger,
       secretService: cannot.secrets,
@@ -2748,6 +2751,7 @@ describe("a stored value the server cannot open", () => {
     const cannot = await unopenable("tampered");
     const ana = testCallerIdentity({ identityId: ANA });
     const vaults = newVaultService({
+      credentialBinding: UNBOUND_CREDENTIAL_BINDING,
       store: rig.store,
       logger: silentLogger,
       secretService: cannot.secrets,

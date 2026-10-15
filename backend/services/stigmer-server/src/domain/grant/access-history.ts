@@ -27,19 +27,15 @@
  * and as issued for another request when they differ, as on every paged
  * lane (pipeline/steps/list-page.ts).
  *
- * Who reads what. The annotation admits the organization's owners and
- * admins and a parent's admins. A parent's admins manage a child and read
- * none of its resources (fga/model/README.md), so for a caller without
- * `can_view` on the organization the read keeps only the entries about the
- * organization itself: its memberships and roles, never a resource inside
- * it or who was given access to one. Such a page may be short, even empty,
- * and still carry a token; the numbers it shows have gaps where the left
- * out entries are.
+ * Who reads what. The annotation admits the organization's admins (its
+ * owners, and on a child organization its parent's admins, who are admins
+ * there: fga/model/README.md), and each of them reads every entry. A page
+ * is short only at the history's end.
  *
  * Retention. Every page says how long the history is kept and the oldest
  * number the organization still holds (`retention_days`,
- * `oldest_sequence`), so a tool that asked after N can tell entries
- * retention removed from entries left out for its caller. The window is
+ * `oldest_sequence`), so a tool that asked after N can tell the entries
+ * retention removed. The window is
  * the composition's declaration (`ServerExtension.accessHistoryRetentionDays`,
  * 0 when none). The oldest number is the store's own first entry
  * (`listChanges` after 0, one primary-key read), read after the page: two
@@ -98,16 +94,14 @@ import {
   RoleInfoSchema,
 } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
 import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
-import type { CallerIdentity } from "../../extensions/identity.js";
 import type { PrincipalDisplay } from "../../extensions/principal-display.js";
 import type { Logger } from "../../boot/logger.js";
-import { kindByEnumName, kindEnumName } from "../../pipeline/apiresource-meta.js";
+import { kindByEnumName } from "../../pipeline/apiresource-meta.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
@@ -188,33 +182,7 @@ export async function listAccessHistory(
     pipeline.addStep(step);
   }
   await pipeline.build().execute(reqCtx);
-  const insider = await readsWholeOrganization(deps.authorizer, reqCtx.callerIdentity, input.org);
-  return readAccessHistory(deps, displayResolver, input, insider);
-}
-
-/**
- * Whether the caller may read every entry: one who can see what the
- * organization holds (`can_view` on it, its own viewers and up). A parent
- * organization's admins read a child's history through `parent_admin`
- * without that: they manage the child and read none of its resources, so
- * they read only the entries about the child organization itself (who
- * holds which role in it), never the names of the resources inside it or
- * who was given access to them.
- */
-async function readsWholeOrganization(
-  authorizer: Authorizer,
-  caller: CallerIdentity,
-  org: string,
-): Promise<boolean> {
-  const decision = await authorizer.authorize(caller, {
-    permission: IamPermission.can_view,
-    resourceKind: ApiResourceKind.organization,
-    resourceId: org,
-  });
-  if (decision.kind === "unavailable") {
-    throw internalError(decision.cause, "failed to authorize the access history");
-  }
-  return decision.kind === "allow";
+  return readAccessHistory(deps, displayResolver, input);
 }
 
 /** Open source keeps no history, so it has none to serve. */
@@ -236,7 +204,6 @@ async function readAccessHistory(
   deps: AccessHistoryDeps,
   displayResolver: PrincipalDisplayResolver,
   input: ListAccessHistoryInput,
-  insider: boolean,
 ): Promise<AccessHistoryPage> {
   const ascending = input.afterSequence !== undefined;
   const fingerprint = listPageFingerprint({
@@ -262,13 +229,7 @@ async function readAccessHistory(
   }
   const more = changes.length > size;
   const examined = more ? changes.slice(0, size) : changes;
-  // The token continues after the last entry examined, so an entry left
-  // out for this caller is never read twice and the page may come back
-  // short, even empty, with a token.
-  const kept = insider
-    ? examined
-    : examined.filter((change) => aboutOrganization(change, input.org));
-  const entries = await nameEntries(deps, displayResolver, kept);
+  const entries = await nameEntries(deps, displayResolver, examined);
   const last = examined.at(-1);
   const lowestExamined = ascending ? examined.at(0) : last;
   return create(AccessHistoryPageSchema, {
@@ -309,12 +270,6 @@ async function oldestKeptSequence(
     return held;
   }
   return last === 0n ? 0n : last + 1n;
-}
-
-/** Whether a change is about the organization itself rather than a resource in it. */
-function aboutOrganization(change: GrantChange, org: string): boolean {
-  const resource = change.grant.spec?.resource;
-  return resource?.kind === kindEnumName(ApiResourceKind.organization) && resource.id === org;
 }
 
 /** The wire entries for a page of changes, every person and grantee named in one pass. */

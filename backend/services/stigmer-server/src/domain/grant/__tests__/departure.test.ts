@@ -28,6 +28,7 @@ import { newMyVaultDeparture } from "../departure.js";
 import { newGrantPath } from "../grant-path.js";
 import { NO_STORED_RESOURCES, fakeGrantStore, orgRole } from "./support.js";
 import type { RecordedEvent } from "./support.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 const ORG = "org_01jz0000000000000000000000";
 const OTHER_ORG = "org_01jz0000000000000000000001";
@@ -52,6 +53,7 @@ beforeEach(() => {
   store = SqliteStore.open(path.join(dir, "stigmer.db"), undefined, { listIndexes: LIST_INDEXES });
   secretService = SecretService.create(Buffer.alloc(32, 7));
   vaults = newVaultService({
+    credentialBinding: UNBOUND_CREDENTIAL_BINDING,
     store,
     logger: silentLogger,
     secretService,

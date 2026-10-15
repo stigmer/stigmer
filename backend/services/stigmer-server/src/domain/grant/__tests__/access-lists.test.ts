@@ -9,7 +9,11 @@
  * cloud's iam/policy/access-lists.ts; the arms below are the Java
  * contract read from that file. A grantee that is not a person (a team)
  * is named by the composed principal display, one call per kind, keyed by
- * kind and id so one kind's view never names another kind's id.
+ * kind and id so one kind's view never names another kind's id. A
+ * resource's list names only the people inside its organization's bound:
+ * a role row on the organization, or, on a child organization, an admin or
+ * owner row on its parent, so a parent's admin who made a row in a child
+ * is listed while they are one and left out once they are not.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -23,7 +27,10 @@ import type { PrincipalDisplay } from "../../../extensions/principal-display.js"
 import { buildPrincipalAccessList, resolveHierarchy } from "../access-lists.js";
 import type { PrincipalDisplayResolver } from "../access-lists.js";
 import { grantIdFor } from "../constants.js";
-import { fakeGrantStore, orgRole, triple } from "./support.js";
+import { fakeGrantStore, organizationRows, orgRole, triple } from "./support.js";
+
+/** No organization has a row: every resource's organization reads as a top-level one. */
+const NO_ORGANIZATIONS = organizationRows({});
 
 function row(spec: GrantSpec) {
   return create(GrantSchema, {
@@ -143,7 +150,7 @@ describe("buildPrincipalAccessList", () => {
       ),
     );
     expect(
-      await buildPrincipalAccessList(store, nobody, undefined, [
+      await buildPrincipalAccessList(store, NO_ORGANIZATIONS, nobody, undefined, [
         { kind: "agent", id: "a1" },
       ]),
     ).toEqual([]);
@@ -154,7 +161,7 @@ describe("buildPrincipalAccessList", () => {
     await store.save(row(orgRole("ida_bob", "member", "acme")));
     await store.save(row(orgRole("ida_alice", "owner", "acme")));
     await store.save(row(orgRole("ida_bob", "viewer", "acme")));
-    const entries = await buildPrincipalAccessList(store, nobody, undefined, [
+    const entries = await buildPrincipalAccessList(store, NO_ORGANIZATIONS, nobody, undefined, [
       { kind: "organization", id: "acme" },
     ]);
     expect(entries.map((e) => e.principal?.id)).toEqual([
@@ -171,7 +178,7 @@ describe("buildPrincipalAccessList", () => {
   it("marks grants from a parent level as inherited and names the owning level", async () => {
     const store = fakeGrantStore();
     await store.save(row(orgRole("ida_alice", "admin", "acme")));
-    const entries = await buildPrincipalAccessList(store, nobody, undefined, [
+    const entries = await buildPrincipalAccessList(store, NO_ORGANIZATIONS, nobody, undefined, [
       { kind: "agent", id: "a1" },
       { kind: "organization", id: "acme" },
     ]);
@@ -194,7 +201,7 @@ describe("buildPrincipalAccessList", () => {
         }),
       ),
     );
-    const entries = await buildPrincipalAccessList(store, nobody, undefined, [
+    const entries = await buildPrincipalAccessList(store, NO_ORGANIZATIONS, nobody, undefined, [
       { kind: "organization", id: "acme" },
     ]);
     expect(
@@ -232,7 +239,7 @@ describe("buildPrincipalAccessList", () => {
         );
       },
     };
-    const entries = await buildPrincipalAccessList(store, resolver, undefined, [
+    const entries = await buildPrincipalAccessList(store, NO_ORGANIZATIONS, resolver, undefined, [
       { kind: "organization", id: "acme" },
     ]);
     expect(asked).toEqual([["ida_alice", "ida_bob"]]);
@@ -278,7 +285,7 @@ describe("buildPrincipalAccessList", () => {
         );
       },
     };
-    const entries = await buildPrincipalAccessList(store, nobody, teams, [
+    const entries = await buildPrincipalAccessList(store, NO_ORGANIZATIONS, nobody, teams, [
       { kind: "organization", id: "acme" },
     ]);
     expect(asked).toEqual([[ApiResourceKind.team, ["shared_1", "tm_gone"]]]);
@@ -333,7 +340,7 @@ describe("buildPrincipalAccessList", () => {
           ]),
         ),
     };
-    const entries = await buildPrincipalAccessList(store, nobody, teams, [
+    const entries = await buildPrincipalAccessList(store, NO_ORGANIZATIONS, nobody, teams, [
       agent,
     ]);
     expect(
@@ -388,7 +395,7 @@ describe("buildPrincipalAccessList: only the organization's people", () => {
 
   it("leaves out a person who holds no role in the resource's organization, and keeps teams", async () => {
     const store = await sharedAgent();
-    const entries = await buildPrincipalAccessList(store, nobody, undefined, [
+    const entries = await buildPrincipalAccessList(store, NO_ORGANIZATIONS, nobody, undefined, [
       { kind: "agent", id: "a1" },
     ]);
     expect(
@@ -398,7 +405,7 @@ describe("buildPrincipalAccessList: only the organization's people", () => {
 
   it("reads the organization from the walked hierarchy the same way", async () => {
     const store = await sharedAgent();
-    const entries = await buildPrincipalAccessList(store, nobody, undefined, [
+    const entries = await buildPrincipalAccessList(store, NO_ORGANIZATIONS, nobody, undefined, [
       { kind: "agent", id: "a1" },
       { kind: "organization", id: "acme" },
     ]);
@@ -407,10 +414,65 @@ describe("buildPrincipalAccessList: only the organization's people", () => {
 
   it("an organization's own list is its roles and is never filtered", async () => {
     const store = await sharedAgent();
-    const entries = await buildPrincipalAccessList(store, nobody, undefined, [
+    const entries = await buildPrincipalAccessList(store, NO_ORGANIZATIONS, nobody, undefined, [
       { kind: "organization", id: "globex" },
     ]);
     expect(entries.map((e) => e.principal?.id)).toEqual(["ida_dave"]);
+  });
+
+  /** An agent in acme_cust, a child of acme; carol owns it and is one of acme's admins. */
+  async function parentAdminsAgent(carolRole: string) {
+    const store = fakeGrantStore();
+    await store.save(
+      row(
+        scopeLink(
+          { kind: "agent", id: "a2" },
+          { kind: "organization", id: "acme_cust" },
+        ),
+      ),
+    );
+    await store.save(row(orgRole("ida_carol", carolRole, "acme")));
+    await store.save(
+      row(
+        triple({ kind: "identity_account", id: "ida_carol" }, "owner", {
+          kind: "agent",
+          id: "a2",
+        }),
+      ),
+    );
+    return store;
+  }
+
+  it("lists a parent's admin as the owner of what they made in a child, while they are one", async () => {
+    for (const role of ["admin", "owner"]) {
+      const entries = await buildPrincipalAccessList(
+        await parentAdminsAgent(role),
+        organizationRows({ acme_cust: "acme", acme: "" }),
+        nobody,
+        undefined,
+        [{ kind: "agent", id: "a2" }],
+      );
+      expect(entries.map((e) => e.principal?.id)).toEqual(["ida_carol"]);
+    }
+  });
+
+  it("leaves out a parent's member, and a parent's admin once the child reads as no child", async () => {
+    const member = await buildPrincipalAccessList(
+      await parentAdminsAgent("member"),
+      organizationRows({ acme_cust: "acme", acme: "" }),
+      nobody,
+      undefined,
+      [{ kind: "agent", id: "a2" }],
+    );
+    expect(member).toEqual([]);
+    const unrelated = await buildPrincipalAccessList(
+      await parentAdminsAgent("admin"),
+      organizationRows({ acme_cust: "", acme: "" }),
+      nobody,
+      undefined,
+      [{ kind: "agent", id: "a2" }],
+    );
+    expect(unrelated).toEqual([]);
   });
 
   it("a resource no organization holds is listed as its rows say", async () => {
@@ -423,7 +485,7 @@ describe("buildPrincipalAccessList: only the organization's people", () => {
         }),
       ),
     );
-    const entries = await buildPrincipalAccessList(store, nobody, undefined, [
+    const entries = await buildPrincipalAccessList(store, NO_ORGANIZATIONS, nobody, undefined, [
       { kind: "agent", id: "loose" },
     ]);
     expect(entries.map((e) => e.principal?.id)).toEqual(["ida_dave"]);

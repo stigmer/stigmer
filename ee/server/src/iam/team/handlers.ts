@@ -55,6 +55,7 @@ import { TeamsSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/io_pb";
 import { TeamQueryController } from "@stigmer/protos/ai/stigmer/iam/team/v1/query_pb";
 import type {
   Authorizer,
+  CredentialBinding,
   ExtensionServiceRegistration,
   Logger,
   NameTable,
@@ -101,6 +102,8 @@ import type { TeamStore } from "./store.js";
 
 export interface TeamLaneDeps {
   readonly authorizer: Authorizer;
+  /** The composed credential binding: the rename refuses a credential that does not reach the row's organization. */
+  readonly credentialBinding: Pick<CredentialBinding, "admitsOrganization">;
   readonly logger: Logger;
   readonly teams: TeamStore;
   /** The server's one name table, where a team's slug is claimed (steps.ts). */
@@ -175,6 +178,7 @@ export function teamCommands(deps: TeamLaneDeps): Commands {
           names: deps.names,
           rows: portRenameRows(TeamSchema, deps.teams),
           authorizer: deps.authorizer,
+          credentialBinding: deps.credentialBinding,
           logger: deps.logger,
         },
         input,

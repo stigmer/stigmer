@@ -104,8 +104,9 @@ import { registerGrantServices } from "../controller.js";
 import { newGrantPath } from "../grant-path.js";
 import { newOrganizationOnlyGrantScope } from "../grant-scope.js";
 import {
-  NO_STORED_RESOURCES,
   fakeGrantStore,
+  NO_STORED_RESOURCES,
+  organizationRows,
   orgRole,
   triple,
 } from "./support.js";
@@ -229,7 +230,7 @@ function stubCredentialBinding(
     },
     admitsOrganization: (caller, org) => {
       const bound = boundOrgOf(caller);
-      return bound === undefined || bound === org;
+      return Promise.resolve(bound === undefined || bound === org);
     },
     keepsEntry: () => Promise.resolve(true),
     narrowIds(caller, _kind, ids) {
@@ -291,6 +292,7 @@ async function harness(options: {
       registerGrantServices(router, {
         grantPath,
         grants,
+        organizations: organizationRows({}),
         accounts,
         authorizer,
         grantScope: options.scope ?? newOrganizationOnlyGrantScope(),

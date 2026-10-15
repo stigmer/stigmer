@@ -387,7 +387,7 @@ async function redeemInvitation(
     throw new ConnectError(CREATOR_NO_LONGER_GRANTS, Code.FailedPrecondition);
   }
 
-  refuseBoundElsewhere(deps.credentialBinding, caller, org);
+  await refuseBoundElsewhere(deps.credentialBinding, caller, org);
   await refuseExistingMember(deps.authorizer, caller, org);
 
   // Record before grant: a lost slot then has nothing to undo, so no
@@ -627,18 +627,18 @@ async function creatorCouldStillCreate(
 }
 
 /**
- * Refuses a caller whose credential is bound to another organization than
- * the invitation's (the composition's credential binding: such a
- * credential joins nothing). Asked after the link's own validity, which
- * reads the same for every caller and which the public preview answers
- * anyway.
+ * Refuses a caller whose credential does not reach the invitation's
+ * organization (the composition's credential binding: its own or a child
+ * of it; such a credential joins nothing else). Asked after the link's own
+ * validity, which reads the same for every caller and which the public
+ * preview answers anyway.
  */
-function refuseBoundElsewhere(
+async function refuseBoundElsewhere(
   binding: Pick<CredentialBinding, "admitsOrganization">,
   caller: CallerIdentity,
   org: string,
-): void {
-  if (!binding.admitsOrganization(caller, org)) {
+): Promise<void> {
+  if (!(await binding.admitsOrganization(caller, org))) {
     throw new ConnectError(BOUND_CREDENTIAL_REDEEMS_ELSEWHERE, Code.PermissionDenied);
   }
 }

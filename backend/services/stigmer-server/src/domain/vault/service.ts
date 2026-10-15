@@ -109,6 +109,7 @@ import {
   newClaimNameStep,
   releaseNameAfterFailure,
 } from "../../pipeline/steps/names.js";
+import type { OrganizationAdmission } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { findByReference as findReferenced } from "../../pipeline/steps/references.js";
 import { destroySecretBackingState } from "../../pipeline/steps/secret-cleanup.js";
@@ -312,6 +313,8 @@ export interface VaultServiceDeps {
   readonly logger: Logger;
   readonly secretService: SecretService;
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
+  /** The composed credential binding: the My vault create's persist backstop asks it. */
+  readonly credentialBinding: OrganizationAdmission;
   /**
    * Asks whether a person can see the My vault a write found, so one whose
    * tuples never landed gets them written again. Without one, a found My
@@ -455,7 +458,7 @@ export function newVaultService(deps: VaultServiceDeps): VaultService {
       await newPipeline<typeof VaultSchema>("vault-create-mine", logger)
         .addStep(newBuildNewStateStep())
         .addStep(newClaimNameStep(store, ApiResourceKind.vault))
-        .addStep(newPersistStep(store))
+        .addStep(newPersistStep(store, deps.credentialBinding))
         .addStep(
           newCreateAuthorizationTuplesStep(deps.authorizationLifecycle, logger),
         )

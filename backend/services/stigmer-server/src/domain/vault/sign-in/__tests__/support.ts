@@ -34,6 +34,7 @@ import { oauthAppAddressKey } from "../../login-app.js";
 import type { LoginProviderCredentials } from "../../login-providers.js";
 import { newVaultService } from "../../service.js";
 import type { VaultService } from "../../service.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../../authorization/__tests__/unbound-credential-binding.js";
 
 export const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -111,7 +112,7 @@ export function openSignInRig(): SignInRig {
   const dir = mkdtempSync(path.join(tmpdir(), "vault-sign-in-"));
   const store = SqliteStore.open(path.join(dir, "test.db"));
   const secretService = SecretService.create(undefined);
-  const vaults = newVaultService({ store, logger: silentLogger, secretService, authorizationLifecycle: undefined });
+  const vaults = newVaultService({ credentialBinding: UNBOUND_CREDENTIAL_BINDING, store, logger: silentLogger, secretService, authorizationLifecycle: undefined });
   const levers: Levers = {
     denyVaultEdit: false,
     denyVaultEditFor: undefined,
@@ -230,6 +231,7 @@ export function openSignInRig(): SignInRig {
         logger: silentLogger,
         secretService,
         authorizer,
+        credentialBinding: UNBOUND_CREDENTIAL_BINDING,
         vaults,
         pendingOAuthStates: store.pendingOAuthStates,
         clientRegistrations: store.oauthClientRegistrations,

@@ -7,7 +7,8 @@ module tenancy
 # may have a parent organization (spec.parent_org), one level deep: a child
 # organization, such as the organization an integrator runs for one of its
 # customers. The creator of an organization becomes its owner; a child has
-# no creator owner, its parent's admins manage it.
+# no creator owner: its parent's admins are its admins (parent_admin), the
+# way a Stripe platform administers its connected accounts.
 #
 # Permission hierarchy: owner > admin > member > viewer
 #
@@ -32,9 +33,10 @@ type organization
     # FGA tuple: organization:<org_id>#owner@identity_account:<user_id>
     define owner: [identity_account]
     
-    # Organization admins (can manage org settings and members)
+    # Organization admins (can manage org settings and members), and on a
+    # child organization its parent's admins (parent_admin below).
     # FGA tuple: organization:<org_id>#admin@identity_account:<user_id>
-    define admin: [identity_account] or owner
+    define admin: [identity_account] or owner or parent_admin
     
     # Organization members (users with access to org resources)
     # FGA tuple: organization:<org_id>#member@identity_account:<user_id>
@@ -49,25 +51,29 @@ type organization
     # Grants session/run creation only — not member/viewer inheritance.
     # FGA tuple: organization:<org_id>#guest@identity_account:<guest_account_id>
     define guest: [identity_account]
-    # Anyone who holds a role in the organization, a guest included: the
-    # bound every organization-scoped type puts on its direct grants
+    # Anyone who holds a role in the organization, a guest included, and
+    # on a child organization its parent's admins: the bound every
+    # organization-scoped type puts on its direct grants
     # (`[identity_account] and affiliated from organization`). A person
-    # who loses their last role here reaches nothing the organization
-    # holds on the next check, however the grant was made (shared with
-    # them, authored by them, or through a team), with no cleanup to wait
-    # for. A guest is included because the organization's system accounts
-    # (guest, channel and schedule sessions) hold `guest` and own the
-    # sessions they create.
+    # who loses their last role here (or a parent admin who stops being
+    # one) reaches nothing the organization holds on the next check,
+    # however the grant was made (shared with them, authored by them, or
+    # through a team), with no cleanup to wait for. A guest is included
+    # because the organization's system accounts (guest, channel and
+    # schedule sessions) hold `guest` and own the sessions they create.
     #
-    # Stored, so the bound costs one read instead of a walk up the role
-    # chain on every object a list checks. It is DERIVED, never granted:
-    # exactly while the person holds at least one role row on the
-    # organization. The grant path refuses it as a grant and
-    # announces every change of a person's organization rows; an edition
-    # that stores tuples writes and removes it from those announcements,
-    # and open source derives it from the rows at check time.
+    # Two halves. The stored half costs one read instead of a walk up the
+    # role chain on every object a list checks. It is DERIVED, never
+    # granted: exactly while the person holds at least one role row on the
+    # organization. The grant path refuses it as a grant and announces
+    # every change of a person's organization rows; an edition that stores
+    # tuples writes and removes it from those announcements, and open
+    # source derives it from the rows at check time. The computed half
+    # (parent_admin) is walked only when the stored half misses: one read
+    # of the organization's parent_org, empty for an organization with no
+    # parent.
     # FGA tuple: organization:<org_id>#affiliated@identity_account:<user_id>
-    define affiliated: [identity_account]
+    define affiliated: [identity_account] or parent_admin
 
     # ========================================
     # PARENT AND CHILD ORGANIZATIONS
@@ -83,16 +89,17 @@ type organization
     # Everyone who holds a role in any child: the audience of a blueprint
     # shared at visibility_child_orgs, which names this userset.
     define child_org_viewer: viewer from child_org
-    # The parent's admins, on a child. They manage the child (its
-    # settings, members and access), see its billing, and read nothing it
-    # holds:
-    # parent_admin feeds the management permissions below and never a
-    # role, so no resource type, report or list reaches them, with one
-    # exception that is management too: the child's invitations
-    # (iam/invitation.fga), which they already create and list through
-    # can_grant_access and can_view_access. To look inside, a parent admin
-    # grants themselves a role in the child, which the child's members and
-    # access history show.
+    # The parent's admins, on a child: admins of the child (admin above),
+    # inside its membership bound (affiliated above), so they read and
+    # change what the child holds as its own admins do. A person's
+    # sessions, My vault and memories stay theirs alone, here as in every
+    # organization (session.fga, vault.fga, memory.fga). Besides admin,
+    # the parent's admins keep deleting the child and making its owner.
+    #
+    # The first relation in the model that recurses through another object
+    # of the same type (admin -> parent_admin -> admin from parent_org).
+    # It ends at the parent, which has no parent_org: one level deep, and
+    # the create refuses a parent that is itself a child.
     define parent_admin: admin from parent_org
 
     # ========================================
@@ -110,10 +117,10 @@ type organization
     # CRUD OPERATIONS
     # ========================================
     define can_view: viewer
-    # The organization itself (OrganizationQueryController.get): every role,
-    # and the parent's admins.
-    define can_view_settings: can_view or parent_admin
-    define can_edit: admin or parent_admin
+    # The organization itself (OrganizationQueryController.get): every role.
+    define can_view_settings: can_view
+    define can_edit: admin
+    # A child has no owner; its parent's admins delete it.
     define can_delete: owner or parent_admin
     
     # ========================================
@@ -122,7 +129,8 @@ type organization
     # Granting, revoking or removing the owner role. The Grant lanes and
     # the invitation lane ask it whenever a change touches owner, on top of
     # can_grant_access: an admin grants every role up to admin, and only an
-    # owner makes an owner.
+    # owner makes an owner (on a child, which has none, the parent's
+    # admins).
     define can_assign_roles: owner or parent_admin
     
     # ========================================
@@ -161,26 +169,28 @@ type organization
     # Teams are the organization's, managed by its admins (team.fga).
     define can_create_team: admin
     # Creating, finding and listing the organization's children. A child's
-    # admins hold it too and cannot use it: a child has no children.
+    # admins (its parent's included) hold it too and cannot use it: a
+    # child has no children.
     define can_manage_child_orgs: admin
     # Minting a user token for the organization (TokenService.mintUserToken):
     # it can create a person's account and grant them the embedding
-    # sign-in role, an administrator's act, so its admins and the parent's
-    # admins hold it, and a service account's key mints only when its
+    # sign-in role, an administrator's act, so its admins (the parent's
+    # included) hold it, and a service account's key mints only when its
     # account does. The mint refuses every caller but a service account.
-    define can_mint_user_tokens: admin or parent_admin
+    define can_mint_user_tokens: admin
     
     # ========================================
     # ACCESS MANAGEMENT
     # ========================================
-    define can_grant_access: admin or parent_admin
-    define can_view_access: viewer or parent_admin
+    define can_grant_access: admin
+    define can_view_access: viewer
     # The record of every grant and removal: read by those who manage
     # access, not by everyone who can see who has it.
-    define can_view_access_history: admin or parent_admin
+    define can_view_access_history: admin
     
     # ========================================
     # BILLING PERMISSIONS
     # ========================================
-    define can_view_billing: viewer or parent_admin
+    # A child's billing is its parent's admins' to see and manage too.
+    define can_view_billing: viewer
     define can_manage_billing: admin

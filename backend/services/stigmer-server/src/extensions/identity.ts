@@ -110,17 +110,21 @@ export interface CallerIdentity {
    */
   readonly mintedBy?: string;
   /**
-   * The organization this credential works in; absent means the credential
-   * speaks for the person in every organization they hold a role in (a
-   * person signed in at a console, the trusted-local operator, a runner's
-   * own process credential, the server itself). Set by the verifier that
-   * vouched for a credential naming one organization: a minted user token
-   * (its `org` claim), an API key limited to one
-   * (`ApiKeySpec.bound_org`), a run's credential (its run's organization),
-   * and a composition's own lanes that name one. Enforced once, where the composition resolves its
-   * decision drivers (authorization/credential-binding.ts), so every
-   * consumer of the composed Authorizer, list read scope and organization
-   * directory is bound by construction. Rides in-process propagation with
+   * The organization this credential is limited to: it works there and in
+   * that organization's children, as the account behind it would, and a
+   * run's credential (the `runner` class) works in its run's organization
+   * alone. Absent means the credential speaks for the person in every
+   * organization they hold a role in (a person signed in at a console, the
+   * trusted-local operator, a runner's own process credential, the server
+   * itself). Set by the verifier that vouched for a credential naming one
+   * organization: a minted user token (its `org` claim), an API key
+   * limited to one (`ApiKeySpec.bound_org`), a run's credential (its run's
+   * organization), and a composition's own lanes that name one. Enforced
+   * once, where the composition resolves its decision drivers
+   * (authorization/credential-binding.ts, whose `admitsOrganization` is
+   * the one reading of which organizations it reaches), so every consumer
+   * of the composed Authorizer, list read scope and organization directory
+   * is bound by construction. Rides in-process propagation with
    * the rest of the identity, so a request the server composes for a bound
    * caller stays bound.
    */

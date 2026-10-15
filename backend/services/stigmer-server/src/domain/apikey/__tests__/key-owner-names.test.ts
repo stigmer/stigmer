@@ -23,6 +23,7 @@ import { callerIdentityKey } from "../../../pipeline/interceptors/auth.js";
 import type { ListIndexRow } from "../../../store/list-index.js";
 import type { Store } from "../../../store/interface.js";
 import { registerApiKeyServices } from "../controller.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 const ALLOW_ALL: Authorizer = { authorize: () => Promise.resolve({ kind: "allow" }) };
 
@@ -58,6 +59,7 @@ function ownKeysOf(account: IdentityAccount, tokenSub: string) {
   const transport = createRouterTransport(
     (router) =>
       registerApiKeyServices(router, {
+        credentialBinding: UNBOUND_CREDENTIAL_BINDING,
         store,
         logger: silentLogger,
         authorizer: ALLOW_ALL,

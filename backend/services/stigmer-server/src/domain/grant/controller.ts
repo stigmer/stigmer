@@ -199,6 +199,7 @@ import {
   orgAccessOwnerRoleChange,
   specOwnerRoleChange,
 } from "./steps.js";
+import type { Store } from "../../store/interface.js";
 import type { GrantStore } from "./store.js";
 import {
   refsOf,
@@ -219,6 +220,8 @@ export type GrantAccounts = AccountsByCaller & AccountsByIds;
 export interface GrantControllerDeps {
   readonly grantPath: GrantPath;
   readonly grants: GrantStore;
+  /** The organization rows the access list reads a resource's organization's parent from. */
+  readonly organizations: Pick<Store, "getResource">;
   readonly accounts: GrantAccounts;
   /** The ONE composed Authorizer — position 1 of every chain and every direct handler's `authorizeDirect`. */
   readonly authorizer: Authorizer;
@@ -748,6 +751,7 @@ async function listResourceAccessByPrincipal(
     );
     return buildPrincipalAccessList(
       deps.grants,
+      deps.organizations,
       displayResolver,
       deps.principalDisplay,
       hierarchy,

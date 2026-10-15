@@ -53,6 +53,7 @@ import {
   undoExternalIdMoveAfterFailure,
 } from "../steps.js";
 import { silentLogger } from "./support.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 function vault(init: { id?: string; externalId?: string; owner?: VaultSpec["owner"] }): Vault {
   return create(VaultSchema, {
@@ -219,7 +220,7 @@ describe("writes that keep entries saved since the load", () => {
       });
       await rig.vaults.setSecrets(id, { LATE: { value: "saved-meanwhile", description: "" } }, admin);
       newKeepStoredOwnerAndEntriesStep().execute(ctx);
-      const conflict = await failureOf(() => newPersistVaultUpdateStep(rig.store).execute(ctx));
+      const conflict = await failureOf(() => newPersistVaultUpdateStep(rig.store, UNBOUND_CREDENTIAL_BINDING).execute(ctx));
       expect(conflict !== undefined && isWriteConflict(conflict)).toBe(true);
       const stored = (await loadVault(rig.store, id))!;
       expect(stored.metadata?.name).not.toBe("Renamed");
@@ -243,7 +244,7 @@ describe("writes that keep entries saved since the load", () => {
       changed.metadata!.visibility = ApiResourceVisibility.visibility_org;
       await newPersistVaultVisibilityStep(rig.store).execute(ctxOf(changed, changed));
       newKeepStoredOwnerAndEntriesStep().execute(ctx);
-      const conflict = await failureOf(() => newPersistVaultUpdateStep(rig.store).execute(ctx));
+      const conflict = await failureOf(() => newPersistVaultUpdateStep(rig.store, UNBOUND_CREDENTIAL_BINDING).execute(ctx));
       expect(conflict !== undefined && isWriteConflict(conflict)).toBe(true);
       const stored = (await loadVault(rig.store, id))!;
       expect(stored.metadata?.name).not.toBe("Renamed");
@@ -265,7 +266,7 @@ describe("writes that keep entries saved since the load", () => {
       });
       const entry = await rig.vaults.setSecrets(id, { LATE: { value: "saved-meanwhile", description: "" } }, writer);
       newKeepStoredOwnerAndEntriesStep().execute(update);
-      await failureOf(() => newPersistVaultUpdateStep(rig.store).execute(update));
+      await failureOf(() => newPersistVaultUpdateStep(rig.store, UNBOUND_CREDENTIAL_BINDING).execute(update));
       const updated = (await loadVault(rig.store, id))!;
       expect(updated.status?.audit?.specAudit).toEqual(entry.status?.audit?.specAudit);
 
@@ -311,7 +312,7 @@ describe("writes that keep entries saved since the load", () => {
         next.spec!.secrets["NEW_KEY"] = create(VaultSecretSchema, { value: "sent-new" });
         next.spec!.connections["github.com"] = create(VaultConnectionSchema, { token: "sent-token" });
       });
-      await newPersistVaultUpdateStep(rig.store).execute(ctx);
+      await newPersistVaultUpdateStep(rig.store, UNBOUND_CREDENTIAL_BINDING).execute(ctx);
       const stored = (await loadVault(rig.store, id))!;
       expect(stored.spec?.secrets).toEqual(before.spec?.secrets);
       expect(stored.spec?.connections).toEqual(before.spec?.connections);
@@ -347,7 +348,7 @@ describe("writes that keep entries saved since the load", () => {
       const seeded = await seedSharedVault(rig.store, "acme", "doomed");
       const doomed = await updateCtxOf(rig.store, seeded.metadata!.id, () => {});
       await rig.store.deleteResource(ApiResourceKind.vault, seeded.metadata!.id);
-      const update = await failureOf(() => newPersistVaultUpdateStep(rig.store).execute(doomed));
+      const update = await failureOf(() => newPersistVaultUpdateStep(rig.store, UNBOUND_CREDENTIAL_BINDING).execute(doomed));
       expect(update !== undefined && isWriteConflict(update)).toBe(true);
       const gone = vault({ id: "vlt_gone" });
       gone.metadata!.org = "acme";
@@ -363,7 +364,7 @@ describe("writes that keep entries saved since the load", () => {
       } as unknown as Store;
       const faultCtx = ctxOf(gone, gone);
       faultCtx.set(EXISTING_RESOURCE_BYTES_KEY, new Uint8Array([1]));
-      const fault = await Promise.resolve(newPersistVaultUpdateStep(faulty).execute(faultCtx)).then(
+      const fault = await Promise.resolve(newPersistVaultUpdateStep(faulty, UNBOUND_CREDENTIAL_BINDING).execute(faultCtx)).then(
         () => undefined,
         (e: unknown) => e,
       );

@@ -30,6 +30,7 @@ import type { ModelCatalogProvider } from "../../../modelcatalog/model-catalog-p
 import type { Store } from "../../../store/interface.js";
 
 import { registerAgentServices } from "../controller.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -55,6 +56,7 @@ function agentCommand(store: Store): Client<typeof AgentCommandController> {
   const transport = createRouterTransport(
     (router) => {
       registerAgentServices(router, {
+        credentialBinding: UNBOUND_CREDENTIAL_BINDING,
         store,
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),

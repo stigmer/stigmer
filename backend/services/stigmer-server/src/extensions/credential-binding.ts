@@ -1,9 +1,11 @@
 /**
  * The credential-binding seam: the rule that a credential naming an
- * organization works in that organization only, as the composition hands
- * it to the lanes that act on an organization without asking the
- * Authorizer (organization create, API key create, the self-query lanes,
- * and a composition's own such lanes, which receive it through
+ * organization works in that organization and its child organizations,
+ * and a run's credential in its run's organization alone, as the
+ * composition hands it to the lanes that act on an organization without
+ * asking the Authorizer (organization create, API key create, the
+ * self-query lanes, every write's persist backstop, and a composition's
+ * own such lanes, which receive it through
  * `ComposedServices.credentialBinding`).
  *
  * One implementation, built by the composition root over the rows every
@@ -29,7 +31,8 @@ export interface BindingTarget {
 /**
  * The rule's answer.
  *   - `unbound`: the caller names no organization; the rule has nothing to say.
- *   - `inside`: the target is the bound organization's, or nobody's.
+ *   - `inside`: the target is the bound organization's (or, for every
+ *     credential but a run's, one of its children's), or nobody's.
  *   - `admitted`: outside, along the model's one cross-organization path.
  *   - `missing`: no row has that id; the inner driver answers as it would.
  *   - `outside`: refused.
@@ -48,15 +51,18 @@ export interface CredentialBinding {
     target: BindingTarget,
   ): Promise<BindingVerdict>;
   /**
-   * Whether the caller may act in `org`: always for an unbound caller, only
-   * its own for a bound one (a lane that writes into an organization; a
-   * parent's management of a child goes through the Authorizer).
+   * Whether the caller may act in `org` (a lane that writes into an
+   * organization): always for an unbound caller; for a bound one, its own
+   * organization with no read and, for every credential but a run's, a
+   * child of it, one memoised read of `org`'s `spec.parent_org`. Never a
+   * parent or a sibling of the bound organization. Throws on a read fault.
    */
-  admitsOrganization(caller: CallerIdentity, org: string): boolean;
+  admitsOrganization(caller: CallerIdentity, org: string): Promise<boolean>;
   /**
    * Whether a list candidate may be shown to the caller, from the facts the
-   * candidate carries and, for a blueprint another organization shares with
-   * its children, the bound organization's parent (one read per request,
+   * candidate carries, whether its organization is a child of the bound one
+   * and, for a blueprint another organization shares with its children, the
+   * bound organization's parent (one read per organization per request,
    * memoised). Such a blueprint is kept, for the inner scope to decide, only
    * when that parent shares it. One answer differs from `verdict` because it
    * would need a row the candidate does not carry: the owner's API keys are

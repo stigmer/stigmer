@@ -38,6 +38,7 @@ import type { Store } from "../../../store/interface.js";
 
 import type { ChannelRuntime } from "../channel-runtime.js";
 import { registerAgentChannelServices } from "../controller.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -65,6 +66,7 @@ function channelCommand(store: Store): ChannelCommand {
   const transport = createRouterTransport(
     (router) => {
       registerAgentChannelServices(router, {
+        credentialBinding: UNBOUND_CREDENTIAL_BINDING,
         store,
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),

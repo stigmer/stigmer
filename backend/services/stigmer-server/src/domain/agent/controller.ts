@@ -60,6 +60,7 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { CredentialBinding } from "../../extensions/credential-binding.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
@@ -186,6 +187,12 @@ export interface AgentControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
+  /**
+   * The composed credential binding: the persist and rename backstops
+   * refuse a credential that does not reach the row's organization
+   * (pipeline/steps/refuse-bound-elsewhere.ts).
+   */
+  readonly credentialBinding: CredentialBinding;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed list read scope — list narrows through it; undefined = the OSS full scan. */
@@ -269,7 +276,7 @@ async function createAgent(
     .addStep(newComputeAgentVersionHashStep())
     .addStep(newPopulateAgentVersionStep())
     .addStep(newClaimNameStep(deps.store, ApiResourceKind.agent))
-    .addStep(newPersistStep(deps.store))
+    .addStep(newPersistStep(deps.store, deps.credentialBinding))
     .addStep(
       newCreateAuthorizationTuplesStep(
         deps.authorizationLifecycle,
@@ -328,7 +335,7 @@ async function update(
       .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
       .addStep(newComputeAgentVersionHashStep())
       .addStep(newPopulateAgentVersionStep())
-      .addStep(newPersistStep(deps.store))
+      .addStep(newPersistStep(deps.store, deps.credentialBinding))
       .addStep(newSaveAgentVersionStep(deps.store, deps.logger))
       .addStep(newIndexSearchStep(deps.store, agentSearchExtractor, deps.logger))
       .build()
@@ -353,6 +360,7 @@ async function rename(
       names: deps.store,
       rows: storeRenameRows(deps.store, ApiResourceKind.agent, AgentSchema),
       authorizer: deps.authorizer,
+      credentialBinding: deps.credentialBinding,
       logger: deps.logger,
     },
     input,

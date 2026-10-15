@@ -38,6 +38,7 @@ import type { Store } from "../../../store/interface.js";
 
 import { registerAgentShareServices } from "../controller.js";
 import { buildSharedAgentProfile } from "../steps.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -66,6 +67,7 @@ function shareCommand(
   const transport = createRouterTransport(
     (router) => {
       registerAgentShareServices(router, {
+        credentialBinding: UNBOUND_CREDENTIAL_BINDING,
         store,
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),
