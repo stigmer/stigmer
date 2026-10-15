@@ -15,11 +15,14 @@
  * organizationDirectory precedent, never a second registration of an
  * OSS-served RPC). Two verbs, each with a distinct consumer family:
  *
- *   - `authorizedResourceIds` — pure enumeration, for consumers that
- *     need the id set BEFORE or WITHOUT scanned rows: the search lane
- *     (ids go into the engine query as a hard filter — pagination is
- *     engine-side, post-filtering would break it), the recent-activity
- *     merge, and the two getRunSummary aggregates.
+ *   - `authorizedResourceIds` — pure enumeration, for a consumer that
+ *     needs the id set WITHOUT scanned rows: the search lane, for the
+ *     kinds whose reach is the person's own (sessions and runs;
+ *     query/search/reach.ts), whose ids go into the engine query as a
+ *     hard filter (pagination is engine-side, post-filtering would break
+ *     it). Search reads an organization's kinds from the searched
+ *     organizations' rows and offers them to the restrict verb, as the
+ *     recent-activity merge and the run summaries do.
  *   - `restrictListEntries` — candidates in, kept ids out, for every
  *     post-scan list lane through `restrictListByReadScope` below. The
  *     candidate metadata lets a driver apply per-row rules the id set
@@ -168,8 +171,10 @@ export interface ListEntryMeta extends RowAuthorizationFacts {
 /** The scope contract (single-instance point, ExtensionDrivers.listReadScope). */
 export interface ListReadScope {
   /**
-   * The resource ids `caller` may read for `kind` (the Java baseline:
-   * FGA listAuthorizedResourceIds on can_view). An empty set is a real
+   * The resource ids `caller` may read for `kind`, across every
+   * organization (the Java baseline: FGA listAuthorizedResourceIds on
+   * can_view). Its consumer is search, for the kinds whose reach is the
+   * person's own (query/search/reach.ts). An empty set is a real
    * answer — consumers map it to their lane's empty shape without
    * touching the store. A scope may throw on a kind it was never meant
    * to serve (a consumer bug by contract).

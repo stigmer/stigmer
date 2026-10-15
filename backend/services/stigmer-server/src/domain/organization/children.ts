@@ -142,8 +142,9 @@ export const childOwnerAttribution: OwnerAttributionOf = (resource) =>
     ? undefined
     : OwnerAttributionType.NONE;
 
-async function loadOrganization(
-  store: Store,
+/** One organization's row, or undefined when it does not exist: one primary-key read. */
+export async function loadOrganization(
+  store: Pick<Store, "getResource">,
   id: string,
 ): Promise<Organization | undefined> {
   try {

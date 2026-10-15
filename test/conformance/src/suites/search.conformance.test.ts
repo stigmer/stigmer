@@ -18,25 +18,47 @@
 // Indexing is synchronous on resource writes in both editions' stores, so
 // create-then-search needs no polling — a deliberate property this suite
 // silently relies on (a flaky pass here would smell of an async index).
+//
+// The reach arms run on the target's enforcing lane (the primary on the
+// cloud, open source's OIDC sibling on the local targets): a search naming
+// no organization covers the organizations the caller belongs to, and a
+// child organization's people still find what its parent shares with its
+// children. A target with no enforcing lane skips them visibly.
 import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
-import { uniqueName } from "../support/naming";
+import { organizationRole } from "../support/grants";
+import { uniqueName, uniqueOrg } from "../support/naming";
 import { pushPlugin, thermosLike } from "../support/plugins";
-import { createTarget, type TargetProfile } from "../targets";
+import {
+  createTarget,
+  enforcingLaneOf,
+  type EnforcingLane,
+  type TargetProfile,
+  type TenancyContext,
+} from "../targets";
 
 let target: TargetProfile;
 let clients: ConformanceClients;
+let lane: EnforcingLane | undefined;
+let laneReason = "";
 const fixtures = new FixtureTracker();
 
 beforeAll(async () => {
   target = createTarget();
   await target.setup();
   clients = target.clients();
+  const enforcing = await enforcingLaneOf(target);
+  if (enforcing.lane === undefined) {
+    laneReason = enforcing.reason;
+  } else {
+    lane = enforcing.lane;
+  }
 });
 
 afterEach(async () => {
@@ -178,6 +200,111 @@ describe("Search conformance — org scoping", () => {
       query: token,
     });
     expect(theirs.entries.map((e) => e.id)).not.toContain(mine.metadata?.id);
+  });
+});
+
+// An organization the lane's founder owns, cleaned up after the arm.
+async function laneTenancy(on: EnforcingLane): Promise<TenancyContext> {
+  const context = await on.provisionTenancy();
+  fixtures.defer(() => on.cleanupTenancy(context));
+  return context;
+}
+
+// A child of `parent`, created by the lane's founder; deleted before its
+// parent by the fixtures' reverse order.
+async function laneChildOf(on: EnforcingLane, parent: TenancyContext): Promise<string> {
+  const created = await on.clients.organizationCommand.create({
+    apiVersion: "tenancy.stigmer.ai/v1",
+    kind: "Organization",
+    metadata: { name: uniqueOrg() },
+    spec: { parentOrg: parent.org, externalId: uniqueName("cust") },
+  });
+  const org = created.metadata?.id ?? "";
+  fixtures.defer(() => on.clients.organizationCommand.delete({ value: org }));
+  return org;
+}
+
+// A fresh person holding exactly `role` in `org` and nothing else.
+async function lanePersonWith(
+  on: EnforcingLane,
+  org: string,
+  role: string,
+): Promise<ConformanceClients> {
+  const person = await on.provisionIdentity();
+  const id = await on.accountIdOf(person);
+  await on.clients.grantCommand.create(organizationRole(id, role, org));
+  return person;
+}
+
+// An agent the lane's founder creates in `org` at `visibility`.
+async function laneAgent(
+  on: EnforcingLane,
+  org: string,
+  name: string,
+  visibility = ApiResourceVisibility.visibility_org,
+): Promise<string> {
+  const input = makeAgent({ org, name });
+  const agent = await on.clients.agentCommand.create({
+    ...input,
+    metadata: { ...input.metadata, visibility },
+  });
+  const id = agent.metadata?.id ?? "";
+  fixtures.defer(() => on.clients.agentCommand.delete({ value: id }));
+  return id;
+}
+
+describe("Search conformance — reach", () => {
+  it("[rpc:SearchService.search] a search naming no organization finds the caller's organizations' agents and no one else's", async (ctx) => {
+    if (lane === undefined) return ctx.skip(laneReason);
+    const on = lane;
+    const mine = await laneTenancy(on);
+    const theirs = await laneTenancy(on);
+    const member = await lanePersonWith(on, mine.org, "member");
+    const token = uniqueToken();
+    const inMine = await laneAgent(on, mine.org, `reach-${token}-mine`);
+    await laneAgent(on, theirs.org, `reach-${token}-theirs`);
+
+    const found = await member.search.search({
+      kinds: [ApiResourceKind.agent],
+      query: token,
+    });
+    expect(found.entries.map((entry) => entry.id)).toEqual([inMine]);
+    expect(found.countsByKind).toEqual({ agent: 1 });
+  });
+
+  it("[rpc:SearchService.search] a child's member searching no organization finds what the parent shares with children, not the rest of the parent", async (ctx) => {
+    if (lane === undefined) return ctx.skip(laneReason);
+    const on = lane;
+    const parent = await laneTenancy(on);
+    const child = await laneChildOf(on, parent);
+    const member = await lanePersonWith(on, child, "member");
+    const token = uniqueToken();
+    const shared = await laneAgent(
+      on,
+      parent.org,
+      `reach-${token}-shared`,
+      ApiResourceVisibility.visibility_child_orgs,
+    );
+    await laneAgent(on, parent.org, `reach-${token}-parents-own`);
+    const inChild = await laneAgent(on, child, `reach-${token}-child`);
+
+    const found = await member.search.search({
+      kinds: [ApiResourceKind.agent],
+      query: token,
+    });
+    expect(found.entries.map((entry) => entry.id).sort()).toEqual(
+      [shared, inChild].sort(),
+    );
+
+    const inParent = await member.search.search({
+      kinds: [ApiResourceKind.agent],
+      org: parent.org,
+      query: token,
+    });
+    expect(
+      inParent.entries.map((entry) => entry.id),
+      "naming the parent finds only what it shares with its children",
+    ).toEqual([shared]);
   });
 });
 

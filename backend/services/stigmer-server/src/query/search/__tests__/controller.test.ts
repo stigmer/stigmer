@@ -47,13 +47,25 @@ const silentLogger = createLogger({
   write: () => undefined,
 });
 
+// No scope is composed here, so the handler reads no rows.
+const unreadRows = {
+  queryResources: () => Promise.reject(new Error("no rows are read unscoped")),
+  getResource: () => Promise.reject(new Error("no rows are read unscoped")),
+};
+
 function searchClientOver(store: SearchQueryStore) {
   // The zero-verifier chain stamps the trusted-local identity — the
   // controller reads it for the (scope-less here) list-read seam.
   const transport = createRouterTransport(
     (router) => {
       registerSearchServices(router, {
-        handler: new SearchHandler(store, silentLogger, undefined),
+        handler: new SearchHandler({
+          store,
+          rows: unreadRows,
+          organizationDirectory: undefined,
+          listReadScope: undefined,
+          logger: silentLogger,
+        }),
         logger: silentLogger,
       });
     },
