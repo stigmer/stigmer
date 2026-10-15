@@ -20,6 +20,8 @@ import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/sessi
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
+import { EvalQueryController } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/query_pb";
+import type { EvalArchive, EvalArchiveDownloadUrl } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { GetArtifactResponse as GetPluginArtifactResponse, PluginArtifactDownloadUrl } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import type { Run, RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -169,6 +171,7 @@ export class StigmerClient {
   private readonly agentQuery: Client<typeof AgentQueryController>;
   private readonly skillQuery: Client<typeof SkillQueryController>;
   private readonly pluginQuery: Client<typeof PluginQueryController>;
+  private readonly evalQuery: Client<typeof EvalQueryController>;
   private readonly platformQuery: Client<typeof PlatformQueryController>;
   private readonly channelMessageQuery: Client<typeof ChannelMessageQueryController>;
 
@@ -262,6 +265,7 @@ export class StigmerClient {
     this.agentQuery = createClient(AgentQueryController, this.transport);
     this.skillQuery = createClient(SkillQueryController, this.transport);
     this.pluginQuery = createClient(PluginQueryController, this.transport);
+    this.evalQuery = createClient(EvalQueryController, this.transport);
     this.platformQuery = createClient(PlatformQueryController, this.transport);
     this.channelMessageQuery = createClient(ChannelMessageQueryController, this.transport);
   }
@@ -648,6 +652,21 @@ export class StigmerClient {
    */
   async getPluginArtifactDownloadUrl(artifactStorageKey: string): Promise<PluginArtifactDownloadUrl> {
     return this.pluginQuery.getArtifactDownloadUrl({ artifactStorageKey });
+  }
+
+  /**
+   * Mint an HTTP download URL for one version of an Eval, named by its
+   * reference (its id and the digest as the version). The server asks
+   * can_view on the Eval first, of the run's caller; a server with no
+   * transfer lane answers FAILED_PRECONDITION.
+   */
+  async getEvalDownloadUrl(ref: ApiResourceReference): Promise<EvalArchiveDownloadUrl> {
+    return this.evalQuery.getDownloadUrl(ref);
+  }
+
+  /** One version of an Eval's archive inline, after the same can_view; capped by the gRPC message limit. */
+  async downloadEval(ref: ApiResourceReference): Promise<EvalArchive> {
+    return this.evalQuery.download(ref);
   }
 
   async getAgentByReference(ref: ApiResourceReference): Promise<Agent> {

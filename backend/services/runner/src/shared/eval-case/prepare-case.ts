@@ -120,7 +120,9 @@ async function scaffoldOnce(
   const tmp = join(caseDir, "tmp");
   try {
     const suite = archive.under(context.suiteDir);
-    if (suite.length === 0) throw new CaseArchiveError(`the archive holds no suite at '${context.suiteDir}'`);
+    if (suite.length === 0) {
+      throw new CaseArchiveError(context.suiteDir === "" ? "the archive holds no files" : `the archive holds no suite at '${context.suiteDir}'`);
+    }
     for (const [relative, bytes] of suite) {
       const path = join(suiteRoot, context.suiteDir, relative);
       await agentFs().mkdir(posix.dirname(path), { recursive: true });

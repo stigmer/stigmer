@@ -1,15 +1,17 @@
 /**
- * A eval-run try's stand-ins for the plugin's MCP servers: one
- * Streamable HTTP MCP endpoint on loopback for the turn, serving one
- * server per mocked plugin server under that server's own name, so both
- * engines reach it as they reach any HTTP server and the transcript records
- * its calls under the plugin server's name.
+ * An eval-run try's stand-ins for MCP servers: one Streamable HTTP MCP
+ * endpoint on loopback for the turn, serving one server per mocked server
+ * under that server's own name in the turn, so both engines reach it as
+ * they reach any HTTP server and the transcript records its calls under the
+ * real server's name. A plugin's case mocks its plugin's servers; an Eval's
+ * case mocks the agent's own servers and its plugins', each stand-in
+ * carrying the real server's home (`EvalMockServer.home`) as its origin.
  *
  * What each stand-in offers: the tools the case mocks, with the real
  * server's descriptions and input schemas when its `_tools.json` holds them
  * and a permissive object schema otherwise. A tool with no mock is not
  * offered. The server planned all of this (`RunSpec.eval_case`); the
- * bytes come from the plugin's archive.
+ * bytes come from the case source's archive.
  *
  * How a call is answered:
  *  1. Its `expect:` guard is checked first (`@stigmer/eval-runtime`, the
@@ -51,9 +53,10 @@ import {
   type EvalMockTool,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
 import type { MockAbort } from "../../harness/stop-controller.js";
-import type { ResolvedMcpServer } from "../mcp-resolver.js";
+import type { McpServerHome, ResolvedMcpServer } from "../mcp-resolver.js";
 import type { AgentMockExchange, AgentMockModel } from "./agent-mock.js";
 import type { CaseArchive } from "./case-archive.js";
+import { joinCasePath } from "./case-archive.js";
 
 /** Where the endpoint reports to, once the engine's turn starts. */
 export interface MockEndpointBinding {
@@ -190,9 +193,12 @@ function standInOf(server: EvalMockServer, archive: CaseArchive): ServerStandIn 
   return { server, tools, history: [] };
 }
 
-/** A fixture beside the mock: the case's mocks directory first, then the suite's. */
+/** A fixture beside the mock: the case's mocks directory first, then the suite's (an Eval's suite is its archive's root). */
 function fixtureOf(context: EvalCaseContext, archive: CaseArchive, server: string, path: string): string | undefined {
-  return archive.text(`${context.caseDir}/mocks/${server}/${path}`) ?? archive.text(`${context.suiteDir}/mocks/${server}/${path}`);
+  return (
+    archive.text(`${context.caseDir}/mocks/${server}/${path}`) ??
+    archive.text(joinCasePath(context.suiteDir, `mocks/${server}/${path}`))
+  );
 }
 
 function resolvedServerOf(
@@ -206,8 +212,25 @@ function resolvedServerOf(
     connectionType: "http",
     url: `http://127.0.0.1:${port}/mcp/${encodeURIComponent(server.segment)}`,
     headers: { Authorization: `Bearer ${token}` },
-    home: { kind: "plugin", pluginId: context.pluginId, plugin: context.pluginName, server: server.server },
+    home: homeOf(context, server),
   };
+}
+
+/**
+ * Where the real server a stand-in replaces lives, which a hook reads as
+ * its origin: the mock's own home when the server names one (an Eval's
+ * case mocks the agent's servers and its plugins'), else the case's own
+ * plugin, whose server key the mock directory is.
+ */
+function homeOf(context: EvalCaseContext, server: EvalMockServer): McpServerHome {
+  switch (server.home.case) {
+    case "plugin":
+      return { kind: "plugin", pluginId: server.home.value.pluginId, plugin: server.home.value.pluginName, server: server.home.value.server };
+    case "agent":
+      return { kind: "agent", agentId: server.home.value.agentId, subagent: null, server: server.home.value.server };
+    default:
+      return { kind: "plugin", pluginId: context.pluginId, plugin: context.pluginName, server: server.server };
+  }
 }
 
 function toolError(text: string): CallToolResult {
