@@ -140,7 +140,7 @@ import { registerMemoryServices } from "../domain/memory/controller.js";
 import { newRunScoreCascade } from "../domain/score/cascade.js";
 import { registerEvaluatorServices } from "../domain/evaluator/controller.js";
 import { registerEvalRunServices } from "../domain/eval-run/controller.js";
-import { newPluginArchiveReader } from "../domain/eval-run/suite.js";
+import { newCaseArchiveReader } from "../domain/eval-run/suite.js";
 import { newTemporalEvalRunWorkflows } from "../domain/eval-run/workflows.js";
 import { registerScoreServices } from "../domain/score/controller.js";
 import { newGradingObserver } from "../domain/score/grading-observer.js";
@@ -1224,11 +1224,8 @@ export async function composeServer(
         config: evalsTemporalConfig,
         /* v8 ignore start -- @preserve: called only by an eval activity on a live engine */
         suites: {
-          readArchive: (pluginId, digest) =>
-            newPluginArchiveReader({ store, archives: pluginArtifactStorage }).readArchive(
-              pluginId,
-              digest,
-            ),
+          readArchive: (source) =>
+            newCaseArchiveReader({ store, plugins: pluginArtifactStorage, evals: evalArtifactStorage }).readArchive(source),
         },
         catalog: evalModelCatalogOf(modelCatalog),
         tries: () => requireInProcess().evalRunTries,
@@ -1984,7 +1981,7 @@ export async function composeServer(
       credentialBinding,
       authorizationLifecycle,
       modelCatalog,
-      suites: newPluginArchiveReader({ store, archives: pluginArtifactStorage }),
+      suites: newCaseArchiveReader({ store, plugins: pluginArtifactStorage, evals: evalArtifactStorage }),
       workflows: evalRunWorkflows,
       sessions: evalRunTrySessions,
     });

@@ -572,7 +572,7 @@ describe("PlanEvalRun on an agent", () => {
     const reads: string[] = [];
     return {
       reads,
-      readArchive: (_pluginId, digest) => {
+      readArchive: ({ digest }) => {
         reads.push(digest);
         const files = byDigest[digest];
         return files === undefined ? Promise.reject(new Error(`no archive ${digest}`)) : Promise.resolve(files);
@@ -590,6 +590,7 @@ describe("PlanEvalRun on an agent", () => {
       agentSpec: AGENT.spec,
       plugins: plugins.map((entry) => ({ plugin: entry, digest: entry.status?.digest ?? "", attached: true, compared: false })),
       selected: new Set(selected ?? plugins.map((entry) => entry.metadata?.id ?? "")),
+      evals: [],
     } satisfies EvaluatedLoad);
     return ctx;
   }

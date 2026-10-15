@@ -65,7 +65,22 @@ export function evalRunNoCasesMessage(dir: string): string {
 
 /** The refusal of an eval run about an agent with nothing whose cases could run. */
 export const EVAL_RUN_NO_CASE_SOURCES_MESSAGE =
-  "this agent version attaches no plugin, and the eval run compares none: attach a plugin with eval cases, or compare one with --plugin";
+  "this agent version attaches no plugin, and the eval run compares none and names no eval: run an eval with --eval, attach a plugin with eval cases, or compare one with --plugin";
+
+/**
+ * The refusal of a case source naming an eval that is not one of the
+ * agent's organization the caller may view: one sentence for an eval that
+ * is not there, one in another organization and one the caller cannot
+ * view, so the refusal tells nobody which.
+ */
+export function evalRunUnreadableEvalMessage(name: string): string {
+  return `spec.cases names eval '${name}', which is not an eval of the agent's organization you can view`;
+}
+
+/** The refusal of a case source naming a version its eval does not hold. */
+export function evalRunEvalVersionMessage(name: string, version: string): string {
+  return `spec.cases names eval '${name}' at '${version}', a version it does not hold: name a tag it holds, a digest of one of its versions, or no version for its current one`;
+}
 
 /** The refusal of an eval run about an agent none of whose case sources has cases. */
 export const EVAL_RUN_NO_CASES_MESSAGE =

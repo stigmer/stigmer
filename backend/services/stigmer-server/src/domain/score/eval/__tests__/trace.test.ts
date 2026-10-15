@@ -290,8 +290,8 @@ describe("the eval trace, a plugin skill's read", () => {
 
   it("matches only a SKILL.md inside a mounted plugin's tree", () => {
     expect(
-      PLUGIN_SKILL_READ_PATH.exec(`.stigmer/plugins/${DIGEST}/skills/review/SKILL.md`)?.[1],
-    ).toBe("skills/review");
+      PLUGIN_SKILL_READ_PATH.exec(`.stigmer/plugins/${DIGEST}/skills/review/SKILL.md`)?.slice(1),
+    ).toEqual([DIGEST, "skills/review"]);
     expect(PLUGIN_SKILL_READ_PATH.test(`docs/plugins/${DIGEST}/skills/x/SKILL.md`)).toBe(false);
     expect(PLUGIN_SKILL_READ_PATH.test(`.stigmer/plugins/${DIGEST}/SKILL.md`)).toBe(false);
   });

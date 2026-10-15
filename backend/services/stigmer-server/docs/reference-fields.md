@@ -70,7 +70,10 @@ Rows read `| \`Message.field\` | class |`.
 
 | Field | Class |
 |---|---|
+| `ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource.eval` | manifest reference |
 | `ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource.plugin` | manifest reference |
+| `ai.stigmer.agentic.evalrun.v1.EvalRunEval.eval_id` | stamped id |
+| `ai.stigmer.agentic.evalrun.v1.EvalRunEval.eval_slug` | display slug |
 | `ai.stigmer.agentic.evalrun.v1.EvalRunPlugin.plugin_id` | stamped id |
 | `ai.stigmer.agentic.evalrun.v1.EvalRunPlugin.plugin_slug` | display slug |
 | `ai.stigmer.agentic.evalrun.v1.EvalRunSpec.agent_id` | stamped id |
@@ -122,7 +125,10 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.session_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.LoadedVersions.plugins` | stamped reference |
 | `ai.stigmer.agentic.run.v1.LoadedVersions.skills` | stamped reference |
+| `ai.stigmer.agentic.run.v1.EvalCaseContext.eval_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.EvalCaseContext.plugin_id` | stamped id |
+| `ai.stigmer.agentic.run.v1.EvalMockAgentHome.agent_id` | stamped id |
+| `ai.stigmer.agentic.run.v1.EvalMockPluginHome.plugin_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RecalledMemoryFact.memory_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RunSpec.session_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RunStatus.agent_id` | stamped id |

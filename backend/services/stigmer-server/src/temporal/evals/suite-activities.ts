@@ -49,6 +49,7 @@ import type { Logger } from "../../boot/logger.js";
 import { EVAL_RUN_SUITES_UNREADABLE_ERROR } from "../../domain/eval-run/constants.js";
 import type { PlannedCase } from "../../domain/eval-run/matrix.js";
 import { caseNotesOf, mockedServersOf } from "../../domain/eval-run/try-run.js";
+import type { PluginServer } from "../../domain/eval-run/try-run.js";
 import type { Store } from "../../store/interface.js";
 import { evalRunStatusBook } from "./run-status.js";
 import { SKIP_WRITE } from "./status-book.js";
@@ -267,15 +268,17 @@ export function createSuiteActivities(
 }
 
 /**
- * One planned case's skeleton: its tags, notes and mocked servers, each
- * target with its pending tries in the with-plugin arm, and in the
- * without-plugin arm too when the eval compares (`twoArms`).
+ * One planned case's skeleton: its tags, notes and mocked servers (the
+ * servers it may mock, and with `unmatched`, an Eval's case's mock
+ * directories that name none), each target with its pending tries in the
+ * with-plugin arm, and in the without-plugin arm too when the eval
+ * compares (`twoArms`).
  */
 export function skeletonCaseOf(
   planned: PlannedCase,
   spec: Parameters<typeof caseNotesOf>[1] | undefined,
-  pluginName: string,
-  servers: ReadonlyArray<string>,
+  servers: ReadonlyArray<PluginServer>,
+  unmatched: boolean,
   twoArms: boolean,
   extraNotes: ReadonlyArray<string> = [],
 ): EvalRunCase {
@@ -299,7 +302,7 @@ export function skeletonCaseOf(
         : [],
     mockedServers:
       planned.notRunReason === undefined && spec !== undefined
-        ? mockedServersOf(planned.evalCase, spec, pluginName, servers)
+        ? mockedServersOf(planned.evalCase, spec, servers, unmatched)
         : [],
     targets: planned.targets.map((target) =>
       create(EvalRunCaseTargetSchema, {

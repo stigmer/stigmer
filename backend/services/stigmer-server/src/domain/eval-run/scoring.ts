@@ -182,20 +182,20 @@ export function summarizeTarget(
     );
 }
 
-/** Every case of an eval run, plugin after plugin: the matrix's flat order. */
+/** Every case of an eval run, plugin after plugin, then Eval after Eval: the matrix's flat order. */
 export function casesOf(status: EvalRunStatus): EvalRunCase[] {
-  return status.plugins.flatMap((plugin) => plugin.cases);
+  return [...status.plugins.flatMap((plugin) => plugin.cases), ...status.evals.flatMap((evalBlock) => evalBlock.cases)];
 }
 
 /**
  * Recomputes every summary of `status` from its tries, in place: each
- * arm, case and target, each plugin's aggregates, then the eval run's over
+ * arm, case and target, each plugin's and Eval's aggregates, then the eval run's over
  * every case, the cost and the count of finished tries. `threshold` is the
  * eval run's (DEFAULT_THRESHOLD when unset).
  */
 export function recomputeStatus(status: EvalRunStatus, threshold: number): void {
-  for (const plugin of status.plugins) {
-    plugin.aggregates = recomputeCases(plugin.cases, threshold).aggregates;
+  for (const block of [...status.plugins, ...status.evals]) {
+    block.aggregates = recomputeCases(block.cases, threshold).aggregates;
   }
   const totals = recomputeCases(casesOf(status), threshold);
   status.aggregates = totals.aggregates;

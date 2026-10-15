@@ -24,7 +24,9 @@
  *   - on a plugin, its current version only (the with arm runs the plugin
  *     as installed now), stamped as the status's one plugin, compared;
  *   - whose cases run: the case sources the spec names (each a plugin a
- *     try loads), else the compared plugin's, else every attached
+ *     try loads, or an Eval of the agent's organization the caller may
+ *     view, read at the version the reference names or its current one and
+ *     stamped by digest), else the compared plugin's, else every attached
  *     plugin's; the matrix plans two arms exactly when a plugin is compared
  *     and the ablation is not none.
  *
@@ -40,13 +42,14 @@
  * Proven by __tests__/steps.test.ts (each step's arms) and
  * __tests__/eval-run.test.ts (the composed lanes).
  */
-import { ConnectError } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { timestampMs, timestampNow } from "@bufbuild/protobuf/wkt";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { Eval } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
 import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
 import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
 import type {
@@ -57,6 +60,7 @@ import type {
 import { EvalRunListSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/io_pb";
 import type { EvalRunSpec } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import {
+  EvalRunEvalSchema,
   EvalRunPartialReason,
   EvalRunPhase,
   EvalRunPluginSchema,
@@ -94,10 +98,11 @@ import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { decodeOrSkip, listPageFingerprint, readListPage } from "../../pipeline/steps/list-page.js";
 import { releaseNamesOfDeleted } from "../../pipeline/steps/names.js";
-import { loadVersion, resolveVersionHash } from "../../pipeline/steps/version-history.js";
+import { loadByReferenceWithVersion, loadVersion, resolveVersionHash } from "../../pipeline/steps/version-history.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { agentVersionBinding } from "../agent/versions.js";
+import { evalVersionBinding } from "../eval/versions.js";
 import { loadPluginByReference } from "../plugin/versions.js";
 import { checkAllowTools } from "./allow-tools.js";
 import {
@@ -118,6 +123,7 @@ import {
   PLUGIN_NOT_SELECTED_REASON,
   evalRunActiveDeleteMessage,
   evalRunCaseGlobMessage,
+  evalRunEvalVersionMessage,
   evalRunNoCasesMessage,
   evalRunNotCurrentVersionMessage,
   evalRunOrgMismatchMessage,
@@ -125,6 +131,7 @@ import {
   evalRunTooLargeMessage,
   evalRunUnknownServerToolMessage,
   evalRunUnloadedCaseSourceMessage,
+  evalRunUnreadableEvalMessage,
 } from "./constants.js";
 import { evalRunListIndex } from "./list-index.js";
 import { caseGlobError, evalModelCatalogOf, matrixSpecOf, sizeOfMatrix } from "./matrix.js";
@@ -161,7 +168,13 @@ export interface LoadedPlugin {
   readonly compared: boolean;
 }
 
-/** What a create's tries load (the module header). */
+/** One Eval whose cases run, at the version create stamps. */
+export interface SelectedEval {
+  readonly eval: Eval;
+  readonly digest: string;
+}
+
+/** What a create's tries load, and whose cases run (the module header). */
 export interface EvaluatedLoad {
   /** The agent version's spec; undefined on an eval run of a plugin. */
   readonly agentSpec: AgentSpec | undefined;
@@ -169,6 +182,8 @@ export interface EvaluatedLoad {
   readonly plugins: ReadonlyArray<LoadedPlugin>;
   /** The ids of the plugins whose cases run. */
   readonly selected: ReadonlySet<string>;
+  /** The Evals whose cases run, in the order the spec names them. */
+  readonly evals: ReadonlyArray<SelectedEval>;
 }
 
 /** An eval run row as the phase rules read it. */
@@ -413,6 +428,7 @@ async function resolvePluginSubject(store: Store, plugin: Plugin, spec: EvalRunS
     agentSpec: undefined,
     plugins: [{ plugin, digest, attached: false, compared: true }],
     selected: new Set([id]),
+    evals: [],
   };
 }
 
@@ -422,7 +438,7 @@ async function resolvePluginSubject(store: Store, plugin: Plugin, spec: EvalRunS
  * version a turn would run (NOT_FOUND for one gone); the compared plugin,
  * when the agent does not attach it, read at its current version after
  * can_view on it; then whose cases run. An agent with nothing whose cases
- * could run is refused.
+ * could run (no plugin a try loads and no Eval named) is refused.
  */
 async function resolveAgentSubject(
   store: Store,
@@ -453,11 +469,12 @@ async function resolveAgentSubject(
     const compared = await readComparedPlugin(store, authorizer, ctx, spec.comparedPluginId);
     plugins.push({ plugin: compared, digest: compared.status?.digest ?? "", attached: false, compared: true });
   }
-  if (plugins.length === 0) {
+  const { selected, evals } = await selectedSources(store, authorizer, ctx, spec, plugins, agentOrg);
+  if (plugins.length === 0 && evals.length === 0) {
     throw failedPreconditionError(EVAL_RUN_NO_CASE_SOURCES_MESSAGE);
   }
   spec.agentVersion = hash;
-  return { agentSpec, plugins, selected: await selectedSources(store, authorizer, ctx, spec, plugins, agentOrg) };
+  return { agentSpec, plugins, selected, evals };
 }
 
 /**
@@ -495,13 +512,14 @@ async function readComparedPlugin(
 }
 
 /**
- * The plugins whose cases run (the module header): each case source the
- * spec names, matched to a plugin a try loads by id, else by organization
- * and slug (INVALID_ARGUMENT naming one the try would not load: by the
- * slug its row holds when the caller may view it, since the reference rule
- * stored it by id, else by the id the request holds, so the refusal tells
- * nobody the slug or the existence of a plugin they cannot view); with
- * none named, the compared plugin, else every attached plugin.
+ * Whose cases run (the module header): each case source the spec names. A
+ * plugin source is matched to a plugin a try loads by id, else by
+ * organization and slug (INVALID_ARGUMENT naming one the try would not
+ * load: by the slug its row holds when the caller may view it, since the
+ * reference rule stored it by id, else by the id the request holds, so the
+ * refusal tells nobody the slug or the existence of a plugin they cannot
+ * view). An Eval source is read and stamped (readEvalSource), once per
+ * Eval. With none named, the compared plugin, else every attached plugin.
  */
 async function selectedSources(
   store: Store,
@@ -510,15 +528,24 @@ async function selectedSources(
   spec: EvalRunSpec,
   plugins: ReadonlyArray<LoadedPlugin>,
   agentOrg: string,
-): Promise<Set<string>> {
+): Promise<{ readonly selected: Set<string>; readonly evals: SelectedEval[] }> {
   if (spec.cases.length === 0) {
     const compared = plugins.find((entry) => entry.compared);
-    return new Set(
-      (compared === undefined ? plugins : [compared]).map((entry) => entry.plugin.metadata?.id ?? ""),
-    );
+    return {
+      selected: new Set((compared === undefined ? plugins : [compared]).map((entry) => entry.plugin.metadata?.id ?? "")),
+      evals: [],
+    };
   }
   const selected = new Set<string>();
+  const evals: SelectedEval[] = [];
   for (const source of spec.cases) {
+    if (source.source.case === "eval") {
+      const read = await readEvalSource(store, authorizer, ctx, source.source.value, agentOrg);
+      if (!evals.some((entry) => entry.eval.metadata?.id === read.eval.metadata?.id)) {
+        evals.push(read);
+      }
+      continue;
+    }
     if (source.source.case !== "plugin") {
       continue;
     }
@@ -529,7 +556,66 @@ async function selectedSources(
     }
     selected.add(match.plugin.metadata?.id ?? "");
   }
-  return selected;
+  return { selected, evals };
+}
+
+/**
+ * An Eval case source: its current row first, which must be the agent's
+ * organization's and one the caller may view (one refusal for an Eval
+ * that is not there, is another organization's or is hidden from the
+ * caller, so it reveals none of them); then the version the reference
+ * names, a tag or a digest, or the current one, whose digest create
+ * stamps. A server-composed request asks no question.
+ */
+async function readEvalSource(
+  store: Store,
+  authorizer: Authorizer,
+  ctx: RequestContext<typeof EvalRunSchema>,
+  ref: ApiResourceReference,
+  agentOrg: string,
+): Promise<SelectedEval> {
+  const name = ref.slug !== "" ? ref.slug : ref.id;
+  const unreadable = (): ConnectError => invalidArgumentError(evalRunUnreadableEvalMessage(name));
+  const at = { ...ref, org: ref.org === "" ? agentOrg : ref.org };
+  const head = await evalOrUndefined(() => loadByReferenceWithVersion(store, evalVersionBinding, { ...at, version: "" }));
+  if (head === undefined || (head.metadata?.org ?? "") !== agentOrg) {
+    throw unreadable();
+  }
+  if (!isServerComposedRequest(ctx.callerIdentity)) {
+    const decision = await evaluateAuthorizer(authorizer, ctx.callerIdentity, {
+      permission: IamPermission.can_view,
+      resourceKind: ApiResourceKind.eval,
+      resourceId: head.metadata?.id ?? "",
+    });
+    if (decision.kind === "unavailable") {
+      throw internalError(decision.cause, "failed to authorize an eval case source");
+    }
+    if (decision.kind !== "allow") {
+      throw unreadable();
+    }
+  }
+  if (ref.version === "" || ref.version === "latest") {
+    return { eval: head, digest: head.status?.digest ?? "" };
+  }
+  const version = await evalOrUndefined(() =>
+    loadByReferenceWithVersion(store, evalVersionBinding, { ...at, id: head.metadata?.id ?? "", version: ref.version }),
+  );
+  if (version === undefined) {
+    throw invalidArgumentError(evalRunEvalVersionMessage(name, ref.version));
+  }
+  return { eval: version, digest: version.status?.digest ?? "" };
+}
+
+/** An Eval read, or undefined when it or its version is not found. */
+async function evalOrUndefined(read: () => Promise<Eval>): Promise<Eval | undefined> {
+  try {
+    return await read();
+  } catch (error) {
+    if (error instanceof ConnectError && error.code === Code.NotFound) {
+      return undefined;
+    }
+    throw error;
+  }
 }
 
 /**
@@ -607,7 +693,8 @@ export function newValidateEvalRunTargetsStep(catalog: ModelCatalogProvider): Pi
 
 /**
  * PlanEvalRun: refuses a case_glob that is not a glob; reads each selected
- * plugin's suite at its stamped digest; stamps every plugin a try loads on
+ * plugin's suite at its stamped digest, then each Eval's; stamps every
+ * Eval whose cases run (its id, slug and digest) and every plugin a try loads on
  * the status (its id, slug, digest, whether attached and compared, and why
  * its cases do not run: not selected, or none at this version); refuses an
  * eval run with no cases at all, one whose filters keep none, and one
@@ -658,7 +745,8 @@ export function newPlanEvalRunStep(
         }
         let loaded;
         try {
-          loaded = entry.digest === "" ? undefined : await loadEvalSuite(source, pluginId, entry.digest);
+          loaded =
+            entry.digest === "" ? undefined : await loadEvalSuite(source, { kind: "plugin", id: pluginId, digest: entry.digest });
         } catch (error) {
           if (error instanceof ConnectError) {
             throw error;
@@ -667,6 +755,34 @@ export function newPlanEvalRunStep(
         }
         if (loaded === undefined || loaded.suite.cases.length === 0) {
           suiteDir = loaded?.suite.dir ?? suiteDir;
+          stamp.notRunReason = PLUGIN_NO_CASES_REASON;
+          continue;
+        }
+        withCases++;
+        const size = sizeOfMatrix(loaded.suite, planSpec, planCatalog, agentTarget);
+        cases += size.cases;
+        tries += size.tries;
+      }
+      const stampedEvals = [];
+      for (const entry of load.evals) {
+        const evalId = entry.eval.metadata?.id ?? "";
+        const stamp = create(EvalRunEvalSchema, {
+          evalId,
+          evalSlug: entry.eval.metadata?.slug ?? "",
+          evalDigest: entry.digest,
+        });
+        stampedEvals.push(stamp);
+        let loaded;
+        try {
+          loaded =
+            entry.digest === "" ? undefined : await loadEvalSuite(source, { kind: "eval", id: evalId, digest: entry.digest });
+        } catch (error) {
+          if (error instanceof ConnectError) {
+            throw error;
+          }
+          throw internalError(error, "failed to read the evals' cases");
+        }
+        if (loaded === undefined || loaded.suite.cases.length === 0) {
           stamp.notRunReason = PLUGIN_NO_CASES_REASON;
           continue;
         }
@@ -688,6 +804,7 @@ export function newPlanEvalRunStep(
       status.phase = EvalRunPhase.pending;
       status.agentVersionHash = onPlugin ? "" : spec.agentVersion;
       status.plugins = stamped;
+      status.evals = stampedEvals;
       status.triesTotal = tries;
     },
   };
@@ -1009,8 +1126,8 @@ export function newListEvalRunsBySubjectStep<Desc extends SubjectListSchema>(
 
 /** Empties every arm's tries of `evalRun`, in place; every summary is kept. */
 function withoutTries(evalRun: EvalRun): void {
-  for (const plugin of evalRun.status?.plugins ?? []) {
-    for (const evalCase of plugin.cases) {
+  for (const block of [...(evalRun.status?.plugins ?? []), ...(evalRun.status?.evals ?? [])]) {
+    for (const evalCase of block.cases) {
       for (const target of evalCase.targets) {
         for (const arm of [target.withPlugin, target.withoutPlugin]) {
           if (arm !== undefined) {

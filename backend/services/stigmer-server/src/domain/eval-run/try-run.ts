@@ -60,7 +60,12 @@
  *     the run gives it. Mocks ride only while the case's plugin is loaded:
  *     without the plugin its servers do not exist, nor do their stand-ins.
  *     A case of a plugin the agent attaches keeps its mocks in both arms of
- *     another plugin's comparison.
+ *     another plugin's comparison. An Eval's case (`caseServers` then
+ *     carries every server of the agent the arm runs: its own and its
+ *     plugins', each under its name in the turn) mocks any of them, its
+ *     mock directory named as the turn names the server, and the
+ *     stand-in records where the real server lives (`home`), so a hook
+ *     reads the same origin either way.
  *
  * A vote is a judge run in a session of its own, labelled
  * `stigmer.ai/grades-run = <try run id>` so the runner swaps in its
@@ -82,6 +87,8 @@ import {
 import {
   EvalCaseContextSchema,
   EvalMockKind,
+  EvalMockAgentHomeSchema,
+  EvalMockPluginHomeSchema,
   EvalMockServerSchema,
   EvalMockToolSchema,
   type EvalCaseContext,
@@ -158,10 +165,21 @@ export interface TryTools {
   readonly notes: ReadonlyArray<string>;
 }
 
-/** One of the plugin's MCP servers as a try names it: its segment in the run (`plugin_<plugin>_<server>`), and its key in the plugin. */
+/** Where a server a case may mock lives in the turn; absent, the case's own plugin. */
+export type ServerHome =
+  | { readonly kind: "plugin"; readonly pluginId: string; readonly pluginName: string; readonly server: string }
+  | { readonly kind: "agent"; readonly agentId: string; readonly server: string };
+
+/**
+ * An MCP server as a try names it: its name in the run (`slug`, as in
+ * `plugin_<plugin>_<server>` or an agent's own `billing`), the key a case's
+ * mock directory names it by (`key`: the plugin's server key for a
+ * plugin's case, the slug itself for an Eval's), and where it lives.
+ */
 export interface PluginServer {
   readonly slug: string;
   readonly key: string;
+  readonly home?: ServerHome;
 }
 
 /** The plugin's MCP servers as its tries name them, from the row the eval loaded at its digest. */
@@ -250,42 +268,70 @@ export const REPLAYS_NOT_READ_NOTE = "adopted replays are not read; agent mocks 
 /** Why a plugin server a case leaves unmocked is not started, as the format's mocked: line prints it. */
 export const NOT_STARTED_NO_MOCK = "not started: no mock";
 
+/** Why an Eval case's mock answers nothing: the agent the eval run runs has no server of that name. */
+export const NO_SUCH_SERVER_ON_AGENT = "no such server on the agent";
+
 /**
- * The plugin's MCP servers as the case's with-plugin tries see them, named
- * as Claude Code's mocked: line names them (`plugin_<plugin>_<server>`):
- * each mocked server with its tools, and each other server "not started:
- * no mock". Nothing when the eval runs the real servers; a server the eval
- * starts for real (`allow_real_servers`) is not listed.
+ * The servers a case may mock as its with-plugin tries see them, named as
+ * Claude Code's mocked: line names them (`plugin_<plugin>_<server>`, or an
+ * agent's own server's name): each mocked server with its tools, and each
+ * other server "not started: no mock". With `unmatched`, an Eval's case
+ * also lists each mock directory that names no server of the agent, which
+ * answers nothing. Nothing when the eval runs the real servers; a server
+ * the eval starts for real (`allow_real_servers`) is not listed.
  */
 export function mockedServersOf(
   evalCase: Pick<EvalCase, "mocks">,
   spec: Pick<EvalRunSpec, "realMcpServers" | "allowRealServers">,
-  pluginName: string,
-  serverKeys: ReadonlyArray<string>,
+  servers: ReadonlyArray<PluginServer>,
+  unmatched = false,
 ): EvalRunMockedServer[] {
   if (spec.realMcpServers) return [];
-  return serverKeys.flatMap((key) => {
-    const name = toolServerSegment(pluginName, key);
-    const mocks = mocksOf(evalCase, key);
+  const listed = servers.flatMap((server) => {
+    const mocks = mocksOf(evalCase, server.key);
     if (mocks !== undefined) {
-      return [create(EvalRunMockedServerSchema, { name, tools: mocks.tools.map((tool) => tool.tool) })];
+      return [create(EvalRunMockedServerSchema, { name: server.slug, tools: mocks.tools.map((tool) => tool.tool) })];
     }
-    return spec.allowRealServers ? [] : [create(EvalRunMockedServerSchema, { name, notStartedReason: NOT_STARTED_NO_MOCK })];
+    return spec.allowRealServers ? [] : [create(EvalRunMockedServerSchema, { name: server.slug, notStartedReason: NOT_STARTED_NO_MOCK })];
   });
+  if (!unmatched) return listed;
+  const keys = new Set(servers.map((server) => server.key));
+  const strays = evalCase.mocks
+    .filter((mock) => !keys.has(mock.server))
+    .map((mock) => create(EvalRunMockedServerSchema, { name: mock.server, notStartedReason: NO_SUCH_SERVER_ON_AGENT }));
+  return [...listed, ...strays];
+}
+
+/** A plugin's servers as its own suite's mocks key them (the suite's declared keys), under their names in the run. */
+export function pluginSuiteServersOf(pluginName: string, serverKeys: ReadonlyArray<string>): PluginServer[] {
+  return serverKeys.map((key) => ({ slug: toolServerSegment(pluginName, key), key }));
 }
 
 /** The most agent-mock calls a try may make, the format's four per turn, bounded as the run's context is. */
 export const MAX_AGENT_MOCK_CALLS = 800;
 
-/** What locates the case in the plugin's archive. */
-export interface CaseSource {
-  readonly pluginId: string;
-  /** The plugin's name, as its servers' segments carry it. */
-  readonly pluginName: string;
-  /** The archive digest the eval run stamped. */
-  readonly digest: string;
-  /** The suite's directory, as in "evals". */
-  readonly suiteDir: string;
+/** What locates the case in its source's archive: a plugin's, or an Eval's. */
+export type CaseSource =
+  | {
+      readonly kind: "plugin";
+      readonly pluginId: string;
+      /** The plugin's name, as its servers' segments carry it. */
+      readonly pluginName: string;
+      /** The archive digest the eval run stamped. */
+      readonly digest: string;
+      /** The suite's directory, as in "evals". */
+      readonly suiteDir: string;
+    }
+  | {
+      readonly kind: "eval";
+      readonly evalId: string;
+      /** The archive digest the eval run stamped; the suite is the archive's root. */
+      readonly digest: string;
+    };
+
+/** Whether the case's own source is in the try's arm: an Eval always is, a plugin unless the arm leaves it out. */
+export function caseLoadedIn(source: CaseSource, attachment: Pick<ArmAttachment, "excludedPluginIds">): boolean {
+  return source.kind === "eval" || !attachment.excludedPluginIds.includes(source.pluginId);
 }
 
 /**
@@ -298,6 +344,7 @@ export function tryCaseContextOf(input: {
   /** Whether the case's plugin is loaded in the try's arm (arm.ts loadedIn). */
   readonly caseLoaded: boolean;
   readonly source: CaseSource;
+  /** The servers the case may mock (tryRunRequest's `caseServers`). */
   readonly pluginServers: ReadonlyArray<PluginServer>;
 }): EvalCaseContext | undefined {
   const { evalCase, spec, source } = input;
@@ -305,7 +352,7 @@ export function tryCaseContextOf(input: {
     input.caseLoaded && !spec.realMcpServers
       ? input.pluginServers.flatMap((server) => {
           const mocked = mocksOf(evalCase, server.key);
-          return mocked === undefined ? [] : [mockServerOf(mocked, server.slug)];
+          return mocked === undefined ? [] : [mockServerOf(mocked, server)];
         })
       : [];
   const { context } = evalCase;
@@ -314,10 +361,9 @@ export function tryCaseContextOf(input: {
     return undefined;
   }
   return create(EvalCaseContextSchema, {
-    pluginId: source.pluginId,
-    pluginName: source.pluginName,
-    pluginDigest: source.digest,
-    suiteDir: source.suiteDir,
+    ...(source.kind === "plugin"
+      ? { pluginId: source.pluginId, pluginName: source.pluginName, pluginDigest: source.digest, suiteDir: source.suiteDir }
+      : { evalId: source.evalId, evalDigest: source.digest }),
     caseDir: evalCase.dir,
     scaffoldScript: context.scaffoldScript ?? "",
     addDirs: [...context.addDirs],
@@ -332,10 +378,11 @@ export function tryCaseContextOf(input: {
   });
 }
 
-function mockServerOf(mocked: CaseMockServer, slug: string): EvalMockServer {
+function mockServerOf(mocked: CaseMockServer, server: PluginServer): EvalMockServer {
   return create(EvalMockServerSchema, {
     server: mocked.server,
-    segment: slug,
+    segment: server.slug,
+    home: homeOf(server.home),
     toolsFile: mocked.toolsFile ?? "",
     tools: mocked.tools.map((tool) =>
       create(EvalMockToolSchema, {
@@ -348,6 +395,17 @@ function mockServerOf(mocked: CaseMockServer, slug: string): EvalMockServer {
       }),
     ),
   });
+}
+
+/** A server's home on the wire; none for the case's own plugin. */
+function homeOf(home: ServerHome | undefined): EvalMockServer["home"] {
+  if (home === undefined) return { case: undefined };
+  return home.kind === "plugin"
+    ? {
+        case: "plugin",
+        value: create(EvalMockPluginHomeSchema, { pluginId: home.pluginId, pluginName: home.pluginName, server: home.server }),
+      }
+    : { case: "agent", value: create(EvalMockAgentHomeSchema, { agentId: home.agentId, server: home.server }) };
 }
 
 /** A slug-shaped fragment of an id: lowercased, underscores made hyphens. */
@@ -419,6 +477,7 @@ export function tryRunRequest(input: {
   readonly modelName: string;
   /** The run's spending cap: the try's share of what the eval run has left (temporal/evals/names.ts CaseInput). */
   readonly budgetUsd: number;
+  /** The servers the case may mock: its plugin's, or for an Eval's case every server of the agent the arm runs. */
   readonly pluginServers: ReadonlyArray<PluginServer>;
   /** The servers of every other plugin a try loads and the agent's own, every one off (the module header). */
   readonly otherServers?: ReadonlyArray<PluginServer>;
@@ -426,7 +485,7 @@ export function tryRunRequest(input: {
   readonly attachment: ArmAttachment;
   readonly source: CaseSource;
 }): Run {
-  const caseLoaded = !input.attachment.excludedPluginIds.includes(input.source.pluginId);
+  const caseLoaded = caseLoadedIn(input.source, input.attachment);
   const tools = tryToolsOf(input.evalCase, input.spec, input.pluginServers, caseLoaded, input.otherServers);
   const caseContext = tryCaseContextOf({
     evalCase: input.evalCase,

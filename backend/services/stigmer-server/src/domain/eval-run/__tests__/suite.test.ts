@@ -23,7 +23,7 @@ import { ArtifactNotFoundError } from "../../../archive/content-store.js";
 import { writeArchive } from "../../../archive/write.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
-import { loadEvalSuite, newPluginArchiveReader } from "../suite.js";
+import { loadEvalSuite, newCaseArchiveReader } from "../suite.js";
 
 const encoder = new TextEncoder();
 
@@ -82,7 +82,7 @@ afterEach(async () => {
   await temp.cleanup();
 });
 
-describe("newPluginArchiveReader", () => {
+describe("newCaseArchiveReader over a plugin", () => {
   it("reads the head's and an archived version's archives, and nothing else", async () => {
     const v1 = archiveOf({ "evals/a/prompt.md": "first" });
     const v2 = archiveOf({ "evals/a/prompt.md": "second" });
@@ -103,20 +103,20 @@ describe("newPluginArchiveReader", () => {
       PluginSchema,
       pluginAt(v2.digest, `plugins/${v2.digest}.zip`),
     );
-    const reader = newPluginArchiveReader({ store: temp.store, archives });
+    const reader = newCaseArchiveReader({ store: temp.store, plugins: archives, evals: archives });
 
-    const head = await reader.readArchive("plg_1", v2.digest);
+    const head = await reader.readArchive({ kind: "plugin", id: "plg_1", digest: v2.digest });
     expect(new TextDecoder().decode(head.read("evals/a/prompt.md"))).toBe("second");
-    const archived = await reader.readArchive("plg_1", v1.digest);
+    const archived = await reader.readArchive({ kind: "plugin", id: "plg_1", digest: v1.digest });
     expect(new TextDecoder().decode(archived.read("evals/a/prompt.md"))).toBe("first");
 
     const other = archiveOf({ "evals/b/prompt.md": "another plugin's" });
     await archives.store(other.digest, other.bytes);
     archives.reads.length = 0;
-    const foreign = await reader.readArchive("plg_1", other.digest).catch((e: unknown) => e);
+    const foreign = await reader.readArchive({ kind: "plugin", id: "plg_1", digest: other.digest }).catch((e: unknown) => e);
     expect(foreign).toBeInstanceOf(ConnectError);
     expect((foreign as ConnectError).code).toBe(Code.NotFound);
-    const missing = await reader.readArchive("plg_absent", v1.digest).catch((e: unknown) => e);
+    const missing = await reader.readArchive({ kind: "plugin", id: "plg_absent", digest: v1.digest }).catch((e: unknown) => e);
     expect((missing as ConnectError).code).toBe(Code.NotFound);
     expect(archives.reads).toEqual([]);
   });
@@ -131,8 +131,8 @@ describe("newPluginArchiveReader", () => {
       PluginSchema,
       pluginAt(v1.digest, ""),
     );
-    const reader = newPluginArchiveReader({ store: temp.store, archives });
-    await reader.readArchive("plg_1", v1.digest);
+    const reader = newCaseArchiveReader({ store: temp.store, plugins: archives, evals: archives });
+    await reader.readArchive({ kind: "plugin", id: "plg_1", digest: v1.digest });
     expect(archives.reads).toEqual([`plugins/${v1.digest}.zip`]);
   });
 
@@ -147,8 +147,8 @@ describe("newPluginArchiveReader", () => {
       PluginSchema,
       pluginAt(v1.digest, `plugins/${v1.digest}.zip`),
     );
-    const reader = newPluginArchiveReader({ store: temp.store, archives });
-    await expect(reader.readArchive("plg_1", v1.digest)).rejects.toThrow(
+    const reader = newCaseArchiveReader({ store: temp.store, plugins: archives, evals: archives });
+    await expect(reader.readArchive({ kind: "plugin", id: "plg_1", digest: v1.digest })).rejects.toThrow(
       /does not hash to version/,
     );
   });
@@ -170,9 +170,8 @@ describe("loadEvalSuite", () => {
       pluginAt(v1.digest, `plugins/${v1.digest}.zip`),
     );
     const loaded = await loadEvalSuite(
-      newPluginArchiveReader({ store: temp.store, archives }),
-      "plg_1",
-      v1.digest,
+      newCaseArchiveReader({ store: temp.store, plugins: archives, evals: archives }),
+      { kind: "plugin", id: "plg_1", digest: v1.digest },
     );
     expect(loaded.files.entries.map((e) => e.path)).toContain(
       "evals/first-case/prompt.md",

@@ -85,6 +85,7 @@ import { Context } from "@temporalio/activity";
 import { parseTryStop } from "@stigmer/eval-runtime";
 import type { EvalGrader } from "@stigmer/plugin-package";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -116,9 +117,9 @@ import {
   writeEvalScore,
 } from "../../domain/eval-run/score-writer.js";
 import { scoringOf, tryScore } from "../../domain/eval-run/scoring.js";
+import { pluginVersionedBinding } from "../../domain/eval-run/suite.js";
 import {
   tryRunName,
-  pluginServersOf,
   tryRunRequest,
   trySessionRequest,
   voteRunRequest,
@@ -151,10 +152,12 @@ import type {
 import type { EvalRunCallerMint } from "../../extensions/eval-run-caller.js";
 import { EvalRunCallerRefusedError } from "../../extensions/eval-run-caller.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
+import { loadVersion } from "../../pipeline/steps/version-history.js";
 import type { Store } from "../../store/interface.js";
 import type { EvalCaseSource, EvalContextLoader } from "./context.js";
 import {
   attachmentOf,
+  caseServersOf,
   cellOf,
   indicatorsLeaveScore,
   loadOrUndefined,
@@ -163,6 +166,7 @@ import {
   pluginNameOf,
   sourceOf,
   specOf,
+  versionOrUndefined,
   wantedFilesOf,
 } from "./context.js";
 import {
@@ -271,10 +275,14 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
     harness: Harness,
   ): Promise<EvalTrace> =>
     evalTraceOf(await runTranscriptOf(deps.store, run), {
-      pluginName: pluginNameOf(source.plugin),
+      ...(source.kind === "plugin"
+        ? {
+            pluginName: pluginNameOf(source.plugin),
+            skillNames: skillNamesOf(source.plugin),
+          }
+        : { pluginName: "", pluginsByDigest: await loadedPluginsByDigest(deps.store, run) }),
       harness,
       wantedFiles: wantedFilesOf(graders),
-      skillNames: new Map((source.plugin.status?.skills ?? []).map((skill) => [skill.path, skill.name])),
       readArtifact:
         deps.readArtifact ??
         (() => Promise.reject(new Error(NO_ARTIFACT_STORAGE))),
@@ -327,7 +335,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           reason: TRY_UNPLANNED_REASON,
         };
       }
-      if (context.agent === undefined && (await pluginMoved(deps.store, source))) {
+      if (context.agent === undefined && source.kind === "plugin" && (await pluginMoved(deps.store, source.plugin, source.digest))) {
         return {
           kind: "refused",
           failure: "not-started",
@@ -365,15 +373,19 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         spec,
         modelName: cell.target.runsAgentModel === true ? "" : cell.target.target.modelName,
         budgetUsd: input.budgetUsd,
-        pluginServers: pluginServersOf(source.plugin),
+        pluginServers: caseServersOf(context, input.caseIndex, input.arm) ?? [],
         otherServers: otherServersOf(context, input.caseIndex),
         attachment,
-        source: {
-          pluginId: source.plugin.metadata?.id ?? "",
-          pluginName: source.plugin.metadata?.name ?? "",
-          digest: source.digest,
-          suiteDir: source.suite.dir,
-        },
+        source:
+          source.kind === "plugin"
+            ? {
+                kind: "plugin",
+                pluginId: source.plugin.metadata?.id ?? "",
+                pluginName: source.plugin.metadata?.name ?? "",
+                digest: source.digest,
+                suiteDir: source.suite.dir,
+              }
+            : { kind: "eval", evalId: source.eval.metadata?.id ?? "", digest: source.digest },
       });
       try {
         const created = await deps.tries().createRun(request, caller);
@@ -853,9 +865,36 @@ const EXTRA_TRY_RUN_REASON = "a second run of the same try";
  * they are decoded, never every run of the platform.
  */
 /** Whether a plugin's head has moved past the digest the eval run stamped for it; a plugin gone has moved. */
-async function pluginMoved(store: Store, source: EvalCaseSource): Promise<boolean> {
-  const head = await loadOrUndefined(store, ApiResourceKind.plugin, source.plugin.metadata?.id ?? "", PluginSchema);
-  return (head?.status?.digest ?? "") !== source.digest;
+async function pluginMoved(store: Store, plugin: Plugin, digest: string): Promise<boolean> {
+  const head = await loadOrUndefined(store, ApiResourceKind.plugin, plugin.metadata?.id ?? "", PluginSchema);
+  return (head?.status?.digest ?? "") !== digest;
+}
+
+/** A plugin's skills' names by their path in the plugin. */
+function skillNamesOf(plugin: Plugin): ReadonlyMap<string, string> {
+  return new Map((plugin.status?.skills ?? []).map((skill) => [skill.path, skill.name]));
+}
+
+/**
+ * Each plugin the try's run loaded, by the digest its mount is named
+ * after (the run's stamped versions, as the try ran them), with its name
+ * and skills: how an Eval's case names a skill it read (score/eval/
+ * trace.ts). A plugin version gone since is left out; its reads are named
+ * by their path.
+ */
+async function loadedPluginsByDigest(
+  store: Store,
+  run: Run,
+): Promise<ReadonlyMap<string, { readonly name: string; readonly skillNames: ReadonlyMap<string, string> }>> {
+  const byDigest = new Map<string, { readonly name: string; readonly skillNames: ReadonlyMap<string, string> }>();
+  for (const ref of run.status?.loadedVersions?.plugins ?? []) {
+    if (ref.id === "" || ref.version === "" || byDigest.has(ref.version)) continue;
+    const plugin = await versionOrUndefined(() => loadVersion(store, pluginVersionedBinding, ref.id, ref.version));
+    if (plugin !== undefined) {
+      byDigest.set(ref.version, { name: pluginNameOf(plugin.resource), skillNames: skillNamesOf(plugin.resource) });
+    }
+  }
+  return byDigest;
 }
 
 async function findLabelledRuns(

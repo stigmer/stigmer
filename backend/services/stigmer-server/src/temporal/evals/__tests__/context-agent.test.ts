@@ -83,7 +83,7 @@ describe("an eval run's context about an agent", () => {
     const context = await loader(source)(EVAL_RUN_ON_AGENT_ID);
     if (context === undefined) throw new Error("no context");
     expect(context.agent).toEqual({ org: ORG, id: "agt_1", slug: "support-desk", versionHash: AGENT_HASH });
-    expect(context.sources.map((entry) => [entry.digest, entry.pluginIndex])).toEqual([[DIGEST, 0]]);
+    expect(context.sources.map((entry) => [entry.digest, entry.kind === "plugin" ? entry.pluginIndex : -1])).toEqual([[DIGEST, 0]]);
     expect(context.matrix.cases[0]?.targets[0]?.target).toMatchObject({ harness: Harness.NATIVE, modelName: MODEL });
     expect([context.comparedPluginId, context.twoArms]).toEqual([undefined, false]);
     expect(context.matrix.cells.every((cell) => cell.arm === "with")).toBe(true);
@@ -130,9 +130,11 @@ describe("an eval run's context about an agent", () => {
     await seedEvalRunOnAgent(temp.store);
     const context = await loader()(EVAL_RUN_ON_AGENT_ID);
     if (context === undefined) throw new Error("no context");
-    expect(context.ownServers).toEqual([{ slug: "zendesk", key: "zendesk" }]);
+    expect(context.ownServers).toEqual([
+      { slug: "zendesk", key: "zendesk", home: { kind: "agent", agentId: "agt_1", server: "zendesk" } },
+    ]);
     const others = otherServersOf(context, 0);
-    expect(others).toContainEqual({ slug: "zendesk", key: "zendesk" });
+    expect(others).toContainEqual(expect.objectContaining({ slug: "zendesk", key: "zendesk" }));
     const evalCase = { allowedTools: [], mocks: [] };
     const knobs = { allowTools: [], realMcpServers: false, allowRealServers: false };
     expect(tryToolsOf(evalCase, knobs, [], true, others).disallowedTools).toContain("mcp__zendesk");
