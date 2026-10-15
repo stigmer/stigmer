@@ -565,7 +565,8 @@ async function selectedSources(
  * that is not there, is another organization's or is hidden from the
  * caller, so it reveals none of them); then the version the reference
  * names, a tag or a digest, or the current one, whose digest create
- * stamps. A server-composed request asks no question.
+ * stamps; a version it does not hold is named with the Eval's slug, which
+ * the caller may now see. A server-composed request asks no question.
  */
 async function readEvalSource(
   store: Store,
@@ -601,7 +602,7 @@ async function readEvalSource(
     loadByReferenceWithVersion(store, evalVersionBinding, { ...at, id: head.metadata?.id ?? "", version: ref.version }),
   );
   if (version === undefined) {
-    throw invalidArgumentError(evalRunEvalVersionMessage(name, ref.version));
+    throw invalidArgumentError(evalRunEvalVersionMessage(head.metadata?.slug || name, ref.version));
   }
   return { eval: version, digest: version.status?.digest ?? "" };
 }
