@@ -276,7 +276,7 @@ class SummaryCounts {
   }
 
   /**
-   * The wire summary: metrics by name, the most recently seen scoring rule
+   * The wire summary: metrics by name, the most recently seen evaluator
    * version first within a metric; criteria by name.
    */
   build(): QualitySummary {

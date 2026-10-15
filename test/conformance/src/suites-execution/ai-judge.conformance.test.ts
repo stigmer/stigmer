@@ -99,7 +99,7 @@ interface Graded {
 }
 
 // One run of a fresh agent in a fresh organization, with the scoring rule the
-// arm asks for (none when `scoring rule` is undefined), scripted on the mock.
+// arm asks for (none when `scoringRule` is undefined), scripted on the mock.
 async function gradedRun(
   scoringRule: { sampleRate?: number; monthlyLimitUsd?: number } | undefined,
   script: AnthropicMessageBody[],

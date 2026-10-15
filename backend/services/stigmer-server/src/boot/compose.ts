@@ -693,7 +693,7 @@ export async function composeServer(
   // schedule fire caller are bound beside it under the same posture, so
   // `listMine` lists what a person may view and a scheduled run
   // belongs to the person who scheduled it — a fire the internal lane
-  // would otherwise hand to nobody an enforcing scoring rule recognizes.
+  // would otherwise hand to nobody an enforcing evaluator recognizes.
   const postureAuthorizer: Authorizer =
     extensions.authorizer ??
     (authorizationPosture === "built-in"
@@ -2336,7 +2336,7 @@ export async function composeServer(
   // create path, the policy store binding and the grant path's answer to
   // "whose resource is this" — before composeServer returns, because a
   // unit's lanes may be called by anyone from then on. The policy check is
-  // the registered engine's, or under the built-in posture the scoring rule's.
+  // the registered engine's, or under the built-in posture the evaluator's.
   const composedServices: ComposedServices = {
     authorizer,
     listReadScope,

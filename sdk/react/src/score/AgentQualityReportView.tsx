@@ -8,7 +8,7 @@
  *
  * The tiles read the report's total: the runs graded, the run-health pass
  * rate, the AI judge's pass rate per rubric with how many runs it graded,
- * and the thumbs up and down. Each metric is read at its current scoring rule
+ * and the thumbs up and down. Each metric is read at its current evaluator
  * version (`quality-view.ts`): a trend breaks where the judge's rules
  * changed, and a dot under it marks the day a new agent version was first
  * seen. A rate always shows with its count. The version table names a
@@ -50,7 +50,7 @@ import {
   dailyRateSeries,
   dailyRunsSeries,
   evalPassRateOf,
-  scoringRuleChangedIn,
+  evaluatorChangedIn,
   flaggedWhatOf,
   formatPassRate,
   formatPercent,
@@ -299,7 +299,7 @@ function ReportBody({
           </Tile>
         )}
       </div>
-      {scoringRuleChangedIn(total, JUDGE_METRIC) && (
+      {evaluatorChangedIn(total, JUDGE_METRIC) && (
         <p className="stg:text-xs stg:text-muted-foreground">
           The AI judge&apos;s rules changed in these days. Its rates count only
           grades under the current rules; a break in its trend is a day graded

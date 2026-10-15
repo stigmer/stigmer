@@ -9,7 +9,7 @@
  * a week. Days with no point are joined across, because no data is not a
  * change; a point whose value is `null` is a gap, and the line breaks on
  * either side of it, because a gap says the numbers on its two sides are
- * not comparable (a scoring rule's rules changed between them). A point with
+ * not comparable (an evaluator's rules changed between them). A point with
  * no neighbour on the line still shows as a dot. Coordinates are percent of
  * the plot box, y growing downwards as the SVG's does. Pinned by
  * `__tests__/trend-layout.test.ts`.

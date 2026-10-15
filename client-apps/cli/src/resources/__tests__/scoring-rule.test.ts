@@ -1,5 +1,5 @@
-// Pins the CLI's scoring rule verbs: `stigmer get scoring rule <id>` reads one by
-// its id through the scoring rule client, and `stigmer delete scoring rule <id>`
+// Pins the CLI's scoring rule verbs: `stigmer get scoring-rule <id>` reads one by
+// its id through the scoring rule client, and `stigmer delete scoring-rule <id>`
 // deletes it there, switching AI grading off for its agent. A scoring rule is
 // never applied from a manifest, so no other verb reaches it.
 

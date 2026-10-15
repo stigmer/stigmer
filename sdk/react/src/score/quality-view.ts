@@ -9,7 +9,7 @@
  * A rate never travels without its count: a pass rate is passed over
  * passed plus failed, and a tally with neither has no rate (`null`), not
  * 0%. Runs not graded, still pending, or where a rubric did not apply are
- * left out of both sides. Two versions of one scoring rule's rules are never
+ * left out of both sides. Two versions of one evaluator's rules are never
  * added together: each metric is read at its current version, the first
  * tally of that metric in the report's total (the server lists the most
  * recently seen version first), and a day graded only under another
@@ -92,7 +92,7 @@ export function currentEvaluatorVersionOf(
 }
 
 /** Whether a metric was graded under more than one evaluator version in the summary. */
-export function scoringRuleChangedIn(
+export function evaluatorChangedIn(
   summary: QualitySummary | undefined,
   metric: string,
 ): boolean {

@@ -47,7 +47,7 @@ export interface UseSaveScoringRuleReturn {
  * @example
  * ```tsx
  * const { save, isSaving } = useSaveScoringRule();
- * await save({ id: agentId, org }, { ...settings, enabled: true }, scoring rule);
+ * await save({ id: agentId, org }, { ...settings, enabled: true }, scoringRule);
  * ```
  */
 export function useSaveScoringRule(): UseSaveScoringRuleReturn {

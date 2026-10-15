@@ -21,7 +21,7 @@
  * a blueprint shared with child organizations, and listChildOrgs pages
  * them (domain/organization/list-index.ts). And `score` joins for its
  * parents: a conversation's view reads one session's scores, and a run's
- * delete one run's (domain/score/list-index.ts). And `scoring rule` joins for
+ * delete one run's (domain/score/list-index.ts). And `scoring_rule` joins for
  * its parent: the grading workflow reads one agent's scoring rule for every
  * completed run that names an agent (domain/scoring-rule/list-index.ts).
  * And `eval_run` joins for its subject: an agent's and a plugin's page

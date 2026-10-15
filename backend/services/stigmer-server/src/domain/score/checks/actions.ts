@@ -26,7 +26,7 @@
  * A tool use's state is the fold's (../turn.ts).
  *
  * Sub-agent threads are not traversed: whose fault a sub-agent's loop is
- * belongs to a scoring rule that can read both.
+ * belongs to an evaluator that can read both.
  */
 import { createHash } from "node:crypto";
 

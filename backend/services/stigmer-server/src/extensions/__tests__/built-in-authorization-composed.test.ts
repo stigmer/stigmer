@@ -44,7 +44,7 @@
  * turned green once the drivers and the composition root landed. Every
  * negative assertion sits beside a positive one (the owner's own read and
  * edit succeed) so the file cannot pass vacuously. The per-module proofs
- * (the scoring rule, the model tables, the drivers) live in
+ * (the evaluator, the model tables, the drivers) live in
  * src/authorization/__tests__; this file is the proof at the wire.
  *
  * Why agents and not sessions: a session create needs an engine and an
