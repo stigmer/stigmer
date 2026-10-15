@@ -48,7 +48,8 @@
  *     a run that has not ended keeps its score on the eval only;
  *   - an Eval's case on its agent: the try's case context names the
  *     Eval's archive and mocks the agent's own server; its grade reads the
- *     plugins the run loaded by digest, one of them gone.
+ *     plugins the run loaded by digest, once each, one of them gone and
+ *     one stamped with no version.
  *
  * The suite here is one case with the two AI-graded types: a `baseline`
  * check over a reference transcript and an `llm` check over one file.
@@ -1662,6 +1663,9 @@ describe("an Eval's case on its agent", () => {
         plugins: [
           { $typeName: "ai.stigmer.commons.apiresource.ApiResourceReference", org: ORG, kind: ApiResourceKind.plugin, id: PLUGIN_ID, slug: "", version: DIGEST },
           { $typeName: "ai.stigmer.commons.apiresource.ApiResourceReference", org: ORG, kind: ApiResourceKind.plugin, id: "plg_gone", slug: "", version: "c".repeat(64) },
+          // The same version again, and one stamped with no version: each read once, or not at all.
+          { $typeName: "ai.stigmer.commons.apiresource.ApiResourceReference", org: ORG, kind: ApiResourceKind.plugin, id: PLUGIN_ID, slug: "", version: DIGEST },
+          { $typeName: "ai.stigmer.commons.apiresource.ApiResourceReference", org: ORG, kind: ApiResourceKind.plugin, id: PLUGIN_ID, slug: "", version: "" },
         ],
       };
     });
