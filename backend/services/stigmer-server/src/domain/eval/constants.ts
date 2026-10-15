@@ -20,3 +20,38 @@ export const EVAL_TRANSFER_LANE_NOT_CONFIGURED =
 
 /** The most mock servers a stored eval lists, as it lists at most this many cases. */
 export const EVAL_MAX_LISTED_MOCK_SERVERS = 200;
+
+/** The largest case archive buildCaseFromRun answers inline: room under the transport's 10 MB message. */
+export const MAX_CASE_ARCHIVE_BYTES = 8 * 1024 * 1024;
+
+/** PermissionDenied copy when the caller may not view the run a case is built from. */
+export const EVAL_CASE_RUN_DENIED = "unauthorized to build an eval case from run: viewing the run is required";
+
+/** FailedPrecondition copy for a run that has not ended: its events are not the conversation yet. */
+export function evalCaseRunNotEndedMessage(runId: string): string {
+  return `run ${runId} has not ended; a case is built from a finished turn`;
+}
+
+/** InvalidArgument copy for a case name the suite's root keeps for itself. */
+export function evalCaseReservedNameMessage(name: string): string {
+  return `case_name '${name}' is a name an eval's root keeps for its mocks and run output; name the case otherwise`;
+}
+
+/** ResourceExhausted copy for a case too large to answer inline. */
+export function evalCaseTooLargeMessage(sizeBytes: number): string {
+  return `the case is ${sizeBytes} bytes zipped, more than ${MAX_CASE_ARCHIVE_BYTES} can travel inline; add it to an eval with addCaseFromRun, which writes it on the server`;
+}
+
+/** FailedPrecondition copy for an eval named in another organization than the run's. */
+export const EVAL_CASE_OTHER_ORGANIZATION =
+  "the eval is not of the run's organization; a run's case is added to an eval of its own organization";
+
+/** AlreadyExists copy for a case name the eval already holds. */
+export function evalCaseExistsMessage(name: string, slug: string): string {
+  return `eval '${slug}' already holds a case named '${name}'; name this one otherwise`;
+}
+
+/** The new version's message when the request names none. */
+export function evalCaseVersionMessage(name: string, runId: string): string {
+  return `case ${name} from run ${runId}`;
+}
