@@ -326,8 +326,8 @@ deploy deliberately shoots without it: the determinism gate is within-machine
 by design.
 
 There is **no manual publish step**. Bundles are derived artifacts: the website
-release workflow (`release.website.yaml`) runs `pack-all` and deploys the
-bundles alongside the site — packing every tour and shooting stills for the
+build (`build.website.yaml`, which the release workflow runs) runs `pack-all`
+and ships the bundles alongside the site — packing every tour and shooting stills for the
 tours that declare a `shot` — so a tour goes live at
 `https://stigmer.ai/demos/<slug>/` (stills under `…/<slug>/stills/`) when its
 PR merges — atomically with the docs page that embeds it.

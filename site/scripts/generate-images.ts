@@ -1,8 +1,8 @@
 /**
  * Static Image Generation Script for Stigmer Website
  *
- * Generates all favicon and social media images at build time for GitHub Pages
- * static export compatibility. This replaces Next.js dynamic image routes which
+ * Generates all favicon and social media images at build time for static
+ * export compatibility. This replaces Next.js dynamic image routes which
  * require Edge runtime and don't work with static exports.
  *
  * Generated assets:

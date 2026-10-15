@@ -3,7 +3,7 @@
 # Stigmer CLI installer
 # =============================================================================
 # Published at https://stigmer.ai/install.sh — this file lives in site/public/
-# and is served verbatim by the GitHub Pages deploy of the website
+# and is served verbatim by the website's deploy
 # (.github/workflows/release.website.yaml), so it goes live on merge to main.
 #
 #   curl -fsSL https://stigmer.ai/install.sh | sh

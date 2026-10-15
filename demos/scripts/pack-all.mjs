@@ -22,7 +22,7 @@
  * surface. Shot discovery shares scripts/tour-shots.mjs with the CI gate
  * (verify-scenar-tours invariant 8), so the pipeline can never disagree
  * with the gate about what a tour declares. Shooting requires Playwright
- * Chromium (see release.website.yaml; locally: npx playwright install
+ * Chromium (see build.website.yaml; locally: npx playwright install
  * chromium). No --verify here: the determinism gate is an authoring-loop
  * tool and within-machine by design — it does not belong in a deploy.
  */

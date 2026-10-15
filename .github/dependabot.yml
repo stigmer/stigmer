@@ -24,6 +24,7 @@ updates:
       - "/ee/server"
       - "/ee/server/test/consumer"
       - "/site"
+      - "/site/deploy"
       - "/test/extension-consumer"
     schedule:
       interval: weekly

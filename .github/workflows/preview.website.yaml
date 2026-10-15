@@ -1,0 +1,59 @@
+# =============================================================================
+# Website Review Sites, the build (review-<n>.stigmer.ai)
+# =============================================================================
+# Every pull request that changes the website gets its own review site, the
+# exact build production would serve, at https://review-<pull request
+# number>.stigmer.ai. A push updates it; merging or closing the pull request
+# closes it.
+#
+# This half builds the export (build.website.yaml, the build the release
+# runs) and holds no key, so it runs for every pull request alike, forks
+# included: a fork's run gets a read-only token and no secrets, and a fork can
+# rewrite this file in its own pull request. Nothing here is trusted.
+# publish.website-preview.yaml, which runs from main only, picks up the export
+# when this run succeeds, writes the review site's noindex header itself and
+# uploads it; for a fork it first waits for a maintainer's approval.
+#
+# Path-filtered with the release's own list (release.website.yaml), so a pull
+# request gets a review site exactly when its merge would redeploy stigmer.ai.
+# =============================================================================
+
+name: preview.website
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "site/**"
+      - "brand/**"
+      - "docs/**"
+      - "demos/**"
+      - "vale/**"
+      # What the site and the demo tours link and the build compiles from
+      # source, as in release.website.yaml (scripts/lane-triggers.test.mjs
+      # fails when one is missing).
+      - "apis/stubs/ts/**"
+      - "sdk/typescript/**"
+      - "sdk/react/**"
+      - "sdk/theme/**"
+      - "sdk/embed/**"
+      - "backend/libs/ts/plugin-package/**"
+      - "backend/libs/ts/eval-runtime/**"
+      - "backend/libs/ts/session-log/**"
+      - "backend/libs/ts/tool-vocabulary/**"
+      - ".github/workflows/build.website.yaml"
+      - ".github/workflows/preview.website.yaml"
+
+permissions:
+  contents: read
+
+concurrency:
+  # One build per pull request at a time; a newer push cancels an older build.
+  group: preview.website-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.website.yaml
+    with:
+      demos_base: https://review-${{ github.event.pull_request.number }}.stigmer.ai/demos
