@@ -80,7 +80,7 @@ export function registerEval(program: Command): void {
     )
     .option(
       "--eval <eval>",
-      "with --agent, run this Eval's cases on the agent: <eval>[@<digest|tag>], its current version without a suffix (repeatable)",
+      "with --agent, run this Eval's cases on the agent: <eval>[@<digest|tag>], its current version without a suffix (repeatable, one version of each Eval)",
       collect,
     )
     .option("--case <glob>", "run only the cases whose name matches this glob")

@@ -15,7 +15,10 @@ agent's server of that name, or a plugin's server by the name the turn gives it
 (`plugin_<plugin>_<server>`), and a mock that names no server of the agent is
 listed as not used. The eval run is stamped with the eval's version, so its
 results stay tied to the cases that produced them. Whoever may view an eval may
-run it on an agent they may edit. The shape below is what `get` returns.
+run it on an agent they may edit. The eval run is the agent's: every viewer of
+the agent in its organization reads its results, the cases' names, mocks and
+conversations included, so running a private eval shares what those tries show
+with them. The shape below is what `get` returns.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1

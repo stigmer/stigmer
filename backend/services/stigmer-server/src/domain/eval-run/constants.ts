@@ -82,6 +82,11 @@ export function evalRunEvalVersionMessage(name: string, version: string): string
   return `spec.cases names eval '${name}' at '${version}', a version it does not hold: name a tag it holds, a digest of one of its versions, or no version for its current one`;
 }
 
+/** The refusal of case sources naming one eval at two versions: an eval run stamps one version of each eval. */
+export function evalRunEvalTwoVersionsMessage(name: string): string {
+  return `spec.cases names eval '${name}' at two versions; an eval run runs one version of each eval: name it once`;
+}
+
 /** The refusal of an eval run about an agent none of whose case sources has cases. */
 export const EVAL_RUN_NO_CASES_MESSAGE =
   "none of the plugins whose cases this eval run runs has eval cases at the version it runs";

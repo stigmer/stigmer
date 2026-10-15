@@ -123,6 +123,7 @@ import {
   PLUGIN_NOT_SELECTED_REASON,
   evalRunActiveDeleteMessage,
   evalRunCaseGlobMessage,
+  evalRunEvalTwoVersionsMessage,
   evalRunEvalVersionMessage,
   evalRunNoCasesMessage,
   evalRunNotCurrentVersionMessage,
@@ -519,7 +520,7 @@ async function readComparedPlugin(
  * row holds when the caller may view it, else by that id, so the refusal
  * tells nobody the slug, the id or the existence of a plugin they cannot
  * view). An Eval source is read and stamped (readEvalSource), once per
- * Eval. With none named, the compared plugin, else every attached plugin.
+ * Eval; one Eval named at two versions is refused, since a run stamps one. With none named, the compared plugin, else every attached plugin.
  */
 async function selectedSources(
   store: Store,
@@ -546,8 +547,12 @@ async function selectedSources(
     const sentSlug = sent !== undefined && sent.case === source.source.case ? (sent.value?.slug ?? "") : "";
     if (source.source.case === "eval") {
       const read = await readEvalSource(store, authorizer, ctx, source.source.value, agentOrg, sentSlug);
-      if (!evals.some((entry) => entry.eval.metadata?.id === read.eval.metadata?.id)) {
+      const earlier = evals.find((entry) => entry.eval.metadata?.id === read.eval.metadata?.id);
+      if (earlier === undefined) {
         evals.push(read);
+      } else if (earlier.digest !== read.digest) {
+        // The caller may view this Eval (readEvalSource asked), so its slug may be named.
+        throw invalidArgumentError(evalRunEvalTwoVersionsMessage(read.eval.metadata?.slug || sentSlug));
       }
       continue;
     }

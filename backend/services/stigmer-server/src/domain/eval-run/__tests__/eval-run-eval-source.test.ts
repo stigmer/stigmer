@@ -6,7 +6,8 @@
  * Pins: create stamps each Eval the spec names in `status.evals` (its id,
  * slug and the digest of its current version, or of the version a tag or a
  * digest names) and plans its cases' tries, whether the agent attaches a
- * plugin or none; an Eval named twice is stamped once; an Eval beside a
+ * plugin or none; an Eval named twice at one version (a tag and its digest
+ * among them) is stamped once, and at two versions is refused by name; an Eval beside a
  * plugin case source runs both. Create refuses an Eval that is not there, one of another
  * organization, and a version the Eval does not hold, each by name; and an
  * agent with no plugin and no Eval named still has nothing whose cases
@@ -39,6 +40,7 @@ import { createLogger } from "../../../boot/logger.js";
 import { seedOrganizations } from "../../organization/__tests__/support.js";
 import {
   EVAL_RUN_NO_CASE_SOURCES_MESSAGE,
+  evalRunEvalTwoVersionsMessage,
   evalRunEvalVersionMessage,
   evalRunUnreadableEvalMessage,
 } from "../constants.js";
@@ -166,6 +168,23 @@ describe("eval run with Eval case sources: create", () => {
     const byDigest = await evalRuns.create(evalRunOf(agent, { cases: [evalSource(slug, digestOf(next))] }));
     expect(byDigest.status?.evals.map((block) => block.evalDigest)).toEqual([digestOf(next)]);
     expect(byDigest.status?.triesTotal).toBe(3);
+  });
+
+  it("stamps an Eval named at one version twice once, and refuses one named at two versions", async () => {
+    const slug = `twice-${++counter}`;
+    const stable = folder(1);
+    await pushes.push({ org: ORG, slug, artifact: stable, tag: "stable" });
+    const next = folder(2);
+    await pushes.push({ org: ORG, slug, artifact: next });
+    const agent = await agentWith();
+
+    const once = await evalRuns.create(evalRunOf(agent, { cases: [evalSource(slug, "stable"), evalSource(slug, digestOf(stable))] }));
+    expect(once.status?.evals.map((block) => block.evalDigest)).toEqual([digestOf(stable)]);
+    expect(once.status?.triesTotal).toBe(1);
+
+    const twice = await refusal(evalRuns.create(evalRunOf(agent, { cases: [evalSource(slug, "stable"), evalSource(slug)] })));
+    expect(twice.code).toBe(Code.InvalidArgument);
+    expect(twice.rawMessage).toBe(evalRunEvalTwoVersionsMessage(slug));
   });
 
   it("runs an Eval beside a plugin case source", async () => {

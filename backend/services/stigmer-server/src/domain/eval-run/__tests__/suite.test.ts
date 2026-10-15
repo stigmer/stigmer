@@ -4,8 +4,11 @@
  * digest that is no version of the plugin, or a plugin that does not
  * exist, is NOT_FOUND before any archive is read; an archive whose bytes
  * do not hash to the version is refused; a version that recorded no key
- * reads its content-addressed key; `loadEvalSuite` hands the files it read
- * to the library's reader and returns both.
+ * reads its content-addressed key; an Eval's head and archived versions
+ * are read from the evals store alone, and a digest that is no version of
+ * that Eval (another's, a plugin's) is NOT_FOUND before any read;
+ * `loadEvalSuite` hands the files it read to the library's reader and
+ * returns both.
  */
 import { createHash } from "node:crypto";
 
@@ -13,6 +16,7 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -37,16 +41,16 @@ function archiveOf(files: Record<string, string>): { bytes: Uint8Array; digest: 
   return { bytes, digest: createHash("sha256").update(bytes).digest("hex") };
 }
 
-/** An in-memory archive store keyed as the plugin store keys (`plugins/<digest>.zip`). */
-function memoryArchives(): ContentAddressedArchiveStore & { reads: string[] } {
+/** An in-memory archive store keyed as the content stores key (`<prefix><digest>.zip`). */
+function memoryArchives(prefix = "plugins/"): ContentAddressedArchiveStore & { reads: string[] } {
   const blobs = new Map<string, Uint8Array>();
   const reads: string[] = [];
   return {
     reads,
-    getStorageKey: (hash) => `plugins/${hash}.zip`,
+    getStorageKey: (hash) => `${prefix}${hash}.zip`,
     async store(hash, data) {
-      blobs.set(`plugins/${hash}.zip`, data);
-      return `plugins/${hash}.zip`;
+      blobs.set(`${prefix}${hash}.zip`, data);
+      return `${prefix}${hash}.zip`;
     },
     async get(key) {
       reads.push(key);
@@ -57,7 +61,7 @@ function memoryArchives(): ContentAddressedArchiveStore & { reads: string[] } {
       return blob;
     },
     async exists(hash) {
-      return blobs.has(`plugins/${hash}.zip`);
+      return blobs.has(`${prefix}${hash}.zip`);
     },
     async size(key) {
       return blobs.get(key)?.length ?? 0;
@@ -151,6 +155,40 @@ describe("newCaseArchiveReader over a plugin", () => {
     await expect(reader.readArchive({ kind: "plugin", id: "plg_1", digest: v1.digest })).rejects.toThrow(
       /does not hash to version/,
     );
+  });
+});
+
+describe("newCaseArchiveReader over an Eval", () => {
+  const evalAt = (digest: string) =>
+    create(EvalSchema, { metadata: { id: "evs_1", org: "org_1", slug: "support", name: "support" }, status: { digest } });
+
+  it("reads the head's and an archived version's archives from the evals store, and no digest that is not its version", async () => {
+    const v1 = archiveOf({ "a/prompt.md": "first" });
+    const v2 = archiveOf({ "a/prompt.md": "second" });
+    const evals = memoryArchives("evals/");
+    const plugins = memoryArchives("plugins/");
+    await evals.store(v1.digest, v1.bytes);
+    await evals.store(v2.digest, v2.bytes);
+    await temp.store.saveAudit(ApiResourceKind.eval, "evs_1", EvalSchema, evalAt(v1.digest), v1.digest, "");
+    await temp.store.saveResource(ApiResourceKind.eval, "evs_1", EvalSchema, evalAt(v2.digest));
+    const reader = newCaseArchiveReader({ store: temp.store, plugins, evals });
+
+    const head = await reader.readArchive({ kind: "eval", id: "evs_1", digest: v2.digest });
+    expect(new TextDecoder().decode(head.read("a/prompt.md"))).toBe("second");
+    const archived = await reader.readArchive({ kind: "eval", id: "evs_1", digest: v1.digest });
+    expect(new TextDecoder().decode(archived.read("a/prompt.md"))).toBe("first");
+    expect([evals.reads, plugins.reads]).toEqual([[`evals/${v2.digest}.zip`, `evals/${v1.digest}.zip`], []]);
+
+    // A plugin's archive, under the same digest in its own store, is no version of the Eval.
+    const pluginArchive = archiveOf({ "evals/b/prompt.md": "a plugin's" });
+    await plugins.store(pluginArchive.digest, pluginArchive.bytes);
+    await temp.store.saveResource(ApiResourceKind.plugin, "plg_1", PluginSchema, pluginAt(pluginArchive.digest, ""));
+    evals.reads.length = 0;
+    const foreign = await reader.readArchive({ kind: "eval", id: "evs_1", digest: pluginArchive.digest }).catch((e: unknown) => e);
+    expect((foreign as ConnectError).code).toBe(Code.NotFound);
+    const asPlugin = await reader.readArchive({ kind: "eval", id: "plg_1", digest: pluginArchive.digest }).catch((e: unknown) => e);
+    expect((asPlugin as ConnectError).code).toBe(Code.NotFound);
+    expect([evals.reads, plugins.reads]).toEqual([[], []]);
   });
 });
 
