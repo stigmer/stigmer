@@ -208,38 +208,28 @@ export class SearchHandler {
     for (const kind of criteria.effectiveKinds()) {
       const reach = searchReachOf(kind);
       let ids: ReadonlySet<string>;
-      switch (reach.reach) {
-        case "person":
-          ids = await scope.authorizedResourceIds(identity, kind);
-          break;
-        case "directory": {
-          const organizations = await myOrganizations();
-          ids =
-            organizations === ALL_ORGANIZATIONS
-              ? await scope.authorizedResourceIds(identity, kind)
-              : new Set(organizations);
-          break;
-        }
-        case "organization": {
-          const organizations = criteria.hasOrgFilter()
-            ? [criteria.orgFilter()]
-            : await this.withParents(await myOrganizations());
-          ids =
-            organizations === ALL_ORGANIZATIONS
-              ? await scope.authorizedResourceIds(identity, kind)
-              : await this.readableRowIds(
-                  scope,
-                  identity,
-                  kind,
-                  reach,
-                  organizations,
-                );
-          break;
-        }
-        default: {
-          const unreachable: never = reach;
-          throw new Error(`unknown search reach: ${String(unreachable)}`);
-        }
+      if (reach.reach === "person") {
+        ids = await scope.authorizedResourceIds(identity, kind);
+      } else if (reach.reach === "directory") {
+        const organizations = await myOrganizations();
+        ids =
+          organizations === ALL_ORGANIZATIONS
+            ? await scope.authorizedResourceIds(identity, kind)
+            : new Set(organizations);
+      } else {
+        const organizations = criteria.hasOrgFilter()
+          ? [criteria.orgFilter()]
+          : await this.withParents(await myOrganizations());
+        ids =
+          organizations === ALL_ORGANIZATIONS
+            ? await scope.authorizedResourceIds(identity, kind)
+            : await this.readableRowIds(
+                scope,
+                identity,
+                kind,
+                reach,
+                organizations,
+              );
       }
       byKind.set(apiResourceKindName(kind), ids);
     }

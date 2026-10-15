@@ -286,7 +286,13 @@ describe("Search conformance — reach", () => {
       ApiResourceVisibility.visibility_child_orgs,
     );
     await laneAgent(on, parent.org, `reach-${token}-parents-own`);
-    const inChild = await laneAgent(on, child, `reach-${token}-child`);
+    // The child's own agent, made by its member (members create agents by
+    // default).
+    const childAgent = await member.agentCommand.create(
+      makeAgent({ org: child, name: `reach-${token}-child` }),
+    );
+    const inChild = childAgent.metadata?.id ?? "";
+    fixtures.defer(() => member.agentCommand.delete({ value: inChild }));
 
     const found = await member.search.search({
       kinds: [ApiResourceKind.agent],
