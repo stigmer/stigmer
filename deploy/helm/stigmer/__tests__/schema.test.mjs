@@ -60,7 +60,8 @@ test("the retired reserved keys are refused when turned on, each naming what rep
     expectRefusal(result, /remove it from your values/, `${key}.enabled=true`);
   }
   const license = helmTemplate("bundled", { sets: ["licenseKeySecret=my-license"] });
-  expectRefusal(license, /licenseKeySecret is retired.*enterprise\.license\.existingSecret=my-license/s, "licenseKeySecret");
+  expectRefusal(license, /licenseKeySecret is retired.*move the name there/s, "licenseKeySecret");
+  assert.ok(!license.stderr.includes("my-license"), "the refusal never repeats the value, which may be the key itself");
 });
 
 test("an Enterprise setting with no license is refused: the open-source server never reads it", () => {

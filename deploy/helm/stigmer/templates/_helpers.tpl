@@ -243,8 +243,8 @@ listed twice), and an install exposed with sign-in off
 {{- fail (printf "\n\n%s.enabled is retired: no Stigmer edition runs %s beside the server. It was reserved here before Stigmer Enterprise shipped, and Enterprise needs only its own server image and a license (enterprise.license.existingSecret). Set it to false or remove it from your values.\n" $unit $name) -}}
 {{- end -}}
 {{- end -}}
-{{- with dig "licenseKeySecret" "" .Values.AsMap -}}
-{{- fail (printf "\n\nlicenseKeySecret is retired. The license now goes in enterprise.license.existingSecret, which also runs the Enterprise server image and requires sign-in (server.oidc): move it there, as --set enterprise.license.existingSecret=%s, and remove licenseKeySecret.\n" .) -}}
+{{- if dig "licenseKeySecret" "" .Values.AsMap -}}
+{{- fail "\n\nlicenseKeySecret is retired. The license Secret's name now goes in enterprise.license.existingSecret, which also runs the Enterprise server image and requires sign-in (server.oidc): move the name there and remove licenseKeySecret. (The value is not repeated here, in case it holds the key itself rather than a Secret's name.)\n" -}}
 {{- end -}}
 {{- $licensed := include "stigmer.licenseSecret" . -}}
 {{- $fenced := include "stigmer.egressFenced" . -}}
