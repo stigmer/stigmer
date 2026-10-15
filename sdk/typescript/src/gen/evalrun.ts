@@ -129,6 +129,7 @@ export interface EvalRunInput {
 /** SDK input type for EvalRunCaseSource. */
 export interface EvalRunCaseSourceInput {
   plugin?: ResourceRef;
+  eval?: ResourceRef;
 }
 
 /** SDK input type for EvalRunTarget. */
@@ -141,6 +142,8 @@ function buildEvalRunCaseSourceProto(input: EvalRunCaseSourceInput) {
   const msg = create(EvalRunCaseSourceSchema);
   if (input.plugin) {
     msg.source = { case: "plugin", value: create(ApiResourceReferenceSchema, { ...input.plugin, kind: 58 }) };
+  } else if (input.eval) {
+    msg.source = { case: "eval", value: create(ApiResourceReferenceSchema, { ...input.eval, kind: 66 }) };
   }
   return msg;
 }

@@ -114,7 +114,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The case's directory, relative to the plugin's root, as in
-   * "evals/review-fires".
+   * "evals/review-fires", or to the Eval's, as in "review-fires".
    * </pre>
    *
    * <code>string path = 2 [json_name = "path"];</code>
@@ -136,7 +136,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The case's directory, relative to the plugin's root, as in
-   * "evals/review-fires".
+   * "evals/review-fires", or to the Eval's, as in "review-fires".
    * </pre>
    *
    * <code>string path = 2 [json_name = "path"];</code>
@@ -384,8 +384,9 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer> mockedServers_;
   /**
    * <pre>
-   * The plugin's MCP servers the case answers with mocks, and those it
-   * leaves unstarted, as Claude Code's mocked: line.
+   * The MCP servers the case answers with mocks, and those it leaves
+   * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+   * plugin's case; the agent's and its plugins' servers for an Eval's.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -396,8 +397,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The plugin's MCP servers the case answers with mocks, and those it
-   * leaves unstarted, as Claude Code's mocked: line.
+   * The MCP servers the case answers with mocks, and those it leaves
+   * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+   * plugin's case; the agent's and its plugins' servers for an Eval's.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -409,8 +411,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The plugin's MCP servers the case answers with mocks, and those it
-   * leaves unstarted, as Claude Code's mocked: line.
+   * The MCP servers the case answers with mocks, and those it leaves
+   * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+   * plugin's case; the agent's and its plugins' servers for an Eval's.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -421,8 +424,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The plugin's MCP servers the case answers with mocks, and those it
-   * leaves unstarted, as Claude Code's mocked: line.
+   * The MCP servers the case answers with mocks, and those it leaves
+   * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+   * plugin's case; the agent's and its plugins' servers for an Eval's.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -433,8 +437,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The plugin's MCP servers the case answers with mocks, and those it
-   * leaves unstarted, as Claude Code's mocked: line.
+   * The MCP servers the case answers with mocks, and those it leaves
+   * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+   * plugin's case; the agent's and its plugins' servers for an Eval's.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -1113,7 +1118,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The case's directory, relative to the plugin's root, as in
-     * "evals/review-fires".
+     * "evals/review-fires", or to the Eval's, as in "review-fires".
      * </pre>
      *
      * <code>string path = 2 [json_name = "path"];</code>
@@ -1134,7 +1139,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The case's directory, relative to the plugin's root, as in
-     * "evals/review-fires".
+     * "evals/review-fires", or to the Eval's, as in "review-fires".
      * </pre>
      *
      * <code>string path = 2 [json_name = "path"];</code>
@@ -1156,7 +1161,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The case's directory, relative to the plugin's root, as in
-     * "evals/review-fires".
+     * "evals/review-fires", or to the Eval's, as in "review-fires".
      * </pre>
      *
      * <code>string path = 2 [json_name = "path"];</code>
@@ -1174,7 +1179,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The case's directory, relative to the plugin's root, as in
-     * "evals/review-fires".
+     * "evals/review-fires", or to the Eval's, as in "review-fires".
      * </pre>
      *
      * <code>string path = 2 [json_name = "path"];</code>
@@ -1189,7 +1194,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The case's directory, relative to the plugin's root, as in
-     * "evals/review-fires".
+     * "evals/review-fires", or to the Eval's, as in "review-fires".
      * </pre>
      *
      * <code>string path = 2 [json_name = "path"];</code>
@@ -1937,8 +1942,9 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * The plugin's MCP servers the case answers with mocks, and those it
-     * leaves unstarted, as Claude Code's mocked: line.
+     * The MCP servers the case answers with mocks, and those it leaves
+     * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+     * plugin's case; the agent's and its plugins' servers for an Eval's.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -1952,8 +1958,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's MCP servers the case answers with mocks, and those it
-     * leaves unstarted, as Claude Code's mocked: line.
+     * The MCP servers the case answers with mocks, and those it leaves
+     * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+     * plugin's case; the agent's and its plugins' servers for an Eval's.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -1967,8 +1974,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's MCP servers the case answers with mocks, and those it
-     * leaves unstarted, as Claude Code's mocked: line.
+     * The MCP servers the case answers with mocks, and those it leaves
+     * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+     * plugin's case; the agent's and its plugins' servers for an Eval's.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -1982,8 +1990,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's MCP servers the case answers with mocks, and those it
-     * leaves unstarted, as Claude Code's mocked: line.
+     * The MCP servers the case answers with mocks, and those it leaves
+     * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+     * plugin's case; the agent's and its plugins' servers for an Eval's.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -2004,8 +2013,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's MCP servers the case answers with mocks, and those it
-     * leaves unstarted, as Claude Code's mocked: line.
+     * The MCP servers the case answers with mocks, and those it leaves
+     * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+     * plugin's case; the agent's and its plugins' servers for an Eval's.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -2023,8 +2033,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's MCP servers the case answers with mocks, and those it
-     * leaves unstarted, as Claude Code's mocked: line.
+     * The MCP servers the case answers with mocks, and those it leaves
+     * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+     * plugin's case; the agent's and its plugins' servers for an Eval's.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -2044,8 +2055,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's MCP servers the case answers with mocks, and those it
-     * leaves unstarted, as Claude Code's mocked: line.
+     * The MCP servers the case answers with mocks, and those it leaves
+     * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+     * plugin's case; the agent's and its plugins' servers for an Eval's.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -2066,8 +2078,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's MCP servers the case answers with mocks, and those it
-     * leaves unstarted, as Claude Code's mocked: line.
+     * The MCP servers the case answers with mocks, and those it leaves
+     * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+     * plugin's case; the agent's and its plugins' servers for an Eval's.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -2085,8 +2098,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's MCP servers the case answers with mocks, and those it
-     * leaves unstarted, as Claude Code's mocked: line.
+     * The MCP servers the case answers with mocks, and those it leaves
+     * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+     * plugin's case; the agent's and its plugins' servers for an Eval's.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -2104,8 +2118,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's MCP servers the case answers with mocks, and those it
-     * leaves unstarted, as Claude Code's mocked: line.
+     * The MCP servers the case answers with mocks, and those it leaves
+     * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+     * plugin's case; the agent's and its plugins' servers for an Eval's.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -2124,8 +2139,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's MCP servers the case answers with mocks, and those it
-     * leaves unstarted, as Claude Code's mocked: line.
+     * The MCP servers the case answers with mocks, and those it leaves
+     * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+     * plugin's case; the agent's and its plugins' servers for an Eval's.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -2142,8 +2158,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's MCP servers the case answers with mocks, and those it
-     * leaves unstarted, as Claude Code's mocked: line.
+     * The MCP servers the case answers with mocks, and those it leaves
+     * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+     * plugin's case; the agent's and its plugins' servers for an Eval's.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -2160,8 +2177,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's MCP servers the case answers with mocks, and those it
-     * leaves unstarted, as Claude Code's mocked: line.
+     * The MCP servers the case answers with mocks, and those it leaves
+     * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+     * plugin's case; the agent's and its plugins' servers for an Eval's.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -2172,8 +2190,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's MCP servers the case answers with mocks, and those it
-     * leaves unstarted, as Claude Code's mocked: line.
+     * The MCP servers the case answers with mocks, and those it leaves
+     * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+     * plugin's case; the agent's and its plugins' servers for an Eval's.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -2187,8 +2206,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's MCP servers the case answers with mocks, and those it
-     * leaves unstarted, as Claude Code's mocked: line.
+     * The MCP servers the case answers with mocks, and those it leaves
+     * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+     * plugin's case; the agent's and its plugins' servers for an Eval's.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -2203,8 +2223,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's MCP servers the case answers with mocks, and those it
-     * leaves unstarted, as Claude Code's mocked: line.
+     * The MCP servers the case answers with mocks, and those it leaves
+     * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+     * plugin's case; the agent's and its plugins' servers for an Eval's.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -2215,8 +2236,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's MCP servers the case answers with mocks, and those it
-     * leaves unstarted, as Claude Code's mocked: line.
+     * The MCP servers the case answers with mocks, and those it leaves
+     * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+     * plugin's case; the agent's and its plugins' servers for an Eval's.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
@@ -2228,8 +2250,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The plugin's MCP servers the case answers with mocks, and those it
-     * leaves unstarted, as Claude Code's mocked: line.
+     * The MCP servers the case answers with mocks, and those it leaves
+     * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+     * plugin's case; the agent's and its plugins' servers for an Eval's.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>

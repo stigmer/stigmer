@@ -12,19 +12,19 @@ public interface EvalCaseContextOrBuilder extends
 
   /**
    * <pre>
-   * ID of the plugin whose case this is.
+   * ID of the plugin whose case this is; empty for an Eval's case.
    * </pre>
    *
-   * <code>string plugin_id = 1 [json_name = "pluginId", (.buf.validate.field) = { ... }</code>
+   * <code>string plugin_id = 1 [json_name = "pluginId"];</code>
    * @return The pluginId.
    */
   java.lang.String getPluginId();
   /**
    * <pre>
-   * ID of the plugin whose case this is.
+   * ID of the plugin whose case this is; empty for an Eval's case.
    * </pre>
    *
-   * <code>string plugin_id = 1 [json_name = "pluginId", (.buf.validate.field) = { ... }</code>
+   * <code>string plugin_id = 1 [json_name = "pluginId"];</code>
    * @return The bytes for pluginId.
    */
   com.google.protobuf.ByteString
@@ -35,7 +35,7 @@ public interface EvalCaseContextOrBuilder extends
    * The plugin version (archive digest) the eval run stamped.
    * </pre>
    *
-   * <code>string plugin_digest = 2 [json_name = "pluginDigest", (.buf.validate.field) = { ... }</code>
+   * <code>string plugin_digest = 2 [json_name = "pluginDigest"];</code>
    * @return The pluginDigest.
    */
   java.lang.String getPluginDigest();
@@ -44,7 +44,7 @@ public interface EvalCaseContextOrBuilder extends
    * The plugin version (archive digest) the eval run stamped.
    * </pre>
    *
-   * <code>string plugin_digest = 2 [json_name = "pluginDigest", (.buf.validate.field) = { ... }</code>
+   * <code>string plugin_digest = 2 [json_name = "pluginDigest"];</code>
    * @return The bytes for pluginDigest.
    */
   com.google.protobuf.ByteString
@@ -52,19 +52,21 @@ public interface EvalCaseContextOrBuilder extends
 
   /**
    * <pre>
-   * The suite's directory, as in "evals".
+   * The suite's directory, as in "evals"; empty for an Eval's case, whose
+   * suite is its archive's root.
    * </pre>
    *
-   * <code>string suite_dir = 3 [json_name = "suiteDir", (.buf.validate.field) = { ... }</code>
+   * <code>string suite_dir = 3 [json_name = "suiteDir"];</code>
    * @return The suiteDir.
    */
   java.lang.String getSuiteDir();
   /**
    * <pre>
-   * The suite's directory, as in "evals".
+   * The suite's directory, as in "evals"; empty for an Eval's case, whose
+   * suite is its archive's root.
    * </pre>
    *
-   * <code>string suite_dir = 3 [json_name = "suiteDir", (.buf.validate.field) = { ... }</code>
+   * <code>string suite_dir = 3 [json_name = "suiteDir"];</code>
    * @return The bytes for suiteDir.
    */
   com.google.protobuf.ByteString
@@ -373,4 +375,44 @@ java.lang.String defaultValue);
    */
   com.google.protobuf.ByteString
       getPluginNameBytes();
+
+  /**
+   * <pre>
+   * ID of the Eval whose case this is; empty for a plugin's case.
+   * </pre>
+   *
+   * <code>string eval_id = 14 [json_name = "evalId", (.buf.validate.field) = { ... }</code>
+   * @return The evalId.
+   */
+  java.lang.String getEvalId();
+  /**
+   * <pre>
+   * ID of the Eval whose case this is; empty for a plugin's case.
+   * </pre>
+   *
+   * <code>string eval_id = 14 [json_name = "evalId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for evalId.
+   */
+  com.google.protobuf.ByteString
+      getEvalIdBytes();
+
+  /**
+   * <pre>
+   * The Eval version (archive digest) the eval run stamped.
+   * </pre>
+   *
+   * <code>string eval_digest = 15 [json_name = "evalDigest"];</code>
+   * @return The evalDigest.
+   */
+  java.lang.String getEvalDigest();
+  /**
+   * <pre>
+   * The Eval version (archive digest) the eval run stamped.
+   * </pre>
+   *
+   * <code>string eval_digest = 15 [json_name = "evalDigest"];</code>
+   * @return The bytes for evalDigest.
+   */
+  com.google.protobuf.ByteString
+      getEvalDigestBytes();
 }

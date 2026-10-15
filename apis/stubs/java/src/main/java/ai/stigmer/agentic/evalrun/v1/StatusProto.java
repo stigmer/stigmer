@@ -42,6 +42,11 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunPlugin_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunEval_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunEval_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunCase_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -89,7 +94,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "roto\022\035ai.stigmer.agentic.evalrun.v1\032(ai/" +
       "stigmer/agentic/evalrun/v1/spec.proto\032+a" +
       "i/stigmer/commons/apiresource/status.pro" +
-      "to\032\037google/protobuf/timestamp.proto\"\335\006\n\r" +
+      "to\032\037google/protobuf/timestamp.proto\"\237\007\n\r" +
       "EvalRunStatus\022A\n\005phase\030\001 \001(\0162+.ai.stigme" +
       "r.agentic.evalrun.v1.EvalRunPhaseR\005phase" +
       "\022Z\n\016partial_reason\030\002 \001(\01623.ai.stigmer.ag" +
@@ -108,78 +113,87 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "pR\nfinishedAt\022i\n\017vault_attachers\030\014 \003(\0132@" +
       ".ai.stigmer.agentic.evalrun.v1.EvalRunSt" +
       "atus.VaultAttachersEntryR\016vaultAttachers" +
-      "\022F\n\005audit\030c \001(\01320.ai.stigmer.commons.api" +
-      "resource.ApiResourceAuditR\005audit\032A\n\023Vaul" +
-      "tAttachersEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005val" +
-      "ue\030\002 \001(\tR\005value:\0028\001\"\344\002\n\rEvalRunPlugin\022\033\n" +
-      "\tplugin_id\030\001 \001(\tR\010pluginId\022\037\n\013plugin_slu" +
-      "g\030\002 \001(\tR\npluginSlug\022#\n\rplugin_digest\030\003 \001" +
-      "(\tR\014pluginDigest\022\032\n\010attached\030\004 \001(\010R\010atta" +
-      "ched\022\032\n\010compared\030\005 \001(\010R\010compared\022$\n\016not_" +
-      "run_reason\030\006 \001(\tR\014notRunReason\022@\n\005cases\030" +
-      "\007 \003(\0132*.ai.stigmer.agentic.evalrun.v1.Ev" +
-      "alRunCaseR\005cases\022P\n\naggregates\030\010 \001(\01320.a" +
-      "i.stigmer.agentic.evalrun.v1.EvalRunAggr" +
-      "egatesR\naggregates\"\276\002\n\013EvalRunCase\022\033\n\tca" +
-      "se_name\030\001 \001(\tR\010caseName\022\022\n\004path\030\002 \001(\tR\004p" +
-      "ath\022\033\n\tcase_tags\030\003 \003(\tR\010caseTags\022$\n\016not_" +
-      "run_reason\030\004 \001(\tR\014notRunReason\022J\n\007target" +
-      "s\030\005 \003(\01320.ai.stigmer.agentic.evalrun.v1." +
-      "EvalRunCaseTargetR\007targets\022\024\n\005notes\030\006 \003(" +
-      "\tR\005notes\022Y\n\016mocked_servers\030\007 \003(\01322.ai.st" +
-      "igmer.agentic.evalrun.v1.EvalRunMockedSe" +
-      "rverR\rmockedServers\"m\n\023EvalRunMockedServ" +
-      "er\022\022\n\004name\030\001 \001(\tR\004name\022\024\n\005tools\030\002 \003(\tR\005t" +
-      "ools\022,\n\022not_started_reason\030\003 \001(\tR\020notSta" +
-      "rtedReason\"\361\002\n\021EvalRunCaseTarget\022D\n\006targ" +
-      "et\030\001 \001(\0132,.ai.stigmer.agentic.evalrun.v1" +
-      ".EvalRunTargetR\006target\022$\n\016not_run_reason" +
-      "\030\002 \001(\tR\014notRunReason\022J\n\013with_plugin\030\003 \001(" +
-      "\0132).ai.stigmer.agentic.evalrun.v1.EvalRu" +
-      "nArmR\nwithPlugin\022P\n\016without_plugin\030\004 \001(\013" +
-      "2).ai.stigmer.agentic.evalrun.v1.EvalRun" +
-      "ArmR\rwithoutPlugin\022\031\n\005delta\030\005 \001(\001H\000R\005del" +
-      "ta\210\001\001\022\026\n\006passed\030\006 \001(\010R\006passed\022\025\n\006pass_k\030" +
-      "\007 \001(\010R\005passKB\010\n\006_delta\"\270\001\n\nEvalRunArm\022\031\n" +
-      "\005score\030\001 \001(\001H\000R\005score\210\001\001\022!\n\014perfect_runs" +
-      "\030\002 \001(\005R\013perfectRuns\022!\n\014graded_tries\030\003 \001(" +
-      "\005R\013gradedTries\022?\n\005tries\030\004 \003(\0132).ai.stigm" +
-      "er.agentic.evalrun.v1.EvalRunTryR\005triesB" +
-      "\010\n\006_score\"\203\003\n\nEvalRunTry\022\024\n\005index\030\001 \001(\005R" +
-      "\005index\022\035\n\nsession_id\030\002 \001(\tR\tsessionId\022\025\n" +
-      "\006run_id\030\003 \001(\tR\005runId\022D\n\005state\030\004 \001(\0162..ai" +
-      ".stigmer.agentic.evalrun.v1.EvalRunTrySt" +
-      "ateR\005state\022\024\n\005score\030\005 \001(\001R\005score\022*\n\021not_" +
-      "graded_reason\030\006 \001(\tR\017notGradedReason\022\024\n\005" +
-      "error\030\007 \001(\tR\005error\022\031\n\010cost_usd\030\010 \001(\001R\007co" +
-      "stUsd\022)\n\020duration_seconds\030\t \001(\001R\017duratio" +
-      "nSeconds\022E\n\007aborted\030\n \001(\0132+.ai.stigmer.a" +
-      "gentic.evalrun.v1.EvalRunAbortR\007aborted\"" +
-      "R\n\014EvalRunAbort\022\026\n\006server\030\001 \001(\tR\006server\022" +
-      "\022\n\004tool\030\002 \001(\tR\004tool\022\026\n\006reason\030\003 \001(\tR\006rea" +
-      "son\"\323\001\n\021EvalRunAggregates\022#\n\roverall_sco" +
-      "re\030\001 \001(\001R\014overallScore\022!\n\014cases_passed\030\002" +
-      " \001(\005R\013casesPassed\022\037\n\013cases_total\030\003 \001(\005R\n" +
-      "casesTotal\022\"\n\nmean_delta\030\004 \001(\001H\000R\tmeanDe" +
-      "lta\210\001\001\022\"\n\rcases_not_run\030\005 \001(\005R\013casesNotR" +
-      "unB\r\n\013_mean_delta*\273\001\n\014EvalRunPhase\022\036\n\032ev" +
-      "al_run_phase_unspecified\020\000\022\032\n\026eval_run_p" +
-      "hase_pending\020\001\022\032\n\026eval_run_phase_running" +
-      "\020\002\022\034\n\030eval_run_phase_completed\020\003\022\032\n\026eval" +
-      "_run_phase_partial\020\004\022\031\n\025eval_run_phase_f" +
-      "ailed\020\005*\220\001\n\024EvalRunPartialReason\022\'\n#eval" +
-      "_run_partial_reason_unspecified\020\000\022(\n$eva" +
-      "l_run_partial_reason_cost_ceiling\020\001\022%\n!e" +
-      "val_run_partial_reason_cancelled\020\002*\267\001\n\017E" +
-      "valRunTryState\022\"\n\036eval_run_try_state_uns" +
-      "pecified\020\000\022\036\n\032eval_run_try_state_pending" +
-      "\020\001\022\036\n\032eval_run_try_state_running\020\002\022\035\n\031ev" +
-      "al_run_try_state_graded\020\003\022!\n\035eval_run_tr" +
-      "y_state_not_graded\020\004B\246\001B\013StatusProtoP\001\242\002" +
-      "\004ASAE\252\002\035Ai.Stigmer.Agentic.Evalrun.V1\312\002\035" +
-      "Ai\\Stigmer\\Agentic\\Evalrun\\V1\342\002)Ai\\Stigm" +
-      "er\\Agentic\\Evalrun\\V1\\GPBMetadata\352\002!Ai::" +
-      "Stigmer::Agentic::Evalrun::V1b\006proto3"
+      "\022@\n\005evals\030\r \003(\0132*.ai.stigmer.agentic.eva" +
+      "lrun.v1.EvalRunEvalR\005evals\022F\n\005audit\030c \001(" +
+      "\01320.ai.stigmer.commons.apiresource.ApiRe" +
+      "sourceAuditR\005audit\032A\n\023VaultAttachersEntr" +
+      "y\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005valu" +
+      "e:\0028\001\"\344\002\n\rEvalRunPlugin\022\033\n\tplugin_id\030\001 \001" +
+      "(\tR\010pluginId\022\037\n\013plugin_slug\030\002 \001(\tR\nplugi" +
+      "nSlug\022#\n\rplugin_digest\030\003 \001(\tR\014pluginDige" +
+      "st\022\032\n\010attached\030\004 \001(\010R\010attached\022\032\n\010compar" +
+      "ed\030\005 \001(\010R\010compared\022$\n\016not_run_reason\030\006 \001" +
+      "(\tR\014notRunReason\022@\n\005cases\030\007 \003(\0132*.ai.sti" +
+      "gmer.agentic.evalrun.v1.EvalRunCaseR\005cas" +
+      "es\022P\n\naggregates\030\010 \001(\01320.ai.stigmer.agen" +
+      "tic.evalrun.v1.EvalRunAggregatesR\naggreg" +
+      "ates\"\236\002\n\013EvalRunEval\022\027\n\007eval_id\030\001 \001(\tR\006e" +
+      "valId\022\033\n\teval_slug\030\002 \001(\tR\010evalSlug\022\037\n\013ev" +
+      "al_digest\030\003 \001(\tR\nevalDigest\022$\n\016not_run_r" +
+      "eason\030\004 \001(\tR\014notRunReason\022@\n\005cases\030\005 \003(\013" +
+      "2*.ai.stigmer.agentic.evalrun.v1.EvalRun" +
+      "CaseR\005cases\022P\n\naggregates\030\006 \001(\01320.ai.sti" +
+      "gmer.agentic.evalrun.v1.EvalRunAggregate" +
+      "sR\naggregates\"\276\002\n\013EvalRunCase\022\033\n\tcase_na" +
+      "me\030\001 \001(\tR\010caseName\022\022\n\004path\030\002 \001(\tR\004path\022\033" +
+      "\n\tcase_tags\030\003 \003(\tR\010caseTags\022$\n\016not_run_r" +
+      "eason\030\004 \001(\tR\014notRunReason\022J\n\007targets\030\005 \003" +
+      "(\01320.ai.stigmer.agentic.evalrun.v1.EvalR" +
+      "unCaseTargetR\007targets\022\024\n\005notes\030\006 \003(\tR\005no" +
+      "tes\022Y\n\016mocked_servers\030\007 \003(\01322.ai.stigmer" +
+      ".agentic.evalrun.v1.EvalRunMockedServerR" +
+      "\rmockedServers\"m\n\023EvalRunMockedServer\022\022\n" +
+      "\004name\030\001 \001(\tR\004name\022\024\n\005tools\030\002 \003(\tR\005tools\022" +
+      ",\n\022not_started_reason\030\003 \001(\tR\020notStartedR" +
+      "eason\"\361\002\n\021EvalRunCaseTarget\022D\n\006target\030\001 " +
+      "\001(\0132,.ai.stigmer.agentic.evalrun.v1.Eval" +
+      "RunTargetR\006target\022$\n\016not_run_reason\030\002 \001(" +
+      "\tR\014notRunReason\022J\n\013with_plugin\030\003 \001(\0132).a" +
+      "i.stigmer.agentic.evalrun.v1.EvalRunArmR" +
+      "\nwithPlugin\022P\n\016without_plugin\030\004 \001(\0132).ai" +
+      ".stigmer.agentic.evalrun.v1.EvalRunArmR\r" +
+      "withoutPlugin\022\031\n\005delta\030\005 \001(\001H\000R\005delta\210\001\001" +
+      "\022\026\n\006passed\030\006 \001(\010R\006passed\022\025\n\006pass_k\030\007 \001(\010" +
+      "R\005passKB\010\n\006_delta\"\270\001\n\nEvalRunArm\022\031\n\005scor" +
+      "e\030\001 \001(\001H\000R\005score\210\001\001\022!\n\014perfect_runs\030\002 \001(" +
+      "\005R\013perfectRuns\022!\n\014graded_tries\030\003 \001(\005R\013gr" +
+      "adedTries\022?\n\005tries\030\004 \003(\0132).ai.stigmer.ag" +
+      "entic.evalrun.v1.EvalRunTryR\005triesB\010\n\006_s" +
+      "core\"\203\003\n\nEvalRunTry\022\024\n\005index\030\001 \001(\005R\005inde" +
+      "x\022\035\n\nsession_id\030\002 \001(\tR\tsessionId\022\025\n\006run_" +
+      "id\030\003 \001(\tR\005runId\022D\n\005state\030\004 \001(\0162..ai.stig" +
+      "mer.agentic.evalrun.v1.EvalRunTryStateR\005" +
+      "state\022\024\n\005score\030\005 \001(\001R\005score\022*\n\021not_grade" +
+      "d_reason\030\006 \001(\tR\017notGradedReason\022\024\n\005error" +
+      "\030\007 \001(\tR\005error\022\031\n\010cost_usd\030\010 \001(\001R\007costUsd" +
+      "\022)\n\020duration_seconds\030\t \001(\001R\017durationSeco" +
+      "nds\022E\n\007aborted\030\n \001(\0132+.ai.stigmer.agenti" +
+      "c.evalrun.v1.EvalRunAbortR\007aborted\"R\n\014Ev" +
+      "alRunAbort\022\026\n\006server\030\001 \001(\tR\006server\022\022\n\004to" +
+      "ol\030\002 \001(\tR\004tool\022\026\n\006reason\030\003 \001(\tR\006reason\"\323" +
+      "\001\n\021EvalRunAggregates\022#\n\roverall_score\030\001 " +
+      "\001(\001R\014overallScore\022!\n\014cases_passed\030\002 \001(\005R" +
+      "\013casesPassed\022\037\n\013cases_total\030\003 \001(\005R\ncases" +
+      "Total\022\"\n\nmean_delta\030\004 \001(\001H\000R\tmeanDelta\210\001" +
+      "\001\022\"\n\rcases_not_run\030\005 \001(\005R\013casesNotRunB\r\n" +
+      "\013_mean_delta*\273\001\n\014EvalRunPhase\022\036\n\032eval_ru" +
+      "n_phase_unspecified\020\000\022\032\n\026eval_run_phase_" +
+      "pending\020\001\022\032\n\026eval_run_phase_running\020\002\022\034\n" +
+      "\030eval_run_phase_completed\020\003\022\032\n\026eval_run_" +
+      "phase_partial\020\004\022\031\n\025eval_run_phase_failed" +
+      "\020\005*\220\001\n\024EvalRunPartialReason\022\'\n#eval_run_" +
+      "partial_reason_unspecified\020\000\022(\n$eval_run" +
+      "_partial_reason_cost_ceiling\020\001\022%\n!eval_r" +
+      "un_partial_reason_cancelled\020\002*\267\001\n\017EvalRu" +
+      "nTryState\022\"\n\036eval_run_try_state_unspecif" +
+      "ied\020\000\022\036\n\032eval_run_try_state_pending\020\001\022\036\n" +
+      "\032eval_run_try_state_running\020\002\022\035\n\031eval_ru" +
+      "n_try_state_graded\020\003\022!\n\035eval_run_try_sta" +
+      "te_not_graded\020\004B\246\001B\013StatusProtoP\001\242\002\004ASAE" +
+      "\252\002\035Ai.Stigmer.Agentic.Evalrun.V1\312\002\035Ai\\St" +
+      "igmer\\Agentic\\Evalrun\\V1\342\002)Ai\\Stigmer\\Ag" +
+      "entic\\Evalrun\\V1\\GPBMetadata\352\002!Ai::Stigm" +
+      "er::Agentic::Evalrun::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -193,7 +207,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunStatus_descriptor,
-        new java.lang.String[] { "Phase", "PartialReason", "Error", "AgentVersionHash", "Plugins", "Aggregates", "CostUsd", "TriesTotal", "TriesFinished", "StartedAt", "FinishedAt", "VaultAttachers", "Audit", });
+        new java.lang.String[] { "Phase", "PartialReason", "Error", "AgentVersionHash", "Plugins", "Aggregates", "CostUsd", "TriesTotal", "TriesFinished", "StartedAt", "FinishedAt", "VaultAttachers", "Evals", "Audit", });
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunStatus_VaultAttachersEntry_descriptor =
       internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunStatus_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunStatus_VaultAttachersEntry_fieldAccessorTable = new
@@ -206,44 +220,50 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunPlugin_descriptor,
         new java.lang.String[] { "PluginId", "PluginSlug", "PluginDigest", "Attached", "Compared", "NotRunReason", "Cases", "Aggregates", });
-    internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunCase_descriptor =
+    internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunEval_descriptor =
       getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunEval_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunEval_descriptor,
+        new java.lang.String[] { "EvalId", "EvalSlug", "EvalDigest", "NotRunReason", "Cases", "Aggregates", });
+    internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunCase_descriptor =
+      getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunCase_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunCase_descriptor,
         new java.lang.String[] { "CaseName", "Path", "CaseTags", "NotRunReason", "Targets", "Notes", "MockedServers", });
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunMockedServer_descriptor =
-      getDescriptor().getMessageType(3);
+      getDescriptor().getMessageType(4);
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunMockedServer_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunMockedServer_descriptor,
         new java.lang.String[] { "Name", "Tools", "NotStartedReason", });
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunCaseTarget_descriptor =
-      getDescriptor().getMessageType(4);
+      getDescriptor().getMessageType(5);
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunCaseTarget_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunCaseTarget_descriptor,
         new java.lang.String[] { "Target", "NotRunReason", "WithPlugin", "WithoutPlugin", "Delta", "Passed", "PassK", });
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunArm_descriptor =
-      getDescriptor().getMessageType(5);
+      getDescriptor().getMessageType(6);
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunArm_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunArm_descriptor,
         new java.lang.String[] { "Score", "PerfectRuns", "GradedTries", "Tries", });
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunTry_descriptor =
-      getDescriptor().getMessageType(6);
+      getDescriptor().getMessageType(7);
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunTry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunTry_descriptor,
         new java.lang.String[] { "Index", "SessionId", "RunId", "State", "Score", "NotGradedReason", "Error", "CostUsd", "DurationSeconds", "Aborted", });
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunAbort_descriptor =
-      getDescriptor().getMessageType(7);
+      getDescriptor().getMessageType(8);
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunAbort_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunAbort_descriptor,
         new java.lang.String[] { "Server", "Tool", "Reason", });
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunAggregates_descriptor =
-      getDescriptor().getMessageType(8);
+      getDescriptor().getMessageType(9);
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunAggregates_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunAggregates_descriptor,

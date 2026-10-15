@@ -40,5 +40,38 @@ public interface EvalRunCaseSourceOrBuilder extends
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getPluginOrBuilder();
 
+  /**
+   * <pre>
+   * An Eval of the agent's organization whose cases run on the agent: its
+   * current version, or the tag or digest the reference's version names.
+   * The caller must be able to view it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference eval = 2 [json_name = "eval", (.ai.stigmer.commons.apiresource.reference_kind) = eval];</code>
+   * @return Whether the eval field is set.
+   */
+  boolean hasEval();
+  /**
+   * <pre>
+   * An Eval of the agent's organization whose cases run on the agent: its
+   * current version, or the tag or digest the reference's version names.
+   * The caller must be able to view it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference eval = 2 [json_name = "eval", (.ai.stigmer.commons.apiresource.reference_kind) = eval];</code>
+   * @return The eval.
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReference getEval();
+  /**
+   * <pre>
+   * An Eval of the agent's organization whose cases run on the agent: its
+   * current version, or the tag or digest the reference's version names.
+   * The caller must be able to view it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference eval = 2 [json_name = "eval", (.ai.stigmer.commons.apiresource.reference_kind) = eval];</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEvalOrBuilder();
+
   ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource.SourceCase getSourceCase();
 }

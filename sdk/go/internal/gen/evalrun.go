@@ -159,6 +159,7 @@ type EvalRunInput struct {
 // EvalRunCaseSourceInput is the SDK input type for EvalRunCaseSource.
 type EvalRunCaseSourceInput struct {
 	Plugin ResourceRef
+	Eval   ResourceRef
 }
 
 // EvalRunTargetInput is the SDK input type for EvalRunTarget.
@@ -229,6 +230,11 @@ func (i *EvalRunInput) toProto() (*evalrunv1.EvalRun, error) {
 
 func (i *EvalRunCaseSourceInput) toProto() (*evalrunv1.EvalRunCaseSource, error) {
 	p := &evalrunv1.EvalRunCaseSource{}
+	if i.Eval.Org != "" || i.Eval.Slug != "" {
+		ref := i.Eval.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_eval
+		p.Source = &evalrunv1.EvalRunCaseSource_Eval{Eval: ref}
+	}
 	if i.Plugin.Org != "" || i.Plugin.Slug != "" {
 		ref := i.Plugin.toProto()
 		ref.Kind = apiresourcekind.ApiResourceKind_plugin
@@ -295,6 +301,7 @@ func evalRunCaseSourceInputFromProto(p *evalrunv1.EvalRunCaseSource) *EvalRunCas
 	}
 	input := &EvalRunCaseSourceInput{}
 	input.Plugin = resourceRefFromProto(p.GetPlugin())
+	input.Eval = resourceRefFromProto(p.GetEval())
 	return input
 }
 

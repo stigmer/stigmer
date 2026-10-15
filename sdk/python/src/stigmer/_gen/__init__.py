@@ -21,7 +21,7 @@ from ._organization import OrganizationClient, OrganizationInput, OrganizationPr
 from ._plan import PlanClient, PlanInput, PlanTermsInput
 from ._plugin import PluginClient, PluginInput, PluginAuthorInput
 from ._providerkey import ProviderKeyClient
-from ._run import RunClient, RunInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, AttachmentInput, ConversationCatchupInput, EvalCaseContextInput, EvalMockServerInput, EvalMockToolInput
+from ._run import RunClient, RunInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, AttachmentInput, ConversationCatchupInput, EvalCaseContextInput, EvalMockServerInput, EvalMockToolInput, EvalMockPluginHomeInput, EvalMockAgentHomeInput
 from ._schedule import ScheduleClient, ScheduleInput, AgentInvocationInput
 from ._score import ScoreClient, ScoreInput, ScoreCriterionInput
 from ._session import SessionClient, SessionInput
@@ -120,6 +120,8 @@ __all__ = [
     "EvalCaseContextInput",
     "EvalMockServerInput",
     "EvalMockToolInput",
+    "EvalMockPluginHomeInput",
+    "EvalMockAgentHomeInput",
     "ScheduleClient",
     "ScheduleInput",
     "AgentInvocationInput",

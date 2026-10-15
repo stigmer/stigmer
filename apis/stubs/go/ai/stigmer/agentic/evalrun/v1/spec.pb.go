@@ -95,10 +95,11 @@ type EvalRunSpec struct {
 	// without, on the agent: whether the agent does better with it. The
 	// agent may attach it or not. Only with agent_id.
 	ComparedPluginId string `protobuf:"bytes,5,opt,name=compared_plugin_id,json=comparedPluginId,proto3" json:"compared_plugin_id,omitempty"`
-	// Whose cases run, on an agent: each a plugin the agent attaches or the
-	// compared plugin. Empty runs the compared plugin's cases when one is
-	// named, else the cases of every plugin the agent attaches. Only with
-	// agent_id; an eval run of a plugin runs that plugin's own cases.
+	// Whose cases run, on an agent: Evals of the agent's organization, and
+	// plugins the agent attaches or the compared plugin. Empty runs the
+	// compared plugin's cases when one is named, else the cases of every
+	// plugin the agent attaches. Only with agent_id; an eval run of a plugin
+	// runs that plugin's own cases.
 	Cases []*EvalRunCaseSource `protobuf:"bytes,6,rep,name=cases,proto3" json:"cases,omitempty"`
 	// The engines and models each case runs on, at most six. Empty runs each
 	// case on the agent as it runs (its own engine, model and settings), or,
@@ -378,6 +379,7 @@ type EvalRunCaseSource struct {
 	// Types that are valid to be assigned to Source:
 	//
 	//	*EvalRunCaseSource_Plugin
+	//	*EvalRunCaseSource_Eval
 	Source        isEvalRunCaseSource_Source `protobuf_oneof:"source"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -429,6 +431,15 @@ func (x *EvalRunCaseSource) GetPlugin() *apiresource.ApiResourceReference {
 	return nil
 }
 
+func (x *EvalRunCaseSource) GetEval() *apiresource.ApiResourceReference {
+	if x != nil {
+		if x, ok := x.Source.(*EvalRunCaseSource_Eval); ok {
+			return x.Eval
+		}
+	}
+	return nil
+}
+
 type isEvalRunCaseSource_Source interface {
 	isEvalRunCaseSource_Source()
 }
@@ -439,7 +450,16 @@ type EvalRunCaseSource_Plugin struct {
 	Plugin *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=plugin,proto3,oneof"`
 }
 
+type EvalRunCaseSource_Eval struct {
+	// An Eval of the agent's organization whose cases run on the agent: its
+	// current version, or the tag or digest the reference's version names.
+	// The caller must be able to view it.
+	Eval *apiresource.ApiResourceReference `protobuf:"bytes,2,opt,name=eval,proto3,oneof"`
+}
+
 func (*EvalRunCaseSource_Plugin) isEvalRunCaseSource_Source() {}
+
+func (*EvalRunCaseSource_Eval) isEvalRunCaseSource_Source() {}
 
 // EvalRunTarget is one engine and model a case runs on.
 type EvalRunTarget struct {
@@ -534,9 +554,10 @@ const file_ai_stigmer_agentic_evalrun_v1_spec_proto_rawDesc = "" +
 	"\x19eval_run.cases_need_agent\x12_cases chooses whose cases run on an agent: an eval run of a plugin runs that plugin's own cases\x1a,size(this.cases) == 0 || this.agent_id != ''B\x10\n" +
 	"\asubject\x12\x05\xbaH\x02\b\x01B\f\n" +
 	"\n" +
-	"_threshold\"z\n" +
+	"_threshold\"\xcc\x01\n" +
 	"\x11EvalRunCaseSource\x12T\n" +
-	"\x06plugin\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,:H\x00R\x06pluginB\x0f\n" +
+	"\x06plugin\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,:H\x00R\x06plugin\x12P\n" +
+	"\x04eval\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,BH\x00R\x04evalB\x0f\n" +
 	"\x06source\x12\x05\xbaH\x02\b\x01\"\x84\x01\n" +
 	"\rEvalRunTarget\x12J\n" +
 	"\aharness\x18\x01 \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessB\b\xbaH\x05\x82\x01\x02\x10\x01R\aharness\x12'\n" +
@@ -576,12 +597,13 @@ var file_ai_stigmer_agentic_evalrun_v1_spec_proto_depIdxs = []int32{
 	0, // 2: ai.stigmer.agentic.evalrun.v1.EvalRunSpec.ablation:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunAblation
 	4, // 3: ai.stigmer.agentic.evalrun.v1.EvalRunSpec.vaults:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	4, // 4: ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource.plugin:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	5, // 5: ai.stigmer.agentic.evalrun.v1.EvalRunTarget.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	4, // 5: ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource.eval:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	5, // 6: ai.stigmer.agentic.evalrun.v1.EvalRunTarget.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_evalrun_v1_spec_proto_init() }
@@ -595,6 +617,7 @@ func file_ai_stigmer_agentic_evalrun_v1_spec_proto_init() {
 	}
 	file_ai_stigmer_agentic_evalrun_v1_spec_proto_msgTypes[1].OneofWrappers = []any{
 		(*EvalRunCaseSource_Plugin)(nil),
+		(*EvalRunCaseSource_Eval)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

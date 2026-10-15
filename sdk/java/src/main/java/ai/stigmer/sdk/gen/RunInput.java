@@ -5,7 +5,9 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.run.v1.Attachment;
 import ai.stigmer.agentic.run.v1.ConversationCatchup;
 import ai.stigmer.agentic.run.v1.EvalCaseContext;
+import ai.stigmer.agentic.run.v1.EvalMockAgentHome;
 import ai.stigmer.agentic.run.v1.EvalMockKind;
+import ai.stigmer.agentic.run.v1.EvalMockPluginHome;
 import ai.stigmer.agentic.run.v1.EvalMockServer;
 import ai.stigmer.agentic.run.v1.EvalMockTool;
 import ai.stigmer.agentic.run.v1.InteractionMode;
@@ -677,6 +679,8 @@ public final class RunInput {
         private final int agentMockCallBudget;
         private final java.util.List<String> readFiles;
         private final String pluginName;
+        private final String evalId;
+        private final String evalDigest;
 
         private EvalCaseContextInput(Builder builder) {
             this.pluginId = builder.pluginId;
@@ -692,6 +696,8 @@ public final class RunInput {
             this.agentMockCallBudget = builder.agentMockCallBudget;
             this.readFiles = builder.readFiles;
             this.pluginName = builder.pluginName;
+            this.evalId = builder.evalId;
+            this.evalDigest = builder.evalDigest;
         }
 
         EvalCaseContext toProto() {
@@ -735,6 +741,12 @@ public final class RunInput {
             if (this.pluginName != null) {
                 builder.setPluginName(this.pluginName);
             }
+            if (this.evalId != null) {
+                builder.setEvalId(this.evalId);
+            }
+            if (this.evalDigest != null) {
+                builder.setEvalDigest(this.evalDigest);
+            }
             return builder.build();
         }
 
@@ -754,6 +766,8 @@ public final class RunInput {
             private int agentMockCallBudget;
             private java.util.List<String> readFiles;
             private String pluginName;
+            private String evalId;
+            private String evalDigest;
 
             private Builder() {}
 
@@ -770,6 +784,8 @@ public final class RunInput {
             public Builder agentMockCallBudget(int agentMockCallBudget) { this.agentMockCallBudget = agentMockCallBudget; return this; }
             public Builder readFiles(java.util.List<String> readFiles) { this.readFiles = readFiles; return this; }
             public Builder pluginName(String pluginName) { this.pluginName = pluginName; return this; }
+            public Builder evalId(String evalId) { this.evalId = evalId; return this; }
+            public Builder evalDigest(String evalDigest) { this.evalDigest = evalDigest; return this; }
 
             public EvalCaseContextInput build() { return new EvalCaseContextInput(this); }
         }
@@ -781,12 +797,16 @@ public final class RunInput {
         private final String segment;
         private final java.util.List<EvalMockToolInput> tools;
         private final String toolsFile;
+        private final EvalMockPluginHomeInput plugin;
+        private final EvalMockAgentHomeInput agent;
 
         private EvalMockServerInput(Builder builder) {
             this.server = builder.server;
             this.segment = builder.segment;
             this.tools = builder.tools;
             this.toolsFile = builder.toolsFile;
+            this.plugin = builder.plugin;
+            this.agent = builder.agent;
         }
 
         EvalMockServer toProto() {
@@ -805,6 +825,12 @@ public final class RunInput {
             if (this.toolsFile != null) {
                 builder.setToolsFile(this.toolsFile);
             }
+            if (this.agent != null) {
+                builder.setAgent(this.agent.toProto());
+            }
+            if (this.plugin != null) {
+                builder.setPlugin(this.plugin.toProto());
+            }
             return builder.build();
         }
 
@@ -815,6 +841,8 @@ public final class RunInput {
             private String segment;
             private java.util.List<EvalMockToolInput> tools;
             private String toolsFile;
+            private EvalMockPluginHomeInput plugin;
+            private EvalMockAgentHomeInput agent;
 
             private Builder() {}
 
@@ -822,6 +850,8 @@ public final class RunInput {
             public Builder segment(String segment) { this.segment = segment; return this; }
             public Builder tools(java.util.List<EvalMockToolInput> tools) { this.tools = tools; return this; }
             public Builder toolsFile(String toolsFile) { this.toolsFile = toolsFile; return this; }
+            public Builder plugin(EvalMockPluginHomeInput plugin) { this.plugin = plugin; return this; }
+            public Builder agent(EvalMockAgentHomeInput agent) { this.agent = agent; return this; }
 
             public EvalMockServerInput build() { return new EvalMockServerInput(this); }
         }
@@ -886,6 +916,85 @@ public final class RunInput {
             public Builder abortWhen(String abortWhen) { this.abortWhen = abortWhen; return this; }
 
             public EvalMockToolInput build() { return new EvalMockToolInput(this); }
+        }
+    }
+
+    /** SDK input type for EvalMockPluginHome. */
+    public static final class EvalMockPluginHomeInput {
+        private final String pluginId;
+        private final String pluginName;
+        private final String server;
+
+        private EvalMockPluginHomeInput(Builder builder) {
+            this.pluginId = builder.pluginId;
+            this.pluginName = builder.pluginName;
+            this.server = builder.server;
+        }
+
+        EvalMockPluginHome toProto() {
+            EvalMockPluginHome.Builder builder = EvalMockPluginHome.newBuilder();
+            if (this.pluginId != null) {
+                builder.setPluginId(this.pluginId);
+            }
+            if (this.pluginName != null) {
+                builder.setPluginName(this.pluginName);
+            }
+            if (this.server != null) {
+                builder.setServer(this.server);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String pluginId;
+            private String pluginName;
+            private String server;
+
+            private Builder() {}
+
+            public Builder pluginId(String pluginId) { this.pluginId = pluginId; return this; }
+            public Builder pluginName(String pluginName) { this.pluginName = pluginName; return this; }
+            public Builder server(String server) { this.server = server; return this; }
+
+            public EvalMockPluginHomeInput build() { return new EvalMockPluginHomeInput(this); }
+        }
+    }
+
+    /** SDK input type for EvalMockAgentHome. */
+    public static final class EvalMockAgentHomeInput {
+        private final String agentId;
+        private final String server;
+
+        private EvalMockAgentHomeInput(Builder builder) {
+            this.agentId = builder.agentId;
+            this.server = builder.server;
+        }
+
+        EvalMockAgentHome toProto() {
+            EvalMockAgentHome.Builder builder = EvalMockAgentHome.newBuilder();
+            if (this.agentId != null) {
+                builder.setAgentId(this.agentId);
+            }
+            if (this.server != null) {
+                builder.setServer(this.server);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String agentId;
+            private String server;
+
+            private Builder() {}
+
+            public Builder agentId(String agentId) { this.agentId = agentId; return this; }
+            public Builder server(String server) { this.server = server; return this; }
+
+            public EvalMockAgentHomeInput build() { return new EvalMockAgentHomeInput(this); }
         }
     }
 }

@@ -299,6 +299,8 @@ type EvalCaseContextInput struct {
 	AgentMockCallBudget int32
 	ReadFiles           []string
 	PluginName          string
+	EvalId              string
+	EvalDigest          string
 }
 
 // EvalMockServerInput is the SDK input type for EvalMockServer.
@@ -307,6 +309,8 @@ type EvalMockServerInput struct {
 	Segment   string
 	Tools     []*EvalMockToolInput
 	ToolsFile string
+	Plugin    *EvalMockPluginHomeInput
+	Agent     *EvalMockAgentHomeInput
 }
 
 // EvalMockToolInput is the SDK input type for EvalMockTool.
@@ -317,6 +321,19 @@ type EvalMockToolInput struct {
 	Error      bool
 	ExpectJson string
 	AbortWhen  string
+}
+
+// EvalMockPluginHomeInput is the SDK input type for EvalMockPluginHome.
+type EvalMockPluginHomeInput struct {
+	PluginId   string
+	PluginName string
+	Server     string
+}
+
+// EvalMockAgentHomeInput is the SDK input type for EvalMockAgentHome.
+type EvalMockAgentHomeInput struct {
+	AgentId string
+	Server  string
 }
 
 func (i *RunInput) toProto() (*runv1.Run, error) {
@@ -504,6 +521,8 @@ func (i *EvalCaseContextInput) toProto() (*runv1.EvalCaseContext, error) {
 	p.AgentMockCallBudget = i.AgentMockCallBudget
 	p.ReadFiles = i.ReadFiles
 	p.PluginName = i.PluginName
+	p.EvalId = i.EvalId
+	p.EvalDigest = i.EvalDigest
 	return p, nil
 }
 
@@ -519,6 +538,19 @@ func (i *EvalMockServerInput) toProto() (*runv1.EvalMockServer, error) {
 		p.Tools = append(p.Tools, v)
 	}
 	p.ToolsFile = i.ToolsFile
+	if i.Agent != nil {
+		m := &runv1.EvalMockAgentHome{}
+		m.AgentId = i.Agent.AgentId
+		m.Server = i.Agent.Server
+		p.Home = &runv1.EvalMockServer_Agent{Agent: m}
+	}
+	if i.Plugin != nil {
+		m := &runv1.EvalMockPluginHome{}
+		m.PluginId = i.Plugin.PluginId
+		m.PluginName = i.Plugin.PluginName
+		m.Server = i.Plugin.Server
+		p.Home = &runv1.EvalMockServer_Plugin{Plugin: m}
+	}
 	return p, nil
 }
 
@@ -693,6 +725,8 @@ func evalCaseContextInputFromProto(p *runv1.EvalCaseContext) *EvalCaseContextInp
 	input.AgentMockCallBudget = p.GetAgentMockCallBudget()
 	input.ReadFiles = p.GetReadFiles()
 	input.PluginName = p.GetPluginName()
+	input.EvalId = p.GetEvalId()
+	input.EvalDigest = p.GetEvalDigest()
 	return input
 }
 
@@ -707,6 +741,8 @@ func evalMockServerInputFromProto(p *runv1.EvalMockServer) *EvalMockServerInput 
 		input.Tools = append(input.Tools, evalMockToolInputFromProto(item))
 	}
 	input.ToolsFile = p.GetToolsFile()
+	input.Plugin = evalMockPluginHomeInputFromProto(p.GetPlugin())
+	input.Agent = evalMockAgentHomeInputFromProto(p.GetAgent())
 	return input
 }
 
@@ -721,5 +757,26 @@ func evalMockToolInputFromProto(p *runv1.EvalMockTool) *EvalMockToolInput {
 	input.Error = p.GetError()
 	input.ExpectJson = p.GetExpectJson()
 	input.AbortWhen = p.GetAbortWhen()
+	return input
+}
+
+func evalMockPluginHomeInputFromProto(p *runv1.EvalMockPluginHome) *EvalMockPluginHomeInput {
+	if p == nil {
+		return nil
+	}
+	input := &EvalMockPluginHomeInput{}
+	input.PluginId = p.GetPluginId()
+	input.PluginName = p.GetPluginName()
+	input.Server = p.GetServer()
+	return input
+}
+
+func evalMockAgentHomeInputFromProto(p *runv1.EvalMockAgentHome) *EvalMockAgentHomeInput {
+	if p == nil {
+		return nil
+	}
+	input := &EvalMockAgentHomeInput{}
+	input.AgentId = p.GetAgentId()
+	input.Server = p.GetServer()
 	return input
 }

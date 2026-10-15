@@ -7,7 +7,7 @@ package ai.stigmer.agentic.run.v1;
 
 /**
  * <pre>
- * EvalMockServer is one plugin MCP server answered by a stand-in.
+ * EvalMockServer is one MCP server answered by a stand-in.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.run.v1.EvalMockServer}
@@ -56,12 +56,56 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.run.v1.EvalMockServer.class, ai.stigmer.agentic.run.v1.EvalMockServer.Builder.class);
   }
 
+  private int homeCase_ = 0;
+  @SuppressWarnings("serial")
+  private java.lang.Object home_;
+  public enum HomeCase
+      implements com.google.protobuf.Internal.EnumLite,
+          com.google.protobuf.AbstractMessage.InternalOneOfEnum {
+    PLUGIN(5),
+    AGENT(6),
+    HOME_NOT_SET(0);
+    private final int value;
+    private HomeCase(int value) {
+      this.value = value;
+    }
+    /**
+     * @param value The number of the enum to look for.
+     * @return The enum associated with the given number.
+     * @deprecated Use {@link #forNumber(int)} instead.
+     */
+    @java.lang.Deprecated
+    public static HomeCase valueOf(int value) {
+      return forNumber(value);
+    }
+
+    public static HomeCase forNumber(int value) {
+      switch (value) {
+        case 5: return PLUGIN;
+        case 6: return AGENT;
+        case 0: return HOME_NOT_SET;
+        default: return null;
+      }
+    }
+    public int getNumber() {
+      return this.value;
+    }
+  };
+
+  public HomeCase
+  getHomeCase() {
+    return HomeCase.forNumber(
+        homeCase_);
+  }
+
   public static final int SERVER_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
   private volatile java.lang.Object server_ = "";
   /**
    * <pre>
-   * The server's key in the plugin's MCP configuration.
+   * The directory under mocks/ the stand-in answers from: a plugin's
+   * server key for a plugin's case, the server's name in the turn for an
+   * Eval's.
    * </pre>
    *
    * <code>string server = 1 [json_name = "server", (.buf.validate.field) = { ... }</code>
@@ -82,7 +126,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The server's key in the plugin's MCP configuration.
+   * The directory under mocks/ the stand-in answers from: a plugin's
+   * server key for a plugin's case, the server's name in the turn for an
+   * Eval's.
    * </pre>
    *
    * <code>string server = 1 [json_name = "server", (.buf.validate.field) = { ... }</code>
@@ -108,7 +154,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object segment_ = "";
   /**
    * <pre>
-   * The name the stand-in is registered under in the turn, the plugin
+   * The name the stand-in is registered under in the turn, the real
    * server's own.
    * </pre>
    *
@@ -130,7 +176,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The name the stand-in is registered under in the turn, the plugin
+   * The name the stand-in is registered under in the turn, the real
    * server's own.
    * </pre>
    *
@@ -262,6 +308,92 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int PLUGIN_FIELD_NUMBER = 5;
+  /**
+   * <pre>
+   * A server of a plugin the turn loads.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.EvalMockPluginHome plugin = 5 [json_name = "plugin"];</code>
+   * @return Whether the plugin field is set.
+   */
+  @java.lang.Override
+  public boolean hasPlugin() {
+    return homeCase_ == 5;
+  }
+  /**
+   * <pre>
+   * A server of a plugin the turn loads.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.EvalMockPluginHome plugin = 5 [json_name = "plugin"];</code>
+   * @return The plugin.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.EvalMockPluginHome getPlugin() {
+    if (homeCase_ == 5) {
+       return (ai.stigmer.agentic.run.v1.EvalMockPluginHome) home_;
+    }
+    return ai.stigmer.agentic.run.v1.EvalMockPluginHome.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * A server of a plugin the turn loads.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.EvalMockPluginHome plugin = 5 [json_name = "plugin"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.EvalMockPluginHomeOrBuilder getPluginOrBuilder() {
+    if (homeCase_ == 5) {
+       return (ai.stigmer.agentic.run.v1.EvalMockPluginHome) home_;
+    }
+    return ai.stigmer.agentic.run.v1.EvalMockPluginHome.getDefaultInstance();
+  }
+
+  public static final int AGENT_FIELD_NUMBER = 6;
+  /**
+   * <pre>
+   * One of the evaluated agent's own servers.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.EvalMockAgentHome agent = 6 [json_name = "agent"];</code>
+   * @return Whether the agent field is set.
+   */
+  @java.lang.Override
+  public boolean hasAgent() {
+    return homeCase_ == 6;
+  }
+  /**
+   * <pre>
+   * One of the evaluated agent's own servers.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.EvalMockAgentHome agent = 6 [json_name = "agent"];</code>
+   * @return The agent.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.EvalMockAgentHome getAgent() {
+    if (homeCase_ == 6) {
+       return (ai.stigmer.agentic.run.v1.EvalMockAgentHome) home_;
+    }
+    return ai.stigmer.agentic.run.v1.EvalMockAgentHome.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * One of the evaluated agent's own servers.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.EvalMockAgentHome agent = 6 [json_name = "agent"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.EvalMockAgentHomeOrBuilder getAgentOrBuilder() {
+    if (homeCase_ == 6) {
+       return (ai.stigmer.agentic.run.v1.EvalMockAgentHome) home_;
+    }
+    return ai.stigmer.agentic.run.v1.EvalMockAgentHome.getDefaultInstance();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -287,6 +419,12 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(toolsFile_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 4, toolsFile_);
+    }
+    if (homeCase_ == 5) {
+      output.writeMessage(5, (ai.stigmer.agentic.run.v1.EvalMockPluginHome) home_);
+    }
+    if (homeCase_ == 6) {
+      output.writeMessage(6, (ai.stigmer.agentic.run.v1.EvalMockAgentHome) home_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -315,6 +453,14 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(toolsFile_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(4, toolsFile_);
     }
+    if (homeCase_ == 5) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(5, (ai.stigmer.agentic.run.v1.EvalMockPluginHome) home_);
+    }
+    if (homeCase_ == 6) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(6, (ai.stigmer.agentic.run.v1.EvalMockAgentHome) home_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -338,6 +484,19 @@ private static final long serialVersionUID = 0L;
         .equals(other.getToolsList())) return false;
     if (!getToolsFile()
         .equals(other.getToolsFile())) return false;
+    if (!getHomeCase().equals(other.getHomeCase())) return false;
+    switch (homeCase_) {
+      case 5:
+        if (!getPlugin()
+            .equals(other.getPlugin())) return false;
+        break;
+      case 6:
+        if (!getAgent()
+            .equals(other.getAgent())) return false;
+        break;
+      case 0:
+      default:
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -359,6 +518,18 @@ private static final long serialVersionUID = 0L;
     }
     hash = (37 * hash) + TOOLS_FILE_FIELD_NUMBER;
     hash = (53 * hash) + getToolsFile().hashCode();
+    switch (homeCase_) {
+      case 5:
+        hash = (37 * hash) + PLUGIN_FIELD_NUMBER;
+        hash = (53 * hash) + getPlugin().hashCode();
+        break;
+      case 6:
+        hash = (37 * hash) + AGENT_FIELD_NUMBER;
+        hash = (53 * hash) + getAgent().hashCode();
+        break;
+      case 0:
+      default:
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -458,7 +629,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * EvalMockServer is one plugin MCP server answered by a stand-in.
+   * EvalMockServer is one MCP server answered by a stand-in.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.run.v1.EvalMockServer}
@@ -504,6 +675,14 @@ private static final long serialVersionUID = 0L;
       }
       bitField0_ = (bitField0_ & ~0x00000004);
       toolsFile_ = "";
+      if (pluginBuilder_ != null) {
+        pluginBuilder_.clear();
+      }
+      if (agentBuilder_ != null) {
+        agentBuilder_.clear();
+      }
+      homeCase_ = 0;
+      home_ = null;
       return this;
     }
 
@@ -532,6 +711,7 @@ private static final long serialVersionUID = 0L;
       ai.stigmer.agentic.run.v1.EvalMockServer result = new ai.stigmer.agentic.run.v1.EvalMockServer(this);
       buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
+      buildPartialOneofs(result);
       onBuilt();
       return result;
     }
@@ -558,6 +738,19 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.toolsFile_ = toolsFile_;
+      }
+    }
+
+    private void buildPartialOneofs(ai.stigmer.agentic.run.v1.EvalMockServer result) {
+      result.homeCase_ = homeCase_;
+      result.home_ = this.home_;
+      if (homeCase_ == 5 &&
+          pluginBuilder_ != null) {
+        result.home_ = pluginBuilder_.build();
+      }
+      if (homeCase_ == 6 &&
+          agentBuilder_ != null) {
+        result.home_ = agentBuilder_.build();
       }
     }
 
@@ -614,6 +807,19 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000008;
         onChanged();
       }
+      switch (other.getHomeCase()) {
+        case PLUGIN: {
+          mergePlugin(other.getPlugin());
+          break;
+        }
+        case AGENT: {
+          mergeAgent(other.getAgent());
+          break;
+        }
+        case HOME_NOT_SET: {
+          break;
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -668,6 +874,20 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 34
+            case 42: {
+              input.readMessage(
+                  internalGetPluginFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              homeCase_ = 5;
+              break;
+            } // case 42
+            case 50: {
+              input.readMessage(
+                  internalGetAgentFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              homeCase_ = 6;
+              break;
+            } // case 50
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -683,12 +903,29 @@ private static final long serialVersionUID = 0L;
       } // finally
       return this;
     }
+    private int homeCase_ = 0;
+    private java.lang.Object home_;
+    public HomeCase
+        getHomeCase() {
+      return HomeCase.forNumber(
+          homeCase_);
+    }
+
+    public Builder clearHome() {
+      homeCase_ = 0;
+      home_ = null;
+      onChanged();
+      return this;
+    }
+
     private int bitField0_;
 
     private java.lang.Object server_ = "";
     /**
      * <pre>
-     * The server's key in the plugin's MCP configuration.
+     * The directory under mocks/ the stand-in answers from: a plugin's
+     * server key for a plugin's case, the server's name in the turn for an
+     * Eval's.
      * </pre>
      *
      * <code>string server = 1 [json_name = "server", (.buf.validate.field) = { ... }</code>
@@ -708,7 +945,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The server's key in the plugin's MCP configuration.
+     * The directory under mocks/ the stand-in answers from: a plugin's
+     * server key for a plugin's case, the server's name in the turn for an
+     * Eval's.
      * </pre>
      *
      * <code>string server = 1 [json_name = "server", (.buf.validate.field) = { ... }</code>
@@ -729,7 +968,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The server's key in the plugin's MCP configuration.
+     * The directory under mocks/ the stand-in answers from: a plugin's
+     * server key for a plugin's case, the server's name in the turn for an
+     * Eval's.
      * </pre>
      *
      * <code>string server = 1 [json_name = "server", (.buf.validate.field) = { ... }</code>
@@ -746,7 +987,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The server's key in the plugin's MCP configuration.
+     * The directory under mocks/ the stand-in answers from: a plugin's
+     * server key for a plugin's case, the server's name in the turn for an
+     * Eval's.
      * </pre>
      *
      * <code>string server = 1 [json_name = "server", (.buf.validate.field) = { ... }</code>
@@ -760,7 +1003,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The server's key in the plugin's MCP configuration.
+     * The directory under mocks/ the stand-in answers from: a plugin's
+     * server key for a plugin's case, the server's name in the turn for an
+     * Eval's.
      * </pre>
      *
      * <code>string server = 1 [json_name = "server", (.buf.validate.field) = { ... }</code>
@@ -780,7 +1025,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object segment_ = "";
     /**
      * <pre>
-     * The name the stand-in is registered under in the turn, the plugin
+     * The name the stand-in is registered under in the turn, the real
      * server's own.
      * </pre>
      *
@@ -801,7 +1046,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The name the stand-in is registered under in the turn, the plugin
+     * The name the stand-in is registered under in the turn, the real
      * server's own.
      * </pre>
      *
@@ -823,7 +1068,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The name the stand-in is registered under in the turn, the plugin
+     * The name the stand-in is registered under in the turn, the real
      * server's own.
      * </pre>
      *
@@ -841,7 +1086,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The name the stand-in is registered under in the turn, the plugin
+     * The name the stand-in is registered under in the turn, the real
      * server's own.
      * </pre>
      *
@@ -856,7 +1101,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The name the stand-in is registered under in the turn, the plugin
+     * The name the stand-in is registered under in the turn, the real
      * server's own.
      * </pre>
      *
@@ -1281,6 +1526,362 @@ private static final long serialVersionUID = 0L;
       bitField0_ |= 0x00000008;
       onChanged();
       return this;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.run.v1.EvalMockPluginHome, ai.stigmer.agentic.run.v1.EvalMockPluginHome.Builder, ai.stigmer.agentic.run.v1.EvalMockPluginHomeOrBuilder> pluginBuilder_;
+    /**
+     * <pre>
+     * A server of a plugin the turn loads.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.EvalMockPluginHome plugin = 5 [json_name = "plugin"];</code>
+     * @return Whether the plugin field is set.
+     */
+    @java.lang.Override
+    public boolean hasPlugin() {
+      return homeCase_ == 5;
+    }
+    /**
+     * <pre>
+     * A server of a plugin the turn loads.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.EvalMockPluginHome plugin = 5 [json_name = "plugin"];</code>
+     * @return The plugin.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.run.v1.EvalMockPluginHome getPlugin() {
+      if (pluginBuilder_ == null) {
+        if (homeCase_ == 5) {
+          return (ai.stigmer.agentic.run.v1.EvalMockPluginHome) home_;
+        }
+        return ai.stigmer.agentic.run.v1.EvalMockPluginHome.getDefaultInstance();
+      } else {
+        if (homeCase_ == 5) {
+          return pluginBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.run.v1.EvalMockPluginHome.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A server of a plugin the turn loads.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.EvalMockPluginHome plugin = 5 [json_name = "plugin"];</code>
+     */
+    public Builder setPlugin(ai.stigmer.agentic.run.v1.EvalMockPluginHome value) {
+      if (pluginBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        home_ = value;
+        onChanged();
+      } else {
+        pluginBuilder_.setMessage(value);
+      }
+      homeCase_ = 5;
+      return this;
+    }
+    /**
+     * <pre>
+     * A server of a plugin the turn loads.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.EvalMockPluginHome plugin = 5 [json_name = "plugin"];</code>
+     */
+    public Builder setPlugin(
+        ai.stigmer.agentic.run.v1.EvalMockPluginHome.Builder builderForValue) {
+      if (pluginBuilder_ == null) {
+        home_ = builderForValue.build();
+        onChanged();
+      } else {
+        pluginBuilder_.setMessage(builderForValue.build());
+      }
+      homeCase_ = 5;
+      return this;
+    }
+    /**
+     * <pre>
+     * A server of a plugin the turn loads.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.EvalMockPluginHome plugin = 5 [json_name = "plugin"];</code>
+     */
+    public Builder mergePlugin(ai.stigmer.agentic.run.v1.EvalMockPluginHome value) {
+      if (pluginBuilder_ == null) {
+        if (homeCase_ == 5 &&
+            home_ != ai.stigmer.agentic.run.v1.EvalMockPluginHome.getDefaultInstance()) {
+          home_ = ai.stigmer.agentic.run.v1.EvalMockPluginHome.newBuilder((ai.stigmer.agentic.run.v1.EvalMockPluginHome) home_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          home_ = value;
+        }
+        onChanged();
+      } else {
+        if (homeCase_ == 5) {
+          pluginBuilder_.mergeFrom(value);
+        } else {
+          pluginBuilder_.setMessage(value);
+        }
+      }
+      homeCase_ = 5;
+      return this;
+    }
+    /**
+     * <pre>
+     * A server of a plugin the turn loads.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.EvalMockPluginHome plugin = 5 [json_name = "plugin"];</code>
+     */
+    public Builder clearPlugin() {
+      if (pluginBuilder_ == null) {
+        if (homeCase_ == 5) {
+          homeCase_ = 0;
+          home_ = null;
+          onChanged();
+        }
+      } else {
+        if (homeCase_ == 5) {
+          homeCase_ = 0;
+          home_ = null;
+        }
+        pluginBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * A server of a plugin the turn loads.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.EvalMockPluginHome plugin = 5 [json_name = "plugin"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.EvalMockPluginHome.Builder getPluginBuilder() {
+      return internalGetPluginFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * A server of a plugin the turn loads.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.EvalMockPluginHome plugin = 5 [json_name = "plugin"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.run.v1.EvalMockPluginHomeOrBuilder getPluginOrBuilder() {
+      if ((homeCase_ == 5) && (pluginBuilder_ != null)) {
+        return pluginBuilder_.getMessageOrBuilder();
+      } else {
+        if (homeCase_ == 5) {
+          return (ai.stigmer.agentic.run.v1.EvalMockPluginHome) home_;
+        }
+        return ai.stigmer.agentic.run.v1.EvalMockPluginHome.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A server of a plugin the turn loads.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.EvalMockPluginHome plugin = 5 [json_name = "plugin"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.run.v1.EvalMockPluginHome, ai.stigmer.agentic.run.v1.EvalMockPluginHome.Builder, ai.stigmer.agentic.run.v1.EvalMockPluginHomeOrBuilder> 
+        internalGetPluginFieldBuilder() {
+      if (pluginBuilder_ == null) {
+        if (!(homeCase_ == 5)) {
+          home_ = ai.stigmer.agentic.run.v1.EvalMockPluginHome.getDefaultInstance();
+        }
+        pluginBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.run.v1.EvalMockPluginHome, ai.stigmer.agentic.run.v1.EvalMockPluginHome.Builder, ai.stigmer.agentic.run.v1.EvalMockPluginHomeOrBuilder>(
+                (ai.stigmer.agentic.run.v1.EvalMockPluginHome) home_,
+                getParentForChildren(),
+                isClean());
+        home_ = null;
+      }
+      homeCase_ = 5;
+      onChanged();
+      return pluginBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.run.v1.EvalMockAgentHome, ai.stigmer.agentic.run.v1.EvalMockAgentHome.Builder, ai.stigmer.agentic.run.v1.EvalMockAgentHomeOrBuilder> agentBuilder_;
+    /**
+     * <pre>
+     * One of the evaluated agent's own servers.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.EvalMockAgentHome agent = 6 [json_name = "agent"];</code>
+     * @return Whether the agent field is set.
+     */
+    @java.lang.Override
+    public boolean hasAgent() {
+      return homeCase_ == 6;
+    }
+    /**
+     * <pre>
+     * One of the evaluated agent's own servers.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.EvalMockAgentHome agent = 6 [json_name = "agent"];</code>
+     * @return The agent.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.run.v1.EvalMockAgentHome getAgent() {
+      if (agentBuilder_ == null) {
+        if (homeCase_ == 6) {
+          return (ai.stigmer.agentic.run.v1.EvalMockAgentHome) home_;
+        }
+        return ai.stigmer.agentic.run.v1.EvalMockAgentHome.getDefaultInstance();
+      } else {
+        if (homeCase_ == 6) {
+          return agentBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.run.v1.EvalMockAgentHome.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * One of the evaluated agent's own servers.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.EvalMockAgentHome agent = 6 [json_name = "agent"];</code>
+     */
+    public Builder setAgent(ai.stigmer.agentic.run.v1.EvalMockAgentHome value) {
+      if (agentBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        home_ = value;
+        onChanged();
+      } else {
+        agentBuilder_.setMessage(value);
+      }
+      homeCase_ = 6;
+      return this;
+    }
+    /**
+     * <pre>
+     * One of the evaluated agent's own servers.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.EvalMockAgentHome agent = 6 [json_name = "agent"];</code>
+     */
+    public Builder setAgent(
+        ai.stigmer.agentic.run.v1.EvalMockAgentHome.Builder builderForValue) {
+      if (agentBuilder_ == null) {
+        home_ = builderForValue.build();
+        onChanged();
+      } else {
+        agentBuilder_.setMessage(builderForValue.build());
+      }
+      homeCase_ = 6;
+      return this;
+    }
+    /**
+     * <pre>
+     * One of the evaluated agent's own servers.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.EvalMockAgentHome agent = 6 [json_name = "agent"];</code>
+     */
+    public Builder mergeAgent(ai.stigmer.agentic.run.v1.EvalMockAgentHome value) {
+      if (agentBuilder_ == null) {
+        if (homeCase_ == 6 &&
+            home_ != ai.stigmer.agentic.run.v1.EvalMockAgentHome.getDefaultInstance()) {
+          home_ = ai.stigmer.agentic.run.v1.EvalMockAgentHome.newBuilder((ai.stigmer.agentic.run.v1.EvalMockAgentHome) home_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          home_ = value;
+        }
+        onChanged();
+      } else {
+        if (homeCase_ == 6) {
+          agentBuilder_.mergeFrom(value);
+        } else {
+          agentBuilder_.setMessage(value);
+        }
+      }
+      homeCase_ = 6;
+      return this;
+    }
+    /**
+     * <pre>
+     * One of the evaluated agent's own servers.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.EvalMockAgentHome agent = 6 [json_name = "agent"];</code>
+     */
+    public Builder clearAgent() {
+      if (agentBuilder_ == null) {
+        if (homeCase_ == 6) {
+          homeCase_ = 0;
+          home_ = null;
+          onChanged();
+        }
+      } else {
+        if (homeCase_ == 6) {
+          homeCase_ = 0;
+          home_ = null;
+        }
+        agentBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * One of the evaluated agent's own servers.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.EvalMockAgentHome agent = 6 [json_name = "agent"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.EvalMockAgentHome.Builder getAgentBuilder() {
+      return internalGetAgentFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * One of the evaluated agent's own servers.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.EvalMockAgentHome agent = 6 [json_name = "agent"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.run.v1.EvalMockAgentHomeOrBuilder getAgentOrBuilder() {
+      if ((homeCase_ == 6) && (agentBuilder_ != null)) {
+        return agentBuilder_.getMessageOrBuilder();
+      } else {
+        if (homeCase_ == 6) {
+          return (ai.stigmer.agentic.run.v1.EvalMockAgentHome) home_;
+        }
+        return ai.stigmer.agentic.run.v1.EvalMockAgentHome.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * One of the evaluated agent's own servers.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.EvalMockAgentHome agent = 6 [json_name = "agent"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.run.v1.EvalMockAgentHome, ai.stigmer.agentic.run.v1.EvalMockAgentHome.Builder, ai.stigmer.agentic.run.v1.EvalMockAgentHomeOrBuilder> 
+        internalGetAgentFieldBuilder() {
+      if (agentBuilder_ == null) {
+        if (!(homeCase_ == 6)) {
+          home_ = ai.stigmer.agentic.run.v1.EvalMockAgentHome.getDefaultInstance();
+        }
+        agentBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.run.v1.EvalMockAgentHome, ai.stigmer.agentic.run.v1.EvalMockAgentHome.Builder, ai.stigmer.agentic.run.v1.EvalMockAgentHomeOrBuilder>(
+                (ai.stigmer.agentic.run.v1.EvalMockAgentHome) home_,
+                getParentForChildren(),
+                isClean());
+        home_ = null;
+      }
+      homeCase_ = 6;
+      onChanged();
+      return agentBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.run.v1.EvalMockServer)

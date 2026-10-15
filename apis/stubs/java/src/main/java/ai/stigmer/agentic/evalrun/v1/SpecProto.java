@@ -106,21 +106,23 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "cases run on an agent: an eval run of a " +
       "plugin runs that plugin\'s own cases\032,siz" +
       "e(this.cases) == 0 || this.agent_id != \'" +
-      "\'B\020\n\007subject\022\005\272H\002\010\001B\014\n\n_threshold\"z\n\021Eva" +
-      "lRunCaseSource\022T\n\006plugin\030\001 \001(\01324.ai.stig" +
-      "mer.commons.apiresource.ApiResourceRefer" +
-      "enceB\004\340\205,:H\000R\006pluginB\017\n\006source\022\005\272H\002\010\001\"\204\001" +
-      "\n\rEvalRunTarget\022J\n\007harness\030\001 \001(\0162&.ai.st" +
-      "igmer.agentic.session.v1.HarnessB\010\272H\005\202\001\002" +
-      "\020\001R\007harness\022\'\n\nmodel_name\030\002 \001(\tB\010\272H\005r\003\030\200" +
-      "\001R\tmodelName*t\n\017EvalRunAblation\022!\n\035eval_" +
-      "run_ablation_unspecified\020\000\022\"\n\036eval_run_a" +
-      "blation_with_without\020\001\022\032\n\026eval_run_ablat" +
-      "ion_none\020\002B\244\001B\tSpecProtoP\001\242\002\004ASAE\252\002\035Ai.S" +
-      "tigmer.Agentic.Evalrun.V1\312\002\035Ai\\Stigmer\\A" +
-      "gentic\\Evalrun\\V1\342\002)Ai\\Stigmer\\Agentic\\E" +
-      "valrun\\V1\\GPBMetadata\352\002!Ai::Stigmer::Age" +
-      "ntic::Evalrun::V1b\006proto3"
+      "\'B\020\n\007subject\022\005\272H\002\010\001B\014\n\n_threshold\"\314\001\n\021Ev" +
+      "alRunCaseSource\022T\n\006plugin\030\001 \001(\01324.ai.sti" +
+      "gmer.commons.apiresource.ApiResourceRefe" +
+      "renceB\004\340\205,:H\000R\006plugin\022P\n\004eval\030\002 \001(\01324.ai" +
+      ".stigmer.commons.apiresource.ApiResource" +
+      "ReferenceB\004\340\205,BH\000R\004evalB\017\n\006source\022\005\272H\002\010\001" +
+      "\"\204\001\n\rEvalRunTarget\022J\n\007harness\030\001 \001(\0162&.ai" +
+      ".stigmer.agentic.session.v1.HarnessB\010\272H\005" +
+      "\202\001\002\020\001R\007harness\022\'\n\nmodel_name\030\002 \001(\tB\010\272H\005r" +
+      "\003\030\200\001R\tmodelName*t\n\017EvalRunAblation\022!\n\035ev" +
+      "al_run_ablation_unspecified\020\000\022\"\n\036eval_ru" +
+      "n_ablation_with_without\020\001\022\032\n\026eval_run_ab" +
+      "lation_none\020\002B\244\001B\tSpecProtoP\001\242\002\004ASAE\252\002\035A" +
+      "i.Stigmer.Agentic.Evalrun.V1\312\002\035Ai\\Stigme" +
+      "r\\Agentic\\Evalrun\\V1\342\002)Ai\\Stigmer\\Agenti" +
+      "c\\Evalrun\\V1\\GPBMetadata\352\002!Ai::Stigmer::" +
+      "Agentic::Evalrun::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -141,7 +143,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunCaseSource_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunCaseSource_descriptor,
-        new java.lang.String[] { "Plugin", "Source", });
+        new java.lang.String[] { "Plugin", "Eval", "Source", });
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunTarget_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_evalrun_v1_EvalRunTarget_fieldAccessorTable = new
