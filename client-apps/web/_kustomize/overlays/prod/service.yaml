@@ -17,7 +17,7 @@ spec:
         - name: NEXT_PUBLIC_APP_URL
           value: https://app.prod.stigmer.ai # this console's own origin
         - name: NEXT_PUBLIC_OIDC_ISSUER
-          value: https://stigmer-prod.us.auth0.com/ # production's tenant, where today's accounts already live; Auth0's issuer carries the trailing slash
+          value: https://id.stigmer.ai/ # production's tenant's sign-in domain; tokens name the host they were requested from as issuer, so this matches stigmer-server's STIGMER_IDP_URL. Auth0's issuer carries the trailing slash
         - name: NEXT_PUBLIC_OIDC_AUDIENCE
           value: https://api.stigmer.com/ # the tenant's API identifier, the same string as the preprod tenant's
         # The console's application in the tenant, created by prod's environment: read from it, never copied.
