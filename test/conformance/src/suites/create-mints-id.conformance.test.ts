@@ -49,7 +49,7 @@ import {
   ResourceTier,
   kind_meta,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
+import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import type { ApiResourceKindMeta } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
@@ -63,14 +63,13 @@ import { makeApiKey } from "../support/apikeys";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { makeSharedVault } from "../support/vaults";
 import { makeEvaluator } from "../support/evaluators";
-import { cancelAndDeleteAgentEval, createAgentWith, makeAgentEval } from "../support/agent-evals";
 import {
-  cancelAndDeletePluginEval,
+  cancelAndDeleteEvalRun,
   installPlugin,
   lastMessageGrader,
-  makePluginEval,
+  makeEvalRun,
   skillPluginWithEvals,
-} from "../support/plugin-evals";
+} from "../support/eval-runs";
 import { enableOrganizationMemory, makeMemory } from "../support/memories";
 import { foreignId, uniqueName, uniqueOrg } from "../support/naming";
 import { makeOAuthApp } from "../support/oauthapps";
@@ -379,13 +378,14 @@ const ROWS: readonly Row[] = [
     },
   },
   {
-    // On a server with no engine the eval is stored failed (its workflow
-    // cannot start), which still mints and stores its id.
-    title: "[rpc:PluginEvalCommandController.create] PluginEval",
-    key: "PluginEvalCommandController.create",
-    kind: ApiResourceKind.plugin_eval,
+    // On a server with no engine the eval run is stored failed (its
+    // workflow cannot start), which still mints and stores its id. About a
+    // plugin, comparing nothing: the smallest eval run.
+    title: "[rpc:EvalRunCommandController.create] EvalRun",
+    key: "EvalRunCommandController.create",
+    kind: ApiResourceKind.eval_run,
     async send({ org }, chosenId) {
-      const name = uniqueName("mint-pev");
+      const name = uniqueName("mint-evr");
       const plugin = await installPlugin(
         clients,
         fixtures,
@@ -395,44 +395,15 @@ const ROWS: readonly Row[] = [
           cases: [{ name: "only", prompt: "Say DONE.", graders: [lastMessageGrader("says-done", "DONE")] }],
         }),
       );
-      const created = await clients.pluginEvalCommand.create({
-        ...makePluginEval({ org, pluginId: plugin.metadata!.id, ablation: PluginEvalAblation.none }),
+      const created = await clients.evalRunCommand.create({
+        ...makeEvalRun({ org, pluginId: plugin.metadata!.id, ablation: EvalRunAblation.none, maxCostUsd: 0.01 }),
         metadata: { id: chosenId, org },
       });
-      fixtures.defer(() => cancelAndDeletePluginEval(clients, created.metadata!.id));
+      fixtures.defer(() => cancelAndDeleteEvalRun(clients, created.metadata!.id));
       return answerOf(this.key, created.metadata);
     },
     async read(id) {
-      return (await clients.pluginEvalQuery.get({ value: id })).metadata?.id;
-    },
-  },
-  {
-    // As the PluginEval row: on a server with no engine the eval is stored
-    // failed, which still mints and stores its id.
-    title: "[rpc:AgentEvalCommandController.create] AgentEval",
-    key: "AgentEvalCommandController.create",
-    kind: ApiResourceKind.agent_eval,
-    async send({ org }, chosenId) {
-      const name = uniqueName("mint-aev");
-      const plugin = await installPlugin(
-        clients,
-        fixtures,
-        org,
-        skillPluginWithEvals(name, {
-          skill: `${name}-notes`,
-          cases: [{ name: "only", prompt: "Say DONE.", graders: [lastMessageGrader("says-done", "DONE")] }],
-        }),
-      );
-      const agent = await createAgentWith(clients, fixtures, org, [plugin], { name: uniqueName("mint-aev-agent") });
-      const created = await clients.agentEvalCommand.create({
-        ...makeAgentEval({ org, agentId: agent.metadata!.id, maxCostUsd: 0.01 }),
-        metadata: { id: chosenId, org },
-      });
-      fixtures.defer(() => cancelAndDeleteAgentEval(clients, created.metadata!.id));
-      return answerOf(this.key, created.metadata);
-    },
-    async read(id) {
-      return (await clients.agentEvalQuery.get({ value: id })).metadata?.id;
+      return (await clients.evalRunQuery.get({ value: id })).metadata?.id;
     },
   },
   {

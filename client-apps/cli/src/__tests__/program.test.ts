@@ -1,7 +1,8 @@
 // The CLI's command tree: what buildProgram registers, how a retired command
 // or a retired run or connect option is answered (commander's error plus one pointer line, never an
 // alias that still works, and never a retired option's value), that the
-// retired `connect mcp-server` points at `connect plugin` and `mcp add`, and
+// retired `connect mcp-server` points at `connect plugin` and `mcp add`, that
+// the retired `plugin eval` and `agent eval` point at `eval run`, and
 // that the run command's vault and plugin flags reach the wire: My vault
 // unless --no-my-vault, and each --plugin as a plugin reference.
 
@@ -11,7 +12,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { Stigmer } from "@stigmer/sdk";
 import type { Command } from "commander";
 import { type AgentExecOptions, toAgentExecFlags } from "../commands/agent-exec-flags.js";
-import { buildProgram, RETIRED_COMMANDS, RETIRED_OPTIONS } from "../program.js";
+import { buildProgram, RETIRED_COMMANDS, RETIRED_OPTIONS, RETIRED_SUBCOMMANDS } from "../program.js";
 import { type ControllerFn, createAgentRun } from "../resources/run/create.js";
 import { prepareAgentExec } from "../resources/run/prepare.js";
 import { VERSION } from "../version.js";
@@ -95,37 +96,59 @@ describe("buildProgram", () => {
     expect(subs).toEqual(["approve", "cancel", "logs", "pause", "resume", "scores", "terminate", "to-eval-case", "trace"]);
   });
 
-  it("exposes plugin eval, which takes a plugin, and its cancel", () => {
+  it("exposes eval run, which takes its subject by flag, and eval cancel", () => {
     const program = buildProgram();
-    const plugin = program.commands.find((command) => command.name() === "plugin");
-    const evalCommand = plugin?.commands.find((command) => command.name() === "eval");
-    expect(plugin?.commands.map((command) => command.name())).toEqual(["eval"]);
-    expect(evalCommand?.registeredArguments.map((argument) => argument.name())).toEqual(["plugin"]);
-    expect(evalCommand?.commands.map((command) => command.name())).toEqual(["cancel"]);
-    expect(evalCommand?.options.map((option) => option.long)).toEqual(
-      expect.arrayContaining(["--case", "--tag", "--runs", "--model", "--ablation", "--threshold", "--max-cost-usd", "--concurrency", "--allow-tools", "--judge-model", "--real-mcp-servers", "--json", "--no-wait"]),
+    const group = program.commands.find((command) => command.name() === "eval");
+    const run = group?.commands.find((command) => command.name() === "run");
+    expect(group?.commands.map((command) => command.name())).toEqual(["run", "cancel"]);
+    expect(run?.registeredArguments).toEqual([]);
+    expect(run?.options.map((option) => option.long)).toEqual(
+      expect.arrayContaining(["--agent", "--plugin", "--cases-from", "--case", "--tag", "--runs", "--model", "--ablation", "--threshold", "--max-cost-usd", "--concurrency", "--allow-tools", "--judge-model", "--real-mcp-servers", "--json", "--no-wait"]),
     );
   });
 
-  it("lists plugin eval's exit codes in its help: the format's, and the CLI's own 3 and 4", () => {
-    const evalCommand = buildProgram()
-      .commands.find((command) => command.name() === "plugin")
-      ?.commands.find((command) => command.name() === "eval");
+  it("lists eval run's exit codes in its help: the format's, and the CLI's own 3 and 4", () => {
+    const run = buildProgram()
+      .commands.find((command) => command.name() === "eval")
+      ?.commands.find((command) => command.name() === "run");
     let help = "";
-    evalCommand?.configureOutput({ writeOut: (text) => void (help += text) });
-    evalCommand?.outputHelp();
+    run?.configureOutput({ writeOut: (text) => void (help += text) });
+    run?.outputHelp();
     for (const code of ["0", "1", "2", "3", "4", "130"]) expect(help).toMatch(new RegExp(`^  ${code} +\\S`, "m"));
   });
 
-  it("routes plugin eval cancel to its subcommand and any other word to the eval itself", async () => {
-    const seen: string[] = [];
+  it("has no plugin group and no agent eval: eval run replaced them, and the old words are not aliases", () => {
     const program = buildProgram();
-    const evalCommand = program.commands.find((command) => command.name() === "plugin")?.commands.find((command) => command.name() === "eval");
-    evalCommand?.action((target: string) => void seen.push(`eval ${target}`));
-    evalCommand?.commands[0]?.action((id: string) => void seen.push(`cancel ${id}`));
-    await program.parseAsync(["plugin", "eval", "thermos", "--runs", "1"], { from: "user" });
-    await program.parseAsync(["plugin", "eval", "cancel", "pev_1"], { from: "user" });
-    expect(seen).toEqual(["eval thermos", "cancel pev_1"]);
+    expect(program.commands.map((command) => command.name())).not.toContain("plugin");
+    const agent = program.commands.find((command) => command.name() === "agent");
+    expect(agent?.commands.map((command) => command.name())).toEqual(["quality"]);
+  });
+
+  it("answers the retired plugin eval with one line pointing at eval run --plugin", async () => {
+    const program = buildProgram();
+    let stderr = "";
+    program.exitOverride().configureOutput({ writeErr: (text) => void (stderr += text) });
+    await expect(program.parseAsync(["plugin", "eval", "thermos"], { from: "user" })).rejects.toMatchObject({
+      code: "commander.unknownCommand",
+    });
+    expect(stderr).toContain("unknown command 'plugin'");
+    expect(stderr).toContain(`${RETIRED_COMMANDS.get("plugin")}\n`);
+    expect(stderr).toContain("stigmer eval run --plugin <plugin>");
+  });
+
+  it("answers the retired agent eval, in the agent group only, with eval run --agent", async () => {
+    const { program, stderr } = capturedProgram("agent");
+    await expect(program.parseAsync(["agent", "eval", "support-desk"], { from: "user" })).rejects.toMatchObject({
+      code: "commander.unknownCommand",
+    });
+    expect(stderr()).toContain("unknown command 'eval'");
+    expect(stderr()).toContain(`${RETIRED_SUBCOMMANDS.get("agent")?.get("eval") ?? "no retired agent eval"}\n`);
+    expect(stderr()).toContain("stigmer eval run --agent <agent>");
+    const runs = capturedProgram("runs");
+    await expect(runs.program.parseAsync(["runs", "eval"], { from: "user" })).rejects.toMatchObject({
+      code: "commander.unknownCommand",
+    });
+    expect(runs.stderr()).not.toContain("stigmer eval run");
   });
 
   it("has no execution group: runs replaced it, and the old word is not an alias", () => {

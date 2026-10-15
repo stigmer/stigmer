@@ -1,32 +1,32 @@
 // The benchmark's quality arm: the working agent as a plugin whose `evals/`
 // suite holds the quality tasks (fixtures/working-agent, in the plugin-eval
-// format), run by Stigmer's own plugin evals.
+// format), run by an eval run about the plugin.
 // Domain: conformance benchmark (the quality arm).
 //
-// One eval per run, in a fresh organization: the plugin is pushed through the
-// real install, and the eval runs every case on each planned target (a
+// One eval run per run, in a fresh organization: the plugin is pushed through
+// the real install, and the eval run runs every case on each planned target (a
 // harness on its parity model), with the platform's judge on the judge model
 // for the AI-graded checks, one arm (no without-plugin comparison: the
 // benchmark compares engines, not the plugin's worth), and the tools a
 // working session uses granted beyond each case's read-only list. Its result
-// document (`@stigmer/sdk` `toResultDocument`, the format's `schemaVersion:
-// 1` file) becomes the report's `quality`, so the quality numbers read the
-// way any plugin author reads theirs. A failure to push, create or follow the
-// eval is recorded by stage, never thrown: the timing cells' report still
-// lands.
+// document (`@stigmer/sdk` `toResultDocument`, whose plugin block is the
+// format's `schemaVersion: 1` file) becomes the report's `quality`, so the
+// quality numbers read the way any plugin author reads theirs. A failure to
+// push, create or follow the eval run is recorded by stage, never thrown:
+// the timing cells' report still lands.
 //
 // `renderQuality` is the pure half: the operator's table, one row per case
-// and target, read from the document as JSON.
+// and target, read from the document's plugin block as JSON.
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
 import { toResultDocument } from "@stigmer/sdk";
-import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
-import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { createUniqueOrganization } from "../support/organizations";
-import { awaitPluginEvalEnd, makePluginEval } from "../support/plugin-evals";
+import { awaitEvalRunEnd, makeEvalRun } from "../support/eval-runs";
 import { pluginArchive, type PluginFixture } from "../support/plugins";
 import { WORKING_AGENT_FIXTURE_DIR } from "../support/working-agent";
 import type { QualityTarget } from "./cells";
@@ -35,10 +35,10 @@ import type { QualityEval } from "./report";
 /** The tools every quality try may use beyond its case's read-only list: what a working session edits and runs with. */
 export const QUALITY_ALLOW_TOOLS: readonly string[] = ["Bash", "Edit", "Write", "Task"];
 
-/** The eval's spending limit, in estimated US dollars. */
+/** The eval run's spending limit, in estimated US dollars. */
 export const QUALITY_MAX_COST_USD = 100;
 
-/** How long the eval may run before the run stops following it. */
+/** How long the eval run may run before the run stops following it. */
 export const QUALITY_EVAL_BUDGET_MS = 4 * 60 * 60 * 1000;
 
 export interface QualityEvalOptions {
@@ -68,7 +68,7 @@ export async function readPluginDirectory(dir: string): Promise<PluginFixture> {
   return files;
 }
 
-/** Runs the quality eval on `targets` and returns what the report keeps (the module header). */
+/** Runs the quality eval run on `targets` and returns what the report keeps (the module header). */
 export async function runQualityEval(
   clients: ConformanceClients,
   targets: readonly QualityTarget[],
@@ -88,7 +88,7 @@ export async function runQualityEval(
     let org: string;
     let pluginId: string;
     try {
-      ({ id: org } = await createUniqueOrganization(clients.organizationCommand, "the benchmark's quality eval"));
+      ({ id: org } = await createUniqueOrganization(clients.organizationCommand, "the benchmark's quality eval run"));
       fixtures.defer(() => clients.organizationCommand.delete({ value: org }));
       const plugin = await clients.pluginCommand.push({
         org,
@@ -102,8 +102,8 @@ export async function runQualityEval(
     }
     let evalId: string;
     try {
-      const created = await clients.pluginEvalCommand.create(
-        makePluginEval({
+      const created = await clients.evalRunCommand.create(
+        makeEvalRun({
           org,
           pluginId,
           targets: targets.map((target) => ({
@@ -111,7 +111,7 @@ export async function runQualityEval(
             modelName: target.modelRequested,
           })),
           runs: options.runs,
-          ablation: PluginEvalAblation.none,
+          ablation: EvalRunAblation.none,
           maxCostUsd: QUALITY_MAX_COST_USD,
           concurrency: options.concurrency ?? 4,
           allowTools: QUALITY_ALLOW_TOOLS,
@@ -122,18 +122,18 @@ export async function runQualityEval(
       evalId = created.metadata!.id;
       quality.eval_id = evalId;
     } catch (error) {
-      return { ...quality, failure: { stage: "create", message: `create the eval: ${errorMessage(error)}` } };
+      return { ...quality, failure: { stage: "create", message: `create the eval run: ${errorMessage(error)}` } };
     }
-    io.log(`quality: eval ${evalId} started`);
+    io.log(`quality: eval run ${evalId} started`);
     try {
-      const ended = await awaitPluginEvalEnd(clients, evalId, options.timeoutMs ?? QUALITY_EVAL_BUDGET_MS);
+      const ended = await awaitEvalRunEnd(clients, evalId, options.timeoutMs ?? QUALITY_EVAL_BUDGET_MS);
       const document = JSON.parse(JSON.stringify(toResultDocument(ended))) as Record<string, unknown>;
-      if (ended.status?.phase === PluginEvalPhase.failed) {
-        return { ...quality, document, failure: { stage: "execution", message: `the eval failed: ${ended.status.error}` } };
+      if (ended.status?.phase === EvalRunPhase.failed) {
+        return { ...quality, document, failure: { stage: "execution", message: `the eval run failed: ${ended.status.error}` } };
       }
       return { ...quality, document };
     } catch (error) {
-      return { ...quality, failure: { stage: "execution", message: `follow the eval: ${errorMessage(error)}` } };
+      return { ...quality, failure: { stage: "execution", message: `follow the eval run: ${errorMessage(error)}` } };
     }
   } finally {
     await fixtures.cleanup();
@@ -143,9 +143,10 @@ export async function runQualityEval(
 /** The operator's quality table (the module header): one row per case and target, then the cases not run, then a failure. */
 export function renderQuality(quality: QualityEval | null): string[] {
   if (quality === null) return [];
-  const lines: string[] = ["", `Quality: plugin eval ${quality.eval_id || "(not created)"}, judge ${quality.judge_model}, ${quality.runs} tries per case`];
-  const document = quality.document;
-  const targets = document === null ? [] : arrayOf(document["targets"]);
+  const lines: string[] = ["", `Quality: eval run ${quality.eval_id || "(not created)"}, judge ${quality.judge_model}, ${quality.runs} tries per case`];
+  // The document's one plugin block: the eval run is about the plugin.
+  const block = quality.document === null ? null : recordOf(arrayOf(quality.document["plugins"])[0]);
+  const targets = block === null ? [] : arrayOf(block["targets"]);
   if (targets.length > 0) {
     lines.push("", "| quality case | target | score | pass^k |", "|---|---|---|---|");
     for (const target of targets) {
@@ -157,7 +158,7 @@ export function renderQuality(quality: QualityEval | null): string[] {
       }
     }
   }
-  const notRun = document === null ? [] : arrayOf(document["notRun"]);
+  const notRun = block === null ? [] : arrayOf(block["notRun"]);
   if (notRun.length > 0) {
     lines.push("", "Quality cases not run:");
     for (const entry of notRun) {
@@ -165,7 +166,7 @@ export function renderQuality(quality: QualityEval | null): string[] {
       lines.push(`- ${stringOf(row["name"])}${typeof row["target"] === "string" ? ` on ${row["target"]}` : ""}: ${stringOf(row["reason"])}`);
     }
   }
-  if (quality.failure !== undefined) lines.push("", `Quality eval: ${quality.failure.stage}: ${quality.failure.message}`);
+  if (quality.failure !== undefined) lines.push("", `Quality eval run: ${quality.failure.stage}: ${quality.failure.message}`);
   return lines;
 }
 

@@ -6,10 +6,10 @@ import grpc
 
 from ._agent import AgentClient
 from ._agentchannel import AgentChannelClient
-from ._agenteval import AgentEvalClient
 from ._agentshare import AgentShareClient
 from ._apikey import ApiKeyClient
 from ._channelapp import ChannelAppClient
+from ._evalrun import EvalRunClient
 from ._evaluator import EvaluatorClient
 from ._federationissuer import FederationIssuerClient
 from ._grant import GrantClient
@@ -21,7 +21,6 @@ from ._oauthapp import OAuthAppClient
 from ._organization import OrganizationClient
 from ._plan import PlanClient
 from ._plugin import PluginClient
-from ._plugineval import PluginEvalClient
 from ._providerkey import ProviderKeyClient
 from ._run import RunClient
 from ._schedule import ScheduleClient
@@ -39,10 +38,10 @@ class GeneratedClient:
     def __init__(self, channel: grpc.Channel) -> None:
         self.agents = AgentClient(channel)
         self.agent_channels = AgentChannelClient(channel)
-        self.agentevals = AgentEvalClient(channel)
         self.agent_shares = AgentShareClient(channel)
         self.api_keys = ApiKeyClient(channel)
         self.channelapps = ChannelAppClient(channel)
+        self.evalruns = EvalRunClient(channel)
         self.evaluators = EvaluatorClient(channel)
         self.federation_issuers = FederationIssuerClient(channel)
         self.grants = GrantClient(channel)
@@ -54,7 +53,6 @@ class GeneratedClient:
         self.organizations = OrganizationClient(channel)
         self.plans = PlanClient(channel)
         self.plugins = PluginClient(channel)
-        self.pluginevals = PluginEvalClient(channel)
         self.providerkeys = ProviderKeyClient(channel)
         self.runs = RunClient(channel)
         self.schedules = ScheduleClient(channel)

@@ -58,17 +58,18 @@
 //   turn's final to-do list by state (`todos`), because the counts alone say
 //   how many rounds a turn took and never why (schema v4; the derivation is
 //   `tool-call-facts.ts`'s). Targets are kept, results and file contents never.
-// - The quality arm is a plugin eval (schema v6): the working agent as a
-//   plugin whose `evals/` suite holds the quality tasks, run by Stigmer's own
-//   plugin evals, with each harness's parity model as a target. `quality`
-//   carries the eval's id, what was asked of it, and its result document
-//   whole (`@stigmer/sdk` `toResultDocument`, the plugin-eval format's
+// - The quality arm is an eval run about a plugin (schema v7; v6 kept a
+//   plugin eval's document, whose cases sat at its top): the working agent
+//   as a plugin whose `evals/` suite holds the quality tasks, with each
+//   harness's parity model as a target. `quality` carries the eval run's
+//   id, what was asked of it, and its result document whole (`@stigmer/sdk`
+//   `toResultDocument`, whose one plugin block is the plugin-eval format's
 //   `schemaVersion: 1` file), so a reader reads the quality numbers as any
 //   plugin author reads theirs. The document is kept as JSON, not typed
 //   here, because this module stays a leaf. Grades from v5 and earlier came
 //   from another judge on another scale and are not compared.
 
-export const BENCHMARK_REPORT_SCHEMA_VERSION = 6;
+export const BENCHMARK_REPORT_SCHEMA_VERSION = 7;
 
 /** The runtime's harness vocabulary, as the runner's `turn_phases` line labels it. */
 export type BenchmarkHarness = "deep-agent" | "cursor";
@@ -311,14 +312,14 @@ export interface BenchmarkComparison {
 }
 
 /**
- * The quality arm's one plugin eval. `document` is its result document as
- * JSON; `null`, with `failure`, when the eval could not be pushed, created
- * or followed to its end.
+ * The quality arm's one eval run. `document` is its result document as
+ * JSON; `null`, with `failure`, when the eval run could not be pushed,
+ * created or followed to its end.
  */
 export interface QualityEval {
   /** The plugin under evaluation, as installed. */
   plugin: string;
-  /** The eval's id; "" when it was never created. */
+  /** The eval run's id; "" when it was never created. */
   eval_id: string;
   /** The targets asked for, as `<harness>/<model>`. */
   targets: string[];

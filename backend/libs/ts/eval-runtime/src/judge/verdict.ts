@@ -7,7 +7,7 @@
  * the bound and marked before it is read: the schema's `maxLength` is
  * advice the provider does not enforce (stigmer#2143 measured 555 to 632
  * characters on a real model), and a long-winded verdict keeps its result
- * on every path that reads one (stigmer#2177). A plugin eval's AI-graded check
+ * on every path that reads one (stigmer#2177). An eval run's AI-graded check
  * asks one rubric named after its grader, answered passed or failed only,
  * since the format's judge votes PASS or FAIL. Anything else is refused,
  * never read as a lower grade: a model's structured reply can still miss

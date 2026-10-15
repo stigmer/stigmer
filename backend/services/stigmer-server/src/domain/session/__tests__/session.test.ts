@@ -18,7 +18,7 @@
  *     platform-visible, is refused and the stored row is left as it was;
  *     an echo of a skill deleted since the session named it passes (the
  *     runner's harness-state write-back sends the whole row);
- *   - list leaves out a plugin eval's tries, which get still answers;
+ *   - list leaves out an eval run's tries, which get still answers;
  *   - a session's state is computed from its event log on every read (get,
  *     list, listByAgent): idle when fresh, running while its newest status
  *     event says so; never stored, and a state a client sends on create or
@@ -87,7 +87,7 @@ import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
-import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
+import { EVAL_RUN_LABEL } from "../../eval-run/constants.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 import { ResourceNotFoundError, type Store } from "../../../store/interface.js";
 import {
@@ -503,8 +503,8 @@ describe("session update — references the stored row already carries", () => {
   });
 });
 
-describe("session list — a plugin eval's tries", () => {
-  it("leaves out a session carrying the plugin eval label, which get still answers", async () => {
+describe("session list — an eval run's tries", () => {
+  it("leaves out a session carrying the eval run label, which get still answers", async () => {
     const chat = await createSession({});
     const evalTry = await createSession({});
     // The eval's workflow stamps the label through a server-composed
@@ -514,7 +514,7 @@ describe("session list — a plugin eval's tries", () => {
       evalTry.metadata!.id,
       SessionSchema,
     );
-    stored.metadata!.labels[PLUGIN_EVAL_LABEL] = "pev_sessiontest";
+    stored.metadata!.labels[EVAL_RUN_LABEL] = "evr_sessiontest";
     await namingSaves(server.store).saveResource(
       ApiResourceKind.session,
       evalTry.metadata!.id,
@@ -528,7 +528,7 @@ describe("session list — a plugin eval's tries", () => {
     expect(listed).toContain(chat.metadata!.id);
     expect(listed).not.toContain(evalTry.metadata!.id);
     const fetched = await query.get({ value: evalTry.metadata!.id });
-    expect(fetched.metadata?.labels[PLUGIN_EVAL_LABEL]).toBe("pev_sessiontest");
+    expect(fetched.metadata?.labels[EVAL_RUN_LABEL]).toBe("evr_sessiontest");
 
     for (const session of [chat, evalTry]) {
       await command.delete({ value: session.metadata!.id });
@@ -605,7 +605,7 @@ describe("session listByAgent", () => {
       evalTry.metadata!.id,
       SessionSchema,
     );
-    stored.metadata!.labels[PLUGIN_EVAL_LABEL] = "pev_sessiontest";
+    stored.metadata!.labels[EVAL_RUN_LABEL] = "evr_sessiontest";
     await namingSaves(server.store).saveResource(
       ApiResourceKind.session,
       evalTry.metadata!.id,

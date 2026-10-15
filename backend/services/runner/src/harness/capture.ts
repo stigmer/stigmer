@@ -6,7 +6,7 @@
  * transcript rows stamped with the change set.
  *
  * Capture runs only when the turn's review is on (the session's
- * `file_review`, or a plugin-eval try) and the workspace has a substrate
+ * `file_review`, or a eval-run try) and the workspace has a substrate
  * (`TurnWorkspace.captureMode`). It never holds the turn: the edits are
  * applied, the turn takes its own terminal (`run-turn.ts`), and the change
  * set is offered for Keep or Undo after it, on the run's file record

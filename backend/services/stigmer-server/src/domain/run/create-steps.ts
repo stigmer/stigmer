@@ -21,7 +21,7 @@ import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import { PluginEvalCaseContextSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
+import { EvalCaseContextSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
 import {
   DeclaredPreferencesSchema,
   RecalledMemoriesSchema,
@@ -78,7 +78,7 @@ import type { SessionEventBroker } from "../session/events/broker.js";
 import { overwriteRunAppendingEvents } from "../session/events/run-writes.js";
 import { newSessionSpecOf, sessionIdOf } from "./target.js";
 import { unavailableError } from "../../pipeline/errors.js";
-import { isPluginEvalRun } from "../plugin-eval/plugin-eval-run.js";
+import { isEvalRun } from "../eval-run/run-label.js";
 import { isJudgeRun } from "../score/judge/judge-run.js";
 
 type CreateDesc = typeof RunSchema;
@@ -326,11 +326,11 @@ export function newComposeDeclaredPreferencesStep(
         logger.debug("Judge run, composing no standing context");
         return;
       }
-      // A plugin eval's try measures the plugin, not who started the eval:
+      // An eval run's try measures the plugin, not who started the eval:
       // nothing personal loads, as in Claude Code's evals
-      // (domain/plugin-eval/plugin-eval-run.ts).
-      if (isPluginEvalRun(execution)) {
-        logger.debug("Plugin eval run, composing no standing context");
+      // (domain/eval-run/run-label.ts).
+      if (isEvalRun(execution)) {
+        logger.debug("Eval run try, composing no standing context");
         return;
       }
 
@@ -363,51 +363,51 @@ export function newComposeDeclaredPreferencesStep(
   };
 }
 
-/** The refusal of a plugin-eval case's context on a request the server did not compose. */
-export const PLUGIN_EVAL_CASE_NOT_COMPOSED_MESSAGE =
-  "spec.plugin_eval_case is set only by the server's plugin evals";
+/** The refusal of a eval case's context on a request the server did not compose. */
+export const EVAL_RUN_CASE_NOT_COMPOSED_MESSAGE =
+  "spec.eval_case is set only by the server's eval runs";
 
 /**
- * GuardPluginEvalCase: `spec.plugin_eval_case` makes the runner run a
+ * GuardEvalRunCase: `spec.eval_case` makes the runner run a
  * plugin's scaffold, resume a recorded conversation, set variables and
  * answer the plugin's MCP servers with stand-ins. Only the server's
- * plugin-eval case workflow composes it, from the eval's own plugin at the
+ * eval case workflow composes it, from the eval's own plugin at the
  * eval's digest; any other request that carries it is refused, whoever
  * sends it.
  */
-export function newGuardPluginEvalCaseStep(): PipelineStep<CreateDesc> {
+export function newGuardEvalRunCaseStep(): PipelineStep<CreateDesc> {
   return {
-    name: "GuardPluginEvalCase",
+    name: "GuardEvalRunCase",
     async execute(ctx) {
-      if (ctx.newState.spec?.pluginEvalCase === undefined) {
+      if (ctx.newState.spec?.evalCase === undefined) {
         return;
       }
       if (!isServerComposedRequest(ctx.callerIdentity)) {
-        throw permissionDeniedError(PLUGIN_EVAL_CASE_NOT_COMPOSED_MESSAGE);
+        throw permissionDeniedError(EVAL_RUN_CASE_NOT_COMPOSED_MESSAGE);
       }
     },
   };
 }
 
 /**
- * KeepPluginEvalCase: on update, a run's `spec.plugin_eval_case` stays what
+ * KeepEvalRunCase: on update, a run's `spec.eval_case` stays what
  * the server's case workflow composed at create, whatever the request
  * carries. Run update is a person's (`can_edit`) and replaces the spec
  * whole, and the runner reads the context again at every turn's start, so
  * an update that could set it would run a scaffold, empty the session's
  * workspace and answer the plugin's servers with stand-ins outside the
- * create guard (GuardPluginEvalCase). Nothing sets, changes or clears it
+ * create guard (GuardEvalRunCase). Nothing sets, changes or clears it
  * after create.
  */
-export function newKeepPluginEvalCaseStep(): PipelineStep<CreateDesc> {
+export function newKeepEvalRunCaseStep(): PipelineStep<CreateDesc> {
   return {
-    name: "KeepPluginEvalCase",
+    name: "KeepEvalRunCase",
     execute(ctx) {
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as Run | undefined;
-      const stored = existing?.spec?.pluginEvalCase;
+      const stored = existing?.spec?.evalCase;
       ctx.newState.spec ??= create(RunSpecSchema);
-      ctx.newState.spec.pluginEvalCase =
-        stored === undefined ? undefined : clone(PluginEvalCaseContextSchema, stored);
+      ctx.newState.spec.evalCase =
+        stored === undefined ? undefined : clone(EvalCaseContextSchema, stored);
     },
   };
 }
@@ -513,7 +513,7 @@ export const VISITOR_APPENDED_PROMPT_MESSAGE =
  * system prompt after the agent owner's instructions, which is the owner's
  * to steer, as the organization's standing context is withheld from
  * visitors (ComposeDeclaredPreferences). The server's own in-process
- * requests pass: a plugin eval's tries set it from the case.
+ * requests pass: an eval run's tries set it from the case.
  */
 export function newRefuseVisitorAppendedPromptStep(
   logger: Logger,
@@ -683,10 +683,10 @@ export function newComposeRecalledMemoriesStep(
         logger.debug("Judge run, composing no recalled memories");
         return;
       }
-      // Nor does a plugin eval's try: an organization's memory must not
+      // Nor does an eval run's try: an organization's memory must not
       // move its score.
-      if (isPluginEvalRun(execution)) {
-        logger.debug("Plugin eval run, composing no recalled memories");
+      if (isEvalRun(execution)) {
+        logger.debug("Eval run try, composing no recalled memories");
         return;
       }
 

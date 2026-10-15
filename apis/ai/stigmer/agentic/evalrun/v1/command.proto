@@ -1,0 +1,110 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.evalrun.v1;
+
+import "ai/stigmer/agentic/evalrun/v1/api.proto";
+import "ai/stigmer/agentic/evalrun/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// EvalRunCommandController handles write operations for eval runs.
+//
+// @internal
+// No update and no apply: an eval run is one run of the cases, started
+// from the console or the CLI, never authored as a manifest.
+service EvalRunCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = eval_run;
+
+  // Start an eval run on an agent, or on a plugin.
+  //
+  // The eval run lives in its subject's organization, which pays for every
+  // try. It returns at once, pending; get it again to follow its progress.
+  //
+  // @internal
+  // Authorization: skip standard resource authorization, because the
+  // target is the subject named in spec.agent_id or spec.plugin_id, not
+  // the request's own id. In-handler enforcement, in order (the eval-run
+  // domain's create chain):
+  // 1. AuthorizeResolvedTarget: can_edit on the subject, before it is
+  //    read, so a caller who cannot edit it learns nothing about whether
+  //    it exists.
+  // 2. metadata.org must be the subject's organization.
+  // 3. On an agent: spec.agent_version, a version hash or tag (empty: the
+  //    current version), is resolved and stamped as the version's hash;
+  //    each plugin that version attaches is resolved as a turn resolves
+  //    it and stamped; a compared plugin the agent does not attach needs
+  //    can_view and is stamped at its current version; each case source
+  //    must be an attached plugin or the compared one. On a plugin:
+  //    spec.plugin_digest, when set, must be its current version, and
+  //    empty is stamped with it.
+  // 4. Each vault must be usable by the caller (the schedule's rule), and
+  //    none may be a My vault: every viewer of the subject reads the
+  //    tries.
+  // 5. The cases are read from each source's archive; more than 200 cases
+  //    or 1000 tries is refused with the computed counts.
+  // Then the eval run's workflow starts under a deterministic id; a start
+  // that fails marks the eval run failed, "the eval run's workflow could
+  // not be started", the cause logged.
+  //
+  // Error Cases:
+  //
+  // - INVALID_ARGUMENT: metadata.org or spec is missing; neither
+  //   spec.agent_id nor spec.plugin_id is set; spec.agent_version,
+  //   spec.compared_plugin_id or spec.cases is set on an eval run of a
+  //   plugin, or spec.plugin_digest on one of an agent; spec.case_glob is
+  //   not a valid glob; a case source is a plugin the agent neither
+  //   attaches nor compares; an allow_tools entry names MCP tools no try
+  //   loads; a target names a model the catalog does not run on its engine
+  // - FAILED_PRECONDITION: the organization is not the subject's; there
+  //   are no cases to run (an agent attaching no plugin with none
+  //   compared, a plugin version with no evals/ cases, no case matching
+  //   case_glob and case_tags); spec.plugin_digest names anything but the
+  //   plugin's current version; the cases are more than an eval run may
+  //   run; a named vault is a My vault
+  // - PERMISSION_DENIED: the caller may not edit the subject, may not view
+  //   a compared plugin the agent does not attach, or may not use a named
+  //   vault
+  // - NOT_FOUND: the subject, the named version or a named plugin does not
+  //   exist, or the subject was deleted while the eval run was created
+  // - ALREADY_EXISTS: the organization already has an eval run of that
+  //   name
+  rpc create(EvalRun) returns (EvalRun) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Cancel a pending or running eval run.
+  //
+  // Tries in flight are stopped; the eval run ends partial, "cancelled",
+  // with the results of the tries that finished. Cancelling a finished
+  // eval run changes nothing.
+  //
+  // @internal
+  // Authorization: requires can_edit on the eval run (can_edit from its
+  // subject).
+  rpc cancel(EvalRunId) returns (EvalRun) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = eval_run;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to cancel eval run";
+  }
+
+  // Delete an eval run with its tries' conversations, runs and scores.
+  //
+  // A pending or running eval run is refused: cancel it first.
+  //
+  // @internal
+  // Authorization: requires can_delete on the eval run (can_edit from its
+  // subject). Deleting the subject deletes its eval runs; deleting a
+  // compared plugin leaves an agent's eval runs and their results.
+  //
+  // Error Cases:
+  //
+  // - FAILED_PRECONDITION: the eval run is pending or running; the error
+  //   names cancel
+  rpc delete(EvalRunId) returns (EvalRun) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = eval_run;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete eval run";
+  }
+}

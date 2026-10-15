@@ -37,7 +37,7 @@ export interface AgentQualityTabProps {
    */
   readonly onNavigateToRun?: (runId: string) => void;
   /**
-   * Called with an agent eval's id when the person opens a version's latest
+   * Called with an eval run's id when the person opens a version's latest
    * eval from the report; `AgentDetailView` opens its Evals tab on it.
    */
   readonly onOpenEval?: (evalId: string) => void;

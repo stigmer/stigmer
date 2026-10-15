@@ -242,7 +242,7 @@ export interface WireTurnInput {
   };
   /** Whether the runtime resolved a store; the host's stand-in forwards uploads to it. */
   readonly artifactStorage: boolean;
-  /** A plugin-eval try's recorded conversation (`TurnInput.resumedHistory`), or `null` for none. Plain JSON already. */
+  /** A eval-run try's recorded conversation (`TurnInput.resumedHistory`), or `null` for none. Plain JSON already. */
   readonly resumedHistory: readonly TranscriptMessage[] | null;
 }
 

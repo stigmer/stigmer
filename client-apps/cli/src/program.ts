@@ -17,6 +17,7 @@ import { registerConnect } from "./commands/connect.js";
 import { registerDelete } from "./commands/delete.js";
 import { registerDown } from "./commands/down.js";
 import { registerDownload } from "./commands/download.js";
+import { registerEval } from "./commands/eval.js";
 import { registerGet } from "./commands/get.js";
 import { registerInstall } from "./commands/install.js";
 import { registerInternalDaemon } from "./commands/internal-daemon.js";
@@ -25,7 +26,6 @@ import { registerLogs } from "./commands/logs.js";
 import { registerMarketplace } from "./commands/marketplace.js";
 import { registerMcp } from "./commands/mcp.js";
 import { registerMcpServer } from "./commands/mcp-server.js";
-import { registerPlugin } from "./commands/plugin.js";
 import { registerPush } from "./commands/push.js";
 import { registerReset } from "./commands/reset.js";
 import { registerResume } from "./commands/resume.js";
@@ -61,6 +61,24 @@ export const RETIRED_COMMANDS: ReadonlyMap<string, string> = new Map([
     "mcp-server",
     "An agent lists its own MCP servers under `mcp_servers`, written by an organization's admins, or uses a plugin that carries one: `stigmer connect plugin <plugin>` lists a plugin's tools, and `stigmer mcp add <name> <url>` installs a one-off server as a plugin.",
   ],
+  ["plugin", "`stigmer plugin eval <plugin>` is now `stigmer eval run --plugin <plugin>`; cancel with `stigmer eval cancel`."],
+]);
+
+/**
+ * Subcommands the CLI once had and no longer does, by the group they were
+ * in, answered as {@link RETIRED_COMMANDS} are: `agent` is still a group,
+ * so its old `eval` meets commander's unknown-command answer there.
+ */
+export const RETIRED_SUBCOMMANDS: ReadonlyMap<string, ReadonlyMap<string, string>> = new Map([
+  [
+    "agent",
+    new Map([
+      [
+        "eval",
+        "`stigmer agent eval <agent>` is now `stigmer eval run --agent <agent>` (`--plugin` there is now `--cases-from`); cancel with `stigmer eval cancel`.",
+      ],
+    ]),
+  ],
 ]);
 
 /**
@@ -93,14 +111,17 @@ export const RETIRED_OPTIONS: ReadonlyMap<string, ReadonlyMap<string, string>> =
 
 // Append a retired command's or option's pointer to commander's unknown
 // command or option error. `command` is the top-level command the parse
-// dispatched to, if any. A retired option is answered with its name alone,
+// dispatched to, if any: a retired subcommand is answered only in its
+// group. A retired option is answered with its name alone,
 // never the rest of commander's message: written as `--secret=KEY=VALUE`,
 // commander echoes the whole argument, and the value (which may hold quotes
 // or newlines) may be the key itself.
 function withRetiredHint(message: string, command: string | undefined): string {
   const unknownCommand = /^error: unknown command '([^']+)'/.exec(message);
   if (unknownCommand !== null) {
-    const hint = RETIRED_COMMANDS.get(unknownCommand[1]);
+    const name = unknownCommand[1];
+    const hint =
+      (command === undefined ? undefined : RETIRED_SUBCOMMANDS.get(command)?.get(name)) ?? RETIRED_COMMANDS.get(name);
     return hint === undefined ? message : `${message}${hint}\n`;
   }
   const option = /^error: unknown option '(--[A-Za-z0-9-]+)(?=['=])/.exec(message);
@@ -162,7 +183,7 @@ export function buildProgram(): Command {
   registerPush(program);
   registerInstall(program);
   registerMarketplace(program);
-  registerPlugin(program);
+  registerEval(program);
   registerAgent(program);
   registerDownload(program);
   registerApply(program);

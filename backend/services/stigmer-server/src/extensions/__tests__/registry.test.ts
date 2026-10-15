@@ -360,9 +360,9 @@ describe("resolveExtensions — merge semantics", () => {
     );
   });
 
-  it("resolves one PluginEvalCallerMint and throws on a second, naming both units", () => {
+  it("resolves one EvalRunCallerMint and throws on a second, naming both units", () => {
     const mint = {
-      mintPluginEvalCaller: () =>
+      mintEvalRunCaller: () =>
         Promise.resolve({
           identityId: "ida_eval",
           callerClass: "user" as const,
@@ -371,17 +371,17 @@ describe("resolveExtensions — merge semantics", () => {
         }),
     };
     expect(
-      resolveExtensions([{ name: "iam", drivers: { pluginEvalCaller: mint } }]).drivers
-        .pluginEvalCaller,
+      resolveExtensions([{ name: "iam", drivers: { evalRunCaller: mint } }]).drivers
+        .evalRunCaller,
     ).toBe(mint);
-    expect(resolveExtensions([]).drivers.pluginEvalCaller).toBeUndefined();
+    expect(resolveExtensions([]).drivers.evalRunCaller).toBeUndefined();
     expect(() =>
       resolveExtensions([
-        { name: "mint-a", drivers: { pluginEvalCaller: mint } },
-        { name: "mint-b", drivers: { pluginEvalCaller: mint } },
+        { name: "mint-a", drivers: { evalRunCaller: mint } },
+        { name: "mint-b", drivers: { evalRunCaller: mint } },
       ]),
     ).toThrowError(
-      /extension 'mint-b' registers a PluginEvalCallerMint, but 'mint-a' already did/,
+      /extension 'mint-b' registers a EvalRunCallerMint, but 'mint-a' already did/,
     );
   });
 

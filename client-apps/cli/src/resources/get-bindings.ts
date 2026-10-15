@@ -6,11 +6,10 @@
 import type { DescMessage, Message } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
@@ -84,12 +83,8 @@ export const GET_BINDINGS: ReadonlyMap<ApiResourceKind, Getter> = new Map([
     idOnlyGetter(EvaluatorSchema, (c) => c.evaluator, "Evaluators"),
   ],
   [
-    ApiResourceKind.plugin_eval,
-    idOnlyGetter(PluginEvalSchema, (c) => c.plugineval, "Plugin evals"),
-  ],
-  [
-    ApiResourceKind.agent_eval,
-    idOnlyGetter(AgentEvalSchema, (c) => c.agenteval, "Agent evals"),
+    ApiResourceKind.eval_run,
+    idOnlyGetter(EvalRunSchema, (c) => c.evalrun, "Eval runs"),
   ],
 ]);
 

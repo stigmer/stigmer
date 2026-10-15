@@ -38,9 +38,9 @@ import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { capturedSet } from "../../../run/__tests__/file-review-seed.js";
 
 import {
-  PluginEvalCaseContextSchema,
-  PluginEvalMockServerSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
+  EvalCaseContextSchema,
+  EvalMockServerSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
 
 import {
   PLUGIN_SKILL_READ_PATH,
@@ -188,8 +188,8 @@ describe("the eval trace, native transcript", () => {
       ],
       [],
     );
-    run.run.spec!.pluginEvalCase = create(PluginEvalCaseContextSchema, {
-      mocks: [create(PluginEvalMockServerSchema, { server: "tracker", segment: "tracker-acme" })],
+    run.run.spec!.evalCase = create(EvalCaseContextSchema, {
+      mocks: [create(EvalMockServerSchema, { server: "tracker", segment: "tracker-acme" })],
     });
     const trace = await evalTraceOf(run, deps(Harness.NATIVE));
     expect(trace.mockCalls.map((line) => JSON.parse(line) as unknown)).toEqual([
@@ -354,8 +354,8 @@ describe("the eval trace's files", () => {
 
   it("reads a path no change set touched from the files the runner returned, a change set winning", async () => {
     const run = runOf([], [baseline("t1"), candidate("t1", [created])]);
-    run.run.status!.pluginEvalFiles = create(RunStatusSchema, {
-      pluginEvalFiles: {
+    run.run.status!.evalFiles = create(RunStatusSchema, {
+      evalFiles: {
         files: [
           { path: "./app.txt", content: { case: "text", value: "version = 1\n" } },
           { path: "logo.png", content: { case: "binary", value: true } },
@@ -364,7 +364,7 @@ describe("the eval trace's files", () => {
           { path: "CHANGELOG.md", content: { case: "text", value: "stale" } },
         ],
       },
-    }).pluginEvalFiles;
+    }).evalFiles;
     const trace = await evalTraceOf(
       run,
       deps(Harness.NATIVE, { wantedFiles: ["app.txt", "logo.png", "huge.log", "gone.md", "CHANGELOG.md", "never.md"] }),

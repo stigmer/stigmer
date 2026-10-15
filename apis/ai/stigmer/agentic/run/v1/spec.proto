@@ -3,8 +3,8 @@ syntax = "proto3";
 package ai.stigmer.agentic.run.v1;
 
 import "ai/stigmer/agentic/run/v1/enum.proto";
+import "ai/stigmer/agentic/run/v1/eval_case.proto";
 import "ai/stigmer/agentic/run/v1/invocation.proto";
-import "ai/stigmer/agentic/run/v1/plugin_eval_case.proto";
 import "ai/stigmer/agentic/session/v1/spec.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
@@ -176,8 +176,8 @@ message RunSpec {
   // @internal
   // One more layer of the conjunction the runner already resolves for an
   // agent's lists (runner shared/tool-lists.ts): disallowed first, then
-  // allowed, each layer intersected with the one before. Plugin evals set
-  // it from a case's allowed_tools.
+  // allowed, each layer intersected with the one before. Eval runs set it
+  // from a case's allowed_tools.
   repeated string tools = 22 [(buf.validate.field).repeated = {
     max_items: 128
     items: {
@@ -214,7 +214,7 @@ message RunSpec {
   // conversation's history and later turns still see it.
   //
   // @internal
-  // Plugin evals set it from a case's append_system_prompt.
+  // Eval runs set it from a case's append_system_prompt.
   string append_system_prompt = 24 [(buf.validate.field).string.max_len = 32768];
 
   // Field 5 held runtime_env, a turn's own variables and secrets, until a
@@ -346,16 +346,16 @@ message RunSpec {
   // execution-profile kill-switch.
   ConversationCatchup conversation_catchup = 14;
 
-  // What a plugin-eval case gives this try beyond its message: a starting
+  // What an eval case gives this try beyond its message: a starting
   // folder, reference folders, an earlier conversation, variables and MCP
   // stand-ins. Absent on every other run.
   //
   // @internal
-  // Set only by the server's plugin-eval case workflow; run create refuses
+  // Set only by the server's eval case workflow; run create refuses
   // it on a request that is not server-composed (the eval-case guard
   // step). Top-level rather than inside run_config for the reason
   // conversation_catchup gives: platform-composed content, not a setting.
-  PluginEvalCaseContext plugin_eval_case = 25;
+  EvalCaseContext eval_case = 25;
 
   // Set on a turn that only puts back the files a person undid after an
   // earlier turn ended: it runs no model and carries no message. The
@@ -364,7 +364,7 @@ message RunSpec {
   // @internal
   // Set only by the server's file-review decision; run create refuses it
   // on a request that is not server-composed, as it refuses
-  // plugin_eval_case. Its creation writes no user.message, so the
+  // eval_case. Its creation writes no user.message, so the
   // conversation's newest turn stays the one whose files are reviewed.
   bool reconcile_file_review = 26;
 

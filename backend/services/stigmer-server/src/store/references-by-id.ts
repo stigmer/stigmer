@@ -74,9 +74,7 @@ import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -84,7 +82,11 @@ import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/f
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
-import { FrozenPlatformClientEnvelopeSchema } from "./frozen-envelopes.js";
+import {
+  FrozenAgentEvalEnvelopeSchema,
+  FrozenPlatformClientEnvelopeSchema,
+  FrozenPluginEvalEnvelopeSchema,
+} from "./frozen-envelopes.js";
 import type { StoreLogger } from "./logger.js";
 
 /** How many rows a keyset page of the rewrite reads. */
@@ -101,11 +103,11 @@ export interface ReferringKindAtRewrite {
 export const REFERRING_KINDS_AT_REWRITE: ReadonlyArray<ReferringKindAtRewrite> = [
   { kind: "agent", schema: AgentSchema },
   { kind: "agent_channel", schema: AgentChannelSchema },
-  { kind: "agent_eval", schema: AgentEvalSchema },
+  { kind: "agent_eval", schema: FrozenAgentEvalEnvelopeSchema },
   { kind: "agent_share", schema: AgentShareSchema },
   { kind: "identity_account", schema: IdentityAccountSchema },
   { kind: "platform_client", schema: FrozenPlatformClientEnvelopeSchema },
-  { kind: "plugin_eval", schema: PluginEvalSchema },
+  { kind: "plugin_eval", schema: FrozenPluginEvalEnvelopeSchema },
   { kind: "schedule", schema: ScheduleSchema },
   { kind: "session", schema: SessionSchema },
 ];

@@ -49,8 +49,7 @@
           "vault",
           "score",
           "evaluator",
-          "plugin_eval",
-          "agent_eval",
+          "eval_run",
           "plan",
           "subscription",
           "license"

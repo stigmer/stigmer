@@ -2791,7 +2791,7 @@ type StigmerFileReviewDecidedEvent struct {
 	ExpectedDigest string `protobuf:"bytes,7,opt,name=expected_digest,json=expectedDigest,proto3" json:"expected_digest,omitempty"`
 	// Who decided: person (someone with edit access to the conversation),
 	// approved_command (every change came from a command the person had
-	// approved), eval_try (a plugin eval's try, whose edits are always
+	// approved), eval_try (an eval run's try, whose edits are always
 	// kept) or next_turn (the next message was sent before a decision, so
 	// the change was kept).
 	Origin string `protobuf:"bytes,8,opt,name=origin,proto3" json:"origin,omitempty"`

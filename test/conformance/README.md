@@ -185,7 +185,7 @@ or a missing `stigmer` CLI for the cells that need it, refuses those cells by
 name and the run continues with the rest. It is in no vitest config, `npm
 test` cannot reach it, and it spends money: at the defaults, eight scenarios
 on two harnesses with one warm-up plus five samples each (144 executions),
-plus the quality arm's plugin eval (nine cases, three tries each on each
+plus the quality arm's eval run (nine cases, three tries each on each
 harness). Its numbers are a new baseline for the machine, model versions
 and runner they were taken on, never a comparison with an earlier page.
 
@@ -235,17 +235,17 @@ Per execution it reads its sources and joins them by execution id:
 - the Temporal history, through the `temporal` CLI (the wait before the
   runner's activity started, the `EnsureThread` hop).
 
-The **quality arm** (`src/benchmark/quality-eval.ts`) is one plugin eval: the
+The **quality arm** (`src/benchmark/quality-eval.ts`) is one eval run: the
 working agent's plugin pushed into a fresh organization, every case of its
-`evals/` suite run by Stigmer's own plugin evals on each harness's parity
+`evals/` suite run on the built-in assistant on each harness's parity
 model, the AI-graded checks judged by three votes each on the pinned judge
 model, one arm (the benchmark compares engines, not the plugin's worth). The
 cases are the plugin-eval format's, graded deterministically first (a regex
 over the reply or a file, `tool_used`, `mock_calls`) and by an `llm` rubric
 only for judgement; each scaffolds the shared workspace, the order lookup is
 answered by the suite's own mock, and the resumed case runs on native only.
-The eval's result document, the format's `schemaVersion: 1` file, is the
-report's `quality` (schema v6); grades from v5 and earlier came from another
+The eval run's result document, whose plugin block is the format's
+`schemaVersion: 1` file, is the report's `quality` (schema v7); grades from v5 and earlier came from another
 judge and are not compared. `src/benchmark/__tests__/quality-suite.test.ts`
 pins the cases' facts to the fixture.
 
@@ -822,7 +822,7 @@ src/
                     request-shape (the golden renderers), …
   benchmark/        report (the contract a run writes), cells, run (the direct-mode stack and driver), session
                     (the per-turn driver), the readers stream-watch, status-facts, timing-lines, temporal-history,
-                    workspace-facts, and quality-eval (the quality arm's plugin eval)  (the live benchmark's library; pure parts unit-tested)
+                    workspace-facts, and quality-eval (the quality arm's eval run)  (the live benchmark's library; pure parts unit-tested)
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
   suites-execution/ *.harness.test.ts (agent, mcp, runner-ipc, benchmark-readers, temporal-port-loss)
                     + run*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,

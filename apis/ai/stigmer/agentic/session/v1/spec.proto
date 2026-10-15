@@ -198,7 +198,7 @@ message SessionSpec {
   // before each file write instead.
   //
   // @internal
-  // Read by the runner at each turn's start. A plugin eval's try records
+  // Read by the runner at each turn's start. An eval run's try records
   // its edits whatever this says: its graders read them.
   bool file_review = 20;
 }

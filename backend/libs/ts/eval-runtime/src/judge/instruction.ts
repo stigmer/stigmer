@@ -4,12 +4,12 @@
  * runner sets it as the judge's agent instruction (its
  * shared/builtin-judge.ts, pinned by the judge's prompt golden); the server
  * hashes the version into every judge score's evaluator version
- * (rubrics.ts) and every plugin and agent eval's, so grades from two
+ * (rubrics.ts) and every eval run's, so grades from two
  * judges are never compared as one.
  *
  * One constant on both sides: the version moves with any change to this
  * text or to the runner's judge deny-list, and changing it re-versions
- * every judge, plugin eval and agent eval score.
+ * every judge and eval run score.
  *
  * Proven by __tests__/judge.test.ts (the version pin) and the runner's
  * prompt golden.

@@ -5,11 +5,9 @@
  * to the suite or case workflow is not replay-safe for evals in flight, and
  * must be gated with patched() instead.
  *
- * `plugin-eval-completed` was captured on the workflow code from before
- * agent evals, whose plan named no prefix for the tries' workflow ids: it
- * replaying here proves the current code computes the same child ids from
- * such a plan. `agent-eval-completed` is an agent eval under its own type,
- * its plan naming the `agent-eval` prefix.
+ * `eval-run-plugin-completed` is an eval run about a plugin, one try in
+ * each arm; `eval-run-agent-compare-completed` an eval run about an agent
+ * comparing a plugin it attaches, two tries in each arm, two at once.
  *
  * Fully local: replay needs no Temporal server. Histories are captured by
  * scripts/capture-eval-replay-histories.ts (mock payloads only).
@@ -26,8 +24,10 @@ const WORKFLOWS_PATH = fileURLToPath(new URL("../workflows/index.ts", import.met
 const historyFiles = readdirSync(HISTORY_DIR).filter((name) => name.endsWith(".json"));
 
 describe("eval workflows' replay determinism", () => {
-  it("has a plugin eval's and an agent eval's history to replay", () => {
-    expect(historyFiles).toEqual(expect.arrayContaining(["plugin-eval-completed.json", "agent-eval-completed.json"]));
+  it("has an eval run about a plugin's and one comparing a plugin on an agent's history to replay", () => {
+    expect(historyFiles).toEqual(
+      expect.arrayContaining(["eval-run-plugin-completed.json", "eval-run-agent-compare-completed.json"]),
+    );
   });
 
   it("replays every committed history deterministically", async () => {

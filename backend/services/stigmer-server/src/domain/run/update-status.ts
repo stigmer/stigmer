@@ -104,10 +104,10 @@ import type { Store } from "../../store/interface.js";
 
 import {
   autoKeepApprovedCommandSets,
-  autoKeepPluginEvalTrySets,
+  autoKeepEvalRunTrySets,
   keepOutdatedSets,
 } from "./filereview/autokeep.js";
-import { isPluginEvalRun } from "../plugin-eval/plugin-eval-run.js";
+import { isEvalRun } from "../eval-run/run-label.js";
 import { RUN_REVIEW_EVENT_TYPES, runReviewLogOf, withDecisions } from "./filereview/logged.js";
 import type { RunReviewLog } from "./filereview/logged.js";
 import { reconcileFileChangeProgress } from "./filereview/progress.js";
@@ -259,7 +259,7 @@ export async function updateStatus(
 /**
  * The policy keeps of a write that carries a captured set, decided from
  * the run's log (`log`, read under the session's lock) against the merged
- * record: the approved-command keep, the plugin-eval try's keep, and, for
+ * record: the approved-command keep, the eval-run try's keep, and, for
  * a turn a later message outdated, the close of its review. Each keep's
  * decisions are folded into the log the next decides from, so two rules
  * never decide one target in one write. Returns the decided events.
@@ -277,8 +277,8 @@ function applyPolicyKeeps(
   // that captured it.
   const approved = autoKeepApprovedCommandSets(sets, runId, execution.spec?.autoApproveAll ?? false, logger, log);
   let seen = withDecisions(log, approved);
-  // A plugin eval's try keeps its edits by policy: nobody reviews a try.
-  const evalTry = autoKeepPluginEvalTrySets(sets, runId, isPluginEvalRun(execution), logger, seen);
+  // An eval run's try keeps its edits by policy: nobody reviews a try.
+  const evalTry = autoKeepEvalRunTrySets(sets, runId, isEvalRun(execution), logger, seen);
   seen = withDecisions(seen, evalTry);
   // A turn that captured after a later message was sent is closed as it
   // lands: its undecided edits are kept, as the next turn keeps them.
@@ -477,11 +477,11 @@ export function applyUpdateStatusMerge(
     status.setupProgress = undefined;
   }
 
-  // Merge plugin_eval_files: the files a plugin-eval try's graders read, as
+  // Merge eval_files: the files a eval-run try's graders read, as
   // its turn left them. Runner-owned and written with each terminal write;
   // kept only on a try's run, the one run the case workflow grades.
-  if (requestStatus.pluginEvalFiles !== undefined && execution.spec?.pluginEvalCase !== undefined) {
-    status.pluginEvalFiles = requestStatus.pluginEvalFiles;
+  if (requestStatus.evalFiles !== undefined && execution.spec?.evalCase !== undefined) {
+    status.evalFiles = requestStatus.evalFiles;
   }
 
   // Merge loaded_versions: runner-owned, sent with every write of a turn

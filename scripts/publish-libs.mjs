@@ -88,7 +88,7 @@ export const PACKAGES = [
   "backend/libs/ts/zip-structure",
   // @stigmer/eval-runtime has no deps at all. It MUST publish, and before
   // @stigmer/plugin-package, whose eval suite reader depends on it: the
-  // runner executes a plugin eval's case with it and the server reads the
+  // runner executes an eval run's case with it and the server reads the
   // try's stops with it, and both pin the exact release version at stamp
   // time.
   "backend/libs/ts/eval-runtime",

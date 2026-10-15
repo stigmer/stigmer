@@ -1,5 +1,5 @@
 /**
- * Pins what the plugin-eval worker factory hands the manager's
+ * Pins what the eval-run worker factory hands the manager's
  * createWorker: the eval queue from configuration (and the default queue
  * and its environment variable), every suite and case activity under its
  * byte-pinned name, and a workflow source (the prebuilt sibling bundle
@@ -8,7 +8,7 @@
 import type { Worker } from "@temporalio/worker";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { newPatternPool } from "../../../domain/plugin-eval/graders/patterns.js";
+import { newPatternPool } from "../../../domain/eval-run/graders/patterns.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { CreateWorkerOptions, WorkerFactoryDeps } from "../../manager.js";
@@ -40,7 +40,7 @@ afterEach(() => {
   delete process.env[QUEUE_VARIABLE];
 });
 
-describe("the plugin-eval worker factory", () => {
+describe("the eval-run worker factory", () => {
   it("builds a worker on the configured queue with every activity and a workflow source", async () => {
     const temp = tempStore();
     const patterns = newPatternPool(1);
@@ -67,7 +67,7 @@ describe("the plugin-eval worker factory", () => {
         recorder: () => ({ record: (score) => Promise.resolve(score) }),
         deleter: () => ({ delete: () => Promise.resolve() }),
         readArtifact: undefined,
-        pluginEvalCaller: undefined,
+        evalRunCaller: undefined,
         patterns,
         logger: silentLogger,
       })(deps);

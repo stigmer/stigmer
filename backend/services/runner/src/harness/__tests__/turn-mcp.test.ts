@@ -26,7 +26,7 @@
  *    excluded tool by tool and the platform's own still are (#2106):
  *    `callableServers` is the one filter, applied before the tool listing
  *    (itself a connection) and so before either engine connects; a
- *    plugin-eval try's mocked server is never listed either;
+ *    eval-run try's mocked server is never listed either;
  *  - a try's stand-ins (`startEvalMocks`) take their servers' places in the
  *    list and in the listing, a stand-in the lists exclude whole left out
  *    like any server, and a try whose endpoint starts no stand-in keeps its
@@ -48,9 +48,9 @@ import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/pl
 import { HttpMcpServerSchema, McpServerEntrySchema, PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 
 import {
-  PluginEvalCaseContextSchema,
-  PluginEvalMockServerSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
+  EvalCaseContextSchema,
+  EvalMockServerSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
 
 import {
   callableServers,
@@ -60,7 +60,7 @@ import {
   type ResolutionDeps,
   type TurnFrame,
 } from "../turn-context.js";
-import { caseArchiveOf } from "../../shared/plugin-eval/case-archive.js";
+import { caseArchiveOf } from "../../shared/eval-case/case-archive.js";
 import { ToolScope } from "../../shared/tool-lists.js";
 import { hookLeaseKey, type LeaseGrant } from "../../shared/approval-policy.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
@@ -85,7 +85,7 @@ vi.mock("../../shared/mcp-tool-listing.js", () => ({ listTurnTools }));
 const endpoint = vi.hoisted(() => ({
   served: undefined as { servers: unknown[]; listed: { server: string; tools: string[] }[] } | undefined,
 }));
-vi.mock("../../shared/plugin-eval/mock-endpoint.js", () => ({
+vi.mock("../../shared/eval-case/mock-endpoint.js", () => ({
   startMockEndpoint: () =>
     Promise.resolve(
       endpoint.served === undefined
@@ -369,7 +369,7 @@ describe("callableServers — a server no tool of which can be called is never c
     expect(slugs(ToolScope.unrestricted())).toEqual(["tracker", "orders", "wiki", MEMORY_ATTACHMENT_SLUG]);
   });
 
-  it("filters before the tool listing, and leaves a plugin-eval try's mocked server to its stand-in", async () => {
+  it("filters before the tool listing, and leaves a eval-run try's mocked server to its stand-in", async () => {
     listTurnTools.mockReset();
     listTurnTools.mockResolvedValue({ listed: [], destructive: [], unlisted: [] });
     vi.spyOn(console, "log").mockImplementation(() => undefined);
@@ -388,8 +388,8 @@ describe("callableServers — a server no tool of which can be called is never c
       ),
       readsToolMarks: false,
     });
-    turn.execution.spec!.pluginEvalCase = create(PluginEvalCaseContextSchema, {
-      mocks: [create(PluginEvalMockServerSchema, { server: "api", segment: "plugin_linear_api" })],
+    turn.execution.spec!.evalCase = create(EvalCaseContextSchema, {
+      mocks: [create(EvalMockServerSchema, { server: "api", segment: "plugin_linear_api" })],
     });
     const mcp = await resolveMcpServersAndPolicies(deps({ channels: false }), turn);
     expect(listTurnTools.mock.calls.map(([listed]) => listed.map((s) => s.slug))).toEqual([["plugin_wiki_api"]]);
@@ -397,7 +397,7 @@ describe("callableServers — a server no tool of which can be called is never c
   });
 });
 
-describe("startEvalMocks — a plugin-eval try's stand-ins take their servers' places", () => {
+describe("startEvalMocks — a eval-run try's stand-ins take their servers' places", () => {
   const standIn = (slug: string): ResolvedMcpServer => ({
     slug,
     connectionType: "http",
@@ -446,9 +446,9 @@ describe("startEvalMocks — a plugin-eval try's stand-ins take their servers' p
       });
       const mcp = await resolveMcpServersAndPolicies(deps({ channels: false }), turn);
       const spec = create(RunSpecSchema, {
-        pluginEvalCase: create(PluginEvalCaseContextSchema, {
+        evalCase: create(EvalCaseContextSchema, {
           mocks: ["api", "orders"].map((server) =>
-            create(PluginEvalMockServerSchema, { server, segment: `plugin_linear_${server}` }),
+            create(EvalMockServerSchema, { server, segment: `plugin_linear_${server}` }),
           ),
         }),
       });

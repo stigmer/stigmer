@@ -52,7 +52,7 @@ import {
   transportFor,
 } from "../../../extensions/__tests__/composed-support.js";
 import { generateId } from "../../../pipeline/steps/defaults.js";
-import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
+import { EVAL_RUN_LABEL } from "../../eval-run/constants.js";
 
 const CAROL = "fake|carol";
 const DAVE = "fake|dave";
@@ -262,10 +262,10 @@ describe("an agent's quality where callers are persons (built-in posture, compos
     const runId = await runOf(asCarol, "carols-other-chat");
     const failure = await failureOf(
       createClient(ScoreCommandController, asCarol()).create(
-        thumbsDown(runId, { [PLUGIN_EVAL_LABEL]: "pev_forged" }),
+        thumbsDown(runId, { [EVAL_RUN_LABEL]: "evr_forged" }),
       ),
     );
     expect(failure.code).toBe(Code.InvalidArgument);
-    expect(failure.rawMessage).toContain(PLUGIN_EVAL_LABEL);
+    expect(failure.rawMessage).toContain(EVAL_RUN_LABEL);
   });
 });

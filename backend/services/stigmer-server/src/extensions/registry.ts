@@ -71,7 +71,7 @@ import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-p
 import type { MeteredUsageProvider } from "./metered-usage.js";
 import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
 import type { GradingCallerMint } from "./grading-caller.js";
-import type { PluginEvalCallerMint } from "./plugin-eval-caller.js";
+import type { EvalRunCallerMint } from "./eval-run-caller.js";
 import type { ScheduleFireCallerMint } from "./schedule-fire-caller.js";
 import type { VisitorClassifier } from "./visitor-classifier.js";
 import type { RunLanes } from "./run-lanes.js";
@@ -341,11 +341,11 @@ export interface ResolvedExtensionDrivers {
    */
   readonly gradingCaller: GradingCallerMint | undefined;
   /**
-   * The plugin-eval caller mint — undefined = a plugin eval's tries enter
+   * The eval-run caller mint — undefined = an eval run's tries enter
    * the create pipeline as the `internal` class, or as the eval's creator
    * under the built-in posture (compose.ts).
    */
-  readonly pluginEvalCaller: PluginEvalCallerMint | undefined;
+  readonly evalRunCaller: EvalRunCallerMint | undefined;
   /**
    * Registered version token → codec, validated
    * against the built-in v1. Empty = the facade is v1-only, OSS behavior
@@ -480,8 +480,8 @@ export function resolveExtensions(
   let scheduleFireCallerDeclaredBy: string | undefined;
   let gradingCaller: GradingCallerMint | undefined;
   let gradingCallerDeclaredBy: string | undefined;
-  let pluginEvalCaller: PluginEvalCallerMint | undefined;
-  let pluginEvalCallerDeclaredBy: string | undefined;
+  let evalRunCaller: EvalRunCallerMint | undefined;
+  let evalRunCallerDeclaredBy: string | undefined;
   let identityAccountStore: IdentityAccountStore | undefined;
   let identityAccountStoreDeclaredBy: string | undefined;
   let identityFederation: IdentityFederation | undefined;
@@ -702,14 +702,14 @@ export function resolveExtensions(
       gradingCallerDeclaredBy = unit.name;
     }
 
-    if (unit.drivers?.pluginEvalCaller !== undefined) {
-      if (pluginEvalCallerDeclaredBy !== undefined) {
+    if (unit.drivers?.evalRunCaller !== undefined) {
+      if (evalRunCallerDeclaredBy !== undefined) {
         throw new Error(
-          `extension '${unit.name}' registers a PluginEvalCallerMint, but '${pluginEvalCallerDeclaredBy}' already did — exactly one may be composed`,
+          `extension '${unit.name}' registers a EvalRunCallerMint, but '${evalRunCallerDeclaredBy}' already did — exactly one may be composed`,
         );
       }
-      pluginEvalCaller = unit.drivers.pluginEvalCaller;
-      pluginEvalCallerDeclaredBy = unit.name;
+      evalRunCaller = unit.drivers.evalRunCaller;
+      evalRunCallerDeclaredBy = unit.name;
     }
 
     if (unit.drivers?.identityAccountStore !== undefined) {
@@ -1037,7 +1037,7 @@ export function resolveExtensions(
       secretCodecs,
       scheduleFireCaller,
       gradingCaller,
-      pluginEvalCaller,
+      evalRunCaller,
       identityAccountStore,
       identityFederation,
       grantStore,

@@ -77,11 +77,11 @@ import {
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { LogFields, Logger } from "../../../boot/logger.js";
-import { PLUGIN_EVAL_LABEL } from "../../../domain/plugin-eval/constants.js";
+import { EVAL_RUN_LABEL } from "../../../domain/eval-run/constants.js";
 import { capturedSet } from "../../../domain/run/__tests__/file-review-seed.js";
-import { newPatternPool } from "../../../domain/plugin-eval/graders/patterns.js";
-import { tryRunName } from "../../../domain/plugin-eval/try-run.js";
-import { FILES_NOT_RECORDED_REASON } from "../../../domain/plugin-eval/graders/verdict.js";
+import { newPatternPool } from "../../../domain/eval-run/graders/patterns.js";
+import { tryRunName } from "../../../domain/eval-run/try-run.js";
+import { FILES_NOT_RECORDED_REASON } from "../../../domain/eval-run/graders/verdict.js";
 import {
   JUDGE_COST_CAP_REASON,
   JUDGE_NOT_FINISHED_REASON,
@@ -91,8 +91,8 @@ import {
 import type { JudgeSessionDeleter } from "../../../domain/score/ports.js";
 import { listRunScores } from "../../../domain/score/queries.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
-import type { PluginEvalCallerMint } from "../../../extensions/plugin-eval-caller.js";
-import { PluginEvalCallerRefusedError } from "../../../extensions/plugin-eval-caller.js";
+import type { EvalRunCallerMint } from "../../../extensions/eval-run-caller.js";
+import { EvalRunCallerRefusedError } from "../../../extensions/eval-run-caller.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import {
@@ -108,7 +108,7 @@ import {
   CANNOT_ACT_REASON,
   DELETE_VOTE_ACTIVITY_NAME,
   GRADE_TRY_ACTIVITY_NAME,
-  PLUGIN_EVAL_BUSY_FAILURE_TYPE,
+  EVAL_RUN_BUSY_FAILURE_TYPE,
   PLUGIN_UPDATED_REASON,
   READ_VOTE_ACTIVITY_NAME,
   RECORD_SCORE_ACTIVITY_NAME,
@@ -121,7 +121,7 @@ import {
   TRY_SPEND_ACTIVITY_NAME,
 } from "../names.js";
 import type { CaseInput, TryGrade } from "../names.js";
-import type { PluginEvalTryLane } from "../ports.js";
+import type { EvalRunTryLane } from "../ports.js";
 import {
   DIGEST,
   EVAL_ID,
@@ -220,9 +220,9 @@ function capturingLogger(): { logger: Logger; lines: LogLine[] } {
 function build(
   options: {
     readonly attempt?: () => number;
-    readonly caller?: PluginEvalCallerMint | "none";
+    readonly caller?: EvalRunCallerMint | "none";
     readonly wrap?: (real: EvalContextLoader) => EvalContextLoader;
-    readonly lane?: (real: PluginEvalTryLane) => PluginEvalTryLane;
+    readonly lane?: (real: EvalRunTryLane) => EvalRunTryLane;
     readonly sessions?: JudgeSessionDeleter;
     readonly suite?: Readonly<Record<string, string>>;
   } = {},
@@ -236,8 +236,8 @@ function build(
   const chain = scoreChain(temp.store);
   const log = capturingLogger();
   const minted: string[] = [];
-  const mint: PluginEvalCallerMint = {
-    async mintPluginEvalCaller(_org, evalId) {
+  const mint: EvalRunCallerMint = {
+    async mintEvalRunCaller(_org, evalId) {
       minted.push(evalId);
       return CALLER;
     },
@@ -252,7 +252,7 @@ function build(
     recorder: () => chain.recorder,
     deleter: () => chain.deleter,
     readArtifact: undefined,
-    pluginEvalCaller:
+    evalRunCaller:
       options.caller === "none" ? undefined : (options.caller ?? mint),
     patterns: pool,
     ...(options.attempt === undefined
@@ -279,7 +279,7 @@ function buildOnContext() {
     recorder: () => chain.recorder,
     deleter: () => chain.deleter,
     readArtifact: undefined,
-    pluginEvalCaller: undefined,
+    evalRunCaller: undefined,
     patterns: pool,
   });
   return { cases, record: doubles.record };
@@ -353,7 +353,8 @@ function withoutReference(real: EvalContextLoader): EvalContextLoader {
     const kept = Object.entries(JUDGED_SUITE).filter(
       ([path]) => path !== REFERENCE_PATH,
     );
-    return { ...context, files: inMemoryPluginFiles(new Map(kept)) };
+    const files = inMemoryPluginFiles(new Map(kept));
+    return { ...context, sources: context.sources.map((source) => ({ ...source, files })) };
   };
 }
 
@@ -370,7 +371,7 @@ describe("start-try beside its main path", () => {
     await seeded();
     const { cases, record } = build({
       caller: {
-        mintPluginEvalCaller: () =>
+        mintEvalRunCaller: () =>
           Promise.reject(new Error("the identity store is down")),
       },
     });
@@ -385,9 +386,9 @@ describe("start-try beside its main path", () => {
     const { cases, record } = build({
       wrap: (real) => async (evalId) => {
         const context = await real(evalId);
-        if (context?.kind !== "plugin") return context;
-        const pluginEval = { ...context.pluginEval, spec: undefined };
-        return { ...context, pluginEval };
+        if (context === undefined) return context;
+        const evalRun = { ...context.evalRun, spec: undefined };
+        return { ...context, evalRun };
       },
     });
     expect(await cases[START_TRY_ACTIVITY_NAME](CELL)).toEqual({
@@ -403,9 +404,11 @@ describe("start-try beside its main path", () => {
     const { cases, record } = build({
       wrap: (real) => async (evalId) => {
         const context = await real(evalId);
-        if (context?.kind !== "plugin") return context;
-        const status = { ...context.plugin.status!, digest: "b".repeat(64) };
-        return { ...context, plugin: { ...context.plugin, status } };
+        // The plugin's head moves after the eval run planned its tries.
+        const head = await temp.store.getResource(ApiResourceKind.plugin, PLUGIN_ID, PluginSchema);
+        head.status!.digest = "b".repeat(64);
+        await temp.store.saveResource(ApiResourceKind.plugin, PLUGIN_ID, PluginSchema, head);
+        return context;
       },
     });
     expect(await cases[START_TRY_ACTIVITY_NAME](CELL)).toEqual({
@@ -437,8 +440,8 @@ describe("start-try beside its main path", () => {
     const refusing = build({
       attempt: () => 2,
       caller: {
-        mintPluginEvalCaller: () =>
-          Promise.reject(new PluginEvalCallerRefusedError("the creator left")),
+        mintEvalRunCaller: () =>
+          Promise.reject(new EvalRunCallerRefusedError("the creator left")),
       },
     });
     expect(await refusing.cases[START_TRY_ACTIVITY_NAME](CELL)).toEqual(started);
@@ -580,7 +583,7 @@ describe("start-try's refused session", () => {
       refusing(new ConnectError("full", Code.ResourceExhausted))[
         START_TRY_ACTIVITY_NAME
       ](CELL),
-    ).rejects.toMatchObject({ type: PLUGIN_EVAL_BUSY_FAILURE_TYPE });
+    ).rejects.toMatchObject({ type: EVAL_RUN_BUSY_FAILURE_TYPE });
     await expect(
       refusing(new Error("the store is down"))[START_TRY_ACTIVITY_NAME](CELL),
     ).rejects.toThrow("the store is down");
@@ -599,7 +602,7 @@ describe("start-try beside a raced retry", () => {
           id,
           org: ORG,
           name: tryRunName(EVAL_ID, CELL),
-          labels: { [PLUGIN_EVAL_LABEL]: EVAL_ID },
+          labels: { [EVAL_RUN_LABEL]: EVAL_ID },
         },
         status: {
           phase: RunPhase.RUN_IN_PROGRESS,
@@ -1053,8 +1056,8 @@ describe("start-vote beside its main path", () => {
     await completeTry(start.runId);
     const refusing = build({
       caller: {
-        mintPluginEvalCaller: () =>
-          Promise.reject(new PluginEvalCallerRefusedError("the creator left")),
+        mintEvalRunCaller: () =>
+          Promise.reject(new EvalRunCallerRefusedError("the creator left")),
       },
     });
     expect(
@@ -1068,9 +1071,9 @@ describe("start-vote beside its main path", () => {
     expect(refusing.record.sessions).toEqual([]);
     const ownReason = build({
       caller: {
-        mintPluginEvalCaller: () =>
+        mintEvalRunCaller: () =>
           Promise.reject(
-            new PluginEvalCallerRefusedError(
+            new EvalRunCallerRefusedError(
               "the creator may no longer edit",
               "the eval's creator can no longer run it",
             ),

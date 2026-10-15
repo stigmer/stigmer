@@ -145,7 +145,7 @@ export function stallArm(error: StallTimeoutError): TerminalArm {
 }
 
 /**
- * A plugin-eval try's scaffold failed before the engine started.
+ * A eval-run try's scaffold failed before the engine started.
  * TERMINATED, as the other stops of a try: the platform stopped the run
  * before the agent did anything, and a TERMINATED run keeps the runner's
  * error as written (a FAILED one is reframed by the invoke workflow), so the
@@ -164,7 +164,7 @@ export function evalScaffoldFailedArm(message: string): TerminalArm {
 }
 
 /**
- * A plugin-eval try's mock stopped the turn: its input guard was violated,
+ * A eval-run try's mock stopped the turn: its input guard was violated,
  * its agent ended the run, or the agent mocks' call budget ran out.
  * TERMINATED, as the cost cap: the platform stopped the run on purpose. The
  * error is the try stop's sentence (`@stigmer/eval-runtime`

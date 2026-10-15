@@ -26,16 +26,16 @@
  * organization, and a classifier that throws withholds it. The same
  * classifier refuses a visitor's appended system prompt
  * (RefuseVisitorAppendedPrompt), the server's own requests excepted; and a
- * plugin-eval case's context, refused on any request the server did not
- * compose (GuardPluginEvalCase), and on update kept as the create stored
- * it, whatever the request carries (KeepPluginEvalCase); a reconcile turn's
+ * eval case's context, refused on any request the server did not
+ * compose (GuardEvalRunCase), and on update kept as the create stored
+ * it, whatever the request carries (KeepEvalRunCase); a reconcile turn's
  * flag, held to the same two rules (GuardReconcileFileReview,
  * KeepReconcileFileReview) and carried into the workflow's input; and a
  * run's excluded plugins, held to the same two rules (GuardExcludedPlugins,
  * KeepExcludedPlugins), so no caller but the server's evals runs an agent
  * without a plugin its author attached.
  */
-import { PluginEvalCaseContextSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
+import { EvalCaseContextSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
@@ -88,14 +88,14 @@ import {
   buildAutoCreateSessionSpec,
   newComposeDeclaredPreferencesStep,
   newRefuseVisitorAppendedPromptStep,
-  newGuardPluginEvalCaseStep,
-  newKeepPluginEvalCaseStep,
+  newGuardEvalRunCaseStep,
+  newKeepEvalRunCaseStep,
   newGuardReconcileFileReviewStep,
   newKeepReconcileFileReviewStep,
   newGuardExcludedPluginsStep,
   newKeepExcludedPluginsStep,
   EXCLUDED_PLUGINS_NOT_COMPOSED_MESSAGE,
-  PLUGIN_EVAL_CASE_NOT_COMPOSED_MESSAGE,
+  EVAL_RUN_CASE_NOT_COMPOSED_MESSAGE,
   RECONCILE_FILE_REVIEW_NOT_COMPOSED_MESSAGE,
   VISITOR_APPENDED_PROMPT_MESSAGE,
   autoCreatedSessionName,
@@ -121,7 +121,7 @@ import type {
   StartInvokeWorkflowInput,
 } from "../engine.js";
 import { stubConnectedEngine } from "./engine-stub.js";
-import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
+import { EVAL_RUN_LABEL } from "../../eval-run/constants.js";
 import { GRADES_RUN_LABEL } from "../../score/judge/judge-run.js";
 import { SessionEventBroker } from "../../session/events/broker.js";
 
@@ -1262,14 +1262,14 @@ describe("the compose steps where callers are persons", () => {
     });
   }
 
-  // A plugin eval's try measures the plugin: nothing the organization or
+  // An eval run's try measures the plugin: nothing the organization or
   // the eval's creator wrote or remembers reaches it, in either posture
-  // (domain/plugin-eval/plugin-eval-run.ts).
+  // (domain/eval-run/run-label.ts).
   for (const [posture, accounts] of [
     ["where callers are persons", "persons"],
     ["under the single-operator posture", "single"],
   ] as const) {
-    it(`composes no standing context and recalls nothing for a plugin eval's try ${posture}`, async () => {
+    it(`composes no standing context and recalls nothing for an eval run's try ${posture}`, async () => {
       await seedOrg("test-org", "We deploy to us-east-1.");
       await seedRecallRows();
       const directoryOrNone =
@@ -1277,7 +1277,7 @@ describe("the compose steps where callers are persons", () => {
           ? directory({ standingContext: "Call me Carol.", memoryEnabled: true })
           : undefined;
       const evalTry = newExecution("");
-      evalTry.metadata = { ...evalTry.metadata!, labels: { [PLUGIN_EVAL_LABEL]: "pev_1" } };
+      evalTry.metadata = { ...evalTry.metadata!, labels: { [EVAL_RUN_LABEL]: "evr_1" } };
       const preferences = newContext(evalTry, carol);
       await newComposeDeclaredPreferencesStep(store, silentLogger, directoryOrNone).execute(preferences);
       expect(preferences.newState.status?.declaredPreferences?.orgContext).toBe("");
@@ -1465,13 +1465,13 @@ describe("newRefuseVisitorAppendedPromptStep", () => {
   });
 });
 
-describe("newGuardPluginEvalCaseStep", () => {
-  const step = newGuardPluginEvalCaseStep();
+describe("newGuardEvalRunCaseStep", () => {
+  const step = newGuardEvalRunCaseStep();
 
   function withCase(caller: CallerIdentity, set: boolean) {
     const execution = newExecution("ses_1");
     if (set) {
-      execution.spec!.pluginEvalCase = create(PluginEvalCaseContextSchema, {
+      execution.spec!.evalCase = create(EvalCaseContextSchema, {
         pluginId: "plg_1",
         pluginDigest: "a".repeat(64),
         suiteDir: "evals",
@@ -1483,9 +1483,9 @@ describe("newGuardPluginEvalCaseStep", () => {
   }
 
   it("refuses a case context from any caller the server did not compose", async () => {
-    await expect(step.execute(withCase(testCallerIdentity(), true))).rejects.toThrow(PLUGIN_EVAL_CASE_NOT_COMPOSED_MESSAGE);
+    await expect(step.execute(withCase(testCallerIdentity(), true))).rejects.toThrow(EVAL_RUN_CASE_NOT_COMPOSED_MESSAGE);
     await expect(step.execute(withCase(testCallerIdentity({ callerClass: "api_key" }), true))).rejects.toThrow(
-      PLUGIN_EVAL_CASE_NOT_COMPOSED_MESSAGE,
+      EVAL_RUN_CASE_NOT_COMPOSED_MESSAGE,
     );
   });
 
@@ -1495,9 +1495,9 @@ describe("newGuardPluginEvalCaseStep", () => {
   });
 });
 
-describe("newKeepPluginEvalCaseStep", () => {
-  const step = newKeepPluginEvalCaseStep();
-  const composed = create(PluginEvalCaseContextSchema, {
+describe("newKeepEvalRunCaseStep", () => {
+  const step = newKeepEvalRunCaseStep();
+  const composed = create(EvalCaseContextSchema, {
     pluginId: "plg_1",
     pluginDigest: "a".repeat(64),
     suiteDir: "evals",
@@ -1508,9 +1508,9 @@ describe("newKeepPluginEvalCaseStep", () => {
   /** An update of a run whose create stored `stored`, asking for `requested`. */
   function update(stored: typeof composed | undefined, requested: typeof composed | undefined) {
     const existing = newExecution("ses_1");
-    if (stored !== undefined) existing.spec!.pluginEvalCase = stored;
+    if (stored !== undefined) existing.spec!.evalCase = stored;
     const execution = newExecution("ses_1");
-    if (requested !== undefined) execution.spec!.pluginEvalCase = requested;
+    if (requested !== undefined) execution.spec!.evalCase = requested;
     const ctx = newContext(execution, testCallerIdentity());
     ctx.set(EXISTING_RESOURCE_KEY, existing);
     return ctx;
@@ -1519,16 +1519,16 @@ describe("newKeepPluginEvalCaseStep", () => {
   it("refuses to set a case context on a run that has none", async () => {
     const ctx = update(undefined, composed);
     await step.execute(ctx);
-    expect(ctx.newState.spec?.pluginEvalCase).toBeUndefined();
+    expect(ctx.newState.spec?.evalCase).toBeUndefined();
   });
 
   it("keeps the stored context against a changed one, and against an update that leaves it out", async () => {
-    const changed = update(composed, create(PluginEvalCaseContextSchema, { ...composed, scaffoldScript: "other.sh" }));
+    const changed = update(composed, create(EvalCaseContextSchema, { ...composed, scaffoldScript: "other.sh" }));
     await step.execute(changed);
-    expect(changed.newState.spec?.pluginEvalCase?.scaffoldScript).toBe("setup.sh");
+    expect(changed.newState.spec?.evalCase?.scaffoldScript).toBe("setup.sh");
     const cleared = update(composed, undefined);
     await step.execute(cleared);
-    expect(cleared.newState.spec?.pluginEvalCase?.scaffoldScript).toBe("setup.sh");
+    expect(cleared.newState.spec?.evalCase?.scaffoldScript).toBe("setup.sh");
   });
 });
 

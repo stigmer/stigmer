@@ -84,10 +84,10 @@ import { fetchTurnValues, RunValuesRefusedError, type RepositoryToken, type RunV
 import { provisionSessionWorkspace } from "../shared/workspace/session-provision.js";
 import { WriteBackCoordinator } from "../shared/workspace/writeback-coordinator.js";
 import { isGitWorkTree } from "../shared/filereview/git-substrate.js";
-import { type CaseArchive, fetchCaseArchive } from "../shared/plugin-eval/case-archive.js";
-import { prepareEvalCase, type PreparedEvalCase } from "../shared/plugin-eval/prepare-case.js";
-import { chatAgentMockModel } from "../shared/plugin-eval/agent-mock.js";
-import type { MockEndpoint } from "../shared/plugin-eval/mock-endpoint.js";
+import { type CaseArchive, fetchCaseArchive } from "../shared/eval-case/case-archive.js";
+import { prepareEvalCase, type PreparedEvalCase } from "../shared/eval-case/prepare-case.js";
+import { chatAgentMockModel } from "../shared/eval-case/agent-mock.js";
+import type { MockEndpoint } from "../shared/eval-case/mock-endpoint.js";
 import { formatTryStop } from "@stigmer/eval-runtime";
 import { deriveCaptureMode, deriveCaptureSubstrate, type UndoOutcome } from "../shared/filereview/capture.js";
 import {
@@ -295,7 +295,7 @@ export interface TurnReinvocation {
  *    the run a person's Undo on an ended turn starts: putting back the undos
  *    still owed is the whole act, and no engine runs. COMPLETED, returned,
  *    with the write-back finalized first when every undo held.
- *  - `eval-scaffold-failed`: a plugin-eval try's scaffold exited non-zero or
+ *  - `eval-scaffold-failed`: a eval-run try's scaffold exited non-zero or
  *    ran past its limit. TERMINATED with the try stop's sentence, returned:
  *    the eval scores the try 0, and a retry would run the same script.
  *  - `run-finished`: the run finished while this invocation waited for its
@@ -325,7 +325,7 @@ export type TurnSettlement =
       readonly message: string;
     }
   | {
-      /** A plugin-eval try's scaffold failed; `message` is the try stop's sentence (`@stigmer/eval-runtime` `formatTryStop`). */
+      /** A eval-run try's scaffold failed; `message` is the try stop's sentence (`@stigmer/eval-runtime` `formatTryStop`). */
       readonly kind: "eval-scaffold-failed";
       readonly message: string;
     }
@@ -543,7 +543,7 @@ export async function fetchValues(deps: ResolutionDeps): Promise<ValuesOutcome> 
  * credentials) make it a no-op coordinator, here `null`.
  *
  * File review is opt-in (`review`: the session's `file_review`, or a
- * plugin-eval try). With it on, apply-then-review is the model: a git work
+ * eval-run try). With it on, apply-then-review is the model: a git work
  * tree captures per-file from the git diff at the turn boundary; a NON-git
  * workspace captures every write via the path-scoped CAS substrate, which
  * needs artifact storage to persist blobs, and falls back to the classic
@@ -606,11 +606,11 @@ export async function provisionWorkspace(
 
 /**
  * Whether a turn's file edits are offered for review: the session asked
- * (`SessionSpec.file_review`, off unless set), or the run is a plugin-eval
- * try, whose file graders read the captured sets whatever the switch says.
+ * (`SessionSpec.file_review`, off unless set), or the run is an eval
+ * run's try, whose file graders read the captured sets whatever the switch says.
  */
 export function fileReviewOn(session: Session, spec: RunSpec): boolean {
-  return (session.spec?.fileReview ?? false) || spec.pluginEvalCase !== undefined;
+  return (session.spec?.fileReview ?? false) || spec.evalCase !== undefined;
 }
 
 /**
@@ -696,7 +696,7 @@ export async function runFinishedWhileWaiting(
 export type EvalCaseOutcome =
   | {
       readonly kind: "ready";
-      /** Absent on every run that is not a plugin-eval try. */
+      /** Absent on every run that is not a eval-run try. */
       readonly prepared:
         | {
             readonly case: PreparedEvalCase;
@@ -712,7 +712,7 @@ export type EvalCaseOutcome =
   | { readonly kind: "settled"; readonly settlement: Extract<TurnSettlement, { kind: "eval-scaffold-failed" }> };
 
 /**
- * Phase 2d: a plugin-eval try's own setup (`shared/plugin-eval/
+ * Phase 2d: a eval-run try's own setup (`shared/eval-case/
  * prepare-case.ts`), after the workspace lock because the scaffold mutates
  * the tree. The scaffold may make the workspace a git repository, so the
  * capture substrate is derived again; the capture baseline is pinned after
@@ -729,7 +729,7 @@ export async function prepareEvalCasePhase(
     readonly values: RunValues;
   },
 ): Promise<EvalCaseOutcome> {
-  const context = args.spec.pluginEvalCase;
+  const context = args.spec.evalCase;
   if (context === undefined) return { kind: "ready", prepared: undefined };
   deps.enterPhase("prepare_eval_case");
   await deps.reportProgress("Preparing the eval case");
@@ -762,7 +762,7 @@ export async function prepareEvalCasePhase(
 }
 
 /**
- * Phase 4c: a plugin-eval try's MCP stand-ins (`shared/plugin-eval/
+ * Phase 4c: a eval-run try's MCP stand-ins (`shared/eval-case/
  * mock-endpoint.ts`). Each replaces the plugin's own server of the same
  * name in the turn's list, so the real one is never started; a stand-in
  * the turn's lists exclude whole is left out like any server (#2106). The
@@ -780,10 +780,10 @@ export async function startEvalMocks(
     readonly frame: TurnFrame;
   },
 ): Promise<TurnMcp> {
-  const context = args.spec.pluginEvalCase;
+  const context = args.spec.evalCase;
   if (context === undefined || context.mocks.length === 0) return args.mcp;
   deps.enterPhase("start_eval_mocks");
-  const { startMockEndpoint } = await import("../shared/plugin-eval/mock-endpoint.js");
+  const { startMockEndpoint } = await import("../shared/eval-case/mock-endpoint.js");
   const endpoint = await startMockEndpoint({
     context,
     archive: args.archive,
@@ -1007,12 +1007,12 @@ export async function resolveMcpServersAndPolicies(
   // which can only narrow), and the servers it leaves standing, before
   // anything connects, the tool listing included: a server the lists
   // exclude whole is never started or dialled, since no tool of it could be
-  // called (#2106). A plugin-eval try's mocked servers are left out too:
+  // called (#2106). A eval-run try's mocked servers are left out too:
   // their stand-ins take their names (`startEvalMocks`), and the real ones
   // must never start. The platform's own servers, added below, are always
   // kept.
   const toolScope = mainToolScope(blueprint, execution.spec);
-  const standIns = new Set((execution.spec?.pluginEvalCase?.mocks ?? []).map((mock) => mock.segment));
+  const standIns = new Set((execution.spec?.evalCase?.mocks ?? []).map((mock) => mock.segment));
   const resolved = servers;
   servers = callableServers(resolved, toolScope, new Set()).filter((server) => !standIns.has(server.slug));
   if (servers.length < resolved.length) {
@@ -1758,9 +1758,9 @@ export interface TurnFrame {
   releaseWorkspaceLock: ReleaseWorkspaceLock | undefined;
   /** Finalizes at exactly two seams: a reconcile turn and terminal completion. `null` when nothing is eligible. */
   writeback: WriteBackCoordinator | null;
-  /** A plugin-eval try's mock endpoint, bound when the engine's turn starts and closed when the turn ends. */
+  /** A eval-run try's mock endpoint, bound when the engine's turn starts and closed when the turn ends. */
   evalMocks: MockEndpoint | undefined;
-  /** The files a plugin-eval try's graders read, returned on the run as the turn leaves them (`read-files.ts`); set once its case is prepared. */
+  /** The files a eval-run try's graders read, returned on the run as the turn leaves them (`read-files.ts`); set once its case is prepared. */
   evalReadFiles: readonly string[] | undefined;
   /**
    * The log holds what an earlier invocation of this run's engine did
@@ -1837,7 +1837,7 @@ export async function resolveTurnContext(
   if (prepared !== undefined) {
     workspace = prepared.workspace;
     values = prepared.values;
-    frame.evalReadFiles = spec.pluginEvalCase?.readFiles;
+    frame.evalReadFiles = spec.evalCase?.readFiles;
   }
 
   const reinvocation = await reconcileReinvocation(deps, {

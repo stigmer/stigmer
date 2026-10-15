@@ -8,10 +8,10 @@ import io.grpc.Channel;
 public class GeneratedClient {
     public final AgentClient agent;
     public final AgentChannelClient agentChannel;
-    public final AgentEvalClient agenteval;
     public final AgentShareClient agentShare;
     public final ApiKeyClient apiKey;
     public final ChannelAppClient channelapp;
+    public final EvalRunClient evalrun;
     public final EvaluatorClient evaluator;
     public final FederationIssuerClient federationIssuer;
     public final GrantClient grant;
@@ -23,7 +23,6 @@ public class GeneratedClient {
     public final OrganizationClient organization;
     public final PlanClient plan;
     public final PluginClient plugin;
-    public final PluginEvalClient plugineval;
     public final ProviderKeyClient providerkey;
     public final RunClient run;
     public final ScheduleClient schedule;
@@ -37,10 +36,10 @@ public class GeneratedClient {
     public GeneratedClient(Channel channel) {
         this.agent = new AgentClient(channel);
         this.agentChannel = new AgentChannelClient(channel);
-        this.agenteval = new AgentEvalClient(channel);
         this.agentShare = new AgentShareClient(channel);
         this.apiKey = new ApiKeyClient(channel);
         this.channelapp = new ChannelAppClient(channel);
+        this.evalrun = new EvalRunClient(channel);
         this.evaluator = new EvaluatorClient(channel);
         this.federationIssuer = new FederationIssuerClient(channel);
         this.grant = new GrantClient(channel);
@@ -52,7 +51,6 @@ public class GeneratedClient {
         this.organization = new OrganizationClient(channel);
         this.plan = new PlanClient(channel);
         this.plugin = new PluginClient(channel);
-        this.plugineval = new PluginEvalClient(channel);
         this.providerkey = new ProviderKeyClient(channel);
         this.run = new RunClient(channel);
         this.schedule = new ScheduleClient(channel);

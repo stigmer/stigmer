@@ -113,6 +113,15 @@ import {
   unreadablePlatformClientRowError,
 } from "../platform-client-retired.js";
 import {
+  EVAL_KINDS_RETIRED_PAGE_SIZE,
+  EVAL_KINDS_RETIRED_GRANT_KIND,
+  EVAL_TRY_KIND_NAMES,
+  RETIRED_EVAL_KINDS,
+  grantNamesRetiredEvalKind,
+  relabelEvalTryRow,
+  unreadableEvalKindRowError,
+} from "../eval-kinds-retired.js";
+import {
   KIND_TABLES,
   KIND_RENAME_PAGE_SIZE,
   KIND_RENAME_GRANT_KIND,
@@ -259,8 +268,11 @@ export const SCHEMA_VERSION_37 = 37;
 /** v38: the IAM policy is a grant: its names, its ids and its history's tables. */
 export const SCHEMA_VERSION_38 = 38;
 
+/** v39: the plugin eval and agent eval rows removed, with every grant naming one, and their tries relabelled. */
+export const SCHEMA_VERSION_39 = 39;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_38;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_39;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -324,6 +336,7 @@ export function runMigrations(
     [SCHEMA_VERSION_36, (migrating) => migrateToV36(migrating, logger)],
     [SCHEMA_VERSION_37, migrateToV37],
     [SCHEMA_VERSION_38, migrateToV38],
+    [SCHEMA_VERSION_39, migrateToV39],
   ];
 
   for (const [version, migrate] of chain) {
@@ -2116,5 +2129,77 @@ function migrateToV38(db: DatabaseSync): void {
     const last = rows[rows.length - 1]!;
     afterOrg = last.org;
     afterSequence = Number(last.sequence);
+  }
+}
+
+/**
+ * v39: the plugin eval and agent eval kinds are removed for one eval run
+ * kind — the Postgres driver's v35 in this engine's terms
+ * (../eval-kinds-retired.ts says what leaves, what stays relabelled and
+ * why an unreadable row fails the step). Every grant naming a retired kind
+ * as resource or principal (kind `grant` since v38) is found in keyset
+ * pages and deleted with its list keys, its history kept, as the store
+ * deletes a grant; the retired kinds' rows then leave every table that keys a row
+ * by kind; and every session, run and score row carrying the retired label
+ * is written back relabelled, its list keys derived again at the next
+ * open. Runs inside applyInTransaction's BEGIN, so a throw rolls the whole
+ * step back and the boot stops on the row it names.
+ */
+function migrateToV39(db: DatabaseSync): void {
+  const page = db.prepare(`SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`);
+  const retiredPolicies: string[] = [];
+  for (let after = ""; ; ) {
+    const rows = page.all(EVAL_KINDS_RETIRED_GRANT_KIND, after, EVAL_KINDS_RETIRED_PAGE_SIZE) as Array<{
+      id: string;
+      data: Uint8Array;
+    }>;
+    for (const row of rows) {
+      try {
+        if (grantNamesRetiredEvalKind(row.data)) {
+          retiredPolicies.push(row.id);
+        }
+      } catch (error) {
+        throw unreadableEvalKindRowError(EVAL_KINDS_RETIRED_GRANT_KIND, row.id, error);
+      }
+    }
+    if (rows.length < EVAL_KINDS_RETIRED_PAGE_SIZE) {
+      break;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+    db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
+  );
+  for (const id of retiredPolicies) {
+    for (const statement of deletePolicy) {
+      statement.run(EVAL_KINDS_RETIRED_GRANT_KIND, id);
+    }
+  }
+  for (const table of KIND_TABLES) {
+    const remove = db.prepare(`DELETE FROM ${table} WHERE kind = ?`);
+    for (const kind of RETIRED_EVAL_KINDS) {
+      remove.run(kind);
+    }
+  }
+  const write = db.prepare(`UPDATE resources SET data = ? WHERE kind = ? AND id = ?`);
+  for (const kind of EVAL_TRY_KIND_NAMES) {
+    for (let after = ""; ; ) {
+      const rows = page.all(kind, after, EVAL_KINDS_RETIRED_PAGE_SIZE) as Array<{ id: string; data: Uint8Array }>;
+      for (const row of rows) {
+        let relabelled: Uint8Array | undefined;
+        try {
+          relabelled = relabelEvalTryRow(kind, row.data);
+        } catch (error) {
+          throw unreadableEvalKindRowError(kind, row.id, error);
+        }
+        if (relabelled !== undefined) {
+          write.run(relabelled, kind, row.id);
+        }
+      }
+      if (rows.length < EVAL_KINDS_RETIRED_PAGE_SIZE) {
+        break;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
   }
 }

@@ -911,7 +911,7 @@ export enum FileDecisionOrigin {
   POLICY_APPROVED_COMMAND = 2,
 
   /**
-   * Platform policy kept the set because its run is a plugin eval's try: a
+   * Platform policy kept the set because its run is an eval run's try: a
    * try's edits apply as they do in Claude Code's evals, and nobody reviews
    * a try. The decision's actor is "policy".
    *

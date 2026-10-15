@@ -47,8 +47,7 @@ public enum ScoreSource
   score_source_judge(3),
   /**
    * <pre>
-   * A plugin's own eval: one try of one evals/ case, graded by the case's
-   * checks.
+   * An eval run's try of one evals/ case, graded by the case's checks.
    * </pre>
    *
    * <code>score_source_eval = 4;</code>
@@ -98,8 +97,7 @@ public enum ScoreSource
   public static final int score_source_judge_VALUE = 3;
   /**
    * <pre>
-   * A plugin's own eval: one try of one evals/ case, graded by the case's
-   * checks.
+   * An eval run's try of one evals/ case, graded by the case's checks.
    * </pre>
    *
    * <code>score_source_eval = 4;</code>

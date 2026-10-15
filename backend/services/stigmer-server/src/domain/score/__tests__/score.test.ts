@@ -14,7 +14,7 @@
  *   - a check comes from the server alone: refused on the wire, admitted
  *     in process, where a not-graded check keeps the server's reason; a
  *     second run-health score from the same checks version is refused,
- *     as is a second plugin eval score from the same suite version;
+ *     as is a second eval run score from the same suite version;
  *   - a check's verdict is final on update;
  *   - the run's and the session's lists carry the scores;
  *   - deleting a run removes its scores (its own delete chain), and
@@ -293,7 +293,7 @@ describe("a check's verdict", () => {
   });
 });
 
-describe("a plugin eval's score", () => {
+describe("an eval run's score", () => {
   function evalScore(runId: string, suiteVersion: string): Score {
     const score = check(runId);
     score.spec!.metric = "eval";

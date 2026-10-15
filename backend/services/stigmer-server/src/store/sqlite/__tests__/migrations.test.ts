@@ -103,6 +103,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -140,6 +141,7 @@ import {
   SCHEMA_VERSION_36,
   SCHEMA_VERSION_37,
   SCHEMA_VERSION_38,
+  SCHEMA_VERSION_39,
   SCHEMA_VERSION_7,
   getSchemaVersion,
   runMigrations,
@@ -171,6 +173,7 @@ import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
 import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
 import { WORKFLOW_RETIREMENT_PAGE_SIZE } from "../../workflow-instance-retired.js";
 import { PLATFORM_CLIENT_RETIRED_PAGE_SIZE } from "../../platform-client-retired.js";
+import { EVAL_KINDS_RETIRED_PAGE_SIZE } from "../../eval-kinds-retired.js";
 import { retiredPlatformClientRow } from "../../__tests__/retired-platform-client-rows.js";
 import {
   AGENT_RUN_RETIRED_PAGE_SIZE,
@@ -366,7 +369,7 @@ describe("fresh database", () => {
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-      22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
+      22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
     ]);
   });
 
@@ -3758,5 +3761,179 @@ describe("v38: the IAM policy is a grant", () => {
     expect(grant).toBeDefined();
     expect(storedEtagOf(GrantSchema, grant!)).toBe(etagOf(GrantSchema, grant!));
     expect(storedEtagOf(GrantSchema, grant!)).not.toBe("");
+  });
+});
+
+describe("v39: the plugin eval and agent eval rows and the grants naming them leave, and their tries are relabelled", () => {
+  const ORG = "org_01jz0000000000000000000000";
+  const SEEDED_AT = "2026-10-15 00:00:00";
+  const OLD_LABEL = "stigmer.ai/plugin-eval";
+  const NEW_LABEL = "stigmer.ai/eval-run";
+
+  /** A v38 database: the chain replayed up to the step before v39. */
+  function v38Database(): { dbPath: string; db: DatabaseSync } {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, SCHEMA_VERSION_39 - 1);
+    expect(getSchemaVersion(setup)).toBe(SCHEMA_VERSION_39 - 1);
+    return { dbPath, db: setup };
+  }
+
+  function insert(db: DatabaseSync, kind: string, id: string, data: Uint8Array): void {
+    db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, ?)`).run(kind, id, data, SEEDED_AT);
+  }
+
+  function dataOf(db: DatabaseSync, kind: string, id: string): Uint8Array | undefined {
+    const found = db.prepare(`SELECT data FROM resources WHERE kind = ? AND id = ?`).get(kind, id) as
+      | { data: Uint8Array }
+      | undefined;
+    return found?.data;
+  }
+
+  function count(db: DatabaseSync, table: string, kind: string): number {
+    return (db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE kind = ?`).get(kind) as { n: number }).n;
+  }
+
+  /** A retired kind's row, its history, a list key and its name; its bytes no schema reads any more. */
+  function seedRetired(db: DatabaseSync, kind: "plugin_eval" | "agent_eval", id: string): void {
+    insert(db, kind, id, new Uint8Array([0x0a, 0x05, 0x61, 0x67, 0x65, 0x6e, 0x74]));
+    db.prepare(
+      `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES (?, ?, ?, '', '')`,
+    ).run(kind, id, new Uint8Array([0x00]));
+    db.prepare(`INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES (?, ?, 'org', ?, '')`).run(
+      kind,
+      id,
+      ORG,
+    );
+    db.prepare(
+      `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES (?, ?, ?, ?, 'current', ?)`,
+    ).run(kind, ORG, id, id, SEEDED_AT);
+  }
+
+  const trySession = () =>
+    create(SessionSchema, {
+      metadata: { id: "ses_try", org: ORG, name: "try-1", labels: { [OLD_LABEL]: "pev_old" } },
+      spec: { subject: "first-case" },
+    });
+
+  it("removes both kinds' rows from every table and every grant naming one, and relabels their tries' session, run and score", () => {
+    const { dbPath, db: setup } = v38Database();
+    seedRetired(setup, "plugin_eval", "pev_old");
+    seedRetired(setup, "agent_eval", "aev_old");
+    const kept = { id: "iam_on_org", principal: "identity_account:ida_1", relation: "member", resource: `organization:${ORG}` };
+    const retired = { id: "iam_on_eval", principal: "identity_account:ida_1", relation: "viewer", resource: "plugin_eval:pev_old" };
+    for (const grant of [kept, retired]) insert(setup, "grant", grantIdAfterV34(grant), grantRowAfterV34(grant));
+    const session = trySession();
+    stampEtag(SessionSchema, session);
+    insert(setup, "session", "ses_try", toBinary(SessionSchema, session));
+    insert(
+      setup,
+      "run",
+      "run_try",
+      toBinary(RunSchema, create(RunSchema, { metadata: { id: "run_try", org: ORG, labels: { [OLD_LABEL]: "aev_old" } } })),
+    );
+    insert(
+      setup,
+      "score",
+      "scr_try",
+      toBinary(ScoreSchema, create(ScoreSchema, { metadata: { id: "scr_try", org: ORG, labels: { [OLD_LABEL]: "pev_old" } } })),
+    );
+    const plain = toBinary(SessionSchema, create(SessionSchema, { metadata: { id: "ses_chat", org: ORG, labels: { team: "a" } } }));
+    insert(setup, "session", "ses_chat", plain);
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_39);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_39);
+
+    for (const table of KIND_TABLES) {
+      expect(count(db, table, "plugin_eval"), table).toBe(0);
+      expect(count(db, table, "agent_eval"), table).toBe(0);
+    }
+    expect(dataOf(db, "grant", grantIdAfterV34(retired))).toBeUndefined();
+    expect(dataOf(db, "grant", grantIdAfterV34(kept))).toEqual(grantRowAfterV34(kept));
+    const relabelled = fromBinary(SessionSchema, dataOf(db, "session", "ses_try")!);
+    expect(relabelled.metadata?.labels).toEqual({ [NEW_LABEL]: "pev_old" });
+    expect(relabelled.metadata?.etag, "a stamped row is stamped again").toBe(etagOf(SessionSchema, relabelled));
+    expect(fromBinary(RunSchema, dataOf(db, "run", "run_try")!).metadata?.labels).toEqual({ [NEW_LABEL]: "aev_old" });
+    expect(fromBinary(ScoreSchema, dataOf(db, "score", "scr_try")!).metadata?.labels).toEqual({ [NEW_LABEL]: "pev_old" });
+    expect(dataOf(db, "session", "ses_chat"), "a conversation that is no try keeps its bytes").toEqual(plain);
+  });
+
+  it("keys a relabelled try under eval_run once the store derives its list keys at open", async () => {
+    const { dbPath, db: setup } = v38Database();
+    insert(setup, "session", "ses_try", toBinary(SessionSchema, trySession()));
+    setup.close();
+
+    const store = SqliteStore.open(dbPath, undefined, { listIndexes: [sessionListIndex] });
+    cleanups.push(() => store.close());
+    const found = await store.queryResources(sessionListIndex, { anyKey: [{ name: "eval_run", value: "pev_old" }] });
+    expect(found.map((row) => row.id)).toEqual(["ses_try"]);
+  });
+
+  it("reads tries across keyset pages, relabelling the one past the first page", () => {
+    const { dbPath, db: setup } = v38Database();
+    setup.exec("BEGIN");
+    for (let i = 0; i <= EVAL_KINDS_RETIRED_PAGE_SIZE; i++) {
+      const id = `ses_page_${String(i).padStart(4, "0")}`;
+      const labels: Record<string, string> = i === EVAL_KINDS_RETIRED_PAGE_SIZE ? { [OLD_LABEL]: "pev_old" } : {};
+      insert(setup, "session", id, toBinary(SessionSchema, create(SessionSchema, { metadata: { id, org: ORG, labels } })));
+    }
+    setup.exec("COMMIT");
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_39);
+    const last = `ses_page_${String(EVAL_KINDS_RETIRED_PAGE_SIZE).padStart(4, "0")}`;
+    expect(fromBinary(SessionSchema, dataOf(db, "session", last)!).metadata?.labels).toEqual({ [NEW_LABEL]: "pev_old" });
+  });
+
+  it("reads grants across keyset pages, removing the one past the first page that names a retired kind", () => {
+    const { dbPath, db: setup } = v38Database();
+    setup.exec("BEGIN");
+    const triples = Array.from({ length: EVAL_KINDS_RETIRED_PAGE_SIZE + 1 }, (_, i) => ({
+      principal: `identity_account:ida_${i}`,
+      relation: "viewer",
+      resource: i === EVAL_KINDS_RETIRED_PAGE_SIZE ? "plugin_eval:pev_old" : `organization:${ORG}`,
+    }));
+    for (const triple of triples) insert(setup, "grant", grantIdAfterV34(triple), grantRowAfterV34(triple));
+    setup.exec("COMMIT");
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_39);
+    expect(count(db, "resources", "grant")).toBe(EVAL_KINDS_RETIRED_PAGE_SIZE);
+    expect(dataOf(db, "grant", grantIdAfterV34(triples[EVAL_KINDS_RETIRED_PAGE_SIZE]!))).toBeUndefined();
+  });
+
+  it("a grant row that does not decode fails the step, names the row, and leaves the database at v38", () => {
+    const { dbPath, db: setup } = v38Database();
+    insert(setup, "grant", "grt_broken", new Uint8Array([0x22, 0xff]));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, SCHEMA_VERSION_39)).toThrow(
+      "grant 'grt_broken' cannot be read to retire the plugin eval and agent eval kinds",
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_39 - 1);
+  });
+
+  it("a try row that does not decode fails the step, names the row, rolls back, and leaves the database at v38", () => {
+    const { dbPath, db: setup } = v38Database();
+    seedRetired(setup, "plugin_eval", "pev_old");
+    insert(setup, "run", "run_broken", new Uint8Array([0x22, 0xff]));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, SCHEMA_VERSION_39)).toThrow(
+      "run 'run_broken' cannot be read to retire the plugin eval and agent eval kinds",
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_39 - 1);
+    expect(count(db, "resources", "plugin_eval")).toBe(1);
   });
 });

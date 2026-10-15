@@ -33,7 +33,7 @@
  * directly. Each session is read and decided once per request, inside the
  * shared page loop's examine budget (pipeline/steps/list-page.ts).
  *
- * Neither lane counts a plugin or agent eval's tries: their scores carry
+ * Neither lane counts an eval run's tries: their scores carry
  * the reserved eval label the create chain copies from the run, and both
  * reads leave those rows out, as the conversation lists leave out the
  * tries' sessions. An `eval` score is skipped by source as well, so the
@@ -452,7 +452,7 @@ interface VersionCounts {
 /**
  * The report's accumulator: grades in, the wire report out. Pure over the
  * scores it is given, in any order; a score with no creation stamp (which
- * the index's window read also returns) and a plugin eval's score are
+ * the index's window read also returns) and an eval run's score are
  * skipped, and nothing but counts, names, hashes and dates leaves it.
  */
 export class QualityTally {
@@ -582,7 +582,7 @@ function agentScoresQuery(
   return {
     org,
     anyKey: [{ name: "agent", value: agentId }],
-    withoutKeys: ["plugin_eval"],
+    withoutKeys: ["eval_run"],
     createdAtOrAfter: window.since,
   };
 }

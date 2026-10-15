@@ -61,7 +61,7 @@ All types in this package are defined in `ai/stigmer/agentic/run/v1/`:
 | `artifact.proto` | `RunArtifact` |
 | `writeback.proto` | `WorkspaceWriteBack`, `WorkspaceWriteBackPhase` |
 | `usage.proto` | `StreamingUsageSummary`, `LlmCallUsageRecord`, `TokenUsage`, `ModelUsage` and the usage report aggregates |
-| `plugin_eval_case.proto` | `PluginEvalCaseContext`, `PluginEvalFiles` and the mock server types a plugin eval's turn runs with |
+| `eval_case.proto` | `EvalCaseContext`, `EvalFiles` and the mock server types an eval case's turn runs with |
 | `command.proto` | `RunCommandController` — create, update, updateStatus, delete, terminate, recover, pause, resume, uploadAttachment |
 | `query.proto` | `RunQueryController` — get, list, listBySession, getArtifactDownloadUrl, getArtifactContent, the usage reports (run, session, agent, org), getRunSummary |
 | `io.proto` | Input/output messages for all RPCs |

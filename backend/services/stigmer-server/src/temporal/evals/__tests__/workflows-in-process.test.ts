@@ -64,8 +64,8 @@ import {
   GRADING_FAILED_REASON,
   LOAD_SUITE_ACTIVITY_NAME,
   PLATFORM_BUSY_REASON,
-  PLUGIN_EVAL_BUSY_FAILURE_TYPE,
-  PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
+  EVAL_RUN_BUSY_FAILURE_TYPE,
+  EVAL_RUN_CASE_FAILED_FAILURE_TYPE,
   POLL_RUN_ACTIVITY_NAME,
   READ_VOTE_ACTIVITY_NAME,
   RECORD_SCORE_ACTIVITY_NAME,
@@ -76,7 +76,7 @@ import {
   STOP_RUN_ACTIVITY_NAME,
   EVAL_NOT_PLANNED_ERROR,
   EVAL_WORKFLOW_FAILED_ERROR,
-  PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE,
+  EVAL_RUN_SUITE_FAILED_FAILURE_TYPE,
   TRY_FAILED_REASON,
   TRY_MIN_BUDGET_USD,
   TRY_NOT_RECORDED_ERROR,
@@ -143,8 +143,8 @@ vi.mock("@temporalio/workflow", async (importOriginal) => {
   };
 });
 
-const { runPluginEval, tryBudgetUsd } = await import(
-  "../workflows/run-plugin-eval.js"
+const { runEvalRun, tryBudgetUsd } = await import(
+  "../workflows/run-eval-run.js"
 );
 const { runCase } = await import("../workflows/run-case.js");
 
@@ -243,9 +243,9 @@ describe("the suite workflow", () => {
       inFlight--;
       return result();
     };
-    await runPluginEval({ evalId: "pev_1" });
+    await runEvalRun({ evalId: "evr_1" });
     expect(most).toBe(2);
-    expect(ids[0]).toBe("plugin-eval/pev_1/0/0/with/0");
+    expect(ids[0]).toBe("eval-run/evr_1/0/0/with/0");
     expect(recorded).toHaveLength(5);
     expect(finished).toEqual([{ phase: "completed" }]);
   });
@@ -259,7 +259,7 @@ describe("the suite workflow", () => {
       concurrency: 1,
     });
     seam.child = async () => result({ costUsd: 0.1 });
-    await runPluginEval({ evalId: "pev_1" });
+    await runEvalRun({ evalId: "evr_1" });
     expect(recorded).toHaveLength(3);
     expect(finished).toEqual([{ phase: "partial", reason: "cost_ceiling" }]);
   });
@@ -279,7 +279,7 @@ describe("the suite workflow", () => {
         ? result({ state: "not-graded", notGradedReason: KEYLESS_COPY })
         : result();
     };
-    await runPluginEval({ evalId: "pev_1" });
+    await runEvalRun({ evalId: "evr_1" });
     expect(recorded).toHaveLength(4);
     expect(recorded[1]?.result.notGradedReason).toBe(KEYLESS_COPY);
     expect(finished).toEqual([{ phase: "completed" }]);
@@ -294,7 +294,7 @@ describe("the suite workflow", () => {
       concurrency: 1,
     });
     seam.child = () => Promise.reject(new Error("the child failed"));
-    await runPluginEval({ evalId: "pev_1" });
+    await runEvalRun({ evalId: "evr_1" });
     expect(recorded[0]?.result).toMatchObject({
       state: "not-graded",
       notGradedReason: TRY_FAILED_REASON,
@@ -322,7 +322,7 @@ describe("the suite workflow", () => {
       }
       throw new CancelledFailure("cancelled");
     };
-    await expect(runPluginEval({ evalId: "pev_1" })).rejects.toBeInstanceOf(
+    await expect(runEvalRun({ evalId: "evr_1" })).rejects.toBeInstanceOf(
       CancelledFailure,
     );
     expect(started).toHaveLength(2);
@@ -357,7 +357,7 @@ describe("the suite workflow", () => {
       seam.cancelled = true;
       return result({ state: "not-graded", notGradedReason: TRY_CANCELLED_REASON });
     };
-    await expect(runPluginEval({ evalId: "pev_1" })).rejects.toBeInstanceOf(
+    await expect(runEvalRun({ evalId: "evr_1" })).rejects.toBeInstanceOf(
       CancelledFailure,
     );
     expect(recorded).toHaveLength(1);
@@ -376,7 +376,7 @@ describe("the suite workflow", () => {
       Promise.reject(stepFailure(RECORD_TRY_ACTIVITY_NAME, "the store is down")),
     );
     seam.child = () => Promise.reject(new CancelledFailure("cancelled"));
-    await expect(runPluginEval({ evalId: "pev_1" })).rejects.toBeInstanceOf(
+    await expect(runEvalRun({ evalId: "evr_1" })).rejects.toBeInstanceOf(
       CancelledFailure,
     );
     expect(finished).toEqual([{ phase: "partial", reason: "cancelled" }]);
@@ -395,7 +395,7 @@ describe("the suite workflow", () => {
       budgets.push((options.args[0] as CaseInput).budgetUsd);
       return result({ costUsd: 0.1 });
     };
-    await runPluginEval({ evalId: "pev_1" });
+    await runEvalRun({ evalId: "evr_1" });
     expect(budgets).toHaveLength(3);
     expect(budgets[0]).toBeCloseTo(0.205);
     expect(budgets[1]).toBeCloseTo(0.105);
@@ -417,7 +417,7 @@ describe("the suite workflow", () => {
       await new Promise<void>((resolve) => finishes.push(resolve));
       return result({ costUsd: 0.3 });
     };
-    const running = runPluginEval({ evalId: "pev_1" });
+    const running = runEvalRun({ evalId: "evr_1" });
     const settle = async () => {
       for (let i = 0; i < 20; i++) await Promise.resolve();
     };
@@ -455,7 +455,7 @@ describe("the suite workflow", () => {
       await new Promise<void>((resolve) => finishes.push(resolve));
       return result({ costUsd: 0.01 });
     };
-    const running = runPluginEval({ evalId: "pev_1" });
+    const running = runEvalRun({ evalId: "evr_1" });
     const settle = async () => {
       for (let i = 0; i < 20; i++) await Promise.resolve();
     };
@@ -488,7 +488,7 @@ describe("the suite workflow", () => {
       await new Promise<void>((resolve) => finishes.push(resolve));
       return result({ costUsd: 0.001 });
     };
-    const running = runPluginEval({ evalId: "pev_1" });
+    const running = runEvalRun({ evalId: "evr_1" });
     const settle = async () => {
       for (let i = 0; i < 20; i++) await Promise.resolve();
     };
@@ -522,7 +522,7 @@ describe("the suite workflow", () => {
       budgets.push((options.args[0] as CaseInput).budgetUsd);
       return new Promise<TryResult>((resolve) => finishes.push(resolve));
     };
-    const running = runPluginEval({ evalId: "pev_1" });
+    const running = runEvalRun({ evalId: "evr_1" });
     const settle = async () => {
       for (let i = 0; i < 20; i++) await Promise.resolve();
     };
@@ -563,7 +563,7 @@ describe("the suite workflow", () => {
         notGradedReason: TRY_NOT_STOPPED_REASON,
         costUsd: 0.1,
       });
-    await runPluginEval({ evalId: "pev_1" });
+    await runEvalRun({ evalId: "evr_1" });
     expect(recorded).toHaveLength(1);
     expect(finished).toEqual([{ phase: "partial", reason: "cost_ceiling" }]);
   });
@@ -583,7 +583,7 @@ describe("the suite workflow", () => {
       await new Promise<void>((resolve) => finishes.push(resolve));
       return result({ costUsd: 0.2 });
     };
-    const running = runPluginEval({ evalId: "pev_1" });
+    const running = runEvalRun({ evalId: "evr_1" });
     const settle = async () => {
       for (let i = 0; i < 20; i++) await Promise.resolve();
     };
@@ -613,9 +613,9 @@ describe("the suite workflow", () => {
       { sessionId: "ses_9", runId: "run_9", costUsd: 0.2 },
     );
     seam.child = () => Promise.reject(new Error("the child failed"));
-    await runPluginEval({ evalId: "pev_1" });
+    await runEvalRun({ evalId: "evr_1" });
     expect(seam.activities[TRY_SPEND_ACTIVITY_NAME]).toHaveBeenCalledWith(
-      "pev_1",
+      "evr_1",
       { caseIndex: 0, targetIndex: 0, arm: "with", tryIndex: 0 },
     );
     expect(recorded.map((entry) => entry.result)).toEqual([
@@ -638,13 +638,13 @@ describe("the suite workflow", () => {
     const failures: Error[] = [
       ApplicationFailure.create({
         message: "an unreadable poll",
-        type: PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
+        type: EVAL_RUN_CASE_FAILED_FAILURE_TYPE,
         nonRetryable: true,
         details: [{ voteCostUsd: 0.03 }],
       }),
       // Details of another shape, or a failure of another type, add nothing.
       ApplicationFailure.create({
-        type: PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
+        type: EVAL_RUN_CASE_FAILED_FAILURE_TYPE,
         details: [{ voteCostUsd: "0.03" }],
       }),
       ApplicationFailure.create({ type: "Other", details: [{ voteCostUsd: 0.03 }] }),
@@ -664,7 +664,7 @@ describe("the suite workflow", () => {
             ),
       );
     };
-    await runPluginEval({ evalId: "pev_1" });
+    await runEvalRun({ evalId: "evr_1" });
     expect(recorded.map((entry) => entry.result.costUsd)).toEqual([
       expect.closeTo(0.23, 9),
       0.2,
@@ -689,7 +689,7 @@ describe("the suite workflow", () => {
         ? Promise.resolve({ sessionId: "ses_9", runId: "run_9", costUsd: 0.2 })
         : Promise.reject(new CancelledFailure("cancelled"));
     });
-    await expect(runPluginEval({ evalId: "pev_1" })).rejects.toBeInstanceOf(
+    await expect(runEvalRun({ evalId: "evr_1" })).rejects.toBeInstanceOf(
       CancelledFailure,
     );
     expect(recorded.map((entry) => entry.result)).toEqual([
@@ -714,7 +714,7 @@ describe("the suite workflow", () => {
     seam.activities[TRY_SPEND_ACTIVITY_NAME] = vi.fn(() =>
       Promise.reject(new Error("the store is down")),
     );
-    await runPluginEval({ evalId: "pev_1" });
+    await runEvalRun({ evalId: "evr_1" });
     expect(recorded[0]?.result).toMatchObject({ runId: "", costUsd: 0 });
 
     const { finished } = suite({
@@ -727,7 +727,7 @@ describe("the suite workflow", () => {
     seam.activities[TRY_SPEND_ACTIVITY_NAME] = vi.fn(() =>
       Promise.reject(new CancelledFailure("cancelled")),
     );
-    await expect(runPluginEval({ evalId: "pev_1" })).rejects.toBeInstanceOf(
+    await expect(runEvalRun({ evalId: "evr_1" })).rejects.toBeInstanceOf(
       CancelledFailure,
     );
     expect(finished).toEqual([{ phase: "partial", reason: "cancelled" }]);
@@ -753,7 +753,7 @@ describe("the suite workflow", () => {
       children++;
       return result();
     };
-    await runPluginEval({ evalId: "pev_1" });
+    await runEvalRun({ evalId: "evr_1" });
     expect(children).toBe(2);
     expect(records).toBe(2);
     expect(finished).toEqual([
@@ -766,14 +766,14 @@ describe("the suite workflow", () => {
     seam.activities[LOAD_SUITE_ACTIVITY_NAME] = vi.fn(() =>
       Promise.reject(stepFailure(LOAD_SUITE_ACTIVITY_NAME, "")),
     );
-    await runPluginEval({ evalId: "pev_1" });
+    await runEvalRun({ evalId: "evr_1" });
     expect(finished).toEqual([{ phase: "failed", error: EVAL_NOT_PLANNED_ERROR }]);
 
     const again = suite({ kind: "stop" });
     seam.activities[LOAD_SUITE_ACTIVITY_NAME] = vi.fn(() =>
       Promise.reject(new Error("not an activity failure")),
     );
-    await runPluginEval({ evalId: "pev_1" });
+    await runEvalRun({ evalId: "evr_1" });
     expect(again.finished).toEqual([
       { phase: "failed", error: `${EVAL_NOT_PLANNED_ERROR}: not an activity failure` },
     ]);
@@ -793,7 +793,7 @@ describe("the suite workflow", () => {
       ends.push(end);
       return Promise.resolve();
     });
-    await runPluginEval({ evalId: "pev_1" });
+    await runEvalRun({ evalId: "evr_1" });
     expect(ends).toEqual([{ phase: "failed", error: EVAL_NOT_PLANNED_ERROR }]);
   });
 
@@ -820,7 +820,7 @@ describe("the suite workflow", () => {
     seam.activities[LOAD_SUITE_ACTIVITY_NAME] = vi.fn(() =>
       Promise.reject(new CancelledFailure("cancelled")),
     );
-    await expect(runPluginEval({ evalId: "pev_1" })).rejects.toBeInstanceOf(
+    await expect(runEvalRun({ evalId: "evr_1" })).rejects.toBeInstanceOf(
       CancelledFailure,
     );
     expect(finished).toEqual([{ phase: "partial", reason: "cancelled" }]);
@@ -834,13 +834,13 @@ describe("the suite workflow", () => {
       ends.push(end);
       return Promise.reject(new Error("the store is down"));
     });
-    const failure = await runPluginEval({ evalId: "pev_1" }).then(
+    const failure = await runEvalRun({ evalId: "evr_1" }).then(
       () => undefined,
       (error: unknown) => error,
     );
     expect(failure).toBeInstanceOf(ApplicationFailure);
     expect(failure).toMatchObject({
-      type: PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE,
+      type: EVAL_RUN_SUITE_FAILED_FAILURE_TYPE,
       nonRetryable: true,
       message: `${EVAL_WORKFLOW_FAILED_ERROR}: the store is down`,
     });
@@ -858,13 +858,13 @@ describe("the suite workflow", () => {
       maxCostUsd: 10,
       concurrency: 1,
     });
-    const failure = await runPluginEval({ evalId: "pev_1" }).then(
+    const failure = await runEvalRun({ evalId: "evr_1" }).then(
       () => undefined,
       (error: unknown) => error,
     );
     expect(failure).toBeInstanceOf(ApplicationFailure);
     expect(failure).toMatchObject({
-      type: PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE,
+      type: EVAL_RUN_SUITE_FAILED_FAILURE_TYPE,
       nonRetryable: true,
     });
     expect(finished).toEqual([
@@ -877,13 +877,13 @@ describe("the suite workflow", () => {
 
   it("ends at once when the load plans nothing", async () => {
     const { finished } = suite({ kind: "stop" });
-    await runPluginEval({ evalId: "pev_1" });
+    await runEvalRun({ evalId: "evr_1" });
     expect(finished).toEqual([]);
   });
 });
 
 const INPUT: CaseInput = {
-  evalId: "pev_1",
+  evalId: "evr_1",
   org: "acme",
   caseIndex: 0,
   targetIndex: 0,
@@ -964,7 +964,7 @@ function busyFailure(): ActivityFailure {
     "worker",
     ApplicationFailure.create({
       message: "full",
-      type: PLUGIN_EVAL_BUSY_FAILURE_TYPE,
+      type: EVAL_RUN_BUSY_FAILURE_TYPE,
     }),
   );
 }
@@ -1345,7 +1345,7 @@ describe("the case workflow", () => {
     );
     expect(failure).toBeInstanceOf(ApplicationFailure);
     expect(failure).toMatchObject({
-      type: PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
+      type: EVAL_RUN_CASE_FAILED_FAILURE_TYPE,
       nonRetryable: true,
     });
     expect((failure as ApplicationFailure).message).toBe(
@@ -1375,7 +1375,7 @@ describe("the case workflow", () => {
       }),
     });
     await expect(runCase(INPUT)).rejects.toMatchObject({
-      type: PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
+      type: EVAL_RUN_CASE_FAILED_FAILURE_TYPE,
       message: "an unreadable poll",
     });
     expect(activities[STOP_RUN_ACTIVITY_NAME]!.mock.calls).toEqual([
@@ -1407,7 +1407,7 @@ describe("the case workflow", () => {
       (error: unknown) => error,
     );
     expect(failure).toMatchObject({
-      type: PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
+      type: EVAL_RUN_CASE_FAILED_FAILURE_TYPE,
       nonRetryable: true,
       details: [{ voteCostUsd: 0.01 }],
     });
@@ -1440,7 +1440,7 @@ describe("the case workflow", () => {
     });
     await expect(runCase(INPUT)).rejects.toMatchObject({
       message: "no outcomes",
-      type: PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
+      type: EVAL_RUN_CASE_FAILED_FAILURE_TYPE,
     });
   });
 
@@ -1452,7 +1452,7 @@ describe("the case workflow", () => {
             new Error("the lane gave up", {
               cause: ApplicationFailure.create({
                 message: "full",
-                type: PLUGIN_EVAL_BUSY_FAILURE_TYPE,
+                type: EVAL_RUN_BUSY_FAILURE_TYPE,
               }),
             }),
           ),
@@ -1616,7 +1616,7 @@ describe("the case workflow", () => {
       runId: "run_1",
       costUsd: 0.4,
     });
-    expect(graded[TRY_SPEND_ACTIVITY_NAME]).toHaveBeenCalledWith("pev_1", {
+    expect(graded[TRY_SPEND_ACTIVITY_NAME]).toHaveBeenCalledWith("evr_1", {
       caseIndex: 0,
       targetIndex: 0,
       arm: "with",

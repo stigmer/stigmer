@@ -29,9 +29,9 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import {
-  RUN_PLUGIN_EVAL_WORKFLOW_TYPE,
+  RUN_EVAL_RUN_WORKFLOW_TYPE,
   TRY_FAILED_REASON,
-  runPluginEvalWorkflowId,
+  runEvalRunWorkflowId,
   type CaseActivities,
   type TryResult,
   type SpendActivities,
@@ -41,7 +41,7 @@ import {
   type SuitePlan,
 } from "../names.js";
 
-const TASK_QUEUE = "plugin-eval-workflow-test";
+const TASK_QUEUE = "eval-run-workflow-test";
 const WORKFLOWS_PATH = new URL("../workflows/index.ts", import.meta.url)
   .pathname;
 
@@ -212,15 +212,15 @@ let workflowSeq = 0;
 function startEval() {
   if (!env) throw new Error("TestWorkflowEnvironment not initialized");
   workflowSeq++;
-  const evalId = `pev_test${workflowSeq}${Date.now()}`;
-  return env.client.workflow.start(RUN_PLUGIN_EVAL_WORKFLOW_TYPE, {
+  const evalId = `evr_test${workflowSeq}${Date.now()}`;
+  return env.client.workflow.start(RUN_EVAL_RUN_WORKFLOW_TYPE, {
     taskQueue: TASK_QUEUE,
-    workflowId: runPluginEvalWorkflowId(evalId),
+    workflowId: runEvalRunWorkflowId(evalId),
     args: [{ evalId }],
   });
 }
 
-describe("stigmer/evals/run-plugin-eval workflow (TestWorkflowEnvironment)", () => {
+describe("stigmer/evals/run-eval-run workflow (TestWorkflowEnvironment)", () => {
   beforeAll(async () => {
     try {
       const { TestWorkflowEnvironment: TWE } =

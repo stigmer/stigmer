@@ -101,7 +101,7 @@ export function deriveCaptureSubstrate(
  * both hold:
  *
  *  - `review`: the conversation asked for review (`SessionSpec.file_review`),
- *    or the run is a plugin-eval try, whose graders read the captured sets
+ *    or the run is a eval-run try, whose graders read the captured sets
  *    whatever the switch says. Off by default.
  *  - the workspace has a capture substrate ({@link deriveCaptureSubstrate}).
  *

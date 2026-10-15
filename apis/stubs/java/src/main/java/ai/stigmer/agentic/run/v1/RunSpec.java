@@ -1164,48 +1164,48 @@ private static final long serialVersionUID = 0L;
     return conversationCatchup_ == null ? ai.stigmer.agentic.run.v1.ConversationCatchup.getDefaultInstance() : conversationCatchup_;
   }
 
-  public static final int PLUGIN_EVAL_CASE_FIELD_NUMBER = 25;
-  private ai.stigmer.agentic.run.v1.PluginEvalCaseContext pluginEvalCase_;
+  public static final int EVAL_CASE_FIELD_NUMBER = 25;
+  private ai.stigmer.agentic.run.v1.EvalCaseContext evalCase_;
   /**
    * <pre>
-   * What a plugin-eval case gives this try beyond its message: a starting
+   * What an eval case gives this try beyond its message: a starting
    * folder, reference folders, an earlier conversation, variables and MCP
    * stand-ins. Absent on every other run.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
-   * @return Whether the pluginEvalCase field is set.
+   * <code>.ai.stigmer.agentic.run.v1.EvalCaseContext eval_case = 25 [json_name = "evalCase"];</code>
+   * @return Whether the evalCase field is set.
    */
   @java.lang.Override
-  public boolean hasPluginEvalCase() {
+  public boolean hasEvalCase() {
     return ((bitField0_ & 0x00000008) != 0);
   }
   /**
    * <pre>
-   * What a plugin-eval case gives this try beyond its message: a starting
+   * What an eval case gives this try beyond its message: a starting
    * folder, reference folders, an earlier conversation, variables and MCP
    * stand-ins. Absent on every other run.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
-   * @return The pluginEvalCase.
+   * <code>.ai.stigmer.agentic.run.v1.EvalCaseContext eval_case = 25 [json_name = "evalCase"];</code>
+   * @return The evalCase.
    */
   @java.lang.Override
-  public ai.stigmer.agentic.run.v1.PluginEvalCaseContext getPluginEvalCase() {
-    return pluginEvalCase_ == null ? ai.stigmer.agentic.run.v1.PluginEvalCaseContext.getDefaultInstance() : pluginEvalCase_;
+  public ai.stigmer.agentic.run.v1.EvalCaseContext getEvalCase() {
+    return evalCase_ == null ? ai.stigmer.agentic.run.v1.EvalCaseContext.getDefaultInstance() : evalCase_;
   }
   /**
    * <pre>
-   * What a plugin-eval case gives this try beyond its message: a starting
+   * What an eval case gives this try beyond its message: a starting
    * folder, reference folders, an earlier conversation, variables and MCP
    * stand-ins. Absent on every other run.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.EvalCaseContext eval_case = 25 [json_name = "evalCase"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.run.v1.PluginEvalCaseContextOrBuilder getPluginEvalCaseOrBuilder() {
-    return pluginEvalCase_ == null ? ai.stigmer.agentic.run.v1.PluginEvalCaseContext.getDefaultInstance() : pluginEvalCase_;
+  public ai.stigmer.agentic.run.v1.EvalCaseContextOrBuilder getEvalCaseOrBuilder() {
+    return evalCase_ == null ? ai.stigmer.agentic.run.v1.EvalCaseContext.getDefaultInstance() : evalCase_;
   }
 
   public static final int RECONCILE_FILE_REVIEW_FIELD_NUMBER = 26;
@@ -1350,7 +1350,7 @@ private static final long serialVersionUID = 0L;
       com.google.protobuf.GeneratedMessage.writeString(output, 24, appendSystemPrompt_);
     }
     if (((bitField0_ & 0x00000008) != 0)) {
-      output.writeMessage(25, getPluginEvalCase());
+      output.writeMessage(25, getEvalCase());
     }
     if (reconcileFileReview_ != false) {
       output.writeBool(26, reconcileFileReview_);
@@ -1442,7 +1442,7 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000008) != 0)) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(25, getPluginEvalCase());
+        .computeMessageSize(25, getEvalCase());
     }
     if (reconcileFileReview_ != false) {
       size += com.google.protobuf.CodedOutputStream
@@ -1505,10 +1505,10 @@ private static final long serialVersionUID = 0L;
       if (!getConversationCatchup()
           .equals(other.getConversationCatchup())) return false;
     }
-    if (hasPluginEvalCase() != other.hasPluginEvalCase()) return false;
-    if (hasPluginEvalCase()) {
-      if (!getPluginEvalCase()
-          .equals(other.getPluginEvalCase())) return false;
+    if (hasEvalCase() != other.hasEvalCase()) return false;
+    if (hasEvalCase()) {
+      if (!getEvalCase()
+          .equals(other.getEvalCase())) return false;
     }
     if (getReconcileFileReview()
         != other.getReconcileFileReview()) return false;
@@ -1580,9 +1580,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + CONVERSATION_CATCHUP_FIELD_NUMBER;
       hash = (53 * hash) + getConversationCatchup().hashCode();
     }
-    if (hasPluginEvalCase()) {
-      hash = (37 * hash) + PLUGIN_EVAL_CASE_FIELD_NUMBER;
-      hash = (53 * hash) + getPluginEvalCase().hashCode();
+    if (hasEvalCase()) {
+      hash = (37 * hash) + EVAL_CASE_FIELD_NUMBER;
+      hash = (53 * hash) + getEvalCase().hashCode();
     }
     hash = (37 * hash) + RECONCILE_FILE_REVIEW_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
@@ -1742,7 +1742,7 @@ private static final long serialVersionUID = 0L;
         internalGetStructuredOutputSchemaFieldBuilder();
         internalGetAttachmentsFieldBuilder();
         internalGetConversationCatchupFieldBuilder();
-        internalGetPluginEvalCaseFieldBuilder();
+        internalGetEvalCaseFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1786,10 +1786,10 @@ private static final long serialVersionUID = 0L;
         conversationCatchupBuilder_.dispose();
         conversationCatchupBuilder_ = null;
       }
-      pluginEvalCase_ = null;
-      if (pluginEvalCaseBuilder_ != null) {
-        pluginEvalCaseBuilder_.dispose();
-        pluginEvalCaseBuilder_ = null;
+      evalCase_ = null;
+      if (evalCaseBuilder_ != null) {
+        evalCaseBuilder_.dispose();
+        evalCaseBuilder_ = null;
       }
       reconcileFileReview_ = false;
       excludedPluginIds_ =
@@ -1893,9 +1893,9 @@ private static final long serialVersionUID = 0L;
         to_bitField0_ |= 0x00000004;
       }
       if (((from_bitField0_ & 0x00008000) != 0)) {
-        result.pluginEvalCase_ = pluginEvalCaseBuilder_ == null
-            ? pluginEvalCase_
-            : pluginEvalCaseBuilder_.build();
+        result.evalCase_ = evalCaseBuilder_ == null
+            ? evalCase_
+            : evalCaseBuilder_.build();
         to_bitField0_ |= 0x00000008;
       }
       if (((from_bitField0_ & 0x00010000) != 0)) {
@@ -2018,8 +2018,8 @@ private static final long serialVersionUID = 0L;
       if (other.hasConversationCatchup()) {
         mergeConversationCatchup(other.getConversationCatchup());
       }
-      if (other.hasPluginEvalCase()) {
-        mergePluginEvalCase(other.getPluginEvalCase());
+      if (other.hasEvalCase()) {
+        mergeEvalCase(other.getEvalCase());
       }
       if (other.getReconcileFileReview() != false) {
         setReconcileFileReview(other.getReconcileFileReview());
@@ -2168,7 +2168,7 @@ private static final long serialVersionUID = 0L;
             } // case 194
             case 202: {
               input.readMessage(
-                  internalGetPluginEvalCaseFieldBuilder().getBuilder(),
+                  internalGetEvalCaseFieldBuilder().getBuilder(),
                   extensionRegistry);
               bitField0_ |= 0x00008000;
               break;
@@ -5319,56 +5319,56 @@ private static final long serialVersionUID = 0L;
       return conversationCatchupBuilder_;
     }
 
-    private ai.stigmer.agentic.run.v1.PluginEvalCaseContext pluginEvalCase_;
+    private ai.stigmer.agentic.run.v1.EvalCaseContext evalCase_;
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.run.v1.PluginEvalCaseContext, ai.stigmer.agentic.run.v1.PluginEvalCaseContext.Builder, ai.stigmer.agentic.run.v1.PluginEvalCaseContextOrBuilder> pluginEvalCaseBuilder_;
+        ai.stigmer.agentic.run.v1.EvalCaseContext, ai.stigmer.agentic.run.v1.EvalCaseContext.Builder, ai.stigmer.agentic.run.v1.EvalCaseContextOrBuilder> evalCaseBuilder_;
     /**
      * <pre>
-     * What a plugin-eval case gives this try beyond its message: a starting
+     * What an eval case gives this try beyond its message: a starting
      * folder, reference folders, an earlier conversation, variables and MCP
      * stand-ins. Absent on every other run.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
-     * @return Whether the pluginEvalCase field is set.
+     * <code>.ai.stigmer.agentic.run.v1.EvalCaseContext eval_case = 25 [json_name = "evalCase"];</code>
+     * @return Whether the evalCase field is set.
      */
-    public boolean hasPluginEvalCase() {
+    public boolean hasEvalCase() {
       return ((bitField0_ & 0x00008000) != 0);
     }
     /**
      * <pre>
-     * What a plugin-eval case gives this try beyond its message: a starting
+     * What an eval case gives this try beyond its message: a starting
      * folder, reference folders, an earlier conversation, variables and MCP
      * stand-ins. Absent on every other run.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
-     * @return The pluginEvalCase.
+     * <code>.ai.stigmer.agentic.run.v1.EvalCaseContext eval_case = 25 [json_name = "evalCase"];</code>
+     * @return The evalCase.
      */
-    public ai.stigmer.agentic.run.v1.PluginEvalCaseContext getPluginEvalCase() {
-      if (pluginEvalCaseBuilder_ == null) {
-        return pluginEvalCase_ == null ? ai.stigmer.agentic.run.v1.PluginEvalCaseContext.getDefaultInstance() : pluginEvalCase_;
+    public ai.stigmer.agentic.run.v1.EvalCaseContext getEvalCase() {
+      if (evalCaseBuilder_ == null) {
+        return evalCase_ == null ? ai.stigmer.agentic.run.v1.EvalCaseContext.getDefaultInstance() : evalCase_;
       } else {
-        return pluginEvalCaseBuilder_.getMessage();
+        return evalCaseBuilder_.getMessage();
       }
     }
     /**
      * <pre>
-     * What a plugin-eval case gives this try beyond its message: a starting
+     * What an eval case gives this try beyond its message: a starting
      * folder, reference folders, an earlier conversation, variables and MCP
      * stand-ins. Absent on every other run.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.EvalCaseContext eval_case = 25 [json_name = "evalCase"];</code>
      */
-    public Builder setPluginEvalCase(ai.stigmer.agentic.run.v1.PluginEvalCaseContext value) {
-      if (pluginEvalCaseBuilder_ == null) {
+    public Builder setEvalCase(ai.stigmer.agentic.run.v1.EvalCaseContext value) {
+      if (evalCaseBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        pluginEvalCase_ = value;
+        evalCase_ = value;
       } else {
-        pluginEvalCaseBuilder_.setMessage(value);
+        evalCaseBuilder_.setMessage(value);
       }
       bitField0_ |= 0x00008000;
       onChanged();
@@ -5376,19 +5376,19 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * What a plugin-eval case gives this try beyond its message: a starting
+     * What an eval case gives this try beyond its message: a starting
      * folder, reference folders, an earlier conversation, variables and MCP
      * stand-ins. Absent on every other run.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.EvalCaseContext eval_case = 25 [json_name = "evalCase"];</code>
      */
-    public Builder setPluginEvalCase(
-        ai.stigmer.agentic.run.v1.PluginEvalCaseContext.Builder builderForValue) {
-      if (pluginEvalCaseBuilder_ == null) {
-        pluginEvalCase_ = builderForValue.build();
+    public Builder setEvalCase(
+        ai.stigmer.agentic.run.v1.EvalCaseContext.Builder builderForValue) {
+      if (evalCaseBuilder_ == null) {
+        evalCase_ = builderForValue.build();
       } else {
-        pluginEvalCaseBuilder_.setMessage(builderForValue.build());
+        evalCaseBuilder_.setMessage(builderForValue.build());
       }
       bitField0_ |= 0x00008000;
       onChanged();
@@ -5396,26 +5396,26 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * What a plugin-eval case gives this try beyond its message: a starting
+     * What an eval case gives this try beyond its message: a starting
      * folder, reference folders, an earlier conversation, variables and MCP
      * stand-ins. Absent on every other run.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.EvalCaseContext eval_case = 25 [json_name = "evalCase"];</code>
      */
-    public Builder mergePluginEvalCase(ai.stigmer.agentic.run.v1.PluginEvalCaseContext value) {
-      if (pluginEvalCaseBuilder_ == null) {
+    public Builder mergeEvalCase(ai.stigmer.agentic.run.v1.EvalCaseContext value) {
+      if (evalCaseBuilder_ == null) {
         if (((bitField0_ & 0x00008000) != 0) &&
-          pluginEvalCase_ != null &&
-          pluginEvalCase_ != ai.stigmer.agentic.run.v1.PluginEvalCaseContext.getDefaultInstance()) {
-          getPluginEvalCaseBuilder().mergeFrom(value);
+          evalCase_ != null &&
+          evalCase_ != ai.stigmer.agentic.run.v1.EvalCaseContext.getDefaultInstance()) {
+          getEvalCaseBuilder().mergeFrom(value);
         } else {
-          pluginEvalCase_ = value;
+          evalCase_ = value;
         }
       } else {
-        pluginEvalCaseBuilder_.mergeFrom(value);
+        evalCaseBuilder_.mergeFrom(value);
       }
-      if (pluginEvalCase_ != null) {
+      if (evalCase_ != null) {
         bitField0_ |= 0x00008000;
         onChanged();
       }
@@ -5423,75 +5423,75 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * What a plugin-eval case gives this try beyond its message: a starting
+     * What an eval case gives this try beyond its message: a starting
      * folder, reference folders, an earlier conversation, variables and MCP
      * stand-ins. Absent on every other run.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.EvalCaseContext eval_case = 25 [json_name = "evalCase"];</code>
      */
-    public Builder clearPluginEvalCase() {
+    public Builder clearEvalCase() {
       bitField0_ = (bitField0_ & ~0x00008000);
-      pluginEvalCase_ = null;
-      if (pluginEvalCaseBuilder_ != null) {
-        pluginEvalCaseBuilder_.dispose();
-        pluginEvalCaseBuilder_ = null;
+      evalCase_ = null;
+      if (evalCaseBuilder_ != null) {
+        evalCaseBuilder_.dispose();
+        evalCaseBuilder_ = null;
       }
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * What a plugin-eval case gives this try beyond its message: a starting
+     * What an eval case gives this try beyond its message: a starting
      * folder, reference folders, an earlier conversation, variables and MCP
      * stand-ins. Absent on every other run.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.EvalCaseContext eval_case = 25 [json_name = "evalCase"];</code>
      */
-    public ai.stigmer.agentic.run.v1.PluginEvalCaseContext.Builder getPluginEvalCaseBuilder() {
+    public ai.stigmer.agentic.run.v1.EvalCaseContext.Builder getEvalCaseBuilder() {
       bitField0_ |= 0x00008000;
       onChanged();
-      return internalGetPluginEvalCaseFieldBuilder().getBuilder();
+      return internalGetEvalCaseFieldBuilder().getBuilder();
     }
     /**
      * <pre>
-     * What a plugin-eval case gives this try beyond its message: a starting
+     * What an eval case gives this try beyond its message: a starting
      * folder, reference folders, an earlier conversation, variables and MCP
      * stand-ins. Absent on every other run.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.EvalCaseContext eval_case = 25 [json_name = "evalCase"];</code>
      */
-    public ai.stigmer.agentic.run.v1.PluginEvalCaseContextOrBuilder getPluginEvalCaseOrBuilder() {
-      if (pluginEvalCaseBuilder_ != null) {
-        return pluginEvalCaseBuilder_.getMessageOrBuilder();
+    public ai.stigmer.agentic.run.v1.EvalCaseContextOrBuilder getEvalCaseOrBuilder() {
+      if (evalCaseBuilder_ != null) {
+        return evalCaseBuilder_.getMessageOrBuilder();
       } else {
-        return pluginEvalCase_ == null ?
-            ai.stigmer.agentic.run.v1.PluginEvalCaseContext.getDefaultInstance() : pluginEvalCase_;
+        return evalCase_ == null ?
+            ai.stigmer.agentic.run.v1.EvalCaseContext.getDefaultInstance() : evalCase_;
       }
     }
     /**
      * <pre>
-     * What a plugin-eval case gives this try beyond its message: a starting
+     * What an eval case gives this try beyond its message: a starting
      * folder, reference folders, an earlier conversation, variables and MCP
      * stand-ins. Absent on every other run.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.EvalCaseContext eval_case = 25 [json_name = "evalCase"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.run.v1.PluginEvalCaseContext, ai.stigmer.agentic.run.v1.PluginEvalCaseContext.Builder, ai.stigmer.agentic.run.v1.PluginEvalCaseContextOrBuilder> 
-        internalGetPluginEvalCaseFieldBuilder() {
-      if (pluginEvalCaseBuilder_ == null) {
-        pluginEvalCaseBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.run.v1.PluginEvalCaseContext, ai.stigmer.agentic.run.v1.PluginEvalCaseContext.Builder, ai.stigmer.agentic.run.v1.PluginEvalCaseContextOrBuilder>(
-                getPluginEvalCase(),
+        ai.stigmer.agentic.run.v1.EvalCaseContext, ai.stigmer.agentic.run.v1.EvalCaseContext.Builder, ai.stigmer.agentic.run.v1.EvalCaseContextOrBuilder> 
+        internalGetEvalCaseFieldBuilder() {
+      if (evalCaseBuilder_ == null) {
+        evalCaseBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.run.v1.EvalCaseContext, ai.stigmer.agentic.run.v1.EvalCaseContext.Builder, ai.stigmer.agentic.run.v1.EvalCaseContextOrBuilder>(
+                getEvalCase(),
                 getParentForChildren(),
                 isClean());
-        pluginEvalCase_ = null;
+        evalCase_ = null;
       }
-      return pluginEvalCaseBuilder_;
+      return evalCaseBuilder_;
     }
 
     private boolean reconcileFileReview_ ;

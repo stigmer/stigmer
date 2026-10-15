@@ -158,8 +158,8 @@ import {
   newValidatePluginListStep,
 } from "./steps.js";
 import { newCascadeDeleteEvaluatorsStep } from "../evaluator/cascade.js";
-import { newCascadeDeleteAgentEvalsStep } from "../agent-eval/cascade.js";
-import type { AgentEvalCascadeDeps } from "../agent-eval/cascade.js";
+import { newCascadeDeleteEvalRunsStep } from "../eval-run/cascade.js";
+import type { EvalRunCascadeDeps } from "../eval-run/cascade.js";
 import {
   TAG_VERSION_RESULT_KEY,
   agentVersionBinding,
@@ -195,8 +195,8 @@ export interface AgentControllerDeps {
    * defaults against the engine they name.
    */
   readonly modelRegistry: ModelCatalogProvider;
-  /** The agent evals the delete removes with the agent; absent, it removes none (a composition serving no evals). */
-  readonly agentEvals?: AgentEvalCascadeDeps;
+  /** The eval runs the delete removes with the agent; absent, it removes none (a composition serving no eval runs). */
+  readonly evalRuns?: EvalRunCascadeDeps;
 }
 
 /** Registers both agent services on the router (routes stage). */
@@ -444,7 +444,7 @@ async function deleteAgent(
       ),
     )
     .addStep(
-      newCascadeDeleteAgentEvalsStep<typeof AgentCommandController.method.delete.input>(deps.agentEvals),
+      newCascadeDeleteEvalRunsStep<typeof AgentCommandController.method.delete.input>("agent", deps.evalRuns),
     )
     .addStep(
       newCascadeDeleteSharesStep(

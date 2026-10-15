@@ -18,9 +18,9 @@ import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import { StigmerError } from "@stigmer/sdk";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import { EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
 import type { AgentQualityReport } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
-import { agentEvalWith } from "../../agent-eval/__tests__/agent-eval-fixture";
+import { agentEvalRunWith } from "../../eval-run/__tests__/eval-fixture.agent";
 import { AgentQualityTab } from "../../agent/AgentQualityTab";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 import { VERSION_HASH, emptyReport, flaggedScore, qualityReport } from "./quality-fixture";
@@ -41,9 +41,9 @@ const agent = create(AgentSchema, {
 function client(
   report: () => Promise<AgentQualityReport>,
   opts: {
-    readonly evals?: ReturnType<typeof agentEvalWith>[];
+    readonly evals?: ReturnType<typeof agentEvalRunWith>[];
     /** The evals as pages, each read by the token the one before names. */
-    readonly evalPages?: Record<string, { entries: ReturnType<typeof agentEvalWith>[]; nextPageToken: string }>;
+    readonly evalPages?: Record<string, { entries: ReturnType<typeof agentEvalRunWith>[]; nextPageToken: string }>;
   } = {},
 ) {
   return {
@@ -61,7 +61,7 @@ function client(
         nextPageToken: "",
       })),
     },
-    agenteval: {
+    evalrun: {
       listByAgent: vi.fn(async (req: { pageToken: string }) =>
         opts.evalPages?.[req.pageToken] ?? { entries: opts.evals ?? [], nextPageToken: "" },
       ),
@@ -153,11 +153,11 @@ describe("AgentQualityReportView in the Quality tab", () => {
   it("tables each version with its latest finished eval, or no eval", async () => {
     const onOpenEval = vi.fn();
     const evals = [
-      agentEvalWith(
+      agentEvalRunWith(
         [{ slug: "p", cases: [{ name: "a", score: 1 }, { name: "b", score: 1 }, { name: "c", score: 0 }, { name: "d", score: 1 }] }],
-        { id: "aev_new", version: VERSION_HASH },
+        { id: "evr_new", version: VERSION_HASH },
       ),
-      agentEvalWith([{ slug: "p", cases: [{ name: "a", score: 0 }] }], { id: "aev_old", version: VERSION_HASH }),
+      agentEvalRunWith([{ slug: "p", cases: [{ name: "a", score: 0 }] }], { id: "evr_old", version: VERSION_HASH }),
     ];
     render(<AgentQualityTab agent={agent} onOpenEval={onOpenEval} />, {
       wrapper: orgWrapper(client(async () => qualityReport(), { evals })),
@@ -168,7 +168,7 @@ describe("AgentQualityReportView in the Quality tab", () => {
     expect(within(tagged).getByText("3 up · 1 down")).toBeDefined();
     const evalLink = await within(tagged).findByRole("button", { name: "75% of 4 cases" });
     fireEvent.click(evalLink);
-    expect(onOpenEval).toHaveBeenCalledWith("aev_new");
+    expect(onOpenEval).toHaveBeenCalledWith("evr_new");
     const unversioned = within(table).getByRole("row", { name: /^unversioned / });
     expect(within(unversioned).getByText("no eval")).toBeDefined();
     // The judge's current rules never graded the unversioned day.
@@ -180,16 +180,16 @@ describe("AgentQualityReportView in the Quality tab", () => {
     const evalPages = {
       "": {
         entries: [
-          agentEvalWith([{ slug: "p", cases: [{ name: "a" }] }], {
-            id: "aev_running",
+          agentEvalRunWith([{ slug: "p", cases: [{ name: "a" }] }], {
+            id: "evr_running",
             version: VERSION_HASH,
-            phase: PluginEvalPhase.running,
+            phase: EvalRunPhase.running,
           }),
         ],
         nextPageToken: "page-2",
       },
       "page-2": {
-        entries: [agentEvalWith([{ slug: "p", cases: [{ name: "a", score: 1 }] }], { id: "aev_late", version: VERSION_HASH })],
+        entries: [agentEvalRunWith([{ slug: "p", cases: [{ name: "a", score: 1 }] }], { id: "evr_late", version: VERSION_HASH })],
         nextPageToken: "",
       },
     };
@@ -199,7 +199,7 @@ describe("AgentQualityReportView in the Quality tab", () => {
     const table = await screen.findByRole("table", { name: "By agent version" });
     const tagged = await within(table).findByRole("row", { name: /^v2 / });
     fireEvent.click(await within(tagged).findByRole("button", { name: "100% of 1 case" }));
-    expect(onOpenEval).toHaveBeenCalledWith("aev_late");
+    expect(onOpenEval).toHaveBeenCalledWith("evr_late");
   });
 
   it("lists flagged runs by what failed, and opens one through onNavigateToRun", async () => {

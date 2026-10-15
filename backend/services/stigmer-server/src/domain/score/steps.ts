@@ -96,7 +96,7 @@ import {
   runNotCompletedMessage,
   scoreOrgMismatchMessage,
 } from "./constants.js";
-import { PLUGIN_EVAL_LABEL } from "../plugin-eval/constants.js";
+import { EVAL_RUN_LABEL } from "../eval-run/constants.js";
 import { isTerminalExecutionPhase } from "../run/phases.js";
 import { sessionIdOf } from "../run/target.js";
 import { scoreListIndex } from "./list-index.js";
@@ -136,7 +136,7 @@ export const SCORE_EXISTS_REASON = "SCORE_EXISTS";
  *     is a person who can own a rating.
  *   - score_source_check, score_source_judge and score_source_eval only
  *     from the server itself (the `internal` class only the in-process
- *     transport mints), because a check's, a judge's or a plugin eval's
+ *     transport mints), because a check's, a judge's or an eval run's
  *     verdict is the platform's claim about a run, never a caller's.
  *
  * The rules are a table keyed by every source but the unspecified one, so
@@ -271,13 +271,13 @@ function scoredRunOf(ctx: RequestContext<typeof ScoreSchema>): Run {
  *     lane, and a score lives where its run does.
  *  2. The run must be completed. A completed run never changes phase again
  *     (update-status.ts ignores a phase change on a terminal run), so a
- *     score is never stale against its run. A plugin eval's score needs
+ *     score is never stale against its run. An eval run's score needs
  *     the run ended, in any terminal phase: a try that timed out, hit a
  *     cap or failed is graded on what it produced, as the format grades
  *     it, and a terminal run never changes phase again either.
  *  3. The metric must agree with the source (SOURCE_METRICS): `feedback`
  *     from a person, `run-health` from the checks, `judge` from the AI
- *     judge, `eval` from a plugin eval. A comment is a person's only, a judge model a judge's only,
+ *     judge, `eval` from an eval run. A comment is a person's only, a judge model a judge's only,
  *     and a person's feedback always carries thumbs and never criteria or
  *     an evaluator version (an agent's quality report tallies per version).
  *  4. spec.session_id is the run's, whatever the request carried.
@@ -452,7 +452,7 @@ function creatorOf(score: Score): string {
  * StampScoredRun: copies onto the score what its run says it ran: the
  * agent and the agent version (status.agent_id and
  * status.agent_version_hash, empty for the built-in assistant), and the
- * reserved plugin eval label when the run is an eval's try. The score list
+ * reserved eval run label when the run is an eval's try. The score list
  * index keys an agent's scores and leaves tries out by these facts, so an
  * agent's quality report never reads a run.
  *
@@ -474,9 +474,9 @@ export function newStampScoredRunStep(): PipelineStep<typeof ScoreSchema> {
       status.agentId = run.status?.agentId ?? "";
       status.agentVersionHash = run.status?.agentVersionHash ?? "";
       score.status = status;
-      const evalLabel = run.metadata?.labels[PLUGIN_EVAL_LABEL];
+      const evalLabel = run.metadata?.labels[EVAL_RUN_LABEL];
       if (evalLabel !== undefined && score.metadata !== undefined) {
-        score.metadata.labels[PLUGIN_EVAL_LABEL] = evalLabel;
+        score.metadata.labels[EVAL_RUN_LABEL] = evalLabel;
       }
     },
   };

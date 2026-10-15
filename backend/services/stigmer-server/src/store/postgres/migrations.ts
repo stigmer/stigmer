@@ -130,6 +130,15 @@ import {
   unreadablePlatformClientRowError,
 } from "../platform-client-retired.js";
 import {
+  EVAL_KINDS_RETIRED_PAGE_SIZE,
+  EVAL_KINDS_RETIRED_GRANT_KIND,
+  EVAL_TRY_KIND_NAMES,
+  RETIRED_EVAL_KINDS,
+  grantNamesRetiredEvalKind,
+  relabelEvalTryRow,
+  unreadableEvalKindRowError,
+} from "../eval-kinds-retired.js";
+import {
   KIND_TABLES,
   KIND_RENAME_PAGE_SIZE,
   KIND_RENAME_GRANT_KIND,
@@ -266,8 +275,11 @@ export const SCHEMA_VERSION_33 = 33;
 /** v34: the IAM policy is a grant: its names, its ids and its history's tables. */
 export const SCHEMA_VERSION_34 = 34;
 
+/** v35: the plugin eval and agent eval rows removed, with every grant naming one, and their tries relabelled. */
+export const SCHEMA_VERSION_35 = 35;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_34;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_35;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -342,6 +354,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_32, (migrating) => migrateToV32(migrating, logger)],
       [SCHEMA_VERSION_33, migrateToV33],
       [SCHEMA_VERSION_34, migrateToV34],
+      [SCHEMA_VERSION_35, migrateToV35],
     ];
 
     for (const [version, migrate] of chain) {
@@ -2269,5 +2282,94 @@ async function migrateToV34(client: PoolClient): Promise<void> {
     const last = rows[rows.length - 1]!;
     afterOrg = last.org;
     afterSequence = Number(last.sequence);
+  }
+}
+
+/**
+ * v35: the plugin eval and agent eval kinds are removed for one eval run
+ * kind (../eval-kinds-retired.ts says what leaves, what stays relabelled
+ * and why an unreadable row fails the step).
+ *
+ * - Every grant row (kind `grant` since v34) is read in keyset pages, and
+ *   the ones naming a retired kind as resource or principal are deleted
+ *   with their list keys, their history kept, as the store deletes a
+ *   grant.
+ * - The retired kinds' rows then leave every table that keys a row by
+ *   kind.
+ * - Every session, run and score row carrying the retired label is read
+ *   in keyset pages and written back relabelled; its list keys are derived
+ *   again at the next open, since the three list indexes' revisions moved.
+ *
+ * Each page compares and orders `id` under the column's own collation, so
+ * the keyset is consistent whatever the database's locale and the primary
+ * key serves it. The chain's advisory lock keeps a second instance's boot
+ * out of the step, and the transaction makes it whole or nothing.
+ */
+async function migrateToV35(client: PoolClient): Promise<void> {
+  const retiredPolicies: string[] = [];
+  for (let after = ""; ; ) {
+    const rows = (
+      await client.query<{ id: string; data: Buffer }>(
+        `SELECT id, data FROM resources
+         WHERE kind = $1 AND id > $2
+         ORDER BY id
+         LIMIT $3`,
+        [EVAL_KINDS_RETIRED_GRANT_KIND, after, EVAL_KINDS_RETIRED_PAGE_SIZE],
+      )
+    ).rows;
+    for (const row of rows) {
+      try {
+        if (grantNamesRetiredEvalKind(new Uint8Array(row.data))) {
+          retiredPolicies.push(row.id);
+        }
+      } catch (error) {
+        throw unreadableEvalKindRowError(EVAL_KINDS_RETIRED_GRANT_KIND, row.id, error);
+      }
+    }
+    if (rows.length < EVAL_KINDS_RETIRED_PAGE_SIZE) {
+      break;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+  for (const table of ["resource_list_keys", "resources"]) {
+    await client.query(`DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`, [
+      EVAL_KINDS_RETIRED_GRANT_KIND,
+      retiredPolicies,
+    ]);
+  }
+  for (const table of KIND_TABLES) {
+    await client.query(`DELETE FROM ${table} WHERE kind = ANY($1::text[])`, [[...RETIRED_EVAL_KINDS]]);
+  }
+  for (const kind of EVAL_TRY_KIND_NAMES) {
+    for (let after = ""; ; ) {
+      const rows = (
+        await client.query<{ id: string; data: Buffer }>(
+          `SELECT id, data FROM resources
+           WHERE kind = $1 AND id > $2
+           ORDER BY id
+           LIMIT $3`,
+          [kind, after, EVAL_KINDS_RETIRED_PAGE_SIZE],
+        )
+      ).rows;
+      for (const row of rows) {
+        let relabelled: Uint8Array | undefined;
+        try {
+          relabelled = relabelEvalTryRow(kind, new Uint8Array(row.data));
+        } catch (error) {
+          throw unreadableEvalKindRowError(kind, row.id, error);
+        }
+        if (relabelled !== undefined) {
+          await client.query(`UPDATE resources SET data = $1 WHERE kind = $2 AND id = $3`, [
+            Buffer.from(relabelled),
+            kind,
+            row.id,
+          ]);
+        }
+      }
+      if (rows.length < EVAL_KINDS_RETIRED_PAGE_SIZE) {
+        break;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
   }
 }

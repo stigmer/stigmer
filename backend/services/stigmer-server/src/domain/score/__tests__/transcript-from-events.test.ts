@@ -3,7 +3,7 @@
  * events: a run whose transcript rows are empty, and whose events carry
  * the tool calls, the final answer and the structured output, reads as
  * the same actions (the free checks), the same subject (the judge) and
- * the same trace (a plugin eval's graders) as the rows of the same turn
+ * the same trace (an eval run's graders) as the rows of the same turn
  * read before the readers moved to the log. The expected values below are
  * what the rows of this turn read as.
  */
@@ -30,7 +30,7 @@ const run = create(RunSchema, {
     target: { case: "sessionId", value: "ses_1" },
     message: "Fix the failing test.",
     structuredOutputSchema: { type: "object" },
-    pluginEvalCase: {
+    evalCase: {
       mocks: [{ segment: "plugin_thermos_github", server: "github" }],
     },
   },

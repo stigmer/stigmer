@@ -39,14 +39,12 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -57,7 +55,11 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 
-import { FrozenPlatformClientEnvelopeSchema } from "./frozen-envelopes.js";
+import {
+  FrozenAgentEvalEnvelopeSchema,
+  FrozenPlatformClientEnvelopeSchema,
+  FrozenPluginEvalEnvelopeSchema,
+} from "./frozen-envelopes.js";
 import type { StoreLogger } from "./logger.js";
 
 /** How many rows a keyset page of the backfill reads. */
@@ -75,7 +77,7 @@ export interface NamedKindAtBackfill {
 /** The kinds whose slugs became names at this step, frozen. */
 export const NAMED_KINDS_AT_BACKFILL: ReadonlyArray<NamedKindAtBackfill> = [
   { kind: "agent", schema: AgentSchema },
-  { kind: "agent_eval", schema: AgentEvalSchema },
+  { kind: "agent_eval", schema: FrozenAgentEvalEnvelopeSchema },
   { kind: "agent_channel", schema: AgentChannelSchema },
   { kind: "agent_share", schema: AgentShareSchema },
   { kind: "channel_app", schema: ChannelAppSchema },
@@ -91,7 +93,7 @@ export const NAMED_KINDS_AT_BACKFILL: ReadonlyArray<NamedKindAtBackfill> = [
   { kind: "oauth_app", schema: OAuthAppSchema },
   { kind: "platform_client", schema: FrozenPlatformClientEnvelopeSchema },
   { kind: "plugin", schema: PluginSchema },
-  { kind: "plugin_eval", schema: PluginEvalSchema },
+  { kind: "plugin_eval", schema: FrozenPluginEvalEnvelopeSchema },
   { kind: "schedule", schema: ScheduleSchema },
   { kind: "score", schema: ScoreSchema },
   { kind: "session", schema: SessionSchema },

@@ -6,13 +6,12 @@ import (
 	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
 	agentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1"
 	agentchannelv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1"
-	agentevalv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agenteval/v1"
 	agentsharev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentshare/v1"
 	channelappv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channelapp/v1"
+	evalrunv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/evalrun/v1"
 	evaluatorv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/evaluator/v1"
 	memoryv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/memory/v1"
 	pluginv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
-	pluginevalv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugineval/v1"
 	runv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
 	schedulev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/schedule/v1"
 	scorev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/score/v1"
@@ -42,11 +41,6 @@ func AgentChannelInputFromProto(p *agentchannelv1.AgentChannel) *AgentChannelInp
 	return gen.AgentChannelInputFromProto(p)
 }
 
-// AgentEvalInputFromProto creates a AgentEvalInput from a proto AgentEval resource.
-func AgentEvalInputFromProto(p *agentevalv1.AgentEval) *AgentEvalInput {
-	return gen.AgentEvalInputFromProto(p)
-}
-
 // AgentShareInputFromProto creates a AgentShareInput from a proto AgentShare resource.
 func AgentShareInputFromProto(p *agentsharev1.AgentShare) *AgentShareInput {
 	return gen.AgentShareInputFromProto(p)
@@ -60,6 +54,11 @@ func ApiKeyInputFromProto(p *apikeyv1.ApiKey) *ApiKeyInput {
 // ChannelAppInputFromProto creates a ChannelAppInput from a proto ChannelApp resource.
 func ChannelAppInputFromProto(p *channelappv1.ChannelApp) *ChannelAppInput {
 	return gen.ChannelAppInputFromProto(p)
+}
+
+// EvalRunInputFromProto creates a EvalRunInput from a proto EvalRun resource.
+func EvalRunInputFromProto(p *evalrunv1.EvalRun) *EvalRunInput {
+	return gen.EvalRunInputFromProto(p)
 }
 
 // EvaluatorInputFromProto creates a EvaluatorInput from a proto Evaluator resource.
@@ -115,11 +114,6 @@ func PlanInputFromProto(p *planv1.Plan) *PlanInput {
 // PluginInputFromProto creates a PluginInput from a proto Plugin resource.
 func PluginInputFromProto(p *pluginv1.Plugin) *PluginInput {
 	return gen.PluginInputFromProto(p)
-}
-
-// PluginEvalInputFromProto creates a PluginEvalInput from a proto PluginEval resource.
-func PluginEvalInputFromProto(p *pluginevalv1.PluginEval) *PluginEvalInput {
-	return gen.PluginEvalInputFromProto(p)
 }
 
 // RunInputFromProto creates a RunInput from a proto Run resource.

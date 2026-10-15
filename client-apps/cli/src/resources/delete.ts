@@ -95,12 +95,9 @@ export const DELETE_HANDLERS: ReadonlyMap<ApiResourceKind, DeleteFn> = new Map<
   // Deleting an evaluator switches AI grading off for its agent; scores
   // already recorded stay on their runs.
   [ApiResourceKind.evaluator, (c, id) => c.evaluator.delete(id)],
-  // Deleting a plugin eval deletes its tries' conversations, runs and
-  // scores; the server refuses a pending or running eval and names cancel.
-  [ApiResourceKind.plugin_eval, (c, id) => c.plugineval.delete(id)],
-  // Deleting an agent eval does the same for its tries; a running one is
-  // refused the same way.
-  [ApiResourceKind.agent_eval, (c, id) => c.agenteval.delete(id)],
+  // Deleting an eval run deletes its tries' conversations, runs and
+  // scores; the server refuses a pending or running one and names cancel.
+  [ApiResourceKind.eval_run, (c, id) => c.evalrun.delete(id)],
 ]);
 
 // The deletable-types list for the unknown-type error, derived from the

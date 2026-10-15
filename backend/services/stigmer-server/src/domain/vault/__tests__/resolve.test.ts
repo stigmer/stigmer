@@ -83,8 +83,7 @@ import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vaul
 import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { RunValueDeclarerKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { AgentEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
-import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
+import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { RunCredentialsSchema, RunSchema, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { ExecutionValues } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
@@ -112,7 +111,7 @@ import {
 import type { Authorizer } from "../../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
-import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
+import { EVAL_RUN_LABEL } from "../../eval-run/constants.js";
 import type { RunSubagent } from "../../run/run-subagents.js";
 import { newSignInFreshener } from "../sign-in/refresh.js";
 
@@ -767,26 +766,26 @@ describe("which vaults a run uses", () => {
     expect(gone.rawMessage).toContain(`vault ${ORG}/gone, named by share 'public', no longer exists`);
   });
 
-  it("a plugin eval's vaults reach its tries, checked against their attacher", async () => {
+  it("an eval run's vaults reach its tries, checked against their attacher", async () => {
     const keys = await seedSharedVault(rig.store, ORG, "eval-keys", { secrets: { A: "from-eval" } });
     await rig.store.saveResource(
-      ApiResourceKind.plugin_eval,
-      "pev_nightly",
-      PluginEvalSchema,
-      create(PluginEvalSchema, {
-        metadata: { id: "pev_nightly", name: "thermos run", org: ORG },
-        spec: { pluginId: "plg_thermos", vaults: [vaultRef("eval-keys")] },
+      ApiResourceKind.eval_run,
+      "evr_nightly",
+      EvalRunSchema,
+      create(EvalRunSchema, {
+        metadata: { id: "evr_nightly", name: "thermos run", org: ORG },
+        spec: { subject: { case: "pluginId", value: "plg_thermos" }, vaults: [vaultRef("eval-keys")] },
         status: { vaultAttachers: { [keys.metadata!.id]: ADMIN } },
       }),
     );
     const evalTry = {
-      run: runOf({ labels: { [PLUGIN_EVAL_LABEL]: "pev_nightly" } }),
+      run: runOf({ labels: { [EVAL_RUN_LABEL]: "evr_nightly" } }),
       session: sessionOf({ includeMyVault: false }),
       agentSpec: agent({ A: KEY }),
     };
     const revoked = await refusal(resolve(evalTry));
     expect(revoked.rawMessage).toContain(
-      "vault 'eval-keys', named by plugin eval 'thermos run', may no longer be used",
+      "vault 'eval-keys', named by eval run 'thermos run', may no longer be used",
     );
     mayUse.add(`${ADMIN}:${keys.metadata!.id}`);
     expect(await resolve(evalTry)).toEqual({ A: "from-eval" });
@@ -797,78 +796,78 @@ describe("which vaults a run uses", () => {
     mayUse.add(`${ANA}:vlt_acme_chat_keys`);
     expect(
       await resolve({
-        run: runOf({ person: ANA, labels: { [PLUGIN_EVAL_LABEL]: "pev_nightly" } }),
+        run: runOf({ person: ANA, labels: { [EVAL_RUN_LABEL]: "evr_nightly" } }),
         session: sessionOf({ vaults: ["chat-keys"], includeMyVault: false }),
         agentSpec: agent({ A: KEY, B: KEY }),
       }),
     ).toEqual({ A: "from-eval", B: "from-chat" });
   });
 
-  it("a plugin eval that is gone, or of another organization, contributes no vaults to its tries", async () => {
+  it("an eval run that is gone, or of another organization, contributes no vaults to its tries", async () => {
     await seedSharedVault(rig.store, "rival", "rival-keys", { secrets: { API_KEY: "rival" } });
     await rig.store.saveResource(
-      ApiResourceKind.plugin_eval,
-      "pev_rival",
-      PluginEvalSchema,
-      create(PluginEvalSchema, {
-        metadata: { id: "pev_rival", name: "rival", org: "rival" },
-        spec: { pluginId: "plg_rival", vaults: [{ kind: ApiResourceKind.vault, org: "rival", slug: "rival-keys" }] },
+      ApiResourceKind.eval_run,
+      "evr_rival",
+      EvalRunSchema,
+      create(EvalRunSchema, {
+        metadata: { id: "evr_rival", name: "rival", org: "rival" },
+        spec: { subject: { case: "pluginId", value: "plg_rival" }, vaults: [{ kind: ApiResourceKind.vault, org: "rival", slug: "rival-keys" }] },
         status: { vaultAttachers: { "vlt_rival_rival_keys": ADMIN } },
       }),
     );
     mayUse.add(`${ADMIN}:vlt_rival_rival_keys`);
-    for (const evalId of ["pev_gone", "pev_rival"]) {
+    for (const evalId of ["evr_gone", "evr_rival"]) {
       expect(
         await resolve({
-          run: runOf({ labels: { [PLUGIN_EVAL_LABEL]: evalId } }),
+          run: runOf({ labels: { [EVAL_RUN_LABEL]: evalId } }),
           agentSpec: agent({ API_KEY: { isSecret: true, optional: true } }),
         }),
       ).toEqual({});
     }
   });
 
-  it("an agent eval's vaults reach its tries, checked against their attacher", async () => {
-    const keys = await seedSharedVault(rig.store, ORG, "agent-eval-keys", { secrets: { A: "from-agent-eval" } });
+  it("an eval run about an agent's vaults reach its tries, checked against their attacher", async () => {
+    const keys = await seedSharedVault(rig.store, ORG, "eval-run-keys", { secrets: { A: "from-eval-run" } });
     await rig.store.saveResource(
-      ApiResourceKind.agent_eval,
-      "aev_nightly",
-      AgentEvalSchema,
-      create(AgentEvalSchema, {
-        metadata: { id: "aev_nightly", name: "desk run", org: ORG },
-        spec: { agentId: "agt_desk", vaults: [vaultRef("agent-eval-keys")] },
+      ApiResourceKind.eval_run,
+      "evr_nightly",
+      EvalRunSchema,
+      create(EvalRunSchema, {
+        metadata: { id: "evr_nightly", name: "desk run", org: ORG },
+        spec: { subject: { case: "agentId", value: "agt_desk" }, vaults: [vaultRef("eval-run-keys")] },
         status: { vaultAttachers: { [keys.metadata!.id]: ADMIN } },
       }),
     );
     const evalTry = {
-      run: runOf({ labels: { [PLUGIN_EVAL_LABEL]: "aev_nightly" } }),
+      run: runOf({ labels: { [EVAL_RUN_LABEL]: "evr_nightly" } }),
       session: sessionOf({ includeMyVault: false }),
       agentSpec: agent({ A: KEY }),
     };
     const revoked = await refusal(resolve(evalTry));
     expect(revoked.rawMessage).toContain(
-      "vault 'agent-eval-keys', named by agent eval 'desk run', may no longer be used",
+      "vault 'eval-run-keys', named by eval run 'desk run', may no longer be used",
     );
     mayUse.add(`${ADMIN}:${keys.metadata!.id}`);
-    expect(await resolve(evalTry)).toEqual({ A: "from-agent-eval" });
+    expect(await resolve(evalTry)).toEqual({ A: "from-eval-run" });
   });
 
-  it("an agent eval that is gone, or of another organization, and a label naming no eval contribute no vaults to its tries", async () => {
+  it("an eval run about an agent that is gone, or of another organization, and a label naming no eval run contribute no vaults to its tries", async () => {
     await seedSharedVault(rig.store, "rival", "rival-agent-keys", { secrets: { API_KEY: "rival" } });
     await rig.store.saveResource(
-      ApiResourceKind.agent_eval,
-      "aev_rival",
-      AgentEvalSchema,
-      create(AgentEvalSchema, {
-        metadata: { id: "aev_rival", name: "rival", org: "rival" },
-        spec: { agentId: "agt_rival", vaults: [{ kind: ApiResourceKind.vault, org: "rival", slug: "rival-agent-keys" }] },
+      ApiResourceKind.eval_run,
+      "evr_agent_rival",
+      EvalRunSchema,
+      create(EvalRunSchema, {
+        metadata: { id: "evr_agent_rival", name: "rival", org: "rival" },
+        spec: { subject: { case: "agentId", value: "agt_rival" }, vaults: [{ kind: ApiResourceKind.vault, org: "rival", slug: "rival-agent-keys" }] },
         status: { vaultAttachers: { "vlt_rival_rival_agent_keys": ADMIN } },
       }),
     );
     mayUse.add(`${ADMIN}:vlt_rival_rival_agent_keys`);
-    for (const label of ["aev_gone", "aev_rival", "agt_not_an_eval"]) {
+    for (const label of ["evr_agent_gone", "evr_agent_rival", "agt_not_an_eval", "aev_retired"]) {
       expect(
         await resolve({
-          run: runOf({ labels: { [PLUGIN_EVAL_LABEL]: label } }),
+          run: runOf({ labels: { [EVAL_RUN_LABEL]: label } }),
           agentSpec: agent({ API_KEY: { isSecret: true, optional: true } }),
         }),
       ).toEqual({});

@@ -1,5 +1,5 @@
 /**
- * A plugin-eval try's own phases through the real runtime, with the scripted
+ * A eval-run try's own phases through the real runtime, with the scripted
  * fake adapter under `MockActivityEnvironment`: the case's setup
  * (`prepareEvalCasePhase`) and its MCP stand-ins (`startEvalMocks`) in
  * `turn-context.ts`, and the two settlements they feed in `run-turn.ts`.
@@ -17,7 +17,7 @@
  *    turn left them, the ones the try never changed included.
  *
  * The archive read, the setup and the endpoint are module fakes here: each
- * has its own suite under `shared/plugin-eval/__tests__/`, and what this file
+ * has its own suite under `shared/eval-case/__tests__/`, and what this file
  * pins is the runtime's wiring of them. The hermetic environment is created
  * at module level because the subject's `config` is read at collection time.
  */
@@ -27,12 +27,12 @@ import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { PluginEvalCaseContextSchema, PluginEvalMockServerSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
+import { EvalCaseContextSchema, EvalMockServerSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
 import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import { parseTryStop } from "@stigmer/eval-runtime";
 
-import type { PrepareOutcome } from "../../shared/plugin-eval/prepare-case.js";
-import type { MockEndpoint, MockEndpointBinding } from "../../shared/plugin-eval/mock-endpoint.js";
+import type { PrepareOutcome } from "../../shared/eval-case/prepare-case.js";
+import type { MockEndpoint, MockEndpointBinding } from "../../shared/eval-case/mock-endpoint.js";
 
 const fakes = vi.hoisted(() => ({
   outcome: undefined as PrepareOutcome | undefined,
@@ -49,11 +49,11 @@ const fakes = vi.hoisted(() => ({
 vi.mock("../../client/stigmer-client.js", async () =>
   (await import("../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
-vi.mock("../../shared/plugin-eval/case-archive.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../shared/plugin-eval/case-archive.js")>();
+vi.mock("../../shared/eval-case/case-archive.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../shared/eval-case/case-archive.js")>();
   return { ...actual, fetchCaseArchive: () => Promise.resolve(actual.caseArchiveOf([])) };
 });
-vi.mock("../../shared/plugin-eval/prepare-case.js", () => ({
+vi.mock("../../shared/eval-case/prepare-case.js", () => ({
   prepareEvalCase: (args: { sessionId: string; primaryDir: string }) => {
     fakes.prepared.push({ sessionId: args.sessionId, primaryDir: args.primaryDir });
     for (const [path, text] of Object.entries(fakes.writes)) writeFileSync(join(args.primaryDir, path), text);
@@ -61,7 +61,7 @@ vi.mock("../../shared/plugin-eval/prepare-case.js", () => ({
     return Promise.resolve(fakes.outcome);
   },
 }));
-vi.mock("../../shared/plugin-eval/mock-endpoint.js", () => ({
+vi.mock("../../shared/eval-case/mock-endpoint.js", () => ({
   startMockEndpoint: (): Promise<MockEndpoint> => {
     fakes.started += 1;
     return Promise.resolve({
@@ -94,21 +94,21 @@ const subject = scriptedSubject({
 });
 const harness: RuntimeContractHarness = { subject, env, clock };
 
-/** A driver whose run is a plugin-eval try, with mocks when `mocked`, whose graders read `readFiles`. */
+/** A driver whose run is a eval-run try, with mocks when `mocked`, whose graders read `readFiles`. */
 function tryDriver(label: string, mocked: boolean, readFiles: string[] = []): RuntimeExecutionDriver {
   const driver = new RuntimeExecutionDriver(harness, label);
-  driver.record.execution.spec!.pluginEvalCase = create(PluginEvalCaseContextSchema, {
+  driver.record.execution.spec!.evalCase = create(EvalCaseContextSchema, {
     pluginId: "plg_1",
     pluginDigest: "a".repeat(64),
     suiteDir: "evals",
     caseDir: "evals/fix",
-    mocks: mocked ? [create(PluginEvalMockServerSchema, { server: "tracker", segment: "plugin_kit_tracker" })] : [],
+    mocks: mocked ? [create(EvalMockServerSchema, { server: "tracker", segment: "plugin_kit_tracker" })] : [],
     readFiles,
   });
   return driver;
 }
 
-describe("run-turn: a plugin-eval try's own phases", () => {
+describe("run-turn: a eval-run try's own phases", () => {
   let registry: ReturnType<typeof stubRegistryFetch>;
 
   beforeAll(async () => {
@@ -202,7 +202,7 @@ describe("run-turn: a plugin-eval try's own phases", () => {
     await driver.turn([scenario.say("Done.")]);
 
     expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
-    const files = driver.record.lastFullStatus?.pluginEvalFiles?.files ?? [];
+    const files = driver.record.lastFullStatus?.evalFiles?.files ?? [];
     expect(files.map((file) => [file.path, file.content.case, file.content.value])).toEqual([
       ["app.txt", "text", "version = 1\n"],
       ["missing.md", "absent", true],

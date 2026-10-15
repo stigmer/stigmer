@@ -49,7 +49,7 @@ import type {
 } from "../domain/score/ports.js";
 import type { ExecutionStatusWriter } from "../temporal/agentexecution/activities.js";
 import type { ScheduleExecutionCreator } from "../temporal/schedule/run-starter.js";
-import type { PluginEvalTryLane } from "../temporal/evals/ports.js";
+import type { EvalRunTryLane } from "../temporal/evals/ports.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import type { SharedChainInterceptors } from "../pipeline/chain.js";
 import {
@@ -97,14 +97,13 @@ export interface InProcessClients {
    */
   readonly judgeSessionDeleter: JudgeSessionDeleter;
   /**
-   * An eval's tries and votes, a plugin eval's or an agent eval's
-   * (temporal/evals/ports.ts): each
+   * An eval run's tries and votes (temporal/evals/ports.ts): each
    * session, then its run, through their FULL create chains AS THE EVAL'S
    * CALLER when the composition minted one (the asCaller lane), else as
-   * the server, so the session may carry the reserved plugin-eval label
+   * the server, so the session may carry the reserved eval-run label
    * by the in-process origin; a run's stop is the server's own.
    */
-  readonly pluginEvalTries: PluginEvalTryLane;
+  readonly evalRunTries: EvalRunTryLane;
   /**
    * The reconcile turn an undo on an ended turn starts
    * (domain/session/filereview/decide.ts): the FULL run create chain AS
@@ -259,7 +258,7 @@ export function createInProcessClients(
         await sessionCommand.delete(create(SessionIdSchema, { value: sessionId }));
       },
     },
-    pluginEvalTries: {
+    evalRunTries: {
       createSession: (session, caller) =>
         sessionCommand.create(
           session,

@@ -1034,7 +1034,7 @@ export type {
 } from "./memory/index.js";
 
 // Scores — a person's thumbs on a run's final answer, the platform's free
-// run-health checks, an AI judge's verdict and a plugin eval's checks, shown
+// run-health checks, an AI judge's verdict and an eval run's checks, shown
 // on every completed run its viewers can see
 export {
   RunScores,
@@ -1081,47 +1081,55 @@ export type {
   GradingSettings,
 } from "./evaluator/index.js";
 
-// Plugin evals — a plugin's own evals/ test cases run with and without it
-// on the models an eval names (the plugin's Evals tab), and a run made into
-// a test case
+// Eval runs — test cases run on an agent, or a plugin's own cases on the
+// built-in assistant, optionally with and without a plugin (the Evals tab
+// of an agent and of a plugin), two eval runs compared side by side, and a
+// run made into a test case
 export {
-  PluginEvalsTab,
-  PluginEvalResults,
-  usePluginEvals,
-  usePluginEval,
-  useStartPluginEval,
-  useCancelPluginEval,
-  PLUGIN_EVAL_POLL_MS,
+  EvalRunsTab,
+  EvalRunResults,
+  useEvalRuns,
+  useEvalRun,
+  useStartEvalRun,
+  useCancelEvalRun,
+  EVAL_RUN_POLL_MS,
   ALLOW_TOOL_PATTERN,
   DEFAULT_EVAL_FORM,
   MAX_ALLOW_TOOLS,
+  MAX_CASE_TAGS,
   MAX_EVAL_CONCURRENCY,
   MAX_EVAL_COST_USD,
   MAX_EVAL_RUNS,
   MAX_EVAL_TARGETS,
+  evalFormForAgent,
   allowToolsProblem,
   caseSourceRowsOf,
   caseSourceTargetLabelsOf,
   compareCaseSources,
-  evalCaseRowsOf,
+  compareEvalRuns,
+  comparedPluginOf,
   evalCaseSourceOf,
-  compareEvals,
   evalFormProblem,
-  evalLabelOf,
+  evalRunInputOf,
+  evalRunLabelOf,
+  evalRunSectionsOf,
+  evalRunVersionOf,
   evalTargetsOf,
+  isAboutAgent,
+  isComparing,
   parseAllowTools,
-  pluginEvalInputOf,
-  evalTargetLabelsOf,
+  parseCaseTags,
   testCaseOfRun,
   zipTestCase,
-} from "./plugin-eval/index.js";
+} from "./eval-run/index.js";
 export type {
-  PluginEvalsTabProps,
-  PluginEvalResultsProps,
-  UsePluginEvalsReturn,
-  UsePluginEvalReturn,
-  UseStartPluginEvalReturn,
-  UseCancelPluginEvalReturn,
+  EvalRunsTabProps,
+  EvalRunResultsProps,
+  EvalRunsOf,
+  UseEvalRunsReturn,
+  UseEvalRunReturn,
+  UseStartEvalRunReturn,
+  UseCancelEvalRunReturn,
   EvalCaseRow,
   EvalCaseCell,
   EvalCaseSource,
@@ -1129,45 +1137,15 @@ export type {
   EvalCompareSide,
   EvalFormSettings,
   EvalFormTarget,
-  EvalPluginRef,
   EvalResourceLike,
+  EvalRunCompareSection,
+  EvalRunPluginSection,
   EvalRunSettings,
+  EvalSubjectKind,
+  EvalSubjectRef,
   EvalTryView,
   RunForTestCase,
-} from "./plugin-eval/index.js";
-
-// Agent evals — the eval cases of the plugins an agent attaches, run on the
-// agent itself and stamped with its version (the agent's Evals tab), two
-// versions compared side by side
-export {
-  AgentEvalsTab,
-  AgentEvalResults,
-  useAgentEvals,
-  useAgentEval,
-  useStartAgentEval,
-  useCancelAgentEval,
-  AGENT_EVAL_POLL_MS,
-  agentEvalCaseSourceOf,
-  agentEvalFormProblem,
-  agentEvalInputOf,
-  agentEvalLabelOf,
-  agentEvalSectionsOf,
-  agentEvalVersionOf,
-  compareAgentEvals,
-  defaultAgentEvalForm,
-} from "./agent-eval/index.js";
-export type {
-  AgentEvalsTabProps,
-  AgentEvalResultsProps,
-  UseAgentEvalsReturn,
-  UseAgentEvalReturn,
-  UseStartAgentEvalReturn,
-  UseCancelAgentEvalReturn,
-  AgentEvalCompareSection,
-  AgentEvalFormSettings,
-  AgentEvalPluginSection,
-  EvalAgentRef,
-} from "./agent-eval/index.js";
+} from "./eval-run/index.js";
 
 // Grant — data hooks, behavior hooks, headless hook, and styled components for access management
 export {

@@ -81,7 +81,7 @@ describe("writeEvalCaseFromRun", () => {
     expect(folder.err()).not.toContain("Note:");
   });
 
-  it("takes a plugin eval's failing check, else the thumbs-down comment", async () => {
+  it("takes an eval run's failing check, else the thumbs-down comment", async () => {
     const evalFailed = create(ScoreSchema, {
       spec: {
         source: ScoreSource.eval,

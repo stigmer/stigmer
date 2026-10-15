@@ -5,13 +5,15 @@
  * under other rules and skip a day with no grade; the days the agent's
  * version changed, the window's first version excluded; a flagged grade in
  * words that never carries a reason or a comment; and the latest finished
- * agent eval per version with its case pass rate.
+ * eval run per version with its case pass rate, one that compared a plugin
+ * the agent does not attach left out, since it did not measure the
+ * version as it is.
  */
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { AgentQualityReportSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
-import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
-import { agentEvalWith } from "../../agent-eval/__tests__/agent-eval-fixture";
+import { EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { agentEvalRunWith } from "../../eval-run/__tests__/eval-fixture.agent";
 import {
   criterionNamesOf,
   criterionRateOf,
@@ -128,18 +130,31 @@ describe("flagged grades in words", () => {
 
 describe("evals by version", () => {
   it("keeps each version's newest finished eval, partial included, running and failed left out", () => {
-    const running = agentEvalWith([], { id: "aev_run", version: "v1", phase: PluginEvalPhase.running });
-    const partial = agentEvalWith(
+    const running = agentEvalRunWith([], { id: "evr_run", version: "v1", phase: EvalRunPhase.running });
+    const partial = agentEvalRunWith(
       [{ slug: "p", cases: [{ name: "a", score: 1 }, { name: "b", score: 0 }] }],
-      { id: "aev_partial", version: "v1", phase: PluginEvalPhase.partial },
+      { id: "evr_partial", version: "v1", phase: EvalRunPhase.partial },
     );
-    const older = agentEvalWith([], { id: "aev_old", version: "v1" });
-    const failed = agentEvalWith([], { id: "aev_failed", version: "v2", phase: PluginEvalPhase.failed });
+    const older = agentEvalRunWith([], { id: "evr_old", version: "v1" });
+    const failed = agentEvalRunWith([], { id: "evr_failed", version: "v2", phase: EvalRunPhase.failed });
     const latest = latestFinishedEvalByVersion([running, partial, older, failed]);
-    expect(latest.get("v1")?.metadata?.id).toBe("aev_partial");
+    expect(latest.get("v1")?.metadata?.id).toBe("evr_partial");
     expect(latest.has("v2")).toBe(false);
     expect(evalPassRateOf(partial)).toEqual({ rate: 0.5, count: 2 });
     expect(evalPassRateOf(older)).toBeNull();
+  });
+
+  it("leaves out an eval run that compared a plugin the agent does not attach, and keeps one comparing an attached plugin", () => {
+    const unattached = agentEvalRunWith(
+      [{ slug: "extra", attached: false, cases: [{ name: "a", score: 1 }] }],
+      { id: "evr_extra", version: "v1", compared: "extra" },
+    );
+    const attached = agentEvalRunWith(
+      [{ slug: "p", cases: [{ name: "a", score: 1 }] }],
+      { id: "evr_attached", version: "v1", compared: "p" },
+    );
+    expect(latestFinishedEvalByVersion([unattached]).has("v1")).toBe(false);
+    expect(latestFinishedEvalByVersion([unattached, attached]).get("v1")?.metadata?.id).toBe("evr_attached");
   });
 });
 

@@ -37,8 +37,8 @@ export type ScoreSpec = Message<"ai.stigmer.agentic.score.v1.ScoreSpec"> & {
 
   /**
    * What is measured: `feedback` for a person's thumbs, `run-health` for
-   * the free checks, `judge` for an AI judge's verdict, `eval` for a
-   * plugin eval's checks on one try.
+   * the free checks, `judge` for an AI judge's verdict, `eval` for an
+   * eval case's checks on one try.
    *
    * @generated from field: string metric = 3;
    */

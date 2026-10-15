@@ -30,8 +30,8 @@ type ScoreSpec struct {
 	// ID of the session the run belongs to.
 	SessionId string `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// What is measured: `feedback` for a person's thumbs, `run-health` for
-	// the free checks, `judge` for an AI judge's verdict, `eval` for a
-	// plugin eval's checks on one try.
+	// the free checks, `judge` for an AI judge's verdict, `eval` for an
+	// eval case's checks on one try.
 	Metric string `protobuf:"bytes,3,opt,name=metric,proto3" json:"metric,omitempty"`
 	// Who or what gave the score.
 	Source ScoreSource `protobuf:"varint,4,opt,name=source,proto3,enum=ai.stigmer.agentic.score.v1.ScoreSource" json:"source,omitempty"`

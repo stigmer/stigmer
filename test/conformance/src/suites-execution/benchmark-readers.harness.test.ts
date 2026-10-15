@@ -16,8 +16,8 @@
 //   system prompts and tool surfaces: the instrument's own claim that its
 //   fixed names keep the provider's prompt cache as warm as a user's.
 // - The quality arm: the working agent's plugin pushed, one of its eval
-//   cases run by the platform's plugin evals on the scripted model (its
-//   order lookup answered by the suite's own mock), the eval's result
+//   cases run by an eval run about the plugin on the scripted model (its
+//   order lookup answered by the suite's own mock), the eval run's result
 //   document kept as the report's `quality`, and the operator's table read
 //   from it. Gated as well on the runner creating the try's run.
 // Domain: conformance harness (the benchmark instrument's wiring).
@@ -160,7 +160,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
   });
 
   it.skipIf(!probe.capabilities.runnerActsAsRunCreator)(
-    "the quality arm runs the working agent's plugin eval and keeps its result document",
+    "the quality arm runs an eval run about the working agent's plugin and keeps its result document",
     async () => {
       // One case of the suite, one try, on the scripted model: the order
       // lookup answered by the suite's own mock, then the answer, then the
@@ -179,11 +179,15 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
         { log: () => undefined },
       );
       expect(quality.failure, JSON.stringify(quality.failure)).toBeUndefined();
-      expect(quality.eval_id).toMatch(/^pev_/);
+      expect(quality.eval_id).toMatch(/^evr_/);
       expect(quality.plugin).toBe("working-agent");
-      const document = quality.document as { schemaVersion: number; cases: { name: string; aggregates: { score: number | null } }[] };
+      const document = quality.document as {
+        schemaVersion: number;
+        plugins: { schemaVersion: number; cases: { name: string; aggregates: { score: number | null } }[] }[];
+      };
       expect(document.schemaVersion).toBe(1);
-      expect(document.cases.map((c) => [c.name, c.aggregates.score])).toEqual([["tool-lookup", 1]]);
+      expect(document.plugins.map((block) => block.schemaVersion)).toEqual([1]);
+      expect(document.plugins[0]!.cases.map((c) => [c.name, c.aggregates.score])).toEqual([["tool-lookup", 1]]);
       expect(renderQuality(quality)).toContain(`| tool-lookup | native/${PARITY_MODEL["deep-agent"]} | 1.00 | yes |`);
     },
     300_000,

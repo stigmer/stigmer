@@ -1585,14 +1585,9 @@
           "description": "AI grading switched on for one agent: its sample rate, monthly spending\n limit and judge model."
         },
         {
-          "name": "plugin_eval",
-          "number": 63,
-          "description": "One run of a plugin's own evals/ cases: every case tried with and\n without the plugin, on the models the eval names."
-        },
-        {
-          "name": "agent_eval",
-          "number": 64,
-          "description": "One run of the eval cases of the plugins an agent attaches, on the\n agent itself: each plugin's cases at the version the agent attaches,\n on the models the eval names, stamped with the agent's version."
+          "name": "eval_run",
+          "number": 65,
+          "description": "One run of test cases on an agent, or on a plugin on the built-in\n assistant, optionally with and without a plugin."
         },
         {
           "name": "plan",
@@ -1986,17 +1981,17 @@
       ]
     },
     {
-      "name": "PluginEvalMockKind",
-      "description": "PluginEvalMockKind is how a mocked tool answers.",
-      "protoType": "ai.stigmer.agentic.run.v1.PluginEvalMockKind",
+      "name": "EvalMockKind",
+      "description": "EvalMockKind is how a mocked tool answers.",
+      "protoType": "ai.stigmer.agentic.run.v1.EvalMockKind",
       "values": [
         {
-          "name": "plugin_eval_mock_kind_fixed",
+          "name": "eval_mock_kind_fixed",
           "number": 1,
           "description": "The mock file's body, with its substitutions."
         },
         {
-          "name": "plugin_eval_mock_kind_agent",
+          "name": "eval_mock_kind_agent",
           "number": 2,
           "description": "A model acting as the server from the mock file's instructions."
         }
@@ -2255,14 +2250,14 @@
         "required": false
       },
       {
-        "name": "PluginEvalFiles",
-        "jsonName": "pluginEvalFiles",
-        "protoField": "plugin_eval_files",
+        "name": "EvalFiles",
+        "jsonName": "evalFiles",
+        "protoField": "eval_files",
         "type": {
           "kind": "message",
-          "messageType": "PluginEvalFiles"
+          "messageType": "EvalFiles"
         },
-        "description": "The files a plugin eval's graders read, as the try's turn left them.",
+        "description": "The files an eval case's graders read, as the try's turn left them.",
         "required": false
       },
       {
@@ -2272,7 +2267,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "Why the turn stopped, as one word: budget_reached (the cost cap or the\n tool-call limit), timeout (a stall or the workspace lock), infrastructure\n (the worker shut down or stopped answering), platform_stop, user (a pause\n or a cancel), model_error (the model provider failed the turn), failed\n (any other failure), eval_stopped (a plugin eval's mock or scaffold\n stopped the try) or review_resolved (a file review was settled). Empty\n while the turn works, and when it ended on its own.",
+        "description": "Why the turn stopped, as one word: budget_reached (the cost cap or the\n tool-call limit), timeout (a stall or the workspace lock), infrastructure\n (the worker shut down or stopped answering), platform_stop, user (a pause\n or a cancel), model_error (the model provider failed the turn), failed\n (any other failure), eval_stopped (an eval case's mock or scaffold\n stopped the try) or review_resolved (a file review was settled). Empty\n while the turn works, and when it ended on its own.",
         "required": false,
         "validation": {
           "enum": [
@@ -2490,8 +2485,7 @@
               "vault",
               "score",
               "evaluator",
-              "plugin_eval",
-              "agent_eval",
+              "eval_run",
               "plan",
               "subscription",
               "license"
@@ -2778,6 +2772,96 @@
           },
           "description": "The calling user's standing context, verbatim.",
           "required": false
+        }
+      ]
+    },
+    {
+      "name": "EvalFile",
+      "description": "EvalFile is one file's content after the turn.",
+      "protoType": "ai.stigmer.agentic.run.v1.EvalFile",
+      "protoFile": "apis/ai/stigmer/agentic/run/v1/eval_case.proto",
+      "fields": [
+        {
+          "name": "Path",
+          "jsonName": "path",
+          "protoField": "path",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The path as the case's graders name it.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Text",
+          "jsonName": "text",
+          "protoField": "text",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The file's text.",
+          "required": false,
+          "oneofGroup": "content"
+        },
+        {
+          "name": "Binary",
+          "jsonName": "binary",
+          "protoField": "binary",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "The file is not text.",
+          "required": false,
+          "oneofGroup": "content"
+        },
+        {
+          "name": "Absent",
+          "jsonName": "absent",
+          "protoField": "absent",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Nothing is at the path.",
+          "required": false,
+          "oneofGroup": "content"
+        },
+        {
+          "name": "Unreadable",
+          "jsonName": "unreadable",
+          "protoField": "unreadable",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The file could not be read, and why (too large, not a regular file,\n outside the workspace).",
+          "required": false,
+          "oneofGroup": "content"
+        }
+      ]
+    },
+    {
+      "name": "EvalFiles",
+      "description": "EvalFiles is the content, after an eval try's turn, of each\n file its case's graders read (EvalCaseContext.read_files).",
+      "protoType": "ai.stigmer.agentic.run.v1.EvalFiles",
+      "protoFile": "apis/ai/stigmer/agentic/run/v1/eval_case.proto",
+      "fields": [
+        {
+          "name": "Files",
+          "jsonName": "files",
+          "protoField": "files",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "EvalFile"
+            }
+          },
+          "description": "Each file, once, in the order read_files names them.",
+          "required": false,
+          "validation": {
+            "maxItems": 64
+          }
         }
       ]
     },
@@ -3134,96 +3218,6 @@
           "description": "Plugins, each at its archive's digest (PluginStatus.digest). A plugin's\n own skills, servers and hooks are named by its digest.",
           "required": false,
           "referenceKind": 58
-        }
-      ]
-    },
-    {
-      "name": "PluginEvalFile",
-      "description": "PluginEvalFile is one file's content after the turn.",
-      "protoType": "ai.stigmer.agentic.run.v1.PluginEvalFile",
-      "protoFile": "apis/ai/stigmer/agentic/run/v1/plugin_eval_case.proto",
-      "fields": [
-        {
-          "name": "Path",
-          "jsonName": "path",
-          "protoField": "path",
-          "type": {
-            "kind": "string"
-          },
-          "description": "The path as the case's graders name it.",
-          "required": false,
-          "validation": {
-            "minLength": 1
-          }
-        },
-        {
-          "name": "Text",
-          "jsonName": "text",
-          "protoField": "text",
-          "type": {
-            "kind": "string"
-          },
-          "description": "The file's text.",
-          "required": false,
-          "oneofGroup": "content"
-        },
-        {
-          "name": "Binary",
-          "jsonName": "binary",
-          "protoField": "binary",
-          "type": {
-            "kind": "bool"
-          },
-          "description": "The file is not text.",
-          "required": false,
-          "oneofGroup": "content"
-        },
-        {
-          "name": "Absent",
-          "jsonName": "absent",
-          "protoField": "absent",
-          "type": {
-            "kind": "bool"
-          },
-          "description": "Nothing is at the path.",
-          "required": false,
-          "oneofGroup": "content"
-        },
-        {
-          "name": "Unreadable",
-          "jsonName": "unreadable",
-          "protoField": "unreadable",
-          "type": {
-            "kind": "string"
-          },
-          "description": "The file could not be read, and why (too large, not a regular file,\n outside the workspace).",
-          "required": false,
-          "oneofGroup": "content"
-        }
-      ]
-    },
-    {
-      "name": "PluginEvalFiles",
-      "description": "PluginEvalFiles is the content, after a plugin-eval try's turn, of each\n file its case's graders read (PluginEvalCaseContext.read_files).",
-      "protoType": "ai.stigmer.agentic.run.v1.PluginEvalFiles",
-      "protoFile": "apis/ai/stigmer/agentic/run/v1/plugin_eval_case.proto",
-      "fields": [
-        {
-          "name": "Files",
-          "jsonName": "files",
-          "protoField": "files",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "PluginEvalFile"
-            }
-          },
-          "description": "Each file, once, in the order read_files names them.",
-          "required": false,
-          "validation": {
-            "maxItems": 64
-          }
         }
       ]
     },

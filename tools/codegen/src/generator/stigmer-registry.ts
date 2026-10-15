@@ -9,15 +9,14 @@ import type { DescFile, DescMessage, Registry } from "@bufbuild/protobuf";
 import { createRegistry } from "@bufbuild/protobuf";
 
 import { file_ai_stigmer_agentic_agent_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { file_ai_stigmer_agentic_agenteval_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
 import { file_ai_stigmer_agentic_agentchannel_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { file_ai_stigmer_agentic_run_v1_api } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { file_ai_stigmer_agentic_agentshare_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { file_ai_stigmer_agentic_channelapp_v1_api } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { file_ai_stigmer_agentic_evalrun_v1_api } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { file_ai_stigmer_agentic_evaluator_v1_api } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { file_ai_stigmer_agentic_memory_v1_api } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { file_ai_stigmer_agentic_plugin_v1_api } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { file_ai_stigmer_agentic_plugineval_v1_api } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { file_ai_stigmer_agentic_schedule_v1_api } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { file_ai_stigmer_agentic_score_v1_api } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { file_ai_stigmer_agentic_session_v1_api } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -38,14 +37,13 @@ import { file_ai_stigmer_tenancy_organization_v1_api } from "@stigmer/protos/ai/
 const ROOT_FILES: DescFile[] = [
   file_ai_stigmer_agentic_agent_v1_api,
   file_ai_stigmer_agentic_agentchannel_v1_api,
-  file_ai_stigmer_agentic_agenteval_v1_api,
   file_ai_stigmer_agentic_run_v1_api,
   file_ai_stigmer_agentic_agentshare_v1_api,
   file_ai_stigmer_agentic_channelapp_v1_api,
+  file_ai_stigmer_agentic_evalrun_v1_api,
   file_ai_stigmer_agentic_evaluator_v1_api,
   file_ai_stigmer_agentic_memory_v1_api,
   file_ai_stigmer_agentic_plugin_v1_api,
-  file_ai_stigmer_agentic_plugineval_v1_api,
   file_ai_stigmer_agentic_schedule_v1_api,
   file_ai_stigmer_agentic_score_v1_api,
   file_ai_stigmer_agentic_session_v1_api,

@@ -57,7 +57,7 @@ jobs:
           npm run build -w @stigmer/tool-vocabulary
           npm run build -w @stigmer/session-log
 
-      # The plugin-eval support arms read suites through the library's dist,
+      # The eval-run support arms read suites through the library's dist,
       # which imports @stigmer/eval-runtime's.
       - name: Build the plugin package
         run: |

@@ -207,8 +207,10 @@ describe("the retired-names tables", () => {
         }
         const enumValues = field.enum !== undefined && BORN_AS_RUN.has(field.enum.typeName) ? [] : (field.enum?.values ?? []);
         for (const value of enumValues) {
-          if (field.enum?.typeName.endsWith(".ApiResourceKind") && value.name === "run") {
-            for (const [before, now] of KIND_VALUE_BEFORE) values.set(before, now);
+          if (field.enum?.typeName.endsWith(".ApiResourceKind")) {
+            // Of the kinds, only `run` was renamed; another kind named for
+            // runs (`eval_run`) was born with its name.
+            if (value.name === "run") for (const [before, now] of KIND_VALUE_BEFORE) values.set(before, now);
           } else if (/(^|_)(RUN|runs?)(_|$)/.test(value.name)) {
             values.set(retiredSpelling(value.name), value.name);
           }

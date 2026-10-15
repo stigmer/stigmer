@@ -5,7 +5,7 @@ import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { downloadBinaryFile } from "../internal/download.js";
-import { testCaseOfRun, zipTestCase } from "../plugin-eval/test-case.js";
+import { testCaseOfRun, zipTestCase } from "../eval-run/test-case.js";
 import { useRunScoresData } from "./RunScoresContext.js";
 import { RATING_COMMENT_MAX_LENGTH } from "./rating-input.js";
 import { CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
@@ -36,7 +36,7 @@ export interface RunScoresProps {
  * and, where the run's agent has AI grading switched on, the judge chip:
  * "Judge: grading…" while the grade is in progress, then "Judge: passed" or
  * "Judge: 1 of 4 failed", which opens to each rubric's reason and the model
- * that graded it. A try of a plugin eval carries the eval chip ("Eval:
+ * that graded it. A try of an eval run carries the eval chip ("Eval:
  * passed", "Eval: 1 of 3 failed"), which opens to each check's verdict and
  * reason. A run the platform could not grade says so quietly, with the
  * reason.

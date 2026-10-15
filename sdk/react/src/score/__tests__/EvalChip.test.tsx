@@ -1,5 +1,5 @@
 /**
- * Pins a plugin eval's try in a thread: the eval chip says "Eval: passed"
+ * Pins an eval run's try in a thread: the eval chip says "Eval: passed"
  * or "Eval: 1 of 2 failed" and opens to each check's verdict and reason
  * (an indicator-only check is not applicable, not a failure); a try that
  * was not graded says why. And "Make a test case" on a completed run

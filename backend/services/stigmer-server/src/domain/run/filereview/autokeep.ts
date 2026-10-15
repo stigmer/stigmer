@@ -8,8 +8,8 @@
  *                      turn's review: the person consented to the command,
  *                      and its file effects are the consented outcome. One
  *                      consent, one gate.
- *   eval try ......... a plugin eval's try keeps its edits: nobody reviews
- *                      a try (autoKeepPluginEvalTrySets).
+ *   eval try ......... an eval run's try keeps its edits: nobody reviews
+ *                      a try (autoKeepEvalRunTrySets).
  *   next turn ........ once a later message is sent, a turn's still
  *                      undecided edits are kept (keepOutdatedSets).
  *
@@ -126,20 +126,20 @@ function verifyCommandConsent(
   return ids.every((id) => log.allowed.has(toolUseEventId(runId, id)));
 }
 
-/** The reason on a plugin-eval try's keep. */
+/** The reason on a eval-run try's keep. */
 const EVAL_TRY_KEEP_REASON =
-  "Kept automatically: a plugin eval's try keeps its edits, as Claude Code's evals do; nobody reviews a try";
+  "Kept automatically: an eval run's try keeps its edits, as Claude Code's evals do; nobody reviews a try";
 
 /**
- * The plugin-eval try keep: a run that is an eval's try (the reserved
- * `stigmer.ai/plugin-eval` label, which only the server can set) keeps
+ * The eval-run try keep: a run that is an eval's try (the reserved
+ * `stigmer.ai/eval-run` label, which only the server can set) keeps
  * every undecided set, binary changes included, in the write that captured
  * it, so the try never waits for a review nobody gives. Its sets stay on
  * the record: the eval's file graders read them. A set that cannot be
  * kept whole (an unreviewable capture) is left to the try's timeout,
  * logged.
  */
-export function autoKeepPluginEvalTrySets(
+export function autoKeepEvalRunTrySets(
   sets: ReadonlyArray<FileChangeSet>,
   runId: string,
   isEvalTry: boolean,

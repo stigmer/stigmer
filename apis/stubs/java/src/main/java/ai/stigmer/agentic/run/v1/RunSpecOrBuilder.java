@@ -836,36 +836,36 @@ public interface RunSpecOrBuilder extends
 
   /**
    * <pre>
-   * What a plugin-eval case gives this try beyond its message: a starting
+   * What an eval case gives this try beyond its message: a starting
    * folder, reference folders, an earlier conversation, variables and MCP
    * stand-ins. Absent on every other run.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
-   * @return Whether the pluginEvalCase field is set.
+   * <code>.ai.stigmer.agentic.run.v1.EvalCaseContext eval_case = 25 [json_name = "evalCase"];</code>
+   * @return Whether the evalCase field is set.
    */
-  boolean hasPluginEvalCase();
+  boolean hasEvalCase();
   /**
    * <pre>
-   * What a plugin-eval case gives this try beyond its message: a starting
+   * What an eval case gives this try beyond its message: a starting
    * folder, reference folders, an earlier conversation, variables and MCP
    * stand-ins. Absent on every other run.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
-   * @return The pluginEvalCase.
+   * <code>.ai.stigmer.agentic.run.v1.EvalCaseContext eval_case = 25 [json_name = "evalCase"];</code>
+   * @return The evalCase.
    */
-  ai.stigmer.agentic.run.v1.PluginEvalCaseContext getPluginEvalCase();
+  ai.stigmer.agentic.run.v1.EvalCaseContext getEvalCase();
   /**
    * <pre>
-   * What a plugin-eval case gives this try beyond its message: a starting
+   * What an eval case gives this try beyond its message: a starting
    * folder, reference folders, an earlier conversation, variables and MCP
    * stand-ins. Absent on every other run.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.EvalCaseContext eval_case = 25 [json_name = "evalCase"];</code>
    */
-  ai.stigmer.agentic.run.v1.PluginEvalCaseContextOrBuilder getPluginEvalCaseOrBuilder();
+  ai.stigmer.agentic.run.v1.EvalCaseContextOrBuilder getEvalCaseOrBuilder();
 
   /**
    * <pre>

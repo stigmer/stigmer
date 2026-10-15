@@ -2,7 +2,7 @@
  * Pure reads over an agent's quality report and flagged runs for the
  * Quality tab: pass rates, the evaluator version each metric is read at,
  * the daily series the trend charts draw, the days the agent's version
- * changed, a flagged grade in words, and the latest finished agent eval per
+ * changed, a flagged grade in words, and the latest finished eval run per
  * agent version. Kept apart from the components so the rules are
  * unit-testable without React.
  *
@@ -17,8 +17,8 @@
  * metric, up as passed and down as failed. Pinned by
  * `__tests__/quality-view.test.ts`.
  */
-import type { AgentEval } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
-import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import type {
@@ -26,7 +26,7 @@ import type {
   MetricTally,
   QualitySummary,
 } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
-import { agentEvalVersionOf } from "../agent-eval/agent-eval-view.js";
+import { comparedPluginOf, evalRunVersionOf } from "../eval-run/eval-view.js";
 import type { TrendPoint } from "../charts/trend-layout.js";
 import { FEEDBACK_METRIC, JUDGE_METRIC, RUN_HEALTH_METRIC } from "./score-view.js";
 
@@ -238,31 +238,41 @@ export function flaggedWhatOf(score: Score): string {
   return failed.length > 0 ? failed.join(", ") : metricLabelOf(metric);
 }
 
-/** Whether an agent eval finished with results: completed, or stopped part way with the tries that ran. */
-export function isFinishedEval(agentEval: AgentEval): boolean {
-  const phase = agentEval.status?.phase ?? PluginEvalPhase.unspecified;
-  return phase === PluginEvalPhase.completed || phase === PluginEvalPhase.partial;
+/** Whether an eval run finished with results: completed, or stopped part way with the tries that ran. */
+export function isFinishedEval(evalRun: EvalRun): boolean {
+  const phase = evalRun.status?.phase ?? EvalRunPhase.unspecified;
+  return phase === EvalRunPhase.completed || phase === EvalRunPhase.partial;
 }
 
 /**
- * The latest finished agent eval of each agent version, by version hash.
- * `evals` is newest first, as the evals list pages them.
+ * Whether a finished eval run measures its agent version as it is: one
+ * that compares a plugin the agent does not attach ran its with-plugin
+ * tries on the agent plus that plugin, so its score is not the version's.
+ */
+export function measuresVersion(evalRun: EvalRun): boolean {
+  return isFinishedEval(evalRun) && comparedPluginOf(evalRun)?.attached !== false;
+}
+
+/**
+ * The latest finished eval run of each agent version that measures it
+ * ({@link measuresVersion}), by version hash. `evals` is newest first, as
+ * the agent's eval runs list pages them.
  */
 export function latestFinishedEvalByVersion(
-  evals: readonly AgentEval[],
-): ReadonlyMap<string, AgentEval> {
-  const latest = new Map<string, AgentEval>();
-  for (const agentEval of evals) {
-    if (!isFinishedEval(agentEval)) continue;
-    const version = agentEvalVersionOf(agentEval);
-    if (!latest.has(version)) latest.set(version, agentEval);
+  evals: readonly EvalRun[],
+): ReadonlyMap<string, EvalRun> {
+  const latest = new Map<string, EvalRun>();
+  for (const evalRun of evals) {
+    if (!measuresVersion(evalRun)) continue;
+    const version = evalRunVersionOf(evalRun);
+    if (!latest.has(version)) latest.set(version, evalRun);
   }
   return latest;
 }
 
-/** An agent eval's case pass rate; `null` when it graded no case. */
-export function evalPassRateOf(agentEval: AgentEval): PassRate | null {
-  const aggregates = agentEval.status?.aggregates;
+/** An eval run's case pass rate; `null` when it graded no case. */
+export function evalPassRateOf(evalRun: EvalRun): PassRate | null {
+  const aggregates = evalRun.status?.aggregates;
   const passed = aggregates?.casesPassed ?? 0;
   const total = aggregates?.casesTotal ?? 0;
   return passRateOf(passed, total - passed);

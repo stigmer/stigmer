@@ -89,7 +89,7 @@ import { generateId } from "../../../pipeline/steps/defaults.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
 import type { ListIndexRow } from "../../../store/list-index.js";
-import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
+import { EVAL_RUN_LABEL } from "../../eval-run/constants.js";
 import { SCORE_EVALUATOR_VERSION_NOT_HUMAN_MESSAGE } from "../constants.js";
 import {
   QUALITY_REPORT_BATCH,
@@ -727,7 +727,7 @@ describe("an agent's quality, composed (trusted local)", () => {
           name: runId,
           slug: runId,
           org,
-          labels: opts.evalTry === true ? { [PLUGIN_EVAL_LABEL]: "pev_x" } : {},
+          labels: opts.evalTry === true ? { [EVAL_RUN_LABEL]: "evr_x" } : {},
         },
         spec: { target: { case: "sessionId", value: sessionId } },
         status: {
@@ -801,17 +801,17 @@ describe("an agent's quality, composed (trusted local)", () => {
     const rated = await wire.create(forged);
     expect(rated.status?.agentId).toBe(agentId);
     expect(rated.status?.agentVersionHash).toBe("hash-live");
-    expect(rated.metadata?.labels[PLUGIN_EVAL_LABEL]).toBeUndefined();
+    expect(rated.metadata?.labels[EVAL_RUN_LABEL]).toBeUndefined();
 
     const evalTry = await seedRun({ evalTry: true });
     const onTry = await wire.create(thumbs(evalTry, false));
-    expect(onTry.metadata?.labels[PLUGIN_EVAL_LABEL]).toBe("pev_x");
+    expect(onTry.metadata?.labels[EVAL_RUN_LABEL]).toBe("evr_x");
     expect(onTry.status?.agentId).toBe(agentId);
 
     const edited = create(ScoreSchema, onTry);
     edited.spec!.value = { case: "passed", value: true };
     const changed = await wire.update({ resource: edited, updateMask: { paths: ["*"] } });
-    expect(changed.metadata?.labels[PLUGIN_EVAL_LABEL]).toBe("pev_x");
+    expect(changed.metadata?.labels[EVAL_RUN_LABEL]).toBe("evr_x");
     expect(changed.status?.agentId).toBe(agentId);
     expect(changed.status?.agentVersionHash).toBe("hash-1");
   });
@@ -866,7 +866,7 @@ describe("an agent's quality, composed (trusted local)", () => {
     expect(all.entries.some((s) => s.spec?.runId === run)).toBe(true);
     expect(
       all.entries.some(
-        (s) => s.metadata?.labels[PLUGIN_EVAL_LABEL] !== undefined,
+        (s) => s.metadata?.labels[EVAL_RUN_LABEL] !== undefined,
       ),
     ).toBe(false);
 

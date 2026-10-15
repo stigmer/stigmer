@@ -304,7 +304,7 @@ export const FileReviewCard = memo(function FileReviewCard({
   // A set a policy kept (every change produced by a command the person
   // already approved) says so explicitly: consent was given at the command
   // gate, and the record must never read as if a person reviewed it here.
-  // A plugin eval's try keeps its edits by policy too; nobody reviews a try.
+  // An eval run's try keeps its edits by policy too; nobody reviews a try.
   const autoKept = interactive ? undefined : policyKeepOf(fileReviewSet);
   const summary = interactive
     ? `${total} file${total === 1 ? "" : "s"} awaiting review`
@@ -494,7 +494,7 @@ export const FileReviewCard = memo(function FileReviewCard({
 
 /**
  * The policy that kept the set, when one did: the approved-command auto-keep
- * (`approved_command`) or a plugin eval's try (`eval_try`). The decision's
+ * (`approved_command`) or an eval run's try (`eval_try`). The decision's
  * origin is audit provenance — the record label derives from it so an
  * automatic keep is never presented as a person's review.
  */

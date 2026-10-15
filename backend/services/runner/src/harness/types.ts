@@ -202,7 +202,7 @@ export interface TurnWorkspace {
   readonly captureSubstrate: boolean;
   /**
    * Whether this turn's file edits are offered for review after it: the
-   * session's `file_review` switch, or a plugin-eval try. Off, a built-in
+   * session's `file_review` switch, or a eval-run try. Off, a built-in
    * write or delete flows and nothing is captured.
    */
   readonly fileReview: boolean;
@@ -459,9 +459,9 @@ export interface TurnInput extends NormalizedActivityInput {
    */
   readonly readRunEvents: () => Promise<readonly SessionEvent[]>;
   /**
-   * A plugin-eval try's recorded conversation, which the native engine
+   * A eval-run try's recorded conversation, which the native engine
    * resumes ahead of this turn's message on a thread that holds none
-   * (`shared/plugin-eval/prepare-case.ts`); absent on every other turn. The
+   * (`shared/eval-case/prepare-case.ts`); absent on every other turn. The
    * server never plans such a try on an engine that cannot resume one.
    */
   readonly resumedHistory?: readonly TranscriptMessage[];

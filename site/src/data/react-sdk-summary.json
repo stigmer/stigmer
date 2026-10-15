@@ -22,13 +22,6 @@
       "components": 8
     },
     {
-      "slug": "agent-eval",
-      "title": "agent-eval",
-      "description": "",
-      "hooks": 4,
-      "components": 2
-    },
-    {
       "slug": "api-key",
       "title": "API Key",
       "description": "Hooks and components for API key creation, listing, and deletion.",
@@ -117,6 +110,13 @@
       "title": "Error",
       "description": "Components for structured error display and troubleshooting guidance.",
       "hooks": 0,
+      "components": 2
+    },
+    {
+      "slug": "eval-run",
+      "title": "eval-run",
+      "description": "",
+      "hooks": 4,
       "components": 2
     },
     {
@@ -216,13 +216,6 @@
       "description": "",
       "hooks": 19,
       "components": 22
-    },
-    {
-      "slug": "plugin-eval",
-      "title": "plugin-eval",
-      "description": "",
-      "hooks": 4,
-      "components": 2
     },
     {
       "slug": "resource-creation",

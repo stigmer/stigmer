@@ -28,7 +28,7 @@
  * (`user.id`, which can be an email, so never without content).
  *
  * `stigmer.run.kind` tells what started the run, read from the labels the
- * server sets: a judge's grade, a plugin eval's try, a schedule's run, or a
+ * server sets: a judge's grade, an eval run's try, a schedule's run, or a
  * conversation, so a tool can filter each.
  */
 
@@ -62,8 +62,8 @@ import type { ResolvedBlueprint } from "../shared/blueprint-resolver.js";
 import { GRADES_RUN_LABEL } from "../shared/builtin-judge.js";
 import { markFailed, turnContent } from "../shared/telemetry-content.js";
 
-/** The label the server sets on a plugin eval's try (the server's `domain/plugin-eval/constants.ts`). Wire contract. */
-export const PLUGIN_EVAL_LABEL = "stigmer.ai/plugin-eval";
+/** The label the server sets on an eval run's try (the server's `domain/eval-run/constants.ts`). Wire contract. */
+export const EVAL_RUN_LABEL = "stigmer.ai/eval-run";
 /** The label the server sets on a schedule's run (the server's `domain/schedule/labels.ts`). Wire contract. */
 export const SCHEDULE_ID_LABEL = "stigmer.ai/schedule-id";
 
@@ -95,7 +95,7 @@ export interface RunSpan {
 /** What started a run, from the labels the server sets on it. */
 export function runKindOf(labels: Readonly<Record<string, string>> | undefined): RunKind {
   if ((labels?.[GRADES_RUN_LABEL] ?? "") !== "") return "judge";
-  if ((labels?.[PLUGIN_EVAL_LABEL] ?? "") !== "") return "eval-try";
+  if ((labels?.[EVAL_RUN_LABEL] ?? "") !== "") return "eval-try";
   if ((labels?.[SCHEDULE_ID_LABEL] ?? "") !== "") return "schedule";
   return "conversation";
 }

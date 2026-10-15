@@ -24,11 +24,9 @@
  * delete one run's (domain/score/list-index.ts). And `evaluator` joins for
  * its parent: the grading workflow reads one agent's evaluator for every
  * completed run that names an agent (domain/evaluator/list-index.ts).
- * And `plugin_eval` joins for its parent: a plugin's page lists its evals
- * newest first, and the plugin's delete reads them
- * (domain/plugin-eval/list-index.ts); `agent_eval` joins for its parent
- * the same way, an agent's page and its delete
- * (domain/agent-eval/list-index.ts). And `api_key` joins for its owner:
+ * And `eval_run` joins for its subject: an agent's and a plugin's page
+ * list their eval runs newest first, and each subject's delete reads them
+ * (domain/eval-run/list-index.ts). And `api_key` joins for its owner:
  * a person's key list, a service account's key list and an account's
  * delete read one owner's keys (domain/apikey/list-index.ts).
  *
@@ -48,8 +46,7 @@ import { scheduleListIndex } from "../domain/schedule/list-index.js";
 import { skillListIndex } from "../domain/skill/list-index.js";
 import { agentExecutionListIndex } from "../domain/run/list-index.js";
 import { evaluatorListIndex } from "../domain/evaluator/list-index.js";
-import { pluginEvalListIndex } from "../domain/plugin-eval/list-index.js";
-import { agentEvalListIndex } from "../domain/agent-eval/list-index.js";
+import { evalRunListIndex } from "../domain/eval-run/list-index.js";
 import { grantListIndex } from "../domain/grant/list-index.js";
 import { memoryListIndex } from "../domain/memory/list-index.js";
 import { oauthAppListIndex } from "../domain/oauthapp/list-index.js";
@@ -71,8 +68,7 @@ export const LIST_INDEXES: ReadonlyArray<ListIndexDeclaration> = [
   scheduleListIndex,
   skillListIndex,
   evaluatorListIndex,
-  pluginEvalListIndex,
-  agentEvalListIndex,
+  evalRunListIndex,
   grantListIndex,
   memoryListIndex,
   organizationListIndex,

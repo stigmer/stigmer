@@ -46,8 +46,7 @@ export enum ScoreSource {
   judge = 3,
 
   /**
-   * A plugin's own eval: one try of one evals/ case, graded by the case's
-   * checks.
+   * An eval run's try of one evals/ case, graded by the case's checks.
    *
    * @generated from enum value: score_source_eval = 4;
    */

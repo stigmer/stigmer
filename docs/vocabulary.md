@@ -1409,14 +1409,14 @@ fee reminders every morning at nine.
 
 One grade of a finished run: a person's thumbs up or down on the final answer,
 the free run-health checks Stigmer runs on every completed run, an AI judge's
-verdict, or a plugin eval's checks on one try.
+verdict, or an eval run's checks on one try.
 
 - **Capitalize**: As the resource name in labels and reference pages
   (`kind: Score`). In prose say "score" in lower case, as "run".
 - **API surface**: `kind: Score`, prefix `scr`. proto:
   `agentic/score/v1/spec.proto`. Written by a person rating a run in the
-  console, by the platform's checks, by its AI judge or by a plugin eval; there
-  is no `apply` and no manifest. CLI:
+  console, by the platform's checks, by its AI judge or by an eval run; there is
+  no `apply` and no manifest. CLI:
 
   ```bash
   stigmer runs scores <run-id>
@@ -1498,101 +1498,67 @@ the monthly spending limit, and the judge's model.
 
 ---
 
-#### Plugin Eval
+#### Eval Run
 
-One run of a plugin's own test cases: every case in the plugin's evals folder is
-tried several times with the plugin and several times without it, on each model
-the eval names. The eval records both scores and the difference the plugin
-makes.
+One run of test cases: on an Agent, the cases of the plugins it uses, tried
+several times on the Agent itself; or on a plugin, the plugin's own cases, tried
+on the built-in assistant. Comparing a plugin tries each case with the plugin
+and without it and records the difference it makes. An eval run on an Agent is
+stamped with the Agent's version, so two versions compare side by side.
 
-- **User-facing alternative**: "eval" in prose ("start an eval", "the plugin's
-  evals"), the word Claude Code's `claude plugin eval` uses. The cases are the
+- **User-facing alternative**: "eval run" in prose ("start an eval run", "the
+  Agent's eval runs"); "evals" for the feature and the tab. The cases are a
   plugin's "test cases" or its "suite".
 - **Capitalize**: As the resource name in labels and reference pages
-  (`kind: PluginEval`, display name "Plugin Eval"). In prose say "eval" or
-  "plugin eval" in lower case.
-- **API surface**: `kind: PluginEval`, prefix `pev`. proto:
-  `agentic/plugineval/v1/spec.proto`. Started from the plugin's Evals tab in the
-  console or with `stigmer plugin eval`; there is no `apply`, no update and no
-  manifest. CLI:
+  (`kind: EvalRun`, display name "Eval Run"). In prose say "eval run" in lower
+  case.
+- **API surface**: `kind: EvalRun`, prefix `evr`. proto:
+  `agentic/evalrun/v1/spec.proto`. Started from the Evals tab of an Agent or a
+  plugin in the console, or with `stigmer eval run`; there is no `apply`, no
+  update and no manifest. CLI:
 
   ```bash
-  stigmer plugin eval <plugin>
-  stigmer plugin eval cancel <id>
-  stigmer get plugin-eval <id>
-  stigmer delete plugin-eval <id>
+  stigmer eval run --agent <agent>[@version] [--plugin <plugin>] [--cases-from <plugin>]...
+  stigmer eval run --plugin <plugin>[@digest]
+  stigmer eval cancel <id>
+  stigmer get eval-run <id>
+  stigmer delete eval-run <id>
   ```
 
-- **Key fields**: `plugin_id`, `plugin_digest` (the version evaluated),
-  `targets` (engine and model pairs), `runs`, `ablation` (`with_without` or
-  `none`), `threshold`, `max_cost_usd`, and the status's `phase`, per-case
-  results per target and arm, `aggregates` and `cost_usd`.
-- **Boundaries**: a Plugin Eval measures a plugin, an Evaluator grades an
-  Agent's live runs. The criteria live in the plugin's `evals/` folder, in
-  Claude Code's plugin-eval format, never in an Agent's YAML.
-- **Note**: the plugin's editors start, cancel and delete its evals; its viewers
-  in its own Organization read them. The Organization that installed the plugin
-  pays for every try.
-- **Editions**: in Stigmer Cloud every viewer of the plugin in its Organization
-  opens each try's conversation, read-only. In open source the tries belong to
-  the eval's creator, who opens them; the plugin's other viewers read the eval,
-  its results and each try's scores, and cannot open a try's conversation.
-
----
-
-#### Agent Eval
-
-One run of an Agent on the test cases of the plugins it uses: each plugin's
-cases, at the version the Agent uses, are tried several times on the Agent
-itself, on its own model or on the models the eval names. The eval is stamped
-with the Agent's version, so two versions of the Agent compare side by side.
-
-- **User-facing alternative**: "eval" in prose ("run the Agent's evals", "an
-  eval of the support Agent"). The cases stay the plugins' "test cases".
-- **Capitalize**: As the resource name in labels and reference pages
-  (`kind: AgentEval`, display name "Agent Eval"). In prose say "eval" or "Agent
-  eval" in lower case.
-- **API surface**: `kind: AgentEval`, prefix `aev`. proto:
-  `agentic/agenteval/v1/spec.proto`. Started from the Agent's Evals tab in the
-  console or with `stigmer agent eval`; there is no `apply`, no update and no
-  manifest. CLI:
-
-  ```bash
-  stigmer agent eval <agent>[@version]
-  stigmer agent eval cancel <id>
-  stigmer get agent-eval <id>
-  stigmer delete agent-eval <id>
-  ```
-
-- **Key fields**: `agent_id`, `agent_version` (the version evaluated, stamped as
-  its hash), `plugins` (to run only some of the Agent's plugins), `targets`,
-  `runs`, `threshold`, `allow_tools`, `max_cost_usd`, and the status's `phase`,
-  `agent_version_hash`, one block per plugin with the version its tries ran and
-  its cases' results, `aggregates` and `cost_usd`.
-- **Boundaries**: a Plugin Eval measures a plugin on the built-in assistant,
-  with and without it; an Agent Eval measures an Agent on its plugins' cases,
-  with one arm and no comparison. An Agent has no test cases of its own: the
-  criteria stay in the plugins' `evals/` folders.
-- **Note**: the Agent's editors start, cancel and delete its evals; its viewers
-  in its own Organization read them. The Agent's Organization pays for every
-  try.
-- **Editions**: in Stigmer Cloud every viewer of the Agent in its Organization
-  opens each try's conversation, read-only. In open source the tries belong to
-  the eval's creator.
+- **Key fields**: the subject, `agent_id` or `plugin_id` (exactly one);
+  `agent_version` (stamped as its hash), `compared_plugin_id` (the plugin each
+  case runs with and without, on an Agent), `cases` (whose cases run, on an
+  Agent), `plugin_digest` (on a plugin), `targets`, `runs`, `ablation`
+  (`with_without` or `none`), `threshold`, `allow_tools`, `max_cost_usd`, and
+  the status's `phase`, `agent_version_hash`, one block per plugin a try loads
+  (whether the Agent attaches it, whether it is compared, the version its tries
+  ran, its cases' results), `aggregates` and `cost_usd`.
+- **Boundaries**: an eval run measures an Agent or a plugin on test cases; an
+  Evaluator grades an Agent's live runs. The criteria live in the plugins'
+  `evals/` folders, in Claude Code's plugin-eval format, never in an Agent's
+  YAML.
+- **Note**: the editors of its Agent or plugin start, cancel and delete it, and
+  comparing a plugin the Agent does not use takes being able to view it; the
+  viewers in its own Organization read it. Its Organization pays for every try.
+- **Editions**: in Stigmer Cloud every viewer of its Agent or plugin in its
+  Organization opens each try's conversation, read-only. In open source the
+  tries belong to the eval run's creator, who opens them; the other viewers read
+  the eval run, its results and each try's scores, and cannot open a try's
+  conversation.
 
 ---
 
 #### Try
 
-One run of one test case in a plugin eval, in a fresh conversation of its own:
+One run of one test case in an eval run, in a fresh conversation of its own:
 what Claude Code calls a run of a case.
 
 - **Capitalize**: No.
-- **API surface**: `PluginEvalTry` in `agentic/plugineval/v1/status.proto`, with
-  its `run_id`, `score`, and `not_graded_reason`.
-- **Boundaries**: a try is an ordinary run; "try" names its place in the eval.
-  Say "try" for the eval's unit and "run" for the run itself, so "three tries
-  per case" never reads as three separate commands.
+- **API surface**: `EvalRunTry` in `agentic/evalrun/v1/status.proto`, with its
+  `run_id`, `score`, and `not_graded_reason`.
+- **Boundaries**: a try is an ordinary run; "try" names its place in the eval
+  run. Say "try" for the eval run's unit and "run" for the run itself, so "three
+  tries per case" never reads as three separate commands.
 - **Note**: a try the platform could not run or grade is "not graded" with a
   reason and left out of every score, never a zero.
 
@@ -1600,13 +1566,15 @@ what Claude Code calls a run of a case.
 
 #### Arm (with-arm, without-arm)
 
-One side of a plugin eval's comparison: the with-arm is a case's tries with the
-plugin, the without-arm the same number of tries with nothing attached.
+One side of an eval run's comparison: the with-arm is a case's tries with the
+compared plugin, the without-arm the same number of tries with that plugin left
+out of the whole turn.
 
 - **Capitalize**: No. Write "with-arm" and "without-arm" with hyphens.
-- **API surface**: `PluginEvalCaseTarget.with_plugin` and `without_plugin`
-  (`PluginEvalArm`); `ablation: plugin_eval_ablation_none` runs the with-arm
-  only. In the result file: `cases[].arms.with` and `cases[].arms.without`.
+- **API surface**: `EvalRunCaseTarget.with_plugin` and `without_plugin`
+  (`EvalRunArm`); `ablation: eval_run_ablation_none` runs the with-arm only; a
+  without try's run carries `excluded_plugin_ids`. In the result file:
+  `cases[].arms.with` and `cases[].arms.without`.
 - **Note**: the difference between the two arms' scores is `Δ` ("delta"), what
   the plugin contributed. The table headers are `WITH` and `W/OUT`, as in Claude
   Code.
@@ -1619,7 +1587,7 @@ Whether every one of a case's k with-arm tries scored 1.0: a case that passes^k
 works every time, not only on average.
 
 - **Capitalize**: No; written `pass^k` in prose and `PASS^k` as a table header.
-- **API surface**: `PluginEvalCaseTarget.pass_k`; `passK` in the result file.
+- **API surface**: `EvalRunCaseTarget.pass_k`; `passK` in the result file.
 - **Boundaries**: Stigmer's addition to Claude Code's format, which reports the
   mean score and "perfect runs" (the share of with-arm runs where every grader
   passed) instead.

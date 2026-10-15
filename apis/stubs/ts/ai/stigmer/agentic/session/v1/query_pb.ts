@@ -36,8 +36,8 @@ export const SessionQueryController: GenService<{
   /**
    * List all sessions with pagination and optional filtering.
    *
-   * A plugin eval's tries are left out: each runs in a session of its own,
-   * read through the eval (PluginEvalQueryController.get) instead.
+   * An eval run's tries are left out: each runs in a session of its own,
+   * read through the eval run (EvalRunQueryController.get) instead.
    *
    * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.list
    */
@@ -49,8 +49,8 @@ export const SessionQueryController: GenService<{
   /**
    * List the conversations on one agent, whichever version each runs.
    *
-   * Results are filtered to the sessions the caller can view. A plugin
-   * eval's tries are left out, as in list.
+   * Results are filtered to the sessions the caller can view. An eval
+   * run's tries are left out, as in list.
    *
    * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.listByAgent
    */

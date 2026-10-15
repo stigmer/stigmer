@@ -108,6 +108,7 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
@@ -143,6 +144,7 @@ import {
   SCHEMA_VERSION_32,
   SCHEMA_VERSION_33,
   SCHEMA_VERSION_34,
+  SCHEMA_VERSION_35,
   runMigrations,
 } from "../migrations.js";
 import { LABEL_TAG_REPORT_PAGE_SIZE } from "../../label-tag-report.js";
@@ -167,6 +169,8 @@ import { SESSION_VALUES_PAGE_SIZE } from "../../session-values-retired.js";
 import { SESSION_HARNESS_PAGE_SIZE } from "../../session-harness-state-moved.js";
 import { ETAG_STAMP_PAGE_SIZE } from "../../resource-etags-stamped.js";
 import { etagOf, stampEtag, storedEtagOf } from "../../etag.js";
+import { EVAL_KINDS_RETIRED_PAGE_SIZE } from "../../eval-kinds-retired.js";
+import { FrozenPluginEvalEnvelopeSchema } from "../../frozen-envelopes.js";
 import { currentSessionRow, sessionRowWithValues } from "../../__tests__/retired-session-rows.js";
 import { sessionListIndex } from "../../../domain/session/list-index.js";
 import { WORKFLOW_RETIREMENT_PAGE_SIZE } from "../../workflow-instance-retired.js";
@@ -4103,6 +4107,176 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           expect(storedEtagOf(GrantSchema, grant!)).not.toBe("");
         } finally {
           await store.close();
+        }
+      });
+    });
+    describe("v35: the plugin eval and agent eval rows leave, with every grant naming one, and their tries are relabelled", () => {
+      const ORG = "org_01jz0000000000000000000000";
+      const seededAt = new Date("2026-10-15T00:00:00Z");
+      const OLD_LABEL = "stigmer.ai/plugin-eval";
+      const NEW_LABEL = "stigmer.ai/eval-run";
+
+      async function clientAt(target: number): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, target);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        return client;
+      }
+
+      async function insert(client: pg.Client, kind: string, id: string, data: Uint8Array): Promise<void> {
+        await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, $4)`, [
+          kind,
+          id,
+          Buffer.from(data),
+          seededAt,
+        ]);
+      }
+
+      async function data(client: pg.Client, kind: string, id: string): Promise<Uint8Array | undefined> {
+        const result = await client.query<{ data: Buffer }>(`SELECT data FROM resources WHERE kind = $1 AND id = $2`, [kind, id]);
+        const found = result.rows[0];
+        return found === undefined ? undefined : new Uint8Array(found.data);
+      }
+
+      async function count(client: pg.Client, table: string, kind: string): Promise<number> {
+        const result = await client.query<{ n: string }>(`SELECT COUNT(*) AS n FROM ${table} WHERE kind = $1`, [kind]);
+        return Number(result.rows[0]!.n);
+      }
+
+      async function version(client: pg.Client): Promise<number> {
+        const result = await client.query(`SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`);
+        return Number(result.rows[0].version);
+      }
+
+      /** A retired eval row as its kind wrote it: the envelope the frozen steps read it through. */
+      const retiredRow = (id: string, kind: string) =>
+        toBinary(
+          FrozenPluginEvalEnvelopeSchema,
+          create(FrozenPluginEvalEnvelopeSchema, { apiVersion: "agentic.stigmer.ai/v1", kind, metadata: { id, org: ORG, slug: id } }),
+        );
+
+      it("removes both kinds' rows and every grant naming one, and relabels their tries' session, run and score", async () => {
+        const client = await clientAt(SCHEMA_VERSION_35 - 1);
+        try {
+          await insert(client, "plugin_eval", "pev_old", retiredRow("pev_old", "PluginEval"));
+          await insert(client, "agent_eval", "aev_old", retiredRow("aev_old", "AgentEval"));
+          await client.query(
+            `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ('plugin_eval', $1, 'pev_old', 'pev_old', 'current', '2026-10-15T00:00:00Z')`,
+            [ORG],
+          );
+          const kept = { id: "iam_on_org", principal: "identity_account:ida_1", relation: "member", resource: `organization:${ORG}` };
+          const retired = { id: "iam_on_eval", principal: "identity_account:ida_1", relation: "viewer", resource: "agent_eval:aev_old" };
+          for (const grant of [kept, retired]) await insert(client, "grant", grantIdAfterV34(grant), grantRowAfterV34(grant));
+          const session = create(SessionSchema, { metadata: { id: "ses_try", org: ORG, labels: { [OLD_LABEL]: "pev_old" } } });
+          stampEtag(SessionSchema, session);
+          await insert(client, "session", "ses_try", toBinary(SessionSchema, session));
+          await insert(
+            client,
+            "run",
+            "run_try",
+            toBinary(RunSchema, create(RunSchema, { metadata: { id: "run_try", org: ORG, labels: { [OLD_LABEL]: "aev_old" } } })),
+          );
+          await insert(
+            client,
+            "score",
+            "scr_try",
+            toBinary(ScoreSchema, create(ScoreSchema, { metadata: { id: "scr_try", org: ORG, labels: { [OLD_LABEL]: "pev_old" } } })),
+          );
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_35);
+          expect(await version(client)).toBe(SCHEMA_VERSION_35);
+          for (const table of KIND_TABLES) {
+            expect(await count(client, table, "plugin_eval"), table).toBe(0);
+            expect(await count(client, table, "agent_eval"), table).toBe(0);
+          }
+          expect(await data(client, "grant", grantIdAfterV34(retired))).toBeUndefined();
+          expect(await data(client, "grant", grantIdAfterV34(kept))).toEqual(grantRowAfterV34(kept));
+          const relabelled = fromBinary(SessionSchema, (await data(client, "session", "ses_try"))!);
+          expect(relabelled.metadata?.labels).toEqual({ [NEW_LABEL]: "pev_old" });
+          expect(relabelled.metadata?.etag).toBe(etagOf(SessionSchema, relabelled));
+          expect(fromBinary(RunSchema, (await data(client, "run", "run_try"))!).metadata?.labels).toEqual({ [NEW_LABEL]: "aev_old" });
+          expect(fromBinary(ScoreSchema, (await data(client, "score", "scr_try"))!).metadata?.labels).toEqual({
+            [NEW_LABEL]: "pev_old",
+          });
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reads tries across keyset pages, relabelling the one past the first page", async () => {
+        const client = await clientAt(SCHEMA_VERSION_35 - 1);
+        try {
+          for (let i = 0; i <= EVAL_KINDS_RETIRED_PAGE_SIZE; i++) {
+            const id = `ses_page_${String(i).padStart(4, "0")}`;
+            const labels: Record<string, string> = i === EVAL_KINDS_RETIRED_PAGE_SIZE ? { [OLD_LABEL]: "pev_old" } : {};
+            await insert(client, "session", id, toBinary(SessionSchema, create(SessionSchema, { metadata: { id, org: ORG, labels } })));
+          }
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_35);
+          const last = `ses_page_${String(EVAL_KINDS_RETIRED_PAGE_SIZE).padStart(4, "0")}`;
+          expect(fromBinary(SessionSchema, (await data(client, "session", last))!).metadata?.labels).toEqual({ [NEW_LABEL]: "pev_old" });
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reads grants across keyset pages, removing the one past the first page that names a retired kind", async () => {
+        const client = await clientAt(SCHEMA_VERSION_35 - 1);
+        try {
+          const triples = Array.from({ length: EVAL_KINDS_RETIRED_PAGE_SIZE + 1 }, (_, i) => ({
+            principal: `identity_account:ida_${i}`,
+            relation: "viewer",
+            resource: i === EVAL_KINDS_RETIRED_PAGE_SIZE ? "agent_eval:aev_old" : `organization:${ORG}`,
+          }));
+          for (const triple of triples) await insert(client, "grant", grantIdAfterV34(triple), grantRowAfterV34(triple));
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_35);
+          expect(await count(client, "resources", "grant")).toBe(EVAL_KINDS_RETIRED_PAGE_SIZE);
+          expect(await data(client, "grant", grantIdAfterV34(triples[EVAL_KINDS_RETIRED_PAGE_SIZE]!))).toBeUndefined();
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a grant row that does not decode fails the step, names the row, and leaves the database at v34", async () => {
+        const client = await clientAt(SCHEMA_VERSION_35 - 1);
+        try {
+          await insert(client, "grant", "grt_broken", new Uint8Array([0x22, 0xff]));
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_35)).rejects.toThrow(
+            "grant 'grt_broken' cannot be read to retire the plugin eval and agent eval kinds",
+          );
+          expect(await version(client)).toBe(SCHEMA_VERSION_35 - 1);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a try row that does not decode fails the step, names the row, rolls back, and leaves the database at v34", async () => {
+        const client = await clientAt(SCHEMA_VERSION_35 - 1);
+        try {
+          await insert(client, "plugin_eval", "pev_old", retiredRow("pev_old", "PluginEval"));
+          await insert(client, "score", "scr_broken", new Uint8Array([0x22, 0xff]));
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_35)).rejects.toThrow(
+            "score 'scr_broken' cannot be read to retire the plugin eval and agent eval kinds",
+          );
+          expect(await version(client)).toBe(SCHEMA_VERSION_35 - 1);
+          expect(await count(client, "resources", "plugin_eval")).toBe(1);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("replays every frozen step over a plugin eval from before the slug ledger, then removes it", async () => {
+        const client = await clientAt(SCHEMA_VERSION_7 - 1);
+        try {
+          await insert(client, "plugin_eval", "pev_early", retiredRow("pev_early", "PluginEval"));
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_35 - 1);
+          // The name backfill read the retired row through its envelope.
+          expect(await count(client, "resource_names", "plugin_eval")).toBe(1);
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_35);
+          for (const table of KIND_TABLES) {
+            expect(await count(client, table, "plugin_eval"), table).toBe(0);
+          }
+        } finally {
+          await client.end();
         }
       });
     });

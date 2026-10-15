@@ -35,9 +35,9 @@
 //
 // Out of scope here: who may write a server, and its shape at save, which
 // the CRUD suite pins (suites/agent-mcp-servers.conformance.test.ts); an
-// agent eval turning the agent's own servers off in its tries, which the
-// agent eval suite pins beside the plugin server arm
-// (agent-eval.conformance.test.ts); and a values fetch with the run's own
+// eval run turning the agent's own servers off in its tries, which the
+// eval run suite pins beside the plugin server arm
+// (eval-run-agent.conformance.test.ts); and a values fetch with the run's own
 // credential, which the cloud refuses an outside caller (the manifest is
 // read with a plain get instead, support/run-values.ts runSourcesOf).
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";

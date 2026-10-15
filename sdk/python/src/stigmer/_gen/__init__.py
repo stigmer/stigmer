@@ -4,10 +4,10 @@ from ._bidi import BidiStream
 from ._client import GeneratedClient
 from ._agent import AgentClient, AgentInput, EnvVarDeclarationInput, HookSourceInput, HookConfigInput, HookGroupInput, HookHandlerInput, RunConfigInput, AgentMcpServerInput
 from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput, WhatsAppChannelConfigInput
-from ._agenteval import AgentEvalClient, AgentEvalInput, PluginEvalTargetInput
 from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesInput
 from ._apikey import ApiKeyClient, ApiKeyInput
 from ._channelapp import ChannelAppClient, ChannelAppInput, SlackChannelAppConfigInput, WhatsAppChannelAppConfigInput
+from ._evalrun import EvalRunClient, EvalRunInput, EvalRunCaseSourceInput, EvalRunTargetInput
 from ._evaluator import EvaluatorClient, EvaluatorInput
 from ._federationissuer import FederationIssuerClient, FederationIssuerInput
 from ._grant import GrantClient, GrantInput, ApiResourceRefInput
@@ -19,9 +19,8 @@ from ._oauthapp import OAuthAppClient, OAuthAppInput
 from ._organization import OrganizationClient, OrganizationInput, OrganizationPreferencesInput, OrganizationPoliciesInput, OrganizationEmbeddingInput
 from ._plan import PlanClient, PlanInput, PlanTermsInput
 from ._plugin import PluginClient, PluginInput, PluginAuthorInput
-from ._plugineval import PluginEvalClient, PluginEvalInput
 from ._providerkey import ProviderKeyClient
-from ._run import RunClient, RunInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, AttachmentInput, ConversationCatchupInput, PluginEvalCaseContextInput, PluginEvalMockServerInput, PluginEvalMockToolInput
+from ._run import RunClient, RunInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, AttachmentInput, ConversationCatchupInput, EvalCaseContextInput, EvalMockServerInput, EvalMockToolInput
 from ._schedule import ScheduleClient, ScheduleInput, AgentInvocationInput
 from ._score import ScoreClient, ScoreInput, ScoreCriterionInput
 from ._session import SessionClient, SessionInput
@@ -59,9 +58,6 @@ __all__ = [
     "AgentChannelInput",
     "SlackChannelConfigInput",
     "WhatsAppChannelConfigInput",
-    "AgentEvalClient",
-    "AgentEvalInput",
-    "PluginEvalTargetInput",
     "AgentShareClient",
     "AgentShareInput",
     "AgentShareMessagesInput",
@@ -71,6 +67,10 @@ __all__ = [
     "ChannelAppInput",
     "SlackChannelAppConfigInput",
     "WhatsAppChannelAppConfigInput",
+    "EvalRunClient",
+    "EvalRunInput",
+    "EvalRunCaseSourceInput",
+    "EvalRunTargetInput",
     "EvaluatorClient",
     "EvaluatorInput",
     "FederationIssuerClient",
@@ -104,8 +104,6 @@ __all__ = [
     "PluginClient",
     "PluginInput",
     "PluginAuthorInput",
-    "PluginEvalClient",
-    "PluginEvalInput",
     "ProviderKeyClient",
     "RunClient",
     "RunInput",
@@ -116,9 +114,9 @@ __all__ = [
     "LocalPathSourceInput",
     "AttachmentInput",
     "ConversationCatchupInput",
-    "PluginEvalCaseContextInput",
-    "PluginEvalMockServerInput",
-    "PluginEvalMockToolInput",
+    "EvalCaseContextInput",
+    "EvalMockServerInput",
+    "EvalMockToolInput",
     "ScheduleClient",
     "ScheduleInput",
     "AgentInvocationInput",

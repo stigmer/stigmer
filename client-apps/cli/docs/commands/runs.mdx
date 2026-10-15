@@ -16,7 +16,7 @@ The subcommands fall into three areas:
 - **Observability** — `logs` lists or follows a run's events, one line each;
   `trace` shows its tool calls and how each ended, or lists its events as JSON
   or YAML; `scores` shows how good a finished run was: each person's thumbs, the
-  run-health checks, the AI judge and, on a plugin eval's try, each check of its
+  run-health checks, the AI judge and, on an eval run's try, each check of its
   case ([Scores](/docs/concepts/scores)); `to-eval-case` writes a run as a test
   case in a local plugin's `evals/` folder.
 - **Approval** — `approve` answers a tool call the run waits on: allow it, deny
@@ -75,7 +75,7 @@ stigmer runs to-eval-case run_01abc123 --name finds-the-bug --skill thermos:revi
 ```
 
 The FAIL line of `graders/criteria.md` names what went wrong in the run (the AI
-judge's reason, else a plugin eval's failing check, else a person's thumbs-down
+judge's reason, else an eval run's failing check, else a person's thumbs-down
 comment); write its PASS line yourself. An existing case directory is never overwritten. See
 [Test a plugin with evals](/docs/guides/plugins/test-a-plugin-with-evals).
 

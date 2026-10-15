@@ -187,14 +187,14 @@
       "required": false
     },
     {
-      "name": "PluginEvalCase",
-      "jsonName": "pluginEvalCase",
-      "protoField": "plugin_eval_case",
+      "name": "EvalCase",
+      "jsonName": "evalCase",
+      "protoField": "eval_case",
       "type": {
         "kind": "message",
-        "messageType": "PluginEvalCaseContext"
+        "messageType": "EvalCaseContext"
       },
-      "description": "What a plugin-eval case gives this try beyond its message: a starting\n folder, reference folders, an earlier conversation, variables and MCP\n stand-ins. Absent on every other run.",
+      "description": "What an eval case gives this try beyond its message: a starting\n folder, reference folders, an earlier conversation, variables and MCP\n stand-ins. Absent on every other run.",
       "required": false
     },
     {

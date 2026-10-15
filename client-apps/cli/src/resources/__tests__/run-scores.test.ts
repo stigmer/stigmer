@@ -4,7 +4,7 @@
 // reasons as flags, the list asked for by run id, -o json and -o yaml
 // carrying the scores' own envelopes, the table written to stdout by
 // default, and `stigmer get score <id>` reading one score by its id only.
-// A plugin eval's row lists every check of its case with its verdict.
+// An eval run's row lists every check of its case with its verdict.
 
 import { clone, create } from "@bufbuild/protobuf";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
@@ -102,7 +102,7 @@ const evalScore: Score = create(ScoreSchema, {
 });
 
 describe("renderScoresTable", () => {
-  it("shows a plugin eval's verdict with every check of its case, passed or not, on one line, given by the platform", () => {
+  it("shows an eval run's verdict with every check of its case, passed or not, on one line, given by the platform", () => {
     const out = renderScoresTable([evalScore]);
     const row = out.split("\n").find((line) => line.startsWith("eval")) ?? "";
     expect(row).toMatch(/\beval\b.*\bfail\b/);

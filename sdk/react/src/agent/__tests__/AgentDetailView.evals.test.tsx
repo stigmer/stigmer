@@ -1,7 +1,7 @@
 /**
  * Pins the agent detail view's Evals tab: it sits right after Quality,
  * built in; opening it lists the agent's evals through
- * `agenteval.listByAgent`, a try opens its run through the host's
+ * `evalrun.listByAgent`, a try opens its run through the host's
  * `onNavigateToRun`; and for an agent that attaches no plugins its way to
  * the plugins opens the Overview, where they are attached.
  */
@@ -12,7 +12,7 @@ import { StigmerError } from "@stigmer/sdk";
 import { samples } from "../../test/samples";
 import { AgentDetailView } from "../AgentDetailView";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
-import { agentEvalWith } from "../../agent-eval/__tests__/agent-eval-fixture";
+import { agentEvalRunWith } from "../../eval-run/__tests__/eval-fixture.agent";
 
 vi.mock("../../models/ModelSelector.js", () => ({
   ModelSelector: () => <span>model picker</span>,
@@ -24,13 +24,13 @@ beforeEach(() => localStorage.clear());
 function renderView(plugins: readonly string[], onNavigateToRun = vi.fn()) {
   const agent = samples.agent({ name: "Reviewer", org: ACME_ID });
   agent.spec = { ...agent.spec!, plugins: plugins.map((slug) => ({ org: ACME_ID, slug })) } as typeof agent.spec;
-  const latest = agentEvalWith([{ slug: "thermos", cases: [{ name: "review-fires", score: 1 }] }]);
+  const latest = agentEvalRunWith([{ slug: "thermos", cases: [{ name: "review-fires", score: 1 }] }]);
   const listByAgent = vi.fn(async () => ({ entries: [latest], nextPageToken: "" }));
   render(<AgentDetailView org="acme" slug="reviewer" onNavigateToRun={onNavigateToRun} />, {
     wrapper: orgWrapper(
       {
         agent: { getByReference: vi.fn(async () => agent), update: vi.fn() },
-        agenteval: { listByAgent, get: vi.fn(async () => latest) },
+        evalrun: { listByAgent, get: vi.fn(async () => latest) },
         evaluator: {
           getByAgent: vi.fn(async () => {
             throw new StigmerError("not-found", "no evaluator", Code.NotFound);

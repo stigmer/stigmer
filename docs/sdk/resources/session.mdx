@@ -127,7 +127,7 @@ Session session = client.sessions().get(id);
 
 List all sessions with pagination and optional filtering.
 
-A plugin eval's tries are left out: each runs in a session of its own, read through the eval (PluginEvalQueryController.get) instead.
+An eval run's tries are left out: each runs in a session of its own, read through the eval run (EvalRunQueryController.get) instead.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -182,7 +182,7 @@ SessionList result = client.sessions().list(ListSessionsRequest.builder()
 
 List the conversations on one agent, whichever version each runs.
 
-Results are filtered to the sessions the caller can view. A plugin eval's tries are left out, as in list.
+Results are filtered to the sessions the caller can view. An eval run's tries are left out, as in list.
 
 <SDKTabs>
 <Tab value="TypeScript">

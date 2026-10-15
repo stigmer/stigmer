@@ -412,7 +412,7 @@ export interface ListIndexQuery<K extends string = string> {
   readonly anyKey?: ReadonlyArray<{ readonly name: K; readonly value: string }>;
   /**
    * Rows holding no value for any of these keys, as a conversation list
-   * leaves out the sessions a server lane marks (a plugin eval's tries).
+   * leaves out the sessions a server lane marks (an eval run's tries).
    * Empty or absent excludes nothing.
    */
   readonly withoutKeys?: ReadonlyArray<K>;

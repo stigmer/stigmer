@@ -222,23 +222,13 @@ public enum ApiResourceKind
   evaluator(62),
   /**
    * <pre>
-   * One run of a plugin's own evals/ cases: every case tried with and
-   * without the plugin, on the models the eval names.
+   * One run of test cases on an agent, or on a plugin on the built-in
+   * assistant, optionally with and without a plugin.
    * </pre>
    *
-   * <code>plugin_eval = 63 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   * <code>eval_run = 65 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
-  plugin_eval(63),
-  /**
-   * <pre>
-   * One run of the eval cases of the plugins an agent attaches, on the
-   * agent itself: each plugin's cases at the version the agent attaches,
-   * on the models the eval names, stamped with the agent's version.
-   * </pre>
-   *
-   * <code>agent_eval = 64 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  agent_eval(64),
+  eval_run(65),
   /**
    * <pre>
    * Catalog entry naming a bundle of entitlements and the terms that buy it.
@@ -496,23 +486,13 @@ public enum ApiResourceKind
   public static final int evaluator_VALUE = 62;
   /**
    * <pre>
-   * One run of a plugin's own evals/ cases: every case tried with and
-   * without the plugin, on the models the eval names.
+   * One run of test cases on an agent, or on a plugin on the built-in
+   * assistant, optionally with and without a plugin.
    * </pre>
    *
-   * <code>plugin_eval = 63 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   * <code>eval_run = 65 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
-  public static final int plugin_eval_VALUE = 63;
-  /**
-   * <pre>
-   * One run of the eval cases of the plugins an agent attaches, on the
-   * agent itself: each plugin's cases at the version the agent attaches,
-   * on the models the eval names, stamped with the agent's version.
-   * </pre>
-   *
-   * <code>agent_eval = 64 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  public static final int agent_eval_VALUE = 64;
+  public static final int eval_run_VALUE = 65;
   /**
    * <pre>
    * Catalog entry naming a bundle of entitlements and the terms that buy it.
@@ -601,8 +581,7 @@ public enum ApiResourceKind
       case 59: return vault;
       case 61: return score;
       case 62: return evaluator;
-      case 63: return plugin_eval;
-      case 64: return agent_eval;
+      case 65: return eval_run;
       case 70: return plan;
       case 71: return subscription;
       case 72: return license;

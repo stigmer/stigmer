@@ -42,7 +42,7 @@ import { useManagingPlugin } from "../plugin/useManagingPlugin.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { useOrgIdForRef, useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { AgentQualityTab } from "./AgentQualityTab.js";
-import { AgentEvalsTab } from "../agent-eval/AgentEvalsTab.js";
+import { EvalRunsTab } from "../eval-run/EvalRunsTab.js";
 import { AgentVersionsTab } from "./AgentVersionsTab.js";
 import { useAgentVersionCount } from "./useAgentVersions.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
@@ -188,8 +188,8 @@ export interface AgentDetailViewProps {
  * servers are edited only by the organization's admins
  * ({@link AgentMcpServersSection}). Sections with no data are
  * omitted entirely — reducing visual noise per Nielsen heuristic #8.
- * The Evals tab runs the eval cases of the agent's plugins on the agent
- * and compares its versions ({@link AgentEvalsTab}).
+ * The Evals tab runs test cases on the agent, with and without a plugin
+ * when one is compared, and compares its versions ({@link EvalRunsTab}).
  *
  * The action bar transforms this from a read-only view into an
  * operational hub. Actions are provided by the consumer via
@@ -488,13 +488,13 @@ export function AgentDetailView({
       />
     );
   } else if (effectiveActiveTab === "evals") {
-    // Running the agent's plugins' cases is not an edit of its definition:
+    // Running test cases on the agent is not an edit of its definition:
     // the tab gates its own form on can_edit, a plugin-managed agent included.
     tabContent = (
-      <AgentEvalsTab
+      <EvalRunsTab
         agent={agent}
         onNavigateToRun={onNavigateToRun}
-        initialEvalId={openEvalId ?? undefined}
+        initialEvalRunId={openEvalId ?? undefined}
         onOpenPlugins={() => effectiveOnTabChange(OVERVIEW_TAB.id)}
       />
     );

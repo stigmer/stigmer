@@ -2,7 +2,7 @@
  * The stop controller: one signal for every cause, every cause recorded,
  * the first cause the abort's reason. The terminal table's precedence is
  * decided at settlement from the recorded evidence, not from which cause
- * aborted first. A plugin-eval mock's stop is one more cause, and its arm
+ * aborted first. A eval-case mock's stop is one more cause, and its arm
  * writes the sentence the eval reads back.
  */
 
@@ -59,7 +59,7 @@ describe("StopController", () => {
   });
 });
 
-describe("a plugin-eval mock's stop", () => {
+describe("a eval-case mock's stop", () => {
   it("records the first mock's abort beside the other causes", () => {
     const stop = new StopController();
     stop.stop({ kind: "mock-abort", abort: { server: "tracker", tool: "create_issue", reason: "input.title must be a string" } });

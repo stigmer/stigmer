@@ -161,10 +161,10 @@ import {
 import { pluginVersionBinding } from "./versions.js";
 import { pluginSearchExtractor } from "./search-extractor.js";
 import {
-  newCascadeDeletePluginEvalsStep,
-  newSweepPluginEvalsAfterDeleteStep,
-} from "../plugin-eval/cascade.js";
-import type { PluginEvalCascadeDeps } from "../plugin-eval/cascade.js";
+  newCascadeDeleteEvalRunsStep,
+  newSweepEvalRunsAfterDeleteStep,
+} from "../eval-run/cascade.js";
+import type { EvalRunCascadeDeps } from "../eval-run/cascade.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { ARTIFACT_BYTES_KEY } from "../../pipeline/steps/resolve-artifact-source.js";
 
@@ -182,8 +182,8 @@ export interface PluginControllerDeps {
   readonly staging?: ArchiveStaging;
   /** The tools listing's lane: a runner reaches the server as the caller. */
   readonly tools: PluginToolsDeps;
-  /** The plugin's evals, removed by its delete (domain/plugin-eval/cascade.ts); absent, the delete removes none. */
-  readonly pluginEvals?: PluginEvalCascadeDeps;
+  /** The plugin's evals, removed by its delete (domain/eval-run/cascade.ts); absent, the delete removes none. */
+  readonly evalRuns?: EvalRunCascadeDeps;
 }
 
 /** Registers both plugin services on the router (routes stage). */
@@ -496,7 +496,7 @@ async function deletePlugin(
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, PluginSchema))
     .addStep(newGuardUnlistedStep<DeleteDesc>(deps.store, UNLISTED_PLUGIN))
-    .addStep(newCascadeDeletePluginEvalsStep<DeleteDesc>(deps.pluginEvals))
+    .addStep(newCascadeDeleteEvalRunsStep<DeleteDesc>("plugin", deps.evalRuns))
     .addStep(
       newDeleteVersionArchivesStep(deps.store, deps.logger, {
         stepName: "DeletePluginArchives",
@@ -505,7 +505,7 @@ async function deletePlugin(
     )
     .addStep(newDeleteResourceStep(deps.store))
     .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.plugin))
-    .addStep(newSweepPluginEvalsAfterDeleteStep<DeleteDesc>(deps.pluginEvals))
+    .addStep(newSweepEvalRunsAfterDeleteStep<DeleteDesc>("plugin", deps.evalRuns))
     .addStep(
       newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
     )

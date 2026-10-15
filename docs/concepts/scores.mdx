@@ -3,7 +3,7 @@ title: Scores
 description:
   A Score records how good a finished run was. Learn about a person's thumbs on
   the final answer, the free run-health checks Stigmer runs on every completed
-  run, AI grading switched on per Agent, a plugin eval's checks on each try, who
+  run, AI grading switched on per Agent, an eval run's checks on each try, who
   can see them, and how an Agent's Quality tab counts them over time.
 ---
 
@@ -21,8 +21,8 @@ A run carries up to four kinds of score:
   completes. It asks no AI model, so it costs nothing.
 - **AI grading**: an AI judge's verdict on whether the run did its task and made
   nothing up, for Agents whose maintainers switch it on.
-- **Plugin eval**: the checks a plugin author wrote for one test case, on one
-  try of a plugin eval.
+- **Eval**: the checks a plugin author wrote for one test case, on one try of an
+  eval run.
 
 ## Feedback
 
@@ -115,24 +115,24 @@ recorded.
 A run's text can still try to sway the judge, so treat a grade as a signal to
 look closer, not a final verdict.
 
-## Plugin evals
+## Eval runs
 
 A plugin can carry its own test cases in an `evals/` folder, in Claude Code's
-plugin-eval format. A
-[plugin eval](/docs/guides/plugins/test-a-plugin-with-evals) runs each case
-several times, and each of those tries is an ordinary run that records one
-score: metric `eval`, source `eval`. The score has one criterion per grader of
-the case: each is named after its grader and holds the verdict and the reason. A
-grader that only shows whether the plugin was used, such as "the Skill was
-used", is marked not applicable with the reason "indicator only". The run passes
-when every grader that counts passes.
+plugin-eval format. An [eval run](/docs/guides/plugins/test-a-plugin-with-evals)
+runs each case several times, on the plugin or on an Agent, and each of those
+tries is an ordinary run that records one score: metric `eval`, source `eval`.
+The score has one criterion per grader of the case: each is named after its
+grader and holds the verdict and the reason. A grader that only shows whether
+the plugin was used, such as "the Skill was used", is marked not applicable with
+the reason "indicator only". The run passes when every grader that counts
+passes.
 
 Only Stigmer writes these scores, from the case's graders; nobody rates a try by
 hand. A try Stigmer could not run or grade, for example because the Organization
 has no key for the model, says **not graded** with the reason and is left out of
-the eval's scores, never counted as a failure. The score also records the plugin
-version the case came from and the version of the judge's instructions, so
-results from different versions are never mixed.
+the eval run's scores, never counted as a failure. The score also records the
+plugin version the case came from and the version of the judge's instructions,
+so results from different versions are never mixed.
 
 ## Who sees scores
 
@@ -163,9 +163,10 @@ and 5 down. Below the totals:
   changed. The line breaks where the judge's rubrics or the run-health checks
   changed, because results from two versions of them are never added together.
 - **A table per Agent version**, with the same numbers and that version's latest
-  finished
-  [Agent eval](/docs/guides/plugins/test-an-agent-with-its-plugins-evals) beside
-  them, so you can see whether live runs got better after an instruction change.
+  finished [eval run](/docs/guides/plugins/test-an-agent-with-its-plugins-evals)
+  beside them (one that compared a plugin the Agent does not use is left out: it
+  did not measure the version as it is), so you can see whether live runs got
+  better after an instruction change.
 - **Flagged runs**: recent runs with a failed check, a failed judge verdict or a
   thumbs down, each naming what failed and linking to the run.
 
@@ -177,9 +178,9 @@ most 50,000 scores: for an Agent busier than that, about 1,300 runs a day over
 
 What it counts and who sees it:
 
-- **Live runs of the Agent in your Organization.** A plugin eval's or an Agent
-  eval's tries are tests, not live runs, and are left out. Runs of the same
-  Agent in another Organization are counted only there.
+- **Live runs of the Agent in your Organization.** An eval run's tries are
+  tests, not live runs, and are left out. Runs of the same Agent in another
+  Organization are counted only there.
 - **Everyone's runs**, including conversations you cannot open, as counts only.
   The report never shows a word anyone typed: no reasons, no comments, no
   answers.
@@ -229,8 +230,8 @@ stigmer get score scr_01abc123
 stigmer get evaluator evl_01abc123
 stigmer delete evaluator evl_01abc123
 
-# A plugin eval, with every case's results and each try's run
-stigmer get plugin-eval pev_01abc123
+# An eval run, with every case's results and each try's run
+stigmer get eval-run evr_01abc123
 ```
 
 ## Next steps

@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.evalrun.v1;
+
+import "ai/stigmer/agentic/evalrun/v1/api.proto";
+import "ai/stigmer/agentic/evalrun/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// EvalRunQueryController handles read operations for eval runs.
+//
+// @internal
+// An eval run's visibility is its subject's viewers in the subject's own
+// organization (org_viewer from agent, or from plugin): a try spends that
+// organization's money and may act with its connections, so a child
+// organization's viewer of a shared agent or plugin does not read it.
+service EvalRunQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = eval_run;
+
+  // Get a single eval run by ID.
+  rpc get(EvalRunId) returns (EvalRun) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = eval_run;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get eval run";
+  }
+
+  // List an agent's eval runs, newest first.
+  //
+  // Each eval run comes with its scores, aggregates, per-target results
+  // and notes, but with every arm's `tries` list empty, so a list stays
+  // small however many tries its eval runs ran. Get an eval run by its id
+  // for its tries.
+  //
+  // @internal
+  // Authorized on the agent, then each eval run is filtered by its own
+  // can_view, so a child organization's viewer of the agent gets an empty
+  // list rather than a refusal.
+  rpc listByAgent(ListEvalRunsByAgentRequest) returns (EvalRunList) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "agent_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list eval runs of agent";
+  }
+
+  // List a plugin's eval runs, newest first: those about the plugin, on
+  // the built-in assistant.
+  //
+  // Each comes as listByAgent's entries do, with every arm's `tries` list
+  // empty.
+  //
+  // @internal
+  // Authorized on the plugin, then each eval run is filtered by its own
+  // can_view, as listByAgent is.
+  rpc listByPlugin(ListEvalRunsByPluginRequest) returns (EvalRunList) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = plugin;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "plugin_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list eval runs of plugin";
+  }
+}

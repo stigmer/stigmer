@@ -1,7 +1,7 @@
 /**
  * Pins an agent's quality reads (../quality.ts) on both store drivers:
  * SQLite always, Postgres under TEST_DATABASE_URL. The lanes read the
- * score list index's agent and plugin eval keys with a creation-time
+ * score list index's agent and eval run keys with a creation-time
  * window, so each driver's indexed read is what decides the rows.
  *
  * The load-bearing pins:
@@ -47,7 +47,7 @@ import {
   type TestDatabase,
 } from "../../../store/postgres/__tests__/support.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
-import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
+import { EVAL_RUN_LABEL } from "../../eval-run/constants.js";
 import {
   FLAGGED_SCORES_KEY,
   QUALITY_REPORT_BATCH,
@@ -141,7 +141,7 @@ async function seedScore(store: Store, seed: Seed): Promise<string> {
         name: id,
         slug: id,
         org: seed.org ?? "org_a",
-        labels: seed.evalTry === true ? { [PLUGIN_EVAL_LABEL]: "pev_x" } : {},
+        labels: seed.evalTry === true ? { [EVAL_RUN_LABEL]: "evr_x" } : {},
       },
       spec: {
         runId: seed.runId ?? `run_quality${seq}`,

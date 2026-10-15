@@ -3,7 +3,7 @@
  * run's health and what its chip says (pending, healthy, flagged with each
  * failed check's reason, not graded with the reason), which feedback is
  * the viewer's (by account id or identity-provider subject, never another
- * person's or a check), the per-run grouping, and a plugin eval's try:
+ * person's or a check), the per-run grouping, and an eval run's try:
  * its verdict (an indicator-only check is not a failure), not graded with
  * the reason, nothing while pending, and the failing reason a test case is
  * seeded from (the judge's before the eval's).
@@ -168,7 +168,7 @@ describe("scoresByRun", () => {
   });
 });
 
-describe("a plugin eval's try", () => {
+describe("an eval run's try", () => {
   function graded(
     metric: string,
     source: ScoreSource,

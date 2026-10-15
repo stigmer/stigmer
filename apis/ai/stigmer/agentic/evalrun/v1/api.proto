@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.evalrun.v1;
+
+import "ai/stigmer/agentic/evalrun/v1/spec.proto";
+import "ai/stigmer/agentic/evalrun/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// EvalRun is one run of test cases on an agent, optionally with and
+// without a plugin.
+//
+// Test cases are written in a plugin's evals/ folder, in Claude Code's
+// plugin-eval format: a request a user might type, plus checks such as
+// "the reply mentions the renamed function", "the skill was used" or a
+// rubric for an AI judge. An eval run runs each case several times on each
+// model it names and records per case the score and whether every try
+// passed. It is about an agent, or about a plugin:
+//
+//   - on an agent, it runs the cases of the plugins the agent attaches, on
+//     the agent with its own instructions, stamped with the agent's
+//     version so two eval runs of two versions compare side by side. Name
+//     a compared plugin and each case also runs without it, attached or
+//     not: whether the agent does better with the plugin;
+//   - on a plugin, it runs the plugin's own cases on the built-in
+//     assistant with the plugin and without it, as Claude Code's
+//     `claude plugin eval` does.
+//
+// Every try is a conversation: in Stigmer Cloud the eval run's viewers
+// open it, read-only; in open source the eval run's creator owns it, and
+// the other viewers read its scores.
+//
+// @internal
+// Organization-scoped with two optional parents, the agent
+// (spec.agent_id) and the plugin (spec.plugin_id), exactly one written
+// (the spec's subject oneof): the subject's editors start, cancel and
+// delete eval runs; its viewers in its own organization read them. Kind
+// number 65, id prefix "evr". The subject's organization pays for every
+// try and every AI-graded check. The cases run on Stigmer's own engines,
+// so a score measures the cases on Stigmer, which can differ from Claude
+// Code's own `claude plugin eval` on the same suite.
+message EvalRun {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'EvalRun'];
+
+  // Resource metadata including name, organization, and labels.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // What the eval run is about, whose cases run, on which models, how
+  // many times, within what spend.
+  EvalRunSpec spec = 4;
+
+  // System-managed state: progress and results.
+  EvalRunStatus status = 5;
+}
