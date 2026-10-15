@@ -1,6 +1,7 @@
 /**
  * useOrgSlugForId and useOrgIdForRef translate between an organization's id
- * and slug for the person's own organizations, and hand back anything else
+ * and slug for the person's own organizations and the one they have open (a
+ * child organization outside their list), and hand back anything else
  * unchanged, including when no OrgProvider is mounted.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -14,16 +15,23 @@ import { useOrgIdForRef, useOrgSlugForId } from "../useOrgRefs";
 afterEach(cleanup);
 
 const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
+const CHILD_ID = "org_01jccccccccccccccccccccccc";
 
 const orgs = [
   { metadata: { id: ACME_ID, slug: "acme", name: "Acme" } },
   { metadata: { id: "legacy", slug: "legacy", name: "Legacy" } },
 ] as Organization[];
 
+const child = {
+  metadata: { id: CHILD_ID, slug: "acme-customer", name: "Customer" },
+  spec: { parentOrg: ACME_ID },
+} as Organization;
+
 function wrapper({ children }: { children: ReactNode }) {
   const client = {
     organization: {
       listMine: vi.fn().mockResolvedValue({ entries: orgs, nextPageToken: "" }),
+      get: vi.fn().mockResolvedValue(child),
     },
   };
   return (
@@ -37,6 +45,7 @@ function renderRefs() {
   return renderHook(
     () => ({
       loaded: useOrg().orgs.length > 0,
+      activeId: useOrg().activeOrg?.metadata?.id,
       slugFor: useOrgSlugForId(),
       idFor: useOrgIdForRef(),
     }),
@@ -95,5 +104,18 @@ describe("findOrgByRef", () => {
   it("names no organization for an empty reference, even one whose id and slug are unset", () => {
     const withBlank = [...orgs, { metadata: { id: "", slug: "", name: "Blank" } }] as Organization[];
     expect(findOrgByRef(withBlank, "")).toBeUndefined();
+  });
+});
+
+describe("an opened organization outside the person's list", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("resolves both ways while it is the active one", async () => {
+    localStorage.setItem("stigmer:activeOrg", CHILD_ID);
+    const { result } = renderRefs();
+    await waitFor(() => expect(result.current.activeId).toBe(CHILD_ID));
+    expect(result.current.slugFor(CHILD_ID)).toBe("acme-customer");
+    expect(result.current.idFor("acme-customer")).toBe(CHILD_ID);
+    expect(result.current.slugFor(ACME_ID)).toBe("acme");
   });
 });

@@ -14,7 +14,7 @@
  */
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
-import { useOptionalOrg } from "./OrgProvider.js";
+import { useKnownOrgs, useOptionalOrg } from "./OrgProvider.js";
 
 interface LookedUpSlug {
   readonly segment: string;
@@ -25,9 +25,10 @@ interface LookedUpSlug {
  * Answers the slug a URL's org segment should read, or `null` when the
  * segment already reads it or the answer is not known.
  *
- * - A segment equal to one of the person's organizations' current slugs
- *   is canonical: `null`, with no request.
- * - A segment equal to one of their organizations' ids answers that
+ * - A segment equal to the current slug of one of the person's
+ *   organizations, or of the one they have open, is canonical: `null`,
+ *   with no request.
+ * - A segment equal to one of those organizations' ids answers that
  *   organization's slug, with no request.
  * - Any other segment is looked up once (the server resolves an id or an
  *   old slug to the organization); its slug is answered when it differs.
@@ -54,7 +55,7 @@ export function useCanonicalOrgSlug(
   const ctx = useOptionalOrg();
   const segment = orgSegment ?? "";
   const ready = ctx !== null && !ctx.isLoading && segment !== "";
-  const orgs = ctx?.orgs ?? [];
+  const orgs = useKnownOrgs() ?? [];
 
   const isMemberSlug = orgs.some((o) => o.metadata?.slug === segment);
   const memberById = orgs.find((o) => o.metadata?.id === segment);

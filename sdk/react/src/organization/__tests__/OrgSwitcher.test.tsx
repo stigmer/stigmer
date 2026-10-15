@@ -3,7 +3,9 @@
  * order the server returns them, choosing one in the menu makes it active
  * (and remembered by id) and reports the choice, choosing the active one
  * again does nothing, and an organization created from the menu becomes the
- * active one once the list is fetched again.
+ * active one once the list is fetched again. An organization open outside
+ * the caller's list (a child its parent's admin opened) is the menu's first,
+ * checked item, "Child of" its parent, until another is chosen.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
@@ -19,8 +21,8 @@ afterEach(cleanup);
 
 const INITECH_ID = "org_01jcccccccccccccccccccccccc";
 
-function org(id: string, slug: string): Organization {
-  return { metadata: { id, slug, name: slug }, spec: {} } as Organization;
+function org(id: string, slug: string, parentOrg = ""): Organization {
+  return { metadata: { id, slug, name: slug }, spec: { parentOrg } } as Organization;
 }
 
 const ACME = org(ACME_ID, "acme");
@@ -28,14 +30,14 @@ const GLOBEX = org(GLOBEX_ID, "globex");
 const INITECH = org(INITECH_ID, "initech");
 
 /** Each fetch answers the next list; the last one repeats. */
-function clientFor(lists: Organization[][], create = vi.fn()) {
+function clientFor(lists: Organization[][], create = vi.fn(), get = vi.fn()) {
   let calls = 0;
   const listMine = vi.fn(async () => {
     const entries = lists[Math.min(calls, lists.length - 1)];
     calls += 1;
     return { entries, nextPageToken: "" };
   });
-  return { organization: { listMine, create } };
+  return { organization: { listMine, create, get } };
 }
 
 function ActiveId() {
@@ -113,5 +115,41 @@ describe("OrgSwitcher", () => {
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ name: "initech", slug: "initech" }));
     expect(onOrgChanged).toHaveBeenCalledWith(INITECH);
     expect(localStorage.getItem("stigmer:activeOrg")).toBe(INITECH_ID);
+  });
+
+  it("lists an opened child first, checked, as a child of its parent, until another is chosen", async () => {
+    const childId = "org_01jdddddddddddddddddddddddd";
+    const child = org(childId, "acme-customer", ACME_ID);
+    localStorage.setItem("stigmer:activeOrg", childId);
+    const onOrgChanged = renderSwitcher(
+      clientFor([[ACME, GLOBEX]], vi.fn(), vi.fn().mockResolvedValue(child)),
+    );
+    await waitFor(() => expect(screen.getByLabelText("active org").textContent).toBe(childId));
+
+    const trigger = screen.getByRole("button", { name: "Organization menu" });
+    expect(trigger.textContent).toContain("acme-customer");
+    await openMenu(trigger);
+    const items = screen.getAllByRole("menuitemradio");
+    expect(items.map((item) => item.textContent)).toEqual([
+      "acme-customerChild of acme",
+      "acmeacme",
+      "globexglobex",
+    ]);
+    expect(items[0].getAttribute("aria-checked")).toBe("true");
+    expect(items[1].getAttribute("aria-checked")).toBe("false");
+
+    fireEvent.click(screen.getByRole("menuitemradio", { name: /globex/ }));
+
+    await waitFor(() => expect(screen.getByLabelText("active org").textContent).toBe(GLOBEX_ID));
+    expect(onOrgChanged).toHaveBeenCalledTimes(1);
+    expect(onOrgChanged).toHaveBeenCalledWith(GLOBEX);
+    expect(localStorage.getItem("stigmer:activeOrg")).toBe(GLOBEX_ID);
+    // A radio item leaves the menu open: it now lists the caller's own alone.
+    await waitFor(() =>
+      expect(screen.getAllByRole("menuitemradio").map((item) => item.textContent)).toEqual([
+        "acmeacme",
+        "globexglobex",
+      ]),
+    );
   });
 });

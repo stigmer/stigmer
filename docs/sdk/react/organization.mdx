@@ -43,9 +43,10 @@ function useActiveOrgSlug(): string
 Answers the slug a URL's org segment should read, or `null` when the
 segment already reads it or the answer is not known.
 
-- A segment equal to one of the person's organizations' current slugs
-  is canonical: `null`, with no request.
-- A segment equal to one of their organizations' ids answers that
+- A segment equal to the current slug of one of the person's
+  organizations, or of the one they have open, is canonical: `null`,
+  with no request.
+- A segment equal to one of those organizations' ids answers that
   organization's slug, with no request.
 - Any other segment is looked up once (the server resolves an id or an
   old slug to the organization); its slug is answered when it differs.
@@ -304,8 +305,8 @@ one). Use it before comparing a reference with a stored `metadata.org`,
 which is an id.
 
 The answer is the org's id when the reference names one of the person's
-organizations by id or current slug, and the reference unchanged
-otherwise.
+organizations, or the one they have open, by id or current slug, and the
+reference unchanged otherwise.
 
 **Signature**
 
@@ -325,7 +326,7 @@ Returns a function answering the slug of the organization an id names,
 for display text and URL segments.
 
 The answer is the org's current slug when it is one of the person's
-organizations, and the id unchanged otherwise.
+organizations or the one they have open, and the id unchanged otherwise.
 
 **Signature**
 
@@ -482,9 +483,14 @@ await updatePolicies(orgId, { ...organizationPoliciesOf(org), membersCanCreateAg
 
 ### ChildOrganizationsList
 
-Read-only list of an organization's child organizations: each child's
-name, slug and external id (the parent's own identifier for it), newest
-first, with "Load more" while the server holds more.
+List of an organization's child organizations: each child's name, slug
+and external id (the parent's own identifier for it), newest first, with
+"Load more" while the server holds more.
+
+Inside an [`OrgProvider`](#orgprovider) each row has an Open action that makes the
+child the active organization (the provider keeps it across reloads, and
+`OrgSwitcher` shows it while it is open), then calls `onOrgChanged`.
+Outside one the list has no actions.
 
 Renders nothing unless the caller may manage the organization's children
 (`can_manage_child_orgs`, checked fail-closed so nothing flashes for a
@@ -499,12 +505,13 @@ list says so.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    onOrgChanged: { type: "(org: Organization) => void", description: "Called when the user opens a child organization from the list, after it has become the active organization.  This fires only on the user's act, as `OrgSwitcher`'s callback of the same name does. Use it to navigate (to the child's dashboard, say); without it the page stays where it is and renders as the child's." },
     org: { type: "string", description: "The id of the parent organization whose children to list.", required: true },
   }}
 />
 
 ```tsx
-<ChildOrganizationsList org="org-id-123" />
+<ChildOrganizationsList org="org-id-123" onOrgChanged={() => navigate("/dashboard")} />
 ```
 
 
@@ -669,6 +676,16 @@ Fetches the authenticated user's organizations via
 organization selection, and persists the choice to `localStorage`
 under the key `stigmer:activeOrg` by the organization's id.
 
+The active organization may be one outside that list which the person
+can read: a parent organization's admins are admins in each of its
+children without belonging to them, and open one from the parent's
+Child organizations list. A remembered (or `refresh`-named) organization
+the list does not hold is read once with `stigmer.organization.get()`:
+answered, it stays active; refused (the person can no longer read it,
+or it is gone), the first listed organization is selected; any other
+failure is the provider's `error`, so the person is never moved quietly
+into another organization.
+
 Must be rendered inside a [`StigmerProvider`](/docs/sdk/react/core#stigmerprovider). Mount it BELOW
 `FetchCacheProvider` (when one is used): switching the active org clears
 the nearest fetch cache, so view state cached under the previous org
@@ -714,6 +731,13 @@ Shows the active organization (name + slug), lists every organization the
 caller belongs to in the order the server returns them, and provides a
 "Create organization" action that opens an inline dialog with
 [`CreateOrganizationForm`](#createorganizationform).
+
+When the active organization is one the caller opened without belonging
+to it (a child organization its parent's admin opened from the parent's
+Child organizations list), the menu lists it first, checked, with
+"Child of \{parent\}" in place of its slug, then the caller's own. Choosing
+one of those switches to it, and the opened organization leaves the
+menu: the menu never lists children the caller has not opened.
 
 Designed for sidebar placement — the trigger uses `sidebar-*` design
 tokens. The portaled dropdown and dialog use standard `popover-*` /
@@ -799,13 +823,13 @@ Value exposed by [`OrgProvider`](#orgprovider) via [`useOrg`](#useorg).
 
 <TypeTable
   type={{
-    activeOrg: { type: "Organization | null", description: "The currently selected organization. Null while loading or if the user has no orgs.", required: true },
+    activeOrg: { type: "Organization | null", description: "The currently selected organization. Null while loading or if the user has no orgs.  Usually one of `orgs`, but it may be an organization outside them that the person opened and can read: a child organization its parent's admin opened from the parent's Child organizations list. Such an organization is never added to `orgs`.", required: true },
     error: { type: "string | null", description: "Non-null when the fetch failed.", required: true },
     isLoading: { type: "boolean", description: "True during the initial fetch of organizations.", required: true },
     orgs: { type: "Organization[]", description: "All organizations the authenticated user belongs to.", required: true },
-    refresh: { type: "(target?: string) => void", description: "Refetch the organization list. If `target` is provided, the org it names — by id or by slug — is selected after the fetch completes (useful after creating or renaming an organization).", required: true },
+    refresh: { type: "(target?: string) => void", description: "Refetch the organization list. If `target` is provided, the org it names — by id or by slug — is selected after the fetch completes (useful after creating or renaming an organization), read from the server when it is not one of `orgs`, as a remembered one is.", required: true },
     retry: { type: "() => void", description: "Re-attempt the organization fetch after a failure.", required: true },
-    setActiveOrg: { type: "(org: Organization) => void", description: "Switch the active organization. Persisted to localStorage.", required: true },
+    setActiveOrg: { type: "(org: Organization) => void", description: "Switch the active organization: one of `orgs`, or any organization the person can read. Persisted to localStorage, and restored on the next load while the person can still read it.", required: true },
   }}
 />
 

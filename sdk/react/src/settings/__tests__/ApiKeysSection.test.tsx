@@ -1,8 +1,8 @@
 /**
  * Pins the scope the API Keys section shows for each key: a key that names
  * no organization works in all of its owner's organizations; a key limited
- * to one is named by that organization's slug when the user's organization
- * list holds it, and by a plain label when it does not, so a stored id is
+ * to one is named by that organization's slug when the user's organizations
+ * (or the one they have open) hold it, and by a plain label when not, so a stored id is
  * never shown. The organization context is stubbed; the list runs through
  * the real hook over a stubbed `apiKey.list`.
  */
@@ -30,6 +30,7 @@ vi.mock("../../organization/OrgProvider.js", async (importOriginal) => {
     ...actual,
     useActiveOrgId: () => ACME_ID,
     useOptionalOrg: () => ({ orgs: [ACME] }),
+    useKnownOrgs: () => [ACME],
   };
 });
 

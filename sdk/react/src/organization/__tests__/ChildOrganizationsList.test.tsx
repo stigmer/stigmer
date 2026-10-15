@@ -4,9 +4,11 @@
  * listChildOrgs; nobody else sees the section, which is never asked for
  * until `can_manage_child_orgs` is confirmed, and a server that holds one
  * organization never shows it. An organization with no children shows
- * nothing.
+ * nothing. Inside an OrgProvider each row opens its child: the child becomes
+ * the active organization and `onOrgChanged` reports it; outside one the
+ * list has no actions.
  */
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
@@ -18,6 +20,7 @@ import type { ListChildOrgsInput } from "@stigmer/protos/ai/stigmer/tenancy/orga
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { ChildOrganizationsList } from "../ChildOrganizationsList";
+import { OrgProvider, useActiveOrgId } from "../OrgProvider";
 
 const PARENT = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
 
@@ -48,7 +51,13 @@ function clientWith(options: {
     listChildOrgs,
     checkMyPermission,
     client: {
-      organization: { listChildOrgs },
+      organization: {
+        listChildOrgs,
+        listMine: vi.fn(async () => ({
+          entries: [create(OrganizationSchema, { metadata: { id: PARENT, name: "Parent", slug: "parent" } })],
+          nextPageToken: "",
+        })),
+      },
       grant: { checkMyPermission },
       platform: {
         getServerInfo: vi.fn(async () => ({ singleOrg: options.singleOrg ?? false })),
@@ -67,6 +76,24 @@ function renderList(client: unknown) {
   );
 }
 
+function ActiveId() {
+  return <output aria-label="active org">{useActiveOrgId()}</output>;
+}
+
+function renderInProvider(client: unknown, onOrgChanged = vi.fn()) {
+  render(
+    <StigmerContext.Provider value={client as never}>
+      <DeploymentModeContext.Provider value="cloud">
+        <OrgProvider>
+          <ChildOrganizationsList org={PARENT} onOrgChanged={onOrgChanged} />
+          <ActiveId />
+        </OrgProvider>
+      </DeploymentModeContext.Provider>
+    </StigmerContext.Provider>,
+  );
+  return onOrgChanged;
+}
+
 afterEach(cleanup);
 
 describe("ChildOrganizationsList", () => {
@@ -77,6 +104,7 @@ describe("ChildOrganizationsList", () => {
     expect(screen.getByText("acme")).toBeTruthy();
     expect(screen.getByText("cust-4411")).toBeTruthy();
     expect(listChildOrgs.mock.calls[0]?.[0]).toMatchObject({ org: PARENT, pageToken: "" });
+    expect(screen.queryByRole("button", { name: /^Open/ })).toBeNull();
   });
 
   it("loads the next page while the server holds more", async () => {
@@ -121,5 +149,35 @@ describe("ChildOrganizationsList", () => {
     const { container } = renderList(client);
     await waitFor(() => expect(listChildOrgs).toHaveBeenCalled());
     expect(container.textContent).toBe("");
+  });
+
+  describe("opening a child", () => {
+    beforeEach(() => localStorage.clear());
+
+    it("gives each row an Open action named for its child", async () => {
+      const { client } = clientWith({
+        manages: true,
+        pages: [{ entries: [ACME, BETA], nextPageToken: "" }],
+      });
+      renderInProvider(client);
+      expect(await screen.findByRole("button", { name: "Open Acme Corp" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Open Beta Ltd" })).toBeTruthy();
+      expect(screen.getByText(/Open one to work in it as its admin\./)).toBeTruthy();
+    });
+
+    it("makes the child the active organization, remembers it, and reports it once", async () => {
+      const { client } = clientWith({ manages: true });
+      const onOrgChanged = renderInProvider(client);
+      await waitFor(() => expect(screen.getByLabelText("active org").textContent).toBe(PARENT));
+
+      fireEvent.click(await screen.findByRole("button", { name: "Open Acme Corp" }));
+
+      await waitFor(() =>
+        expect(screen.getByLabelText("active org").textContent).toBe(ACME.metadata?.id),
+      );
+      expect(onOrgChanged).toHaveBeenCalledTimes(1);
+      expect(onOrgChanged).toHaveBeenCalledWith(ACME);
+      expect(localStorage.getItem("stigmer:activeOrg")).toBe(ACME.metadata?.id);
+    });
   });
 });

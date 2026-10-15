@@ -1424,6 +1424,7 @@ export { ApiKeysSection } from "./settings/index.js";
 export { MembersSection } from "./settings/index.js";
 export type { MembersSectionProps } from "./settings/index.js";
 export { OrgProfileSection } from "./settings/index.js";
+export type { OrgProfileSectionProps } from "./settings/index.js";
 export { OrgPreferencesSection, OrgPoliciesSection, OrgEmbeddingSection } from "./settings/index.js";
 export type { OrgEmbeddingSectionProps } from "./settings/index.js";
 export { AccountPreferencesSection } from "./settings/index.js";

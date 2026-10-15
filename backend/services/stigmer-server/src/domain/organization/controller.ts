@@ -843,9 +843,10 @@ async function getByExternalId(
 /**
  * ListChildOrgs — Authorize asks `can_manage_child_orgs` on `org`, then
  * the organization list index pages the parent's children newest first
- * (pipeline/steps/list-page.ts). No per-row read scope runs: the parent's
- * managers manage every child, and hold no `can_view` on any of them, so
- * the scope would hide them all.
+ * (pipeline/steps/list-page.ts). No per-row read scope runs: a caller
+ * passing that check is the parent's admin, so an admin in every child
+ * (`parent_admin`), and holds `can_view` on each; the scope would admit
+ * every row and cost a check per row for nothing.
  */
 async function listChildOrgs(
   deps: OrganizationControllerDeps,
