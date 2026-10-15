@@ -32,7 +32,7 @@ const (
 	// A person who can see the run.
 	ScoreSource_score_source_human ScoreSource = 2
 	// An AI judge grading the run against Stigmer's standard rubrics, switched
-	// on per agent by its evaluator.
+	// on per agent by its scoring rule.
 	ScoreSource_score_source_judge ScoreSource = 3
 	// An eval run's try of one evals/ case, graded by the case's checks.
 	ScoreSource_score_source_eval ScoreSource = 4

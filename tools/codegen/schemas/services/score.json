@@ -551,7 +551,7 @@
         {
           "name": "score_source_judge",
           "number": 3,
-          "description": "An AI judge grading the run against Stigmer's standard rubrics, switched\n on per agent by its evaluator."
+          "description": "An AI judge grading the run against Stigmer's standard rubrics, switched\n on per agent by its scoring rule."
         },
         {
           "name": "score_source_eval",

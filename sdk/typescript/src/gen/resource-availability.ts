@@ -34,7 +34,7 @@ export const KIND_TIERS: ReadonlyMap<ApiResourceKind, ResourceTier> = new Map([
   [ApiResourceKind.plugin, ResourceTier.open_source],
   [ApiResourceKind.vault, ResourceTier.open_source],
   [ApiResourceKind.score, ResourceTier.open_source],
-  [ApiResourceKind.evaluator, ResourceTier.open_source],
+  [ApiResourceKind.scoring_rule, ResourceTier.open_source],
   [ApiResourceKind.eval_run, ResourceTier.open_source],
   [ApiResourceKind.eval, ResourceTier.open_source],
   [ApiResourceKind.plan, ResourceTier.cloud_only],
