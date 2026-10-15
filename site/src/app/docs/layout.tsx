@@ -34,10 +34,11 @@ export default function Layout({ children }: { children: ReactNode }) {
     // and `theme.enabled: false` keeps RootProvider from mounting next-themes
     // (which would otherwise follow the OS preference and toggle that class).
     // Dark is a build-time fact here, exactly as on the marketing pages.
-    <RootProvider
-      search={{ options: { type: "static" } }}
-      theme={{ enabled: false }}
-    >
+    //
+    // Search is off: its static index is 26.2 MiB, over the 25 MiB Cloudflare
+    // stores per file, so the site exports none and the toggles hide
+    // (`hideIfDisabled`). It returns when the index fits (stigmer/stigmer#2368).
+    <RootProvider search={{ enabled: false }} theme={{ enabled: false }}>
       {/* One provider, one panel, two CSS-gated triggers — both rendered
           by DocsHeader. */}
       <AskAiProvider>

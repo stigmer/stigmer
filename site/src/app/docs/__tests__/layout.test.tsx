@@ -2,7 +2,8 @@
 // Docs tab first and then one tab per root folder in tree order, is handed
 // to both DocsHeader (the desktop tabs) and DocsSidebar (the mobile
 // switcher), while Fumadocs' own tab strip stays off (`sidebar.tabs:
-// false`) and RootProvider runs dark-only with static search. The order is
+// false`) and RootProvider runs dark-only with search off until its index
+// fits Cloudflare's per-file limit (stigmer/stigmer#2368). The order is
 // load-bearing: the active tab is the LAST entry matching the URL, so the
 // catch-all Docs tab must come first. Fumadocs' layout, provider and the
 // site's header, sidebar and Ask AI chrome are replaced by recorders;
@@ -119,7 +120,7 @@ describe("docs layout", () => {
     expect(recorded.sidebarTabs).toBe(recorded.headerTabs);
   });
 
-  it("keeps Fumadocs' own tab strip off and runs the provider dark-only with static search", () => {
+  it("keeps Fumadocs' own tab strip off and runs the provider dark-only with search off", () => {
     render(
       <Layout>
         <p>page body</p>
@@ -128,7 +129,7 @@ describe("docs layout", () => {
 
     expect(recorded.layoutSidebarTabs).toBe(false);
     expect(recorded.providerTheme).toEqual({ enabled: false });
-    expect(recorded.providerSearch).toEqual({ options: { type: "static" } });
+    expect(recorded.providerSearch).toEqual({ enabled: false });
     // The Ask AI panel is mounted once, inside its provider.
     const provider = screen.getByTestId("ask-ai-provider");
     expect(provider.querySelectorAll("[data-testid='ask-ai-panel']")).toHaveLength(1);
