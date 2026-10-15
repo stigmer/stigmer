@@ -8,8 +8,9 @@
  *
  *   - `prompt.md`: the turn's user message as the session recorded it (what
  *     the model was given, a channel's digest included), else the run's
- *     request; no frontmatter, so the case takes the format's defaults and
- *     the agent's own tools;
+ *     request, behind an empty frontmatter block: the case takes the
+ *     format's defaults and the agent's own tools, and a request that opens
+ *     with a `---` block of its own is still read whole as the prompt;
  *   - `history.jsonl` and `case.yaml` (`context.history_file`), when the
  *     session holds turns before this one: every earlier run, superseded
  *     ones included, because the runner resumes a session as the model saw
@@ -126,7 +127,7 @@ export async function buildCaseFromRun(store: Store, logger: Logger, input: Case
   const request = turn?.userMessage?.text || run.spec?.message || "";
   const caseName = input.caseName !== "" ? input.caseName : suggestCaseName(request);
   const notes: string[] = [];
-  const files: Array<{ readonly path: string; readonly content: string }> = [{ path: "prompt.md", content: `${request.trim()}\n` }];
+  const files: Array<{ readonly path: string; readonly content: string }> = [{ path: "prompt.md", content: promptFile(request) }];
 
   if (earlier.length > 0) {
     const harness = await harnessOf(store, sessionId);
@@ -343,6 +344,17 @@ function failureOf(scores: ReadonlyArray<Score>, callerId: string): string {
     if (thumbsDown && own && note !== "") return note;
   }
   return "";
+}
+
+/**
+ * The prompt file: the request verbatim behind an empty frontmatter block.
+ * The format reads a leading `---` block as the case's settings, so a
+ * request that opens with one of its own (a sender's `allowed_tools`, a
+ * lone rule) would otherwise choose the case's tools or fail it; behind
+ * the empty block, the body is read whole as the prompt.
+ */
+function promptFile(request: string): string {
+  return `---\n---\n${request.trim()}\n`;
 }
 
 function criteriaFile(failure: string): string {
