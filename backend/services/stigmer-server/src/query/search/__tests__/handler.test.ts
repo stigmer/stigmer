@@ -7,9 +7,9 @@
  * organizations are the named one, or the directory's and each child's
  * parent; organizations are the directory's ids; sessions and runs ride
  * the enumeration; where the directory cannot name the caller's
- * organizations, every kind rides the enumeration; the server itself and a
- * scope-less composition are unscoped; and a scope fault is the sanitized
- * Internal. The scope and the directory are recording fakes and the rows
+ * organizations, every kind rides the enumeration; a row that will not
+ * decode is skipped and logged; the server itself and a scope-less
+ * composition are unscoped; and a scope fault is the sanitized Internal. The scope and the directory are recording fakes and the rows
  * are a real store's, so the pins are about the handler's reads, not a
  * driver's answers (authorization/__tests__/ holds those).
  */
@@ -18,6 +18,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
@@ -36,6 +37,7 @@ import {
   type TempStore,
 } from "../../../store/sqlite/__tests__/support.js";
 import { apiResourceKindName } from "../../../store/proto-fields.js";
+import { agentListIndex } from "../../../domain/agent/list-index.js";
 import { searchIndexedKinds } from "../criteria.js";
 import { SearchHandler } from "../handler.js";
 import { emptyResult } from "../paged-result.js";
@@ -98,6 +100,14 @@ beforeEach(async () => {
     SkillSchema,
     create(SkillSchema, {
       metadata: { id: "skill-own", name: "skill-own", slug: "skill-own", org: OWN },
+    }),
+  );
+  await temp.store.saveResource(
+    ApiResourceKind.plugin,
+    "plugin-own",
+    PluginSchema,
+    create(PluginSchema, {
+      metadata: { id: "plugin-own", name: "plugin-own", slug: "plugin-own", org: OWN },
     }),
   );
 });
@@ -233,10 +243,61 @@ describe("search allowlists by each kind's reach", () => {
       sorted([`agent-${CHILD}`, `agent-${OWN}`, `agent-${PARENT}`]),
     ]);
     expect(recorded.offered.get("skill")).toEqual([["skill-own"]]);
+    expect(recorded.offered.has("plugin")).toBe(false);
     expect(sorted(store.maps[0]?.get("agent"))).toEqual(
       sorted([`agent-${CHILD}`, `agent-${OWN}`, `agent-${PARENT}`]),
     );
     expect(recorded.enumerated).toEqual([]);
+  });
+
+  it("offers a plugin's rows like an agent's", async () => {
+    const store = capturingStore();
+    const recorded = newRecorded();
+    await handlerOver({
+      store,
+      scope: recordingScope(recorded),
+      directory: directoryOf([OWN]),
+    }).handle(create(SearchRequestSchema, { kinds: [ApiResourceKind.plugin] }), PERSON);
+
+    expect(recorded.offered.get("plugin")).toEqual([["plugin-own"]]);
+    expect(sorted(store.maps[0]?.get("plugin"))).toEqual(["plugin-own"]);
+  });
+
+  it("skips and logs a row that will not decode, and offers the rest", async () => {
+    const warnings: string[] = [];
+    const logger = createLogger({
+      level: "warn",
+      pretty: false,
+      write: (line) => {
+        warnings.push(line);
+      },
+    });
+    const good = (await temp.store.queryResources(agentListIndex, { org: OWN }))[0];
+    if (good === undefined) {
+      throw new Error("the fixture's agent row is missing");
+    }
+    const store = capturingStore();
+    const recorded = newRecorded();
+    await new SearchHandler({
+      store,
+      rows: {
+        getResource: temp.store.getResource.bind(temp.store),
+        queryResources: () =>
+          Promise.resolve([
+            { id: "agent-torn", data: new Uint8Array([0x0a, 0x05]), cursor: good.cursor },
+            good,
+          ]),
+      },
+      organizationDirectory: undefined,
+      listReadScope: recordingScope(recorded),
+      logger,
+    }).handle(
+      create(SearchRequestSchema, { kinds: [ApiResourceKind.agent], org: OWN }),
+      PERSON,
+    );
+
+    expect(recorded.offered.get("agent")).toEqual([[`agent-${OWN}`]]);
+    expect(warnings.join("\n")).toContain("agent-torn");
   });
 
   it("keeps only what the restrict verb keeps", async () => {
