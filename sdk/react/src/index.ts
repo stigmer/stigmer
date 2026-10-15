@@ -1120,8 +1120,6 @@ export {
   isComparing,
   parseAllowTools,
   parseCaseTags,
-  testCaseOfRun,
-  zipTestCase,
 } from "./eval-run/index.js";
 export type {
   EvalRunsTabProps,
@@ -1146,7 +1144,6 @@ export type {
   EvalSubjectKind,
   EvalSubjectRef,
   EvalTryView,
-  RunForTestCase,
 } from "./eval-run/index.js";
 
 // Grant — data hooks, behavior hooks, headless hook, and styled components for access management

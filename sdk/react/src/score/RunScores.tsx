@@ -4,8 +4,7 @@ import { useState, type FormEvent } from "react";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
-import { downloadBinaryFile } from "../internal/download.js";
-import { testCaseOfRun, zipTestCase } from "../eval-run/test-case.js";
+import { MakeTestCasePanel } from "./MakeTestCasePanel.js";
 import { useRunScoresData } from "./RunScoresContext.js";
 import { RATING_COMMENT_MAX_LENGTH } from "./rating-input.js";
 import { CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
@@ -41,11 +40,11 @@ export interface RunScoresProps {
  * reason. A run the platform could not grade says so quietly, with the
  * reason.
  *
- * "Make a test case", revealed with the thumbs, downloads the run as a case
- * folder for a plugin's evals/ (a zip of `prompt.md` and an `llm` rubric
- * seeded from the first failing grader's reason or the viewer's thumbs-down
- * comment). Stigmer never writes into the author's repository; the author
- * unzips it there and commits it.
+ * "Make a test case", revealed with the thumbs, opens the panel that turns
+ * the run into a case the server builds (MakeTestCasePanel.tsx): downloaded
+ * as a case folder, or added to one of the organization's evals as a new
+ * version. Stigmer never writes into the author's repository; a downloaded
+ * case is unzipped there by the author.
  *
  * Reads the thread's scores from `MessageThread`'s provider (enabled by its
  * `runScores` prop), so it renders nothing outside one. Each person rates
@@ -62,6 +61,7 @@ export function RunScores({ runId, className }: RunScoresProps) {
   const [written, setWritten] = useState<Score | undefined>(undefined);
   const [commentOpen, setCommentOpen] = useState(false);
   const [comment, setComment] = useState("");
+  const [caseOpen, setCaseOpen] = useState(false);
 
   if (data === null) return null;
 
@@ -122,17 +122,12 @@ export function RunScores({ runId, className }: RunScoresProps) {
         <EvalChip view={evalView} />
         {request !== "" && (
           <MakeTestCaseButton
-            onMake={() =>
-              testCaseOfRun({
-                request,
-                scores,
-                viewer: data.viewer,
-                multiTurn: data.followsEarlierRun(runId),
-              })
-            }
+            open={caseOpen}
+            onToggle={() => setCaseOpen((open) => !open)}
           />
         )}
       </div>
+      {caseOpen && request !== "" && <MakeTestCasePanel runId={runId} org={org} />}
       {commentOpen && thumbs !== undefined && (
         <form
           onSubmit={(event) => onSubmitComment(event, thumbs)}
@@ -374,54 +369,30 @@ function EvalChip({ view }: { readonly view: EvalView }) {
   );
 }
 
-/**
- * Builds the run's test case when pressed and downloads it as a zip; a run
- * that continued a conversation says the case holds only its last request.
- */
+/** Opens and closes the run's "Make a test case" panel. */
 function MakeTestCaseButton({
-  onMake,
+  open,
+  onToggle,
 }: {
-  readonly onMake: () => ReturnType<typeof testCaseOfRun>;
+  readonly open: boolean;
+  readonly onToggle: () => void;
 }) {
-  const [note, setNote] = useState<string | null>(null);
-  const onClick = (): void => {
-    const testCase = onMake();
-    downloadBinaryFile(
-      zipTestCase(testCase),
-      `${testCase.caseName}.zip`,
-      "application/zip",
-    );
-    setNote(
-      testCase.note === undefined
-        ? null
-        : `Test case ${testCase.caseName}: ${testCase.note}.`,
-    );
-  };
   return (
-    <>
-      <button
-        type="button"
-        onClick={onClick}
-        className={cn(
-          "stg:ml-1 stg:inline-flex stg:h-6 stg:items-center stg:rounded-md stg:px-2 stg:text-xs stg:transition",
-          "stg:hover:bg-accent-hover stg:hover:text-foreground",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-          note === null
-            ? "stg:text-muted-foreground-subtle stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100"
-            : "stg:text-muted-foreground",
-        )}
-      >
-        Make a test case
-      </button>
-      {note !== null && (
-        <span
-          role="status"
-          className="stg:ml-1 stg:text-xs stg:text-muted-foreground-subtle"
-        >
-          {note}
-        </span>
+    <button
+      type="button"
+      aria-expanded={open}
+      onClick={onToggle}
+      className={cn(
+        "stg:ml-1 stg:inline-flex stg:h-6 stg:items-center stg:rounded-md stg:px-2 stg:text-xs stg:transition",
+        "stg:hover:bg-accent-hover stg:hover:text-foreground",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+        open
+          ? "stg:text-muted-foreground"
+          : "stg:text-muted-foreground-subtle stg:opacity-0 stg:group-hover:opacity-100 stg:focus-visible:opacity-100",
       )}
-    </>
+    >
+      Make a test case
+    </button>
   );
 }
 
