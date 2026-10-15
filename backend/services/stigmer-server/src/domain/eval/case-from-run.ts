@@ -298,6 +298,12 @@ function mockFilesOf(uses: ReadonlyArray<ToolUse>, notes: string[]): Array<{ pat
     if (use.fullOutput !== undefined) {
       notes.push(`${call} answered more than the session keeps inline; its mock holds the part the session kept`);
     }
+    // A mock body's {{input...}} and {{file:...}} are placeholders the
+    // mock fills per call (eval-runtime mock.ts), so a recorded answer
+    // holding one would not replay as recorded.
+    if ((use.result?.text ?? "").includes("{{")) {
+      notes.push(`${call} answered with text a mock reads as a placeholder ("{{"); check its mock replays the answer as recorded`);
+    }
   }
   for (const call of unanswered) {
     notes.push(`${call} never returned, so it has no mock`);

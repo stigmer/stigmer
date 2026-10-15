@@ -137,7 +137,7 @@ describe("a case from a single turn", () => {
           { id: "c3", name: "remember", mcpServer: "stigmer-memory", result: "noted" },
           { id: "c4", name: "lookup.v2", mcpServer: "billing", result: "a dotted tool" },
           { id: "c5", name: "refund", mcpServer: "billing" },
-          { id: "c6", name: "search", mcpServer: "crm", result: "the head of a long answer", offloadedHash: "h1" },
+          { id: "c6", name: "search", mcpServer: "crm", result: "the head of a long answer {{input.q}}", offloadedHash: "h1" },
           { id: "c7", name: "read_file", input: { file_path: "a.md" }, result: "built-in" },
         ])
         .turnMessage("", [
@@ -163,6 +163,7 @@ describe("a case from a single turn", () => {
     expect(built.notes).toEqual([
       "billing.lookup_order answered differently on 1 later call; its mock keeps the first answer",
       "crm.search answered more than the session keeps inline; its mock holds the part the session kept",
+      'crm.search answered with text a mock reads as a placeholder ("{{"); check its mock replays the answer as recorded',
       "stigmer-memory is the platform's own server; the case calls it for real",
       "billing.lookup.v2 has a name no mock file can carry, so it has no mock",
     ]);
