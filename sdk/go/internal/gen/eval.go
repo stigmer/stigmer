@@ -31,6 +31,11 @@ func (e *EvalClient) Push(ctx context.Context, input *evalv1.PushEvalRequest) (*
 	return resp, wrapErr(err)
 }
 
+func (e *EvalClient) AddCaseFromRun(ctx context.Context, input *evalv1.AddEvalCaseFromRunRequest) (*evalv1.Eval, error) {
+	resp, err := e.command.AddCaseFromRun(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (e *EvalClient) CreateArtifactUploadUrl(ctx context.Context, input *evalv1.CreateEvalArtifactUploadUrlRequest) (*evalv1.EvalArtifactUploadUrl, error) {
 	resp, err := e.command.CreateArtifactUploadUrl(ctx, input)
 	return resp, wrapErr(err)
@@ -139,6 +144,11 @@ func (e *EvalClient) Download(ctx context.Context, ref ResourceRef) (*evalv1.Eva
 func (e *EvalClient) GetDownloadUrl(ctx context.Context, ref ResourceRef) (*evalv1.EvalArchiveDownloadUrl, error) {
 	ref.Kind = apiresourcekind.ApiResourceKind_eval
 	resp, err := e.query.GetDownloadUrl(ctx, ref.toProto())
+	return resp, wrapErr(err)
+}
+
+func (e *EvalClient) BuildCaseFromRun(ctx context.Context, input *evalv1.BuildEvalCaseFromRunRequest) (*evalv1.EvalCaseArchive, error) {
+	resp, err := e.query.BuildCaseFromRun(ctx, input)
 	return resp, wrapErr(err)
 }
 

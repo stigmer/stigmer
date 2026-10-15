@@ -2,6 +2,7 @@ import datetime
 
 from ai.stigmer.agentic.eval.v1 import api_pb2 as _api_pb2
 from ai.stigmer.commons.apiresource import enum_pb2 as _enum_pb2
+from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from ai.stigmer.commons.apiresource import status_pb2 as _status_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
@@ -66,6 +67,44 @@ class EvalArchive(_message.Message):
     artifact: bytes
     digest: str
     def __init__(self, artifact: _Optional[bytes] = ..., digest: _Optional[str] = ...) -> None: ...
+
+class BuildEvalCaseFromRunRequest(_message.Message):
+    __slots__ = ("run_id", "case_name", "skill")
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    CASE_NAME_FIELD_NUMBER: _ClassVar[int]
+    SKILL_FIELD_NUMBER: _ClassVar[int]
+    run_id: str
+    case_name: str
+    skill: str
+    def __init__(self, run_id: _Optional[str] = ..., case_name: _Optional[str] = ..., skill: _Optional[str] = ...) -> None: ...
+
+class EvalCaseArchive(_message.Message):
+    __slots__ = ("case_name", "artifact", "digest", "notes")
+    CASE_NAME_FIELD_NUMBER: _ClassVar[int]
+    ARTIFACT_FIELD_NUMBER: _ClassVar[int]
+    DIGEST_FIELD_NUMBER: _ClassVar[int]
+    NOTES_FIELD_NUMBER: _ClassVar[int]
+    case_name: str
+    artifact: bytes
+    digest: str
+    notes: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, case_name: _Optional[str] = ..., artifact: _Optional[bytes] = ..., digest: _Optional[str] = ..., notes: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class AddEvalCaseFromRunRequest(_message.Message):
+    __slots__ = ("run_id", "eval", "case_name", "skill", "message", "tag")
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    EVAL_FIELD_NUMBER: _ClassVar[int]
+    CASE_NAME_FIELD_NUMBER: _ClassVar[int]
+    SKILL_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    TAG_FIELD_NUMBER: _ClassVar[int]
+    run_id: str
+    eval: _io_pb2.ApiResourceReference
+    case_name: str
+    skill: str
+    message: str
+    tag: str
+    def __init__(self, run_id: _Optional[str] = ..., eval: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., case_name: _Optional[str] = ..., skill: _Optional[str] = ..., message: _Optional[str] = ..., tag: _Optional[str] = ...) -> None: ...
 
 class EvalArchiveDownloadUrl(_message.Message):
     __slots__ = ("url", "ttl_seconds", "size_bytes", "digest")

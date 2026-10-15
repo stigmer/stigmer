@@ -2,11 +2,14 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest;
+import ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest;
 import ai.stigmer.agentic.eval.v1.CreateEvalArtifactUploadUrlRequest;
 import ai.stigmer.agentic.eval.v1.Eval;
 import ai.stigmer.agentic.eval.v1.EvalArchive;
 import ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl;
 import ai.stigmer.agentic.eval.v1.EvalArtifactUploadUrl;
+import ai.stigmer.agentic.eval.v1.EvalCaseArchive;
 import ai.stigmer.agentic.eval.v1.EvalCommandControllerGrpc;
 import ai.stigmer.agentic.eval.v1.EvalId;
 import ai.stigmer.agentic.eval.v1.EvalList;
@@ -35,6 +38,12 @@ public final class EvalClient {
     public Eval push(PushEvalRequest input) {
         try {
             return command.push(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public Eval addCaseFromRun(AddEvalCaseFromRunRequest input) {
+        try {
+            return command.addCaseFromRun(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
@@ -121,6 +130,12 @@ public final class EvalClient {
     public EvalArchiveDownloadUrl getDownloadUrl(ResourceRef ref) {
         try {
             return query.getDownloadUrl(ref.toProto().toBuilder().setKind(ApiResourceKind.eval).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public EvalCaseArchive buildCaseFromRun(BuildEvalCaseFromRunRequest input) {
+        try {
+            return query.buildCaseFromRun(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

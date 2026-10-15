@@ -1,15 +1,17 @@
 // Command-level contract for `stigmer runs to-eval-case <run-id>`: the run
-// id and the flags reach the resource (--dir defaults to evals), and the
-// file effects the command hands it are the disk's: `exists` answers for a
-// path that is there and one that is not, and `writeFile` creates the case's
-// folders and refuses a file that already exists, so a case the author
-// edited is never overwritten. The backend and the resource are replaced at
+// id, the flags as written (no --dir unless given, so the resource can tell
+// --dir beside --eval) and the organization (--org, else none) reach the
+// resource, and the file effects the command hands it are the disk's:
+// `exists` answers for a path that is there and one that is not, and
+// `extract` is `download eval`'s checked unzip, writing the case's files
+// under the directory given. The backend and the resource are replaced at
 // their module seams (the command imports them lazily); the effects run
 // against a temporary directory.
 
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { zipSync } from "fflate";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Config } from "../../config/index.js";
 import { buildProgram } from "../../program.js";
@@ -44,40 +46,44 @@ afterEach(() => {
 });
 
 /** Runs `stigmer runs to-eval-case ...` and returns what the resource was handed. */
-async function toEvalCase(...args: string[]): Promise<{ client: unknown; runId: string; flags: ToEvalCaseFlags; io: CaseFolderIo }> {
+async function toEvalCase(...args: string[]): Promise<{ client: unknown; runId: string; flags: ToEvalCaseFlags; io: CaseFolderIo; org: string }> {
   const program = buildProgram();
   program.exitOverride();
-  await program.parseAsync(["node", "stigmer", "--standalone", "runs", "to-eval-case", ...args]);
+  await program.parseAsync(["node", "stigmer", "--standalone", ...args]);
   expect(resource.writeEvalCaseFromRun).toHaveBeenCalledTimes(1);
-  const [client, runId, flags, io] = resource.writeEvalCaseFromRun.mock.calls[0] as [unknown, string, ToEvalCaseFlags, CaseFolderIo];
-  return { client, runId, flags, io };
+  const [client, runId, flags, io, org] = resource.writeEvalCaseFromRun.mock.calls[0] as [unknown, string, ToEvalCaseFlags, CaseFolderIo, string];
+  return { client, runId, flags, io, org };
 }
 
 describe("stigmer runs to-eval-case", () => {
-  it("passes the run id and the flags, with evals as the default directory", async () => {
-    const plain = await toEvalCase("run_1");
+  it("passes the run id, the flags as written and the organization", async () => {
+    const plain = await toEvalCase("runs", "to-eval-case", "run_1");
     expect(plain.client).toBe(stigmer);
     expect(plain.runId).toBe("run_1");
-    expect(plain.flags).toEqual({ dir: "evals" });
+    expect(plain.flags).toEqual({});
+    expect(plain.org).toBe("");
     expect(plain.io.stderr).toBe(process.stderr);
 
     vi.clearAllMocks();
-    const named = await toEvalCase("run_2", "--dir", "suite", "--name", "finds-bug", "--skill", "thermos:review");
+    const named = await toEvalCase("--org", "acme", "runs", "to-eval-case", "run_2", "--dir", "suite", "--name", "finds-bug", "--skill", "thermos:review");
     expect(named.flags).toEqual({ dir: "suite", name: "finds-bug", skill: "thermos:review" });
+    expect(named.org).toBe("acme");
+
+    vi.clearAllMocks();
+    const added = await toEvalCase("runs", "to-eval-case", "run_3", "--eval", "support-evals");
+    expect(added.flags).toEqual({ eval: "support-evals" });
   });
 
   it("answers exists from the disk", async () => {
-    const { io } = await toEvalCase("run_1");
+    const { io } = await toEvalCase("runs", "to-eval-case", "run_1");
     expect(await io.exists(scratch)).toBe(true);
     expect(await io.exists(join(scratch, "missing"))).toBe(false);
   });
 
-  it("writes a file under folders it creates, and refuses to overwrite one", async () => {
-    const { io } = await toEvalCase("run_1");
-    const path = join(scratch, "evals", "a", "graders", "criteria.md");
-    await io.writeFile(path, "FAIL: missed the off-by-one\n");
-    expect(readFileSync(path, "utf8")).toBe("FAIL: missed the off-by-one\n");
-    await expect(io.writeFile(path, "edited by nobody")).rejects.toMatchObject({ code: "EEXIST" });
-    expect(readFileSync(path, "utf8")).toBe("FAIL: missed the off-by-one\n");
+  it("extracts the case's files under the directory given", async () => {
+    const { io } = await toEvalCase("runs", "to-eval-case", "run_1");
+    const archive = zipSync({ "a/graders/criteria.md": new TextEncoder().encode("FAIL if: missed the off-by-one\n") });
+    expect(io.extract(archive, join(scratch, "evals"))).toBe(1);
+    expect(readFileSync(join(scratch, "evals", "a", "graders", "criteria.md"), "utf8")).toBe("FAIL if: missed the off-by-one\n");
   });
 });

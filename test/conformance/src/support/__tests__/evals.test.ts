@@ -13,9 +13,13 @@ import { unzipSync } from "fflate";
 import { lastMessageGrader } from "../eval-runs";
 import { describe, expect, it } from "vitest";
 import {
+  EVAL_CASE_OTHER_ORGANIZATION,
   WORKING_AGENT_EVAL_CASES,
+  caseArchiveText,
   digestOf,
   evalArchive,
+  evalCaseExistsMessage,
+  evalCaseVersionMessage,
   evalFolderArchive,
   oneCaseEvalArchive,
   workingAgentEvalFiles,
@@ -68,5 +72,21 @@ describe("the eval fixtures", () => {
     expect(digestOf(first)).toBe(digestOf(again));
     expect(digestOf(first)).toBe(createHash("sha256").update(first).digest("hex"));
     expect(digestOf(oneCaseEvalArchive("Other."))).not.toBe(digestOf(first));
+  });
+});
+
+describe("a case built from a run", () => {
+  it("reads its archive back as text by path", () => {
+    const archive = evalArchive({ "order-4821/prompt.md": "It is order 4821.\n", "order-4821/mocks/desk/echo.md": "---\ntype: fixed\n---\nORD-4821" });
+    expect(caseArchiveText(archive)).toEqual({
+      "order-4821/prompt.md": "It is order 4821.\n",
+      "order-4821/mocks/desk/echo.md": "---\ntype: fixed\n---\nORD-4821",
+    });
+  });
+
+  it("names the server's sentences about it", () => {
+    expect(evalCaseExistsMessage("order-4821", "desk-evals")).toBe("eval 'desk-evals' already holds a case named 'order-4821'; name this one otherwise");
+    expect(evalCaseVersionMessage("order-4821", "run_1")).toBe("case order-4821 from run run_1");
+    expect(EVAL_CASE_OTHER_ORGANIZATION).toMatch(/^the eval is not of the run's organization/);
   });
 });

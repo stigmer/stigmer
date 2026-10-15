@@ -17,6 +17,14 @@
           "description": "Push an evals/ folder as an eval's new version.\n Creates the eval if the organization has none with the slug, or adds a\n version to the one it has; pushing the folder the eval already holds\n changes nothing, and with a new tag only moves the tag. The response's\n status lists the cases and what could not be read.\n\n Error Cases:\n\n - INVALID_ARGUMENT: the archive is not a ZIP within the limits, or no\n   case in it loads; the error lists the problems\n - FAILED_PRECONDITION: the slug was renamed away from (SLUG_RENAMED)\n - PERMISSION_DENIED: the caller may not create evals in the\n   organization, or may not edit the eval with this slug"
         },
         {
+          "name": "AddCaseFromRun",
+          "inputType": "AddEvalCaseFromRunRequest",
+          "inputFullType": "ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest",
+          "outputType": "Eval",
+          "outputFullType": "ai.stigmer.agentic.eval.v1.Eval",
+          "description": "Add a case built from a run (as buildCaseFromRun builds it) to an\n eval, as a new version holding the current version's files and the\n case.\n\n Error Cases:\n\n - NOT_FOUND: no such run, or no such eval\n - PERMISSION_DENIED: the caller may not view the run, or may not edit\n   the eval\n - FAILED_PRECONDITION: the run has not ended, or the eval is not of the\n   run's organization\n - ALREADY_EXISTS: the eval already holds a case of that name"
+        },
+        {
           "name": "CreateArtifactUploadUrl",
           "inputType": "CreateEvalArtifactUploadUrlRequest",
           "inputFullType": "ai.stigmer.agentic.eval.v1.CreateEvalArtifactUploadUrlRequest",
@@ -102,6 +110,14 @@
           "outputType": "EvalArchiveDownloadUrl",
           "outputFullType": "ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl",
           "description": "Mint a URL for downloading one version of an eval over HTTP.\n\n Preferred over download for anything that might exceed the gRPC\n message-size cap (10MB). The reference's version picks the version as\n getByReference does."
+        },
+        {
+          "name": "BuildCaseFromRun",
+          "inputType": "BuildEvalCaseFromRunRequest",
+          "inputFullType": "ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest",
+          "outputType": "EvalCaseArchive",
+          "outputFullType": "ai.stigmer.agentic.eval.v1.EvalCaseArchive",
+          "description": "Build an eval case from a run, to keep on disk or push in an eval.\n\n The case is the turn the run answered: its request as the prompt, the\n conversation before it as the case's history (so the case resumes where\n the person was), each MCP tool answer the run got as a fixed mock under\n the server name the turn gave it, and a rubric to fill in, seeded with\n why the run went wrong (an AI judge's failing reason, or the caller's\n own thumbs-down note). It never carries a verdict of its own.\n\n Error Cases:\n\n - NOT_FOUND: no such run\n - PERMISSION_DENIED: the caller may not view the run\n - FAILED_PRECONDITION: the run has not ended\n - RESOURCE_EXHAUSTED: the case is too large to answer inline; add it\n   to an eval with addCaseFromRun, which writes it on the server"
         }
       ]
     }
@@ -210,6 +226,92 @@
             "kind": "string"
           },
           "description": "Optional tag to move to this version, such as \"stable\". A push with a\n tag onto the folder the eval already holds moves the tag and adds no\n version. \"latest\" is refused: it always names the current version.",
+          "required": false,
+          "validation": {
+            "maxLength": 128,
+            "pattern": "^$|^[a-zA-Z0-9._-]+$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AddEvalCaseFromRunRequest",
+      "description": "AddEvalCaseFromRunRequest asks for a run's turn built as a case (as\n buildCaseFromRun builds it) and added to an eval as a new version.",
+      "protoType": "ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest",
+      "protoFile": "apis/ai/stigmer/agentic/eval/v1/io.proto",
+      "fields": [
+        {
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The run whose turn becomes the case. It must have ended.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Eval",
+          "jsonName": "eval",
+          "protoField": "eval",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceReference"
+          },
+          "description": "The eval to add the case to, by slug or id; its organization must be\n the run's. Its version is ignored: the case joins the current one.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "CaseName",
+          "jsonName": "caseName",
+          "protoField": "case_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The case's directory name. Empty suggests one from the request. A name\n the eval already holds is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z0-9][a-z0-9._-]*$"
+          }
+        },
+        {
+          "name": "Skill",
+          "jsonName": "skill",
+          "protoField": "skill",
+          "type": {
+            "kind": "string"
+          },
+          "description": "A skill the run should have read and did not, as \"\u003cplugin\u003e:\u003cskill\u003e\".",
+          "required": false,
+          "validation": {
+            "maxLength": 200
+          }
+        },
+        {
+          "name": "Message",
+          "jsonName": "message",
+          "protoField": "message",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The new version's message. Empty is \"case \u003cname\u003e from run \u003cid\u003e\".",
+          "required": false
+        },
+        {
+          "name": "Tag",
+          "jsonName": "tag",
+          "protoField": "tag",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional tag to move to the new version. \"latest\" is refused.",
           "required": false,
           "validation": {
             "maxLength": 128,
@@ -735,6 +837,105 @@
             "kind": "string"
           },
           "description": "SHA-256 of the archive: the version's digest, which the downloaded\n bytes must match.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "BuildEvalCaseFromRunRequest",
+      "description": "BuildEvalCaseFromRunRequest asks for one eval case built from a run: the\n turn the run answered, the conversation before it, the tool answers it\n got and a rubric to fill in.",
+      "protoType": "ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest",
+      "protoFile": "apis/ai/stigmer/agentic/eval/v1/io.proto",
+      "fields": [
+        {
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The run whose turn becomes the case. It must have ended.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "CaseName",
+          "jsonName": "caseName",
+          "protoField": "case_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The case's directory name. Empty suggests one from the request.",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z0-9][a-z0-9._-]*$"
+          }
+        },
+        {
+          "name": "Skill",
+          "jsonName": "skill",
+          "protoField": "skill",
+          "type": {
+            "kind": "string"
+          },
+          "description": "A skill the run should have read and did not, as \"\u003cplugin\u003e:\u003cskill\u003e\":\n the case gains a check that the skill is read. Empty adds none.",
+          "required": false,
+          "validation": {
+            "maxLength": 200
+          }
+        }
+      ]
+    },
+    {
+      "name": "EvalCaseArchive",
+      "description": "EvalCaseArchive is one eval case folder as a ZIP archive: the case's\n directory at the archive's root, in the order `stigmer push eval` writes\n it.",
+      "protoType": "ai.stigmer.agentic.eval.v1.EvalCaseArchive",
+      "protoFile": "apis/ai/stigmer/agentic/eval/v1/io.proto",
+      "fields": [
+        {
+          "name": "CaseName",
+          "jsonName": "caseName",
+          "protoField": "case_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The case's directory name, the archive's one top-level directory.",
+          "required": false
+        },
+        {
+          "name": "Artifact",
+          "jsonName": "artifact",
+          "protoField": "artifact",
+          "type": {
+            "kind": "bytes"
+          },
+          "description": "The archive bytes.",
+          "required": false
+        },
+        {
+          "name": "Digest",
+          "jsonName": "digest",
+          "protoField": "digest",
+          "type": {
+            "kind": "string"
+          },
+          "description": "SHA-256 of the archive.",
+          "required": false
+        },
+        {
+          "name": "Notes",
+          "jsonName": "notes",
+          "protoField": "notes",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "What the case leaves out or keeps differently from the run, one\n sentence each: a tool answered differently on a later call, a platform\n tool no mock stands in for, an attachment, a tool use the conversation\n never answered. Empty when the case is the run's turn whole.",
           "required": false
         }
       ]

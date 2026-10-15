@@ -2,16 +2,13 @@
  * Pins an eval run's try in a thread: the eval chip says "Eval: passed"
  * or "Eval: 1 of 2 failed" and opens to each check's verdict and reason
  * (an indicator-only check is not applicable, not a failure); a try that
- * was not graded says why. And "Make a test case" on a completed run
- * downloads the run as a case folder zip named after its request, its FAIL
- * line seeded from the failing check, with the multi-turn note on a run
- * that followed another.
+ * was not graded says why. "Make a test case" is pinned by
+ * MakeTestCasePanel.test.tsx.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
-import { strFromU8, unzipSync } from "fflate";
 import {
   RunSchema,
   type Run,
@@ -32,12 +29,6 @@ import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { MessageThread } from "../../run/MessageThread";
 import type { Turn } from "@stigmer/sdk";
 import { samples } from "../../test/samples";
-
-const download = vi.hoisted(() => ({
-  downloadBinaryFile: vi.fn(),
-  downloadTextFile: vi.fn(),
-}));
-vi.mock("../../internal/download.js", () => download);
 
 afterEach(() => {
   cleanup();
@@ -171,56 +162,5 @@ describe("the eval chip", () => {
     expect(
       await screen.findByText("Eval: not graded: platform busy"),
     ).toBeDefined();
-  });
-});
-
-describe("Make a test case", () => {
-  it("downloads the run as a case folder, its FAIL line from the failing check", async () => {
-    render(
-      <MessageThread
-        {...completedTurns(["run_1", "look over my diff"])}
-        runScores
-      />,
-      {
-        wrapper: wrap(client([evalScore(ScoreState.graded, false)])),
-      },
-    );
-    await screen.findByRole("button", { name: "Eval: 1 of 2 failed" });
-    fireEvent.click(screen.getByRole("button", { name: "Make a test case" }));
-    expect(download.downloadBinaryFile).toHaveBeenCalledTimes(1);
-    const [bytes, filename, mime] = download.downloadBinaryFile.mock
-      .calls[0] as [Uint8Array, string, string];
-    expect([filename, mime]).toEqual([
-      "look-over-my-diff.zip",
-      "application/zip",
-    ]);
-    const entries = unzipSync(bytes);
-    expect(strFromU8(entries["look-over-my-diff/prompt.md"]!)).toContain(
-      "look over my diff\n",
-    );
-    expect(
-      strFromU8(entries["look-over-my-diff/graders/criteria.md"]!),
-    ).toContain("the reply missed the null check.");
-    expect(screen.queryByText(/resumed conversations/)).toBeNull();
-  });
-
-  it("says a case from a follow-up run holds only its last request", async () => {
-    render(
-      <MessageThread
-        {...completedTurns(["run_0", "first ask"], ["run_1", "then this"])}
-        runScores
-      />,
-      { wrapper: wrap(client([])) },
-    );
-    const buttons = await screen.findAllByRole("button", {
-      name: "Make a test case",
-    });
-    fireEvent.click(buttons[1]!);
-    expect(
-      await screen.findByText(/resumed conversations are not run yet/),
-    ).toBeDefined();
-    expect(download.downloadBinaryFile.mock.calls[0]?.[1]).toBe(
-      "then-this.zip",
-    );
   });
 });

@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { EvalSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_eval_v1_api } from "./api_pb.js";
-import type { CreateEvalArtifactUploadUrlRequestSchema, EvalArtifactUploadUrlSchema, EvalIdSchema, PushEvalRequestSchema } from "./io_pb.js";
+import type { AddEvalCaseFromRunRequestSchema, CreateEvalArtifactUploadUrlRequestSchema, EvalArtifactUploadUrlSchema, EvalIdSchema, PushEvalRequestSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_eval_v1_io } from "./io_pb.js";
 import type { RenameInputSchema, UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/eval/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_eval_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvZXZhbC92MS9jb21tYW5kLnByb3RvEhphaS5zdGlnbWVyLmFnZW50aWMuZXZhbC52MTLIBQoVRXZhbENvbW1hbmRDb250cm9sbGVyElsKBHB1c2gSKy5haS5zdGlnbWVyLmFnZW50aWMuZXZhbC52MS5QdXNoRXZhbFJlcXVlc3QaIC5haS5zdGlnbWVyLmFnZW50aWMuZXZhbC52MS5FdmFsIgTQuBgBEpIBChdjcmVhdGVBcnRpZmFjdFVwbG9hZFVybBI+LmFpLnN0aWdtZXIuYWdlbnRpYy5ldmFsLnYxLkNyZWF0ZUV2YWxBcnRpZmFjdFVwbG9hZFVybFJlcXVlc3QaMS5haS5zdGlnbWVyLmFnZW50aWMuZXZhbC52MS5FdmFsQXJ0aWZhY3RVcGxvYWRVcmwiBNC4GAESqgEKEHVwZGF0ZVZpc2liaWxpdHkSNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuVXBkYXRlVmlzaWJpbGl0eUlucHV0GiAuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuRXZhbCI9wrgYOQgwEEIiC3Jlc291cmNlX2lkKiZ1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGV2YWwgdmlzaWJpbGl0eRKLAQoGcmVuYW1lEisuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlJlbmFtZUlucHV0GiAuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuRXZhbCIywrgYLggDEEIiC3Jlc291cmNlX2lkKht1bmF1dGhvcml6ZWQgdG8gcmVuYW1lIGV2YWwSfAoGZGVsZXRlEiIuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuRXZhbElkGiAuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuRXZhbCIswrgYKAgDEEIiBXZhbHVlKht1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIGV2YWwaBKD/K0JiBnByb3RvMw", [file_ai_stigmer_agentic_eval_v1_api, file_ai_stigmer_agentic_eval_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvZXZhbC92MS9jb21tYW5kLnByb3RvEhphaS5zdGlnbWVyLmFnZW50aWMuZXZhbC52MTK5BgoVRXZhbENvbW1hbmRDb250cm9sbGVyElsKBHB1c2gSKy5haS5zdGlnbWVyLmFnZW50aWMuZXZhbC52MS5QdXNoRXZhbFJlcXVlc3QaIC5haS5zdGlnbWVyLmFnZW50aWMuZXZhbC52MS5FdmFsIgTQuBgBEm8KDmFkZENhc2VGcm9tUnVuEjUuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuQWRkRXZhbENhc2VGcm9tUnVuUmVxdWVzdBogLmFpLnN0aWdtZXIuYWdlbnRpYy5ldmFsLnYxLkV2YWwiBNC4GAESkgEKF2NyZWF0ZUFydGlmYWN0VXBsb2FkVXJsEj4uYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuQ3JlYXRlRXZhbEFydGlmYWN0VXBsb2FkVXJsUmVxdWVzdBoxLmFpLnN0aWdtZXIuYWdlbnRpYy5ldmFsLnYxLkV2YWxBcnRpZmFjdFVwbG9hZFVybCIE0LgYARKqAQoQdXBkYXRlVmlzaWJpbGl0eRI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5VcGRhdGVWaXNpYmlsaXR5SW5wdXQaIC5haS5zdGlnbWVyLmFnZW50aWMuZXZhbC52MS5FdmFsIj3CuBg5CDAQQiILcmVzb3VyY2VfaWQqJnVuYXV0aG9yaXplZCB0byB1cGRhdGUgZXZhbCB2aXNpYmlsaXR5EosBCgZyZW5hbWUSKy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuUmVuYW1lSW5wdXQaIC5haS5zdGlnbWVyLmFnZW50aWMuZXZhbC52MS5FdmFsIjLCuBguCAMQQiILcmVzb3VyY2VfaWQqG3VuYXV0aG9yaXplZCB0byByZW5hbWUgZXZhbBJ8CgZkZWxldGUSIi5haS5zdGlnbWVyLmFnZW50aWMuZXZhbC52MS5FdmFsSWQaIC5haS5zdGlnbWVyLmFnZW50aWMuZXZhbC52MS5FdmFsIizCuBgoCAMQQiIFdmFsdWUqG3VuYXV0aG9yaXplZCB0byBkZWxldGUgZXZhbBoEoP8rQmIGcHJvdG8z", [file_ai_stigmer_agentic_eval_v1_api, file_ai_stigmer_agentic_eval_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * EvalCommandController handles write operations for evals.
@@ -45,6 +45,27 @@ export const EvalCommandController: GenService<{
   push: {
     methodKind: "unary";
     input: typeof PushEvalRequestSchema;
+    output: typeof EvalSchema;
+  },
+  /**
+   * Add a case built from a run (as buildCaseFromRun builds it) to an
+   * eval, as a new version holding the current version's files and the
+   * case.
+   *
+   * Error Cases:
+   *
+   * - NOT_FOUND: no such run, or no such eval
+   * - PERMISSION_DENIED: the caller may not view the run, or may not edit
+   *   the eval
+   * - FAILED_PRECONDITION: the run has not ended, or the eval is not of the
+   *   run's organization
+   * - ALREADY_EXISTS: the eval already holds a case of that name
+   *
+   * @generated from rpc ai.stigmer.agentic.eval.v1.EvalCommandController.addCaseFromRun
+   */
+  addCaseFromRun: {
+    methodKind: "unary";
+    input: typeof AddEvalCaseFromRunRequestSchema;
     output: typeof EvalSchema;
   },
   /**

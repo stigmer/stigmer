@@ -42,7 +42,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ons/apiresource/io.proto\0328ai/stigmer/com" +
       "mons/apiresource/rpc_service_options.pro" +
       "to\032+ai/stigmer/commons/rpc/method_option" +
-      "s.proto2\330\005\n\023EvalQueryController\022v\n\003get\022\"" +
+      "s.proto2\330\006\n\023EvalQueryController\022v\n\003get\022\"" +
       ".ai.stigmer.agentic.eval.v1.EvalId\032 .ai." +
       "stigmer.agentic.eval.v1.Eval\")\302\270\030%\010\001\020B\"\005" +
       "value*\030unauthorized to get eval\022n\n\016getBy" +
@@ -60,11 +60,14 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "\001\022\200\001\n\016getDownloadUrl\0224.ai.stigmer.common" +
       "s.apiresource.ApiResourceReference\0322.ai." +
       "stigmer.agentic.eval.v1.EvalArchiveDownl" +
-      "oadUrl\"\004\320\270\030\001\032\004\240\377+BB\233\001B\nQueryProtoP\001\242\002\004AS" +
-      "AE\252\002\032Ai.Stigmer.Agentic.Eval.V1\312\002\033Ai\\Sti" +
-      "gmer\\Agentic\\Eval_\\V1\342\002\'Ai\\Stigmer\\Agent" +
-      "ic\\Eval_\\V1\\GPBMetadata\352\002\036Ai::Stigmer::A" +
-      "gentic::Eval::V1b\006proto3"
+      "oadUrl\"\004\320\270\030\001\022~\n\020buildCaseFromRun\0227.ai.st" +
+      "igmer.agentic.eval.v1.BuildEvalCaseFromR" +
+      "unRequest\032+.ai.stigmer.agentic.eval.v1.E" +
+      "valCaseArchive\"\004\320\270\030\001\032\004\240\377+BB\233\001B\nQueryProt" +
+      "oP\001\242\002\004ASAE\252\002\032Ai.Stigmer.Agentic.Eval.V1\312" +
+      "\002\033Ai\\Stigmer\\Agentic\\Eval_\\V1\342\002\'Ai\\Stigm" +
+      "er\\Agentic\\Eval_\\V1\\GPBMetadata\352\002\036Ai::St" +
+      "igmer::Agentic::Eval::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

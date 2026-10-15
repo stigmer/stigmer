@@ -52,6 +52,21 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_eval_v1_EvalArchive_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_eval_v1_BuildEvalCaseFromRunRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_eval_v1_BuildEvalCaseFromRunRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_eval_v1_EvalCaseArchive_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_eval_v1_EvalCaseArchive_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_eval_v1_AddEvalCaseFromRunRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_eval_v1_AddEvalCaseFromRunRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_eval_v1_EvalArchiveDownloadUrl_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -98,71 +113,88 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\n#ai/stigmer/agentic/eval/v1/io.proto\022\032a" +
       "i.stigmer.agentic.eval.v1\032$ai/stigmer/ag" +
       "entic/eval/v1/api.proto\032)ai/stigmer/comm" +
-      "ons/apiresource/enum.proto\032+ai/stigmer/c" +
-      "ommons/apiresource/status.proto\032\033buf/val" +
-      "idate/validate.proto\032\037google/protobuf/ti" +
-      "mestamp.proto\"&\n\006EvalId\022\034\n\005value\030\001 \001(\tB\006" +
-      "\272H\003\310\001\001R\005value\"\277\004\n\017PushEvalRequest\022\030\n\003org" +
-      "\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022;\n\004slug\030\002 \001(\tB\'\272H$r\037" +
-      "\020\002\030?2\031^[a-z][a-z0-9-]*[a-z0-9]$\310\001\001R\004slug" +
-      "\022\034\n\004name\030\003 \001(\tB\010\272H\005r\003\030\310\001R\004name\022\032\n\010artifa" +
-      "ct\030\004 \001(\014R\010artifact\022.\n\023artifact_upload_re" +
-      "f\030\005 \001(\tR\021artifactUploadRef\022_\n\nvisibility" +
-      "\030\006 \001(\01625.ai.stigmer.commons.apiresource." +
-      "ApiResourceVisibilityB\010\272H\005\202\001\002\020\001R\nvisibil" +
-      "ity\022\030\n\007message\030\007 \001(\tR\007message\0228\n\003tag\030\010 \001" +
-      "(\tB&\272H#r!\030\200\0012\024^$|^[a-zA-Z0-9._-]+$Z\006late" +
-      "stR\003tag:\265\001\272H\261\001\032\256\001\n!push_eval_request.art" +
-      "ifact_source\022Iexactly one of artifact (i" +
-      "nline bytes) or artifact_upload_ref must" +
-      " be set\032>(this.artifact.size() > 0) != (" +
-      "this.artifact_upload_ref != \'\')\"\243\001\n\"Crea" +
-      "teEvalArtifactUploadUrlRequest\022\030\n\003org\030\001 " +
-      "\001(\tB\006\272H\003\310\001\001R\003org\022;\n\004slug\030\002 \001(\tB\'\272H$r\037\020\002\030" +
-      "?2\031^[a-z][a-z0-9-]*[a-z0-9]$\310\001\001R\004slug\022&\n" +
-      "\nsize_bytes\030\003 \001(\003B\007\272H\004\"\002 \000R\tsizeBytes\"z\n" +
-      "\025EvalArtifactUploadUrl\022\020\n\003url\030\001 \001(\tR\003url" +
-      "\022.\n\023artifact_upload_ref\030\002 \001(\tR\021artifactU" +
-      "ploadRef\022\037\n\013ttl_seconds\030\003 \001(\005R\nttlSecond" +
-      "s\"A\n\013EvalArchive\022\032\n\010artifact\030\001 \001(\014R\010arti" +
-      "fact\022\026\n\006digest\030\002 \001(\tR\006digest\"\202\001\n\026EvalArc" +
-      "hiveDownloadUrl\022\020\n\003url\030\001 \001(\tR\003url\022\037\n\013ttl" +
-      "_seconds\030\002 \001(\005R\nttlSeconds\022\035\n\nsize_bytes" +
-      "\030\003 \001(\003R\tsizeBytes\022\026\n\006digest\030\004 \001(\tR\006diges" +
-      "t\"\234\001\n\025ListEvalVersionsInput\022\030\n\003org\030\001 \001(\t" +
-      "B\006\272H\003\310\001\001R\003org\022\032\n\004slug\030\002 \001(\tB\006\272H\003\310\001\001R\004slu" +
-      "g\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageTok" +
-      "en\022$\n\tpage_size\030\004 \001(\005B\007\272H\004\032\002(\000R\010pageSize" +
-      "\"\202\002\n\020EvalVersionEntry\022\026\n\006digest\030\001 \001(\tR\006d" +
-      "igest\0227\n\tpushed_at\030\002 \001(\0132\032.google.protob" +
-      "uf.TimestampR\010pushedAt\022R\n\tpushed_by\030\003 \001(" +
-      "\01325.ai.stigmer.commons.apiresource.ApiRe" +
-      "sourceAuditActorR\010pushedBy\022\020\n\003tag\030\004 \001(\tR" +
-      "\003tag\022\035\n\nis_current\030\005 \001(\010R\tisCurrent\022\030\n\007m" +
-      "essage\030\006 \001(\tR\007message\"\212\001\n\030ListEvalVersio" +
-      "nsResponse\022F\n\007entries\030\001 \003(\0132,.ai.stigmer" +
-      ".agentic.eval.v1.EvalVersionEntryR\007entri" +
-      "es\022&\n\017next_page_token\030\002 \001(\tR\rnextPageTok" +
-      "en\"\211\002\n\020ListEvalsRequest\022\031\n\003org\030\001 \001(\tB\007\272H" +
-      "\004r\002\020\001R\003org\022$\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(\000R\010" +
-      "pageSize\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\t" +
-      "pageToken\022P\n\006labels\030\004 \003(\01328.ai.stigmer.a" +
-      "gentic.eval.v1.ListEvalsRequest.LabelsEn" +
-      "tryR\006labels\0329\n\013LabelsEntry\022\020\n\003key\030\001 \001(\tR" +
-      "\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"n\n\010EvalLi" +
-      "st\022:\n\007entries\030\001 \003(\0132 .ai.stigmer.agentic" +
-      ".eval.v1.EvalR\007entries\022&\n\017next_page_toke" +
-      "n\030\002 \001(\tR\rnextPageTokenB\230\001B\007IoProtoP\001\242\002\004A" +
-      "SAE\252\002\032Ai.Stigmer.Agentic.Eval.V1\312\002\033Ai\\St" +
-      "igmer\\Agentic\\Eval_\\V1\342\002\'Ai\\Stigmer\\Agen" +
-      "tic\\Eval_\\V1\\GPBMetadata\352\002\036Ai::Stigmer::" +
-      "Agentic::Eval::V1b\006proto3"
+      "ons/apiresource/enum.proto\032\'ai/stigmer/c" +
+      "ommons/apiresource/io.proto\032+ai/stigmer/" +
+      "commons/apiresource/status.proto\032\033buf/va" +
+      "lidate/validate.proto\032\037google/protobuf/t" +
+      "imestamp.proto\"&\n\006EvalId\022\034\n\005value\030\001 \001(\tB" +
+      "\006\272H\003\310\001\001R\005value\"\277\004\n\017PushEvalRequest\022\030\n\003or" +
+      "g\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022;\n\004slug\030\002 \001(\tB\'\272H$r" +
+      "\037\020\002\030?2\031^[a-z][a-z0-9-]*[a-z0-9]$\310\001\001R\004slu" +
+      "g\022\034\n\004name\030\003 \001(\tB\010\272H\005r\003\030\310\001R\004name\022\032\n\010artif" +
+      "act\030\004 \001(\014R\010artifact\022.\n\023artifact_upload_r" +
+      "ef\030\005 \001(\tR\021artifactUploadRef\022_\n\nvisibilit" +
+      "y\030\006 \001(\01625.ai.stigmer.commons.apiresource" +
+      ".ApiResourceVisibilityB\010\272H\005\202\001\002\020\001R\nvisibi" +
+      "lity\022\030\n\007message\030\007 \001(\tR\007message\0228\n\003tag\030\010 " +
+      "\001(\tB&\272H#r!\030\200\0012\024^$|^[a-zA-Z0-9._-]+$Z\006lat" +
+      "estR\003tag:\265\001\272H\261\001\032\256\001\n!push_eval_request.ar" +
+      "tifact_source\022Iexactly one of artifact (" +
+      "inline bytes) or artifact_upload_ref mus" +
+      "t be set\032>(this.artifact.size() > 0) != " +
+      "(this.artifact_upload_ref != \'\')\"\243\001\n\"Cre" +
+      "ateEvalArtifactUploadUrlRequest\022\030\n\003org\030\001" +
+      " \001(\tB\006\272H\003\310\001\001R\003org\022;\n\004slug\030\002 \001(\tB\'\272H$r\037\020\002" +
+      "\030?2\031^[a-z][a-z0-9-]*[a-z0-9]$\310\001\001R\004slug\022&" +
+      "\n\nsize_bytes\030\003 \001(\003B\007\272H\004\"\002 \000R\tsizeBytes\"z" +
+      "\n\025EvalArtifactUploadUrl\022\020\n\003url\030\001 \001(\tR\003ur" +
+      "l\022.\n\023artifact_upload_ref\030\002 \001(\tR\021artifact" +
+      "UploadRef\022\037\n\013ttl_seconds\030\003 \001(\005R\nttlSecon" +
+      "ds\"A\n\013EvalArchive\022\032\n\010artifact\030\001 \001(\014R\010art" +
+      "ifact\022\026\n\006digest\030\002 \001(\tR\006digest\"\235\001\n\033BuildE" +
+      "valCaseFromRunRequest\022\035\n\006run_id\030\001 \001(\tB\006\272" +
+      "H\003\310\001\001R\005runId\022?\n\tcase_name\030\002 \001(\tB\"\272H\037r\035\030?" +
+      "2\031^$|^[a-z0-9][a-z0-9._-]*$R\010caseName\022\036\n" +
+      "\005skill\030\003 \001(\tB\010\272H\005r\003\030\310\001R\005skill\"x\n\017EvalCas" +
+      "eArchive\022\033\n\tcase_name\030\001 \001(\tR\010caseName\022\032\n" +
+      "\010artifact\030\002 \001(\014R\010artifact\022\026\n\006digest\030\003 \001(" +
+      "\tR\006digest\022\024\n\005notes\030\004 \003(\tR\005notes\"\301\002\n\031AddE" +
+      "valCaseFromRunRequest\022\035\n\006run_id\030\001 \001(\tB\006\272" +
+      "H\003\310\001\001R\005runId\022P\n\004eval\030\002 \001(\01324.ai.stigmer." +
+      "commons.apiresource.ApiResourceReference" +
+      "B\006\272H\003\310\001\001R\004eval\022?\n\tcase_name\030\003 \001(\tB\"\272H\037r\035" +
+      "\030?2\031^$|^[a-z0-9][a-z0-9._-]*$R\010caseName\022" +
+      "\036\n\005skill\030\004 \001(\tB\010\272H\005r\003\030\310\001R\005skill\022\030\n\007messa" +
+      "ge\030\005 \001(\tR\007message\0228\n\003tag\030\006 \001(\tB&\272H#r!\030\200\001" +
+      "2\024^$|^[a-zA-Z0-9._-]+$Z\006latestR\003tag\"\202\001\n\026" +
+      "EvalArchiveDownloadUrl\022\020\n\003url\030\001 \001(\tR\003url" +
+      "\022\037\n\013ttl_seconds\030\002 \001(\005R\nttlSeconds\022\035\n\nsiz" +
+      "e_bytes\030\003 \001(\003R\tsizeBytes\022\026\n\006digest\030\004 \001(\t" +
+      "R\006digest\"\234\001\n\025ListEvalVersionsInput\022\030\n\003or" +
+      "g\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\032\n\004slug\030\002 \001(\tB\006\272H\003\310" +
+      "\001\001R\004slug\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\t" +
+      "pageToken\022$\n\tpage_size\030\004 \001(\005B\007\272H\004\032\002(\000R\010p" +
+      "ageSize\"\202\002\n\020EvalVersionEntry\022\026\n\006digest\030\001" +
+      " \001(\tR\006digest\0227\n\tpushed_at\030\002 \001(\0132\032.google" +
+      ".protobuf.TimestampR\010pushedAt\022R\n\tpushed_" +
+      "by\030\003 \001(\01325.ai.stigmer.commons.apiresourc" +
+      "e.ApiResourceAuditActorR\010pushedBy\022\020\n\003tag" +
+      "\030\004 \001(\tR\003tag\022\035\n\nis_current\030\005 \001(\010R\tisCurre" +
+      "nt\022\030\n\007message\030\006 \001(\tR\007message\"\212\001\n\030ListEva" +
+      "lVersionsResponse\022F\n\007entries\030\001 \003(\0132,.ai." +
+      "stigmer.agentic.eval.v1.EvalVersionEntry" +
+      "R\007entries\022&\n\017next_page_token\030\002 \001(\tR\rnext" +
+      "PageToken\"\211\002\n\020ListEvalsRequest\022\031\n\003org\030\001 " +
+      "\001(\tB\007\272H\004r\002\020\001R\003org\022$\n\tpage_size\030\002 \001(\005B\007\272H" +
+      "\004\032\002(\000R\010pageSize\022\'\n\npage_token\030\003 \001(\tB\010\272H\005" +
+      "r\003\030\200\010R\tpageToken\022P\n\006labels\030\004 \003(\01328.ai.st" +
+      "igmer.agentic.eval.v1.ListEvalsRequest.L" +
+      "abelsEntryR\006labels\0329\n\013LabelsEntry\022\020\n\003key" +
+      "\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"n\n" +
+      "\010EvalList\022:\n\007entries\030\001 \003(\0132 .ai.stigmer." +
+      "agentic.eval.v1.EvalR\007entries\022&\n\017next_pa" +
+      "ge_token\030\002 \001(\tR\rnextPageTokenB\230\001B\007IoProt" +
+      "oP\001\242\002\004ASAE\252\002\032Ai.Stigmer.Agentic.Eval.V1\312" +
+      "\002\033Ai\\Stigmer\\Agentic\\Eval_\\V1\342\002\'Ai\\Stigm" +
+      "er\\Agentic\\Eval_\\V1\\GPBMetadata\352\002\036Ai::St" +
+      "igmer::Agentic::Eval::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.eval.v1.ApiProto.getDescriptor(),
           ai.stigmer.commons.apiresource.EnumProto.getDescriptor(),
+          ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.StatusProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
           com.google.protobuf.TimestampProto.getDescriptor(),
@@ -197,32 +229,50 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_eval_v1_EvalArchive_descriptor,
         new java.lang.String[] { "Artifact", "Digest", });
-    internal_static_ai_stigmer_agentic_eval_v1_EvalArchiveDownloadUrl_descriptor =
+    internal_static_ai_stigmer_agentic_eval_v1_BuildEvalCaseFromRunRequest_descriptor =
       getDescriptor().getMessageType(5);
+    internal_static_ai_stigmer_agentic_eval_v1_BuildEvalCaseFromRunRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_eval_v1_BuildEvalCaseFromRunRequest_descriptor,
+        new java.lang.String[] { "RunId", "CaseName", "Skill", });
+    internal_static_ai_stigmer_agentic_eval_v1_EvalCaseArchive_descriptor =
+      getDescriptor().getMessageType(6);
+    internal_static_ai_stigmer_agentic_eval_v1_EvalCaseArchive_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_eval_v1_EvalCaseArchive_descriptor,
+        new java.lang.String[] { "CaseName", "Artifact", "Digest", "Notes", });
+    internal_static_ai_stigmer_agentic_eval_v1_AddEvalCaseFromRunRequest_descriptor =
+      getDescriptor().getMessageType(7);
+    internal_static_ai_stigmer_agentic_eval_v1_AddEvalCaseFromRunRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_eval_v1_AddEvalCaseFromRunRequest_descriptor,
+        new java.lang.String[] { "RunId", "Eval", "CaseName", "Skill", "Message", "Tag", });
+    internal_static_ai_stigmer_agentic_eval_v1_EvalArchiveDownloadUrl_descriptor =
+      getDescriptor().getMessageType(8);
     internal_static_ai_stigmer_agentic_eval_v1_EvalArchiveDownloadUrl_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_eval_v1_EvalArchiveDownloadUrl_descriptor,
         new java.lang.String[] { "Url", "TtlSeconds", "SizeBytes", "Digest", });
     internal_static_ai_stigmer_agentic_eval_v1_ListEvalVersionsInput_descriptor =
-      getDescriptor().getMessageType(6);
+      getDescriptor().getMessageType(9);
     internal_static_ai_stigmer_agentic_eval_v1_ListEvalVersionsInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_eval_v1_ListEvalVersionsInput_descriptor,
         new java.lang.String[] { "Org", "Slug", "PageToken", "PageSize", });
     internal_static_ai_stigmer_agentic_eval_v1_EvalVersionEntry_descriptor =
-      getDescriptor().getMessageType(7);
+      getDescriptor().getMessageType(10);
     internal_static_ai_stigmer_agentic_eval_v1_EvalVersionEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_eval_v1_EvalVersionEntry_descriptor,
         new java.lang.String[] { "Digest", "PushedAt", "PushedBy", "Tag", "IsCurrent", "Message", });
     internal_static_ai_stigmer_agentic_eval_v1_ListEvalVersionsResponse_descriptor =
-      getDescriptor().getMessageType(8);
+      getDescriptor().getMessageType(11);
     internal_static_ai_stigmer_agentic_eval_v1_ListEvalVersionsResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_eval_v1_ListEvalVersionsResponse_descriptor,
         new java.lang.String[] { "Entries", "NextPageToken", });
     internal_static_ai_stigmer_agentic_eval_v1_ListEvalsRequest_descriptor =
-      getDescriptor().getMessageType(9);
+      getDescriptor().getMessageType(12);
     internal_static_ai_stigmer_agentic_eval_v1_ListEvalsRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_eval_v1_ListEvalsRequest_descriptor,
@@ -234,7 +284,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_agentic_eval_v1_ListEvalsRequest_LabelsEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
     internal_static_ai_stigmer_agentic_eval_v1_EvalList_descriptor =
-      getDescriptor().getMessageType(10);
+      getDescriptor().getMessageType(13);
     internal_static_ai_stigmer_agentic_eval_v1_EvalList_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_eval_v1_EvalList_descriptor,
@@ -242,6 +292,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.eval.v1.ApiProto.getDescriptor();
     ai.stigmer.commons.apiresource.EnumProto.getDescriptor();
+    ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.TimestampProto.getDescriptor();

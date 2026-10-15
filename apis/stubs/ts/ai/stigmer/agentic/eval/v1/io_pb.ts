@@ -8,6 +8,8 @@ import type { Eval } from "./api_pb.js";
 import { file_ai_stigmer_agentic_eval_v1_api } from "./api_pb.js";
 import type { ApiResourceVisibility } from "../../../commons/apiresource/enum_pb.js";
 import { file_ai_stigmer_commons_apiresource_enum } from "../../../commons/apiresource/enum_pb.js";
+import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
+import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import type { ApiResourceAuditActor } from "../../../commons/apiresource/status_pb.js";
 import { file_ai_stigmer_commons_apiresource_status } from "../../../commons/apiresource/status_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
@@ -19,7 +21,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/eval/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_eval_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiNhaS9zdGlnbWVyL2FnZW50aWMvZXZhbC92MS9pby5wcm90bxIaYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEiHwoGRXZhbElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi9wMKD1B1c2hFdmFsUmVxdWVzdBITCgNvcmcYASABKAlCBrpIA8gBARI1CgRzbHVnGAIgASgJQie6SCTIAQFyHxACGD8yGV5bYS16XVthLXowLTktXSpbYS16MC05XSQSFgoEbmFtZRgDIAEoCUIIukgFcgMYyAESEAoIYXJ0aWZhY3QYBCABKAwSGwoTYXJ0aWZhY3RfdXBsb2FkX3JlZhgFIAEoCRJTCgp2aXNpYmlsaXR5GAYgASgOMjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlVmlzaWJpbGl0eUIIukgFggECEAESDwoHbWVzc2FnZRgHIAEoCRIzCgN0YWcYCCABKAlCJrpII3IhGIABMhReJHxeW2EtekEtWjAtOS5fLV0rJFoGbGF0ZXN0OrUBukixARquAQohcHVzaF9ldmFsX3JlcXVlc3QuYXJ0aWZhY3Rfc291cmNlEklleGFjdGx5IG9uZSBvZiBhcnRpZmFjdCAoaW5saW5lIGJ5dGVzKSBvciBhcnRpZmFjdF91cGxvYWRfcmVmIG11c3QgYmUgc2V0Gj4odGhpcy5hcnRpZmFjdC5zaXplKCkgPiAwKSAhPSAodGhpcy5hcnRpZmFjdF91cGxvYWRfcmVmICE9ICcnKSKNAQoiQ3JlYXRlRXZhbEFydGlmYWN0VXBsb2FkVXJsUmVxdWVzdBITCgNvcmcYASABKAlCBrpIA8gBARI1CgRzbHVnGAIgASgJQie6SCTIAQFyHxACGD8yGV5bYS16XVthLXowLTktXSpbYS16MC05XSQSGwoKc2l6ZV9ieXRlcxgDIAEoA0IHukgEIgIgACJWChVFdmFsQXJ0aWZhY3RVcGxvYWRVcmwSCwoDdXJsGAEgASgJEhsKE2FydGlmYWN0X3VwbG9hZF9yZWYYAiABKAkSEwoLdHRsX3NlY29uZHMYAyABKAUiLwoLRXZhbEFyY2hpdmUSEAoIYXJ0aWZhY3QYASABKAwSDgoGZGlnZXN0GAIgASgJIl4KFkV2YWxBcmNoaXZlRG93bmxvYWRVcmwSCwoDdXJsGAEgASgJEhMKC3R0bF9zZWNvbmRzGAIgASgFEhIKCnNpemVfYnl0ZXMYAyABKAMSDgoGZGlnZXN0GAQgASgJInwKFUxpc3RFdmFsVmVyc2lvbnNJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIUCgRzbHVnGAIgASgJQga6SAPIAQESHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgSGgoJcGFnZV9zaXplGAQgASgFQge6SAQaAigAIs0BChBFdmFsVmVyc2lvbkVudHJ5Eg4KBmRpZ2VzdBgBIAEoCRItCglwdXNoZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEkgKCXB1c2hlZF9ieRgDIAEoCzI1LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0QWN0b3ISCwoDdGFnGAQgASgJEhIKCmlzX2N1cnJlbnQYBSABKAgSDwoHbWVzc2FnZRgGIAEoCSJyChhMaXN0RXZhbFZlcnNpb25zUmVzcG9uc2USPQoHZW50cmllcxgBIAMoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5ldmFsLnYxLkV2YWxWZXJzaW9uRW50cnkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJItsBChBMaXN0RXZhbHNSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgSSAoGbGFiZWxzGAQgAygLMjguYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuTGlzdEV2YWxzUmVxdWVzdC5MYWJlbHNFbnRyeRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlYKCEV2YWxMaXN0EjEKB2VudHJpZXMYASADKAsyIC5haS5zdGlnbWVyLmFnZW50aWMuZXZhbC52MS5FdmFsEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_eval_v1_api, file_ai_stigmer_commons_apiresource_enum, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CiNhaS9zdGlnbWVyL2FnZW50aWMvZXZhbC92MS9pby5wcm90bxIaYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEiHwoGRXZhbElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi9wMKD1B1c2hFdmFsUmVxdWVzdBITCgNvcmcYASABKAlCBrpIA8gBARI1CgRzbHVnGAIgASgJQie6SCTIAQFyHxACGD8yGV5bYS16XVthLXowLTktXSpbYS16MC05XSQSFgoEbmFtZRgDIAEoCUIIukgFcgMYyAESEAoIYXJ0aWZhY3QYBCABKAwSGwoTYXJ0aWZhY3RfdXBsb2FkX3JlZhgFIAEoCRJTCgp2aXNpYmlsaXR5GAYgASgOMjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlVmlzaWJpbGl0eUIIukgFggECEAESDwoHbWVzc2FnZRgHIAEoCRIzCgN0YWcYCCABKAlCJrpII3IhGIABMhReJHxeW2EtekEtWjAtOS5fLV0rJFoGbGF0ZXN0OrUBukixARquAQohcHVzaF9ldmFsX3JlcXVlc3QuYXJ0aWZhY3Rfc291cmNlEklleGFjdGx5IG9uZSBvZiBhcnRpZmFjdCAoaW5saW5lIGJ5dGVzKSBvciBhcnRpZmFjdF91cGxvYWRfcmVmIG11c3QgYmUgc2V0Gj4odGhpcy5hcnRpZmFjdC5zaXplKCkgPiAwKSAhPSAodGhpcy5hcnRpZmFjdF91cGxvYWRfcmVmICE9ICcnKSKNAQoiQ3JlYXRlRXZhbEFydGlmYWN0VXBsb2FkVXJsUmVxdWVzdBITCgNvcmcYASABKAlCBrpIA8gBARI1CgRzbHVnGAIgASgJQie6SCTIAQFyHxACGD8yGV5bYS16XVthLXowLTktXSpbYS16MC05XSQSGwoKc2l6ZV9ieXRlcxgDIAEoA0IHukgEIgIgACJWChVFdmFsQXJ0aWZhY3RVcGxvYWRVcmwSCwoDdXJsGAEgASgJEhsKE2FydGlmYWN0X3VwbG9hZF9yZWYYAiABKAkSEwoLdHRsX3NlY29uZHMYAyABKAUiLwoLRXZhbEFyY2hpdmUSEAoIYXJ0aWZhY3QYASABKAwSDgoGZGlnZXN0GAIgASgJIoUBChtCdWlsZEV2YWxDYXNlRnJvbVJ1blJlcXVlc3QSFgoGcnVuX2lkGAEgASgJQga6SAPIAQESNQoJY2FzZV9uYW1lGAIgASgJQiK6SB9yHRg/MhleJHxeW2EtejAtOV1bYS16MC05Ll8tXSokEhcKBXNraWxsGAMgASgJQgi6SAVyAxjIASJVCg9FdmFsQ2FzZUFyY2hpdmUSEQoJY2FzZV9uYW1lGAEgASgJEhAKCGFydGlmYWN0GAIgASgMEg4KBmRpZ2VzdBgDIAEoCRINCgVub3RlcxgEIAMoCSKVAgoZQWRkRXZhbENhc2VGcm9tUnVuUmVxdWVzdBIWCgZydW5faWQYASABKAlCBrpIA8gBARJKCgRldmFsGAIgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQga6SAPIAQESNQoJY2FzZV9uYW1lGAMgASgJQiK6SB9yHRg/MhleJHxeW2EtejAtOV1bYS16MC05Ll8tXSokEhcKBXNraWxsGAQgASgJQgi6SAVyAxjIARIPCgdtZXNzYWdlGAUgASgJEjMKA3RhZxgGIAEoCUImukgjciEYgAEyFF4kfF5bYS16QS1aMC05Ll8tXSskWgZsYXRlc3QiXgoWRXZhbEFyY2hpdmVEb3dubG9hZFVybBILCgN1cmwYASABKAkSEwoLdHRsX3NlY29uZHMYAiABKAUSEgoKc2l6ZV9ieXRlcxgDIAEoAxIOCgZkaWdlc3QYBCABKAkifAoVTGlzdEV2YWxWZXJzaW9uc0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBEhQKBHNsdWcYAiABKAlCBrpIA8gBARIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACBIaCglwYWdlX3NpemUYBCABKAVCB7pIBBoCKAAizQEKEEV2YWxWZXJzaW9uRW50cnkSDgoGZGlnZXN0GAEgASgJEi0KCXB1c2hlZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASSAoJcHVzaGVkX2J5GAMgASgLMjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRBY3RvchILCgN0YWcYBCABKAkSEgoKaXNfY3VycmVudBgFIAEoCBIPCgdtZXNzYWdlGAYgASgJInIKGExpc3RFdmFsVmVyc2lvbnNSZXNwb25zZRI9CgdlbnRyaWVzGAEgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuRXZhbFZlcnNpb25FbnRyeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAki2wEKEExpc3RFdmFsc1JlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACBJICgZsYWJlbHMYBCADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuZXZhbC52MS5MaXN0RXZhbHNSZXF1ZXN0LkxhYmVsc0VudHJ5Gi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiVgoIRXZhbExpc3QSMQoHZW50cmllcxgBIAMoCzIgLmFpLnN0aWdtZXIuYWdlbnRpYy5ldmFsLnYxLkV2YWwSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_eval_v1_api, file_ai_stigmer_commons_apiresource_enum, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * EvalId wraps an eval identifier.
@@ -240,6 +242,150 @@ export const EvalArchiveSchema: GenMessage<EvalArchive> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_eval_v1_io, 4);
 
 /**
+ * BuildEvalCaseFromRunRequest asks for one eval case built from a run: the
+ * turn the run answered, the conversation before it, the tool answers it
+ * got and a rubric to fill in.
+ *
+ * @generated from message ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest
+ */
+export type BuildEvalCaseFromRunRequest = Message<"ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest"> & {
+  /**
+   * The run whose turn becomes the case. It must have ended.
+   *
+   * @generated from field: string run_id = 1;
+   */
+  runId: string;
+
+  /**
+   * The case's directory name. Empty suggests one from the request.
+   *
+   * @generated from field: string case_name = 2;
+   */
+  caseName: string;
+
+  /**
+   * A skill the run should have read and did not, as "<plugin>:<skill>":
+   * the case gains a check that the skill is read. Empty adds none.
+   *
+   * @generated from field: string skill = 3;
+   */
+  skill: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest.
+ * Use `create(BuildEvalCaseFromRunRequestSchema)` to create a new message.
+ */
+export const BuildEvalCaseFromRunRequestSchema: GenMessage<BuildEvalCaseFromRunRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_eval_v1_io, 5);
+
+/**
+ * EvalCaseArchive is one eval case folder as a ZIP archive: the case's
+ * directory at the archive's root, in the order `stigmer push eval` writes
+ * it.
+ *
+ * @generated from message ai.stigmer.agentic.eval.v1.EvalCaseArchive
+ */
+export type EvalCaseArchive = Message<"ai.stigmer.agentic.eval.v1.EvalCaseArchive"> & {
+  /**
+   * The case's directory name, the archive's one top-level directory.
+   *
+   * @generated from field: string case_name = 1;
+   */
+  caseName: string;
+
+  /**
+   * The archive bytes.
+   *
+   * @generated from field: bytes artifact = 2;
+   */
+  artifact: Uint8Array;
+
+  /**
+   * SHA-256 of the archive.
+   *
+   * @generated from field: string digest = 3;
+   */
+  digest: string;
+
+  /**
+   * What the case leaves out or keeps differently from the run, one
+   * sentence each: a tool answered differently on a later call, a platform
+   * tool no mock stands in for, an attachment, a tool use the conversation
+   * never answered. Empty when the case is the run's turn whole.
+   *
+   * @generated from field: repeated string notes = 4;
+   */
+  notes: string[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.eval.v1.EvalCaseArchive.
+ * Use `create(EvalCaseArchiveSchema)` to create a new message.
+ */
+export const EvalCaseArchiveSchema: GenMessage<EvalCaseArchive> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_eval_v1_io, 6);
+
+/**
+ * AddEvalCaseFromRunRequest asks for a run's turn built as a case (as
+ * buildCaseFromRun builds it) and added to an eval as a new version.
+ *
+ * @generated from message ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest
+ */
+export type AddEvalCaseFromRunRequest = Message<"ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest"> & {
+  /**
+   * The run whose turn becomes the case. It must have ended.
+   *
+   * @generated from field: string run_id = 1;
+   */
+  runId: string;
+
+  /**
+   * The eval to add the case to, by slug or id; its organization must be
+   * the run's. Its version is ignored: the case joins the current one.
+   *
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference eval = 2;
+   */
+  eval?: ApiResourceReference;
+
+  /**
+   * The case's directory name. Empty suggests one from the request. A name
+   * the eval already holds is refused.
+   *
+   * @generated from field: string case_name = 3;
+   */
+  caseName: string;
+
+  /**
+   * A skill the run should have read and did not, as "<plugin>:<skill>".
+   *
+   * @generated from field: string skill = 4;
+   */
+  skill: string;
+
+  /**
+   * The new version's message. Empty is "case <name> from run <id>".
+   *
+   * @generated from field: string message = 5;
+   */
+  message: string;
+
+  /**
+   * Optional tag to move to the new version. "latest" is refused.
+   *
+   * @generated from field: string tag = 6;
+   */
+  tag: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest.
+ * Use `create(AddEvalCaseFromRunRequestSchema)` to create a new message.
+ */
+export const AddEvalCaseFromRunRequestSchema: GenMessage<AddEvalCaseFromRunRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_eval_v1_io, 7);
+
+/**
  * EvalArchiveDownloadUrl is a URL to download one version of an eval over
  * HTTP.
  *
@@ -281,7 +427,7 @@ export type EvalArchiveDownloadUrl = Message<"ai.stigmer.agentic.eval.v1.EvalArc
  * Use `create(EvalArchiveDownloadUrlSchema)` to create a new message.
  */
 export const EvalArchiveDownloadUrlSchema: GenMessage<EvalArchiveDownloadUrl> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_eval_v1_io, 5);
+  messageDesc(file_ai_stigmer_agentic_eval_v1_io, 8);
 
 /**
  * ListEvalVersionsInput requests the version history of an eval.
@@ -325,7 +471,7 @@ export type ListEvalVersionsInput = Message<"ai.stigmer.agentic.eval.v1.ListEval
  * Use `create(ListEvalVersionsInputSchema)` to create a new message.
  */
 export const ListEvalVersionsInputSchema: GenMessage<ListEvalVersionsInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_eval_v1_io, 6);
+  messageDesc(file_ai_stigmer_agentic_eval_v1_io, 9);
 
 /**
  * EvalVersionEntry is one version of an eval.
@@ -381,7 +527,7 @@ export type EvalVersionEntry = Message<"ai.stigmer.agentic.eval.v1.EvalVersionEn
  * Use `create(EvalVersionEntrySchema)` to create a new message.
  */
 export const EvalVersionEntrySchema: GenMessage<EvalVersionEntry> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_eval_v1_io, 7);
+  messageDesc(file_ai_stigmer_agentic_eval_v1_io, 10);
 
 /**
  * ListEvalVersionsResponse is a page of an eval's version history.
@@ -410,7 +556,7 @@ export type ListEvalVersionsResponse = Message<"ai.stigmer.agentic.eval.v1.ListE
  * Use `create(ListEvalVersionsResponseSchema)` to create a new message.
  */
 export const ListEvalVersionsResponseSchema: GenMessage<ListEvalVersionsResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_eval_v1_io, 8);
+  messageDesc(file_ai_stigmer_agentic_eval_v1_io, 11);
 
 /**
  * Input for listing an organization's evals, newest first.
@@ -456,7 +602,7 @@ export type ListEvalsRequest = Message<"ai.stigmer.agentic.eval.v1.ListEvalsRequ
  * Use `create(ListEvalsRequestSchema)` to create a new message.
  */
 export const ListEvalsRequestSchema: GenMessage<ListEvalsRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_eval_v1_io, 9);
+  messageDesc(file_ai_stigmer_agentic_eval_v1_io, 12);
 
 /**
  * One page of an organization's evals.
@@ -485,5 +631,5 @@ export type EvalList = Message<"ai.stigmer.agentic.eval.v1.EvalList"> & {
  * Use `create(EvalListSchema)` to create a new message.
  */
 export const EvalListSchema: GenMessage<EvalList> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_eval_v1_io, 10);
+  messageDesc(file_ai_stigmer_agentic_eval_v1_io, 13);
 

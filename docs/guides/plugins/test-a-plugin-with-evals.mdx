@@ -430,24 +430,30 @@ keeps the first run and stops the other when it finds it.
 
 ## Turn a bad run into a test case
 
-A conversation that went wrong is the best next case. On a run's score row in
-the console, **Make a test case** downloads a zip holding the case folder. From
-the CLI, write it into your local plugin folder:
+A conversation that went wrong is the best next case. Stigmer builds it from the
+run, the same way from every surface. On a run's score row in the console,
+**Make a test case** downloads the case folder as a zip, or adds the case to one
+of your organization's evals as a new version. From the CLI, write it into your
+local folder, or add it to an eval:
 
 ```bash
 stigmer runs to-eval-case run_01abc123
 stigmer runs to-eval-case run_01abc123 --dir evals/ --name rename-call-sites
 stigmer runs to-eval-case run_01abc123 --skill thermos:code-review
+stigmer runs to-eval-case run_01abc123 --eval support-agent-evals
 ```
 
 The case holds:
 
-- `prompt.md`: the run's request as the body, with `max_turns: 10` and
-  `allowed_tools: [Read, Glob, Grep, Skill]`;
+- `prompt.md`: the turn's request as the body;
+- `history.jsonl` and `case.yaml`, when the run continued a conversation: the
+  conversation before it, so the case resumes where the person was;
+- `mocks/<server>/<tool>.md`: each answer an MCP tool gave the run, as a fixed
+  stand-in, so the case runs without calling the real server;
 - `graders/criteria.md`: an `llm` grader whose FAIL line names what went wrong,
-  from the AI judge's failing reason, else an eval run's failing check, else the
-  comment left with a thumbs-down; you write the PASS line, since only you know
-  what a correct reply holds;
+  from the AI judge's failing reason, else the comment you left with a
+  thumbs-down; you write the PASS line, since only you know what a correct reply
+  holds;
 - `graders/skill-fired.md` with `--skill`: a `tool_used: Skill` grader that
   passes when the try used that Skill.
 
@@ -461,10 +467,9 @@ went wrong in the run this case was made from: said the ticket was assigned, but
 the assign call failed.
 ```
 
-The CLI refuses to overwrite a case folder that already exists. A run that
-continued a conversation takes only its last request, and says so. Stigmer never
-writes into your repository: review the case, then commit it with the plugin and
-push the plugin again.
+The CLI refuses to overwrite a case folder that already exists, and an eval
+refuses a case name it already holds. Stigmer never writes into your repository:
+review a downloaded case, then commit it and push the folder it is in again.
 
 ## Next steps
 

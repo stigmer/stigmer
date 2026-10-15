@@ -24,7 +24,13 @@ results stay tied to the cases that produced them. Whoever may view an eval may
 run it on an agent they may edit. The eval run is the agent's: every viewer of
 the agent in its organization reads its results, the cases' names, mocks and
 conversations included, so running a private eval shares what those tries show
-with them. The shape below is what `get` returns.
+with them.
+
+A conversation that went wrong becomes a case of an eval: **Make a test case**
+on the run in the console, or `stigmer runs to-eval-case <run> --eval <eval>`,
+adds it as a new version. The case resumes the conversation before the bad turn,
+its tool answers stand in for the real servers, and its rubric starts from why
+the run went wrong. The shape below is what `get` returns.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -87,6 +93,8 @@ Eval evalResource = client.evals().get("evs_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`listVersions`](#listversions) | List an eval's versions, newest first, each with its digest, tag, message and who pushed it. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of an eval: the whole organization, or its owner alone. |
 | [`delete`](#delete) | Delete an eval and every version of it. |
+| [`addCaseFromRun`](#addcasefromrun) | Add a case built from a run (as buildCaseFromRun builds it) to an eval, as a new version holding the current version's files and the case. |
+| [`buildCaseFromRun`](#buildcasefromrun) | Build an eval case from a run, to keep on disk or push in an eval. |
 | [`createArtifactUploadUrl`](#createartifactuploadurl) | Mint a short-lived, single-use upload URL for staging an eval archive that exceeds the gRPC message-size cap (10MB). |
 | [`download`](#download) | Download one version of an eval as the ZIP archive it was pushed as. |
 | [`push`](#push) | Push an evals/ folder as an eval's new version. |
@@ -427,6 +435,122 @@ Eval evalResource = client.evals().delete(id);
 
 **Returns**: [`Eval`](#eval)
 
+### addCaseFromRun
+
+Add a case built from a run (as buildCaseFromRun builds it) to an eval, as a new version holding the current version's files and the case.
+
+Error Cases:
+
+- NOT_FOUND: no such run, or no such eval - PERMISSION_DENIED: the caller may not view the run, or may not edit the eval - FAILED_PRECONDITION: the run has not ended, or the eval is not of the run's organization - ALREADY_EXISTS: the eval already holds a case of that name
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const evalResource = await stigmer.eval.addCaseFromRun({
+  runId: "...",
+  eval: {},
+  caseName: "...",
+  skill: "...",
+  message: "...",
+  tag: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+evalResource, err := client.Eval.AddCaseFromRun(ctx, &stigmer.AddEvalCaseFromRunRequest{
+  RunId:    "...",
+  Eval:     &stigmer.ResourceRef{},
+  CaseName: "...",
+  Skill:    "...",
+  Message:  "...",
+  Tag:      "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+eval_resource = client.evals.add_case_from_run(AddEvalCaseFromRunRequest(
+    run_id="...",
+    eval=None,
+    case_name="...",
+    skill="...",
+    message="...",
+    tag="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Eval evalResource = client.evals().addCaseFromRun(AddEvalCaseFromRunRequest.builder()
+    .runId("...")
+    .eval(null)
+    .caseName("...")
+    .skill("...")
+    .message("...")
+    .tag("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`AddEvalCaseFromRunRequest`](#addevalcasefromrunrequest)
+
+**Returns**: [`Eval`](#eval)
+
+### buildCaseFromRun
+
+Build an eval case from a run, to keep on disk or push in an eval.
+
+The case is the turn the run answered: its request as the prompt, the conversation before it as the case's history (so the case resumes where the person was), each MCP tool answer the run got as a fixed mock under the server name the turn gave it, and a rubric to fill in, seeded with why the run went wrong (an AI judge's failing reason, or the caller's own thumbs-down note). It never carries a verdict of its own.
+
+Error Cases:
+
+- NOT_FOUND: no such run - PERMISSION_DENIED: the caller may not view the run - FAILED_PRECONDITION: the run has not ended - RESOURCE_EXHAUSTED: the case is too large to answer inline; add it to an eval with addCaseFromRun, which writes it on the server
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const evalCaseArchive = await stigmer.eval.buildCaseFromRun({
+  runId: "...",
+  caseName: "...",
+  skill: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+evalCaseArchive, err := client.Eval.BuildCaseFromRun(ctx, &stigmer.BuildEvalCaseFromRunRequest{
+  RunId:    "...",
+  CaseName: "...",
+  Skill:    "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+eval_case_archive = client.evals.build_case_from_run(BuildEvalCaseFromRunRequest(
+    run_id="...",
+    case_name="...",
+    skill="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+EvalCaseArchive evalCaseArchive = client.evals().buildCaseFromRun(BuildEvalCaseFromRunRequest.builder()
+    .runId("...")
+    .caseName("...")
+    .skill("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`BuildEvalCaseFromRunRequest`](#buildevalcasefromrunrequest)
+
+**Returns**: [`EvalCaseArchive`](#evalcasearchive)
+
 ### createArtifactUploadUrl
 
 Mint a short-lived, single-use upload URL for staging an eval archive that exceeds the gRPC message-size cap (10MB). Flow:
@@ -680,6 +804,21 @@ PushEvalRequest stores an evals/ folder as an eval's new version.
   }}
 />
 
+### AddEvalCaseFromRunRequest
+
+AddEvalCaseFromRunRequest asks for a run's turn built as a case (as buildCaseFromRun builds it) and added to an eval as a new version.
+
+<TypeTable
+  type={{
+    runId: { type: "string", description: "The run whose turn becomes the case.", required: true },
+    eval: { type: "ResourceRef", description: "The eval to add the case to, by slug or id; its organization must be the run's.", typeDescriptionLink: "#resourceref", required: true },
+    caseName: { type: "string", description: "The case's directory name." },
+    skill: { type: "string", description: "A skill the run should have read and did not, as \"<plugin>:<skill>\"." },
+    message: { type: "string", description: "The new version's message." },
+    tag: { type: "string", description: "Optional tag to move to the new version." },
+  }}
+/>
+
 ### CreateEvalArtifactUploadUrlRequest
 
 CreateEvalArtifactUploadUrlRequest asks the server to mint a staging slot for an eval archive too large to travel inline.
@@ -809,6 +948,31 @@ EvalArchiveDownloadUrl is a URL to download one version of an eval over HTTP.
     ttlSeconds: { type: "number", description: "Time-to-live for the download URL in seconds; 0 means no expiry." },
     sizeBytes: { type: "number", description: "Size of the archive ZIP in bytes." },
     digest: { type: "string", description: "SHA-256 of the archive: the version's digest, which the downloaded bytes must match." },
+  }}
+/>
+
+### BuildEvalCaseFromRunRequest
+
+BuildEvalCaseFromRunRequest asks for one eval case built from a run: the turn the run answered, the conversation before it, the tool answers it got and a rubric to fill in.
+
+<TypeTable
+  type={{
+    runId: { type: "string", description: "The run whose turn becomes the case.", required: true },
+    caseName: { type: "string", description: "The case's directory name." },
+    skill: { type: "string", description: "A skill the run should have read and did not, as \"<plugin>:<skill>\": the case gains a check that the skill is read." },
+  }}
+/>
+
+### EvalCaseArchive
+
+EvalCaseArchive is one eval case folder as a ZIP archive: the case's directory at the archive's root, in the order `stigmer push eval` writes it.
+
+<TypeTable
+  type={{
+    caseName: { type: "string", description: "The case's directory name, the archive's one top-level directory." },
+    artifact: { type: "Uint8Array", description: "The archive bytes." },
+    digest: { type: "string", description: "SHA-256 of the archive." },
+    notes: { type: "string[]", description: "What the case leaves out or keeps differently from the run, one sentence each: a tool answered differently on a later call, a platform tool no mock stands in for, an attachment, a tool use the conversation never answered." },
   }}
 />
 

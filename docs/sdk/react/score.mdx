@@ -227,11 +227,11 @@ passed", "Eval: 1 of 3 failed"), which opens to each check's verdict and
 reason. A run the platform could not grade says so quietly, with the
 reason.
 
-"Make a test case", revealed with the thumbs, downloads the run as a case
-folder for a plugin's evals/ (a zip of `prompt.md` and an `llm` rubric
-seeded from the first failing grader's reason or the viewer's thumbs-down
-comment). Stigmer never writes into the author's repository; the author
-unzips it there and commits it.
+"Make a test case", revealed with the thumbs, opens the panel that turns
+the run into a case the server builds (MakeTestCasePanel.tsx): downloaded
+as a case folder, or added to one of the organization's evals as a new
+version. Stigmer never writes into the author's repository; a downloaded
+case is unzipped there by the author.
 
 Reads the thread's scores from `MessageThread`'s provider (enabled by its
 `runScores` prop), so it renders nothing outside one. Each person rates

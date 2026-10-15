@@ -189,17 +189,18 @@ stigmer runs terminate <run-id> [flags]
 
 ### stigmer runs to-eval-case
 
-write a run as a test case in the local plugin's evals/ folder
+turn a run into an eval case: written under evals/, or added to an eval
 
 ```bash
 stigmer runs to-eval-case <run-id> [flags]
 ```
 
-| Flag      | Type     | Default | Description                                                     |
-| --------- | -------- | ------- | --------------------------------------------------------------- |
-| `--dir`   | `string` | `evals` | the plugin's eval directory to write into                       |
-| `--name`  | `string` |         | the case's name and directory (default: from the run's request) |
-| `--skill` | `string` |         | also check that this skill of the plugin fired                  |
+| Flag      | Type     | Default | Description                                                           |
+| --------- | -------- | ------- | --------------------------------------------------------------------- |
+| `--dir`   | `string` |         | the eval directory to write the case into (default: evals)            |
+| `--eval`  | `string` |         | add the case to this eval as a new version instead of writing it here |
+| `--name`  | `string` |         | the case's name and directory (default: from the run's request)       |
+| `--skill` | `string` |         | also check that this skill was read                                   |
 
 ### stigmer runs trace
 
