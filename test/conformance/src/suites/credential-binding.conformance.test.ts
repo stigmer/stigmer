@@ -1,15 +1,18 @@
 // Credential binding conformance: a credential that names an organization
-// works in that organization only.
+// works in that organization and in its child organizations, as the account
+// behind it would.
 // Domain: identity and authorization (every edition that signs callers in).
 //
 // One person holds a role in two organizations, A and B. A credential that
 // names A — a user token a service account of A mints, or an API key limited
 // to A — is refused in B even though the person holds a role there, works in
 // A, and names A alone when asked which organizations it may see. A key
-// limited to A cannot found an organization other than a child of A, which
-// it then manages (settings and members, never the child's rows), cannot mint a key that speaks
-// for the person everywhere (an empty organization becomes A), and cannot
-// mint a key limited to B. A key may be limited only to an organization its
+// limited to A cannot found an organization other than a child of A, in
+// which it then writes and reads as its account's role allows; a key
+// limited to that child reaches neither A nor a sibling child. A key
+// limited to A cannot mint a key that speaks for the person everywhere (an
+// empty organization becomes A), and mints keys limited to A or a child of
+// A, never to B. A key may be limited only to an organization its
 // owner can view. A run filed in A cannot use an agent of B that B does not
 // share with A, though its person may run it there: the run's own credential
 // is bound to A and could not read it, so the create refuses it before
@@ -70,7 +73,7 @@ const BOUND_CREDENTIAL_CREATES_NO_ORGANIZATION_MESSAGE =
 const BOUND_ELSEWHERE_MESSAGE =
   "this credential is bound to another organization";
 const API_KEY_BOUND_ELSEWHERE_MESSAGE =
-  "this credential is limited to one organization, so it can only create API keys limited to that organization";
+  "this credential is limited to one organization, so it can only create API keys limited to that organization or one of its child organizations";
 
 // The plugins the listing arms install: one server whose header names its key,
 // so the install probes nothing and a listing never reaches a network.
@@ -417,32 +420,45 @@ describe("credential binding — a credential that names an organization works t
     );
   });
 
-  it("[rpc:OrganizationCommandController.create] a key limited to A creates and manages a child of A, and reads none of the child's rows", async (ctx) => {
+  it("[rpc:AgentCommandController.create] a key limited to A writes and reads in a child of A, never in a sibling", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     const a = await tenancy(on);
     const key = await keyOf(on, on.clients, a.org);
-    const child = await key.clients.organizationCommand.create({
-      apiVersion: "tenancy.stigmer.ai/v1",
-      kind: "Organization",
-      metadata: { name: uniqueName("bound-child") },
-      spec: { parentOrg: a.org, externalId: uniqueName("cust") },
-    });
-    const childOrg = child.metadata?.id ?? "";
-    fixtures.defer(() =>
-      on.clients.organizationCommand.delete({ value: childOrg }),
-    );
+    const childOf = async (externalId: string): Promise<string> => {
+      const child = await key.clients.organizationCommand.create({
+        apiVersion: "tenancy.stigmer.ai/v1",
+        kind: "Organization",
+        metadata: { name: uniqueName("bound-child") },
+        spec: { parentOrg: a.org, externalId },
+      });
+      const org = child.metadata?.id ?? "";
+      fixtures.defer(() => on.clients.organizationCommand.delete({ value: org }));
+      return org;
+    };
+    const childOrg = await childOf(uniqueName("cust"));
+    const siblingOrg = await childOf(uniqueName("cust"));
     const listed = await key.clients.organizationQuery.listChildOrgs({
       org: a.org,
     });
-    expect(listed.entries.map((org) => org.metadata?.id)).toEqual([childOrg]);
+    expect(listed.entries.map((org) => org.metadata?.id).sort()).toEqual(
+      [childOrg, siblingOrg].sort(),
+    );
+
+    // Writes into the child: every write's persist step asks the binding.
+    const agent = await key.clients.agentCommand.create(
+      makeAgent({ org: childOrg, name: uniqueName("bound-child-agent") }),
+    );
+    const agentId = agent.metadata?.id ?? "";
+    fixtures.defer(() => on.clients.agentCommand.delete({ value: agentId }));
+    expect(agent.metadata?.org).toBe(childOrg);
+
+    // Reads in the child, a row its own admin made included.
     const customer = await on.provisionIdentity();
     const customerId = await on.accountIdOf(customer);
     await key.clients.grantCommand.create(
       organizationRole(customerId, "admin", childOrg),
     );
-    // The child's own admin writes an org-visible row there: the founder,
-    // who manages the child, holds no role in it.
     const vault = makeSharedVault({
       org: childOrg,
       name: uniqueName("binding-vault"),
@@ -458,14 +474,35 @@ describe("credential binding — a credential that names an organization works t
     fixtures.defer(() =>
       customer.vaultCommand.delete({ resourceId: inChild }),
     );
+    expect(
+      (await key.clients.vaultQuery.get({ value: inChild })).metadata?.id,
+    ).toBe(inChild);
+
+    // A key limited to the child reaches neither A nor the sibling.
+    const childKey = await keyOf(on, key.clients, childOrg);
+    expect(childKey.org).toBe(childOrg);
     await expectGrpcCode(
-      () => key.clients.vaultQuery.get({ value: inChild }),
+      () =>
+        childKey.clients.agentCommand.create(
+          makeAgent({ org: siblingOrg, name: uniqueName("into-sibling") }),
+        ),
       Code.PermissionDenied,
-      "read a child's row through a key limited to its parent",
+      "write into a sibling child through a key limited to a child",
     );
+    await expectGrpcCode(
+      () =>
+        childKey.clients.agentCommand.create(
+          makeAgent({ org: a.org, name: uniqueName("into-parent") }),
+        ),
+      Code.PermissionDenied,
+      "write into the parent through a key limited to a child",
+    );
+    expect(
+      (await childKey.clients.agentQuery.get({ value: agentId })).metadata?.id,
+    ).toBe(agentId);
   });
 
-  it("[rpc:ApiKeyCommandController.create] a key limited to A mints only keys limited to A", async (ctx) => {
+  it("[rpc:ApiKeyCommandController.create] a key limited to A mints keys limited to A or a child of A, never to B", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     const a = await tenancy(on);
@@ -488,6 +525,20 @@ describe("credential binding — a credential that names an organization works t
       "mint a key limited to B through a key limited to A",
     );
     expect(elsewhere.rawMessage).toBe(API_KEY_BOUND_ELSEWHERE_MESSAGE);
+
+    const child = await on.clients.organizationCommand.create({
+      apiVersion: "tenancy.stigmer.ai/v1",
+      kind: "Organization",
+      metadata: { name: uniqueName("bound-child") },
+      spec: { parentOrg: a.org, externalId: uniqueName("cust") },
+    });
+    const childOrg = child.metadata?.id ?? "";
+    fixtures.defer(() => on.clients.organizationCommand.delete({ value: childOrg }));
+    await on.clients.grantCommand.create(
+      organizationRole(await on.accountIdOf(person), "member", childOrg),
+    );
+    const inChild = await keyOf(on, key.clients, childOrg);
+    expect(inChild.org, "a key limited to a child of A, minted through a key limited to A").toBe(childOrg);
   });
 
   it("[rpc:ApiKeyCommandController.delete] a key limited to A manages only keys limited to A: never its owner's unlimited key", async (ctx) => {
@@ -661,6 +712,50 @@ describe("credential binding — a credential that names an organization works t
         ),
       Code.FailedPrecondition,
       "file a run in A on B's agent that B no longer shares",
+    );
+    expect(refused.rawMessage).toBe(
+      `a run uses only what its own organization can read: Agent ${agentId} belongs to another organization and is not one its parent shares with child organizations`,
+    );
+  });
+
+  it("[rpc:RunCommandController.create] a run filed in a parent cannot use a child's agent: a run's credential stays its run's organization", async (ctx) => {
+    if (lane === undefined) return ctx.skip(laneReason);
+    const on = lane;
+    const parent = await tenancy(on);
+    const child = await childTenancy(on, parent);
+    // A person in both, who may read and run the child's agent and file
+    // runs in the parent.
+    const person = await personIn(on, parent, "member");
+    await on.clients.grantCommand.create(
+      organizationRole(await on.accountIdOf(person), "member", child.org),
+    );
+    const agent = await person.agentCommand.create(
+      makeAgent({ org: child.org, name: uniqueName("child-agent") }),
+    );
+    const agentId = agent.metadata?.id ?? "";
+    fixtures.defer(() => person.agentCommand.delete({ value: agentId }));
+    const session = await person.sessionCommand.create(
+      makeSession({
+        org: parent.org,
+        name: uniqueName("parent-session"),
+        agentRef: agentRefOf(agent),
+      }),
+    );
+    const sessionId = session.metadata?.id ?? "";
+    fixtures.defer(() => person.sessionCommand.delete({ value: sessionId }));
+
+    const refused = await expectGrpcCode(
+      () =>
+        person.agentExecutionCommand.create(
+          makeAgentExecution({
+            org: parent.org,
+            name: uniqueName("parent-run-child-agent"),
+            sessionId,
+            message: "Say hello.",
+          }),
+        ),
+      Code.FailedPrecondition,
+      "file a run in a parent on a child's agent",
     );
     expect(refused.rawMessage).toBe(
       `a run uses only what its own organization can read: Agent ${agentId} belongs to another organization and is not one its parent shares with child organizations`,

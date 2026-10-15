@@ -3,9 +3,14 @@
 # Verifies the two halves of a child organization end-to-end against the
 # authorization model:
 #
-#   - management: the parent's admins hold parent_admin on a child
-#     (admin from parent_org), which feeds the management permissions and
-#     never a role, so they manage the child and read nothing it holds;
+#   - administration: the parent's admins hold parent_admin on a child
+#     (admin from parent_org), which is part of the child's admin and of
+#     its membership bound (affiliated), so they are the child's admins:
+#     they read and change what it holds, and what they make there is
+#     theirs; a person's sessions, My vault and memories stay private from
+#     them, as from the child's own admins. Children stay walled off from
+#     each other, and a child's admins reach neither its parent nor a
+#     sibling;
 #   - sharing: a blueprint at visibility_child_orgs names
 #     organization:<parent>#child_org_viewer, which is everyone in every
 #     child (viewer from child_org).
@@ -38,11 +43,14 @@ tuples:
   - {user: identity_account:priya, relation: affiliated, object: organization:planton}
   - {user: identity_account:veda, relation: viewer, object: organization:planton}
   - {user: identity_account:veda, relation: affiliated, object: organization:planton}
-  # alice is a member of acme; vic a read-only viewer there; bob a member of beta.
+  # alice is a member of acme; vic a read-only viewer there; cara administers
+  # acme; bob a member of beta.
   - {user: identity_account:alice, relation: member, object: organization:acme}
   - {user: identity_account:alice, relation: affiliated, object: organization:acme}
   - {user: identity_account:vic, relation: viewer, object: organization:acme}
   - {user: identity_account:vic, relation: affiliated, object: organization:acme}
+  - {user: identity_account:cara, relation: admin, object: organization:acme}
+  - {user: identity_account:cara, relation: affiliated, object: organization:acme}
   - {user: identity_account:bob, relation: member, object: organization:beta}
   - {user: identity_account:bob, relation: affiliated, object: organization:beta}
   # rhea administers rival; ross is a member of rival's child.
@@ -84,115 +92,203 @@ tuples:
   - {user: organization:acme#viewer, relation: viewer, object: vault:acme-vault}
   - {user: organization:acme, relation: organization, object: memory:acme-fact}
   - {user: identity_account:alice, relation: subject, object: memory:acme-fact}
+  # alice's My vault in acme: a person link and no org_owned link.
+  - {user: organization:acme, relation: organization, object: vault:alice-mine}
+  - {user: identity_account:alice, relation: person, object: vault:alice-mine}
+  # An eval run of acme's agent.
+  - {user: organization:acme, relation: organization, object: eval_run:acme-eval}
+  - {user: agent:acme-helper, relation: agent, object: eval_run:acme-eval}
 
   # --- acme's own administration: a federation issuer and a team ---
   - {user: organization:acme, relation: organization, object: federation_issuer:acme-sso}
   - {user: organization:acme, relation: organization, object: team:acme-eng}
 
+  # --- What pat, a parent admin, made in acme: a session of their own ---
+  - {user: organization:acme, relation: organization, object: session:pat-chat}
+  - {user: identity_account:pat, relation: owner, object: session:pat-chat}
+
 tests:
-  - name: a parent admin manages a child
+  - name: a parent admin is an admin in every child
     check:
       - user: identity_account:pat
         object: organization:acme
         assertions:
           parent_admin: true
+          owner: false
+          admin: true
+          member: true
+          viewer: true
+          affiliated: true
+          can_view: true
           can_view_settings: true
           can_edit: true
           can_delete: true
           can_grant_access: true
           can_view_access: true
+          can_view_access_history: true
           can_assign_roles: true
           can_view_billing: true
+          can_manage_billing: true
+          can_mint_user_tokens: true
+          can_create_agent: true
+          can_create_session: true
+          can_create_run_in: true
+          can_create_shared_vault: true
+      # The parent's owner is one of its admins.
       - user: identity_account:swarup
         object: organization:beta
         assertions:
+          admin: true
           can_edit: true
           can_grant_access: true
           can_view_billing: true
 
-  - name: a parent admin holds no role in a child, so reads nothing it holds
+  - name: a parent admin reads and changes what a child holds
     check:
-      - user: identity_account:pat
-        object: organization:acme
-        assertions:
-          owner: false
-          admin: false
-          member: false
-          viewer: false
-          affiliated: false
-          can_view: false
-          can_manage_billing: false
-          can_create_session: false
-          can_create_agent: false
-          can_create_run_in: false
       - user: identity_account:pat
         object: agent:acme-helper
         assertions:
-          viewer: false
-          can_view: false
-          can_execute: false
+          owner: true
+          viewer: true
+          can_view: true
+          can_execute: true
+          can_edit: true
+          can_delete: true
+      - user: identity_account:pat
+        object: vault:acme-vault
+        assertions:
+          can_view: true
+          can_use: true
+          can_edit: true
+      - user: identity_account:pat
+        object: team:acme-eng
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+      - user: identity_account:pat
+        object: federation_issuer:acme-sso
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+      - user: identity_account:pat
+        object: eval_run:acme-eval
+        assertions:
+          can_view: true
+          can_edit: true
+
+  - name: a person's session, My vault and memories stay private from a parent admin
+    check:
       - user: identity_account:pat
         object: session:acme-chat
         assertions:
           can_view: false
+          can_edit: false
       - user: identity_account:pat
-        object: vault:acme-vault
+        object: vault:alice-mine
         assertions:
-          viewer: false
+          owner: false
           can_view: false
           can_use: false
       - user: identity_account:pat
         object: memory:acme-fact
         assertions:
           can_view: false
+      # The child's own admin reads none of them either.
+      - user: identity_account:cara
+        object: session:acme-chat
+        assertions:
+          can_view: false
+      - user: identity_account:cara
+        object: vault:alice-mine
+        assertions:
+          can_view: false
 
-  - name: a parent admin manages a child's access but not its federation issuers or teams
+  - name: a parent admin's own session in a child is theirs
     check:
       - user: identity_account:pat
-        object: organization:acme
+        object: session:pat-chat
         assertions:
-          can_view_access: true
-      - user: identity_account:pat
-        object: federation_issuer:acme-sso
+          owner: true
+          can_view: true
+          can_edit: true
+      - user: identity_account:alice
+        object: session:pat-chat
         assertions:
-          owner: false
-          viewer: false
           can_view: false
-          can_edit: false
-          can_delete: false
-      - user: identity_account:pat
-        object: team:acme-eng
-        assertions:
-          viewer: false
-          can_view: false
-          can_edit: false
-          can_delete: false
-          can_grant_access: false
 
-  - name: the parent's members and viewers do not manage a child
+  - name: the parent's members and viewers are not admins in a child
     check:
       - user: identity_account:priya
         object: organization:acme
         assertions:
           parent_admin: false
+          admin: false
+          viewer: false
+          affiliated: false
+          can_view: false
           can_view_settings: false
           can_edit: false
           can_grant_access: false
           can_view_billing: false
+      - user: identity_account:priya
+        object: agent:acme-helper
+        assertions:
+          can_view: false
       - user: identity_account:veda
         object: organization:acme
         assertions:
           can_view_settings: false
           can_view_billing: false
 
-  - name: another parent's admin manages none of planton's children
+  - name: a parent's admin reaches neither another parent's child nor a sibling's people through the parent
     check:
       - user: identity_account:rhea
         object: organization:acme
         assertions:
           parent_admin: false
+          admin: false
+          affiliated: false
+          can_view: false
           can_view_settings: false
           can_edit: false
+      - user: identity_account:rhea
+        object: agent:acme-helper
+        assertions:
+          can_view: false
+      - user: identity_account:pat
+        object: organization:rivalco
+        assertions:
+          admin: false
+          affiliated: false
+          can_view: false
+
+  - name: a child's admin reaches neither its parent nor a sibling
+    check:
+      - user: identity_account:cara
+        object: organization:planton
+        assertions:
+          admin: false
+          viewer: false
+          can_view: false
+          can_edit: false
+      - user: identity_account:cara
+        object: organization:beta
+        assertions:
+          admin: false
+          can_view: false
+      - user: identity_account:cara
+        object: agent:internal-bot
+        assertions:
+          can_view: false
+      # A child's admins hold the children permission and cannot use it: a
+      # child has no children.
+      - user: identity_account:cara
+        object: organization:acme
+        assertions:
+          can_manage_child_orgs: true
 
   - name: a child's own people keep their roles and settings
     check:
@@ -306,7 +402,7 @@ tests:
         assertions:
           can_view: false
 
-  - name: a child member's viewable agents are the shared one and the child's own
+  - name: what a child member and a parent admin list
     list_objects:
       - user: identity_account:alice
         type: agent
@@ -314,7 +410,18 @@ tests:
           can_view:
             - agent:sara
             - agent:acme-helper
+      # The parent's admin: the parent's agents and each child's, never another
+      # parent's, through the one recursion admin -> parent_admin -> admin.
+      - user: identity_account:pat
+        type: agent
+        assertions:
+          can_view:
+            - agent:sara
+            - agent:internal-bot
+            - agent:acme-helper
+      # Their own session in the child, and no one else's.
       - user: identity_account:pat
         type: session
         assertions:
-          can_view: []
+          can_view:
+            - session:pat-chat

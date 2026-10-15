@@ -4,13 +4,11 @@
 // answers no slug), and the child organization helper (it sends the parent
 // and external id, and refuses a create that answers no slug or id), and the
 // create of a deleted organization's slug (it retries while the slug is held,
-// ALREADY_EXISTS, and fails on any other answer or once its time is up), and
-// the caller taking admin in a child it made (the ordinary grant naming the
-// account whoAmI answers, refused when whoAmI answers none).
+// ALREADY_EXISTS, and fails on any other answer or once its time is up).
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
-import { createChildOrganization, createOrganizationOnceReleased, organizationSlug, takeAdminIn } from "../organizations";
+import { createChildOrganization, createOrganizationOnceReleased, organizationSlug } from "../organizations";
 
 function queryAnswering(slug: string | undefined): ConformanceClients["organizationQuery"] {
   return {
@@ -102,36 +100,5 @@ describe("createOrganizationOnceReleased", () => {
   it("fails with the held slug's refusal once its time is up", async () => {
     const scripted = commandScripted([held()]);
     await expect(createOrganizationOnceReleased(scripted.command, "acme", 0)).rejects.toThrow("held");
-  });
-});
-
-describe("takeAdminIn", () => {
-  function caller(id: string | undefined): { clients: ConformanceClients; granted: unknown[] } {
-    const granted: unknown[] = [];
-    const clients = {
-      identityAccountQuery: { whoAmI: async () => ({ metadata: id === undefined ? undefined : { id } }) },
-      grantCommand: { create: async (input: unknown) => (granted.push(input), {}) },
-    } as unknown as ConformanceClients;
-    return { clients, granted };
-  }
-
-  it("grants the caller admin on the child organization through the ordinary grant", async () => {
-    const { clients, granted } = caller("ida_01founder");
-    await takeAdminIn(clients, "org_01child");
-    expect(granted).toEqual([
-      expect.objectContaining({
-        principal: expect.objectContaining({ kind: "identity_account", id: "ida_01founder" }),
-        relation: "admin",
-        resource: expect.objectContaining({ kind: "organization", id: "org_01child" }),
-      }),
-    ]);
-  });
-
-  it("refuses when whoAmI answers no account, granting nothing", async () => {
-    const { clients, granted } = caller(undefined);
-    await expect(takeAdminIn(clients, "org_01child")).rejects.toThrow(
-      "whoAmI answered no account; the caller cannot take a role in the child organization",
-    );
-    expect(granted).toEqual([]);
   });
 });

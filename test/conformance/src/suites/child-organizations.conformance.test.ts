@@ -1,18 +1,18 @@
 // Child organizations conformance: an organization may have child
-// organizations, which its admins manage and never read.
+// organizations, and its admins are admins in every one of them.
 // Domain: tenancy / organization, and authorization.
 //
 // A parent organization P creates a child C (`spec.parent_org`, with the
 // parent's own identifier for it, `spec.external_id`). Nobody owns C: P's
-// admins manage it (its settings, members and access), see its billing,
-// and grant its people, but hold no role in it, so they read none of its
-// sessions, agents or vaults, and write no secret into one of its vaults:
-// the keys a child keeps for its own people are its own admins' to save.
-// A P admin who needs to look inside grants
-// themselves a role in C, which C's access list shows. Everyone in C reads
-// and runs what P shares at visibility_child_orgs; nobody in another
-// parent's child does. A parent with children is not deleted. A
-// service account of P mints user tokens into C.
+// admins are its admins, with no joining step, the way a Stripe platform
+// administers a connected account. They change its settings and grant its
+// people, read and change its agents and shared vaults (saving a secret
+// into one included), and what they make there is theirs while they are
+// P's admins. A person's conversations stay private from them, as from
+// C's own admins. Everyone in C reads and runs what P shares at
+// visibility_child_orgs; nobody in another parent's child does. A parent
+// with children is not deleted. A service account of P mints user tokens
+// into C, and a token minted for one child works in no other organization.
 //
 // Every arm runs on the target's enforcing lane: the primary on the cloud,
 // open source's OIDC sibling on the local targets, where the built-in
@@ -29,7 +29,7 @@ import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { makeAgent } from "../support/agents";
+import { AGENT_API_VERSION, AGENT_KIND, makeAgent, makeAgentSpec } from "../support/agents";
 import { makeSharedVault, myVaultTarget, setSecretsInput, vaultTarget } from "../support/vaults";
 import { organizationRole } from "../support/grants";
 import { uniqueName, uniqueOrg } from "../support/naming";
@@ -132,7 +132,7 @@ async function refusalOf(run: () => Promise<unknown>): Promise<ConnectError> {
   throw new Error("expected the call to be refused");
 }
 
-describe("child organizations — managed by the parent, never read by it", () => {
+describe("child organizations — the parent's admins are admins in every child", () => {
   it("[rpc:OrganizationCommandController.create] [rpc:OrganizationQueryController.getByExternalId] a parent's admin creates a child that nobody owns, and finds and lists it", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
@@ -158,7 +158,7 @@ describe("child organizations — managed by the parent, never read by it", () =
     expect(listed.entries.map((org) => org.metadata?.id)).toEqual([child.org]);
   });
 
-  it("[rpc:SessionQueryController.get] a parent admin manages a child but cannot read its sessions, agents or vaults", async (ctx) => {
+  it("[rpc:AgentQueryController.get] a parent admin reads and changes a child's agents and shared vaults, not a person's conversation", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     const parent = await tenancy(on);
@@ -172,9 +172,8 @@ describe("child organizations — managed by the parent, never read by it", () =
     fixtures.defer(() =>
       customer.clients.sessionCommand.delete({ value: sessionId }),
     );
-    const agent = await customer.clients.agentCommand.create({
-      ...makeAgent({ org: child.org, name: uniqueName("child-agent") }),
-    });
+    const agentInput = makeAgent({ org: child.org, name: uniqueName("child-agent") });
+    const agent = await customer.clients.agentCommand.create(agentInput);
     const agentId = agent.metadata?.id ?? "";
     fixtures.defer(() =>
       customer.clients.agentCommand.delete({ value: agentId }),
@@ -195,7 +194,7 @@ describe("child organizations — managed by the parent, never read by it", () =
       customer.clients.vaultCommand.delete({ resourceId: vaultId }),
     );
 
-    // Management: settings, members, access; billing is read only.
+    // The child's settings and access.
     const settings = await on.clients.organizationQuery.get({ value: child.org });
     expect(settings.metadata?.id).toBe(child.org);
     const updated = await on.clients.organizationCommand.update({ resource: {
@@ -211,35 +210,43 @@ describe("child organizations — managed by the parent, never read by it", () =
     expect(updated.spec?.parentOrg, "the update keeps the parent").toBe(
       parent.org,
     );
-    expect(updated.spec?.description).toBe("edited by the parent's admin");
     expect(await accessHoldersOf(on.clients, child.org)).toContain(
       customer.id,
     );
 
-    // Reading: none of it.
+    // What the child holds: read, and changed.
+    expect(
+      (await on.clients.agentQuery.get({ value: agentId })).metadata?.id,
+      "the parent's admin reads the child's agent",
+    ).toBe(agentId);
+    const fixed = await on.clients.agentCommand.update({
+      resource: {
+        apiVersion: AGENT_API_VERSION,
+        kind: AGENT_KIND,
+        metadata: { id: agentId, name: agent.metadata?.name ?? "", org: child.org },
+        spec: makeAgentSpec({ instructions: "Answer the customer's question exactly." }),
+      },
+      updateMask: { paths: ["*"] },
+    });
+    expect(fixed.spec?.instructions).toBe("Answer the customer's question exactly.");
+    expect(
+      (await on.clients.vaultQuery.get({ value: vaultId })).metadata?.id,
+      "the parent's admin reads the child's org-visible shared vault",
+    ).toBe(vaultId);
+
+    // A person's conversation stays theirs.
     await expectGrpcCode(
       () => on.clients.sessionQuery.get({ value: sessionId }),
       Code.PermissionDenied,
-      "the parent's admin reads the child's session",
+      "the parent's admin reads the child's person's session",
     );
-    await expectGrpcCode(
-      () => on.clients.agentQuery.get({ value: agentId }),
-      Code.PermissionDenied,
-      "the parent's admin reads the child's agent",
-    );
-    await expectGrpcCode(
-      () => on.clients.vaultQuery.get({ value: vaultId }),
-      Code.PermissionDenied,
-      "the parent's admin reads the child's org-visible shared vault",
-    );
-    // The child's own admin reads all three.
     expect(
       (await customer.clients.sessionQuery.get({ value: sessionId })).metadata
         ?.id,
     ).toBe(sessionId);
   });
 
-  it("[rpc:VaultCommandController.setSecrets] a parent admin cannot save a secret into a child's vault, even one every child member may use", async (ctx) => {
+  it("[rpc:VaultCommandController.setSecrets] a parent admin saves a secret into a child's shared vault", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     const parent = await tenancy(on);
@@ -265,68 +272,54 @@ describe("child organizations — managed by the parent, never read by it", () =
         CUSTOMER_KEY: "the customer's",
       }),
     );
+    const founder = await on.accountIdOf(on.clients);
 
-    await expectGrpcCode(
-      () =>
-        on.clients.vaultCommand.setSecrets(
-          setSecretsInput(vaultTarget(child.org, vaultId), {
-            CUSTOMER_KEY: "the parent's",
-            PARENT_KEY: "the parent's",
-          }),
-        ),
-      Code.PermissionDenied,
-      "the parent's admin saves a secret into the child's org-visible vault",
+    await on.clients.vaultCommand.setSecrets(
+      setSecretsInput(vaultTarget(child.org, vaultId), {
+        PARENT_KEY: "the parent's",
+      }),
     );
     const kept = await customer.clients.vaultQuery.get({ value: vaultId });
-    expect(
-      Object.keys(kept.spec?.secrets ?? {}),
-      "the child's vault holds only what its own admin saved",
-    ).toEqual(["CUSTOMER_KEY"]);
-    expect(
-      kept.spec?.secrets?.CUSTOMER_KEY?.savedBy,
-      "the entry is still the one the child's admin saved",
-    ).toBe(customer.id);
+    expect(Object.keys(kept.spec?.secrets ?? {}).sort()).toEqual([
+      "CUSTOMER_KEY",
+      "PARENT_KEY",
+    ]);
+    expect(kept.spec?.secrets?.CUSTOMER_KEY?.savedBy).toBe(customer.id);
+    expect(kept.spec?.secrets?.PARENT_KEY?.savedBy).toBe(founder);
   });
 
-  it("[rpc:GrantCommandController.create] a parent admin who joins the child shows in its access list, and then reads", async (ctx) => {
+  it("[rpc:GrantQueryController.listResourceAccessByPrincipal] an agent a parent's admin makes in a child lists them as its owner, and stops once they are no longer one of the parent's admins", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     const parent = await tenancy(on);
     const child = await childOf(on, parent);
-    // An admin of the child: shared vaults are its admins' to create.
-    const customer = await personWith(on, child.org, "admin");
-    const vaultInput = makeSharedVault({
-      org: child.org,
-      name: uniqueName("child-vault"),
-    });
-    const vault = await customer.clients.vaultCommand.create({
-      ...vaultInput,
-      metadata: {
-        ...vaultInput.metadata,
-        visibility: ApiResourceVisibility.visibility_org,
-      },
-    });
-    const vaultId = vault.metadata?.id ?? "";
-    fixtures.defer(() =>
-      customer.clients.vaultCommand.delete({ resourceId: vaultId }),
+    const integrator = await personWith(on, parent.org, "admin");
+    const agent = await integrator.clients.agentCommand.create(
+      makeAgent({ org: child.org, name: uniqueName("made-by-parent") }),
     );
-    const founder = await on.accountIdOf(on.clients);
-    await expectGrpcCode(
-      () => on.clients.vaultQuery.get({ value: vaultId }),
-      Code.PermissionDenied,
-      "before joining, the parent's admin reads nothing",
-    );
+    const agentId = agent.metadata?.id ?? "";
+    fixtures.defer(() => on.clients.agentCommand.delete({ value: agentId }));
+    const holders = async (): Promise<ReadonlyArray<string>> =>
+      (
+        await on.clients.grantQuery.listResourceAccessByPrincipal({
+          resource: { kind: "agent", id: agentId },
+        })
+      ).entries.map((entry) => entry.principal?.id ?? "");
 
-    await on.clients.grantCommand.create(
-      organizationRole(founder, "viewer", child.org),
+    expect(await holders()).toContain(integrator.id);
+    expect(
+      (await integrator.clients.agentQuery.get({ value: agentId })).metadata?.id,
+    ).toBe(agentId);
+
+    await on.clients.grantCommand.delete(
+      organizationRole(integrator.id, "admin", parent.org),
     );
-    expect(
-      await accessHoldersOf(customer.clients, child.org),
-      "the join is visible to the child's own people",
-    ).toContain(founder);
-    expect(
-      (await on.clients.vaultQuery.get({ value: vaultId })).metadata?.id,
-    ).toBe(vaultId);
+    expect(await holders()).not.toContain(integrator.id);
+    await expectGrpcCode(
+      () => integrator.clients.agentQuery.get({ value: agentId }),
+      Code.PermissionDenied,
+      "a former parent admin reads what they made in the child",
+    );
   });
 
   it("[rpc:AgentQueryController.get] everyone in a child reads and runs what the parent shares with child organizations; another parent's child does not", async (ctx) => {
@@ -389,8 +382,8 @@ describe("child organizations — managed by the parent, never read by it", () =
     const on = lane;
     const parent = await tenancy(on);
     const child = await childOf(on, parent);
-    // The parent's admin manages the child but not the child's children:
-    // only the child's own admin reaches the one-level rule.
+    // The parent's admin, an admin of the child, meets the one-level rule
+    // as the child's own admin does.
     const parentAdminTriesGrandchild = await refusalOf(() =>
       on.clients.organizationCommand.create({
         apiVersion: ORGANIZATION_API_VERSION,
@@ -399,7 +392,12 @@ describe("child organizations — managed by the parent, never read by it", () =
         spec: { parentOrg: child.org },
       }),
     );
-    expect(parentAdminTriesGrandchild.code).toBe(Code.PermissionDenied);
+    expect(parentAdminTriesGrandchild.code).toBe(Code.FailedPrecondition);
+    expect(
+      parentAdminTriesGrandchild
+        .findDetails(ErrorInfoSchema)
+        .map((info) => info.reason),
+    ).toEqual(["ORGANIZATION_PARENT_IS_CHILD"]);
     const childAdmin = await personWith(on, child.org, "admin");
     const grandchild = await refusalOf(() =>
       childAdmin.clients.organizationCommand.create({
@@ -477,7 +475,7 @@ describe("child organizations — managed by the parent, never read by it", () =
     ).toEqual(["ORGANIZATION_HAS_CHILDREN"]);
   });
 
-  it("[rpc:TokenService.mintUserToken] the parent's service account mints into a child: the token works there and not in the parent", async (ctx) => {
+  it("[rpc:TokenService.mintUserToken] the parent's service account mints into a child: the token works there, and neither in the parent nor in a sibling child", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     if (!target.capabilities.userTokens) {
@@ -517,6 +515,15 @@ describe("child organizations — managed by the parent, never read by it", () =
         ),
       Code.PermissionDenied,
       "a token minted into the child works nowhere else",
+    );
+    const sibling = await childOf(on, parent);
+    await expectGrpcCode(
+      () =>
+        asCustomer.vaultCommand.setSecrets(
+          setSecretsInput(myVaultTarget(sibling.org), { SIBLING_KEY: "sibling" }),
+        ),
+      Code.PermissionDenied,
+      "a token minted into one child works in no sibling",
     );
     const rival = await tenancy(on);
     const rivalChild = await childOf(on, rival);

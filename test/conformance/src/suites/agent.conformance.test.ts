@@ -51,7 +51,7 @@ import {
   subagentSlugsOf,
 } from "../support/agents";
 import { uniqueName, uniqueOrg } from "../support/naming";
-import { createChildOrganization, organizationSlug, takeAdminIn } from "../support/organizations";
+import { createChildOrganization, organizationSlug } from "../support/organizations";
 import { pushPlugin, thermosLike } from "../support/plugins";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -621,7 +621,6 @@ describe("Agent conformance — the reference rule at write", () => {
     const { org: strangerOrg } = await target.provisionTenancy();
     const { id: org } = await createChildOrganization(clients.organizationCommand, otherOrg, "the writer's organization");
     fixtures.defer(() => clients.organizationCommand.delete({ value: org }));
-    await takeAdminIn(clients, org);
     const shared = await installPlugin(otherOrg, ApiResourceVisibility.visibility_child_orgs);
     const internal = await installPlugin(otherOrg);
     const stranger = await installPlugin(strangerOrg, ApiResourceVisibility.visibility_child_orgs);

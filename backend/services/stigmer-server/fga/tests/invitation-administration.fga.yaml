@@ -1,5 +1,6 @@
 # An invitation is its organization's administrative resource: its current
-# admins, and its parent organization's, view and manage it, and nobody else in the organization sees it,
+# admins (on a child organization its parent's admins among them) view and
+# manage it, and nobody else in the organization sees it,
 # its creator included once they are no longer an admin. An invitation carries its token, the credential
 # that grants the invitation's role, so `can_view` is the question every
 # read of it asks.

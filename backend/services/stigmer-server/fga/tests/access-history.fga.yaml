@@ -68,13 +68,13 @@ tests:
 
   - name: a parent's admins read a child's history, never the reverse
     check:
-      # They read it without seeing what the child holds: the server keeps
-      # only the entries about the child itself for a reader without can_view.
+      # They are the child's admins, so they read all of it and see what
+      # the child holds.
       - user: identity_account:ana
         object: organization:acme-eu
         assertions:
           can_view_access_history: true
-          can_view: false
+          can_view: true
       - user: identity_account:raj
         object: organization:acme-eu
         assertions:

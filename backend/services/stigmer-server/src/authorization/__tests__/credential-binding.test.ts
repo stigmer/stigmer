@@ -15,8 +15,12 @@
  *     shared blueprint, a bound organization with no parent and an edit
  *     permission;
  *   - a parent's children: a credential bound to the parent reaches a
- *     child for the management permissions only, never a child's rows,
- *     and another parent's child not at all;
+ *     child and its rows, keys and service accounts for any permission
+ *     (the inner driver decides as the account's role allows), never
+ *     another parent's child; a credential bound to a child reaches
+ *     neither its parent nor a sibling; a run's credential bound to the
+ *     parent reaches no child; `admitsOrganization` reads nothing for the
+ *     bound organization and one row for a child;
  *   - a kind the model gives no schema is outside;
  *   - a target's row is read once per caller object, and a failed read is
  *     retried; a read fault answers `unavailable`, never a denial;
@@ -416,74 +420,112 @@ describe("the rule, for a caller bound to one organization", () => {
     ).toBe("outside");
   });
 
-  it("lets a credential bound to a parent manage its children's settings, members and access, mint their people's tokens, see their billing, and read none of their rows", async () => {
-    const f = fixture([
-      ...ORGANIZATIONS,
-      row("session", "ses_child", ALPHA),
-      row("agent", "agt_child", ALPHA),
-    ]);
+  it("lets a credential bound to a parent reach its children and their rows as its account's role allows, never a sibling's, a parent's or another parent's child's", async () => {
+    const f = fixture(
+      [
+        ...ORGANIZATIONS,
+        row("organization", "org_delta", "", { spec: { parentOrg: BETA } }),
+        row("session", "ses_child", ALPHA),
+        row("agent", "agt_child", ALPHA),
+        row("agent", "agt_sibling", "org_delta"),
+        row("agent", "agt_gamma_child", "org_gamma_child"),
+      ],
+      {
+        accounts: [
+          create(IdentityAccountSchema, {
+            metadata: { id: "ida_ci_child", org: ALPHA },
+            spec: {
+              idpId: `stgm_sa|${ALPHA}|0f`,
+              provisioningMode: IdentityAccountProvisioningMode.service_account,
+            },
+          }),
+        ],
+      },
+    );
     const binding = newCredentialBinding(f.deps);
-    const caller = boundTo(BETA);
-    const onChild = (permission: IamPermission, id = ALPHA) =>
-      binding.verdict(caller, {
-        kind: ApiResourceKind.organization,
-        id,
-        permission: IamPermission[permission],
-      });
-    for (const permission of [
-      IamPermission.can_view_settings,
-      IamPermission.can_edit,
-      IamPermission.can_delete,
-      IamPermission.can_grant_access,
-      IamPermission.can_view_access,
-      IamPermission.can_view_access_history,
-      IamPermission.can_assign_roles,
-      IamPermission.can_view_billing,
-      IamPermission.can_mint_user_tokens,
-    ]) {
-      expect(await onChild(permission), IamPermission[permission]).toBe(
-        "inside",
-      );
-    }
+    const parentBound = boundTo(BETA);
+    const on = (caller: CallerIdentity, kind: ApiResourceKind, id: string, permission: IamPermission) =>
+      binding.verdict(caller, { kind, id, permission: IamPermission[permission] });
+    // The child itself, for any permission: the inner driver decides.
     for (const permission of [
       IamPermission.can_view,
+      IamPermission.can_edit,
       IamPermission.can_manage_billing,
       IamPermission.can_create_agent,
       IamPermission.can_create_session,
-      IamPermission.can_manage_child_orgs,
+      IamPermission.can_mint_user_tokens,
     ]) {
-      expect(await onChild(permission), IamPermission[permission]).toBe(
-        "outside",
-      );
+      expect(
+        await on(parentBound, ApiResourceKind.organization, ALPHA, permission),
+        IamPermission[permission],
+      ).toBe("inside");
     }
-    // Another parent's child, and an organization that does not exist.
-    expect(await onChild(IamPermission.can_edit, "org_gamma_child")).toBe(
-      "outside",
-    );
-    expect(await onChild(IamPermission.can_edit, "org_gone")).toBe("missing");
-    // The child's rows stay outside.
+    // The child's rows and service account.
+    expect(await on(parentBound, ApiResourceKind.session, "ses_child", IamPermission.can_view)).toBe("inside");
+    expect(await on(parentBound, ApiResourceKind.agent, "agt_child", IamPermission.can_edit)).toBe("inside");
+    expect(await on(parentBound, ApiResourceKind.identity_account, "ida_ci_child", IamPermission.can_edit)).toBe("inside");
+    // Another parent's child and its rows, and an organization that does not exist.
+    expect(await on(parentBound, ApiResourceKind.organization, "org_gamma_child", IamPermission.can_view)).toBe("outside");
+    expect(await on(parentBound, ApiResourceKind.agent, "agt_gamma_child", IamPermission.can_view)).toBe("outside");
+    expect(await on(parentBound, ApiResourceKind.organization, "org_gone", IamPermission.can_edit)).toBe("missing");
+    // A credential bound to a child reaches neither its parent nor a sibling.
+    const childBound = boundTo(ALPHA);
+    expect(await on(childBound, ApiResourceKind.organization, BETA, IamPermission.can_view)).toBe("outside");
+    expect(await on(childBound, ApiResourceKind.organization, "org_delta", IamPermission.can_view)).toBe("outside");
+    expect(await on(childBound, ApiResourceKind.agent, "agt_sibling", IamPermission.can_view)).toBe("outside");
+  });
+
+  it("holds a run's credential to its run's organization: bound to a parent, it reaches no child", async () => {
+    const f = fixture([...ORGANIZATIONS, row("agent", "agt_child", ALPHA)]);
+    const binding = newCredentialBinding(f.deps);
+    const runInParent: CallerIdentity = { ...boundTo(BETA), callerClass: "runner" };
     expect(
-      await binding.verdict(caller, {
-        kind: ApiResourceKind.session,
-        id: "ses_child",
-        permission: VIEW,
-      }),
-    ).toBe("outside");
-    expect(
-      await binding.verdict(caller, {
+      await binding.verdict(runInParent, {
         kind: ApiResourceKind.agent,
         id: "agt_child",
         permission: EXECUTE,
       }),
     ).toBe("outside");
-    // A child-bound credential does not manage its parent.
     expect(
-      await binding.verdict(boundTo(ALPHA), {
+      await binding.verdict(runInParent, {
         kind: ApiResourceKind.organization,
-        id: BETA,
-        permission: IamPermission[IamPermission.can_edit],
+        id: ALPHA,
+        permission: VIEW,
       }),
     ).toBe("outside");
+    expect(await binding.admitsOrganization(runInParent, ALPHA)).toBe(false);
+    expect(await binding.admitsOrganization(runInParent, BETA)).toBe(true);
+  });
+
+  it("admits the bound organization with no read and a child with one, never a parent or another parent's child", async () => {
+    const f = fixture([...ORGANIZATIONS]);
+    const binding = newCredentialBinding(f.deps);
+    const caller = boundTo(BETA);
+    expect(await binding.admitsOrganization(caller, BETA)).toBe(true);
+    expect(f.reads).toEqual([]);
+    expect(await binding.admitsOrganization(caller, ALPHA)).toBe(true);
+    expect(await binding.admitsOrganization(caller, ALPHA)).toBe(true);
+    expect(f.reads).toEqual([`${ApiResourceKind.organization}:${ALPHA}`]);
+    expect(await binding.admitsOrganization(caller, "org_gamma_child")).toBe(false);
+    expect(await binding.admitsOrganization(caller, "")).toBe(false);
+    expect(await binding.admitsOrganization(boundTo(ALPHA), BETA)).toBe(false);
+    expect(await binding.admitsOrganization(unbound, "org_gamma_child")).toBe(true);
+  });
+
+  it("keeps a child's organization and rows in a parent-bound caller's lists", async () => {
+    const binding = newCredentialBinding(fixture([...ORGANIZATIONS]).deps);
+    const caller = boundTo(BETA);
+    const entry = (id: string, org: string) => ({
+      id,
+      org,
+      createdBy: "ida_bob",
+      visibility: ApiResourceVisibility.visibility_org,
+      parentLinks: [],
+    });
+    expect(await binding.keepsEntry(caller, ApiResourceKind.organization, entry(ALPHA, ""))).toBe(true);
+    expect(await binding.keepsEntry(caller, ApiResourceKind.organization, entry("org_gamma_child", ""))).toBe(false);
+    expect(await binding.keepsEntry(caller, ApiResourceKind.agent, entry("agt_child", ALPHA))).toBe(true);
+    expect(await binding.keepsEntry(caller, ApiResourceKind.agent, entry("agt_gamma", "org_gamma_child"))).toBe(false);
   });
 
   it("admits viewing a plugin the parent shares with its children, which is how its servers' tools are listed, never editing it", async () => {
