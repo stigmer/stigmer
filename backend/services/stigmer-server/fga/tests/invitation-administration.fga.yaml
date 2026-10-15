@@ -18,7 +18,9 @@
 #   pam   - admin of holding, acme's parent organization
 #   mo    - member-role member of holding
 #   val   - viewer-role member of holding
-#   gil   - admin of group, holding's parent: acme's grandparent
+#   gil   - admin of group, holding's parent: acme's grandparent, a chain
+#           organization create never makes (it refuses a parent that is
+#           itself a child), kept to show what the model does with one
 #
 # Invitation `link` carries its creation tuple, the organization link.
 # Invitation `relinked`
@@ -114,11 +116,11 @@ tests:
       - user: identity_account:val
         object: invitation:link
         assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_delete: false}
-  - name: a grandparent's admin has nothing, since a parent's reach is one level
+  - name: the model follows parent_org as far as the rows go, so a grandparent's admin would be an admin here; organization create keeps the chain one level
     check:
       - user: identity_account:gil
         object: invitation:link
-        assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_delete: false}
+        assertions: {owner: true, viewer: true, can_view: true, can_edit: true, can_delete: true}
   - name: only the organization's admins and its parent's list its invitations
     list_objects:
       - user: identity_account:ana
