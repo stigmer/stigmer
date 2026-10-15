@@ -1,0 +1,23 @@
+# The Stigmer Enterprise profile: the bundled stack with a license Secret,
+# which runs the Enterprise server image and passes its settings, sign-in
+# on (a licensed server refuses to boot without it), the runner's API key by
+# reference, and the outbound fence the strict default turns on. Render and
+# golden here; the kind smoke runs it on request (--profiles=enterprise),
+# proving that a key the image cannot verify stops the pod with the server's
+# reason, since no released image trusts a production signing key yet.
+secrets:
+  existingSecret: stigmer-secrets
+server:
+  oidc:
+    issuer: https://issuer.example.com
+    audience: https://stigmer.example.com
+    consoleClientId: stigmer-console
+runner:
+  stigmerToken:
+    existingSecret: stigmer-runner-token
+enterprise:
+  license:
+    existingSecret: stigmer-license
+  organizationCreators:
+    - ida_01jq3v8k6m2n4p5r7s9t0v1w2x
+  accessHistoryRetentionDays: 365

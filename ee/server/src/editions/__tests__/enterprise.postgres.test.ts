@@ -29,16 +29,32 @@
  *     server still starts and makes its one organization (the server's own
  *     create is not growth), reports the license expired, its first person
  *     sees that organization, and their new team in it is refused with the
- *     renewal reason.
+ *     renewal reason;
+ *   - licensed in place: an open-source server runs on a database and a
+ *     home, makes its one organization, and its first person signs in and
+ *     creates an agent; the server stops and starts again on the same
+ *     database and home with a license, as an install moved to Enterprise
+ *     by one `helm upgrade` does. The edition is Enterprise; the person is
+ *     the same account, still the organization's admin, their agent still
+ *     there; the license's organization limit counts the organization the
+ *     open-source server made.
  *
  * Postgres comes from TEST_DATABASE_URL (unset: skipped by name outside a
- * test gate); each Postgres boot gets a fresh database.
+ * test gate); each case gets a fresh database, and the in-place case boots
+ * twice on its one.
  */
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
+import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
@@ -501,5 +517,88 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("lapsed before the first start,
         }),
       ),
     );
+  });
+});
+
+describe.skipIf(TEST_DATABASE_URL === undefined)("licensed in place, on the database and home an open-source server made", () => {
+  const clock = testClock(new Date(ISSUED.getTime() + 10 * DAY_MS));
+  const claims = licenseClaims({ issuedAt: ISSUED, days: 365, graceDays: 30, maxOrgs: 2 });
+  const signer = newTestSigner();
+  const home = mkdtempSync(path.join(tmpdir(), "enterprise-in-place-"));
+  let db: ProvisionedEnterpriseDatabase;
+  let booted: BootedServer;
+  let olga: Person;
+  let accountBefore = "";
+  let orgBefore = "";
+  let agentId = "";
+
+  beforeAll(async () => {
+    db = await provisionEnterpriseDatabase({ migrate: false });
+    const open = await bootEnterprise({ issuer, databaseUrl: db.databaseUrl, home });
+    try {
+      const first = await signIn(open, issuer, "operator|olga");
+      accountBefore = first.accountId;
+      const [org] = (await createClient(OrganizationQueryController, first.transport).listMine({})).entries;
+      orgBefore = org?.metadata?.id ?? "";
+      const agent = await createClient(AgentCommandController, first.transport).create({
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Agent",
+        metadata: { name: "triage", org: orgBefore },
+        spec: { description: "triage", instructions: "You sort the queue." },
+      });
+      agentId = agent.metadata?.id ?? "";
+    } finally {
+      await open.close();
+    }
+    booted = await bootEnterprise({
+      issuer,
+      licenseKey: writeTicket(signer, claims),
+      ring: signer.ring,
+      clock: clock.read,
+      databaseUrl: db.databaseUrl,
+      pool: db.pool,
+      home,
+    });
+    olga = await signIn(booted, issuer, "operator|olga");
+  }, 120_000);
+
+  afterAll(async () => {
+    await booted?.close();
+    await db?.drop();
+    rmSync(home, { recursive: true, force: true });
+  });
+
+  it("reports the Enterprise edition", async () => {
+    expect(orgBefore).not.toBe("");
+    expect(agentId).not.toBe("");
+    expect((await createClient(PlatformQueryController, olga.transport).getServerInfo({})).edition).toBe(
+      ServerEdition.enterprise,
+    );
+  });
+
+  it("keeps the organization, and its first person is the same account and still its admin", async () => {
+    expect(olga.accountId).toBe(accountBefore);
+    const held = await createClient(OrganizationQueryController, olga.transport).listMine({});
+    expect(held.entries.map((org) => [org.metadata?.id, org.metadata?.slug])).toEqual([[orgBefore, "stigmer"]]);
+    // An organization's access history is its admins' to read.
+    await createClient(GrantQueryController, olga.transport).listAccessHistory({ org: orgBefore });
+    const newcomer = await signIn(booted, issuer, "operator|pat");
+    const refused = await refusalOf(
+      createClient(GrantQueryController, newcomer.transport).listAccessHistory({ org: orgBefore }),
+    );
+    expect([Code.PermissionDenied, Code.NotFound]).toContain(refused.code);
+  });
+
+  it("keeps the agent its person made", async () => {
+    const agent = await createClient(AgentQueryController, olga.transport).get({ value: agentId });
+    expect(agent.metadata?.name).toBe("triage");
+    expect(agent.metadata?.org).toBe(orgBefore);
+  });
+
+  it("counts the organization the open-source server made toward the license's limit", async () => {
+    await createOrganization(olga, "acme");
+    const refused = await refusalOf(createOrganization(olga, "globex"));
+    expect(refused.code).toBe(Code.FailedPrecondition);
+    expect(reasonOf(refused)).toBe("ORGANIZATION_LIMIT_REACHED");
   });
 });

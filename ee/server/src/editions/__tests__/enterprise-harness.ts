@@ -96,6 +96,12 @@ export interface BootOptions {
   readonly organizationCreators?: ReadonlySet<string>;
   /** Units the suite composes after the entry's, to receive the composition's hand-over. */
   readonly extraUnits?: ReadonlyArray<ServerExtension>;
+  /**
+   * The server's home (its storage, artifacts and key files), kept by the
+   * suite across boots, as an install's data volume outlives its server;
+   * absent, a temporary folder made here and removed on close.
+   */
+  readonly home?: string;
 }
 
 export interface BootedServer {
@@ -107,7 +113,7 @@ export interface BootedServer {
 
 /** Composes and starts a server from the license verdict, as the entry does. */
 export async function bootEnterprise(options: BootOptions): Promise<BootedServer> {
-  const dir = mkdtempSync(path.join(tmpdir(), "enterprise-server-"));
+  const dir = options.home ?? mkdtempSync(path.join(tmpdir(), "enterprise-server-"));
   const config = loadConfig({
     STIGMER_MODEL_REGISTRY_REFRESH: "off",
     TEMPORAL_HOST_PORT: "127.0.0.1:1",
@@ -151,7 +157,9 @@ export async function bootEnterprise(options: BootOptions): Promise<BootedServer
     units,
     async close(): Promise<void> {
       await server.shutdown();
-      rmSync(dir, { recursive: true, force: true });
+      if (options.home === undefined) {
+        rmSync(dir, { recursive: true, force: true });
+      }
     },
   };
 }

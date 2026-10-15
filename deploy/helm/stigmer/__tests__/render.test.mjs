@@ -50,7 +50,27 @@
  *     Ingress);
  *   - Temporal's address splits at its last colon, an IPv6 literal's
  *     brackets dropped, and hosts, class names and storage classes render
- *     as the strings they were.
+ *     as the strings they were;
+ *   - a license Secret runs the Enterprise image at the server's one tag and
+ *     hands the server the key by secretKeyRef and its three settings, every
+ *     name present whichever settings are filled (an empty one reads as
+ *     unset), the retention a whole number however a values file spells it;
+ *     an open-source profile carries none of those names and the
+ *     open-source image;
+ *   - the outbound fence selects the stigmer pod and opens exactly DNS, the
+ *     bundled dependencies on their ports, every public address (the private,
+ *     shared, link-local and loopback ranges excepted, both families) and the
+ *     operator's allowedCidrs; it renders under a strict license or on
+ *     request, never on an open-source profile by default or under a relaxed
+ *     license, and wherever it renders the runner's fetch guard refuses
+ *     private addresses;
+ *   - a release upgraded with --reuse-values from a chart without the
+ *     Enterprise values renders as before, and gains them, at their
+ *     defaults, from the one value that licenses it;
+ *   - a values file copied from an earlier chart, carrying the retired
+ *     reserved keys at their off values, renders as if it did not;
+ *   - the notes name the edition and the fence, and tell a fenced install
+ *     whose dependencies are its own how to let them through.
  *
  * Goldens live in `golden/<profile>.yaml` with the chart version replaced by
  * a placeholder so a release-pin bump does not churn them. Regenerate with
@@ -79,6 +99,7 @@ import {
   findOne,
   helmTemplate,
   podTemplates,
+  OPEN_SOURCE_PROFILES,
   PROFILES,
   readChart,
   readValues,
@@ -798,4 +819,267 @@ test("Chart.yaml pins the Kubernetes floor and the GHCR source linkage", () => {
   );
   assert.match(chart.kubeVersion ?? "", />=\s*1\.27/);
   assert.deepEqual(chart.sources, ["https://github.com/stigmer/stigmer"]);
+});
+
+const LICENSE = ["enterprise.license.existingSecret=stigmer-license"];
+const SIGN_IN = ["server.oidc.issuer=https://issuer.example.com", "server.oidc.audience=https://stigmer.example.com"];
+const ENTERPRISE_NAMES = [
+  "STIGMER_LICENSE_KEY",
+  "STIGMER_OUTBOUND_EGRESS",
+  "STIGMER_ORGANIZATION_CREATORS",
+  "STIGMER_ACCESS_HISTORY_RETENTION_DAYS",
+];
+const FENCE = `${RELEASE}-egress`;
+
+function stigmerPod(docs) {
+  return findOne(docs, "Deployment", RELEASE).spec.template.spec;
+}
+
+test("a license runs the Enterprise image at the server's one tag; the runner's image is unchanged", () => {
+  const { appVersion } = readChart();
+  const pod = stigmerPod(renderProfile("enterprise"));
+  assert.equal(containerNamed(pod, "server").image, `ghcr.io/stigmer/stigmer-server-ee:v${appVersion}`);
+  assert.equal(containerNamed(pod, "runner").image, `ghcr.io/stigmer/stigmer-runner:v${appVersion}`);
+
+  const pinned = stigmerPod(
+    renderProfile("enterprise", {
+      sets: ["image.server.tag=v9.9.9", "image.registry=mirror.example.com/stigmer", "image.server.enterpriseRepository=ee"],
+    }),
+  );
+  assert.equal(containerNamed(pinned, "server").image, "mirror.example.com/stigmer/ee:v9.9.9");
+
+  for (const profile of OPEN_SOURCE_PROFILES) {
+    const open = stigmerPod(renderProfile(profile));
+    assert.equal(containerNamed(open, "server").image, `ghcr.io/stigmer/stigmer-server:v${appVersion}`, profile);
+  }
+});
+
+test("a license hands the server its key by secretKeyRef and its three settings", () => {
+  const env = envMap(containerNamed(stigmerPod(renderProfile("enterprise")), "server"));
+  assert.deepEqual(env.get("STIGMER_LICENSE_KEY"), {
+    name: "STIGMER_LICENSE_KEY",
+    valueFrom: { secretKeyRef: { name: "stigmer-license", key: "STIGMER_LICENSE_KEY" } },
+  });
+  assert.equal(env.get("STIGMER_OUTBOUND_EGRESS")?.value, "strict");
+  assert.equal(env.get("STIGMER_ORGANIZATION_CREATORS")?.value, "ida_01jq3v8k6m2n4p5r7s9t0v1w2x");
+  assert.equal(env.get("STIGMER_ACCESS_HISTORY_RETENTION_DAYS")?.value, "365");
+
+  const two = envMap(
+    containerNamed(
+      stigmerPod(
+        renderProfile("enterprise", {
+          sets: [
+            "enterprise.license.key=key",
+            "enterprise.organizationCreators={ida_01jq3v8k6m2n4p5r7s9t0v1w2x,ida_7zzzzzzzzzzzzzzzzzzzzzzzzz}",
+            "enterprise.outboundEgress=relaxed",
+          ],
+        }),
+      ),
+      "server",
+    ),
+  );
+  assert.equal(two.get("STIGMER_LICENSE_KEY")?.valueFrom?.secretKeyRef?.key, "key");
+  assert.equal(
+    two.get("STIGMER_ORGANIZATION_CREATORS")?.value,
+    "ida_01jq3v8k6m2n4p5r7s9t0v1w2x,ida_7zzzzzzzzzzzzzzzzzzzzzzzzz",
+  );
+  assert.equal(two.get("STIGMER_OUTBOUND_EGRESS")?.value, "relaxed");
+});
+
+test("a licensed pod carries every Enterprise name whichever settings are filled, an unfilled one empty", () => {
+  const bare = envMap(
+    containerNamed(
+      stigmerPod(
+        renderProfile("enterprise", {
+          sets: ["enterprise.organizationCreators=null", "enterprise.accessHistoryRetentionDays=null"],
+        }),
+      ),
+      "server",
+    ),
+  );
+  for (const name of ENTERPRISE_NAMES) {
+    assert.ok(bare.has(name), name);
+  }
+  assert.equal(bare.get("STIGMER_ORGANIZATION_CREATORS")?.value, "");
+  assert.equal(bare.get("STIGMER_ACCESS_HISTORY_RETENTION_DAYS")?.value, "");
+});
+
+test("the retention renders as the whole number a values file wrote, never in a float's spelling", () => {
+  const scratch = mkdtempSync(join(tmpdir(), "stigmer-chart-values-"));
+  try {
+    const values = join(scratch, "values.yaml");
+    writeFileSync(values, "enterprise:\n  accessHistoryRetentionDays: 1000000\n");
+    const env = envMap(containerNamed(stigmerPod(renderProfile("enterprise", { valuesFiles: [values] })), "server"));
+    assert.equal(env.get("STIGMER_ACCESS_HISTORY_RETENTION_DAYS")?.value, "1000000");
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
+});
+
+test("an open-source profile carries no Enterprise name and no fence", () => {
+  for (const profile of OPEN_SOURCE_PROFILES) {
+    const docs = renderProfile(profile);
+    const pod = stigmerPod(docs);
+    const names = [...envMap(containerNamed(pod, "server")).keys()];
+    for (const name of ENTERPRISE_NAMES) {
+      assert.ok(!names.includes(name), `[${profile}] ${name}`);
+    }
+    assert.equal(findAll(docs, "NetworkPolicy", FENCE).length, 0, `[${profile}] no fence unless asked`);
+    assert.ok(!envMap(containerNamed(pod, "runner")).has("STIGMER_WEB_FETCH_ALLOW_PRIVATE"), `[${profile}]`);
+  }
+});
+
+const PRIVATE_V4 = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "100.64.0.0/10", "169.254.0.0/16", "127.0.0.0/8"];
+const PRIVATE_V6 = ["fc00::/7", "fe80::/10", "::1/128"];
+
+function selectorOf(docs, workload) {
+  return findOne(docs, workload.kind, workload.name).spec.template.metadata.labels;
+}
+
+test("the fence opens exactly DNS, the bundled dependencies, the public internet and nothing private", () => {
+  const docs = renderProfile("enterprise");
+  const policy = findOne(docs, "NetworkPolicy", FENCE);
+  assert.equal(policy.metadata.labels["app.kubernetes.io/component"], "stigmer");
+  assert.deepEqual(policy.spec.policyTypes, ["Egress"]);
+  assert.equal(policy.spec.ingress, undefined, "the fence holds egress only");
+  // It selects the stigmer pod by exactly the labels its pods carry.
+  const podLabels = selectorOf(docs, { kind: "Deployment", name: RELEASE });
+  for (const [key, value] of Object.entries(policy.spec.podSelector.matchLabels)) {
+    assert.equal(podLabels[key], value, key);
+  }
+  assert.equal(policy.spec.podSelector.matchLabels["app.kubernetes.io/component"], "stigmer");
+
+  const [dns, postgres, temporal, internet, ...rest] = policy.spec.egress;
+  assert.deepEqual(rest, [], "no rule beyond the four");
+  assert.deepEqual(dns, {
+    ports: [
+      { protocol: "UDP", port: 53 },
+      { protocol: "TCP", port: 53 },
+    ],
+  });
+  for (const [rule, component, port, workload] of [
+    [postgres, "postgres", 5432, { kind: "StatefulSet", name: `${RELEASE}-postgres` }],
+    [temporal, "temporal", 7233, { kind: "Deployment", name: `${RELEASE}-temporal` }],
+  ]) {
+    assert.deepEqual(rule.ports, [{ protocol: "TCP", port }], component);
+    assert.equal(rule.to.length, 1, component);
+    const labels = selectorOf(docs, workload);
+    for (const [key, value] of Object.entries(rule.to[0].podSelector.matchLabels)) {
+      assert.equal(labels[key], value, `${component} carries ${key}`);
+    }
+    assert.equal(rule.to[0].podSelector.matchLabels["app.kubernetes.io/component"], component);
+  }
+  assert.deepEqual(internet, {
+    to: [
+      { ipBlock: { cidr: "0.0.0.0/0", except: PRIVATE_V4 } },
+      { ipBlock: { cidr: "::/0", except: PRIVATE_V6 } },
+    ],
+  });
+});
+
+test("the fence opens the operator's allowedCidrs, and the bundled rules leave with the bundled dependencies", () => {
+  const docs = renderProfile("byo", {
+    sets: ["egressPolicy.enabled=true", "egressPolicy.allowedCidrs={10.20.0.0/16,fd00:1::/64}"],
+  });
+  const rules = findOne(docs, "NetworkPolicy", FENCE).spec.egress;
+  assert.equal(rules.length, 3, "DNS, the public internet, the operator's CIDRs");
+  assert.ok(!rules.some((rule) => rule.to?.some((peer) => peer.podSelector)), "nothing bundled to admit");
+  assert.deepEqual(rules[2], { to: [{ ipBlock: { cidr: "10.20.0.0/16" } }, { ipBlock: { cidr: "fd00:1::/64" } }] });
+});
+
+test("the fence renders under a strict license or on request, and the runner's fetch guard follows it", () => {
+  const fenced = (sets, profile = "bundled") => {
+    const docs = renderProfile(profile, { sets });
+    const runner = envMap(containerNamed(stigmerPod(docs), "runner"));
+    return {
+      fence: findAll(docs, "NetworkPolicy", FENCE).length === 1,
+      flag: runner.get("STIGMER_WEB_FETCH_ALLOW_PRIVATE")?.value,
+    };
+  };
+  assert.deepEqual(fenced([], "enterprise"), { fence: true, flag: "false" });
+  assert.deepEqual(fenced(["enterprise.outboundEgress=relaxed"], "enterprise"), { fence: false, flag: undefined });
+  assert.deepEqual(
+    fenced(["enterprise.outboundEgress=relaxed", "egressPolicy.enabled=true"], "enterprise"),
+    { fence: true, flag: "false" },
+  );
+  assert.deepEqual(fenced(["egressPolicy.enabled=true"]), { fence: true, flag: "false" });
+  assert.deepEqual(fenced([]), { fence: false, flag: undefined });
+});
+
+test("a license with the server alone (no runner key yet) is still fenced, and the server's settings stand", () => {
+  const docs = renderProfile("enterprise", { sets: ["runner.stigmerToken.existingSecret="] });
+  const pod = stigmerPod(docs);
+  assert.deepEqual(pod.containers.map((c) => c.name), ["server"]);
+  assert.equal(findAll(docs, "NetworkPolicy", FENCE).length, 1);
+  assert.ok(envMap(containerNamed(pod, "server")).has("STIGMER_LICENSE_KEY"));
+});
+
+test("a release upgraded with --reuse-values from a chart without the Enterprise values renders as before, and one value licenses it", () => {
+  const OLD_VALUES = ["enterprise=null", "egressPolicy=null", "image.server.enterpriseRepository=null"];
+  const before = helmTemplate("bundled", { sets: OLD_VALUES });
+  assert.ok(before.ok, before.stderr);
+  assert.equal(before.stdout, helmTemplate("bundled").stdout, "nothing changes for an open-source release");
+
+  const { appVersion } = readChart();
+  const licensed = renderProfile("bundled", {
+    sets: [
+      "enterprise.license.key=null",
+      "enterprise.outboundEgress=null",
+      "enterprise.organizationCreators=null",
+      "enterprise.accessHistoryRetentionDays=null",
+      "egressPolicy=null",
+      "image.server.enterpriseRepository=null",
+      ...SIGN_IN,
+      ...LICENSE,
+    ],
+  });
+  const server = containerNamed(stigmerPod(licensed), "server");
+  assert.equal(server.image, `ghcr.io/stigmer/stigmer-server-ee:v${appVersion}`);
+  const env = envMap(server);
+  assert.equal(env.get("STIGMER_LICENSE_KEY")?.valueFrom?.secretKeyRef?.key, "STIGMER_LICENSE_KEY");
+  assert.equal(env.get("STIGMER_OUTBOUND_EGRESS")?.value, "strict");
+  assert.equal(findAll(licensed, "NetworkPolicy", FENCE).length, 1, "strict by default, so fenced");
+});
+
+test("a values file copied from an earlier chart, with the retired keys off, renders as if it did not carry them", () => {
+  const scratch = mkdtempSync(join(tmpdir(), "stigmer-chart-values-"));
+  try {
+    const values = join(scratch, "values.yaml");
+    writeFileSync(
+      values,
+      'openfga:\n  enabled: false\nredis:\n  enabled: false\nopenbao:\n  enabled: false\nlicenseKeySecret: ""\n',
+    );
+    const copied = helmTemplate("bundled", { valuesFiles: [values] });
+    assert.ok(copied.ok, copied.stderr);
+    assert.equal(copied.stdout, helmTemplate("bundled").stdout);
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
+});
+
+test("the notes name the edition and the fence, and only where they hold", () => {
+  const FENCED = "The stigmer pod's outbound network is fenced";
+  const enterprise = renderNotes("enterprise");
+  assert.ok(enterprise.startsWith(`Stigmer Enterprise ${readChart().appVersion} is installed`), enterprise);
+  assert.ok(enterprise.includes(FENCED), enterprise);
+  assert.ok(!enterprise.includes("One trust domain: stdio MCP servers run inside the runner container and can reach its filesystem and network."), enterprise);
+
+  const open = renderNotes("bundled");
+  assert.ok(open.startsWith(`Stigmer ${readChart().appVersion} is installed`), open);
+  assert.ok(!open.includes("Enterprise"), open);
+  assert.ok(!open.includes(FENCED), open);
+
+  const relaxed = renderNotes("enterprise", { sets: ["enterprise.outboundEgress=relaxed"] });
+  assert.ok(relaxed.startsWith("Stigmer Enterprise"), relaxed);
+  assert.ok(!relaxed.includes(FENCED), relaxed);
+});
+
+test("the notes tell a fenced install with its own Postgres or Temporal how to let them through", () => {
+  const HINT = "egressPolicy.allowedCidrs";
+  const byo = renderNotes("byo", { sets: ["egressPolicy.enabled=true"] });
+  assert.ok(byo.includes(HINT), byo);
+  assert.ok(byo.includes("byo-postgres.byo-infra.svc.cluster.local"), byo);
+  assert.ok(byo.includes("byo-temporal.byo-infra.svc.cluster.local:7233"), byo);
+  assert.ok(!renderNotes("byo").includes(HINT), "no fence, nothing to let through");
+  assert.ok(!renderNotes("bundled", { sets: ["egressPolicy.enabled=true"] }).includes(`your Postgres`), "bundled is admitted by the fence itself");
 });

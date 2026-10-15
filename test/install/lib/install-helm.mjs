@@ -137,6 +137,21 @@ export function createKindCluster({ existing = "", log }) {
       return gateways[0];
     },
     /**
+     * The host address as a CIDR of one address, for a fenced release's
+     * egressPolicy.allowedCidrs: the fake model listens on this host, which a
+     * pod reaches on a private address (Docker Desktop's host.docker.internal,
+     * or the kind network's gateway).
+     */
+    hostCidr() {
+      const host = cluster.hostAddress();
+      let address = host;
+      if (!/^[0-9.]+$/.test(host) && !host.includes(":")) {
+        const resolved = run("docker", ["exec", `${name}-control-plane`, "getent", "ahostsv4", host]).trim();
+        address = resolved.split(/\s+/)[0];
+      }
+      return address.includes(":") ? `${address}/128` : `${address}/32`;
+    },
+    /**
      * Both images built from source (compose's build, install-compose.mjs),
      * tagged as the chart's repositories at `compose-dev`, and loaded into
      * the node.
@@ -169,9 +184,10 @@ export function createKindCluster({ existing = "", log }) {
  * One release of the chart in `namespace` of `cluster`, configured with
  * `valuesFile` and a model at `modelBaseUrl`. `postgresPassword` is the
  * database password its Secret carries (shared with a bring-your-own
- * Postgres when the profile has one).
+ * Postgres when the profile has one). `extraSets` are `--set` values every
+ * install and upgrade of the release carries (a fenced smoke's).
  */
-export function createStigmerRelease(cluster, { namespace, valuesFile, modelBaseUrl, postgresPassword, log }) {
+export function createStigmerRelease(cluster, { namespace, valuesFile, modelBaseUrl, postgresPassword, extraSets = [], log }) {
   let installedFrom;
 
   const helmArgs = (verb, spec) => {
@@ -198,6 +214,7 @@ export function createStigmerRelease(cluster, { namespace, valuesFile, modelBase
       args.push("--set", `image.server.tag=${spec.imageTag}`, "--set", `image.runner.tag=${spec.imageTag}`);
     }
     if (spec.pullNever === true) args.push("--set", "image.pullPolicy=Never");
+    for (const set of extraSets) args.push("--set", set);
     return args;
   };
 

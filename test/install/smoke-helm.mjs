@@ -24,7 +24,12 @@
  *      API on this host (test/install/lib/fake-model.mjs), which the pods reach
  *      by host.docker.internal where the kind node resolves it (Docker
  *      Desktop) and by the kind network's gateway otherwise (Linux);
- *   3. (bundled profile) the adversarial arms: the bundled Temporal and the
+ *   3. (bundled profile) the release is installed with the outbound fence
+ *      on (egressPolicy.enabled, the host's address in allowedCidrs for the
+ *      fake model), so every probe above runs through it; then the
+ *      adversarial arms: the stigmer pod cannot reach a private address in
+ *      the cluster (CoreDNS's metrics port) that a pod outside the release
+ *      reaches; the bundled Temporal and the
  *      bundled Postgres each admit the stigmer pod and refuse a pod outside
  *      the release (their NetworkPolicies, enforced by kind's network
  *      plugin); the pod is deleted
@@ -344,10 +349,47 @@ async function fenceArm(namespace, { component, port }) {
   if (inside !== "CONNECTED") {
     throw new Error(`the stigmer pod could not reach its own ${component}: ${inside}`);
   }
+  const outside = await probeFromOutside(namespace, `${component}-fence-probe`, script);
+  if (!outside.startsWith("BLOCKED")) {
+    throw new Error(
+      `a pod outside the release reached the bundled ${component} (${outside}) — the NetworkPolicy is not enforced`,
+    );
+  }
+  log(`the stigmer pod: CONNECTED; a pod outside the release: ${outside}`);
+}
+
+/**
+ * The outbound fence: the stigmer pod cannot reach a private address inside
+ * the cluster, while a pod outside the release reaches the same address, so
+ * the fence is what refuses it. The address is CoreDNS's metrics port, a
+ * pod address on every kind cluster and not the DNS port the fence opens.
+ * (The API server is no test: traffic to a pod's own node is always allowed,
+ * the NetworkPolicy contract, and kind runs it on the one node.) The boot
+ * and the agent run above already went through the fence: Postgres and
+ * Temporal by its own rules, the fake model by allowedCidrs.
+ */
+async function egressArm(namespace) {
+  const target = { host: "kube-dns.kube-system.svc.cluster.local", port: 9153 };
+  log(`arm: the outbound fence refuses the stigmer pod a private cluster address (${target.host}:${target.port})`);
+  const script = connectProbeScript(target.host, target.port);
+  const inside = kubectl(
+    ["-n", namespace, "exec", `deployment/${RELEASE}`, "-c", "server", "--", "node", "-e", script],
+  ).trim();
+  const outside = await probeFromOutside(namespace, "egress-fence-probe", script);
+  if (!outside.startsWith("CONNECTED")) {
+    throw new Error(`a pod outside the release could not reach ${target.host}:${target.port} (${outside}); the arm proves nothing`);
+  }
+  if (!inside.startsWith("BLOCKED")) {
+    throw new Error(`the fenced stigmer pod reached ${target.host}:${target.port} (${inside}) — the egress NetworkPolicy is not enforced`);
+  }
+  log(`the stigmer pod: ${inside}; a pod outside the release: CONNECTED`);
+}
+
+/** Runs `script` with node in a bare pod of the server image outside the release; answers its output. */
+async function probeFromOutside(namespace, probe, script) {
   const image = kubectlJson(["-n", namespace, "get", "deployment", RELEASE]).spec.template.spec.containers.find(
     (container) => container.name === "server",
   ).image;
-  const probe = `${component}-fence-probe`;
   kubectl([
     "-n",
     namespace,
@@ -364,25 +406,20 @@ async function fenceArm(namespace, { component, port }) {
     script,
   ]);
   const deadline = Date.now() + 120_000;
-  let phase = "";
   while (Date.now() < deadline) {
-    phase = kubectlJson(["-n", namespace, "get", "pod", probe]).status?.phase ?? "";
+    const phase = kubectlJson(["-n", namespace, "get", "pod", probe]).status?.phase ?? "";
     if (phase === "Succeeded" || phase === "Failed") break;
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
-  const outside = kubectl(["-n", namespace, "logs", probe]).trim();
+  const output = kubectl(["-n", namespace, "logs", probe]).trim();
   kubectl(["-n", namespace, "delete", "pod", probe, "--wait=true"]);
-  if (!outside.startsWith("BLOCKED")) {
-    throw new Error(
-      `a pod outside the release reached the bundled ${component} (${phase}: ${outside}) — the NetworkPolicy is not enforced`,
-    );
-  }
-  log(`the stigmer pod: CONNECTED; a pod outside the release: ${outside}`);
+  return output;
 }
 
 /** The bundled profile's adversarial arms. */
 async function adversarialArms(release, args, executionId) {
   const { namespace } = release;
+  await egressArm(namespace);
   await fenceArm(namespace, { component: "temporal", port: 7233 });
   await fenceArm(namespace, { component: "postgres", port: 5432 });
 
@@ -461,11 +498,17 @@ async function adversarialArms(release, args, executionId) {
 async function runProfile(profile, args, postgresPassword, fake, modelBaseUrl) {
   const namespace = `smoke-${profile}`;
   log(`=== profile ${profile} (namespace ${namespace}) ===`);
+  // The bundled profile runs fenced: the whole smoke, agent run included,
+  // goes through the outbound fence, with the host (the fake model) let
+  // through as an operator lets a private model endpoint through.
+  const extraSets =
+    profile === "bundled" ? ["egressPolicy.enabled=true", `egressPolicy.allowedCidrs[0]=${cluster.hostCidr()}`] : [];
   const release = createStigmerRelease(cluster, {
     namespace,
     valuesFile: profileValues(profile),
     modelBaseUrl,
     postgresPassword,
+    extraSets,
     log,
   });
   current = release;
