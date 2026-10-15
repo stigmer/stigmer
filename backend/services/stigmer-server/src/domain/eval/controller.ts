@@ -111,6 +111,7 @@ import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY, newLoadTargetStep } from "../../pipeline/steps/load-target.js";
 import { newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { readOrgListPage } from "../../pipeline/steps/org-list-page.js";
+import type { OrganizationAdmission } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import {
   ARTIFACT_BYTES_KEY,
@@ -152,6 +153,8 @@ export interface EvalControllerDeps {
   readonly artifactStorage: ContentAddressedArchiveStore;
   /** The one staging port every archive kind uploads and downloads through; absent, the lane answers FailedPrecondition. */
   readonly staging?: ArchiveStaging;
+  /** The composed credential binding: a rename refuses a credential that does not reach the eval's organization. */
+  readonly credentialBinding: OrganizationAdmission;
 }
 
 /** Registers both eval services on the router (routes stage). */
@@ -402,6 +405,7 @@ async function rename(deps: EvalControllerDeps, input: RenameInput, ctx: Handler
       names: deps.store,
       rows: storeRenameRows(deps.store, ApiResourceKind.eval, EvalSchema),
       authorizer: deps.authorizer,
+      credentialBinding: deps.credentialBinding,
       logger: deps.logger,
     },
     input,

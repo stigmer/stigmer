@@ -2041,6 +2041,7 @@ export async function composeServer(
       listReadScope,
       artifactStorage: evalArtifactStorage,
       staging: skillArchiveStaging,
+      credentialBinding,
     });
     // The staging port is the skill lane's: one upload surface for every
     // archive. A tools listing's deps are wired unconditionally per the
