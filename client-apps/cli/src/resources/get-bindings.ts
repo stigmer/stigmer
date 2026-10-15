@@ -9,6 +9,7 @@ import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchan
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
 import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
@@ -69,6 +70,10 @@ export const GET_BINDINGS: ReadonlyMap<ApiResourceKind, Getter> = new Map([
   [
     ApiResourceKind.plugin,
     refGetter(ApiResourceKind.plugin, PluginSchema, (c) => c.plugin),
+  ],
+  [
+    ApiResourceKind.eval,
+    refGetter(ApiResourceKind.eval, EvalSchema, (c) => c.eval),
   ],
   [
     ApiResourceKind.api_key,

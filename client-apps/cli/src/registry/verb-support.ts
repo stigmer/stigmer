@@ -44,6 +44,12 @@ export const VERB_SUPPORT: ReadonlyMap<
     ApiResourceKind.plugin,
     new Set<Verb>([Verb.Get, Verb.List, Verb.Delete, Verb.Push]),
   ],
+  // An eval is an evals/ folder pushed whole (`push eval <folder>`), never
+  // a YAML document; `download eval` gets any version of the folder back.
+  [
+    ApiResourceKind.eval,
+    new Set<Verb>([Verb.Get, Verb.List, Verb.Delete, Verb.Push, Verb.Download]),
+  ],
   [ApiResourceKind.api_key, new Set<Verb>([Verb.Get, Verb.List, Verb.Delete])],
   // run is special — uses dedicated RunQueryController
   // RPCs, not the unified SearchService. delete maps to cancel.

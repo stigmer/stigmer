@@ -16,19 +16,23 @@ export const MAX_INLINE_ARTIFACT_BYTES = 10 * 1024 * 1024 - 64 * 1024;
  * travels inline (one round trip), a larger one is staged over HTTP via
  * the kind's `createArtifactUploadUrl` — a capability URL, so no auth
  * header — and pushed by reference. Skills carried this alone; plugins
- * push the same two ways, so the routing lives here once and each kind
- * binds its request shape and its noun.
+ * and evals push the same two ways, so the routing lives here once and
+ * each kind binds its request shape and its noun.
  */
 export interface ArtifactRoute<Request, Response> {
-  /** The noun in error copy: "skill", "plugin". */
+  /** The noun in error copy: "skill", "plugin", "eval". */
   readonly noun: string;
   artifactOf(request: Request): Uint8Array;
   uploadRefOf(request: Request): string;
-  orgOf(request: Request): string;
   /** The same request with the bytes replaced by a staged reference. */
   withUploadRef(request: Request, artifactUploadRef: string): Request;
+  /**
+   * Mint the staging slot for this push. It takes the whole request
+   * because a kind's mint may ask what the push will ask: an eval's names
+   * the slug, a skill's and a plugin's the organization alone.
+   */
   mintUploadUrl(
-    org: string,
+    request: Request,
     sizeBytes: bigint,
   ): Promise<{ url: string; artifactUploadRef: string }>;
   push(request: Request): Promise<Response>;
@@ -54,10 +58,7 @@ export async function pushRoutedArtifact<Request, Response>(
 
   let minted;
   try {
-    minted = await route.mintUploadUrl(
-      route.orgOf(input),
-      BigInt(artifact.length),
-    );
+    minted = await route.mintUploadUrl(input, BigInt(artifact.length));
   } catch (err) {
     if (isUnimplemented(err)) {
       // Pre-transfer-lane server: without staging, an artifact this size

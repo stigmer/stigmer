@@ -34,17 +34,16 @@ export class RoutedPluginClient extends PluginClient {
       noun: "plugin",
       artifactOf: (request) => request.artifact,
       uploadRefOf: (request) => request.artifactUploadRef,
-      orgOf: (request) => request.org,
       withUploadRef: (request, artifactUploadRef) =>
         create(PushPluginRequestSchema, {
           ...request,
           artifact: new Uint8Array(0),
           artifactUploadRef,
         }),
-      mintUploadUrl: (org, sizeBytes) =>
+      mintUploadUrl: (request, sizeBytes) =>
         super.createArtifactUploadUrl(
           create(CreatePluginArtifactUploadUrlRequestSchema, {
-            org,
+            org: request.org,
             sizeBytes,
           }),
         ),
