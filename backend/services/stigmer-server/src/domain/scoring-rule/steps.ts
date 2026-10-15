@@ -137,7 +137,7 @@ export function newResolveScoringRuleDefaultsStep(): PipelineStep<
       if (metadata.org !== agentOrg) {
         throw failedPreconditionError(scoringRuleOrgMismatchMessage(agentOrg));
       }
-      assignServerId(ctx, generateId("evl"));
+      assignServerId(ctx, generateId("srl"));
       if (metadata.name === "" && metadata.slug === "") {
         metadata.name = metadata.id;
       }

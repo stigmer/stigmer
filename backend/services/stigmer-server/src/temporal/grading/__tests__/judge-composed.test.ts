@@ -469,7 +469,7 @@ describe("scoring rules", () => {
   it("one per agent, read by agent, updated without losing the month's spend, and gone with the agent", async () => {
     const agentId = await newAgent();
     const created = await newScoringRule(agentId);
-    expect(created.metadata?.id).toMatch(/^evl_/);
+    expect(created.metadata?.id).toMatch(/^srl_/);
     const again = await failureOf(newScoringRule(agentId));
     expect(again.code).toBe(Code.AlreadyExists);
     expect(again.findDetails(ErrorInfoSchema)[0]?.reason).toBe(SCORING_RULE_EXISTS_REASON);

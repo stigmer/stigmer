@@ -48,7 +48,7 @@ describe("the SDK resource docs", () => {
 
 describe("indefiniteArticle", () => {
   it("answers an before a vowel and a otherwise", () => {
-    expect(["Organization", "Agent", "ScoringRule", "IdentityAccount", "Usage"].map(indefiniteArticle)).toEqual([
+    expect(["Organization", "Agent", "Eval", "IdentityAccount", "Usage"].map(indefiniteArticle)).toEqual([
       "an",
       "an",
       "an",

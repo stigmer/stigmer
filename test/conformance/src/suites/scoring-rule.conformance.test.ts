@@ -76,7 +76,7 @@ describe("ScoringRule conformance", () => {
     const created = await clients.scoringRuleCommand.create(
       makeScoringRule({ org, agentId, sampleRate: 0.1, monthlyLimitUsd: 10 }),
     );
-    expect(created.metadata?.id).toMatch(/^evl_[0-9a-z]{26}$/);
+    expect(created.metadata?.id).toMatch(/^srl_[0-9a-z]{26}$/);
     expect(created.metadata?.org).toBe(org);
     expect(created.spec?.agentId).toBe(agentId);
     expect(created.spec?.enabled).toBe(true);
