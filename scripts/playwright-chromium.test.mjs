@@ -646,19 +646,19 @@ test("a composite action's steps are read too", () => {
 test("the exemption covers its own file only, and states its reason", () => {
   assert.deepEqual(
     [...EXEMPT.keys()],
-    [".github/workflows/release.website.yaml"],
+    [".github/workflows/build.website.yaml"],
   );
   for (const reason of EXEMPT.values())
     assert.match(reason, /two Playwright versions/);
   const install = "npx playwright install --with-deps chromium";
   assert.deepEqual(
     installFindings([
-      workflow(".github/workflows/release.website.yaml", install),
+      workflow(".github/workflows/build.website.yaml", install),
     ]),
     [],
   );
   const elsewhere = installFindings([
-    workflow(".github/workflows/release.website.yaml", install),
+    workflow(".github/workflows/build.website.yaml", install),
     workflow(".github/workflows/release.web.yaml", install),
   ]);
   assert.equal(elsewhere.length, 1);
@@ -667,12 +667,12 @@ test("the exemption covers its own file only, and states its reason", () => {
 
 test("an exemption whose file no longer installs anything fails, so it cannot outlive its reason", () => {
   const stale = installFindings([
-    workflow(".github/workflows/release.website.yaml", "npm run build"),
+    workflow(".github/workflows/build.website.yaml", "npm run build"),
   ]);
   assert.equal(stale.length, 1);
   assert.match(
     stale[0],
-    /release\.website\.yaml is exempt .* but installs no Playwright browser; remove its exemption/,
+    /build\.website\.yaml is exempt .* but installs no Playwright browser; remove its exemption/,
   );
   const missing = installFindings([]);
   assert.equal(missing.length, 1, "an exempt file that is gone is stale too");

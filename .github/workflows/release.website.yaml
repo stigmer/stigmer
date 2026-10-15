@@ -1,7 +1,22 @@
 # =============================================================================
 # Website Release
 # =============================================================================
-# Builds and deploys stigmer.ai to GitHub Pages.
+# Builds stigmer.ai once (build.website.yaml) and deploys that export to the
+# Cloudflare Worker `stigmer-website` (site/wrangler.jsonc). The Worker has no
+# address of its own: the router in front of stigmer.ai hands it the apex
+# through a service binding, and answers www and each pull request's review
+# site itself.
+#
+# The build holds no key. The Cloudflare job installs only the pinned wrangler
+# in site/deploy and deploys the artifact with a key that reaches
+# `stigmer-website` alone, from the GitHub environment `website`, which only
+# main may use.
+#
+# GitHub Pages receives the same export until stigmer.ai is served by the
+# Worker; its two jobs leave with the Pages site.
+#
+# Pull requests get their own review sites (preview.website.yaml builds,
+# publish.website-preview.yaml uploads).
 # =============================================================================
 
 name: release.website
@@ -15,10 +30,10 @@ on:
       - "docs/**"
       - "demos/**"
       - "vale/**"
-      # What the site and the demo tours link and this job builds from source
-      # (build:libs, then the site and the tour bundles), so a change to one
-      # reaches stigmer.ai with its merge (scripts/lane-triggers.test.mjs fails
-      # when one is missing).
+      # What the site and the demo tours link and the build compiles from
+      # source (build:libs, then the site and the tour bundles), so a change to
+      # one reaches stigmer.ai with its merge (scripts/lane-triggers.test.mjs
+      # fails when one is missing). preview.website.yaml keeps the same list.
       - "apis/stubs/ts/**"
       - "sdk/typescript/**"
       - "sdk/react/**"
@@ -28,6 +43,7 @@ on:
       - "backend/libs/ts/eval-runtime/**"
       - "backend/libs/ts/session-log/**"
       - "backend/libs/ts/tool-vocabulary/**"
+      - ".github/workflows/build.website.yaml"
       - ".github/workflows/release.website.yaml"
   workflow_dispatch:
 
@@ -35,81 +51,75 @@ permissions:
   contents: read
 
 concurrency:
-  group: "pages"
+  # A deploy is never cut short: a newer merge waits and then deploys its own export.
+  group: release.website
   cancel-in-progress: false
 
 jobs:
-  pages-build:
+  build:
+    uses: ./.github/workflows/build.website.yaml
+
+  deploy:
+    needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: website
+      url: https://stigmer.ai
+    env:
+      WRANGLER_SEND_METRICS: "false"
     steps:
+      # Only the Worker's config and the deploy tool's lockfile: nothing of the website runs here.
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
+          sparse-checkout: |
+            .nvmrc
+            site/wrangler.jsonc
+            site/deploy
+          sparse-checkout-cone-mode: false
 
       - name: Setup Node
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          # No restored npm cache in a release (v5+ caches by default).
           package-manager-cache: false
           node-version-file: ".nvmrc"
 
-      - name: Enable Corepack
-        run: corepack enable
+      # Before the export is on disk, so nothing of it is near the install.
+      - name: Install wrangler
+        working-directory: site/deploy
+        run: npm ci --no-audit --no-fund
 
-      - name: Install npm dependencies
-        run: npm ci
+      - name: Download the export
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: site-out
+          path: site/out
 
-      - name: Build SDK libraries
-        run: npm run build:libs
+      - name: Check wrangler reads the whole export
+        working-directory: site/deploy
+        run: bash check-export-read.sh --env=""
 
-      # scenar shoot renders docs stills from the packed bundles in a real
-      # Chromium (pack-all shoots only the tours that declare a `shot`).
-      # --with-deps pulls the system libraries headless Chromium needs on
-      # the runner. The npm packages themselves arrived with `npm ci` above.
-      #
-      # BOTH playwright installations are provisioned on purpose. The repo
-      # carries two versions — the root's (for e2e) and demos' — and each
-      # pins a DIFFERENT Chromium build (1.60 -> 1223, 1.62 -> 1234). The
-      # build that must exist is the one belonging to whichever playwright
-      # `@scenar/cli` imports, and that is decided by npm's hoisting, not by
-      # us: @scenar/cli sat in demos/node_modules at 0.9.0 and hoisted to the
-      # root at 0.9.1, silently flipping the answer and breaking this step
-      # (2026-07-29). Installing both makes the step correct under either
-      # layout. The real fix is to run one playwright version repo-wide;
-      # until then, do not "optimize" this back to a single install.
-      - name: Install Playwright Chromium (demos)
-        run: npm exec --workspace @stigmer/demos -- playwright install --with-deps chromium
+      - name: Deploy stigmer-website
+        working-directory: site/deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: ./node_modules/.bin/wrangler deploy --config ../wrangler.jsonc --env="" --message "main ${GITHUB_SHA::12}"
 
-      - name: Install Playwright Chromium (root)
-        run: npx playwright install --with-deps chromium
-
-      # Scenar product tours ship with the site: pack every tour in demos/
-      # into a static embed bundle, served below at stigmer.ai/demos/<tour>/,
-      # then shoot stills for shot-declaring tours (served from
-      # stigmer.ai/demos/<tour>/stills/, referenced by docs <Still> tags).
-      # Tours consume the in-repo @stigmer/* source, so the embeds always
-      # depict the components this deploy ships.
-      - name: Pack demo tours and shoot stills
-        run: npm run pack-all -w @stigmer/demos
-
-      - name: Install Vale
-        run: make install-vale
+  pages-build:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download the export
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: site-out
+          path: site/out
 
       - name: Configure Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
-
-      - name: Build site
-        run: |
-          make build-site
-          if [ -f site/out/index.html ] && [ ! -f site/out/404.html ]; then
-            cp site/out/index.html site/out/404.html
-          fi
-
-      - name: Add demo tour bundles to the site
-        run: |
-          mkdir -p site/out/demos
-          cp -R demos/.bundles/. site/out/demos/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
@@ -119,6 +129,7 @@ jobs:
   pages-deploy:
     needs: pages-build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # Deploying to Pages needs the Pages write and an OIDC token.
     permissions:
       pages: write

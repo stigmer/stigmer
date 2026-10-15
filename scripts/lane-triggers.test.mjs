@@ -864,6 +864,7 @@ test("the guard still finds the packages and lanes it exists for", () => {
     "ci.runner.yaml backend/services/runner",
     "ci.docs.yaml site",
     "release.website.yaml site",
+    "preview.website.yaml site",
     "release.sandbox-cloud.yaml backend/services/runner",
   ]) {
     assert.ok(pairs.has(expected), `no trigger list pairs ${expected}`);

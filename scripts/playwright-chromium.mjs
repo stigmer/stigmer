@@ -83,10 +83,11 @@ export const ACTION = "./.github/actions/playwright-chromium";
 /** Files that may install Playwright's browsers their own way, each with its reason. */
 export const EXEMPT = new Map([
   [
-    ".github/workflows/release.website.yaml",
+    ".github/workflows/build.website.yaml",
     "it provisions two Playwright versions on purpose, the root's and demos', each with its own Chromium " +
-      "build (its comment above the two steps says why); it is a release lane, not a gate lane; and the stills " +
-      "it renders ship, so the fonts it installs are its own decision",
+      "build (its comment above the two steps says why); it is the website's build, which only the release " +
+      "and the review sites call, not a gate lane; and the stills it renders ship, so the fonts it installs " +
+      "are its own decision",
   ],
 ]);
 
