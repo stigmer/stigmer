@@ -79,6 +79,18 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | ChannelAppQueryController.getByReference | org |
 | ChannelAppQueryController.list | org |
 
+## `ai.stigmer.agentic.eval.v1`
+
+| Method | Fills |
+|---|---|
+| EvalCommandController.createArtifactUploadUrl | org |
+| EvalCommandController.push | org |
+| EvalQueryController.download | org |
+| EvalQueryController.getByReference | org |
+| EvalQueryController.getDownloadUrl | org |
+| EvalQueryController.list | org |
+| EvalQueryController.listVersions | org |
+
 ## `ai.stigmer.agentic.evalrun.v1`
 
 | Method | Fills |

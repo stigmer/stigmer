@@ -1,0 +1,220 @@
+# Store tests for the eval type: an agent's test cases, pushed as a folder
+# and modelled like a plugin with two visibility levels. The narrowness these
+# pin: the pusher and org admins push versions, re-level, rename and delete
+# (can_edit / can_delete); a PRIVATE eval is invisible to plain members and
+# visible to org admins (admin owner inheritance); an ORG eval is readable by
+# every org role and by nobody outside the org; a viewer grant reads and
+# changes nothing; the organization-level can_create_eval follows the
+# agent-creation policy, so members create evals while it is open and only
+# admins once it is closed.
+#
+# Run: fga model test --tests eval-access.fga.yaml
+
+name: eval-access
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # Org acme (agent creation open): alice pushes, oscar administers, dave is
+  # a plain member, vera a read-only org viewer, grace holds a viewer grant on
+  # the private eval; mallory belongs to an unrelated org.
+  - user: identity_account:alice
+    relation: member
+    object: organization:acme
+  - user: identity_account:alice
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:oscar
+    relation: admin
+    object: organization:acme
+  - user: identity_account:oscar
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:dave
+    relation: member
+    object: organization:acme
+  - user: identity_account:dave
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:vera
+    relation: viewer
+    object: organization:acme
+  - user: identity_account:vera
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:grace
+    relation: member
+    object: organization:acme
+  - user: identity_account:grace
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:mallory
+    relation: member
+    object: organization:other
+  - user: identity_account:mallory
+    relation: affiliated
+    object: organization:other
+  - user: organization:acme
+    relation: agent_creation_open
+    object: organization:acme
+
+  # Org closed (agent creation closed): its member nina, its admin adam.
+  - user: identity_account:nina
+    relation: member
+    object: organization:closed
+  - user: identity_account:nina
+    relation: affiliated
+    object: organization:closed
+  - user: identity_account:adam
+    relation: admin
+    object: organization:closed
+  - user: identity_account:adam
+    relation: affiliated
+    object: organization:closed
+
+  # A PRIVATE eval alice pushed (no visibility tuples), with grace's grant.
+  - user: organization:acme
+    relation: organization
+    object: eval:private-cases
+  - user: identity_account:alice
+    relation: owner
+    object: eval:private-cases
+  - user: identity_account:grace
+    relation: viewer
+    object: eval:private-cases
+
+  # An ORG eval alice pushed (the reconciler's org tuple).
+  - user: organization:acme
+    relation: organization
+    object: eval:support
+  - user: identity_account:alice
+    relation: owner
+    object: eval:support
+  - user: organization:acme#viewer
+    relation: viewer
+    object: eval:support
+
+tests:
+  - name: the pusher pushes versions, re-levels, renames and deletes what they pushed
+    check:
+      - user: identity_account:alice
+        object: eval:support
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+          can_manage_audience: true
+          can_view_access: true
+      - user: identity_account:alice
+        object: eval:private-cases
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+
+  - name: an org admin manages an eval they did not push, private ones included
+    check:
+      - user: identity_account:oscar
+        object: eval:private-cases
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_manage_audience: true
+      - user: identity_account:oscar
+        object: eval:support
+        assertions:
+          can_edit: true
+          can_delete: true
+
+  - name: a plain member and an org viewer read an ORG eval and cannot touch it
+    check:
+      - user: identity_account:dave
+        object: eval:support
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_manage_audience: false
+      - user: identity_account:vera
+        object: eval:support
+        assertions:
+          can_view: true
+          can_edit: false
+
+  - name: a viewer grant reads a PRIVATE eval and changes nothing
+    check:
+      - user: identity_account:grace
+        object: eval:private-cases
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+          can_manage_audience: false
+
+  - name: a PRIVATE eval is invisible to plain members and to outsiders
+    check:
+      - user: identity_account:dave
+        object: eval:private-cases
+        assertions:
+          can_view: false
+          can_edit: false
+      - user: identity_account:mallory
+        object: eval:private-cases
+        assertions:
+          can_view: false
+      - user: identity_account:mallory
+        object: eval:support
+        assertions:
+          can_view: false
+          can_edit: false
+
+  - name: creating an eval follows the agent-creation policy
+    check:
+      - user: identity_account:dave
+        object: organization:acme
+        assertions:
+          can_create_eval: true
+          can_create_agent: true
+          can_create_plugin: false
+      - user: identity_account:oscar
+        object: organization:acme
+        assertions:
+          can_create_eval: true
+      - user: identity_account:vera
+        object: organization:acme
+        assertions:
+          can_create_eval: false
+      - user: identity_account:nina
+        object: organization:closed
+        assertions:
+          can_create_eval: false
+      - user: identity_account:adam
+        object: organization:closed
+        assertions:
+          can_create_eval: true
+      - user: identity_account:mallory
+        object: organization:acme
+        assertions:
+          can_create_eval: false
+
+  - name: ListObjects under the org scope lists what each role may read
+    list_objects:
+      - user: identity_account:dave
+        type: eval
+        assertions:
+          can_view:
+            - eval:support
+      - user: identity_account:grace
+        type: eval
+        assertions:
+          can_view:
+            - eval:private-cases
+            - eval:support
+      - user: identity_account:oscar
+        type: eval
+        assertions:
+          can_view:
+            - eval:private-cases
+            - eval:support

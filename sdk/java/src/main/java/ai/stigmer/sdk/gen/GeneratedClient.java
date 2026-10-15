@@ -11,6 +11,7 @@ public class GeneratedClient {
     public final AgentShareClient agentShare;
     public final ApiKeyClient apiKey;
     public final ChannelAppClient channelapp;
+    public final EvalClient eval;
     public final EvalRunClient evalrun;
     public final EvaluatorClient evaluator;
     public final FederationIssuerClient federationIssuer;
@@ -39,6 +40,7 @@ public class GeneratedClient {
         this.agentShare = new AgentShareClient(channel);
         this.apiKey = new ApiKeyClient(channel);
         this.channelapp = new ChannelAppClient(channel);
+        this.eval = new EvalClient(channel);
         this.evalrun = new EvalRunClient(channel);
         this.evaluator = new EvaluatorClient(channel);
         this.federationIssuer = new FederationIssuerClient(channel);

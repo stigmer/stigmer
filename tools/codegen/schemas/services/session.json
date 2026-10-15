@@ -1761,6 +1761,11 @@
           "description": "One run of test cases on an agent, or on a plugin on the built-in\n assistant, optionally with and without a plugin."
         },
         {
+          "name": "eval",
+          "number": 66,
+          "description": "A set of test cases for an agent: an evals/ folder in Claude Code's\n plugin-eval format, pushed whole."
+        },
+        {
           "name": "plan",
           "number": 70,
           "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."

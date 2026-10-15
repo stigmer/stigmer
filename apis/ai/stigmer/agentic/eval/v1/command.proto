@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.eval.v1;
+
+import "ai/stigmer/agentic/eval/v1/api.proto";
+import "ai/stigmer/agentic/eval/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// EvalCommandController handles write operations for evals.
+service EvalCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = eval;
+
+  // Push an evals/ folder as an eval's new version.
+  // Creates the eval if the organization has none with the slug, or adds a
+  // version to the one it has; pushing the folder the eval already holds
+  // changes nothing, and with a new tag only moves the tag. The response's
+  // status lists the cases and what could not be read.
+  //
+  // Error Cases:
+  //
+  // - INVALID_ARGUMENT: the archive is not a ZIP within the limits, or no
+  //   case in it loads; the error lists the problems
+  // - FAILED_PRECONDITION: the slug was renamed away from (SLUG_RENAMED)
+  // - PERMISSION_DENIED: the caller may not create evals in the
+  //   organization, or may not edit the eval with this slug
+  //
+  // @internal
+  // Authorization in-handler, as agent apply: a push that creates asks
+  // can_create_eval on the organization, one that adds a version asks
+  // can_edit on the eval the slug names. The backend reads the folder,
+  // stores the archive (deduplicated by digest), stores the eval and
+  // archives the version.
+  rpc push(PushEvalRequest) returns (Eval) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Mint a short-lived, single-use upload URL for staging an eval archive
+  // that exceeds the gRPC message-size cap (10MB). Flow:
+  //
+  // 1. createArtifactUploadUrl(org, slug, size_bytes) → { url, artifact_upload_ref }
+  // 2. HTTP PUT the ZIP bytes to url
+  // 3. push(PushEvalRequest{ slug, artifact_upload_ref })
+  //
+  // @internal
+  // Authorization in-handler, exactly as push asks for the same slug: the
+  // URL is a capability to stage bytes, so minting one requires what
+  // consuming it requires. The slots are the skill transfer lane's, one
+  // upload surface for every archive.
+  rpc createArtifactUploadUrl(CreateEvalArtifactUploadUrlRequest) returns (EvalArtifactUploadUrl) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Update the visibility of an eval: the whole organization, or its owner
+  // alone. Only modifies metadata.visibility.
+  //
+  // @internal
+  // Authorization: can_manage_audience on the eval for every transition.
+  // Visibility decides who reaches the resource, so it is the owner's
+  // decision and not an edit. The level is checked against the eval's
+  // VisibilityConfig (organization and private only).
+  rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (Eval) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = eval;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_audience;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update eval visibility";
+  }
+
+  // Rename an eval: change its slug.
+  //
+  // The eval keeps its id, its versions and its grants, and every answer
+  // names it by the new slug. The old slug keeps leading to the eval for
+  // reading for 30 days, during which no other eval of the organization can
+  // take it and this one can take it back; then it is released. A push that
+  // names the old slug is refused with SLUG_RENAMED. A slug another eval
+  // holds is refused with ALREADY_EXISTS, and one another eval was recently
+  // renamed away from with SLUG_RESERVED.
+  //
+  // @internal
+  // Authorization: Requires can_delete permission on the eval: whoever may
+  // delete it may rename it.
+  rpc rename(ai.stigmer.commons.apiresource.RenameInput) returns (Eval) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = eval;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to rename eval";
+  }
+
+  // Delete an eval and every version of it.
+  //
+  // @internal
+  // Removes the eval, its version history, its names and its grants. The
+  // stored archives stay, content-addressed and shared by digest, as every
+  // archive kind's do.
+  rpc delete(EvalId) returns (Eval) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = eval;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete eval";
+  }
+}

@@ -146,6 +146,8 @@ type organization
     define can_create_skill: admin
     # A plugin install writes several resources in one act — the skill bar.
     define can_create_plugin: admin
+    # An eval is an agent's tests: whoever may build agents may write them.
+    define can_create_eval: can_create_agent
     define can_create_federation_issuer: admin
     define can_create_identity_account: admin
     define can_create_oauth_app: admin

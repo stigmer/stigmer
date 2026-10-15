@@ -993,6 +993,7 @@
               "score",
               "evaluator",
               "eval_run",
+              "eval",
               "plan",
               "subscription",
               "license"
@@ -1467,6 +1468,11 @@
           "name": "eval_run",
           "number": 65,
           "description": "One run of test cases on an agent, or on a plugin on the built-in\n assistant, optionally with and without a plugin."
+        },
+        {
+          "name": "eval",
+          "number": 66,
+          "description": "A set of test cases for an agent: an evals/ folder in Claude Code's\n plugin-eval format, pushed whole."
         },
         {
           "name": "plan",

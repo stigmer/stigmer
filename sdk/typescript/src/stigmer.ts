@@ -6,6 +6,7 @@ import { ManifestClient } from "./manifest/index.js";
 import { PlatformClient } from "./platform.js";
 import { SearchClient } from "./search.js";
 import { TokenClient } from "./tokens.js";
+import { RoutedEvalClient } from "./eval.js";
 import { RoutedPluginClient } from "./plugin.js";
 import { RoutedSkillClient } from "./skill.js";
 import { createStigmerTransport } from "./transport.js";
@@ -97,6 +98,12 @@ export class Stigmer extends GeneratedClient {
    * `stigmer.plugin.push` simply works for any valid archive size.
    */
   override readonly plugin: RoutedPluginClient;
+  /**
+   * Eval operations, with `push` routed by archive size over the same
+   * transfer lane — shadows the inherited generated client so
+   * `stigmer.eval.push` simply works for any valid folder size.
+   */
+  override readonly eval: RoutedEvalClient;
 
   private readonly _tokenProvider: TokenProvider;
 
@@ -122,6 +129,7 @@ export class Stigmer extends GeneratedClient {
     this.manifest = new ManifestClient(transport);
     this.skill = new RoutedSkillClient(transport, config.fetch);
     this.plugin = new RoutedPluginClient(transport, config.fetch);
+    this.eval = new RoutedEvalClient(transport, config.fetch);
 
     if (this.defaultExecutionTarget != null) {
       this._applyExecutionTargetDefaults();

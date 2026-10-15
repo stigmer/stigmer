@@ -311,6 +311,15 @@ enum IamPermission {
   // organization's embedding sign-in role, an administrator's act, so no
   // key mints with more than its account holds.
   can_mint_user_tokens = 57;
+
+  // Organization-level permission to create an eval: push an evals/ folder
+  // under a slug no eval of the organization holds. Whoever may create
+  // agents may create their tests.
+  //
+  // @internal
+  // A push onto an existing eval asks can_edit on that eval instead, as
+  // agent apply does; createArtifactUploadUrl asks what the push will.
+  can_create_eval = 58;
 }
 
 // Display metadata for an IamRole value: the one place a role's name lives,

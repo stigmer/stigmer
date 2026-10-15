@@ -503,6 +503,13 @@ export { SkillClient, type SkillInput } from "./gen/skill.js";
 export { RoutedSkillClient, MAX_INLINE_ARTIFACT_BYTES } from "./skill.js";
 export { PluginClient, type PluginInput, type PluginAuthorInput } from "./gen/plugin.js";
 export { RoutedPluginClient } from "./plugin.js";
+export { EvalClient, type EvalInput } from "./gen/eval.js";
+export {
+  RoutedEvalClient,
+  downloadEvalArchive,
+  type DownloadedEvalArchive,
+  type EvalArchiveReader,
+} from "./eval.js";
 
 // The input a loaded resource restates, for copying it into a new resource
 // (`create({ ...toScheduleInput(res), id: undefined })`). An update never

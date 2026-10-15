@@ -17,6 +17,8 @@
  *   the SHA-256 the server records;
  * - the preparation (`prepare.ts`): select, read, refuse, archive, digest,
  *   once, for a tree on disk, on a host, or in a browser's memory;
+ * - the eval preparation (`prepare-eval.ts`): an evals/ folder's push,
+ *   its run output left out, read as the server reads it, archived;
  * - the presentation (`presentation.ts`): a card's face from a listed
  *   tree, reading the entry's manifest and nothing else;
  * - the grammars (`refs.ts`): an install ref and a GitHub marketplace
@@ -67,6 +69,12 @@ export {
   preparePluginArchive,
   preparePluginFromTree,
 } from "./client/prepare.js";
+export {
+  EVAL_RESULTS_DIR,
+  type PrepareEvalOutcome,
+  type PreparedEval,
+  prepareEvalArchive,
+} from "./client/prepare-eval.js";
 export { readPluginPresentationFromTree } from "./client/presentation.js";
 export {
   type BuiltInMarketplace,

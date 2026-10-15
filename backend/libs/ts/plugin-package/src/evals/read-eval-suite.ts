@@ -1,6 +1,10 @@
 /**
  * `readEvalSuite`: a plugin's eval suite, in Claude Code's plugin-eval
- * format, read from the same `PluginFiles` the install reads.
+ * format, read from the same `PluginFiles` the install reads; and
+ * `readEvalFolder`: a pushed eval, the same format with the archive's root
+ * as the suite's directory. Both read cases one way; they differ in where
+ * the suite is and which servers its mocks may stand in for (the end of
+ * this comment).
  *
  * Pure and synchronous like `readPluginPackage`, and never a refusal: a
  * suite is the author's tests, not part of what Stigmer installs, so a case
@@ -56,6 +60,13 @@
  * feature one engine cannot run is that engine's alone
  * ({@link evalCaseUnsupportedOnCursor}): the server lists the case as not
  * run on that engine's targets and runs it on the others.
+ *
+ * A plugin's suite may mock only the servers its plugin declares, the
+ * suite's `servers`. A pushed folder names no plugin, so it keeps every
+ * mock directory whose name could be an MCP server's
+ * (`isToolNameSegment`), and its `servers` are those directories' names:
+ * which agent server each stands in for is decided when the eval runs on
+ * an agent, not here. A manifest in the folder is a file like any other.
  */
 
 import { isJsonObject, type JsonObject } from "../documents.js";
@@ -79,7 +90,8 @@ import {
 } from "./fields.js";
 import { DEFAULT_EVAL_DIR, type EvalDirResolution, resolveEvalDir } from "./eval-dir.js";
 import { readGrader } from "./graders.js";
-import { readCaseMocks } from "./mocks.js";
+import { type MockServerRule, readCaseMocks } from "./mocks.js";
+import { isToolNameSegment } from "../tool-names.js";
 import { normaliseMcpServers } from "../normalise/mcp-servers.js";
 import { parseTranscript } from "@stigmer/eval-runtime";
 import { parseMapping, readDocument, readMarkdown } from "./markdown.js";
@@ -204,8 +216,32 @@ export function readEvalSuite(files: PluginFiles): EvalSuite {
   const servers = [...declared].sort(comparePaths);
   const { dir, held } = suiteDir(set, findings);
   if (held) return { dir, cases: [], findings, servers };
+  const rule: MockServerRule = (server) =>
+    declared.has(server) ? undefined : `the plugin declares no MCP server ${quote(server)}, so these mocks are ignored`;
+  const cases = readCases({ index, dir, rule, findings, reportedMocks: new Set(), mocked: new Set() });
+  return { dir, cases, findings, servers };
+}
 
-  const suite: SuiteContext = { index, dir, declared, findings, reportedMocks: new Set() };
+/**
+ * A pushed eval: the folder at the archive's root, read as a suite whose
+ * mocks may stand in for any server a name could be (the module comment).
+ * `dir` is the empty string, the root.
+ */
+export function readEvalFolder(files: PluginFiles): EvalSuite {
+  const index = new PluginFileIndex(files);
+  const findings: EvalSuiteFinding[] = [];
+  const rule: MockServerRule = (server) =>
+    isToolNameSegment(server)
+      ? undefined
+      : `${quote(server)} cannot name an MCP server (letters, digits, '-' and '_', with no '__' and no trailing '_'), so these mocks are ignored`;
+  const suite: SuiteContext = { index, dir: "", rule, findings, reportedMocks: new Set(), mocked: new Set() };
+  const cases = readCases(suite);
+  return { dir: "", cases, findings, servers: [...suite.mocked].sort(comparePaths) };
+}
+
+/** Every case of the suite, in directory order, its findings added to the suite's. */
+function readCases(suite: SuiteContext): readonly EvalCase[] {
+  const { index, dir, findings } = suite;
   const cases: EvalCase[] = [];
   const caseByName = new Map<string, string>();
   for (const caseDir of findCaseDirs(index, dir, findings)) {
@@ -222,19 +258,22 @@ export function readEvalSuite(files: PluginFiles): EvalSuite {
     }
     findings.push(...caseFindings.list);
   }
-  return { dir, cases, findings, servers };
+  return cases;
 }
 
 /** What every case of one suite is read against. */
 interface SuiteContext {
   readonly index: PluginFileIndex;
+  /** The suite's directory; the empty string for a folder at the root. */
   readonly dir: string;
-  /** The plugin's MCP server keys. */
-  readonly declared: ReadonlySet<string>;
+  /** Which servers the suite's mocks may stand in for. */
+  readonly rule: MockServerRule;
   /** The suite's findings, where an ignored mock directory is reported. */
   readonly findings: EvalSuiteFinding[];
   /** Mock directories already reported as ignored. */
   readonly reportedMocks: Set<string>;
+  /** The servers some case's mocks stand in for, the rule's kept ones. */
+  readonly mocked: Set<string>;
 }
 
 /** The suite's directory, and whether declared skills hold it, so no case is read; findings for both. */
@@ -290,7 +329,7 @@ function findCaseDirs(index: PluginFileIndex, root: string, findings: EvalSuiteF
         findings.push({
           kind: "eval-case-invalid",
           path,
-          message: `${path}: the directory is nested too deep (cases sit at most ${EVAL_MAX_CASE_DEPTH} directories below ${root}/), so nothing beneath it is read`,
+          message: `${path}: the directory is nested too deep (cases sit at most ${EVAL_MAX_CASE_DEPTH} directories below ${root === "" ? "the folder's root" : `${root}/`}), so nothing beneath it is read`,
         });
       }
     }
@@ -536,7 +575,8 @@ function readCase(suite: SuiteContext, caseDir: string, findings: CaseFindings):
   }
 
   const context = checkContext(index, caseDir, caseFiles, caseFile?.context ?? { addDirs: [] }, findings);
-  const mocks = readCaseMocks(index, suite.dir, caseDir, suite.declared, findings, suite.findings, suite.reportedMocks);
+  const mocks = readCaseMocks(index, suite.dir, caseDir, suite.rule, findings, suite.findings, suite.reportedMocks);
+  for (const server of mocks.servers) suite.mocked.add(server.server);
 
   if (!findings.empty || prompt === undefined) return undefined;
 

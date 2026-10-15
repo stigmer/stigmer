@@ -31,6 +31,8 @@ import { ListVaultsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/vaul
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ListAgentsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
+import { ListEvalsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ListPluginsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
@@ -233,6 +235,19 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
       return { schema: PluginSchema, entries, table: libraryTable("plugins") };
     },
   ],
+  [
+    ApiResourceKind.eval,
+    async (client, org, limit, labels) => {
+      await requireOrganization(client, org, [
+        "stigmer list evals --org <org>",
+        "stigmer config context set --org <org>",
+      ]);
+      const entries = await readCursorPages(limit, (pageSize, pageToken) =>
+        client.eval.list(create(ListEvalsRequestSchema, { org, pageSize, pageToken, labels })),
+      );
+      return { schema: EvalSchema, entries, table: EVAL_TABLE };
+    },
+  ],
 ]);
 
 export async function listResources(
@@ -290,6 +305,26 @@ function libraryTable(resourceName: string): TableShape {
     },
   };
 }
+
+// An eval has no description: its row says how many cases its current
+// version holds and the tag that version carries.
+const EVAL_TABLE: TableShape = {
+  resourceName: "evals",
+  headers: ["NAME", "CASES", "TAG", "VISIBILITY", "CREATED"],
+  orgs: (json) => [str(obj(json, "metadata"), "org")],
+  row: (json, orgLabel) => {
+    const metadata = obj(json, "metadata");
+    const status = obj(json, "status");
+    const cases = status["case_count"];
+    return [
+      `${orgLabel(str(metadata, "org"))}/${str(metadata, "slug")}`,
+      typeof cases === "number" ? String(cases) : "0",
+      str(obj(json, "spec"), "tag"),
+      str(metadata, "visibility"),
+      date(str(obj(obj(status, "audit"), "spec_audit"), "created_at")),
+    ];
+  },
+};
 
 // The `stigmer search` table: SearchService results.
 export const SEARCH_TABLE: TableShape = {

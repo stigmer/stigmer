@@ -91,6 +91,8 @@ export const DELETE_HANDLERS: ReadonlyMap<ApiResourceKind, DeleteFn> = new Map<
   [ApiResourceKind.schedule, (c, id) => c.schedule.delete(id)],
   [ApiResourceKind.skill, (c, id) => c.skill.delete(id)],
   [ApiResourceKind.plugin, (c, id) => c.plugin.delete(id)],
+  // Deleting an eval deletes every version of it.
+  [ApiResourceKind.eval, (c, id) => c.eval.delete(id)],
   [ApiResourceKind.api_key, (c, id) => c.apiKey.delete(id)],
   // Deleting an evaluator switches AI grading off for its agent; scores
   // already recorded stay on their runs.
@@ -312,6 +314,10 @@ function buildDeleteWarning(
       "This removes the plugin with its skills, agents and MCP servers. " +
         "It is refused while an agent of the organization lists it.",
     );
+  }
+
+  if (info.kind === ApiResourceKind.eval) {
+    warning.hint("This will delete the eval and all its versions.");
   }
 
   if (info.kind === ApiResourceKind.agent_channel) {

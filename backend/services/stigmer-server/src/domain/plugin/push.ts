@@ -5,11 +5,19 @@
  *
  *   plan:    Authorize → ValidateProto → ResolveArtifactSource →
  *            GateAndHashArchive → ReadPluginPackage → BuildInitialPlugin →
- *            FindExistingBySlug → GenerateIDIfNeeded → PlanPluginStatus →
+ *            FindExistingBySlug → RefuseRenamedSlug → GenerateIDIfNeeded →
+ *            PlanPluginStatus →
  *            GuardPluginVisibility → ResolveConvergence
  *   install: ProbeServerSignIns → CheckAndStoreArtifact →
- *            PopulatePluginFields → ArchiveCurrentPlugin → StorePlugin →
- *            PluginPushAuthorizationTuples → IndexPluginSearch
+ *            PopulatePluginFields → ClaimName → StorePlugin →
+ *            ArchiveCurrentPlugin → PluginPushAuthorizationTuples →
+ *            IndexPluginSearch
+ *
+ * The steps that know nothing of a plugin (the archive gate, upsert by
+ * slug, the id, the level, the no-op decision, the store, the name, the
+ * write, the tuples) are the shared push steps every folder kind runs
+ * (pipeline/steps/archive-push.ts), bound to the plugin by
+ * `pluginPushBinding`; this file keeps the steps that read the package.
  *
  * Install writes the plugin and nothing else: what the archive holds is
  * read into the plugin's status (plan-status.ts), and a turn that lists
@@ -29,8 +37,6 @@
  * plugin conformance suite.
  */
 import { create } from "@bufbuild/protobuf";
-
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { PluginFinding, PluginHooks, PluginPackage } from "@stigmer/plugin-package";
 import { readPluginPackage } from "@stigmer/plugin-package";
@@ -62,41 +68,27 @@ import {
 import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import type { ContentAddressedArchiveStore } from "../../archive/content-store.js";
-import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
-import {
-  defaultVisibilityFor,
-  getIdPrefix,
-} from "../../pipeline/apiresource-meta.js";
-import {
-  internalError,
-  invalidArgumentError,
-} from "../../pipeline/errors.js";
+import type { OpenedArchive } from "../../archive/open-files.js";
+import { defaultVisibilityFor } from "../../pipeline/apiresource-meta.js";
+import { invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import {
-  diffVisibilityShapes,
-  resolveResourceCreatedEvent,
-} from "../../pipeline/steps/authorization-tuples.js";
+  ARTIFACT_STORAGE_KEY_KEY,
+  EXISTING_PUSHED_RESOURCE_KEY,
+  OPENED_ARCHIVE_KEY,
+  PUSHED_RESOURCE_KEY,
+  SHOULD_CREATE_KEY,
+} from "../../pipeline/steps/archive-push.js";
+import type { ArchivePushBinding } from "../../pipeline/steps/archive-push.js";
 import {
-  generateId,
   setAuditFieldsForCreate,
   setAuditFieldsForUpdate,
 } from "../../pipeline/steps/defaults.js";
-import { claimNameOf, findResourceByNameForWrite } from "../../pipeline/steps/names.js";
-import { EXISTING_RESOURCE_BYTES_KEY } from "../../pipeline/steps/load-existing.js";
-import { storeLoadedOrNew } from "../../pipeline/steps/persist.js";
-import { ARTIFACT_BYTES_KEY } from "../../pipeline/steps/resolve-artifact-source.js";
 import { checkDerivedSlug, generateSlug } from "../../pipeline/steps/slug.js";
-import {
-  refuseChildOrgsVisibilityInChild,
-  rejectUnsupportedVisibility,
-} from "../../pipeline/steps/validate-visibility.js";
 import { newArchiveCurrentVersionStep } from "../../pipeline/steps/version-archive.js";
-import type { ResourceReadForWrite, Store } from "../../store/interface.js";
-import { openPluginArchive } from "./archive.js";
+import type { Store } from "../../store/interface.js";
 import { VERSION_TAG_PATTERN } from "./constants.js";
-import type { OpenedPluginArchive } from "./archive.js";
 import { planPluginStatus, ServerNameError } from "./plan-status.js";
 import type { PluginStatusPlan } from "./plan-status.js";
 import { probeSignIns } from "./probe-sign-in.js";
@@ -106,39 +98,11 @@ import { tagsOfKeywords } from "./tags.js";
 
 type PushDesc = typeof PushPluginRequestSchema;
 
-// Context keys for the push operation.
-export const PLUGIN_KEY = "plugin";
-export const PLUGIN_ARCHIVE_KEY = "pluginArchive";
+// Context keys for the plugin's own steps; the shared push steps keep
+// theirs (pipeline/steps/archive-push.ts).
 export const PLUGIN_PACKAGE_KEY = "pluginPackage";
 export const PLUGIN_LIBRARY_WARNINGS_KEY = "pluginLibraryWarnings";
-export const EXISTING_PLUGIN_KEY = "existingPlugin";
-export const SHOULD_CREATE_PLUGIN_KEY = "shouldCreatePlugin";
 export const PLUGIN_PLAN_KEY = "pluginPlan";
-export const PLUGIN_CONVERGED_KEY = "pluginConverged";
-export const ARTIFACT_STORAGE_KEY_KEY = "artifactStorageKey";
-
-/**
- * GateAndHashArchive — the ZIP gate over the shared archive plumbing:
- * size ceiling, hash, prefilter, structural budgets, and the lazy reader
- * the library reads through. Every gate failure is one InvalidArgument arm.
- */
-export function newGateAndHashArchiveStep(): PipelineStep<PushDesc> {
-  return {
-    name: "GateAndHashArchive",
-    execute(ctx: RequestContext<PushDesc>): void {
-      const bytes = ctx.get(ARTIFACT_BYTES_KEY) as Uint8Array;
-      let archive: OpenedPluginArchive;
-      try {
-        archive = openPluginArchive(bytes);
-      } catch (error) {
-        throw invalidArgumentError(
-          `failed to read plugin archive: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-      ctx.set(PLUGIN_ARCHIVE_KEY, archive);
-    },
-  };
-}
 
 /**
  * ReadPluginPackage — the library reads the package; a refusal lists every
@@ -149,7 +113,7 @@ export function newReadPluginPackageStep(): PipelineStep<PushDesc> {
   return {
     name: "ReadPluginPackage",
     execute(ctx: RequestContext<PushDesc>): void {
-      const archive = ctx.get(PLUGIN_ARCHIVE_KEY) as OpenedPluginArchive;
+      const archive = ctx.get(OPENED_ARCHIVE_KEY) as OpenedArchive;
       let outcome;
       try {
         outcome = readPluginPackage(archive.files);
@@ -206,49 +170,7 @@ export function newBuildInitialPluginStep(): PipelineStep<PushDesc> {
         spec: create(PluginSpecSchema, {}),
         status: create(PluginStatusSchema, {}),
       });
-      ctx.set(PLUGIN_KEY, plugin);
-    },
-  };
-}
-
-/** FindExistingBySlug — push is upsert-by-slug: an existing plugin's id is adopted. */
-export function newFindExistingPluginBySlugStep(
-  store: Store,
-): PipelineStep<PushDesc> {
-  return {
-    name: "FindExistingBySlug",
-    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      const plugin = ctx.get(PLUGIN_KEY) as Plugin;
-      let found: ResourceReadForWrite<typeof PluginSchema> | undefined;
-      try {
-        found = await findResourceByNameForWrite(store, ctx.apiResourceKind, PluginSchema, plugin.metadata!.org, plugin.metadata!.slug);
-      } catch (error) {
-        throw internalError(error, "failed to search for existing plugin");
-      }
-      if (found !== undefined) {
-        const existing = found.resource;
-        plugin.metadata!.id = existing.metadata!.id;
-        // The bytes a re-push's write swaps on (storeLoadedOrNew).
-        ctx.set(EXISTING_RESOURCE_BYTES_KEY, found.bytes);
-        ctx.set(EXISTING_PLUGIN_KEY, existing);
-        ctx.set(SHOULD_CREATE_PLUGIN_KEY, false);
-      } else {
-        ctx.set(EXISTING_PLUGIN_KEY, undefined);
-        ctx.set(SHOULD_CREATE_PLUGIN_KEY, true);
-      }
-    },
-  };
-}
-
-/** GenerateIDIfNeeded — plg_{ulid} for new plugins; upgrades keep theirs. */
-export function newGeneratePluginIdIfNeededStep(): PipelineStep<PushDesc> {
-  return {
-    name: "GenerateIDIfNeeded",
-    execute(ctx: RequestContext<PushDesc>): void {
-      const plugin = ctx.get(PLUGIN_KEY) as Plugin;
-      if (ctx.get(SHOULD_CREATE_PLUGIN_KEY) as boolean) {
-        plugin.metadata!.id = generateId(getIdPrefix(ctx.apiResourceKind));
-      }
+      ctx.set(PUSHED_RESOURCE_KEY, plugin);
     },
   };
 }
@@ -263,6 +185,14 @@ export function requestedVisibility(
     : ctx.input.visibility;
 }
 
+/** The plugin to the shared push steps: its schema, its level and its digest. */
+export const pluginPushBinding: ArchivePushBinding<typeof PluginSchema, PushDesc> = {
+  schema: PluginSchema,
+  noun: "plugin",
+  visibilityOf: requestedVisibility,
+  digestOf: (plugin) => plugin.status?.digest ?? "",
+};
+
 /**
  * PlanPluginStatus — what the archive holds, as the plugin's status will
  * list it (plan-status.ts): its skills, agents, server entries, the
@@ -276,7 +206,7 @@ export function newPlanPluginStatusStep(): PipelineStep<PushDesc> {
     execute(ctx: RequestContext<PushDesc>): void {
       const pkg = ctx.get(PLUGIN_PACKAGE_KEY) as PluginPackage;
       try {
-        const archive = ctx.get(PLUGIN_ARCHIVE_KEY) as OpenedPluginArchive;
+        const archive = ctx.get(OPENED_ARCHIVE_KEY) as OpenedArchive;
         ctx.set(PLUGIN_PLAN_KEY, planPluginStatus(pkg, archive.files));
       } catch (error) {
         if (error instanceof ServerNameError) {
@@ -284,47 +214,6 @@ export function newPlanPluginStatusStep(): PipelineStep<PushDesc> {
         }
         throw error;
       }
-    },
-  };
-}
-
-/**
- * GuardPluginVisibility — the requested level must be one the plugin
- * supports, and a child organization may not share with child
- * organizations: the push chain's counterpart of the ValidateVisibility
- * step on the resource create chains, asked before anything is written.
- */
-export function newGuardPluginVisibilityStep(
-  store: Store,
-): PipelineStep<PushDesc> {
-  return {
-    name: "GuardPluginVisibility",
-    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      const level = requestedVisibility(ctx);
-      rejectUnsupportedVisibility(ctx.apiResourceKind, level);
-      await refuseChildOrgsVisibilityInChild(store, ctx.input.org, level);
-    },
-  };
-}
-
-/**
- * ResolveConvergence — the no-op decision: the stored plugin already IS
- * this archive at this level when its digest and its visibility match.
- * Anything less installs.
- */
-export function newResolveConvergenceStep(): PipelineStep<PushDesc> {
-  return {
-    name: "ResolveConvergence",
-    execute(ctx: RequestContext<PushDesc>): void {
-      const existing = ctx.get(EXISTING_PLUGIN_KEY) as Plugin | undefined;
-      const archive = ctx.get(PLUGIN_ARCHIVE_KEY) as OpenedPluginArchive;
-      const converged =
-        existing !== undefined &&
-        existing.status?.digest === archive.digest &&
-        (existing.metadata?.visibility ??
-          ApiResourceVisibility.api_resource_visibility_unspecified) ===
-          requestedVisibility(ctx);
-      ctx.set(PLUGIN_CONVERGED_KEY, converged);
     },
   };
 }
@@ -343,40 +232,10 @@ export function newProbeServerSignInsStep(deps: {
     name: "ProbeServerSignIns",
     async execute(ctx: RequestContext<PushDesc>): Promise<void> {
       const plan = ctx.get(PLUGIN_PLAN_KEY) as PluginStatusPlan;
-      const archive = ctx.get(PLUGIN_ARCHIVE_KEY) as OpenedPluginArchive;
-      const existing = ctx.get(EXISTING_PLUGIN_KEY) as Plugin | undefined;
+      const archive = ctx.get(OPENED_ARCHIVE_KEY) as OpenedArchive;
+      const existing = ctx.get(EXISTING_PUSHED_RESOURCE_KEY) as Plugin | undefined;
       const probed = await probeSignIns(deps, plan, archive.digest, existing?.status);
       ctx.set(PLUGIN_PLAN_KEY, { ...plan, ...probed } satisfies PluginStatusPlan);
-    },
-  };
-}
-
-/** CheckAndStoreArtifact — content-addressed dedupe: same digest reuses the stored copy. */
-export function newCheckAndStoreArtifactStep(
-  artifactStorage: ContentAddressedArchiveStore,
-): PipelineStep<PushDesc> {
-  return {
-    name: "CheckAndStoreArtifact",
-    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      const bytes = ctx.get(ARTIFACT_BYTES_KEY) as Uint8Array;
-      const archive = ctx.get(PLUGIN_ARCHIVE_KEY) as OpenedPluginArchive;
-      let exists: boolean;
-      try {
-        exists = await artifactStorage.exists(archive.digest);
-      } catch (error) {
-        throw internalError(error, "failed to check artifact existence");
-      }
-      let storageKey: string;
-      if (exists) {
-        storageKey = artifactStorage.getStorageKey(archive.digest);
-      } else {
-        try {
-          storageKey = await artifactStorage.store(archive.digest, bytes);
-        } catch (error) {
-          throw internalError(error, "failed to store artifact");
-        }
-      }
-      ctx.set(ARTIFACT_STORAGE_KEY_KEY, storageKey);
     },
   };
 }
@@ -395,12 +254,12 @@ export function newPopulatePluginFieldsStep(): PipelineStep<PushDesc> {
   return {
     name: "PopulatePluginFields",
     execute(ctx: RequestContext<PushDesc>): void {
-      const plugin = ctx.get(PLUGIN_KEY) as Plugin;
+      const plugin = ctx.get(PUSHED_RESOURCE_KEY) as Plugin;
       const pkg = ctx.get(PLUGIN_PACKAGE_KEY) as PluginPackage;
-      const archive = ctx.get(PLUGIN_ARCHIVE_KEY) as OpenedPluginArchive;
+      const archive = ctx.get(OPENED_ARCHIVE_KEY) as OpenedArchive;
       const storageKey = ctx.get(ARTIFACT_STORAGE_KEY_KEY) as string;
-      const shouldCreate = ctx.get(SHOULD_CREATE_PLUGIN_KEY) as boolean;
-      const existing = ctx.get(EXISTING_PLUGIN_KEY) as Plugin | undefined;
+      const shouldCreate = ctx.get(SHOULD_CREATE_KEY) as boolean;
+      const existing = ctx.get(EXISTING_PUSHED_RESOURCE_KEY) as Plugin | undefined;
       const plan = ctx.get(PLUGIN_PLAN_KEY) as PluginStatusPlan;
       const libraryWarnings = ctx.get(
         PLUGIN_LIBRARY_WARNINGS_KEY,
@@ -491,7 +350,7 @@ export function newArchiveCurrentPluginStep(
     logger,
     {
       stepName: "ArchiveCurrentPlugin",
-      resourceKey: PLUGIN_KEY,
+      resourceKey: PUSHED_RESOURCE_KEY,
       schema: PluginSchema,
       noun: "plugin",
       headHashOf: (plugin) => plugin.status?.digest ?? "",
@@ -513,111 +372,6 @@ export function pluginLiveTag(plugin: Plugin): string {
   return VERSION_TAG_PATTERN.test(version) ? version : "";
 }
 
-/**
- * ClaimName — a pushed plugin that is new claims its slug in the name
- * table immediately before StorePlugin (pipeline/steps/names.ts), as a
- * skill push does; a re-push keeps the name its plugin holds.
- */
-export function newClaimPluginNameStep(store: Store): PipelineStep<PushDesc> {
-  return {
-    name: "ClaimName",
-    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      if (ctx.get(SHOULD_CREATE_PLUGIN_KEY) !== true) {
-        return;
-      }
-      await claimNameOf(
-        ctx,
-        store,
-        ApiResourceKind.plugin,
-        ctx.get(PLUGIN_KEY) as Plugin,
-        PluginSchema,
-      );
-    },
-  };
-}
-
-/**
- * StorePlugin — persists the plugin, the install's one write: a re-push by
- * compare-and-swap on the row FindExistingBySlug read, so a visibility
- * change or another push that lands in between makes the push run again
- * from a fresh read (pipeline/guarded-write.ts); a first push as new.
- */
-export function newStorePluginStep(
-  store: Store,
-  stepName: string,
-): PipelineStep<PushDesc> {
-  return {
-    name: stepName,
-    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      await storeLoadedOrNew(store, ctx, PluginSchema, ctx.get(PLUGIN_KEY) as Plugin, "failed to save plugin");
-    },
-  };
-}
-
-/**
- * PluginPushAuthorizationTuples — the tuple-lifecycle splice for the push
- * lane, the skill push's shape: a genuine create fires the creation event;
- * a re-push diffs the stored level against the pushed head.
- */
-export function newPluginPushAuthorizationTuplesStep(
-  lifecycle: ResourceAuthorizationLifecycle | undefined,
-  logger: Logger,
-): PipelineStep<PushDesc> {
-  return {
-    name: "PluginPushAuthorizationTuples",
-    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      if (lifecycle === undefined) {
-        return;
-      }
-      const plugin = ctx.get(PLUGIN_KEY) as Plugin;
-      if (ctx.get(SHOULD_CREATE_PLUGIN_KEY) as boolean) {
-        const event = resolveResourceCreatedEvent(
-          ctx.apiResourceKind,
-          plugin,
-          ctx.callerIdentity,
-          logger,
-        );
-        if (event === undefined) {
-          return;
-        }
-        try {
-          await lifecycle.onResourceCreated(event);
-        } catch (error) {
-          throw internalError(error, "failed to create authorization tuples");
-        }
-        return;
-      }
-      const existing = ctx.get(EXISTING_PLUGIN_KEY) as Plugin | undefined;
-      const oldLevel =
-        existing?.metadata?.visibility ??
-        ApiResourceVisibility.api_resource_visibility_unspecified;
-      const newLevel =
-        plugin.metadata?.visibility ??
-        ApiResourceVisibility.api_resource_visibility_unspecified;
-      const { shapesToCreate, shapesToDelete } = diffVisibilityShapes(
-        ctx.apiResourceKind,
-        oldLevel,
-        newLevel,
-      );
-      if (shapesToCreate.length === 0 && shapesToDelete.length === 0) {
-        return;
-      }
-      try {
-        await lifecycle.onVisibilityChanged({
-          kind: ctx.apiResourceKind,
-          resourceId: plugin.metadata?.id ?? "",
-          orgId: plugin.metadata?.org ?? "",
-          caller: ctx.callerIdentity,
-          shapesToCreate,
-          shapesToDelete,
-        });
-      } catch (error) {
-        throw internalError(error, "failed to update visibility tuples");
-      }
-    },
-  };
-}
-
 /** IndexPluginSearch — search-index upsert, best-effort by contract. */
 export function newIndexPluginSearchStep(
   store: Store,
@@ -626,7 +380,7 @@ export function newIndexPluginSearchStep(
   return {
     name: "IndexPluginSearch",
     async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      const plugin = ctx.get(PLUGIN_KEY) as Plugin;
+      const plugin = ctx.get(PUSHED_RESOURCE_KEY) as Plugin;
       const entry = pluginSearchExtractor.getSearchIndexEntry(plugin);
       if (entry === undefined) {
         return;

@@ -38,7 +38,7 @@ import type { ContentAddressedArchiveStore } from "../../../archive/content-stor
 import { writeArchive } from "../../../archive/write.js";
 import { createLogger } from "../../../boot/logger.js";
 import type { Store } from "../../../store/interface.js";
-import { openPluginArchive } from "../archive.js";
+import { openArchiveFiles } from "../../../archive/open-files.js";
 import {
   isLegacyStatus,
   refreshLegacyPluginStatuses,
@@ -96,7 +96,7 @@ const ARCHIVE = writeArchive(
     bytes: typeof content === "string" ? encoder.encode(content) : content,
   })),
 );
-const DIGEST = openPluginArchive(ARCHIVE).digest;
+const DIGEST = openArchiveFiles(ARCHIVE, "plugin").digest;
 const KEY = `plugins/${DIGEST}.zip`;
 
 /** The materialization counts an earlier release wrote as status field 5: skills 1, servers 1, agents 1. */
@@ -405,7 +405,7 @@ describe("refreshLegacyPluginStatuses", () => {
     const broken = writeArchive([
       { path: "README.md", bytes: encoder.encode("not a plugin") },
     ]);
-    const brokenKey = `plugins/${openPluginArchive(broken).digest}.zip`;
+    const brokenKey = `plugins/${openArchiveFiles(broken, "plugin").digest}.zip`;
     const rows = new PluginRows({
       plg_nokey: legacyRow({ id: "plg_nokey", storageKey: "" }),
       plg_gone: legacyRow({

@@ -85,6 +85,18 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | ChannelAppQueryController.getByReference | `org` |
 | ChannelAppQueryController.list | `org` |
 
+## `ai.stigmer.agentic.eval.v1`
+
+| Method | Organization fields |
+|---|---|
+| EvalCommandController.createArtifactUploadUrl | `org` |
+| EvalCommandController.push | `org` |
+| EvalQueryController.download | `org` |
+| EvalQueryController.getByReference | `org` |
+| EvalQueryController.getDownloadUrl | `org` |
+| EvalQueryController.list | `org` |
+| EvalQueryController.listVersions | `org` |
+
 ## `ai.stigmer.agentic.evalrun.v1`
 
 | Method | Organization fields |

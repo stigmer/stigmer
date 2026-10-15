@@ -14,7 +14,7 @@
 // model; a red on any lane is a divergence between editions, never a cell
 // to re-stage.
 //
-//   - Blueprints (agent, skill, plugin — the visibility-axis
+//   - Blueprints (agent, skill, plugin, eval — the visibility-axis
 //     kinds): owner and admin edit and delete both a private and an
 //     org-visible row (`can_edit`/`can_delete` are the creator OR
 //     `admin from organization`); a member reads org-visible and is refused
@@ -29,7 +29,15 @@
 //     existing row and NOT_FOUND on a missing id (the Authorizer's
 //     existence probe: a missing target is never dressed as a denial).
 //     A plugin is installed by push at its level, and its `can_edit` guards
-//     `updateVisibility` (a plugin has no update), as a skill's does.
+//     `updateVisibility` (a plugin has no update), as a skill's does. An
+//     eval is pushed under its slug at its level, and its edit is a push of
+//     a new version (`can_edit`, asked in the push's handler); a member
+//     creates one exactly as an agent (`can_create_eval` is
+//     `can_create_agent`).
+//   - An eval's download is a read: a member downloads an org-visible
+//     eval at its head and at an older digest, and is refused both, and
+//     its versions, once the eval is private; a viewer downloads an
+//     org-visible one; an outsider is refused.
 //   - Agent creation by policy: a new organization lets its members create
 //     agents; a member owns the agent they create (edits and deletes it),
 //     may keep it private or share it with the organization, and may not
@@ -115,6 +123,8 @@ import { makeSlackChannelApp } from "../support/channelapps";
 import { makeOAuthApp } from "../support/oauthapps";
 import { makeSession } from "../support/sessions";
 import { makeSkillArtifact } from "../support/skills";
+import { digestOf, oneCaseEvalArchive } from "../support/evals";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   createTarget,
   enforcingLaneOf,
@@ -177,8 +187,9 @@ const ORG_VISIBLE = ApiResourceVisibility.visibility_org;
 
 // One blueprint kind as the wire offers it: how a row is created at a
 // visibility, read, edited and deleted. `edit` is whatever mutation the
-// kind's `can_edit` guards — `update` where the kind has one, and
-// `updateVisibility` for skills and plugins, which are pushed, never updated.
+// kind's `can_edit` guards — `update` where the kind has one,
+// `updateVisibility` for skills and plugins, which are pushed, never
+// updated, and a new version's push for an eval.
 interface BlueprintKind {
   readonly name: string;
   // Whether a member creates one while the organization's defaults stand:
@@ -261,7 +272,37 @@ const BLUEPRINT_KINDS: ReadonlyArray<BlueprintKind> = [
       }),
     delete: (using, id) => using.pluginCommand.delete({ value: id }),
   },
+  {
+    name: "eval",
+    membersCreate: true,
+    async create(using, org, visibility) {
+      const slug = uniqueName("role-eval");
+      const pushed = await using.evalCommand.push({
+        org,
+        slug,
+        artifact: oneCaseEvalArchive(`What does ${slug} cover?`),
+        visibility,
+      });
+      const id = pushed.metadata!.id;
+      EVAL_NAMES.set(id, { org, slug });
+      return id;
+    },
+    get: (using, id) => using.evalQuery.get({ value: id }),
+    edit: (using, id) => {
+      const named = EVAL_NAMES.get(id);
+      if (named === undefined) throw new Error(`no eval pushed with id ${id}`);
+      return using.evalCommand.push({
+        ...named,
+        artifact: oneCaseEvalArchive(`A new version, ${uniqueName("v")}.`),
+      });
+    },
+    delete: (using, id) => using.evalCommand.delete({ value: id }),
+  },
 ];
+
+// Where each eval a cell pushed lives: an eval's edit is a push, which
+// names the eval by its organization and slug, not its id.
+const EVAL_NAMES = new Map<string, { readonly org: string; readonly slug: string }>();
 
 // A row the founder creates and the arm's end deletes as the founder.
 async function seed(
@@ -386,6 +427,52 @@ describe("role enforcement — blueprints: who may read, edit, delete and create
         `viewer create of a ${kind.name}`,
       );
     });
+  });
+});
+
+describe("role enforcement — evals: a download is a read", () => {
+  it("[rpc:EvalQueryController.download] [rpc:EvalQueryController.getDownloadUrl] [rpc:EvalQueryController.listVersions] [rpc:EvalCommandController.updateVisibility] a member downloads an org-visible eval at any version, and none once it is private; a viewer downloads it; an outsider never", async (ctx) => {
+    const lane = laneOrSkip(ctx);
+    const c = await castOf(lane);
+    const slug = uniqueName("role-eval-download");
+    const v1 = oneCaseEvalArchive("First version.");
+    const pushed = await c.owner.evalCommand.push({ org: c.org, slug, artifact: v1, visibility: ORG_VISIBLE });
+    fixtures.defer(() => c.owner.evalCommand.delete({ value: pushed.metadata!.id }).catch(() => undefined));
+    await c.owner.evalCommand.push({ org: c.org, slug, artifact: oneCaseEvalArchive("Second version.") });
+    const head = { org: c.org, kind: ApiResourceKind.eval, slug };
+    const old = { ...head, version: digestOf(v1) };
+
+    const read = await c.member.evalQuery.download(old);
+    expect(Buffer.from(read.artifact).equals(Buffer.from(v1)), "the member's copy of the older version").toBe(true);
+    await c.member.evalQuery.download(head);
+    await c.viewer.evalQuery.download(head);
+    await expectGrpcCode(() => c.outsider.evalQuery.download(head), Code.PermissionDenied, "outsider download of an eval");
+
+    await c.owner.evalCommand.updateVisibility({ resourceId: pushed.metadata!.id, visibility: PRIVATE });
+    await expectGrpcCodeWithin(
+      () => c.member.evalQuery.download(head),
+      Code.PermissionDenied,
+      "member download of a private eval's head",
+    );
+    await expectGrpcCode(
+      () => c.member.evalQuery.download(old),
+      Code.PermissionDenied,
+      "member download of a private eval at a digest he once read",
+    );
+    if (target.capabilities.skillArtifactTransferLane) {
+      await expectGrpcCode(
+        () => c.member.evalQuery.getDownloadUrl(old),
+        Code.PermissionDenied,
+        "member download URL of a private eval",
+      );
+    }
+    await expectGrpcCode(
+      () => c.member.evalQuery.listVersions({ org: c.org, slug }),
+      Code.PermissionDenied,
+      "member version history of a private eval",
+    );
+    const owners = await c.owner.evalQuery.download(old);
+    expect(Buffer.from(owners.artifact).equals(Buffer.from(v1)), "the owner still downloads it").toBe(true);
   });
 });
 

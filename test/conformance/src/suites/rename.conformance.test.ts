@@ -2,8 +2,8 @@
 // old slug keeps leading to it for reading for 30 days.
 // Domain: conformance suites.
 //
-// One table over the five open-source kinds a person may rename (agent,
-// vault, schedule, channel app, OAuth app), each pinned the
+// One table over the six open-source kinds a person may rename (agent,
+// vault, schedule, channel app, OAuth app, eval), each pinned the
 // same way:
 //   - rename keeps the id, and a read by the old slug answers the resource
 //     by its new slug;
@@ -15,7 +15,10 @@
 //     target. An update authorizes its metadata.id, so a target whose
 //     authorizer enforces refuses one without an id at Authorize, before
 //     its slug is read; the vault's arm (it has no apply) expects that
-//     refusal there.
+//     refusal there. An eval has neither create nor apply: a push names its
+//     slug and is the kind's create and its write at once, so a push naming
+//     the old slug is the write arm, refused with SLUG_RENAMED, and the
+//     create arm expects that same refusal (nobody takes the held slug).
 // Then the references that named a renamed resource (a session's, a
 // schedule's and a channel's agent, a parent's subagent, a channel's app)
 // come back with its new slug, and an apply carrying the id finds the
@@ -37,6 +40,7 @@ import { uniqueName } from "../support/naming";
 import { makeOAuthApp } from "../support/oauthapps";
 import { makeSchedule } from "../support/schedules";
 import { makeSession } from "../support/sessions";
+import { oneCaseEvalArchive } from "../support/evals";
 import { makeSharedVault } from "../support/vaults";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -85,9 +89,13 @@ interface RenamableKind {
   writeBySlug(org: string, slug: string): Promise<unknown>;
   // Which RPC writeBySlug sends. An update names its target by
   // resource.metadata.id, so one without an id is refused with
-  // INVALID_ARGUMENT before anything is read, on every target; apply finds
-  // its target by slug and answers SLUG_RENAMED.
-  readonly writeVerb: "apply" | "update";
+  // INVALID_ARGUMENT before anything is read, on every target; apply and
+  // push find their target by slug and answer SLUG_RENAMED.
+  readonly writeVerb: "apply" | "update" | "push";
+  // How a create of the old slug is refused: SLUG_RESERVED where the kind
+  // has a create of its own, SLUG_RENAMED where its create is the push that
+  // also writes (an eval).
+  readonly oldSlugCreateReason: "SLUG_RESERVED" | "SLUG_RENAMED";
 }
 
 async function agentInOrg(
@@ -112,6 +120,7 @@ const KINDS: readonly RenamableKind[] = [
       "[rpc:AgentCommandController.rename] [rpc:AgentCommandController.apply] an agent's",
     noun: "Agent",
     writeVerb: "apply",
+    oldSlugCreateReason: "SLUG_RESERVED",
     create: (org, name) => agentInOrg(org, name),
     rename: async (id, slug) =>
       namedOf(await clients.agentCommand.rename({ resourceId: id, slug })),
@@ -129,6 +138,7 @@ const KINDS: readonly RenamableKind[] = [
       "[rpc:VaultCommandController.rename] [rpc:VaultCommandController.update] a vault's",
     noun: "Vault",
     writeVerb: "update",
+    oldSlugCreateReason: "SLUG_RESERVED",
     create: async (org, name) => {
       const vault = await clients.vaultCommand.create(
         makeSharedVault({ org, name }),
@@ -156,6 +166,7 @@ const KINDS: readonly RenamableKind[] = [
       "[rpc:ScheduleCommandController.rename] [rpc:ScheduleCommandController.apply] a schedule's",
     noun: "Schedule",
     writeVerb: "apply",
+    oldSlugCreateReason: "SLUG_RESERVED",
     create: async (org, name) => {
       const agent = await agentInOrg(org, uniqueName("sched-agent"));
       const schedule = await clients.scheduleCommand.create(
@@ -186,6 +197,7 @@ const KINDS: readonly RenamableKind[] = [
       "[rpc:ChannelAppCommandController.rename] [rpc:ChannelAppCommandController.apply] a channel app's",
     noun: "Channel app",
     writeVerb: "apply",
+    oldSlugCreateReason: "SLUG_RESERVED",
     create: async (org, name) => {
       const app = await clients.channelAppCommand.create(
         makeSlackChannelApp(org, name),
@@ -213,6 +225,7 @@ const KINDS: readonly RenamableKind[] = [
       "[rpc:OAuthAppCommandController.rename] [rpc:OAuthAppCommandController.apply] an OAuth app's",
     noun: "OAuth app",
     writeVerb: "apply",
+    oldSlugCreateReason: "SLUG_RESERVED",
     create: async (org, name) => {
       const app = await clients.oauthAppCommand.create(makeOAuthApp(org, name));
       fixtures.defer(() =>
@@ -232,11 +245,42 @@ const KINDS: readonly RenamableKind[] = [
         metadata: { name: slug, org, slug },
       }),
   },
+  {
+    title: "[rpc:EvalCommandController.rename] an eval",
+    writeTitle:
+      "[rpc:EvalCommandController.rename] [rpc:EvalCommandController.push] an eval's",
+    noun: "Eval",
+    writeVerb: "push",
+    oldSlugCreateReason: "SLUG_RENAMED",
+    create: async (org, name) => {
+      const pushed = await clients.evalCommand.push({
+        org,
+        slug: name,
+        artifact: oneCaseEvalArchive(`What does ${name} cover?`),
+      });
+      fixtures.defer(() =>
+        clients.evalCommand
+          .delete({ value: pushed.metadata!.id })
+          .catch(() => undefined),
+      );
+      return namedOf(pushed);
+    },
+    rename: async (id, slug) =>
+      namedOf(await clients.evalCommand.rename({ resourceId: id, slug })),
+    readByReference: async (org, slug) =>
+      namedOf(await clients.evalQuery.getByReference({ org, slug })),
+    writeBySlug: (org, slug) =>
+      clients.evalCommand.push({
+        org,
+        slug,
+        artifact: oneCaseEvalArchive("A changed folder."),
+      }),
+  },
 ];
 
 describe("a renamed resource keeps its id, and its old slug leads to it", () => {
   for (const kind of KINDS) {
-    it(`${kind.title} keeps its id; its old slug leads to it, is refused to a create with SLUG_RESERVED, and is taken back by a rename`, async () => {
+    it(`${kind.title} keeps its id; its old slug leads to it, is refused to a create with ${kind.oldSlugCreateReason}, and is taken back by a rename`, async () => {
       const { org } = await target.provisionTenancy();
       const before = await kind.create(org, uniqueName("rename-old"));
       const after = uniqueName("rename-new");
@@ -257,10 +301,10 @@ describe("a renamed resource keeps its id, and its old slug leads to it", () => 
 
       const refused = await expectGrpcCode(
         () => kind.create(org, before.slug),
-        Code.AlreadyExists,
+        kind.oldSlugCreateReason === "SLUG_RESERVED" ? Code.AlreadyExists : Code.FailedPrecondition,
         "a create of the slug another resource was just renamed from",
       );
-      expect(reasonOf(refused)?.reason).toBe("SLUG_RESERVED");
+      expect(reasonOf(refused)?.reason).toBe(kind.oldSlugCreateReason);
       expect(reasonOf(refused)?.domain).toBe("stigmer.ai");
       expect(reasonOf(refused)?.metadata).toEqual({ slug: before.slug });
 

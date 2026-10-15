@@ -1,6 +1,7 @@
-// Command-level contract for `stigmer download run <id>`: only the run type
-// downloads (`run` or `runs`, any case), only a run id is accepted, both
-// refused as usage errors before any backend call; the artifact name and
+// Command-level contract for `stigmer download run <id>`: a type other than
+// run or eval (eval's own suite is eval-command.test.ts) is refused, a run
+// is named `run` or `runs`, any case, and only a run id is accepted, each
+// refused as a usage error before any backend call; the artifact name and
 // output directory reach the download, progress goes to stderr, and the
 // outcome line (none found with its tip, all downloaded, or some of them) goes
 // to stdout. The backend and the download are replaced at their module seams;
@@ -109,7 +110,14 @@ describe("stigmer download run", () => {
 
   it("refuses a type other than run before any call", async () => {
     await expect(runDownload("agent", "aex_1")).rejects.toThrow(
-      new UsageError("download not supported for type: agent\n\nCurrently only 'run' type supports download"),
+      new UsageError("download not supported for type: agent\n\nThe types that download: run, eval"),
+    );
+    expect(download.downloadRunArtifacts).not.toHaveBeenCalled();
+  });
+
+  it.each([["--json"], ["--quiet"]])("refuses %s, which only an eval download reads, before any call", async (flag) => {
+    await expect(runDownload("run", "run_1", flag)).rejects.toThrow(
+      new UsageError("--json and --quiet apply to `download eval`; a run's download prints the files it writes"),
     );
     expect(download.downloadRunArtifacts).not.toHaveBeenCalled();
   });

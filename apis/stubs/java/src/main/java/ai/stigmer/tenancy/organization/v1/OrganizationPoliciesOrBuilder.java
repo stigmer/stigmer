@@ -12,9 +12,10 @@ public interface OrganizationPoliciesOrBuilder extends
 
   /**
    * <pre>
-   * Members may create agents. On by default: a new organization lets its
-   * members create agents, as a GitHub organization lets its members
-   * create repositories. When off, only admins create agents. A member's
+   * Members may create agents, and the evals that test them. On by
+   * default: a new organization lets its members create agents, as a
+   * GitHub organization lets its members create repositories. When off,
+   * only admins create agents and evals. A member's
    * agent is theirs: private or shared with the organization, never with
    * child organizations, which stays an admin's choice.
    * </pre>

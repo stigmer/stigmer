@@ -11,6 +11,7 @@ type Client struct {
 	AgentShare       *AgentShareClient
 	ApiKey           *ApiKeyClient
 	ChannelApp       *ChannelAppClient
+	Eval             *EvalClient
 	EvalRun          *EvalRunClient
 	Evaluator        *EvaluatorClient
 	FederationIssuer *FederationIssuerClient
@@ -42,6 +43,7 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		AgentShare:       NewAgentShareClient(conn),
 		ApiKey:           NewApiKeyClient(conn),
 		ChannelApp:       NewChannelAppClient(conn),
+		Eval:             NewEvalClient(conn),
 		EvalRun:          NewEvalRunClient(conn),
 		Evaluator:        NewEvaluatorClient(conn),
 		FederationIssuer: NewFederationIssuerClient(conn),

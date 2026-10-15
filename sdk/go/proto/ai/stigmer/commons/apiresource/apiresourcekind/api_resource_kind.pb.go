@@ -261,6 +261,9 @@ const (
 	// One run of test cases on an agent, or on a plugin on the built-in
 	// assistant, optionally with and without a plugin.
 	ApiResourceKind_eval_run ApiResourceKind = 65
+	// A set of test cases for an agent: an evals/ folder in Claude Code's
+	// plugin-eval format, pushed whole.
+	ApiResourceKind_eval ApiResourceKind = 66
 	// Catalog entry naming a bundle of entitlements and the terms that buy it.
 	//
 	// Platform-level: a plan belongs to no organization, so it carries no
@@ -311,6 +314,7 @@ var (
 		61: "score",
 		62: "evaluator",
 		65: "eval_run",
+		66: "eval",
 		70: "plan",
 		71: "subscription",
 		72: "license",
@@ -341,6 +345,7 @@ var (
 		"score":                     61,
 		"evaluator":                 62,
 		"eval_run":                  65,
+		"eval":                      66,
 		"plan":                      70,
 		"subscription":              71,
 		"license":                   72,
@@ -553,7 +558,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"enterprise\x10\x03*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xdf\x1f\n" +
+	"\astigmer\x10\x01*\xb4!\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x126\n" +
@@ -594,7 +599,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x05agent\x12\x05agent\x1a\bagent_id\x12s\n" +
 	"\beval_run\x10A\x1ae\xaa\xff+a\b\x01\x10\x01\x1a\aEvalRun\"\bEval Run*\x03evr8\x01@\x01J?\b\x02\x10\x04\"\x1a\n" +
 	"\x05agent\x12\x05agent\x1a\bagent_id \x01\"\x1d\n" +
-	"\x06plugin\x12\x06plugin\x1a\tplugin_id \x01\x12-\n" +
+	"\x06plugin\x12\x06plugin\x1a\tplugin_id \x01\x12\xd2\x01\n" +
+	"\x04eval\x10B\x1a\xc7\x01\xaa\xff+\xc2\x01\b\x01\x10\x01\x1a\x04Eval\"\x04Eval*\x03evs0\x018\x01@\x01J\xa4\x01\b\x02\x10\x01*\x04\x18\x01 \x01:\x02\x01\x04B\x01\x04JS\b\x01\x12OEverything, including pushing versions, deleting it and deciding who has accessJ<\b\x04\x128See its cases and download any version; cannot change it\x12-\n" +
 	"\x04plan\x10F\x1a#\xaa\xff+\x1f\b\x04\x10\x01\x1a\x04Plan\"\x04Plan*\x03pln8\x01@\x02J\x04\b\x05\x10\x04\x12E\n" +
 	"\fsubscription\x10G\x1a3\xaa\xff+/\b\x04\x10\x01\x1a\fSubscription\"\fSubscription*\x03sub8\x01@\x02J\x04\b\x02\x10\x04\x126\n" +
 	"\alicense\x10H\x1a)\xaa\xff+%\b\x04\x10\x01\x1a\aLicense\"\aLicense*\x03lic8\x01@\x02J\x04\b\x05\x10\x04\"\x04\b\x17\x10\x17\"\x04\b,\x10,\"\x04\b-\x10-\"\x04\b1\x101\"\x04\b2\x102\"\x04\b3\x103\"\x04\b4\x104\"\x04\b5\x105\"\x04\b6\x106\"\x04\b7\x107\"\x04\b<\x10<\"\x04\b?\x10?\"\x04\b@\x10@*\x0fplatform_client*\n" +

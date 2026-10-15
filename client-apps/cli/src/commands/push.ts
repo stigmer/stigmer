@@ -1,8 +1,10 @@
 // `stigmer push <type> [path]` — package and upload an artifact to the registry.
-// Two kinds are pushable: skills (a local directory with git provenance
-// auto-detected, a remote repo via --git-url, or a pre-built --archive) and
+// Three kinds are pushable: skills (a local directory with git provenance
+// auto-detected, a remote repo via --git-url, or a pre-built --archive),
 // plugins (a local plugin directory, installed or upgraded as one unit; the
-// manifest's version is its tag, so --tag does not apply). Heavy modules are
+// manifest's version is its tag, so --tag does not apply) and evals (an
+// evals/ folder pushed whole under the slug --name gives, since the folder
+// names nothing; --tag moves a tag only when given). Heavy modules are
 // lazy-imported so `--help` stays fast.
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -11,6 +13,7 @@ import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import {
   type OutputFlags,
   renderResult as renderCommandResult,
@@ -20,6 +23,7 @@ import { addResultFlags, globalOrg, resultFormat } from "./shared.js";
 
 interface PushFlags extends OutputFlags {
   tag?: string;
+  name?: string;
   visibility?: string;
   message?: string;
   dryRun?: boolean;
@@ -42,12 +46,16 @@ export function registerPush(program: Command): void {
   const push = program
     .command("push <type> [path]")
     .description(
-      "push an artifact to the registry (supported types: skill, plugin)",
+      "push an artifact to the registry (supported types: skill, plugin, eval)",
     )
     .option(
       "--tag <tag>",
-      "version tag for the artifact (skills; a plugin's tag is its manifest version)",
+      "version tag for the artifact (skills, and evals, where it is moved only when given; a plugin's tag is its manifest version)",
       "latest",
+    )
+    .option(
+      "--name <slug>",
+      "evals: the eval's slug, required (the folder names nothing)",
     )
     .option(
       "-m, --message <message>",
@@ -55,7 +63,7 @@ export function registerPush(program: Command): void {
     )
     .option(
       "--visibility <level>",
-      "plugins: visibility for the plugin (private, org, child-orgs)",
+      "plugins: visibility for the plugin (private, org, child-orgs); evals: private or org",
     )
     .option("--dry-run", "validate without pushing")
     .option("--git-url <url>", "push from a remote git repository URL")
@@ -105,7 +113,7 @@ async function runPush(
   const info = defaultRegistry().getByAlias(type);
   if (info === undefined) {
     throw new UsageError(
-      `unknown resource type: ${type}\n\nAvailable types: skill, plugin`,
+      `unknown resource type: ${type}\n\nAvailable types: skill, plugin, eval`,
     );
   }
   if (!info.supportedVerbs.has(Verb.Push)) {
@@ -114,6 +122,15 @@ async function runPush(
   if (info.kind === ApiResourceKind.plugin) {
     await runPushPlugin(path, options, command);
     return;
+  }
+  if (info.kind === ApiResourceKind.eval) {
+    await runPushEval(path, options, command);
+    return;
+  }
+  if (options.name !== undefined) {
+    throw new UsageError(
+      `--name names an eval; a ${info.displayName.toLowerCase()} takes its name from its own files`,
+    );
   }
   if (info.kind !== ApiResourceKind.skill) {
     throw new UsageError(`push not implemented for ${info.displayName}`);
@@ -268,6 +285,111 @@ async function runPushPlugin(
     }),
     format,
   );
+}
+
+/**
+ * `stigmer push eval <folder> --name <slug>`: store an evals/ folder as an
+ * eval's new version. The folder is walked and selected as a plugin's is,
+ * read and archived by the shared eval preparation (run output left out),
+ * and pushed under the slug --name gives. `--tag` is sent only when the
+ * user gave it: its `latest` default is the skill's, and a tag named
+ * `latest` would only ever be read as the current version.
+ */
+async function runPushEval(
+  path: string | undefined,
+  options: PushFlags,
+  command: Command,
+): Promise<void> {
+  const tagGiven = command.getOptionValueSource("tag") === "cli";
+  const request = evalPushFlags(options, tagGiven);
+  const format = resultFormat(options);
+  const directory = path !== undefined && path !== "" ? path : process.cwd();
+  const ignoreOptions = {
+    respectGitignore: options.gitignore !== false,
+    extraIgnore: options.ignore ?? [],
+    extraInclude: options.include ?? [],
+  };
+  const evalModule = await import("../resources/eval.js");
+  const prepared = await evalModule.prepareEvalPush(directory, ignoreOptions);
+
+  if (options.dryRun === true) {
+    renderCommandResult(evalModule.describeEvalPush(prepared, request.slug), format);
+    return;
+  }
+
+  const { connectBackend } = await import("../backend.js");
+  const client = connectBackend();
+  ensureAuthenticated(client.config);
+  const org = resolveOrganization(client.config, globalOrg(command));
+  const pushed = await evalModule.pushEval(client.stigmer, prepared, {
+    org,
+    slug: request.slug,
+    ...(request.tag !== undefined && { tag: request.tag }),
+    visibility: request.visibility,
+    message: options.message ?? "",
+  });
+  renderCommandResult(evalModule.renderEvalPush(pushed, prepared), format);
+}
+
+/** What an eval push takes from the flags, refusing what does not apply to an eval. */
+export function evalPushFlags(
+  options: PushFlags,
+  tagGiven: boolean,
+): {
+  readonly slug: string;
+  readonly tag?: string;
+  readonly visibility: ApiResourceVisibility | undefined;
+} {
+  const conflicts: string[] = [];
+  if (options.archive !== undefined && options.archive !== "")
+    conflicts.push("--archive");
+  if (options.gitUrl !== undefined && options.gitUrl !== "")
+    conflicts.push("--git-url");
+  if (options.gitRef !== undefined && options.gitRef !== "")
+    conflicts.push("--git-ref");
+  if (options.subdir !== undefined && options.subdir !== "")
+    conflicts.push("--subdir");
+  if (conflicts.length > 0) {
+    throw new UsageError(
+      `push eval takes an evals/ folder and cannot be combined with: ${conflicts.join(", ")}`,
+    );
+  }
+  const slug = options.name?.trim() ?? "";
+  if (slug === "") {
+    throw new UsageError(
+      "push eval needs --name <slug>: the eval's name in the organization, such as support-agent-evals\n\n" +
+        "Claude Code's evals/ folder names nothing, so every push says which eval it adds a version to.",
+    );
+  }
+  if (!/^[a-z][a-z0-9-]*[a-z0-9]$/.test(slug) || slug.length > 63) {
+    throw new UsageError(
+      `invalid --name '${slug}': 2 to 63 lowercase letters, digits and hyphens, starting with a letter and ending with a letter or digit`,
+    );
+  }
+  const tag = tagGiven ? (options.tag ?? "") : undefined;
+  if (tag !== undefined && tag.trim().toLowerCase() === "latest") {
+    throw new UsageError(
+      "an eval's tag cannot be 'latest': a reference without a version already names the current one; leave --tag out, or give another tag such as stable",
+    );
+  }
+  const visibility = parseEvalVisibility(options.visibility);
+  return { slug, ...(tag !== undefined && { tag }), visibility };
+}
+
+/** An eval's level: the whole organization or its owner alone; never child organizations. */
+function parseEvalVisibility(value: string | undefined): ApiResourceVisibility | undefined {
+  if (value === undefined) return undefined;
+  switch (value.trim().toLowerCase()) {
+    case "org":
+    case "organization":
+      return ApiResourceVisibility.visibility_org;
+    case "private":
+      return ApiResourceVisibility.visibility_private;
+    default:
+      throw new UsageError(
+        `invalid --visibility '${value}' for an eval: org (the default for a new eval) or private`,
+      );
+  }
 }
 
 interface ArchiveContext {

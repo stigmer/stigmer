@@ -1,0 +1,66 @@
+module agentic
+
+# ========================================
+# EVAL TYPE (Organization-scoped)
+# ========================================
+# A set of test cases for an agent: an evals/ folder in Claude Code's
+# plugin-eval format, pushed whole and versioned by digest. It is a
+# blueprint-shaped kind modelled on the plugin, with two levels of
+# visibility, private and the whole organization: no child-organization
+# share, since an eval is an organization's own tests.
+#
+# `can_view` reads the eval and downloads any version of it; `can_edit`
+# gates a push onto an existing eval; `can_delete` gates delete and rename.
+# Creating one is the organization's can_create_eval, which follows the
+# agent-creation policy: whoever may build agents may write their tests.
+#
+# Authorization model (visibility is REAL — no unconditional org grant):
+# - PRIVATE: owner (incl. org admins, see below) + explicit grants only.
+# - ORG: org members can view via the explicit viewer tuple.
+# - Owners (pushers) and org admins push, re-level, rename and delete
+#   (admin inheritance — mirrors plugin, skill and agent).
+#
+# FGA tuples on push:
+# - eval:support#organization@organization:acme
+# - eval:support#owner@identity_account:alice
+# - eval:support#viewer@organization:acme#viewer (if visibility=ORG)
+
+type eval
+  relations
+    # ========================================
+    # ORGANIZATION OWNERSHIP
+    # ========================================
+    define organization: [organization]
+
+    # ========================================
+    # OWNERSHIP (Attribution + Admin)
+    # ========================================
+    define owner: ([identity_account] and affiliated from organization) or admin from organization
+
+    # ========================================
+    # VIEWER ACCESS
+    # ========================================
+    # team#member is an Enterprise team's grant: every member, bounded by
+    # the organization in team.fga.
+    define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner
+
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: owner
+    define can_delete: owner
+
+    # ========================================
+    # ACCESS MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+
+    # ========================================
+    # AUDIENCE
+    # ========================================
+    # Who reaches this eval (visibility) is its owner's to change. Kept
+    # apart from can_grant_access, which the self-check answers false
+    # wherever the edition grants no roles on the kind.
+    define can_manage_audience: owner
+    define can_view_access: viewer

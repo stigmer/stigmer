@@ -200,11 +200,18 @@ export interface EvalSuiteFinding {
 
 /** The suite: the cases that loaded and the findings for those that did not. */
 export interface EvalSuite {
-  /** "evals", or the manifest's `experimental.evals` when it is usable. */
+  /**
+   * A plugin's suite: "evals", or the manifest's `experimental.evals` when
+   * it is usable. A pushed folder: the empty string, the archive's root.
+   */
   readonly dir: string;
   /** Cases in directory order (sorted by path). */
   readonly cases: readonly EvalCase[];
   readonly findings: readonly EvalSuiteFinding[];
-  /** The MCP server keys the plugin declares, sorted: the servers a mock may stand in for. */
+  /**
+   * The servers a mock may stand in for, sorted. A plugin's suite: the MCP
+   * server keys the plugin declares. A pushed folder: the mock directories
+   * its cases read, each resolved against an agent's servers when it runs.
+   */
   readonly servers: readonly string[];
 }
