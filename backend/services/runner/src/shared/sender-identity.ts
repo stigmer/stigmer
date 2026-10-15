@@ -1,7 +1,7 @@
 /**
  * The channel sender identity (stigmer-cloud's channel-sender-identity keys).
  *
- * When a conversation reaches an agent through an AgentChannel, the cloud
+ * When a conversation reaches an agent through a Slack or WhatsApp channel, the cloud
  * broker stamps the provider-verified sender identity — the WhatsApp phone
  * number (wa_id), the Slack user id — into the session's
  * `SessionSpec.metadata` at session creation, together with a KIND token

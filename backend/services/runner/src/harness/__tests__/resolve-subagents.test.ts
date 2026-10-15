@@ -51,7 +51,7 @@ import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import type { ResolvedBlueprint, SavedSubagent } from "../../shared/blueprint-resolver.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";
-import { CHANNEL_ID_LABEL } from "../../shared/conversation-attachment.js";
+import { CHANNEL_ID_LABEL, CONVERSATION_KEY_LABEL } from "../../shared/conversation-attachment.js";
 import { _resetRegistryCache } from "../../shared/model-registry.js";
 import { toolServerSegment } from "../../shared/plugin-servers.js";
 import { DuplicateServerNameError, resolveTurnServers } from "../../shared/mcp-resolver.js";
@@ -211,7 +211,7 @@ async function run(
   const base = turnInputFixture({ sessionId }).blueprint;
   const blueprint: ResolvedBlueprint = {
     ...base,
-    session: { ...base.session, metadata: { ...base.session.metadata!, labels: { [CHANNEL_ID_LABEL]: "agch_1" } } },
+    session: { ...base.session, metadata: { ...base.session.metadata!, labels: { [CHANNEL_ID_LABEL]: "chn_1", [CONVERSATION_KEY_LABEL]: "919000000001" } } },
     plugins: options.conversationPlugins ?? [],
     subagents,
   };

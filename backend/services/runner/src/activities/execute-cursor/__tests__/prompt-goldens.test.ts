@@ -47,7 +47,7 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
 
 import type { ResolvedAttachment } from "../../../shared/attachment-resolver.js";
 import type { SkillMetadata } from "../../../shared/skill-resolver.js";

@@ -223,7 +223,7 @@ export interface ApprovalGateConfig {
   /**
    * Unattended approval mode (`status.approval_mode` = UNATTENDED):
    * the lane the turn came through — a schedule, a messaging channel, a
-   * guest share — has no approver, so a gated tool is resolved as an automatic SKIP (the model is
+   * chat-link guest — has no approver, so a gated tool is resolved as an automatic SKIP (the model is
    * told to adapt) instead of `interrupt()`. The execution never enters
    * WAITING_FOR_APPROVAL. What is gated is unchanged — only the resolution
    * differs.
@@ -365,7 +365,7 @@ export function createApprovalGateMiddleware(
         return run(requirement.source, "auto_approve");
       }
 
-      // Unattended surfaces (channels, guest shares) have no approver, so a
+      // Unattended surfaces (channels, chat-link guests) have no approver, so a
       // gate that would interrupt() here resolves as an automatic SKIP: the
       // tool does NOT run (the gateway invariant holds — no side effect
       // without a backing authorization), the model is told to adapt in plain

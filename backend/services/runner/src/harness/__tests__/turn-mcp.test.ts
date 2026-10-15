@@ -43,7 +43,7 @@ import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spe
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import type { MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+import type { MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { HttpMcpServerSchema, McpServerEntrySchema, PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 
@@ -66,7 +66,7 @@ import { hookLeaseKey, type LeaseGrant } from "../../shared/approval-policy.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";
 import { CHANNEL_ATTACHMENT_SLUG } from "../../shared/channel-attachment.js";
-import { CHANNEL_ID_LABEL, CONVERSATION_ATTACHMENT_SLUG } from "../../shared/conversation-attachment.js";
+import { CHANNEL_ID_LABEL, CONVERSATION_ATTACHMENT_SLUG, CONVERSATION_KEY_LABEL } from "../../shared/conversation-attachment.js";
 import { MEMORY_ATTACHMENT_SLUG } from "../../shared/memory-attachment.js";
 import type { ResolvedBlueprint, RunAgent } from "../../shared/blueprint-resolver.js";
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
@@ -158,7 +158,7 @@ function args(options: {
     metadata: create(ApiResourceMetadataSchema, {
       id: "ses_1",
       org: "org",
-      labels: options.attachments ? { [CHANNEL_ID_LABEL]: "agch_1" } : {},
+      labels: options.attachments ? { [CHANNEL_ID_LABEL]: "chn_1", [CONVERSATION_KEY_LABEL]: "919000000001" } : {},
     }),
     spec: create(SessionSpecSchema, {}),
   });

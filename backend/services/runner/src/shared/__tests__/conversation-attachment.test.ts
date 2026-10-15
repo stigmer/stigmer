@@ -1,12 +1,12 @@
 /**
  * The conversation participation attachment: the label-keyed attachment
- * decision, the HTTP-only
+ * decision (the channel id AND the conversation key), the HTTP-only
  * shape (the deliberate no-stdio divergence from both siblings), the
  * structural approval-freedom, and the pinned strings. The route is the
  * cross-repo string — pinned here and in the mcp-server's conversation
  * integration test (the TOOL_CALL_LIMIT precedent); the label is pinned
- * here and in the cloud's ChannelSessionBrokerTest (the sender-identity
- * mirror-guard precedent).
+ * here and on the cloud's side (the sender-identity mirror-guard
+ * precedent).
  */
 
 import { describe, expect, it } from "vitest";
@@ -16,6 +16,7 @@ import { listTurnTools } from "../mcp-tool-listing.js";
 import {
   CHANNEL_ID_LABEL,
   CONVERSATION_ATTACHMENT_SLUG,
+  CONVERSATION_KEY_LABEL,
   CONVERSATION_ROUTE,
   readChannelConversationId,
   synthesizeConversationAttachment,
@@ -35,13 +36,13 @@ const cloudOptions = {
 };
 
 describe("cross-repo and cross-file pinned strings", () => {
-  it("pins the label verbatim to the cloud's ChannelRuntimeConstants (mirror guard)", () => {
-    // Pinned to ChannelRuntimeConstants.CHANNEL_ID_METADATA_KEY in
-    // stigmer-cloud (ChannelSessionCreateScopeStep stamps it; the
-    // mirror-guard test lives in ChannelSessionBrokerTest). Drift
+  it("pins the labels verbatim to the cloud's channel runtime constants (mirror guard)", () => {
+    // Pinned to the cloud's channel runtime constants, which stamp both
+    // labels on every channel-created session. Drift
     // degrades to honest absence — the escalation tool silently stops
     // attaching — never worse; change BOTH sides together.
     expect(CHANNEL_ID_LABEL).toBe("stigmer.ai/channel-id");
+    expect(CONVERSATION_KEY_LABEL).toBe("stigmer.ai/channel-conversation-key");
   });
 
   it("pins the attachment slug and the bridge route", () => {
@@ -55,20 +56,33 @@ describe("cross-repo and cross-file pinned strings", () => {
 });
 
 describe("readChannelConversationId", () => {
-  it("reads the serving channel id from the session labels", () => {
-    expect(readChannelConversationId({ [CHANNEL_ID_LABEL]: "agch_1" })).toBe("agch_1");
+  it("gives a session carrying a channel id and no conversation key no escalation tool", () => {
+    // A chat-link (web channel) session carries the channel id but no
+    // provider conversation: escalation acts on exactly one provider
+    // conversation, so the channel id alone must not attach the tool.
+    const labels = { [CHANNEL_ID_LABEL]: "chn_1" };
+    expect(readChannelConversationId(labels)).toBeUndefined();
+    expect(synthesizeConversationAttachment(readChannelConversationId(labels), cloudOptions)).toBeUndefined();
+  });
+
+
+  it("reads the serving channel id of a session that is a provider conversation", () => {
+    expect(
+      readChannelConversationId({ [CHANNEL_ID_LABEL]: "chn_1", [CONVERSATION_KEY_LABEL]: "919000000001" }),
+    ).toBe("chn_1");
   });
 
   it("treats missing labels, a missing key, and blank values as absent", () => {
     expect(readChannelConversationId(undefined)).toBeUndefined();
     expect(readChannelConversationId({})).toBeUndefined();
-    expect(readChannelConversationId({ [CHANNEL_ID_LABEL]: "" })).toBeUndefined();
-    expect(readChannelConversationId({ [CHANNEL_ID_LABEL]: "   " })).toBeUndefined();
+    expect(readChannelConversationId({ [CHANNEL_ID_LABEL]: "", [CONVERSATION_KEY_LABEL]: "919000000001" })).toBeUndefined();
+    expect(readChannelConversationId({ [CHANNEL_ID_LABEL]: "   ", [CONVERSATION_KEY_LABEL]: "919000000001" })).toBeUndefined();
+    expect(readChannelConversationId({ [CHANNEL_ID_LABEL]: "chn_1", [CONVERSATION_KEY_LABEL]: "   " })).toBeUndefined();
   });
 
-  it("ignores unrelated labels", () => {
+  it("reads a conversation key without a channel id as absent", () => {
     expect(
-      readChannelConversationId({ "stigmer.ai/channel-conversation-key": "919000000001" }),
+      readChannelConversationId({ [CONVERSATION_KEY_LABEL]: "919000000001" }),
     ).toBeUndefined();
   });
 });
@@ -84,14 +98,14 @@ describe("synthesizeConversationAttachment", () => {
     // session-token-only (a stdio child's API key carries no session_id
     // claim), so a stdio shape could only ever fail. Honest absence.
     expect(
-      synthesizeConversationAttachment("agch_1", {
+      synthesizeConversationAttachment("chn_1", {
         bridgeEndpoint: null,
         credential: "sandbox-token",
         backendEndpoint: "http://localhost:7234",
       }),
     ).toBeUndefined();
     expect(
-      synthesizeConversationAttachment("agch_1", {
+      synthesizeConversationAttachment("chn_1", {
         bridgeEndpoint: "",
         credential: "sandbox-token",
         backendEndpoint: "http://localhost:7234",
@@ -100,7 +114,7 @@ describe("synthesizeConversationAttachment", () => {
   });
 
   it("builds the HTTP shape against the bridge /conversation route with the credential", () => {
-    const attachment = synthesizeConversationAttachment("agch_1", {
+    const attachment = synthesizeConversationAttachment("chn_1", {
       ...cloudOptions,
       bridgeEndpoint: "https://mcp.stigmer.ai/",
     });
@@ -114,7 +128,7 @@ describe("synthesizeConversationAttachment", () => {
   });
 
   it("omits the Authorization header without a credential", () => {
-    const attachment = synthesizeConversationAttachment("agch_1", {
+    const attachment = synthesizeConversationAttachment("chn_1", {
       ...cloudOptions,
       credential: null,
     });
@@ -122,7 +136,7 @@ describe("synthesizeConversationAttachment", () => {
   });
 
   it("is approval-free by construction: never listed, so the approval default asks for none of its tools", async () => {
-    const attachment = synthesizeConversationAttachment("agch_1", cloudOptions)!;
+    const attachment = synthesizeConversationAttachment("chn_1", cloudOptions)!;
 
     // Channel surfaces run APPROVAL_MODE_UNATTENDED, where a gated tool
     // resolves as skip-and-adapt — a gated escalation would never fire

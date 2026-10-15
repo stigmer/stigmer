@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import type { MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+import type { MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
 
 import {
   CHANNEL_ATTACHMENT_SLUG,
@@ -39,7 +39,7 @@ function bothAttachments(): ResolvedMcpServer[] {
     [{ channel: { channel: "isc-whatsapp", provider: "whatsapp" } as MessagingChannel, templates: [] }],
     options,
   )!;
-  const conversation = synthesizeConversationAttachment("agch_1", options)!;
+  const conversation = synthesizeConversationAttachment("chn_1", options)!;
 
   // The harness order at both call sites: channels, then conversation.
   let servers = injectSynthesizedAttachment([userServer], channels, "channel messaging");
@@ -77,7 +77,7 @@ describe("synthesized attachments in one chain", () => {
       [{ channel: { channel: "isc-whatsapp", provider: "whatsapp" } as MessagingChannel, templates: [] }],
       options,
     )!;
-    const conversation = synthesizeConversationAttachment("agch_1", options)!;
+    const conversation = synthesizeConversationAttachment("chn_1", options)!;
 
     let servers = injectSynthesizedAttachment([impostor, userServer], channels, "channel messaging");
     servers = injectSynthesizedAttachment(servers, conversation, "conversation participation");

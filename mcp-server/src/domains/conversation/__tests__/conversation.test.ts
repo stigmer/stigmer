@@ -29,11 +29,11 @@ import type { AddressInfo } from "node:net";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_command_pb";
+import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_command_pb";
 import {
   ChannelConversationSchema,
   type EscalateConversationInput,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { configureLogger } from "../../../logger";
@@ -118,7 +118,7 @@ describe("the success answer is the fixed copy, not the row", () => {
   it("sends the reason verbatim and answers with fixed copy", async () => {
     escalateResponse = () =>
       create(ChannelConversationSchema, {
-        agentChannelId: "agch_1",
+        channelId: "chn_1",
         conversationKey: "919000000001",
         needsAttention: true,
         attentionReason: "customer wants a refund decision",
@@ -204,7 +204,7 @@ describe("conversation error mapper", () => {
     // answer reaches the model.
     escalateResponse = () => {
       throw new ConnectError(
-        "no conversation with this key exists on channel agch_1",
+        "no conversation with this key exists on channel chn_1",
         Code.NotFound,
       );
     };
@@ -213,7 +213,7 @@ describe("conversation error mapper", () => {
 
     expect(result.isError).toBe(true);
     expect(JSON.parse(result.content[0]?.text ?? "{}")).toEqual({
-      error: "no conversation with this key exists on channel agch_1",
+      error: "no conversation with this key exists on channel chn_1",
       code: "NOT_FOUND",
     });
   });
