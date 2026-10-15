@@ -269,32 +269,24 @@ pages:
       a plugin an agent uses, and what differs from Claude Code.
     medium: none
 
-  guides/plugins/test-a-plugin-with-evals:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      Run a plugin's own evals/ cases on Stigmer from the console or the CLI,
-      with and without the plugin and on several models; read the table, the
-      exit codes and the result file; know what runs, what differs from Claude
-      Code, who sees an eval and who pays; and turn a bad run into a case.
-    medium: none
-
-  guides/plugins/test-an-agent-with-its-plugins-evals:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      Run the eval cases of the plugins an agent uses on the agent itself, from
-      the console or the CLI; know which versions run, the one arm, the default
-      model and a named one, the tools a try may use, who sees an eval and who
-      pays; and compare two versions of the agent.
-    medium: none
-
   guides/plugins/marketplace-file:
     fate: keep
     diataxis: reference
     teaches:
       The four marketplace file locations Stigmer reads, the one shape they
       reduce to, what makes an entry installable, and the two error postures.
+    medium: none
+
+  guides/evals/test-with-evals:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Keep an agent's test cases as an eval and push its versions; run evals
+      and the cases of the plugins an agent uses on the agent, from the console
+      or the CLI; compare the agent with and without a plugin, and test a plugin
+      on its own; read the table, the exit codes and the result file; know what
+      runs, what differs from Claude Code, who sees an eval run and who pays;
+      and turn a conversation that went wrong into a case.
     medium: none
 
   guides/sharing/share-an-agent:

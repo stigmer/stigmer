@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	EvalCommandController_Push_FullMethodName                    = "/ai.stigmer.agentic.eval.v1.EvalCommandController/push"
+	EvalCommandController_AddCaseFromRun_FullMethodName          = "/ai.stigmer.agentic.eval.v1.EvalCommandController/addCaseFromRun"
 	EvalCommandController_CreateArtifactUploadUrl_FullMethodName = "/ai.stigmer.agentic.eval.v1.EvalCommandController/createArtifactUploadUrl"
 	EvalCommandController_UpdateVisibility_FullMethodName        = "/ai.stigmer.agentic.eval.v1.EvalCommandController/updateVisibility"
 	EvalCommandController_Rename_FullMethodName                  = "/ai.stigmer.agentic.eval.v1.EvalCommandController/rename"
@@ -47,6 +48,19 @@ type EvalCommandControllerClient interface {
 	//   - PERMISSION_DENIED: the caller may not create evals in the
 	//     organization, or may not edit the eval with this slug
 	Push(ctx context.Context, in *PushEvalRequest, opts ...grpc.CallOption) (*Eval, error)
+	// Add a case built from a run (as buildCaseFromRun builds it) to an
+	// eval, as a new version holding the current version's files and the
+	// case.
+	//
+	// Error Cases:
+	//
+	//   - NOT_FOUND: no such run, or no such eval
+	//   - PERMISSION_DENIED: the caller may not view the run, or may not edit
+	//     the eval
+	//   - FAILED_PRECONDITION: the run has not ended, or the eval is not of the
+	//     run's organization
+	//   - ALREADY_EXISTS: the eval already holds a case of that name
+	AddCaseFromRun(ctx context.Context, in *AddEvalCaseFromRunRequest, opts ...grpc.CallOption) (*Eval, error)
 	// Mint a short-lived, single-use upload URL for staging an eval archive
 	// that exceeds the gRPC message-size cap (10MB). Flow:
 	//
@@ -83,6 +97,16 @@ func (c *evalCommandControllerClient) Push(ctx context.Context, in *PushEvalRequ
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Eval)
 	err := c.cc.Invoke(ctx, EvalCommandController_Push_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *evalCommandControllerClient) AddCaseFromRun(ctx context.Context, in *AddEvalCaseFromRunRequest, opts ...grpc.CallOption) (*Eval, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Eval)
+	err := c.cc.Invoke(ctx, EvalCommandController_AddCaseFromRun_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -149,6 +173,19 @@ type EvalCommandControllerServer interface {
 	//   - PERMISSION_DENIED: the caller may not create evals in the
 	//     organization, or may not edit the eval with this slug
 	Push(context.Context, *PushEvalRequest) (*Eval, error)
+	// Add a case built from a run (as buildCaseFromRun builds it) to an
+	// eval, as a new version holding the current version's files and the
+	// case.
+	//
+	// Error Cases:
+	//
+	//   - NOT_FOUND: no such run, or no such eval
+	//   - PERMISSION_DENIED: the caller may not view the run, or may not edit
+	//     the eval
+	//   - FAILED_PRECONDITION: the run has not ended, or the eval is not of the
+	//     run's organization
+	//   - ALREADY_EXISTS: the eval already holds a case of that name
+	AddCaseFromRun(context.Context, *AddEvalCaseFromRunRequest) (*Eval, error)
 	// Mint a short-lived, single-use upload URL for staging an eval archive
 	// that exceeds the gRPC message-size cap (10MB). Flow:
 	//
@@ -182,6 +219,9 @@ type UnimplementedEvalCommandControllerServer struct{}
 
 func (UnimplementedEvalCommandControllerServer) Push(context.Context, *PushEvalRequest) (*Eval, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Push not implemented")
+}
+func (UnimplementedEvalCommandControllerServer) AddCaseFromRun(context.Context, *AddEvalCaseFromRunRequest) (*Eval, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddCaseFromRun not implemented")
 }
 func (UnimplementedEvalCommandControllerServer) CreateArtifactUploadUrl(context.Context, *CreateEvalArtifactUploadUrlRequest) (*EvalArtifactUploadUrl, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateArtifactUploadUrl not implemented")
@@ -229,6 +269,24 @@ func _EvalCommandController_Push_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(EvalCommandControllerServer).Push(ctx, req.(*PushEvalRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EvalCommandController_AddCaseFromRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddEvalCaseFromRunRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EvalCommandControllerServer).AddCaseFromRun(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EvalCommandController_AddCaseFromRun_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EvalCommandControllerServer).AddCaseFromRun(ctx, req.(*AddEvalCaseFromRunRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -315,6 +373,10 @@ var EvalCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "push",
 			Handler:    _EvalCommandController_Push_Handler,
+		},
+		{
+			MethodName: "addCaseFromRun",
+			Handler:    _EvalCommandController_AddCaseFromRun_Handler,
 		},
 		{
 			MethodName: "createArtifactUploadUrl",

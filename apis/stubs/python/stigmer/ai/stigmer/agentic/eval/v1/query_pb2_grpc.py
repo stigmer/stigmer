@@ -47,6 +47,11 @@ class EvalQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_io__pb2.EvalArchiveDownloadUrl.FromString,
                 _registered_method=True)
+        self.buildCaseFromRun = channel.unary_unary(
+                '/ai.stigmer.agentic.eval.v1.EvalQueryController/buildCaseFromRun',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_io__pb2.BuildEvalCaseFromRunRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_io__pb2.EvalCaseArchive.FromString,
+                _registered_method=True)
 
 
 class EvalQueryControllerServicer(object):
@@ -110,6 +115,28 @@ class EvalQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def buildCaseFromRun(self, request, context):
+        """Build an eval case from a run, to keep on disk or push in an eval.
+
+        The case is the turn the run answered: its request as the prompt, the
+        conversation before it as the case's history (so the case resumes where
+        the person was), each MCP tool answer the run got as a fixed mock under
+        the server name the turn gave it, and a rubric to fill in, seeded with
+        why the run went wrong (an AI judge's failing reason, or the caller's
+        own thumbs-down note). It never carries a verdict of its own.
+
+        Error Cases:
+
+        - NOT_FOUND: no such run
+        - PERMISSION_DENIED: the caller may not view the run
+        - FAILED_PRECONDITION: the run has not ended
+        - RESOURCE_EXHAUSTED: the case is too large to answer inline; add it
+        to an eval with addCaseFromRun, which writes it on the server
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_EvalQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -142,6 +169,11 @@ def add_EvalQueryControllerServicer_to_server(servicer, server):
                     servicer.getDownloadUrl,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_io__pb2.EvalArchiveDownloadUrl.SerializeToString,
+            ),
+            'buildCaseFromRun': grpc.unary_unary_rpc_method_handler(
+                    servicer.buildCaseFromRun,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_io__pb2.BuildEvalCaseFromRunRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_io__pb2.EvalCaseArchive.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -307,6 +339,33 @@ class EvalQueryController(object):
             '/ai.stigmer.agentic.eval.v1.EvalQueryController/getDownloadUrl',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_io__pb2.EvalArchiveDownloadUrl.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def buildCaseFromRun(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.eval.v1.EvalQueryController/buildCaseFromRun',
+            ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_io__pb2.BuildEvalCaseFromRunRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_io__pb2.EvalCaseArchive.FromString,
             options,
             channel_credentials,
             insecure,

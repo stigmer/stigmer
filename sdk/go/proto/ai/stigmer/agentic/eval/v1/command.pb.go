@@ -26,9 +26,10 @@ var File_ai_stigmer_agentic_eval_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_eval_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/eval/v1/command.proto\x12\x1aai.stigmer.agentic.eval.v1\x1a$ai/stigmer/agentic/eval/v1/api.proto\x1a#ai/stigmer/agentic/eval/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xc8\x05\n" +
+	"(ai/stigmer/agentic/eval/v1/command.proto\x12\x1aai.stigmer.agentic.eval.v1\x1a$ai/stigmer/agentic/eval/v1/api.proto\x1a#ai/stigmer/agentic/eval/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xb9\x06\n" +
 	"\x15EvalCommandController\x12[\n" +
-	"\x04push\x12+.ai.stigmer.agentic.eval.v1.PushEvalRequest\x1a .ai.stigmer.agentic.eval.v1.Eval\"\x04и\x18\x01\x12\x92\x01\n" +
+	"\x04push\x12+.ai.stigmer.agentic.eval.v1.PushEvalRequest\x1a .ai.stigmer.agentic.eval.v1.Eval\"\x04и\x18\x01\x12o\n" +
+	"\x0eaddCaseFromRun\x125.ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest\x1a .ai.stigmer.agentic.eval.v1.Eval\"\x04и\x18\x01\x12\x92\x01\n" +
 	"\x17createArtifactUploadUrl\x12>.ai.stigmer.agentic.eval.v1.CreateEvalArtifactUploadUrlRequest\x1a1.ai.stigmer.agentic.eval.v1.EvalArtifactUploadUrl\"\x04и\x18\x01\x12\xaa\x01\n" +
 	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a .ai.stigmer.agentic.eval.v1.Eval\"=¸\x189\b0\x10B\"\vresource_id*&unauthorized to update eval visibility\x12\x8b\x01\n" +
 	"\x06rename\x12+.ai.stigmer.commons.apiresource.RenameInput\x1a .ai.stigmer.agentic.eval.v1.Eval\"2¸\x18.\b\x03\x10B\"\vresource_id*\x1bunauthorized to rename eval\x12|\n" +
@@ -37,26 +38,29 @@ const file_ai_stigmer_agentic_eval_v1_command_proto_rawDesc = "" +
 
 var file_ai_stigmer_agentic_eval_v1_command_proto_goTypes = []any{
 	(*PushEvalRequest)(nil),                    // 0: ai.stigmer.agentic.eval.v1.PushEvalRequest
-	(*CreateEvalArtifactUploadUrlRequest)(nil), // 1: ai.stigmer.agentic.eval.v1.CreateEvalArtifactUploadUrlRequest
-	(*apiresource.UpdateVisibilityInput)(nil),  // 2: ai.stigmer.commons.apiresource.UpdateVisibilityInput
-	(*apiresource.RenameInput)(nil),            // 3: ai.stigmer.commons.apiresource.RenameInput
-	(*EvalId)(nil),                             // 4: ai.stigmer.agentic.eval.v1.EvalId
-	(*Eval)(nil),                               // 5: ai.stigmer.agentic.eval.v1.Eval
-	(*EvalArtifactUploadUrl)(nil),              // 6: ai.stigmer.agentic.eval.v1.EvalArtifactUploadUrl
+	(*AddEvalCaseFromRunRequest)(nil),          // 1: ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest
+	(*CreateEvalArtifactUploadUrlRequest)(nil), // 2: ai.stigmer.agentic.eval.v1.CreateEvalArtifactUploadUrlRequest
+	(*apiresource.UpdateVisibilityInput)(nil),  // 3: ai.stigmer.commons.apiresource.UpdateVisibilityInput
+	(*apiresource.RenameInput)(nil),            // 4: ai.stigmer.commons.apiresource.RenameInput
+	(*EvalId)(nil),                             // 5: ai.stigmer.agentic.eval.v1.EvalId
+	(*Eval)(nil),                               // 6: ai.stigmer.agentic.eval.v1.Eval
+	(*EvalArtifactUploadUrl)(nil),              // 7: ai.stigmer.agentic.eval.v1.EvalArtifactUploadUrl
 }
 var file_ai_stigmer_agentic_eval_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.eval.v1.EvalCommandController.push:input_type -> ai.stigmer.agentic.eval.v1.PushEvalRequest
-	1, // 1: ai.stigmer.agentic.eval.v1.EvalCommandController.createArtifactUploadUrl:input_type -> ai.stigmer.agentic.eval.v1.CreateEvalArtifactUploadUrlRequest
-	2, // 2: ai.stigmer.agentic.eval.v1.EvalCommandController.updateVisibility:input_type -> ai.stigmer.commons.apiresource.UpdateVisibilityInput
-	3, // 3: ai.stigmer.agentic.eval.v1.EvalCommandController.rename:input_type -> ai.stigmer.commons.apiresource.RenameInput
-	4, // 4: ai.stigmer.agentic.eval.v1.EvalCommandController.delete:input_type -> ai.stigmer.agentic.eval.v1.EvalId
-	5, // 5: ai.stigmer.agentic.eval.v1.EvalCommandController.push:output_type -> ai.stigmer.agentic.eval.v1.Eval
-	6, // 6: ai.stigmer.agentic.eval.v1.EvalCommandController.createArtifactUploadUrl:output_type -> ai.stigmer.agentic.eval.v1.EvalArtifactUploadUrl
-	5, // 7: ai.stigmer.agentic.eval.v1.EvalCommandController.updateVisibility:output_type -> ai.stigmer.agentic.eval.v1.Eval
-	5, // 8: ai.stigmer.agentic.eval.v1.EvalCommandController.rename:output_type -> ai.stigmer.agentic.eval.v1.Eval
-	5, // 9: ai.stigmer.agentic.eval.v1.EvalCommandController.delete:output_type -> ai.stigmer.agentic.eval.v1.Eval
-	5, // [5:10] is the sub-list for method output_type
-	0, // [0:5] is the sub-list for method input_type
+	1, // 1: ai.stigmer.agentic.eval.v1.EvalCommandController.addCaseFromRun:input_type -> ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest
+	2, // 2: ai.stigmer.agentic.eval.v1.EvalCommandController.createArtifactUploadUrl:input_type -> ai.stigmer.agentic.eval.v1.CreateEvalArtifactUploadUrlRequest
+	3, // 3: ai.stigmer.agentic.eval.v1.EvalCommandController.updateVisibility:input_type -> ai.stigmer.commons.apiresource.UpdateVisibilityInput
+	4, // 4: ai.stigmer.agentic.eval.v1.EvalCommandController.rename:input_type -> ai.stigmer.commons.apiresource.RenameInput
+	5, // 5: ai.stigmer.agentic.eval.v1.EvalCommandController.delete:input_type -> ai.stigmer.agentic.eval.v1.EvalId
+	6, // 6: ai.stigmer.agentic.eval.v1.EvalCommandController.push:output_type -> ai.stigmer.agentic.eval.v1.Eval
+	6, // 7: ai.stigmer.agentic.eval.v1.EvalCommandController.addCaseFromRun:output_type -> ai.stigmer.agentic.eval.v1.Eval
+	7, // 8: ai.stigmer.agentic.eval.v1.EvalCommandController.createArtifactUploadUrl:output_type -> ai.stigmer.agentic.eval.v1.EvalArtifactUploadUrl
+	6, // 9: ai.stigmer.agentic.eval.v1.EvalCommandController.updateVisibility:output_type -> ai.stigmer.agentic.eval.v1.Eval
+	6, // 10: ai.stigmer.agentic.eval.v1.EvalCommandController.rename:output_type -> ai.stigmer.agentic.eval.v1.Eval
+	6, // 11: ai.stigmer.agentic.eval.v1.EvalCommandController.delete:output_type -> ai.stigmer.agentic.eval.v1.Eval
+	6, // [6:12] is the sub-list for method output_type
+	0, // [0:6] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

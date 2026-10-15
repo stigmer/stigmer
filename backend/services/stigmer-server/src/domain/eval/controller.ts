@@ -6,6 +6,10 @@
  * the eval's digest and tag (versions.ts); `download` and `getDownloadUrl`
  * hand back one version's archive to whoever may view the eval;
  * `updateVisibility`, `rename` and `delete` are the shared shapes.
+ * `buildCaseFromRun` answers a run's turn as a case archive and
+ * `addCaseFromRun` adds that case to an eval as a new version, both over
+ * the one builder (case-from-run.ts), after can_view on the run; the add
+ * then runs the push's own chain, so it asks what a push asks.
  *
  * Every download names the eval at a version, resolved by the same ladder
  * as getByReference, and asks can_view on it before a byte or a URL
@@ -24,6 +28,7 @@
  * eval.conformance.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
 import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
@@ -37,8 +42,11 @@ import {
   PushEvalRequestSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
 import type {
+  AddEvalCaseFromRunRequest,
+  BuildEvalCaseFromRunRequest,
   CreateEvalArtifactUploadUrlRequest,
   EvalArchive,
+  EvalCaseArchive,
   EvalArchiveDownloadUrl,
   EvalArtifactUploadUrl,
   EvalId,
@@ -50,17 +58,26 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
 import { EvalQueryController } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/query_pb";
 import { EvalStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/status_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type {
   ApiResourceReference,
   RenameInput,
   UpdateVisibilityInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+
+import type { CallerIdentity } from "../../extensions/identity.js";
 
 import { ArtifactNotFoundError } from "../../archive/content-store.js";
 import type { ContentAddressedArchiveStore } from "../../archive/content-store.js";
 import { MAX_ZIP_SIZE } from "../../archive/limits.js";
+import { openArchiveFiles } from "../../archive/open-files.js";
+import { writeArchive } from "../../archive/write.js";
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
@@ -71,7 +88,7 @@ import {
   invalidArgumentError,
   notFoundError,
 } from "../../pipeline/errors.js";
-import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { runGuardedWrite, writeConflictError } from "../../pipeline/guarded-write.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
@@ -97,7 +114,7 @@ import {
   newRecordVisibilityBeforeUpdateStep,
   newUpdateVisibilityTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
-import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { authorizeResolvedResource, newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import {
   loadedTargetAsMethod,
   newAuthorizeResolvedTargetStep,
@@ -123,6 +140,7 @@ import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newDeleteVersionArchivesStep } from "../../pipeline/steps/version-archive.js";
 import {
   LIST_VERSIONS_RESPONSE_KEY,
+  loadByReferenceWithVersion,
   newLoadAndMapVersionsStep,
   newLoadByReferenceWithVersionStep,
   newResolveBySlugForVersionsStep,
@@ -131,7 +149,18 @@ import {
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { ArchiveStaging, DownloadCapability, StagedUpload } from "../skill/transfer/staging.js";
-import { EVAL_NOUN, EVAL_TRANSFER_LANE_NOT_CONFIGURED } from "./constants.js";
+import { buildCaseFromRun, caseArchiveOf, caseSkillOf, RESERVED_CASE_NAMES } from "./case-from-run.js";
+import {
+  EVAL_CASE_OTHER_ORGANIZATION,
+  EVAL_CASE_RUN_DENIED,
+  EVAL_NOUN,
+  EVAL_PUSH_DENIED,
+  EVAL_TRANSFER_LANE_NOT_CONFIGURED,
+  evalCaseExistsMessage,
+  evalCaseReservedNameMessage,
+  evalCaseRunNotEndedMessage,
+  evalCaseVersionMessage,
+} from "./constants.js";
 import { evalListIndex } from "./list-index.js";
 import {
   evalPushBinding,
@@ -162,6 +191,7 @@ export interface EvalControllerDeps {
 export function registerEvalServices(router: ConnectRouter, deps: EvalControllerDeps): void {
   router.service(EvalCommandController, {
     push: (req, ctx) => push(deps, req, ctx),
+    addCaseFromRun: (req, ctx) => addCaseFromRun(deps, req, ctx),
     createArtifactUploadUrl: (req, ctx) => createArtifactUploadUrl(deps, req, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
     rename: (input, ctx) => rename(deps, input, ctx),
@@ -174,6 +204,7 @@ export function registerEvalServices(router: ConnectRouter, deps: EvalController
     listVersions: (req, ctx) => listVersions(deps, req, ctx),
     download: (ref, ctx) => download(deps, ref, ctx),
     getDownloadUrl: (ref, ctx) => getDownloadUrl(deps, ref, ctx),
+    buildCaseFromRun: (req, ctx) => buildCaseFromRunHandler(deps, req, ctx),
   });
 }
 
@@ -201,49 +232,267 @@ async function push(deps: EvalControllerDeps, req: PushEvalRequest, ctx: Handler
       reqCtx.set(ARTIFACT_BYTES_KEY, consumed);
     }
     previous = reqCtx;
-    await newPipeline<PushDesc>("eval-push-plan", deps.logger)
-      .addStep(newAuthorizeStep(EvalCommandController.method.push, deps.authorizer))
-      .addStep(newValidateProtoStep())
-      .addStep(newBuildInitialEvalStep<PushDesc>((input) => input))
-      .addStep(newFindExistingBySlugStep(deps.store, evalPushBinding))
-      .addStep(newAuthorizeResolvedTargetStep<PushDesc>(deps.authorizer, writeTargetsOf, "AuthorizeEvalWrite"))
-      .addStep(newRefuseRenamedSlugStep())
-      .addStep(
-        newResolveArtifactSourceStep<PushDesc>(deps.staging, {
-          source: (input) => ({ artifact: input.artifact, artifactUploadRef: input.artifactUploadRef }),
-          laneNotConfigured: EVAL_TRANSFER_LANE_NOT_CONFIGURED,
-        }),
-      )
-      .addStep(newGateAndHashArchiveStep<PushDesc>(EVAL_NOUN))
-      .addStep(newReadEvalFolderStep())
-      .addStep(newGenerateIdIfNeededStep<PushDesc>())
-      .addStep(newGuardPushVisibilityStep(deps.store, evalPushBinding, "GuardEvalVisibility"))
-      .addStep(newResolveConvergenceStep(evalPushBinding))
-      .build()
-      .execute(reqCtx);
-
-    if (reqCtx.get(CONVERGED_KEY) === true) {
-      return reqCtx.get(EXISTING_PUSHED_RESOURCE_KEY) as Eval;
-    }
-
-    await newPipeline<PushDesc>("eval-push-install", deps.logger)
-      .addStep(newCheckAndStoreArtifactStep<PushDesc>(deps.artifactStorage))
-      .addStep(newPopulateEvalFieldsStep())
-      .addStep(newClaimPushedNameStep(deps.store, evalPushBinding))
-      .addStep(newStorePushedStep(deps.store, evalPushBinding, "StoreEval"))
-      .addStep(newArchiveCurrentEvalStep(deps.store, deps.logger))
-      .addStep(
-        newPushAuthorizationTuplesStep<typeof EvalSchema, PushDesc>(
-          deps.authorizationLifecycle,
-          deps.logger,
-          "EvalPushAuthorizationTuples",
-        ),
-      )
-      .build()
-      .execute(reqCtx)
-      .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
-    return reqCtx.get(PUSHED_RESOURCE_KEY) as Eval;
+    return runPushChains(deps, reqCtx, undefined);
   });
+}
+
+/** The eval version an in-process push built its archive from. */
+interface BuiltOnVersion {
+  readonly id: string;
+  readonly digest: string;
+}
+
+/**
+ * One push attempt: the plan chain, then the install chain unless the plan
+ * found the stored eval already this push. `builtOn` holds an in-process
+ * push (addCaseFromRun) to the version its archive was built from: the
+ * eval must still be that one at that version, else the attempt loses as
+ * a lost swap does and its caller builds again on the new head.
+ */
+async function runPushChains(
+  deps: EvalControllerDeps,
+  reqCtx: RequestContext<PushDesc>,
+  builtOn: BuiltOnVersion | undefined,
+): Promise<Eval> {
+  await newPipeline<PushDesc>("eval-push-plan", deps.logger)
+    .addStep(newAuthorizeStep(EvalCommandController.method.push, deps.authorizer))
+    .addStep(newValidateProtoStep())
+    .addStep(newBuildInitialEvalStep<PushDesc>((input) => input))
+    .addStep(newFindExistingBySlugStep(deps.store, evalPushBinding))
+    .addStep(newAuthorizeResolvedTargetStep<PushDesc>(deps.authorizer, writeTargetsOf, "AuthorizeEvalWrite"))
+    .addStep(newRefuseRenamedSlugStep())
+    .addStep(
+      newResolveArtifactSourceStep<PushDesc>(deps.staging, {
+        source: (input) => ({ artifact: input.artifact, artifactUploadRef: input.artifactUploadRef }),
+        laneNotConfigured: EVAL_TRANSFER_LANE_NOT_CONFIGURED,
+      }),
+    )
+    .addStep(newGateAndHashArchiveStep<PushDesc>(EVAL_NOUN))
+    .addStep(newReadEvalFolderStep())
+    .addStep(newGenerateIdIfNeededStep<PushDesc>())
+    .addStep(newGuardPushVisibilityStep(deps.store, evalPushBinding, "GuardEvalVisibility"))
+    .addStep(newResolveConvergenceStep(evalPushBinding))
+    .build()
+    .execute(reqCtx);
+
+  if (builtOn !== undefined) {
+    holdToVersion(reqCtx, builtOn);
+  }
+  if (reqCtx.get(CONVERGED_KEY) === true) {
+    return reqCtx.get(EXISTING_PUSHED_RESOURCE_KEY) as Eval;
+  }
+
+  await newPipeline<PushDesc>("eval-push-install", deps.logger)
+    .addStep(newCheckAndStoreArtifactStep<PushDesc>(deps.artifactStorage))
+    .addStep(newPopulateEvalFieldsStep())
+    .addStep(newClaimPushedNameStep(deps.store, evalPushBinding))
+    .addStep(newStorePushedStep(deps.store, evalPushBinding, "StoreEval"))
+    .addStep(newArchiveCurrentEvalStep(deps.store, deps.logger))
+    .addStep(
+      newPushAuthorizationTuplesStep<typeof EvalSchema, PushDesc>(
+        deps.authorizationLifecycle,
+        deps.logger,
+        "EvalPushAuthorizationTuples",
+      ),
+    )
+    .build()
+    .execute(reqCtx)
+    .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
+  return reqCtx.get(PUSHED_RESOURCE_KEY) as Eval;
+}
+
+/**
+ * The stored eval the plan found must be the one the archive was built
+ * from, at that version: gone, or another under its slug, is NotFound; a
+ * version pushed meanwhile is a write conflict, retried on the new head.
+ */
+function holdToVersion(reqCtx: RequestContext<PushDesc>, builtOn: BuiltOnVersion): void {
+  const existing = reqCtx.get(EXISTING_PUSHED_RESOURCE_KEY) as Eval | undefined;
+  if (existing?.metadata?.id !== builtOn.id) {
+    throw notFoundError("eval", builtOn.id);
+  }
+  if ((existing.status?.digest ?? "") !== builtOn.digest) {
+    throw writeConflictError(ApiResourceKind.eval, reqCtx.input.org, reqCtx.input.slug);
+  }
+}
+
+// ─── a case from a run ───────────────────────────────────────────────────
+
+/** The phases a run has ended in: its events are the whole turn. */
+const ENDED_RUN_PHASES: ReadonlySet<RunPhase> = new Set([
+  RunPhase.RUN_COMPLETED,
+  RunPhase.RUN_FAILED,
+  RunPhase.RUN_CANCELLED,
+  RunPhase.RUN_TERMINATED,
+]);
+
+/**
+ * BuildCaseFromRun — the run's turn as a case archive (case-from-run.ts),
+ * after can_view on the run, the permission its events and scores are read
+ * under; refused while the run has not ended, and past what one answer
+ * carries.
+ */
+async function buildCaseFromRunHandler(
+  deps: EvalControllerDeps,
+  req: BuildEvalCaseFromRunRequest,
+  ctx: HandlerContext,
+): Promise<EvalCaseArchive> {
+  const caller = await validatedCaller(deps, EvalQueryController.method.buildCaseFromRun, req, ctx);
+  refuseReservedName(req.caseName);
+  const skill = caseSkillOf(req.skill);
+  const run = await viewableEndedRun(deps, caller, req.runId);
+  return caseArchiveOf(await buildCaseFromRun(deps.store, deps.logger, { run, caseName: req.caseName, skill, callerId: caller.identityId }));
+}
+
+/**
+ * AddCaseFromRun — the run's turn built as a case, added to an eval of the
+ * run's organization as a new version: the eval's current files and the
+ * case, through the push's own chain (its can_edit question, its version
+ * archive, its tag). The current version is read and the archive built in
+ * each attempt, and the push held to that version, so a push landing
+ * meanwhile makes the attempt run again on it rather than be overwritten.
+ */
+async function addCaseFromRun(deps: EvalControllerDeps, req: AddEvalCaseFromRunRequest, ctx: HandlerContext): Promise<Eval> {
+  const caller = await validatedCaller(deps, EvalCommandController.method.addCaseFromRun, req, ctx);
+  refuseReservedName(req.caseName);
+  const skill = caseSkillOf(req.skill);
+  const run = await viewableEndedRun(deps, caller, req.runId);
+  const runOrg = run.metadata?.org ?? "";
+  // The request's rules require the reference; an organization it names must be the run's.
+  const ref = req.eval ?? create(ApiResourceReferenceSchema);
+  if (ref.org !== "" && ref.org !== runOrg) {
+    throw failedPreconditionError(EVAL_CASE_OTHER_ORGANIZATION);
+  }
+  const target = await evalOfOrganization(deps, caller, ref, runOrg);
+  const built = await buildCaseFromRun(deps.store, deps.logger, { run, caseName: req.caseName, skill, callerId: caller.identityId });
+  return runGuardedWrite(async () => {
+    const head = await evalOrNotFound(deps, target.metadata?.id ?? "");
+    // The push's own question, asked before a byte of the eval is read: a
+    // caller who may not edit it learns nothing of what it holds.
+    await authorizeResolvedResource(
+      deps.authorizer,
+      caller,
+      { permission: IamPermission.can_edit, resourceKind: ApiResourceKind.eval, resourceId: head.metadata?.id ?? "" },
+      EVAL_PUSH_DENIED,
+    );
+    const digest = head.status?.digest ?? "";
+    const slug = head.metadata?.slug ?? "";
+    let bytes: Uint8Array;
+    try {
+      bytes = await deps.artifactStorage.get(deps.artifactStorage.getStorageKey(digest));
+    } catch (error) {
+      throw archiveReadError(error, digest, "failed to load eval archive");
+    }
+    const { files } = openArchiveFiles(bytes, EVAL_NOUN);
+    const prefix = `${built.caseName}/`;
+    if (files.entries.some((entry) => entry.path === built.caseName || entry.path.startsWith(prefix))) {
+      throw new ConnectError(evalCaseExistsMessage(built.caseName, slug), Code.AlreadyExists);
+    }
+    const artifact = writeArchive([...files.entries.map((entry) => ({ path: entry.path, bytes: files.read(entry.path) })), ...built.files]);
+    const pushReq = create(PushEvalRequestSchema, {
+      org: head.metadata?.org ?? "",
+      slug,
+      artifact,
+      message: req.message !== "" ? req.message : evalCaseVersionMessage(built.caseName, req.runId),
+      tag: req.tag,
+    });
+    return runPushChains(deps, new RequestContext(PushEvalRequestSchema, pushReq, caller, kindOf(ctx)), {
+      id: head.metadata?.id ?? "",
+      digest,
+    });
+  });
+}
+
+/** The request through its method's Authorize step and its proto rules; the caller it was made as. */
+async function validatedCaller(
+  deps: EvalControllerDeps,
+  method: typeof EvalQueryController.method.buildCaseFromRun | typeof EvalCommandController.method.addCaseFromRun,
+  req: BuildEvalCaseFromRunRequest | AddEvalCaseFromRunRequest,
+  ctx: HandlerContext,
+): Promise<CallerIdentity> {
+  const caller = callerIdentityOf(ctx);
+  const reqCtx = new RequestContext(method.input, req, caller, kindOf(ctx));
+  await newPipeline(`eval-${method.localName}`, deps.logger)
+    .addStep(newAuthorizeStep(method, deps.authorizer))
+    .addStep(newValidateProtoStep())
+    .build()
+    .execute(reqCtx);
+  return caller;
+}
+
+/** A case name a suite's root keeps for itself (its mocks, its run output) is refused. */
+function refuseReservedName(caseName: string): void {
+  if (RESERVED_CASE_NAMES.has(caseName)) {
+    throw invalidArgumentError(evalCaseReservedNameMessage(caseName));
+  }
+}
+
+/** The run, once the caller may view it and it has ended. */
+async function viewableEndedRun(deps: EvalControllerDeps, caller: CallerIdentity, runId: string): Promise<Run> {
+  await authorizeResolvedResource(
+    deps.authorizer,
+    caller,
+    { permission: IamPermission.can_view, resourceKind: ApiResourceKind.run, resourceId: runId },
+    EVAL_CASE_RUN_DENIED,
+  );
+  let run: Run;
+  try {
+    run = await deps.store.getResource(ApiResourceKind.run, runId, RunSchema);
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      throw notFoundError("run", runId);
+    }
+    throw internalError(error, "failed to load run");
+  }
+  if (!ENDED_RUN_PHASES.has(run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED)) {
+    throw failedPreconditionError(evalCaseRunNotEndedMessage(runId));
+  }
+  return run;
+}
+
+/**
+ * The eval the reference names in the run's organization: by slug there,
+ * or by id when it is one of that organization's. An eval of another
+ * organization named by id reads as one that is not there. One that is not
+ * there is refused as a push naming it would be: a caller who may not
+ * create evals in the organization hears the push's refusal, whether the
+ * eval exists or not; only one who may create them hears it is not there,
+ * which their push would show them by creating it.
+ */
+async function evalOfOrganization(
+  deps: EvalControllerDeps,
+  caller: CallerIdentity,
+  ref: ApiResourceReference,
+  org: string,
+): Promise<Eval> {
+  const name = ref.slug !== "" ? ref.slug : ref.id;
+  try {
+    // The ladder's read by id holds the eval to the organization given.
+    return await loadByReferenceWithVersion(deps.store, evalVersionBinding, { ...ref, org, version: "" });
+  } catch (error) {
+    if (!(error instanceof ConnectError && error.code === Code.NotFound)) {
+      throw error;
+    }
+  }
+  await authorizeResolvedResource(
+    deps.authorizer,
+    caller,
+    { permission: IamPermission.can_create_eval, resourceKind: ApiResourceKind.organization, resourceId: org },
+    EVAL_PUSH_DENIED,
+  );
+  throw notFoundError("eval", name);
+}
+
+/** The eval's current row by id; NotFound once it is gone. */
+async function evalOrNotFound(deps: EvalControllerDeps, id: string): Promise<Eval> {
+  try {
+    return await deps.store.getResource(ApiResourceKind.eval, id, EvalSchema);
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      throw notFoundError("eval", id);
+    }
+    throw internalError(error, "failed to load eval");
+  }
 }
 
 // ─── createArtifactUploadUrl ─────────────────────────────────────────────

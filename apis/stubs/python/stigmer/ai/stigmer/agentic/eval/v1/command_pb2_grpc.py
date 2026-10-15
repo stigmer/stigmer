@@ -22,6 +22,11 @@ class EvalCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_io__pb2.PushEvalRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_api__pb2.Eval.FromString,
                 _registered_method=True)
+        self.addCaseFromRun = channel.unary_unary(
+                '/ai.stigmer.agentic.eval.v1.EvalCommandController/addCaseFromRun',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_io__pb2.AddEvalCaseFromRunRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_api__pb2.Eval.FromString,
+                _registered_method=True)
         self.createArtifactUploadUrl = channel.unary_unary(
                 '/ai.stigmer.agentic.eval.v1.EvalCommandController/createArtifactUploadUrl',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_io__pb2.CreateEvalArtifactUploadUrlRequest.SerializeToString,
@@ -62,6 +67,24 @@ class EvalCommandControllerServicer(object):
         - FAILED_PRECONDITION: the slug was renamed away from (SLUG_RENAMED)
         - PERMISSION_DENIED: the caller may not create evals in the
         organization, or may not edit the eval with this slug
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def addCaseFromRun(self, request, context):
+        """Add a case built from a run (as buildCaseFromRun builds it) to an
+        eval, as a new version holding the current version's files and the
+        case.
+
+        Error Cases:
+
+        - NOT_FOUND: no such run, or no such eval
+        - PERMISSION_DENIED: the caller may not view the run, or may not edit
+        the eval
+        - FAILED_PRECONDITION: the run has not ended, or the eval is not of the
+        run's organization
+        - ALREADY_EXISTS: the eval already holds a case of that name
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -117,6 +140,11 @@ def add_EvalCommandControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_io__pb2.PushEvalRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_api__pb2.Eval.SerializeToString,
             ),
+            'addCaseFromRun': grpc.unary_unary_rpc_method_handler(
+                    servicer.addCaseFromRun,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_io__pb2.AddEvalCaseFromRunRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_api__pb2.Eval.SerializeToString,
+            ),
             'createArtifactUploadUrl': grpc.unary_unary_rpc_method_handler(
                     servicer.createArtifactUploadUrl,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_io__pb2.CreateEvalArtifactUploadUrlRequest.FromString,
@@ -165,6 +193,33 @@ class EvalCommandController(object):
             target,
             '/ai.stigmer.agentic.eval.v1.EvalCommandController/push',
             ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_io__pb2.PushEvalRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_api__pb2.Eval.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def addCaseFromRun(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.eval.v1.EvalCommandController/addCaseFromRun',
+            ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_io__pb2.AddEvalCaseFromRunRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_api__pb2.Eval.FromString,
             options,
             channel_credentials,

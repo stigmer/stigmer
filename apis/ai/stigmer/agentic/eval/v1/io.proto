@@ -4,6 +4,7 @@ package ai.stigmer.agentic.eval.v1;
 
 import "ai/stigmer/agentic/eval/v1/api.proto";
 import "ai/stigmer/commons/apiresource/enum.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
@@ -128,6 +129,75 @@ message EvalArchive {
 
   // SHA-256 of the archive: the version's digest.
   string digest = 2;
+}
+
+// BuildEvalCaseFromRunRequest asks for one eval case built from a run: the
+// turn the run answered, the conversation before it, the tool answers it
+// got and a rubric to fill in.
+message BuildEvalCaseFromRunRequest {
+  // The run whose turn becomes the case. It must have ended.
+  string run_id = 1 [(buf.validate.field).required = true];
+
+  // The case's directory name. Empty suggests one from the request.
+  string case_name = 2 [
+    (buf.validate.field).string.max_len = 63,
+    (buf.validate.field).string.pattern = "^$|^[a-z0-9][a-z0-9._-]*$"
+  ];
+
+  // A skill the run should have read and did not, as "<plugin>:<skill>":
+  // the case gains a check that the skill is read. Empty adds none.
+  string skill = 3 [(buf.validate.field).string.max_len = 200];
+}
+
+// EvalCaseArchive is one eval case folder as a ZIP archive: the case's
+// directory at the archive's root, in the order `stigmer push eval` writes
+// it.
+message EvalCaseArchive {
+  // The case's directory name, the archive's one top-level directory.
+  string case_name = 1;
+
+  // The archive bytes.
+  bytes artifact = 2;
+
+  // SHA-256 of the archive.
+  string digest = 3;
+
+  // What the case leaves out or keeps differently from the run, one
+  // sentence each: a tool answered differently on a later call, a platform
+  // tool no mock stands in for, an attachment, a tool use the conversation
+  // never answered. Empty when the case is the run's turn whole.
+  repeated string notes = 4;
+}
+
+// AddEvalCaseFromRunRequest asks for a run's turn built as a case (as
+// buildCaseFromRun builds it) and added to an eval as a new version.
+message AddEvalCaseFromRunRequest {
+  // The run whose turn becomes the case. It must have ended.
+  string run_id = 1 [(buf.validate.field).required = true];
+
+  // The eval to add the case to, by slug or id; its organization must be
+  // the run's. Its version is ignored: the case joins the current one.
+  ai.stigmer.commons.apiresource.ApiResourceReference eval = 2 [(buf.validate.field).required = true];
+
+  // The case's directory name. Empty suggests one from the request. A name
+  // the eval already holds is refused.
+  string case_name = 3 [
+    (buf.validate.field).string.max_len = 63,
+    (buf.validate.field).string.pattern = "^$|^[a-z0-9][a-z0-9._-]*$"
+  ];
+
+  // A skill the run should have read and did not, as "<plugin>:<skill>".
+  string skill = 4 [(buf.validate.field).string.max_len = 200];
+
+  // The new version's message. Empty is "case <name> from run <id>".
+  string message = 5;
+
+  // Optional tag to move to the new version. "latest" is refused.
+  string tag = 6 [
+    (buf.validate.field).string.pattern = "^$|^[a-zA-Z0-9._-]+$",
+    (buf.validate.field).string.max_len = 128,
+    (buf.validate.field).string.not_in = "latest"
+  ];
 }
 
 // EvalArchiveDownloadUrl is a URL to download one version of an eval over

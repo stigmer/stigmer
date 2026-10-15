@@ -17,8 +17,8 @@ The subcommands fall into three areas:
   `trace` shows its tool calls and how each ended, or lists its events as JSON
   or YAML; `scores` shows how good a finished run was: each person's thumbs, the
   run-health checks, the AI judge and, on an eval run's try, each check of its
-  case ([Scores](/docs/concepts/scores)); `to-eval-case` writes a run as a test
-  case in a local plugin's `evals/` folder.
+  case ([Scores](/docs/concepts/scores)); `to-eval-case` turns a run into a test
+  case, written into a local `evals/` folder or added to an eval.
 - **Approval** — `approve` answers a tool call the run waits on: allow it, deny
   it with a reason the agent reads, or allow it and every waiting call of its
   kind for the rest of the turn.
@@ -67,17 +67,24 @@ stigmer runs scores run_01abc123 -o json
 ### Turn a run into a test case
 
 ```bash
-# Write evals/<name from the request>/prompt.md and graders/criteria.md
+# Write the case into evals/<name from the request>/
 stigmer runs to-eval-case run_01abc123
 
 # Name the case, and also check that the plugin's review skill fired
 stigmer runs to-eval-case run_01abc123 --name finds-the-bug --skill thermos:review
+
+# Add the case to an eval as a new version instead
+stigmer runs to-eval-case run_01abc123 --eval support-agent-evals
 ```
 
-The FAIL line of `graders/criteria.md` names what went wrong in the run (the AI
-judge's reason, else an eval run's failing check, else a person's thumbs-down
-comment); write its PASS line yourself. An existing case directory is never overwritten. See
-[Test a plugin with evals](/docs/guides/plugins/test-a-plugin-with-evals).
+Stigmer builds the case from the run: the request as `prompt.md`, the
+conversation before it as `history.jsonl` when there was one, each MCP tool's
+answer as a mock, and `graders/criteria.md`, whose FAIL line names what went
+wrong (the AI judge's reason, else an eval run's failing check, else your
+thumbs-down comment); write its PASS line yourself. What the case leaves out is
+printed beside it. An existing case directory is never overwritten, and an eval
+refuses a case name it already holds. See
+[Test agents and plugins with evals](/docs/guides/evals/test-with-evals#turn-a-conversation-into-a-case).
 
 ### Approve a waiting run
 

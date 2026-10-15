@@ -20,12 +20,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	EvalQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.eval.v1.EvalQueryController/get"
-	EvalQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.eval.v1.EvalQueryController/getByReference"
-	EvalQueryController_List_FullMethodName           = "/ai.stigmer.agentic.eval.v1.EvalQueryController/list"
-	EvalQueryController_ListVersions_FullMethodName   = "/ai.stigmer.agentic.eval.v1.EvalQueryController/listVersions"
-	EvalQueryController_Download_FullMethodName       = "/ai.stigmer.agentic.eval.v1.EvalQueryController/download"
-	EvalQueryController_GetDownloadUrl_FullMethodName = "/ai.stigmer.agentic.eval.v1.EvalQueryController/getDownloadUrl"
+	EvalQueryController_Get_FullMethodName              = "/ai.stigmer.agentic.eval.v1.EvalQueryController/get"
+	EvalQueryController_GetByReference_FullMethodName   = "/ai.stigmer.agentic.eval.v1.EvalQueryController/getByReference"
+	EvalQueryController_List_FullMethodName             = "/ai.stigmer.agentic.eval.v1.EvalQueryController/list"
+	EvalQueryController_ListVersions_FullMethodName     = "/ai.stigmer.agentic.eval.v1.EvalQueryController/listVersions"
+	EvalQueryController_Download_FullMethodName         = "/ai.stigmer.agentic.eval.v1.EvalQueryController/download"
+	EvalQueryController_GetDownloadUrl_FullMethodName   = "/ai.stigmer.agentic.eval.v1.EvalQueryController/getDownloadUrl"
+	EvalQueryController_BuildCaseFromRun_FullMethodName = "/ai.stigmer.agentic.eval.v1.EvalQueryController/buildCaseFromRun"
 )
 
 // EvalQueryControllerClient is the client API for EvalQueryController service.
@@ -61,6 +62,23 @@ type EvalQueryControllerClient interface {
 	// message-size cap (10MB). The reference's version picks the version as
 	// getByReference does.
 	GetDownloadUrl(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*EvalArchiveDownloadUrl, error)
+	// Build an eval case from a run, to keep on disk or push in an eval.
+	//
+	// The case is the turn the run answered: its request as the prompt, the
+	// conversation before it as the case's history (so the case resumes where
+	// the person was), each MCP tool answer the run got as a fixed mock under
+	// the server name the turn gave it, and a rubric to fill in, seeded with
+	// why the run went wrong (an AI judge's failing reason, or the caller's
+	// own thumbs-down note). It never carries a verdict of its own.
+	//
+	// Error Cases:
+	//
+	//   - NOT_FOUND: no such run
+	//   - PERMISSION_DENIED: the caller may not view the run
+	//   - FAILED_PRECONDITION: the run has not ended
+	//   - RESOURCE_EXHAUSTED: the case is too large to answer inline; add it
+	//     to an eval with addCaseFromRun, which writes it on the server
+	BuildCaseFromRun(ctx context.Context, in *BuildEvalCaseFromRunRequest, opts ...grpc.CallOption) (*EvalCaseArchive, error)
 }
 
 type evalQueryControllerClient struct {
@@ -131,6 +149,16 @@ func (c *evalQueryControllerClient) GetDownloadUrl(ctx context.Context, in *apir
 	return out, nil
 }
 
+func (c *evalQueryControllerClient) BuildCaseFromRun(ctx context.Context, in *BuildEvalCaseFromRunRequest, opts ...grpc.CallOption) (*EvalCaseArchive, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EvalCaseArchive)
+	err := c.cc.Invoke(ctx, EvalQueryController_BuildCaseFromRun_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // EvalQueryControllerServer is the server API for EvalQueryController service.
 // All implementations should embed UnimplementedEvalQueryControllerServer
 // for forward compatibility.
@@ -164,6 +192,23 @@ type EvalQueryControllerServer interface {
 	// message-size cap (10MB). The reference's version picks the version as
 	// getByReference does.
 	GetDownloadUrl(context.Context, *apiresource.ApiResourceReference) (*EvalArchiveDownloadUrl, error)
+	// Build an eval case from a run, to keep on disk or push in an eval.
+	//
+	// The case is the turn the run answered: its request as the prompt, the
+	// conversation before it as the case's history (so the case resumes where
+	// the person was), each MCP tool answer the run got as a fixed mock under
+	// the server name the turn gave it, and a rubric to fill in, seeded with
+	// why the run went wrong (an AI judge's failing reason, or the caller's
+	// own thumbs-down note). It never carries a verdict of its own.
+	//
+	// Error Cases:
+	//
+	//   - NOT_FOUND: no such run
+	//   - PERMISSION_DENIED: the caller may not view the run
+	//   - FAILED_PRECONDITION: the run has not ended
+	//   - RESOURCE_EXHAUSTED: the case is too large to answer inline; add it
+	//     to an eval with addCaseFromRun, which writes it on the server
+	BuildCaseFromRun(context.Context, *BuildEvalCaseFromRunRequest) (*EvalCaseArchive, error)
 }
 
 // UnimplementedEvalQueryControllerServer should be embedded to have
@@ -190,6 +235,9 @@ func (UnimplementedEvalQueryControllerServer) Download(context.Context, *apireso
 }
 func (UnimplementedEvalQueryControllerServer) GetDownloadUrl(context.Context, *apiresource.ApiResourceReference) (*EvalArchiveDownloadUrl, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDownloadUrl not implemented")
+}
+func (UnimplementedEvalQueryControllerServer) BuildCaseFromRun(context.Context, *BuildEvalCaseFromRunRequest) (*EvalCaseArchive, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BuildCaseFromRun not implemented")
 }
 func (UnimplementedEvalQueryControllerServer) testEmbeddedByValue() {}
 
@@ -319,6 +367,24 @@ func _EvalQueryController_GetDownloadUrl_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EvalQueryController_BuildCaseFromRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BuildEvalCaseFromRunRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EvalQueryControllerServer).BuildCaseFromRun(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EvalQueryController_BuildCaseFromRun_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EvalQueryControllerServer).BuildCaseFromRun(ctx, req.(*BuildEvalCaseFromRunRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // EvalQueryController_ServiceDesc is the grpc.ServiceDesc for EvalQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -349,6 +415,10 @@ var EvalQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getDownloadUrl",
 			Handler:    _EvalQueryController_GetDownloadUrl_Handler,
+		},
+		{
+			MethodName: "buildCaseFromRun",
+			Handler:    _EvalQueryController_BuildCaseFromRun_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

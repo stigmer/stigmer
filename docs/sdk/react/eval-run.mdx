@@ -464,7 +464,7 @@ One plugin, or one Eval, in two eval runs.
     beforeDigest: { type: "string | null", description: "The plugin version in each eval run; `null` when that eval run did not have the plugin.", required: true },
     beforeNotRun: { type: "string", description: "Why the plugin's cases did not run in each eval run; empty when they ran.", required: true },
     digestChanged: { type: "boolean", description: "Both eval runs ran the plugin, at different versions: its cases may have changed with it.", required: true },
-    kind: { type: "\"plugin\" | \"eval\"", description: "", required: true },
+    kind: { type: "\"eval\" | \"plugin\"", description: "", required: true },
     rows: { type: "readonly EvalCompareRow[]", description: "Its cases, compared by compareCaseSources.", required: true },
     slug: { type: "string", description: "", required: true },
   }}
@@ -512,7 +512,7 @@ One plugin a try loaded, or one Eval whose cases ran on the agent, as an eval ru
     casesTotal: { type: "number", description: "", required: true },
     compared: { type: "boolean", description: "Whether each case ran with and without it.", required: true },
     digest: { type: "string", description: "The plugin version every try ran.", required: true },
-    kind: { type: "\"plugin\" | \"eval\"", description: "Where the cases come from: a plugin, or an Eval (whose id, slug and version fill the plugin's fields).", required: true },
+    kind: { type: "\"eval\" | \"plugin\"", description: "Where the cases come from: a plugin, or an Eval (whose id, slug and version fill the plugin's fields).", required: true },
     labels: { type: "readonly string[]", description: "The target columns of this plugin's table.", required: true },
     meanDelta: { type: "number | undefined", description: "", required: true },
     notRun: { type: "string", description: "Why none of the plugin's cases ran; empty when they ran.", required: true },
@@ -668,37 +668,5 @@ Case tags a person typed, comma-separated; blank entries dropped.
 
 ```tsx
 function parseCaseTags(text: string): string[]
-```
-
-
-### RunForTestCase
-
-What the thread knows about a run, for [`testCaseOfRun`](#testcaseofrun).
-
-<TypeTable
-  type={{
-    multiTurn: { type: "boolean", description: "", required: true },
-    request: { type: "string", description: "", required: true },
-    scores: { type: "readonly Score[]", description: "", required: true },
-    viewer: { type: "ViewerIdentity | null", description: "", required: true },
-  }}
-/>
-
-
-### testCaseOfRun
-
-The case folder a run becomes, named after its request.
-
-```tsx
-function testCaseOfRun(run: RunForTestCase): CaseFromRun
-```
-
-
-### zipTestCase
-
-The case folder as a zip: `<caseName>/prompt.md`, `<caseName>/graders/...`.
-
-```tsx
-function zipTestCase(testCase: CaseFromRun): Uint8Array
 ```
 

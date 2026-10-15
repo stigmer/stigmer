@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CreateEvalArtifactUploadUrlRequest, EvalArtifactUploadUrl, EvalId, PushEvalRequest } from "./io_pbjs";
+import { AddEvalCaseFromRunRequest, CreateEvalArtifactUploadUrlRequest, EvalArtifactUploadUrl, EvalId, PushEvalRequest } from "./io_pbjs";
 import { Eval } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { RenameInput, UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
@@ -36,6 +36,28 @@ export const EvalCommandController = {
     push: {
       name: "push",
       I: PushEvalRequest,
+      O: Eval,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Add a case built from a run (as buildCaseFromRun builds it) to an
+     * eval, as a new version holding the current version's files and the
+     * case.
+     *
+     * Error Cases:
+     *
+     * - NOT_FOUND: no such run, or no such eval
+     * - PERMISSION_DENIED: the caller may not view the run, or may not edit
+     *   the eval
+     * - FAILED_PRECONDITION: the run has not ended, or the eval is not of the
+     *   run's organization
+     * - ALREADY_EXISTS: the eval already holds a case of that name
+     *
+     * @generated from rpc ai.stigmer.agentic.eval.v1.EvalCommandController.addCaseFromRun
+     */
+    addCaseFromRun: {
+      name: "addCaseFromRun",
+      I: AddEvalCaseFromRunRequest,
       O: Eval,
       kind: MethodKind.Unary,
     },

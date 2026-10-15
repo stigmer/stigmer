@@ -1,172 +1,171 @@
-// Pins `runs to-eval-case`: the run's request becomes prompt.md under
-// <dir>/<name>, named after the request unless --name says otherwise; the
-// rubric's FAIL line comes from the judge's failing reason, else a plugin
-// eval's failing check, else a person's thumbs-down comment; --skill adds the
-// skill check; a run that continued a conversation is noted (an earlier run
-// of its session, found on any page of its runs, or any other run when the
-// run has no creation time), and a run outside a session never reads one; a
-// run with no request, an existing case directory, a bad --name and a bad
-// --skill are refused before anything is written.
+// Pins `runs to-eval-case` over a client double: the server builds the case
+// (buildCaseFromRun gets the run, --name and --skill as written), and the
+// command unzips it under --dir (evals by default) into the case directory
+// the server named, printing where and each note the server returned;
+// --eval adds the case to the eval it names instead (addCaseFromRun, by
+// slug in the caller's organization or by id) and prints the new version.
+// Refused before anything is written or sent: a bad --name, a bad --skill,
+// --dir beside --eval, an --eval naming a version. Refused before anything
+// is written: an archive that does not match its digest, one with an entry
+// outside its case directory, an existing case directory.
 
 import { create } from "@bufbuild/protobuf";
-import { timestampFromMs } from "@bufbuild/protobuf/wkt";
-import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ScoreSchema, type Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import { CriterionResult, ScoreSource } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+import { zipSync } from "fflate";
+import { digestArchive } from "@stigmer/plugin-package/client";
+import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
+import {
+  EvalCaseArchiveSchema,
+  type AddEvalCaseFromRunRequest,
+  type BuildEvalCaseFromRunRequest,
+} from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { describe, expect, it } from "vitest";
 import { UsageError } from "../../errors/index.js";
 import { writeEvalCaseFromRun, type CaseFolderIo } from "../run-to-eval-case.js";
 
-function runAt(id: string, ms: number, message = "Look over my diff and find the bug."): Run {
-  return create(RunSchema, {
-    metadata: { id },
-    spec: { message, target: { case: "sessionId", value: "ses_1" } },
-    status: { audit: { specAudit: { createdAt: timestampFromMs(ms) } } },
-  });
+const encoder = new TextEncoder();
+
+function caseArchive(files: Record<string, string>): Uint8Array {
+  return zipSync(Object.fromEntries(Object.entries(files).map(([path, text]) => [path, encoder.encode(text)])));
 }
 
-// The session's runs answer one run a page, newest first as the server
-// orders them, so a run that only a later page holds is still found.
-function fakeClient(run: Run, scores: Score[], sessionRuns: Run[] = [run]): Stigmer {
-  const newestFirst = [...sessionRuns].reverse();
-  return {
-    run: {
-      get: async () => run,
-      listBySession: async (req: { pageToken: string }) => {
-        const at = req.pageToken === "" ? 0 : Number(req.pageToken);
-        const next = at + 1 < newestFirst.length ? String(at + 1) : "";
-        return { entries: newestFirst.slice(at, at + 1), nextPageToken: next };
+const FILES = {
+  "finds-the-bug/prompt.md": "Look over my diff and find the bug.\n",
+  "finds-the-bug/graders/criteria.md": "---\ntype: llm\n---\n\nFAIL if: missed the off-by-one\n",
+};
+
+interface Calls {
+  builds: BuildEvalCaseFromRunRequest[];
+  adds: AddEvalCaseFromRunRequest[];
+}
+
+async function fakeClient(
+  options: { files?: Record<string, string>; notes?: string[]; digest?: string; caseName?: string } = {},
+): Promise<{ client: Stigmer; calls: Calls }> {
+  const artifact = caseArchive(options.files ?? FILES);
+  const digest = options.digest ?? (await digestArchive(artifact));
+  const calls: Calls = { builds: [], adds: [] };
+  const client = {
+    eval: {
+      buildCaseFromRun: async (req: BuildEvalCaseFromRunRequest) => {
+        calls.builds.push(req);
+        return create(EvalCaseArchiveSchema, { caseName: options.caseName ?? "finds-the-bug", artifact, digest, notes: options.notes ?? [] });
+      },
+      addCaseFromRun: async (req: AddEvalCaseFromRunRequest) => {
+        calls.adds.push(req);
+        return create(EvalSchema, {
+          metadata: { slug: "support-evals", version: { message: "case finds-the-bug from run run_1" } },
+          status: { digest: "abcdef0123456789" },
+        });
       },
     },
-    score: { listByRun: async () => ({ entries: scores, nextPageToken: "" }) },
   } as unknown as Stigmer;
+  return { client, calls };
 }
 
 function fakeFolder(existing: string[] = []) {
-  const files = new Map<string, string>();
+  const extracted: Array<{ dir: string; size: number }> = [];
   let stderr = "";
   const io: CaseFolderIo = {
     exists: async (path) => existing.includes(path),
-    writeFile: async (path, content) => void files.set(path, content),
+    extract: (archive, dir) => {
+      extracted.push({ dir, size: archive.length });
+      return 2;
+    },
     stderr: { write: (text) => void (stderr += text) },
   };
-  return { io, files, err: () => stderr };
+  return { io, extracted, err: () => stderr };
 }
 
-const judgeFailed = create(ScoreSchema, {
-  spec: {
-    source: ScoreSource.judge,
-    metric: "judge",
-    criteria: [{ name: "did-the-task", result: CriterionResult.failed, reason: "missed the off-by-one" }],
-  },
-});
+async function refusal(promise: Promise<unknown>): Promise<UsageError> {
+  const error = await promise.catch((e: unknown) => e);
+  expect(error).toBeInstanceOf(UsageError);
+  return error as UsageError;
+}
 
-const thumbsDown = create(ScoreSchema, {
-  spec: { source: ScoreSource.human, metric: "feedback", value: { case: "passed", value: false }, comment: "wrong file" },
-});
-
-describe("writeEvalCaseFromRun", () => {
-  it("writes the case under evals/<name from the request>, the FAIL line from the judge", async () => {
+describe("writeEvalCaseFromRun, writing the case here", () => {
+  it("unzips the server's case under evals/<the case it named> and says where, with each note", async () => {
+    const { client, calls } = await fakeClient({ notes: ["the request's attachment report.pdf is not carried"] });
     const folder = fakeFolder();
-    const dir = await writeEvalCaseFromRun(fakeClient(runAt("run_1", 10), [thumbsDown, judgeFailed]), "run_1", {}, folder.io);
-    expect(dir).toBe("evals/look-over-my-diff-and-find-the-bug");
-    expect([...folder.files.keys()]).toEqual([
-      "evals/look-over-my-diff-and-find-the-bug/prompt.md",
-      "evals/look-over-my-diff-and-find-the-bug/graders/criteria.md",
-    ]);
-    expect(folder.files.get(`${dir}/prompt.md`)).toContain("Look over my diff and find the bug.\n");
-    expect(folder.files.get(`${dir}/graders/criteria.md`)).toContain("made from: missed the off-by-one.");
-    expect(folder.err()).toContain("Fill in the PASS line");
-    expect(folder.err()).not.toContain("Note:");
+    expect(await writeEvalCaseFromRun(client, "run_1", {}, folder.io, "acme")).toBe("evals/finds-the-bug");
+    expect(calls.builds.map((req) => [req.runId, req.caseName, req.skill])).toEqual([["run_1", "", ""]]);
+    expect(folder.extracted.map((entry) => entry.dir)).toEqual(["evals"]);
+    expect(folder.err()).toContain("Wrote evals/finds-the-bug (2 files).");
+    expect(folder.err()).toContain("Fill in the PASS line of evals/finds-the-bug/graders/criteria.md");
+    expect(folder.err()).toContain("Note: the request's attachment report.pdf is not carried\n");
   });
 
-  it("takes an eval run's failing check, else the thumbs-down comment", async () => {
-    const evalFailed = create(ScoreSchema, {
-      spec: {
-        source: ScoreSource.eval,
-        criteria: [{ name: "mentions-callers", result: CriterionResult.failed, reason: "named no call site" }],
-      },
-    });
-    const first = fakeFolder();
-    await writeEvalCaseFromRun(fakeClient(runAt("run_1", 10), [thumbsDown, evalFailed]), "run_1", { name: "a" }, first.io);
-    expect(first.files.get("evals/a/graders/criteria.md")).toContain("made from: named no call site.");
-    const second = fakeFolder();
-    await writeEvalCaseFromRun(fakeClient(runAt("run_1", 10), [thumbsDown]), "run_1", { name: "a" }, second.io);
-    expect(second.files.get("evals/a/graders/criteria.md")).toContain("made from: wrong file.");
-  });
-
-  it("honours --dir, --name and --skill", async () => {
+  it("hands --name and --skill to the server and honours --dir", async () => {
+    const { client, calls } = await fakeClient({ caseName: "custom", files: { "custom/prompt.md": "Hi.\n" } });
     const folder = fakeFolder();
-    await writeEvalCaseFromRun(
-      fakeClient(runAt("run_1", 10), []),
-      "run_1",
-      { dir: "suite/", name: "finds-bug", skill: "thermos:review" },
-      folder.io,
+    expect(await writeEvalCaseFromRun(client, "run_2", { dir: "suite/", name: "custom", skill: " thermos : review " }, folder.io, "acme")).toBe(
+      "suite/custom",
     );
-    expect([...folder.files.keys()]).toContain("suite/finds-bug/graders/skill-fired.md");
+    expect(calls.builds.map((req) => [req.caseName, req.skill])).toEqual([["custom", "thermos:review"]]);
+    expect(folder.extracted.map((entry) => entry.dir)).toEqual(["suite"]);
   });
 
-  it("notes a run that continued a conversation", async () => {
-    const folder = fakeFolder();
-    const run = runAt("run_2", 20);
-    await writeEvalCaseFromRun(fakeClient(run, [], [runAt("run_1", 10), run]), "run_2", { name: "a" }, folder.io);
-    expect(folder.err()).toContain("Note: built from the last request; resumed conversations are not run yet.");
-  });
-
-  it("finds the earlier run on a later page of the session's runs", async () => {
-    const folder = fakeFolder();
-    const run = runAt("run_2", 20);
-    const oldestFirst = [runAt("run_1", 10), run, runAt("run_3", 30), runAt("run_4", 40)];
-    await writeEvalCaseFromRun(fakeClient(run, [], oldestFirst), "run_2", { name: "a" }, folder.io);
-    expect(folder.err()).toContain("Note: built from the last request");
-  });
-
-  it("reads the session's runs only for a run that joined one, and without a creation time counts any other run", async () => {
-    const newSessionRun = create(RunSchema, {
-      metadata: { id: "run_1" },
-      spec: { message: "Find the bug.", target: { case: "sessionSpec", value: {} } },
-    });
-    let sessionReads = 0;
-    const newSessionClient = {
-      run: {
-        get: async () => newSessionRun,
-        listBySession: async () => ((sessionReads += 1), { entries: [], nextPageToken: "" }),
-      },
-      score: { listByRun: async () => ({ entries: [], nextPageToken: "" }) },
-    } as unknown as Stigmer;
-    const alone = fakeFolder();
-    await writeEvalCaseFromRun(newSessionClient, "run_1", { name: "a" }, alone.io);
-    expect(sessionReads).toBe(0);
-    expect(alone.err()).not.toContain("Note:");
-
-    const undated = create(RunSchema, {
-      metadata: { id: "run_2" },
-      spec: { message: "Find the bug.", target: { case: "sessionId", value: "ses_1" } },
-    });
-    const continued = fakeFolder();
-    await writeEvalCaseFromRun(fakeClient(undated, [], [runAt("run_1", 10), undated]), "run_2", { name: "a" }, continued.io);
-    expect(continued.err()).toContain("Note: built from the last request");
+  it("refuses an archive that does not match its digest, one with an entry outside its case, and an existing case directory, writing nothing", async () => {
+    const tampered = await fakeClient({ digest: "0".repeat(64) });
     const first = fakeFolder();
-    await writeEvalCaseFromRun(fakeClient(undated, [], [undated]), "run_2", { name: "a" }, first.io);
-    expect(first.err()).not.toContain("Note:");
+    expect((await refusal(writeEvalCaseFromRun(tampered.client, "run_1", {}, first.io, "acme"))).message).toContain("does not match its digest");
+    const climbing = await fakeClient({ files: { ...FILES, "elsewhere/notes.md": "x" } });
+    expect((await refusal(writeEvalCaseFromRun(climbing.client, "run_1", {}, first.io, "acme"))).message).toContain(
+      "holds 'elsewhere/notes.md', outside its case directory 'finds-the-bug'",
+    );
+    const plain = await fakeClient();
+    const taken = fakeFolder(["evals/finds-the-bug"]);
+    expect((await refusal(writeEvalCaseFromRun(plain.client, "run_1", {}, taken.io, "acme"))).message).toBe(
+      "evals/finds-the-bug already exists; choose another --name, or remove it first",
+    );
+    expect([first.extracted, taken.extracted]).toEqual([[], []]);
   });
+});
 
-  it("refuses a run with no request, writing nothing", async () => {
+describe("writeEvalCaseFromRun, adding the case to an eval", () => {
+  it("adds it to the eval named by slug in the caller's organization, or by id, and prints the new version", async () => {
+    const { client, calls } = await fakeClient();
     const folder = fakeFolder();
-    const blank = runAt("run_1", 10, "  \n");
-    const error = await writeEvalCaseFromRun(fakeClient(blank, []), "run_1", {}, folder.io).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(UsageError);
-    expect((error as UsageError).message).toBe("run run_1 has no request to make a case from");
-    expect(folder.files.size).toBe(0);
+    expect(await writeEvalCaseFromRun(client, "run_1", { eval: "support-evals", name: "finds-the-bug" }, folder.io, "acme")).toBe(
+      "abcdef0123456789",
+    );
+    await writeEvalCaseFromRun(client, "run_1", { eval: "evs_01abc" }, folder.io, "acme");
+    expect(calls.adds.map((req) => [req.runId, req.eval?.kind, req.eval?.org, req.eval?.slug, req.eval?.id, req.caseName])).toEqual([
+      ["run_1", ApiResourceKind.eval, "acme", "support-evals", "", "finds-the-bug"],
+      ["run_1", ApiResourceKind.eval, "", "", "evs_01abc", ""],
+    ]);
+    expect(calls.builds).toEqual([]);
+    expect(folder.extracted).toEqual([]);
+    expect(folder.err()).toContain("Added the case to eval 'support-evals' as version sha256:abcdef012345 (case finds-the-bug from run run_1).");
   });
 
-  it("refuses an existing case directory, a bad name and a bad skill, writing nothing", async () => {
-    const client = fakeClient(runAt("run_1", 10), []);
-    const taken = fakeFolder(["evals/a"]);
-    await expect(writeEvalCaseFromRun(client, "run_1", { name: "a" }, taken.io)).rejects.toThrow("evals/a already exists");
-    await expect(writeEvalCaseFromRun(client, "run_1", { name: "Bad Name" }, taken.io)).rejects.toBeInstanceOf(UsageError);
-    await expect(writeEvalCaseFromRun(client, "run_1", { skill: "review" }, taken.io)).rejects.toThrow("<plugin>:<skill>");
-    expect(taken.files.size).toBe(0);
+  it("prints no message when the version carries none", async () => {
+    const { client } = await fakeClient();
+    (client.eval as unknown as { addCaseFromRun: () => Promise<unknown> }).addCaseFromRun = async () =>
+      create(EvalSchema, { metadata: { slug: "support-evals" }, status: { digest: "abcdef0123456789" } });
+    const folder = fakeFolder();
+    await writeEvalCaseFromRun(client, "run_1", { eval: "support-evals" }, folder.io, "acme");
+    expect(folder.err()).toContain("as version sha256:abcdef012345.\n");
+  });
+});
+
+describe("writeEvalCaseFromRun, refused before anything is sent", () => {
+  it("refuses a bad --name, a bad --skill, --dir beside --eval and an --eval naming a version", async () => {
+    const { client, calls } = await fakeClient();
+    const folder = fakeFolder();
+    expect((await refusal(writeEvalCaseFromRun(client, "run_1", { name: "Bad Name" }, folder.io, "acme"))).message).toContain(
+      "--name 'Bad Name' is not a case name",
+    );
+    expect((await refusal(writeEvalCaseFromRun(client, "run_1", { skill: "review" }, folder.io, "acme"))).message).toContain(
+      "--skill 'review' names no skill",
+    );
+    expect((await refusal(writeEvalCaseFromRun(client, "run_1", { eval: "support-evals", dir: "evals" }, folder.io, "acme"))).message).toContain(
+      "with --eval the case goes into the eval instead",
+    );
+    expect((await refusal(writeEvalCaseFromRun(client, "run_1", { eval: "support-evals@stable" }, folder.io, "acme"))).message).toContain(
+      "names a version",
+    );
+    expect([calls.builds, calls.adds, folder.extracted]).toEqual([[], [], []]);
   });
 });

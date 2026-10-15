@@ -24,12 +24,13 @@ _sym_db = _symbol_database.Default()
 
 from ai.stigmer.agentic.eval.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_eval_dot_v1_dot_api__pb2
 from ai.stigmer.commons.apiresource import enum_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_enum__pb2
+from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from ai.stigmer.commons.apiresource import status_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_status__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n#ai/stigmer/agentic/eval/v1/io.proto\x12\x1a\x61i.stigmer.agentic.eval.v1\x1a$ai/stigmer/agentic/eval/v1/api.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"&\n\x06\x45valId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xbf\x04\n\x0fPushEvalRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12;\n\x04slug\x18\x02 \x01(\tB\'\xbaH$r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$\xc8\x01\x01R\x04slug\x12\x1c\n\x04name\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\xc8\x01R\x04name\x12\x1a\n\x08\x61rtifact\x18\x04 \x01(\x0cR\x08\x61rtifact\x12.\n\x13\x61rtifact_upload_ref\x18\x05 \x01(\tR\x11\x61rtifactUploadRef\x12_\n\nvisibility\x18\x06 \x01(\x0e\x32\x35.ai.stigmer.commons.apiresource.ApiResourceVisibilityB\x08\xbaH\x05\x82\x01\x02\x10\x01R\nvisibility\x12\x18\n\x07message\x18\x07 \x01(\tR\x07message\x12\x38\n\x03tag\x18\x08 \x01(\tB&\xbaH#r!\x18\x80\x01\x32\x14^$|^[a-zA-Z0-9._-]+$Z\x06latestR\x03tag:\xb5\x01\xbaH\xb1\x01\x1a\xae\x01\n!push_eval_request.artifact_source\x12Iexactly one of artifact (inline bytes) or artifact_upload_ref must be set\x1a>(this.artifact.size() > 0) != (this.artifact_upload_ref != \'\')\"\xa3\x01\n\"CreateEvalArtifactUploadUrlRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12;\n\x04slug\x18\x02 \x01(\tB\'\xbaH$r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$\xc8\x01\x01R\x04slug\x12&\n\nsize_bytes\x18\x03 \x01(\x03\x42\x07\xbaH\x04\"\x02 \x00R\tsizeBytes\"z\n\x15\x45valArtifactUploadUrl\x12\x10\n\x03url\x18\x01 \x01(\tR\x03url\x12.\n\x13\x61rtifact_upload_ref\x18\x02 \x01(\tR\x11\x61rtifactUploadRef\x12\x1f\n\x0bttl_seconds\x18\x03 \x01(\x05R\nttlSeconds\"A\n\x0b\x45valArchive\x12\x1a\n\x08\x61rtifact\x18\x01 \x01(\x0cR\x08\x61rtifact\x12\x16\n\x06\x64igest\x18\x02 \x01(\tR\x06\x64igest\"\x82\x01\n\x16\x45valArchiveDownloadUrl\x12\x10\n\x03url\x18\x01 \x01(\tR\x03url\x12\x1f\n\x0bttl_seconds\x18\x02 \x01(\x05R\nttlSeconds\x12\x1d\n\nsize_bytes\x18\x03 \x01(\x03R\tsizeBytes\x12\x16\n\x06\x64igest\x18\x04 \x01(\tR\x06\x64igest\"\x9c\x01\n\x15ListEvalVersionsInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\x12$\n\tpage_size\x18\x04 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\"\x82\x02\n\x10\x45valVersionEntry\x12\x16\n\x06\x64igest\x18\x01 \x01(\tR\x06\x64igest\x12\x37\n\tpushed_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x08pushedAt\x12R\n\tpushed_by\x18\x03 \x01(\x0b\x32\x35.ai.stigmer.commons.apiresource.ApiResourceAuditActorR\x08pushedBy\x12\x10\n\x03tag\x18\x04 \x01(\tR\x03tag\x12\x1d\n\nis_current\x18\x05 \x01(\x08R\tisCurrent\x12\x18\n\x07message\x18\x06 \x01(\tR\x07message\"\x8a\x01\n\x18ListEvalVersionsResponse\x12\x46\n\x07\x65ntries\x18\x01 \x03(\x0b\x32,.ai.stigmer.agentic.eval.v1.EvalVersionEntryR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x89\x02\n\x10ListEvalsRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\x12P\n\x06labels\x18\x04 \x03(\x0b\x32\x38.ai.stigmer.agentic.eval.v1.ListEvalsRequest.LabelsEntryR\x06labels\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"n\n\x08\x45valList\x12:\n\x07\x65ntries\x18\x01 \x03(\x0b\x32 .ai.stigmer.agentic.eval.v1.EvalR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\xb8\x01\n\x1e\x63om.ai.stigmer.agentic.eval.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAE\xaa\x02\x1a\x41i.Stigmer.Agentic.Eval.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Eval_\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMetadata\xea\x02\x1e\x41i::Stigmer::Agentic::Eval::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n#ai/stigmer/agentic/eval/v1/io.proto\x12\x1a\x61i.stigmer.agentic.eval.v1\x1a$ai/stigmer/agentic/eval/v1/api.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"&\n\x06\x45valId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xbf\x04\n\x0fPushEvalRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12;\n\x04slug\x18\x02 \x01(\tB\'\xbaH$r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$\xc8\x01\x01R\x04slug\x12\x1c\n\x04name\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\xc8\x01R\x04name\x12\x1a\n\x08\x61rtifact\x18\x04 \x01(\x0cR\x08\x61rtifact\x12.\n\x13\x61rtifact_upload_ref\x18\x05 \x01(\tR\x11\x61rtifactUploadRef\x12_\n\nvisibility\x18\x06 \x01(\x0e\x32\x35.ai.stigmer.commons.apiresource.ApiResourceVisibilityB\x08\xbaH\x05\x82\x01\x02\x10\x01R\nvisibility\x12\x18\n\x07message\x18\x07 \x01(\tR\x07message\x12\x38\n\x03tag\x18\x08 \x01(\tB&\xbaH#r!\x18\x80\x01\x32\x14^$|^[a-zA-Z0-9._-]+$Z\x06latestR\x03tag:\xb5\x01\xbaH\xb1\x01\x1a\xae\x01\n!push_eval_request.artifact_source\x12Iexactly one of artifact (inline bytes) or artifact_upload_ref must be set\x1a>(this.artifact.size() > 0) != (this.artifact_upload_ref != \'\')\"\xa3\x01\n\"CreateEvalArtifactUploadUrlRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12;\n\x04slug\x18\x02 \x01(\tB\'\xbaH$r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$\xc8\x01\x01R\x04slug\x12&\n\nsize_bytes\x18\x03 \x01(\x03\x42\x07\xbaH\x04\"\x02 \x00R\tsizeBytes\"z\n\x15\x45valArtifactUploadUrl\x12\x10\n\x03url\x18\x01 \x01(\tR\x03url\x12.\n\x13\x61rtifact_upload_ref\x18\x02 \x01(\tR\x11\x61rtifactUploadRef\x12\x1f\n\x0bttl_seconds\x18\x03 \x01(\x05R\nttlSeconds\"A\n\x0b\x45valArchive\x12\x1a\n\x08\x61rtifact\x18\x01 \x01(\x0cR\x08\x61rtifact\x12\x16\n\x06\x64igest\x18\x02 \x01(\tR\x06\x64igest\"\x9d\x01\n\x1b\x42uildEvalCaseFromRunRequest\x12\x1d\n\x06run_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05runId\x12?\n\tcase_name\x18\x02 \x01(\tB\"\xbaH\x1fr\x1d\x18?2\x19^$|^[a-z0-9][a-z0-9._-]*$R\x08\x63\x61seName\x12\x1e\n\x05skill\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\xc8\x01R\x05skill\"x\n\x0f\x45valCaseArchive\x12\x1b\n\tcase_name\x18\x01 \x01(\tR\x08\x63\x61seName\x12\x1a\n\x08\x61rtifact\x18\x02 \x01(\x0cR\x08\x61rtifact\x12\x16\n\x06\x64igest\x18\x03 \x01(\tR\x06\x64igest\x12\x14\n\x05notes\x18\x04 \x03(\tR\x05notes\"\xc1\x02\n\x19\x41\x64\x64\x45valCaseFromRunRequest\x12\x1d\n\x06run_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05runId\x12P\n\x04\x65val\x18\x02 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x06\xbaH\x03\xc8\x01\x01R\x04\x65val\x12?\n\tcase_name\x18\x03 \x01(\tB\"\xbaH\x1fr\x1d\x18?2\x19^$|^[a-z0-9][a-z0-9._-]*$R\x08\x63\x61seName\x12\x1e\n\x05skill\x18\x04 \x01(\tB\x08\xbaH\x05r\x03\x18\xc8\x01R\x05skill\x12\x18\n\x07message\x18\x05 \x01(\tR\x07message\x12\x38\n\x03tag\x18\x06 \x01(\tB&\xbaH#r!\x18\x80\x01\x32\x14^$|^[a-zA-Z0-9._-]+$Z\x06latestR\x03tag\"\x82\x01\n\x16\x45valArchiveDownloadUrl\x12\x10\n\x03url\x18\x01 \x01(\tR\x03url\x12\x1f\n\x0bttl_seconds\x18\x02 \x01(\x05R\nttlSeconds\x12\x1d\n\nsize_bytes\x18\x03 \x01(\x03R\tsizeBytes\x12\x16\n\x06\x64igest\x18\x04 \x01(\tR\x06\x64igest\"\x9c\x01\n\x15ListEvalVersionsInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\x12$\n\tpage_size\x18\x04 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\"\x82\x02\n\x10\x45valVersionEntry\x12\x16\n\x06\x64igest\x18\x01 \x01(\tR\x06\x64igest\x12\x37\n\tpushed_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x08pushedAt\x12R\n\tpushed_by\x18\x03 \x01(\x0b\x32\x35.ai.stigmer.commons.apiresource.ApiResourceAuditActorR\x08pushedBy\x12\x10\n\x03tag\x18\x04 \x01(\tR\x03tag\x12\x1d\n\nis_current\x18\x05 \x01(\x08R\tisCurrent\x12\x18\n\x07message\x18\x06 \x01(\tR\x07message\"\x8a\x01\n\x18ListEvalVersionsResponse\x12\x46\n\x07\x65ntries\x18\x01 \x03(\x0b\x32,.ai.stigmer.agentic.eval.v1.EvalVersionEntryR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x89\x02\n\x10ListEvalsRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\x12P\n\x06labels\x18\x04 \x03(\x0b\x32\x38.ai.stigmer.agentic.eval.v1.ListEvalsRequest.LabelsEntryR\x06labels\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"n\n\x08\x45valList\x12:\n\x07\x65ntries\x18\x01 \x03(\x0b\x32 .ai.stigmer.agentic.eval.v1.EvalR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\xb8\x01\n\x1e\x63om.ai.stigmer.agentic.eval.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAE\xaa\x02\x1a\x41i.Stigmer.Agentic.Eval.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Eval_\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMetadata\xea\x02\x1e\x41i::Stigmer::Agentic::Eval::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -57,6 +58,22 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CREATEEVALARTIFACTUPLOADURLREQUEST'].fields_by_name['slug']._serialized_options = b'\272H$r\037\020\002\030?2\031^[a-z][a-z0-9-]*[a-z0-9]$\310\001\001'
   _globals['_CREATEEVALARTIFACTUPLOADURLREQUEST'].fields_by_name['size_bytes']._loaded_options = None
   _globals['_CREATEEVALARTIFACTUPLOADURLREQUEST'].fields_by_name['size_bytes']._serialized_options = b'\272H\004\"\002 \000'
+  _globals['_BUILDEVALCASEFROMRUNREQUEST'].fields_by_name['run_id']._loaded_options = None
+  _globals['_BUILDEVALCASEFROMRUNREQUEST'].fields_by_name['run_id']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_BUILDEVALCASEFROMRUNREQUEST'].fields_by_name['case_name']._loaded_options = None
+  _globals['_BUILDEVALCASEFROMRUNREQUEST'].fields_by_name['case_name']._serialized_options = b'\272H\037r\035\030?2\031^$|^[a-z0-9][a-z0-9._-]*$'
+  _globals['_BUILDEVALCASEFROMRUNREQUEST'].fields_by_name['skill']._loaded_options = None
+  _globals['_BUILDEVALCASEFROMRUNREQUEST'].fields_by_name['skill']._serialized_options = b'\272H\005r\003\030\310\001'
+  _globals['_ADDEVALCASEFROMRUNREQUEST'].fields_by_name['run_id']._loaded_options = None
+  _globals['_ADDEVALCASEFROMRUNREQUEST'].fields_by_name['run_id']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_ADDEVALCASEFROMRUNREQUEST'].fields_by_name['eval']._loaded_options = None
+  _globals['_ADDEVALCASEFROMRUNREQUEST'].fields_by_name['eval']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_ADDEVALCASEFROMRUNREQUEST'].fields_by_name['case_name']._loaded_options = None
+  _globals['_ADDEVALCASEFROMRUNREQUEST'].fields_by_name['case_name']._serialized_options = b'\272H\037r\035\030?2\031^$|^[a-z0-9][a-z0-9._-]*$'
+  _globals['_ADDEVALCASEFROMRUNREQUEST'].fields_by_name['skill']._loaded_options = None
+  _globals['_ADDEVALCASEFROMRUNREQUEST'].fields_by_name['skill']._serialized_options = b'\272H\005r\003\030\310\001'
+  _globals['_ADDEVALCASEFROMRUNREQUEST'].fields_by_name['tag']._loaded_options = None
+  _globals['_ADDEVALCASEFROMRUNREQUEST'].fields_by_name['tag']._serialized_options = b'\272H#r!\030\200\0012\024^$|^[a-zA-Z0-9._-]+$Z\006latest'
   _globals['_LISTEVALVERSIONSINPUT'].fields_by_name['org']._loaded_options = None
   _globals['_LISTEVALVERSIONSINPUT'].fields_by_name['org']._serialized_options = b'\272H\003\310\001\001'
   _globals['_LISTEVALVERSIONSINPUT'].fields_by_name['slug']._loaded_options = None
@@ -73,28 +90,34 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTEVALSREQUEST'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
   _globals['_LISTEVALSREQUEST'].fields_by_name['page_token']._loaded_options = None
   _globals['_LISTEVALSREQUEST'].fields_by_name['page_token']._serialized_options = b'\272H\005r\003\030\200\010'
-  _globals['_EVALID']._serialized_start=255
-  _globals['_EVALID']._serialized_end=293
-  _globals['_PUSHEVALREQUEST']._serialized_start=296
-  _globals['_PUSHEVALREQUEST']._serialized_end=871
-  _globals['_CREATEEVALARTIFACTUPLOADURLREQUEST']._serialized_start=874
-  _globals['_CREATEEVALARTIFACTUPLOADURLREQUEST']._serialized_end=1037
-  _globals['_EVALARTIFACTUPLOADURL']._serialized_start=1039
-  _globals['_EVALARTIFACTUPLOADURL']._serialized_end=1161
-  _globals['_EVALARCHIVE']._serialized_start=1163
-  _globals['_EVALARCHIVE']._serialized_end=1228
-  _globals['_EVALARCHIVEDOWNLOADURL']._serialized_start=1231
-  _globals['_EVALARCHIVEDOWNLOADURL']._serialized_end=1361
-  _globals['_LISTEVALVERSIONSINPUT']._serialized_start=1364
-  _globals['_LISTEVALVERSIONSINPUT']._serialized_end=1520
-  _globals['_EVALVERSIONENTRY']._serialized_start=1523
-  _globals['_EVALVERSIONENTRY']._serialized_end=1781
-  _globals['_LISTEVALVERSIONSRESPONSE']._serialized_start=1784
-  _globals['_LISTEVALVERSIONSRESPONSE']._serialized_end=1922
-  _globals['_LISTEVALSREQUEST']._serialized_start=1925
-  _globals['_LISTEVALSREQUEST']._serialized_end=2190
-  _globals['_LISTEVALSREQUEST_LABELSENTRY']._serialized_start=2133
-  _globals['_LISTEVALSREQUEST_LABELSENTRY']._serialized_end=2190
-  _globals['_EVALLIST']._serialized_start=2192
-  _globals['_EVALLIST']._serialized_end=2302
+  _globals['_EVALID']._serialized_start=296
+  _globals['_EVALID']._serialized_end=334
+  _globals['_PUSHEVALREQUEST']._serialized_start=337
+  _globals['_PUSHEVALREQUEST']._serialized_end=912
+  _globals['_CREATEEVALARTIFACTUPLOADURLREQUEST']._serialized_start=915
+  _globals['_CREATEEVALARTIFACTUPLOADURLREQUEST']._serialized_end=1078
+  _globals['_EVALARTIFACTUPLOADURL']._serialized_start=1080
+  _globals['_EVALARTIFACTUPLOADURL']._serialized_end=1202
+  _globals['_EVALARCHIVE']._serialized_start=1204
+  _globals['_EVALARCHIVE']._serialized_end=1269
+  _globals['_BUILDEVALCASEFROMRUNREQUEST']._serialized_start=1272
+  _globals['_BUILDEVALCASEFROMRUNREQUEST']._serialized_end=1429
+  _globals['_EVALCASEARCHIVE']._serialized_start=1431
+  _globals['_EVALCASEARCHIVE']._serialized_end=1551
+  _globals['_ADDEVALCASEFROMRUNREQUEST']._serialized_start=1554
+  _globals['_ADDEVALCASEFROMRUNREQUEST']._serialized_end=1875
+  _globals['_EVALARCHIVEDOWNLOADURL']._serialized_start=1878
+  _globals['_EVALARCHIVEDOWNLOADURL']._serialized_end=2008
+  _globals['_LISTEVALVERSIONSINPUT']._serialized_start=2011
+  _globals['_LISTEVALVERSIONSINPUT']._serialized_end=2167
+  _globals['_EVALVERSIONENTRY']._serialized_start=2170
+  _globals['_EVALVERSIONENTRY']._serialized_end=2428
+  _globals['_LISTEVALVERSIONSRESPONSE']._serialized_start=2431
+  _globals['_LISTEVALVERSIONSRESPONSE']._serialized_end=2569
+  _globals['_LISTEVALSREQUEST']._serialized_start=2572
+  _globals['_LISTEVALSREQUEST']._serialized_end=2837
+  _globals['_LISTEVALSREQUEST_LABELSENTRY']._serialized_start=2780
+  _globals['_LISTEVALSREQUEST_LABELSENTRY']._serialized_end=2837
+  _globals['_EVALLIST']._serialized_start=2839
+  _globals['_EVALLIST']._serialized_end=2949
 # @@protoc_insertion_point(module_scope)

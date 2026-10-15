@@ -46,6 +46,37 @@ public final class EvalCommandControllerGrpc {
     return getPushMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest,
+      ai.stigmer.agentic.eval.v1.Eval> getAddCaseFromRunMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "addCaseFromRun",
+      requestType = ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest.class,
+      responseType = ai.stigmer.agentic.eval.v1.Eval.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest,
+      ai.stigmer.agentic.eval.v1.Eval> getAddCaseFromRunMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest, ai.stigmer.agentic.eval.v1.Eval> getAddCaseFromRunMethod;
+    if ((getAddCaseFromRunMethod = EvalCommandControllerGrpc.getAddCaseFromRunMethod) == null) {
+      synchronized (EvalCommandControllerGrpc.class) {
+        if ((getAddCaseFromRunMethod = EvalCommandControllerGrpc.getAddCaseFromRunMethod) == null) {
+          EvalCommandControllerGrpc.getAddCaseFromRunMethod = getAddCaseFromRunMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest, ai.stigmer.agentic.eval.v1.Eval>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "addCaseFromRun"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.eval.v1.Eval.getDefaultInstance()))
+              .setSchemaDescriptor(new EvalCommandControllerMethodDescriptorSupplier("addCaseFromRun"))
+              .build();
+        }
+      }
+    }
+    return getAddCaseFromRunMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.eval.v1.CreateEvalArtifactUploadUrlRequest,
       ai.stigmer.agentic.eval.v1.EvalArtifactUploadUrl> getCreateArtifactUploadUrlMethod;
 
@@ -258,6 +289,25 @@ public final class EvalCommandControllerGrpc {
 
     /**
      * <pre>
+     * Add a case built from a run (as buildCaseFromRun builds it) to an
+     * eval, as a new version holding the current version's files and the
+     * case.
+     * Error Cases:
+     * - NOT_FOUND: no such run, or no such eval
+     * - PERMISSION_DENIED: the caller may not view the run, or may not edit
+     *   the eval
+     * - FAILED_PRECONDITION: the run has not ended, or the eval is not of the
+     *   run's organization
+     * - ALREADY_EXISTS: the eval already holds a case of that name
+     * </pre>
+     */
+    default void addCaseFromRun(ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.eval.v1.Eval> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getAddCaseFromRunMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Mint a short-lived, single-use upload URL for staging an eval archive
      * that exceeds the gRPC message-size cap (10MB). Flow:
      * 1. createArtifactUploadUrl(org, slug, size_bytes) → { url, artifact_upload_ref }
@@ -365,6 +415,26 @@ public final class EvalCommandControllerGrpc {
 
     /**
      * <pre>
+     * Add a case built from a run (as buildCaseFromRun builds it) to an
+     * eval, as a new version holding the current version's files and the
+     * case.
+     * Error Cases:
+     * - NOT_FOUND: no such run, or no such eval
+     * - PERMISSION_DENIED: the caller may not view the run, or may not edit
+     *   the eval
+     * - FAILED_PRECONDITION: the run has not ended, or the eval is not of the
+     *   run's organization
+     * - ALREADY_EXISTS: the eval already holds a case of that name
+     * </pre>
+     */
+    public void addCaseFromRun(ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.eval.v1.Eval> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getAddCaseFromRunMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Mint a short-lived, single-use upload URL for staging an eval archive
      * that exceeds the gRPC message-size cap (10MB). Flow:
      * 1. createArtifactUploadUrl(org, slug, size_bytes) → { url, artifact_upload_ref }
@@ -461,6 +531,25 @@ public final class EvalCommandControllerGrpc {
 
     /**
      * <pre>
+     * Add a case built from a run (as buildCaseFromRun builds it) to an
+     * eval, as a new version holding the current version's files and the
+     * case.
+     * Error Cases:
+     * - NOT_FOUND: no such run, or no such eval
+     * - PERMISSION_DENIED: the caller may not view the run, or may not edit
+     *   the eval
+     * - FAILED_PRECONDITION: the run has not ended, or the eval is not of the
+     *   run's organization
+     * - ALREADY_EXISTS: the eval already holds a case of that name
+     * </pre>
+     */
+    public ai.stigmer.agentic.eval.v1.Eval addCaseFromRun(ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getAddCaseFromRunMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Mint a short-lived, single-use upload URL for staging an eval archive
      * that exceeds the gRPC message-size cap (10MB). Flow:
      * 1. createArtifactUploadUrl(org, slug, size_bytes) → { url, artifact_upload_ref }
@@ -549,6 +638,25 @@ public final class EvalCommandControllerGrpc {
     public ai.stigmer.agentic.eval.v1.Eval push(ai.stigmer.agentic.eval.v1.PushEvalRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getPushMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Add a case built from a run (as buildCaseFromRun builds it) to an
+     * eval, as a new version holding the current version's files and the
+     * case.
+     * Error Cases:
+     * - NOT_FOUND: no such run, or no such eval
+     * - PERMISSION_DENIED: the caller may not view the run, or may not edit
+     *   the eval
+     * - FAILED_PRECONDITION: the run has not ended, or the eval is not of the
+     *   run's organization
+     * - ALREADY_EXISTS: the eval already holds a case of that name
+     * </pre>
+     */
+    public ai.stigmer.agentic.eval.v1.Eval addCaseFromRun(ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getAddCaseFromRunMethod(), getCallOptions(), request);
     }
 
     /**
@@ -646,6 +754,26 @@ public final class EvalCommandControllerGrpc {
 
     /**
      * <pre>
+     * Add a case built from a run (as buildCaseFromRun builds it) to an
+     * eval, as a new version holding the current version's files and the
+     * case.
+     * Error Cases:
+     * - NOT_FOUND: no such run, or no such eval
+     * - PERMISSION_DENIED: the caller may not view the run, or may not edit
+     *   the eval
+     * - FAILED_PRECONDITION: the run has not ended, or the eval is not of the
+     *   run's organization
+     * - ALREADY_EXISTS: the eval already holds a case of that name
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.eval.v1.Eval> addCaseFromRun(
+        ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getAddCaseFromRunMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Mint a short-lived, single-use upload URL for staging an eval archive
      * that exceeds the gRPC message-size cap (10MB). Flow:
      * 1. createArtifactUploadUrl(org, slug, size_bytes) → { url, artifact_upload_ref }
@@ -702,10 +830,11 @@ public final class EvalCommandControllerGrpc {
   }
 
   private static final int METHODID_PUSH = 0;
-  private static final int METHODID_CREATE_ARTIFACT_UPLOAD_URL = 1;
-  private static final int METHODID_UPDATE_VISIBILITY = 2;
-  private static final int METHODID_RENAME = 3;
-  private static final int METHODID_DELETE = 4;
+  private static final int METHODID_ADD_CASE_FROM_RUN = 1;
+  private static final int METHODID_CREATE_ARTIFACT_UPLOAD_URL = 2;
+  private static final int METHODID_UPDATE_VISIBILITY = 3;
+  private static final int METHODID_RENAME = 4;
+  private static final int METHODID_DELETE = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -726,6 +855,10 @@ public final class EvalCommandControllerGrpc {
       switch (methodId) {
         case METHODID_PUSH:
           serviceImpl.push((ai.stigmer.agentic.eval.v1.PushEvalRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.eval.v1.Eval>) responseObserver);
+          break;
+        case METHODID_ADD_CASE_FROM_RUN:
+          serviceImpl.addCaseFromRun((ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.eval.v1.Eval>) responseObserver);
           break;
         case METHODID_CREATE_ARTIFACT_UPLOAD_URL:
@@ -769,6 +902,13 @@ public final class EvalCommandControllerGrpc {
               ai.stigmer.agentic.eval.v1.PushEvalRequest,
               ai.stigmer.agentic.eval.v1.Eval>(
                 service, METHODID_PUSH)))
+        .addMethod(
+          getAddCaseFromRunMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest,
+              ai.stigmer.agentic.eval.v1.Eval>(
+                service, METHODID_ADD_CASE_FROM_RUN)))
         .addMethod(
           getCreateArtifactUploadUrlMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -846,6 +986,7 @@ public final class EvalCommandControllerGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new EvalCommandControllerFileDescriptorSupplier())
               .addMethod(getPushMethod())
+              .addMethod(getAddCaseFromRunMethod())
               .addMethod(getCreateArtifactUploadUrlMethod())
               .addMethod(getUpdateVisibilityMethod())
               .addMethod(getRenameMethod())

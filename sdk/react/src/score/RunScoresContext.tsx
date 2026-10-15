@@ -23,8 +23,8 @@ import { useSessionScores } from "./useSessionScores.js";
 /**
  * The thread's scores, shared by every {@link RunScores} it renders:
  * the session's scores read once, grouped by run, the organization each
- * run belongs to (a rating is filed there), each run's request and whether
- * it continued an earlier one (a test case is made from them), the
+ * run belongs to (a rating is filed there, a test case's evals are its),
+ * each run's request (a run with none has no test case to make), the
  * viewer's identity, and a refetch for after a rating.
  *
  * Two contexts on purpose. `RunScoresEnabledContext` is a constant the
@@ -40,8 +40,6 @@ export interface RunScoresData {
   readonly orgOf: (runId: string) => string;
   /** What the person typed for the run; empty when the thread lacks it. */
   readonly requestOf: (runId: string) => string;
-  /** Whether the run continued a conversation: an earlier run is in the thread. */
-  readonly followsEarlierRun: (runId: string) => boolean;
   readonly viewer: ViewerIdentity | null;
   readonly refetch: () => void;
 }
@@ -100,17 +98,12 @@ export function RunScoresProvider({ runs, children }: RunScoresProviderProps) {
     }
     return map;
   }, [runs]);
-  // The thread renders its runs in conversation order, so a run's place
-  // says whether it continued an earlier request.
-  const turnByRun = useMemo(() => {
-    const map = new Map<
-      string,
-      { readonly request: string; readonly index: number }
-    >();
-    runs.forEach((run, index) => {
+  const requestByRun = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const run of runs) {
       const id = run.metadata?.id ?? "";
-      if (id !== "") map.set(id, { request: run.spec?.message ?? "", index });
-    });
+      if (id !== "") map.set(id, run.spec?.message ?? "");
+    }
     return map;
   }, [runs]);
 
@@ -131,12 +124,11 @@ export function RunScoresProvider({ runs, children }: RunScoresProviderProps) {
     () => ({
       scoresOf: (runId) => byRun.get(runId) ?? NO_SCORES,
       orgOf: (runId) => orgByRun.get(runId) ?? "",
-      requestOf: (runId) => turnByRun.get(runId)?.request ?? "",
-      followsEarlierRun: (runId) => (turnByRun.get(runId)?.index ?? 0) > 0,
+      requestOf: (runId) => requestByRun.get(runId) ?? "",
       viewer,
       refetch,
     }),
-    [byRun, orgByRun, turnByRun, viewer, refetch],
+    [byRun, orgByRun, requestByRun, viewer, refetch],
   );
 
   return (

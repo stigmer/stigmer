@@ -18,7 +18,13 @@ results stay tied to the cases that produced them. Whoever may view an eval may
 run it on an agent they may edit. The eval run is the agent's: every viewer of
 the agent in its organization reads its results, the cases' names, mocks and
 conversations included, so running a private eval shares what those tries show
-with them. The shape below is what `get` returns.
+with them.
+
+A conversation that went wrong becomes a case of an eval: **Make a test case**
+on the run in the console, or `stigmer runs to-eval-case <run> --eval <eval>`,
+adds it as a new version. The case resumes the conversation before the bad turn,
+its tool answers stand in for the real servers, and its rubric starts from why
+the run went wrong. The shape below is what `get` returns.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1

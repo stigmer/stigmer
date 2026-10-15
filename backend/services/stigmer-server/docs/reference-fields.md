@@ -55,6 +55,9 @@ Rows read `| \`Message.field\` | class |`.
 
 | Field | Class |
 |---|---|
+| `ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest.eval` | request reference |
+| `ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest.run_id` | stamped id |
+| `ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest.run_id` | stamped id |
 | `ai.stigmer.agentic.eval.v1.CreateEvalArtifactUploadUrlRequest.slug` | request reference |
 | `ai.stigmer.agentic.eval.v1.ListEvalVersionsInput.slug` | request reference |
 | `ai.stigmer.agentic.eval.v1.PushEvalRequest.slug` | request reference |

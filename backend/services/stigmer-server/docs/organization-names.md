@@ -78,6 +78,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
+| EvalCommandController.addCaseFromRun | `eval.org` |
 | EvalCommandController.createArtifactUploadUrl | `org` |
 | EvalCommandController.push | `org` |
 | EvalQueryController.download | `org` |

@@ -70,8 +70,3 @@ export {
   type EvalSubjectRef,
   type EvalTryView,
 } from "./eval-view.js";
-export {
-  testCaseOfRun,
-  zipTestCase,
-  type RunForTestCase,
-} from "./test-case.js";

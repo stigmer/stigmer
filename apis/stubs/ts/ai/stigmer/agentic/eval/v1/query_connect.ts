@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { EvalArchive, EvalArchiveDownloadUrl, EvalId, EvalList, ListEvalsRequest, ListEvalVersionsInput, ListEvalVersionsResponse } from "./io_pbjs";
+import { BuildEvalCaseFromRunRequest, EvalArchive, EvalArchiveDownloadUrl, EvalCaseArchive, EvalId, EvalList, ListEvalsRequest, ListEvalVersionsInput, ListEvalVersionsResponse } from "./io_pbjs";
 import { Eval } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -95,6 +95,32 @@ export const EvalQueryController = {
       name: "getDownloadUrl",
       I: ApiResourceReference,
       O: EvalArchiveDownloadUrl,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Build an eval case from a run, to keep on disk or push in an eval.
+     *
+     * The case is the turn the run answered: its request as the prompt, the
+     * conversation before it as the case's history (so the case resumes where
+     * the person was), each MCP tool answer the run got as a fixed mock under
+     * the server name the turn gave it, and a rubric to fill in, seeded with
+     * why the run went wrong (an AI judge's failing reason, or the caller's
+     * own thumbs-down note). It never carries a verdict of its own.
+     *
+     * Error Cases:
+     *
+     * - NOT_FOUND: no such run
+     * - PERMISSION_DENIED: the caller may not view the run
+     * - FAILED_PRECONDITION: the run has not ended
+     * - RESOURCE_EXHAUSTED: the case is too large to answer inline; add it
+     *   to an eval with addCaseFromRun, which writes it on the server
+     *
+     * @generated from rpc ai.stigmer.agentic.eval.v1.EvalQueryController.buildCaseFromRun
+     */
+    buildCaseFromRun: {
+      name: "buildCaseFromRun",
+      I: BuildEvalCaseFromRunRequest,
+      O: EvalCaseArchive,
       kind: MethodKind.Unary,
     },
   }

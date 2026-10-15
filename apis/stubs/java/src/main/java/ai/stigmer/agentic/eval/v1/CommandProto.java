@@ -42,29 +42,32 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "mmons/apiresource/io.proto\0328ai/stigmer/c" +
       "ommons/apiresource/rpc_service_options.p" +
       "roto\032+ai/stigmer/commons/rpc/method_opti" +
-      "ons.proto2\310\005\n\025EvalCommandController\022[\n\004p" +
+      "ons.proto2\271\006\n\025EvalCommandController\022[\n\004p" +
       "ush\022+.ai.stigmer.agentic.eval.v1.PushEva" +
       "lRequest\032 .ai.stigmer.agentic.eval.v1.Ev" +
-      "al\"\004\320\270\030\001\022\222\001\n\027createArtifactUploadUrl\022>.a" +
-      "i.stigmer.agentic.eval.v1.CreateEvalArti" +
-      "factUploadUrlRequest\0321.ai.stigmer.agenti" +
-      "c.eval.v1.EvalArtifactUploadUrl\"\004\320\270\030\001\022\252\001" +
-      "\n\020updateVisibility\0225.ai.stigmer.commons." +
-      "apiresource.UpdateVisibilityInput\032 .ai.s" +
-      "tigmer.agentic.eval.v1.Eval\"=\302\270\0309\0100\020B\"\013r" +
-      "esource_id*&unauthorized to update eval " +
-      "visibility\022\213\001\n\006rename\022+.ai.stigmer.commo" +
-      "ns.apiresource.RenameInput\032 .ai.stigmer." +
-      "agentic.eval.v1.Eval\"2\302\270\030.\010\003\020B\"\013resource" +
-      "_id*\033unauthorized to rename eval\022|\n\006dele" +
-      "te\022\".ai.stigmer.agentic.eval.v1.EvalId\032 " +
-      ".ai.stigmer.agentic.eval.v1.Eval\",\302\270\030(\010\003" +
-      "\020B\"\005value*\033unauthorized to delete eval\032\004" +
-      "\240\377+BB\235\001B\014CommandProtoP\001\242\002\004ASAE\252\002\032Ai.Stig" +
-      "mer.Agentic.Eval.V1\312\002\033Ai\\Stigmer\\Agentic" +
-      "\\Eval_\\V1\342\002\'Ai\\Stigmer\\Agentic\\Eval_\\V1\\" +
-      "GPBMetadata\352\002\036Ai::Stigmer::Agentic::Eval" +
-      "::V1b\006proto3"
+      "al\"\004\320\270\030\001\022o\n\016addCaseFromRun\0225.ai.stigmer." +
+      "agentic.eval.v1.AddEvalCaseFromRunReques" +
+      "t\032 .ai.stigmer.agentic.eval.v1.Eval\"\004\320\270\030" +
+      "\001\022\222\001\n\027createArtifactUploadUrl\022>.ai.stigm" +
+      "er.agentic.eval.v1.CreateEvalArtifactUpl" +
+      "oadUrlRequest\0321.ai.stigmer.agentic.eval." +
+      "v1.EvalArtifactUploadUrl\"\004\320\270\030\001\022\252\001\n\020updat" +
+      "eVisibility\0225.ai.stigmer.commons.apireso" +
+      "urce.UpdateVisibilityInput\032 .ai.stigmer." +
+      "agentic.eval.v1.Eval\"=\302\270\0309\0100\020B\"\013resource" +
+      "_id*&unauthorized to update eval visibil" +
+      "ity\022\213\001\n\006rename\022+.ai.stigmer.commons.apir" +
+      "esource.RenameInput\032 .ai.stigmer.agentic" +
+      ".eval.v1.Eval\"2\302\270\030.\010\003\020B\"\013resource_id*\033un" +
+      "authorized to rename eval\022|\n\006delete\022\".ai" +
+      ".stigmer.agentic.eval.v1.EvalId\032 .ai.sti" +
+      "gmer.agentic.eval.v1.Eval\",\302\270\030(\010\003\020B\"\005val" +
+      "ue*\033unauthorized to delete eval\032\004\240\377+BB\235\001" +
+      "B\014CommandProtoP\001\242\002\004ASAE\252\002\032Ai.Stigmer.Age" +
+      "ntic.Eval.V1\312\002\033Ai\\Stigmer\\Agentic\\Eval_\\" +
+      "V1\342\002\'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMeta" +
+      "data\352\002\036Ai::Stigmer::Agentic::Eval::V1b\006p" +
+      "roto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

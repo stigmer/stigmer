@@ -316,14 +316,6 @@ export {
 } from "./eval-run/result-document.js";
 export { ALLOW_TOOL_PATTERN } from "./eval-run/allow-tools.js";
 export {
-  caseFromRun,
-  suggestCaseName,
-  MULTI_TURN_NOTE,
-  type CaseFile,
-  type CaseFromRun,
-  type CaseFromRunInput,
-} from "./eval-run/case-from-run.js";
-export {
   VaultClient,
   buildVaultProto,
   type VaultInput,

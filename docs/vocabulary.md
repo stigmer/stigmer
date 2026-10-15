@@ -1578,8 +1578,8 @@ compare side by side.
   ran, its cases' results), `aggregates` and `cost_usd`.
 - **Boundaries**: an eval run measures an Agent or a plugin on test cases; an
   Evaluator grades an Agent's live runs. The criteria live in the plugins'
-  `evals/` folders, in Claude Code's plugin-eval format, never in an Agent's
-  YAML.
+  `evals/` folders or in evals, in Claude Code's plugin-eval format, never in an
+  Agent's YAML.
 - **Note**: the editors of its Agent or plugin start, cancel and delete it, and
   comparing a plugin the Agent does not use takes being able to view it; the
   viewers in its own Organization read it. Its Organization pays for every try.

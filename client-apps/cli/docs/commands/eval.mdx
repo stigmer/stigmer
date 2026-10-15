@@ -2,12 +2,13 @@ Run test cases on an agent, or a plugin's own test cases on the built-in
 assistant, with and without a plugin, and score them.
 
 `stigmer eval run` starts an eval run. The cases are those in a plugin's
-`evals/` folder, written in Claude Code's plugin-eval format. Each case runs
-several times on every engine and model you name, and gets a score and whether
-every try passed (`PASS^k`); when the eval run compares a plugin, each case also
-runs without it, and gets a score without it and the difference (`Δ`). Every try
-is a conversation: in Stigmer Cloud the subject's viewers open it, read-only; in
-open source only the eval run's creator does.
+`evals/` folder or in an eval pushed with `stigmer push eval`, written in Claude
+Code's plugin-eval format. Each case runs several times on every engine and
+model you name, and gets a score and whether every try passed (`PASS^k`); when
+the eval run compares a plugin, each case also runs without it, and gets a score
+without it and the difference (`Δ`). Every try is a conversation: in Stigmer
+Cloud the subject's viewers open it, read-only; in open source only the eval
+run's creator does.
 
 - `--plugin thermos` alone runs the plugin's own cases on the built-in
   assistant, with and without the plugin, the way `claude plugin eval` runs them
@@ -18,16 +19,20 @@ open source only the eval run's creator does.
   version or `support-desk@<version>` (a tag or version hash). The eval run is
   stamped with the agent's version, so two versions' results compare case by
   case.
+- `--agent support-desk --eval support-agent-evals` runs an eval's cases on the
+  agent, at its current version or `support-agent-evals@<digest|tag>`; its mocks
+  stand in for the agent's own servers and its plugins' by the names a
+  conversation gives them. An agent that uses no plugin runs evals alone.
 - `--agent support-desk --plugin refund-policy` runs the plugin's cases on the
   agent with the plugin and without it, whether the agent uses it or not: does
   the agent do better with it? Without it, the plugin is left out of the whole
   turn, the agent's subagents included.
 
-`--cases-from` chooses whose cases run on an agent: a plugin the agent uses, or
-the one `--plugin` names. With no `--model`, each case runs on an agent as it
-runs: its own engine, model and settings. The eval run runs on the server: the
-command starts it, prints a line as each try finishes, then the table. Closing
-the terminal leaves it running; Ctrl+C cancels it.
+`--eval` and `--cases-from` choose whose cases run on an agent: an eval, a
+plugin the agent uses, or the one `--plugin` names. With no `--model`, each case
+runs on an agent as it runs: its own engine, model and settings. The eval run
+runs on the server: the command starts it, prints a line as each try finishes,
+then the table. Closing the terminal leaves it running; Ctrl+C cancels it.
 
 {/* AUTO_USAGE */}
 
@@ -39,6 +44,9 @@ stigmer eval run --plugin thermos
 
 # Run every plugin's cases on an agent as it runs
 stigmer eval run --agent support-desk
+
+# Run an eval's cases on the agent, at the version tagged stable
+stigmer eval run --agent support-desk --eval support-agent-evals@stable
 
 # Does the agent do better with a plugin than without it?
 stigmer eval run --agent support-desk --plugin refund-policy
@@ -72,19 +80,19 @@ stigmer eval cancel evr_01abc123
 ### Output and exit codes
 
 The command prints a line as each try finishes, then one table per plugin and
-model, headed by the plugin's slug and version digest and the model (on an
-agent, by the agent's slug and version hash first, the compared plugin marked
-`(compared)`). A plugin whose cases did not run is listed under its heading with
-the reason.
+model, then one per eval and model, headed by the plugin's or eval's slug and
+version digest and the model (on an agent, by the agent's slug and version hash
+first, the compared plugin marked `(compared)`). A plugin whose cases did not
+run is listed under its heading with the reason.
 
-| Code | Meaning                                                                                                                                                                                                                                                                                                                                                         |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | Every case that ran reached the threshold and every case file loaded                                                                                                                                                                                                                                                                                            |
+| Code | Meaning                                                                                                                                                                                                                                                                                                                                                        |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | Every case that ran reached the threshold and every case file loaded                                                                                                                                                                                                                                                                                           |
 | 1    | A case scored below the threshold, a case file failed to load, no case ran, a case's with-plugin tries on a model were all not graded (a case that never ran is not a pass), or an option was not valid; or the eval run could not start (the agent or plugin not found, not permitted, or refused), or could not be read for about a minute and was cancelled |
-| 2    | Partial: the spending limit was reached, or the eval run stopped early for a reason this CLI does not know                                                                                                                                                                                                                                                      |
-| 3    | The server could not be reached, the CLI's own code for a connection failure                                                                                                                                                                                                                                                                                    |
-| 4    | Not signed in, or the sign-in expired, the CLI's own code for a sign-in failure                                                                                                                                                                                                                                                                                 |
-| 130  | Interrupted: the eval run was cancelled, by Ctrl+C or any other cancel (the console's Cancel, `stigmer eval cancel`); the results of the tries that finished are printed. If Ctrl+C's cancel cannot reach the server, the command says the eval run may still be running and how to cancel it                                                                   |
+| 2    | Partial: the spending limit was reached, or the eval run stopped early for a reason this CLI does not know                                                                                                                                                                                                                                                     |
+| 3    | The server could not be reached, the CLI's own code for a connection failure                                                                                                                                                                                                                                                                                   |
+| 4    | Not signed in, or the sign-in expired, the CLI's own code for a sign-in failure                                                                                                                                                                                                                                                                                |
+| 130  | Interrupted: the eval run was cancelled, by Ctrl+C or any other cancel (the console's Cancel, `stigmer eval cancel`); the results of the tries that finished are printed. If Ctrl+C's cancel cannot reach the server, the command says the eval run may still be running and how to cancel it                                                                  |
 
 A case Stigmer does not run (one that runs with another plugin, a case whose
 scaffold `--no-scaffold` skips, or a resumed conversation or `env` on a Cursor
@@ -97,13 +105,12 @@ code.
 because Stigmer runs a model on one of its engines; a bare model ID is the
 native engine's. `--max-cost-usd` is always set: 5 when you omit it. A try the
 platform could not grade, such as one refused for a missing provider key, is
-shown as not graded and left out of every score instead of scoring 0. A
-scaffold runs without `--scaffold`, inside the try's own sandbox; `--scaffold`
-is accepted and changes nothing. See
-[Test a plugin with evals](/docs/guides/plugins/test-a-plugin-with-evals) for
-the result file, the support table and every difference, and
-[Test an agent with its plugins' evals](/docs/guides/plugins/test-an-agent-with-its-plugins-evals)
-for the versions that run and the tools a try may use.
+shown as not graded and left out of every score instead of scoring 0. A scaffold
+runs without `--scaffold`, inside the try's own sandbox; `--scaffold` is
+accepted and changes nothing. See
+[Test agents and plugins with evals](/docs/guides/evals/test-with-evals) for the
+result file, the support table and every difference, the versions that run and
+the tools a try may use.
 
 {/* AUTO_SUBCOMMANDS */}
 
