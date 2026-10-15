@@ -30,6 +30,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { create } from "@bufbuild/protobuf";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
@@ -230,6 +231,14 @@ describe("onComposed: a unit receives the composition's own instances", () => {
       kind: "allow",
     });
     expect(asked).toEqual([elsewhere]);
+    // org_beta exists and is no child of org_alpha, so a credential bound
+    // to org_alpha does not reach it.
+    await server.store.saveResource(
+      ApiResourceKind.organization,
+      "org_beta",
+      OrganizationSchema,
+      create(OrganizationSchema, { metadata: { id: "org_beta", name: "beta", slug: "beta" } }),
+    );
     expect(
       await received?.authorizer.authorize(
         { ...caller, boundOrg: "org_alpha" },
@@ -244,7 +253,7 @@ describe("onComposed: a unit receives the composition's own instances", () => {
       )) ?? []),
     ]).toEqual(["agt_listed"]);
     expect(
-      received?.credentialBinding.admitsOrganization(caller, "org_beta"),
+      await received?.credentialBinding.admitsOrganization(caller, "org_beta"),
     ).toBe(true);
     expect(received?.authorizationQueries).toBe(queries);
     expect(received?.resourceAuthorizationLifecycle).toBe(lifecycle);

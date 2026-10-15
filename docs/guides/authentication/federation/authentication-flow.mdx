@@ -111,10 +111,12 @@ in to its bound Organization, Stigmer grants the Federation Issuer's
 **Step 8--9: Check authorization.** Stigmer checks whether the resolved Identity
 Account has a Grant giving it the required permission on the target resource. If
 no matching grant exists, the request fails with `403 Forbidden`. A target
-outside the token's bound Organization also fails with `403 Forbidden`, whatever
-roles the user holds there, unless it belongs to no Organization (the user's own
-account and API keys) or is a blueprint the bound Organization's parent shares
-with its child organizations, which the request reads or runs. With a
+outside the token's bound Organization and its child organizations also fails
+with `403 Forbidden`, whatever roles the user holds there, unless it belongs to
+no Organization (the user's own account and API keys) or is a blueprint the
+bound Organization's parent shares with its child organizations, which the
+request reads or runs. A token bound to a parent reaches its children as the
+user's role allows: an admin of the parent is an admin in each child. With a
 `signInRole`, the first sign-in creates the Grant, so step 8 succeeds for the
 bound Organization. With manual provisioning, your backend must create Grants
 explicitly.

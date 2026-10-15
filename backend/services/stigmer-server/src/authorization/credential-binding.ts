@@ -1,10 +1,13 @@
 /**
  * The credential binding: a credential that names an organization works in
- * that organization only. A minted user token names the organization it
- * is for, an API key may be limited to one, and a composition's
- * verifiers bind the tokens they vouch for the same way; each sets
- * `CallerIdentity.boundOrg`. A person signed in at a console names none and
- * keeps every organization they hold a role in.
+ * that organization and in its child organizations, as the account behind
+ * it would, the way a Stripe platform's key works on its connected
+ * accounts; a run's credential works in its run's organization alone. A
+ * minted user token names the organization it is for, an API key may be
+ * limited to one, and a composition's verifiers bind the tokens they vouch
+ * for the same way; each sets `CallerIdentity.boundOrg`. A person signed
+ * in at a console names none and keeps every organization they hold a role
+ * in.
  *
  * Why one rule here and not a check per lane. A binding limits which of a
  * person's memberships count; it is not a relation the authorization model
@@ -18,37 +21,44 @@
  * module. Every consumer that reads the composed drivers is bound by
  * construction.
  *
- * The rule, for a caller with `boundOrg`. A target is INSIDE when it is:
- *   - the bound organization itself, and, for a permission that manages
- *     an organization (MANAGEMENT_PERMISSIONS: its settings, members,
- *     access and billing), a child organization of the bound one: managing
- *     an organization's children is managing the organization, and
- *     `can_manage_child_orgs` (finding and listing them) is asked on the
- *     bound organization itself. The child's rows stay outside;
+ * The rule, for a caller with `boundOrg`. The credential's ORGANIZATIONS
+ * are the bound one and, for an account's own credential (a person's or a
+ * service account's, `reachesChildren`), each child of it: one predicate,
+ * `admitsOrganization`, which answers the bound organization with no read
+ * and a child with one memoised read of its `spec.parent_org` (the read
+ * the user-token verifier makes for "the minter's organization or a child
+ * of it", domain/organization/children.ts `isChildOf`). It never looks up:
+ * a credential limited to a child reaches neither its parent nor a
+ * sibling. Every other credential stays its bound organization: a run's,
+ * because a run belongs to one (runnerauth/runner-subject-verifier.ts) and
+ * a run filed in a parent must not execute a child's agent or use a
+ * child's vaults, and a composition's own lane credentials for the same
+ * reason. A target is INSIDE when it is:
+ *   - one of the credential's organizations;
  *   - a row of an organization-scoped or parent-scoped kind whose
- *     `metadata.org` is the bound organization (every such row carries it,
- *     an execution included, docs/single-organization.md);
- *   - an API key limited to the bound organization (`spec.bound_org`): a
- *     key is its owner's, but a bound credential manages only the keys
- *     limited where it is, never an unlimited key or one limited elsewhere;
- *   - an organization's service account in the bound organization: an
- *     account belongs to no organization, so a person's account stays
- *     reachable, but a service account is its organization's, and a
- *     credential limited to another may not mint its keys or change it;
+ *     `metadata.org` is one of them (every such row carries it, an
+ *     execution included, docs/single-organization.md);
+ *   - an API key limited to one of them (`spec.bound_org`): a key is its
+ *     owner's, but a bound credential manages only the keys limited where
+ *     it reaches, never an unlimited key or one limited elsewhere;
+ *   - an organization's service account in one of them: an account
+ *     belongs to no organization, so a person's account stays reachable,
+ *     but a service account is its organization's, and a credential
+ *     limited elsewhere may not mint its keys or change it;
  *   - a kind that belongs to no organization: owner-only (the person's own
  *     account) or unscoped (plans, the platform). These are nobody's
  *     organization data.
- * It is ADMITTED OUTSIDE only along the model's one path across
+ * Inside, the inner driver decides as it always does: the credential
+ * reaches a child exactly as its account's role there allows (a parent's
+ * admins are admins in every child, fga/model/tenancy/organization.fga).
+ * It is ADMITTED OUTSIDE only along the model's other path across
  * organizations, and only for a permission that reads or runs: a
- * blueprint (agent, MCP server, plugin, skill) that the bound
- * organization's own parent shares with its children at
- * `visibility_child_orgs` (connecting is how an MCP server runs). A
- * blueprint another organization shares with
- * its children is outside, even when the person belongs to one of them
- * too: the credential names this child, and only its parent's catalog
- * reaches it. The bound organization's parent is read once per request,
- * from its row. The inner
- * driver then decides as it always does. Everything else is OUTSIDE and
+ * blueprint (agent, plugin, skill) that the bound organization's own
+ * parent shares with its children at `visibility_child_orgs`. A blueprint
+ * another organization shares with its children is outside, even when the
+ * person belongs to one of them too: the credential names this child, and
+ * only its parent's catalog reaches it. The bound organization's parent is
+ * read once per request, from its row. Everything else is OUTSIDE and
  * answers `deny` with `BOUND_ELSEWHERE_DENY_REASON`.
  *
  * A target whose row is missing is handed to the inner driver, which keeps
@@ -69,10 +79,22 @@
  * organizations, for every caller.
  *
  * An unbound caller skips the binding rule entirely: no read for it, the
- * inner driver's answer byte for byte. A bound caller pays one primary-key read per
- * distinct target per request: a target's organization is memoised for the
- * life of the caller object (the interceptor stamps one identity object
- * per request), so the Authorizer's signature carries nothing new.
+ * inner driver's answer byte for byte. A bound caller pays one primary-key
+ * read per distinct target per request, and one more per distinct
+ * organization other than the bound one a target belongs to: both are
+ * memoised for the life of the caller object (the interceptor stamps one
+ * identity object per request), so the Authorizer's signature carries
+ * nothing new, and a write into the bound organization itself reads
+ * nothing.
+ *
+ * Every lane that compares a credential's organization asks
+ * `admitsOrganization` or `verdict`, never `boundOrg` itself: the persist
+ * and rename backstops and the write lanes that take their organization
+ * from the request (pipeline/steps/refuse-bound-elsewhere.ts), the API key
+ * create, the run-credential swap, a composition's own lanes. The few reads
+ * of `boundOrg` outside this module are held to an inventory with a reason
+ * each (__tests__/bound-org-reads.test.ts), so a one-organization
+ * comparison cannot come back unseen.
  *
  * Rows are read where the built-in authorizer reads them: a unit's
  * registered reader for the kinds a unit keeps itself, the Grant and
@@ -82,10 +104,11 @@
  *
  * What the tests pin (__tests__/credential-binding.test.ts): every scope
  * class, the missing row, the admitted path and its limits (visibility,
- * the sharing organization, permission), a
- * parent's management of its children and its limits, the read memo, a
- * read fault answering unavailable, and the three decorators' unbound
- * byte-identity.
+ * the sharing organization, permission), a credential bound to a parent
+ * reaching its children's rows and never a sibling's, a parent's or an
+ * unrelated organization's, a run's credential and a composition's lane
+ * credential held to their own organization, the read memo, a read fault answering unavailable, and
+ * the three decorators' unbound byte-identity.
  */
 import type { Message } from "@bufbuild/protobuf";
 import { isMessage } from "@bufbuild/protobuf";
@@ -112,7 +135,7 @@ import type {
   CredentialBinding,
 } from "../extensions/credential-binding.js";
 import type { CallerIdentity } from "../extensions/identity.js";
-import { boundOrgOf } from "../extensions/identity.js";
+import { SERVICE_ACCOUNT_CALLER_CLASS, boundOrgOf } from "../extensions/identity.js";
 import type {
   ListEntryMeta,
   ListReadScope,
@@ -161,26 +184,25 @@ const READ_OR_RUN_PERMISSIONS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * The permissions that manage an organization without reading what it
- * holds: the ones the model gives a parent's admins on a child
- * (`parent_admin`, fga/model/tenancy/organization.fga), and the only ones
- * a credential bound to the parent reaches on a child. Minting a user
- * token for a child is one: it admits a person to the child, as granting
- * them a role there would.
+ * The caller classes whose bound credential reaches its organization's
+ * children: an account's own credential, a person's (`user`: a minted user
+ * token, a key limited to an organization, a federated sign-in) or a
+ * service account's key. An allow-list, so every other class stays exactly
+ * its bound organization: a run's credential (`runner`, bound to its run's
+ * organization by runnerauth/runner-subject-verifier.ts), and every class
+ * a composition stamps on its own lanes (a sandbox's, a channel's, a
+ * schedule's, a grader's), whose tokens are minted for one session's or
+ * one row's organization and must not act in its children.
  */
-const MANAGEMENT_PERMISSIONS: ReadonlySet<string> = new Set(
-  [
-    IamPermission.can_view_settings,
-    IamPermission.can_edit,
-    IamPermission.can_delete,
-    IamPermission.can_grant_access,
-    IamPermission.can_view_access,
-    IamPermission.can_view_access_history,
-    IamPermission.can_assign_roles,
-    IamPermission.can_view_billing,
-    IamPermission.can_mint_user_tokens,
-  ].map((permission) => IamPermission[permission]),
-);
+const CLASSES_REACHING_CHILDREN: ReadonlySet<string> = new Set([
+  "user",
+  SERVICE_ACCOUNT_CALLER_CLASS,
+]);
+
+/** Whether a bound caller's credential reaches its organization's children (the allow-list above). */
+export function reachesChildren(caller: CallerIdentity): boolean {
+  return CLASSES_REACHING_CHILDREN.has(caller.callerClass);
+}
 
 export interface CredentialBindingDeps {
   readonly store: Pick<Store, "getResource">;
@@ -299,6 +321,24 @@ export function newCredentialBinding(
       : (found.row.spec?.parentOrg ?? "");
   }
 
+  /**
+   * Whether `org` is one of the credential's organizations: the bound one
+   * (no read) or, for an account's own credential, a child of it.
+   */
+  async function admits(
+    caller: CallerIdentity,
+    bound: string,
+    org: string,
+  ): Promise<boolean> {
+    if (org === bound) {
+      return true;
+    }
+    if (org === "" || !reachesChildren(caller)) {
+      return false;
+    }
+    return (await parentOf(caller, org)) === bound;
+  }
+
   /** Whether a row is shared with the children of the bound organization's own parent. */
   async function sharedWithBound(
     caller: CallerIdentity,
@@ -324,9 +364,9 @@ export function newCredentialBinding(
   }
 
   /**
-   * An organization target for a bound caller: its own organization, or,
-   * for a management permission, one of its children; a missing row is
-   * the inner driver's to answer.
+   * An organization target for a bound caller: one of the credential's
+   * organizations, whatever the permission (the inner driver decides it);
+   * a missing row is the inner driver's to answer.
    */
   async function organizationVerdict(
     caller: CallerIdentity,
@@ -336,9 +376,6 @@ export function newCredentialBinding(
     if (target.id === bound) {
       return "inside";
     }
-    if (!MANAGEMENT_PERMISSIONS.has(target.permission)) {
-      return "outside";
-    }
     const found = await targetFacts(
       caller,
       ApiResourceKind.organization,
@@ -347,17 +384,13 @@ export function newCredentialBinding(
     if (found === undefined) {
       return "missing";
     }
-    return found !== UNREADABLE &&
-      isMessage(found.row, OrganizationSchema) &&
-      (found.row.spec?.parentOrg ?? "") === bound
-      ? "inside"
-      : "outside";
+    return (await admits(caller, bound, target.id)) ? "inside" : "outside";
   }
 
   // A key is its owner's, but a bound credential manages only the keys
-  // limited to its own organization: an unlimited key, or one limited to
-  // another, would let it widen its reach (extend that key, or mint around
-  // its own limit).
+  // limited where it reaches: an unlimited key, or one limited to another
+  // organization, would let it widen its reach (extend that key, or mint
+  // around its own limit).
   async function keyVerdict(
     caller: CallerIdentity,
     id: string,
@@ -368,14 +401,14 @@ export function newCredentialBinding(
       return "missing";
     }
     return found !== UNREADABLE &&
-      (found.row as ApiKey).spec?.boundOrg === bound
+      (await admits(caller, bound, (found.row as ApiKey).spec?.boundOrg ?? ""))
       ? "inside"
       : "outside";
   }
 
   // An account belongs to no organization, so a bound credential reaches
   // a person's account as before, but an organization's service account
-  // belongs to its organization: a credential limited to another may not
+  // belongs to its organization: a credential limited elsewhere may not
   // mint its keys, list them or change it, though its person administers
   // both organizations.
   async function accountVerdict(
@@ -395,7 +428,9 @@ export function newCredentialBinding(
     if (row?.spec?.provisioningMode !== IdentityAccountProvisioningMode.service_account) {
       return "inside";
     }
-    return (row.metadata?.org ?? "") === bound ? "inside" : "outside";
+    return (await admits(caller, bound, row.metadata?.org ?? ""))
+      ? "inside"
+      : "outside";
   }
 
   async function verdict(
@@ -430,7 +465,7 @@ export function newCredentialBinding(
     if (found === undefined) {
       return "missing";
     }
-    if (found.facts.org === bound) {
+    if (await admits(caller, bound, found.facts.org)) {
       return "inside";
     }
     if (
@@ -471,9 +506,9 @@ export function newCredentialBinding(
     verdict,
     deleting,
 
-    admitsOrganization(caller, org) {
+    async admitsOrganization(caller, org) {
       const bound = boundOrgOf(caller);
-      return bound === undefined || bound === org;
+      return bound === undefined || admits(caller, bound, org);
     },
 
     async keepsEntry(caller, kind, entry) {
@@ -482,13 +517,13 @@ export function newCredentialBinding(
         return true;
       }
       if (kind === ApiResourceKind.organization) {
-        return entry.id === bound;
+        return admits(caller, bound, entry.id);
       }
       if (!belongsToAnOrganization(kind)) {
         return true;
       }
       return (
-        entry.org === bound ||
+        (await admits(caller, bound, entry.org)) ||
         (SHARED_BLUEPRINTS.has(kind) &&
           (await sharedWithBound(caller, bound, entry)))
       );
@@ -499,8 +534,8 @@ export function newCredentialBinding(
         return ids;
       }
       // One primary-key read per id, a bounded batch at a time: the
-      // enumeration a search hands over spans every organization the
-      // person belongs to.
+      // enumeration a search hands over (sessions and runs) spans every
+      // organization the person belongs to.
       const kept = new Set<string>();
       const ordered = [...ids];
       for (let start = 0; start < ordered.length; start += NARROW_BATCH) {

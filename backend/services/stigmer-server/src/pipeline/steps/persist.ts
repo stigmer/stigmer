@@ -1,8 +1,9 @@
 /**
  * Persist — ports steps/persist.go: saves newState through the store
- * (metadata.id must be set by an earlier step). A credential bound to one
- * organization saves no row filed in another (refuse-bound-elsewhere.ts):
- * the backstop under every lane's own check. Only a kind whose rows belong
+ * (metadata.id must be set by an earlier step). A credential bound to an
+ * organization saves no row filed in an organization it does not reach
+ * (refuse-bound-elsewhere.ts, through the composed binding): the backstop
+ * under every lane's own check. Only a kind whose rows belong
  * to an organization is judged by `metadata.org`; an API key, owner-only,
  * is judged by the organization it is limited to, which the binding reads
  * itself (authorization/credential-binding.ts).
@@ -29,6 +30,7 @@ import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import { belongsToAnOrganization } from "../../authorization/credential-binding.js";
 import { EXISTING_RESOURCE_BYTES_KEY } from "./load-existing.js";
+import type { OrganizationAdmission } from "./refuse-bound-elsewhere.js";
 import { refuseBoundElsewhere } from "./refuse-bound-elsewhere.js";
 import { metadataOf } from "./shapes.js";
 
@@ -41,6 +43,7 @@ const SAVE_FAILURE = "failed to save resource to store";
 
 export function newPersistStep<Desc extends DescMessage>(
   store: Store,
+  binding: OrganizationAdmission,
   save?: (state: MessageShape<Desc>) => Promise<void>,
 ): PipelineStep<Desc> {
   return {
@@ -57,7 +60,7 @@ export function newPersistStep<Desc extends DescMessage>(
         );
       }
       if (belongsToAnOrganization(ctx.apiResourceKind)) {
-        refuseBoundElsewhere(ctx.callerIdentity, metadata.org);
+        await refuseBoundElsewhere(binding, ctx.callerIdentity, metadata.org);
       }
       if (ctx.get(EXISTING_RESOURCE_BYTES_KEY) !== undefined) {
         await swapOntoLoadedRow(store, ctx);

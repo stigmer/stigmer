@@ -341,7 +341,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         );
       }
 
-      it("derives a parent's child_org edges from the organization list index and a child's parent_org from its row: the child's viewer reads what the parent shares, and the parent's owner manages the child without reading it", async () => {
+      it("derives a parent's child_org edges from the organization list index and a child's parent_org from its row: the child's viewer reads what the parent shares, and the parent's owner is an admin of the child who reads and edits what it holds", async () => {
         const organization = storedDeclaration("organization");
         await opened.store.saveResource(
           ApiResourceKind.organization,
@@ -417,10 +417,14 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           await check(ROOT, "organization:acme-cust", "can_grant_access"),
         ).toBe(true);
         expect(await check(ROOT, "organization:acme-cust", "can_view")).toBe(
-          false,
+          true,
         );
-        expect(await check(ROOT, "agent:agt_customer", "can_view")).toBe(false);
-        // acme's member is no admin of acme, so manages nothing in its child.
+        expect(await check(ROOT, "organization:acme-cust", "affiliated")).toBe(
+          true,
+        );
+        expect(await check(ROOT, "agent:agt_customer", "can_view")).toBe(true);
+        expect(await check(ROOT, "agent:agt_customer", "can_edit")).toBe(true);
+        // acme's member is no admin of acme, so is nobody in its child.
         expect(await check(DAVE, "organization:acme-cust", "can_edit")).toBe(
           false,
         );

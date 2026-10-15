@@ -67,6 +67,7 @@ import type { UpdateVaultInput } from "@stigmer/protos/ai/stigmer/agentic/vault/
 import type { Logger } from "../../boot/logger.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { isCiphertextShaped, REDACTED_MARKER } from "../../encryption/encryption.js";
+import type { CredentialBinding } from "../../extensions/credential-binding.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
@@ -177,6 +178,12 @@ export interface VaultControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
   readonly authorizer: Authorizer;
+  /**
+   * The composed credential binding: the persist and rename backstops
+   * refuse a credential that does not reach the row's organization
+   * (pipeline/steps/refuse-bound-elsewhere.ts).
+   */
+  readonly credentialBinding: CredentialBinding;
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly secretService: SecretService;
   readonly listReadScope: ListReadScope | undefined;
@@ -271,6 +278,7 @@ async function rename(
         names: deps.store,
         rows: storeRenameRows(deps.store, ApiResourceKind.vault, VaultSchema),
         authorizer: deps.authorizer,
+        credentialBinding: deps.credentialBinding,
         logger: deps.logger,
         newSlugRule: (vault, slug) => {
           if (isMyVault(vault)) {
@@ -316,7 +324,7 @@ async function createVault(
       .addStep(newStampSharedOwnerStep())
       .addStep(newClaimNameStep(deps.store, ApiResourceKind.vault))
       .addStep(newClaimExternalIdStep(deps.store))
-      .addStep(newPersistStep(deps.store))
+      .addStep(newPersistStep(deps.store, deps.credentialBinding))
       .addStep(
         newCreateAuthorizationTuplesStep(deps.authorizationLifecycle, deps.logger),
       )
@@ -365,7 +373,7 @@ async function updateVault(
         .addStep(newGuardReservedLabelsStep(deps.authorizer))
         .addStep(newKeepStoredOwnerAndEntriesStep())
         .addStep(newClaimExternalIdStep(deps.store))
-        .addStep(newPersistVaultUpdateStep(deps.store))
+        .addStep(newPersistVaultUpdateStep(deps.store, deps.credentialBinding))
         .addStep(newReleaseClearedExternalIdStep(deps.store, deps.logger))
         .build()
         .execute(reqCtx);

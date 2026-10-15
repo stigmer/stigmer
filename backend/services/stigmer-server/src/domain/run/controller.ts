@@ -384,7 +384,7 @@ async function createExecution(
         deps.authorizer,
       ),
     )
-    .addStep(newRefuseBoundElsewhereStep())
+    .addStep(newRefuseBoundElsewhereStep(deps.credentialBinding))
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(
@@ -464,7 +464,9 @@ async function createExecution(
     .addStep(newProcessAttachmentsStep(deps.logger))
     // The run commits with its user message and, when it starts its
     // session's work, the session's running status.
-    .addStep(newPersistStep(deps.store, runCreateWriter(deps)))
+    .addStep(
+      newPersistStep(deps.store, deps.credentialBinding, runCreateWriter(deps)),
+    )
     .addStep(
       newCreateAuthorizationTuplesStep(
         deps.authorizationLifecycle,
@@ -554,7 +556,7 @@ async function update(
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newValidateSessionImmutabilityStep())
       .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-      .addStep(newPersistStep(deps.store))
+      .addStep(newPersistStep(deps.store, deps.credentialBinding))
       .addStep(
         newIndexSearchStep(
           deps.store,

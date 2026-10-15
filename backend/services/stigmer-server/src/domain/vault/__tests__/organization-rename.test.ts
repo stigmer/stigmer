@@ -35,6 +35,7 @@ import { organizationId, seedOrganizations } from "../../organization/__tests__/
 import { loadVault, newVaultService } from "../service.js";
 import type { VaultService } from "../service.js";
 import { silentLogger } from "./support.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 const TEST_KEY_B64 = Buffer.alloc(32, 9).toString("base64");
 const SLUG = "rename-acme";
@@ -94,6 +95,7 @@ beforeAll(async () => {
   organizations = createClient(OrganizationCommandController, transport);
   orgId = organizationId(await seedOrganizations(transport, [SLUG]), SLUG);
   vaults = newVaultService({
+    credentialBinding: UNBOUND_CREDENTIAL_BINDING,
     store: server.store,
     logger: silentLogger,
     secretService: server.secrets,

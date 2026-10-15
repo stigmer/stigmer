@@ -97,10 +97,12 @@ export interface ComposedServices {
   /** The one list read scope; undefined where lists are the full scan (open source signed-out). */
   readonly listReadScope: ListReadScope | undefined;
   /**
-   * The credential binding (extensions/credential-binding.ts): for a unit's
-   * own lane that acts on an organization without asking the Authorizer
-   * (the cloud's invitation redeem). The Authorizer and list read scope
-   * above are already bound with it.
+   * The credential binding (extensions/credential-binding.ts): a bound
+   * credential reaches its organization and that organization's children,
+   * a run's credential its run's organization alone. For a unit's own lane
+   * that acts on an organization without asking the Authorizer (the
+   * invitation redeem) and for a unit's rename chains (`RenameChain`). The
+   * Authorizer and list read scope above are already bound with it.
    */
   readonly credentialBinding: CredentialBinding;
   /**

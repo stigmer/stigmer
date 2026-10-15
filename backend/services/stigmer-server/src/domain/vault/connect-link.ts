@@ -70,6 +70,7 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
+import { boundOrgOf } from "../../extensions/identity.js";
 import {
   failedPreconditionError,
   internalError,
@@ -84,7 +85,7 @@ import { isMyVault } from "./service.js";
 import type { VaultService } from "./service.js";
 import { finishSignIn } from "./sign-in/complete.js";
 import { hostOf, linkLoginApp, signInAddress, startSignIn } from "./sign-in/start.js";
-import type { SignInDeps } from "./sign-in/start.js";
+import type { PersonSignInDeps } from "./sign-in/person.js";
 
 /** How long a link lives when its maker does not say: 30 minutes. */
 export const CONNECT_LINK_DEFAULT_LIFETIME_SECONDS = 30 * 60;
@@ -102,9 +103,7 @@ const LAPSED_LINK_GRACE_SECONDS = Math.ceil(PENDING_OAUTH_STATE_TTL_MS / 1000);
 export type ConnectLinkFailure = "denied" | "provider_error" | "expired" | "failed" | "not_allowed";
 
 /** What a Connect link needs from the composition. */
-export interface ConnectLinkDeps extends SignInDeps {
-  readonly vaults: VaultService;
-  readonly authorizer: Authorizer;
+export interface ConnectLinkDeps extends PersonSignInDeps {
   readonly connectLinks: ConnectLinkStore;
 }
 
@@ -117,7 +116,7 @@ export async function createConnectLink(
   if (caller.identityId === "") {
     throw new ConnectError("a Connect link is made by a signed-in caller", Code.Unauthenticated);
   }
-  refuseBoundElsewhere(caller, input.org);
+  await refuseBoundElsewhere(deps.credentialBinding, caller, input.org);
   const vault = await deps.vaults.findById(input.vaultId);
   if (vault === undefined || (vault.metadata?.org ?? "") !== input.org) {
     throw notFoundError("vault", input.vaultId);
@@ -147,7 +146,10 @@ export async function createConnectLink(
     returnUrl,
     createdBy: caller.identityId,
     createdByClass: caller.callerClass,
-    createdByBoundOrg: caller.boundOrg ?? "",
+    // A bound creator's link replays bound to the organization it was
+    // made in, which its credential reaches, never wider (a key limited to
+    // a parent makes a child's link bound to that child).
+    createdByBoundOrg: boundOrgOf(caller) === undefined ? "" : input.org,
     createdAt: now,
     expiresAt: now + lifetime,
     usedAt: 0,

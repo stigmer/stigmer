@@ -44,6 +44,7 @@ import {
   storeRenameRows,
 } from "../rename.js";
 import type { RenameRows } from "../rename.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 const AGENT_ID = "agt_01aaaaaaaaaaaaaaaaaaaaaaaa";
 const ORG = "org_01oooooooooooooooooooooooo";
@@ -265,7 +266,7 @@ describe("RenameName", () => {
   it("refuses a row with no id or slug as a server fault, moving nothing", async () => {
     const { table, moves } = names();
     const fault = await refusalOf(() =>
-      newRenameNameStep(table, rows({})).execute(renameRequest(agent(""))),
+      newRenameNameStep(table, rows({}), UNBOUND_CREDENTIAL_BINDING).execute(renameRequest(agent(""))),
     );
     expect(fault.code).toBe(Code.Internal);
     expect(moves).toEqual([]);
@@ -275,7 +276,7 @@ describe("RenameName", () => {
     for (const options of [{ currentFails: true }, { renameFails: true }]) {
       const { table, moves } = names(options);
       const fault = await refusalOf(() =>
-        newRenameNameStep(table, rows({})).execute(renameRequest(agent())),
+        newRenameNameStep(table, rows({}), UNBOUND_CREDENTIAL_BINDING).execute(renameRequest(agent())),
       );
       expect(fault.code).toBe(Code.Internal);
       expect(moves).toEqual([]);
@@ -289,7 +290,7 @@ describe("PersistRenamed", () => {
     renameRows: RenameRows<typeof AgentSchema>,
   ) {
     const ctx = renameRequest(agent());
-    await newRenameNameStep(table, renameRows).execute(ctx);
+    await newRenameNameStep(table, renameRows, UNBOUND_CREDENTIAL_BINDING).execute(ctx);
     return ctx;
   }
 
@@ -347,7 +348,7 @@ describe("PersistRenamed's settle on the table", () => {
     const { table } = names({ currentAfterMove: "helper-later" });
     const { renameRows, writes } = heldRows();
     const ctx = renameRequest(agent());
-    await newRenameNameStep(table, renameRows).execute(ctx);
+    await newRenameNameStep(table, renameRows, UNBOUND_CREDENTIAL_BINDING).execute(ctx);
     await newPersistRenamedStep(table, renameRows, recordingLogger()).execute(
       ctx,
     );
@@ -362,7 +363,7 @@ describe("PersistRenamed's settle on the table", () => {
     const { renameRows, writes } = heldRows();
     const ctx = renameRequest(agent());
     const logger = recordingLogger();
-    await newRenameNameStep(table, renameRows).execute(ctx);
+    await newRenameNameStep(table, renameRows, UNBOUND_CREDENTIAL_BINDING).execute(ctx);
     await newPersistRenamedStep(table, renameRows, logger).execute(ctx);
     expect(writes).toEqual(["helper-renamed"]);
     expect((ctx.get(RENAMED_RESOURCE_KEY) as Agent).metadata?.slug).toBe(
@@ -395,7 +396,7 @@ describe("Persist by compare-and-swap on the loaded row", () => {
       },
     } as unknown as Store;
     const fault = await refusalOf(() =>
-      newPersistStep<typeof AgentSchema>(store).execute(updateRequest("")),
+      newPersistStep<typeof AgentSchema>(store, UNBOUND_CREDENTIAL_BINDING).execute(updateRequest("")),
     );
     expect(fault.code).toBe(Code.Internal);
   });
@@ -414,7 +415,7 @@ describe("Persist by compare-and-swap on the loaded row", () => {
       },
     } as unknown as Store;
     const conflict = await refusalOf(() =>
-      newPersistStep<typeof AgentSchema>(moved).execute(
+      newPersistStep<typeof AgentSchema>(moved, UNBOUND_CREDENTIAL_BINDING).execute(
         updateRequest(AGENT_ID),
       ),
     );
@@ -433,7 +434,7 @@ describe("Persist by compare-and-swap on the loaded row", () => {
       },
     } as unknown as Store;
     const fault = await refusalOf(() =>
-      newPersistStep<typeof AgentSchema>(broken).execute(
+      newPersistStep<typeof AgentSchema>(broken, UNBOUND_CREDENTIAL_BINDING).execute(
         updateRequest(AGENT_ID),
       ),
     );

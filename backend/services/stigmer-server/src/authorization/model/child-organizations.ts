@@ -4,8 +4,8 @@
  *
  *   - `parent_org` on a child: `organization:<child>#parent_org@
  *     organization:<parent>`, from the child's own `spec.parent_org`. It
- *     feeds `parent_admin: admin from parent_org`, the parent's admins'
- *     management of the child.
+ *     feeds `parent_admin: admin from parent_org`, which makes the
+ *     parent's admins admins of the child.
  *   - `child_org` on a parent: `organization:<parent>#child_org@
  *     organization:<child>` for every child, from the organization list
  *     index (`RowLoader.childOrganizations`). It feeds

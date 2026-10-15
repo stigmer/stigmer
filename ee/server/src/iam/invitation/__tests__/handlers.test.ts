@@ -256,12 +256,14 @@ function rig(
       },
     },
     listReadScope,
-    // The library's rule for an organization: an unbound caller acts in
-    // every one, a bound caller in its own alone.
+    // The library's rule for an organization, over this suite's one
+    // organization, which has no children: an unbound caller acts in every
+    // one, a bound caller in its own (and its children, which acme has
+    // none of).
     credentialBinding: {
       admitsOrganization: (caller, org) => {
         const bound = boundOrgOf(caller);
-        return bound === undefined || bound === org;
+        return Promise.resolve(bound === undefined || bound === org);
       },
     },
     organizations: {

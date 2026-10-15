@@ -81,7 +81,7 @@ All spec fields are defined by `OrganizationSpec` in `ai/stigmer/tenancy/organiz
 
 ## Parent and Child Organizations
 
-A child organization names its parent in `spec.parent_org`. The parent's admins manage the child: its settings, its members and access, its bill, its deletion. They hold no role in it, so they read none of its agents, sessions or files; to look inside, a parent admin grants themselves a role in the child, which its member list and access history show.
+A child organization names its parent in `spec.parent_org`. The parent's admins are admins in the child, with no joining step: they read and change its agents, skills, plugins, shared vaults, eval runs, teams and sign-in settings, grant access, and see its bill and full access history, as the child's own admins can, and they also delete it and make someone its owner. A person's sessions, My vault and memories stay private from every admin, the parent's included. A credential limited to the parent works in the child exactly as the account behind it would.
 
 ```yaml
 spec:

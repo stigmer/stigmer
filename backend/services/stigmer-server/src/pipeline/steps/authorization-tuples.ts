@@ -290,7 +290,7 @@ export function resolveResourceCreatedEvent(
  * A chain's own word on who owns the row it created, where the kind's
  * configured owner_type is not the whole answer: undefined keeps the
  * configured attribution. The organization chain uses it for a child
- * organization, which nobody owns (its parent's admins manage it), so
+ * organization, which nobody owns (its parent's admins are its admins), so
  * the event carries NONE and neither the built-in role lifecycle nor a
  * tuple driver makes its creator owner.
  */

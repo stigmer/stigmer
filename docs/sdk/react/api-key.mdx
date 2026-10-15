@@ -212,7 +212,8 @@ Compact form for creating a new API key.
 
 Collects a **name** (required), an **expiry** choice (30 / 60 /
 90 days or never) and **This organization only** (checked by default,
-which limits the key to `org`: it is refused in every other organization;
+which limits the key to `org` and its child organizations, where it works
+as its owner would: it is refused in every other organization;
 unchecked, the key works in every organization the owner's sign-in reaches),
 then creates the key via [`useCreateApiKey`](#usecreateapikey).
 On success it fires `onCreated` with the full `ApiKey`
@@ -228,7 +229,7 @@ All visual properties flow through `--stgm-*` design tokens.
     initialName: { type: "string", description: "Seeds the name field on mount (e.g. a suggested key name, or a demo scenario depicting the form mid-fill). One-time: consumed on mount; subsequent changes are ignored. The field stays fully editable." },
     onCancel: { type: "() => void", description: "Fired when the user cancels creation." },
     onCreated: { type: "(apiKey: ApiKey) => void", description: "Fired with the newly created API key after successful creation. The `spec.keyHash` field of the returned key contains the raw key value — available only at this moment." },
-    org: { type: "string", description: "The active organization's id (a slug is also accepted): the key's `metadata.org`, and the organization **This organization only** limits the key to (`spec.bound_org`).", required: true },
+    org: { type: "string", description: "The active organization's id (a slug is also accepted): the key's `metadata.org`, and the organization **This organization only** limits the key to (`spec.bound_org`), together with its child organizations.", required: true },
   }}
 />
 

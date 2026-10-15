@@ -48,6 +48,7 @@ import {
 } from "../../pipeline/errors.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
+import type { OrganizationAdmission } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { GITHUB_HOST } from "../vault/constants.js";
 import type { VaultService } from "../vault/service.js";
@@ -65,6 +66,8 @@ export interface GitHubControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam: every read asks can_create_vault on the organization. */
   readonly authorizer: Authorizer;
+  /** The composed credential binding: a bound credential reads only in the organizations it reaches. */
+  readonly credentialBinding: OrganizationAdmission;
   /** The vault door: the reads open the github.com login. */
   readonly vaults: VaultService;
   /** Test seam for every GitHub call; defaults to global fetch. */
@@ -105,7 +108,7 @@ async function githubFor(
 ): Promise<GitHubApi> {
   const caller = callerIdentityOf(ctx);
   await authorizeDirect(method, deps.authorizer, caller, req);
-  refuseBoundElsewhere(caller, req.org);
+  await refuseBoundElsewhere(deps.credentialBinding, caller, req.org);
   const vault = await deps.vaults.findMine(req.org, caller.identityId);
   const token =
     vault === undefined

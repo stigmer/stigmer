@@ -4,9 +4,12 @@
  * the run's target (the agent it executes)
  * as that binding. A target that binding cannot read would let the create
  * succeed and the run fail at its first read. This step asks the binding
- * the runner's question at create instead: the target must be inside the
- * run's organization, or shared across organizations along the model's one
- * path (authorization/credential-binding.ts). A target no row holds is left
+ * the runner's question at create instead, as the run's credential (the
+ * `runner` class, which reaches its run's organization alone and never its
+ * children, credential-binding.ts `reachesChildren`): the target must be
+ * inside the run's organization, or shared with it by its parent
+ * (authorization/credential-binding.ts). A run filed in a parent therefore
+ * never executes a child's agent, whoever creates it. A target no row holds is left
  * to the steps that answer not-found; a read fault answers INTERNAL.
  *
  * Placed after the step that authorized the caller on the target, so only a
@@ -47,7 +50,7 @@ export function newRunTargetReachableStep<Desc extends DescMessage>(
       let verdict;
       try {
         verdict = await binding.verdict(
-          { ...ctx.callerIdentity, boundOrg: org },
+          { ...ctx.callerIdentity, callerClass: "runner", boundOrg: org },
           {
             kind: target.resourceKind,
             id: target.resourceId,

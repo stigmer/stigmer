@@ -4,15 +4,17 @@
 // service accounts. The unified get/list/delete verbs cover the rest.
 //
 // `--bound-org` limits the key to one organization (`spec.bound_org`, by
-// slug or id): the server refuses it in every other organization. Without
-// it, the key works in every organization its owner holds a role in, unless
-// the CLI's own credential is limited to one, whose organization it then
-// takes.
+// slug or id): the key works there and in that organization's children, as
+// its owner's role allows, and the server refuses it in every other
+// organization. Without it, the key works in every organization its owner
+// holds a role in, unless the CLI's own credential is limited to one, whose
+// organization it then takes.
 //
 // `--service-account <name>` creates the key for one of the organization's
 // service accounts instead of for the caller: the key speaks for the service
 // account, keeps working when the caller leaves, and works only in the
-// service account's organization, so `--bound-org` does not apply. The name
+// service account's organization and its children, so `--bound-org` does not
+// apply. The name
 // is resolved in the organization every org-scoped command uses (`--org`,
 // `STIGMER_ORG`, then the context), and the key needs a `--name` of its own.
 
@@ -67,7 +69,7 @@ export function registerApiKey(program: Command): void {
     .option("--expires-in <duration>", "custom expiration (e.g. 30d, 6h, 1y)")
     .option(
       "--bound-org <org>",
-      "limit the key to one organization (slug or id); it is refused everywhere else",
+      "limit the key to one organization (slug or id) and its child organizations; it is refused everywhere else",
     )
     .option(
       "--service-account <name>",

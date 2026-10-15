@@ -15,10 +15,9 @@
  *     asks only for what came after the last entry it holds: every entry
  *     once, numbered with no gap;
  *   - a member may see who has access but not read how it changed;
- *   - Acme's admins read its child organization's history, but only the
- *     entries about the child itself, never its private agent or who
- *     holds it; the child's own admin reads all of it, and its member
- *     none;
+ *   - Acme's admins read the whole of its child organization's history,
+ *     its private agent and who holds it included, as the child's own
+ *     admin does, and its member none;
  *   - a deleted resource is named deleted (its slug empty), the
  *     organization's own entries still named. (Its rows are not removed
  *     with it on this posture yet, so its removal is not recorded:
@@ -173,8 +172,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history on a licens
     await grants.create(grant(ref("identity_account", kim.accountId), "admin", ref("organization", acmeEu)));
     lee = await signIn(booted, issuer, "operator|lee");
     await grants.create(grant(ref("identity_account", lee.accountId), "member", ref("organization", acmeEu)));
-    // Something the child holds that its parent's admins do not see: a
-    // private agent, and Lee's role on it.
+    // Something the child holds: a private agent, and Lee's role on it.
     const secret = await createClient(AgentCommandController, kim.transport).create({
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Agent",
@@ -272,30 +270,24 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the access history on a licens
     expect(error.code).toBe(Code.PermissionDenied);
   });
 
-  it("the parent's admins read a child organization's history, and the child's member does not", async () => {
+  it("the parent's admins read the whole of a child organization's history, as its own admin does, and the child's member does not", async () => {
+    // The parent's admins are the child's admins: they read every entry,
+    // the private agent and who holds it included.
     const entries = await newestFirst(bob.transport, acmeEu);
-    // Only the entries about the child itself: its private agent, and who
-    // holds it, stay out of sight of the parent's admins.
-    expect(entries.length).toBeGreaterThan(0);
-    for (const entry of entries) {
-      expect(entry.resource, `entry ${entry.sequence}`).toMatchObject({
-        kind: ApiResourceKind.organization,
-        id: acmeEu,
-      });
-    }
-    expect(entries.map((entry) => [entry.principal?.id, entry.role?.code])).toEqual([
-      [lee.accountId, "member"],
-      [kim.accountId, "admin"],
-    ]);
-
-    // The child's own admin reads the whole of it, the private agent included.
-    const insider = await newestFirst(kim.transport, acmeEu);
-    expect(insider[0]).toMatchObject({
+    expect(entries[0]).toMatchObject({
       principal: { id: lee.accountId },
       role: { code: "editor" },
       resource: { kind: ApiResourceKind.agent, id: euSecretId, slug: "eu-secret" },
     });
-    expect(insider.length).toBe(entries.length + 1);
+    expect(entries.map((entry) => [entry.principal?.id, entry.role?.code])).toEqual([
+      [lee.accountId, "editor"],
+      [lee.accountId, "member"],
+      [kim.accountId, "admin"],
+    ]);
+
+    // The child's own admin reads the same history.
+    const insider = await newestFirst(kim.transport, acmeEu);
+    expect(insider.map((entry) => entry.sequence)).toEqual(entries.map((entry) => entry.sequence));
 
     const member = await refusal(
       createClient(GrantQueryController, lee.transport).listAccessHistory({ org: acmeEu }),

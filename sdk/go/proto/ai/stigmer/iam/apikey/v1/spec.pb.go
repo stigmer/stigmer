@@ -29,7 +29,8 @@ const (
 // API keys provide programmatic access to the Stigmer API. Each key speaks for
 // the account it is for: the person who created it, or the organization's
 // service account an admin created it for. A key can have an optional
-// expiration time and may be limited to one organization (bound_org).
+// expiration time and may be limited to one organization and its child
+// organizations (bound_org).
 type ApiKeySpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Hash of the raw API key.
@@ -41,16 +42,20 @@ type ApiKeySpec struct {
 	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	// When true, the API key never expires regardless of expires_at.
 	NeverExpires bool `protobuf:"varint,4,opt,name=never_expires,json=neverExpires,proto3" json:"never_expires,omitempty"`
-	// The organization this key works in, by id or slug; the server stores the
-	// id. Empty means the key speaks for its owner in every organization they
-	// hold a role in.
+	// The organization this key is limited to, by id or slug; the server
+	// stores the id. Empty means the key speaks for its owner in every
+	// organization they hold a role in.
 	//
-	// A limited key is refused in every other organization, whatever roles its
-	// owner holds there, and cannot create an organization or a key that is not
-	// limited to the same organization. Creating a key limited to an
-	// organization its owner cannot view is refused. A key created with a
-	// credential that is itself limited to one organization is limited to that
-	// organization: an empty value takes it, and any other value is refused.
+	// A limited key works in that organization and, when it is a parent, in
+	// each of its child organizations, exactly as its account would there
+	// (reads and writes, as the account's role allows); a key limited to a
+	// child reaches neither its parent nor another child. It is refused in
+	// every other organization, whatever roles its owner holds there, and
+	// cannot create an organization. Creating a key limited to an organization
+	// its owner cannot view is refused. A key created with a credential that
+	// is itself limited to one organization is limited to that organization
+	// or one of its child organizations: an empty value takes the
+	// credential's own, and any other value is refused.
 	BoundOrg      string `protobuf:"bytes,5,opt,name=bound_org,json=boundOrg,proto3" json:"bound_org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

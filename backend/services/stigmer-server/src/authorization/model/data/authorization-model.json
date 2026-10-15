@@ -628,55 +628,23 @@
           "this": {}
         },
         "owner": {
-          "union": {
-            "child": [
-              {
-                "tupleToUserset": {
-                  "computedUserset": {
-                    "relation": "admin"
-                  },
-                  "tupleset": {
-                    "relation": "organization"
-                  }
-                }
-              },
-              {
-                "tupleToUserset": {
-                  "computedUserset": {
-                    "relation": "parent_admin"
-                  },
-                  "tupleset": {
-                    "relation": "organization"
-                  }
-                }
-              }
-            ]
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "admin"
+            },
+            "tupleset": {
+              "relation": "organization"
+            }
           }
         },
         "viewer": {
-          "union": {
-            "child": [
-              {
-                "tupleToUserset": {
-                  "computedUserset": {
-                    "relation": "admin"
-                  },
-                  "tupleset": {
-                    "relation": "organization"
-                  }
-                }
-              },
-              {
-                "tupleToUserset": {
-                  "computedUserset": {
-                    "relation": "parent_admin"
-                  },
-                  "tupleset": {
-                    "relation": "organization"
-                  }
-                }
-              }
-            ]
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "admin"
+            },
+            "tupleset": {
+              "relation": "organization"
+            }
           }
         }
       },
@@ -898,12 +866,28 @@
                 "computedUserset": {
                   "relation": "owner"
                 }
+              },
+              {
+                "computedUserset": {
+                  "relation": "parent_admin"
+                }
               }
             ]
           }
         },
         "affiliated": {
-          "this": {}
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "parent_admin"
+                }
+              }
+            ]
+          }
         },
         "agent_creation_open": {
           "this": {}
@@ -1049,35 +1033,13 @@
           }
         },
         "can_edit": {
-          "union": {
-            "child": [
-              {
-                "computedUserset": {
-                  "relation": "admin"
-                }
-              },
-              {
-                "computedUserset": {
-                  "relation": "parent_admin"
-                }
-              }
-            ]
+          "computedUserset": {
+            "relation": "admin"
           }
         },
         "can_grant_access": {
-          "union": {
-            "child": [
-              {
-                "computedUserset": {
-                  "relation": "admin"
-                }
-              },
-              {
-                "computedUserset": {
-                  "relation": "parent_admin"
-                }
-              }
-            ]
+          "computedUserset": {
+            "relation": "admin"
           }
         },
         "can_manage_billing": {
@@ -1091,19 +1053,8 @@
           }
         },
         "can_mint_user_tokens": {
-          "union": {
-            "child": [
-              {
-                "computedUserset": {
-                  "relation": "admin"
-                }
-              },
-              {
-                "computedUserset": {
-                  "relation": "parent_admin"
-                }
-              }
-            ]
+          "computedUserset": {
+            "relation": "admin"
           }
         },
         "can_view": {
@@ -1112,67 +1063,23 @@
           }
         },
         "can_view_access": {
-          "union": {
-            "child": [
-              {
-                "computedUserset": {
-                  "relation": "viewer"
-                }
-              },
-              {
-                "computedUserset": {
-                  "relation": "parent_admin"
-                }
-              }
-            ]
+          "computedUserset": {
+            "relation": "viewer"
           }
         },
         "can_view_access_history": {
-          "union": {
-            "child": [
-              {
-                "computedUserset": {
-                  "relation": "admin"
-                }
-              },
-              {
-                "computedUserset": {
-                  "relation": "parent_admin"
-                }
-              }
-            ]
+          "computedUserset": {
+            "relation": "admin"
           }
         },
         "can_view_billing": {
-          "union": {
-            "child": [
-              {
-                "computedUserset": {
-                  "relation": "viewer"
-                }
-              },
-              {
-                "computedUserset": {
-                  "relation": "parent_admin"
-                }
-              }
-            ]
+          "computedUserset": {
+            "relation": "viewer"
           }
         },
         "can_view_settings": {
-          "union": {
-            "child": [
-              {
-                "computedUserset": {
-                  "relation": "can_view"
-                }
-              },
-              {
-                "computedUserset": {
-                  "relation": "parent_admin"
-                }
-              }
-            ]
+          "computedUserset": {
+            "relation": "can_view"
           }
         },
         "child_org": {

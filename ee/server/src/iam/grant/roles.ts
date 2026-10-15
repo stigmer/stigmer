@@ -80,8 +80,8 @@ export function newKindMetaGrantScope(): GrantScope {
  * iam/invitation/handlers.ts, pinned by the handler suite's app-user case), and the library's organization
  * create admits a bound credential only for a child of its own
  * organization (`@stigmer/server`'s `domain/organization/steps.ts`). So
- * such a user joins only its token's organization, or a child, and
- * founds only a child of it.
+ * such a user joins only its token's organization or one of that
+ * organization's children, and founds only a child of it.
  * The library's `isPersonAccount` answers another question (which
  * accounts the built-in membership rules derive roles for, federated ones
  * excluded) and is not this rule: it would refuse every person who signs

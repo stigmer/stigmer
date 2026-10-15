@@ -1675,9 +1675,7 @@ type AccessHistoryPage struct {
 	Entries []*AccessHistoryEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
 	// Set when more entries may follow: pass it as page_token, with the same
 	// request otherwise, to continue. Empty when this page reached the end.
-	// A page may be short, even empty, and still carry a token: a parent
-	// organization's administrators are not shown the entries about a child's
-	// resources.
+	// A page may be short, even empty, and still carry a token.
 	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	// The lowest sequence the organization's history still holds. When it
 	// holds none because every entry was removed, the sequence its next entry
@@ -1686,9 +1684,8 @@ type AccessHistoryPage struct {
 	// the oldest entries first, so an organization's kept entries are always
 	// one unbroken run ending at its newest. A tool that asked for what came
 	// after N and reads an oldest_sequence above N + 1 knows that N + 1 to
-	// oldest_sequence - 1 were removed by retention, not missed; any other
-	// gap in the numbers is a parent organization's administrator not being
-	// shown the entries about a child's resources.
+	// oldest_sequence - 1 were removed by retention, not missed. Whoever may
+	// read the history reads all of it, so the numbers have no other gaps.
 	OldestSequence int64 `protobuf:"varint,3,opt,name=oldest_sequence,json=oldestSequence,proto3" json:"oldest_sequence,omitempty"`
 	// How many days this server keeps the access history, 0 when it removes
 	// nothing. Entries older than this are removed.

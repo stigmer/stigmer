@@ -38,6 +38,7 @@ import {
   newResolveEvaluatorDefaultsStep,
   newValidateEvaluatorUpdateStep,
 } from "../steps.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 let temp: TempStore;
 
@@ -99,7 +100,7 @@ describe("the evaluator steps' faults", () => {
     expect(
       await codeOf(() => newGetEvaluatorByAgentStep(failing(temp.store, "queryResources"), silentLogger).execute(byAgent)),
     ).toBe(Code.Internal);
-    expect(await codeOf(() => newPersistEvaluatorSettingsStep(failing(temp.store, "updateResource")).execute(evaluatorCtx()))).toBe(
+    expect(await codeOf(() => newPersistEvaluatorSettingsStep(failing(temp.store, "updateResource"), UNBOUND_CREDENTIAL_BINDING).execute(evaluatorCtx()))).toBe(
       Code.Internal,
     );
   });
@@ -107,7 +108,7 @@ describe("the evaluator steps' faults", () => {
   it("loses its swap when the evaluator went between the update's read and its write (the rerun's read answers NOT_FOUND)", async () => {
     const ctx = evaluatorCtx();
     ctx.set(EXISTING_RESOURCE_BYTES_KEY, new Uint8Array([1]));
-    expect(await codeOf(() => newPersistEvaluatorSettingsStep(temp.store).execute(ctx))).toBe(Code.Aborted);
+    expect(await codeOf(() => newPersistEvaluatorSettingsStep(temp.store, UNBOUND_CREDENTIAL_BINDING).execute(ctx))).toBe(Code.Aborted);
   });
 
   it("refuses a create that names no organization", async () => {

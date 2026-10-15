@@ -57,8 +57,9 @@
  *     does not exist → NOT_FOUND with the load-first copy (what a `get`
  *     on that id answers), a caller who is not the run's person, or a run
  *     whose stamp names nobody → PERMISSION_DENIED with one sentence
- *     (constants.ts), and a caller bound to another organization than the
- *     run's → PERMISSION_DENIED with the binding's sentence
+ *     (constants.ts), and a caller whose credential does not reach the
+ *     run's organization (the binding's `admitsOrganization`: its own or a
+ *     child of it) → PERMISSION_DENIED with the binding's sentence
  *     (authorization/credential-binding.ts; the credential it would mint
  *     is bound to the run's organization, runner-subject-verifier.ts). The
  *     id decides which execution kind is read (the lane's rule
@@ -84,7 +85,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { accountForStamp } from "../domain/identityaccount/resolve.js";
 import type { AccountsByCaller } from "../domain/identityaccount/resolve.js";
 import { BOUND_ELSEWHERE_DENY_REASON } from "../authorization/credential-binding.js";
-import { boundOrgOf } from "../extensions/identity.js";
+import type { OrganizationAdmission } from "../pipeline/steps/refuse-bound-elsewhere.js";
 import type { CallerIdentity } from "../extensions/identity.js";
 import { getKindName } from "../pipeline/apiresource-meta.js";
 import { notFoundError } from "../pipeline/errors.js";
@@ -123,6 +124,8 @@ export interface BuiltInRunnerCredentialProviderDeps {
   readonly store: BoundExecutionStore;
   /** Resolves a run's creator stamp to its person — the exchange's owner check, the verifier's reading. */
   readonly accounts: AccountsByCaller;
+  /** The composed credential binding: the exchange swaps a bound credential only for a run in an organization it reaches. */
+  readonly credentialBinding: OrganizationAdmission;
 }
 
 /**
@@ -190,11 +193,15 @@ export function newBuiltInRunnerCredentialProvider(
               Code.PermissionDenied,
             );
           }
-          // A credential bound to one organization swaps itself only for
-          // a run in that organization; the credential it would mint
-          // works in the run's.
-          const bound = boundOrgOf(caller);
-          if (bound !== undefined && bound !== execution.org) {
+          // A bound credential swaps itself only for a run in an
+          // organization it reaches; the credential it would mint works in
+          // the run's alone.
+          if (
+            !(await deps.credentialBinding.admitsOrganization(
+              caller,
+              execution.org,
+            ))
+          ) {
             throw new ConnectError(
               BOUND_ELSEWHERE_DENY_REASON,
               Code.PermissionDenied,

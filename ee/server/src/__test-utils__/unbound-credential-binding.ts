@@ -14,16 +14,15 @@ import { boundOrgOf } from "@stigmer/server";
 const BOUND_CALLER_REFUSAL =
   "the unbound credential binding double was asked about a bound caller; compose a server to prove a binding";
 
-function refuseBound(): never {
-  throw new Error(BOUND_CALLER_REFUSAL);
-}
-
 export const UNBOUND_CREDENTIAL_BINDING: CredentialBinding = {
   verdict: (caller) =>
     boundOrgOf(caller) === undefined
       ? Promise.resolve("unbound")
       : Promise.reject(new Error(BOUND_CALLER_REFUSAL)),
-  admitsOrganization: (caller) => boundOrgOf(caller) === undefined || refuseBound(),
+  admitsOrganization: (caller) =>
+    boundOrgOf(caller) === undefined
+      ? Promise.resolve(true)
+      : Promise.reject(new Error(BOUND_CALLER_REFUSAL)),
   keepsEntry: (caller) =>
     boundOrgOf(caller) === undefined
       ? Promise.resolve(true)

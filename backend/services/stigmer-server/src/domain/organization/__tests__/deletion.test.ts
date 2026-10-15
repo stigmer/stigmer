@@ -54,6 +54,7 @@ import {
   newRefuseParentDeletingStep,
   unmarkAfterFailure,
 } from "../deletion.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 const PARENT = "org_01kparentparentparentparent";
 const CHILD = "org_01kchildchildchildchildchi";
@@ -243,7 +244,7 @@ describe("the delete's own steps, when the deletion table faults", () => {
   it("answers INTERNAL when a child create cannot mark itself after its parent's", async () => {
     await newMarkDeletingStep(store).execute(deleteContext(parentRow()));
     const created = childCreateContext();
-    await newPersistStep(store).execute(created);
+    await newPersistStep(store, UNBOUND_CREDENTIAL_BINDING).execute(created);
     vi.spyOn(store.organizationDeletions, "mark").mockRejectedValueOnce(STORE_DOWN);
     const failed = await refusal(() =>
       newRefuseParentDeletingStep(store, purge).execute(created),
@@ -260,7 +261,7 @@ describe("a delete racing a child create (stigmer#1917)", () => {
     const created = childCreateContext();
     await newRefuseDeletingParentStep(store).execute(del);
     // The create's own check passed (its parent was live); it persists now.
-    await newPersistStep(store).execute(created);
+    await newPersistStep(store, UNBOUND_CREDENTIAL_BINDING).execute(created);
     await newMarkDeletingStep(store).execute(del);
     const refused = await refusal(() =>
       newRefuseDeletingParentStep(store).execute(del),
@@ -280,7 +281,7 @@ describe("a delete racing a child create (stigmer#1917)", () => {
     await newMarkDeletingStep(store).execute(del);
     // The delete's second check runs before the child's row lands.
     await newRefuseDeletingParentStep(store).execute(del);
-    await newPersistStep(store).execute(created);
+    await newPersistStep(store, UNBOUND_CREDENTIAL_BINDING).execute(created);
     const refused = await refusal(() =>
       newRefuseParentDeletingStep(store, purge).execute(created),
     );

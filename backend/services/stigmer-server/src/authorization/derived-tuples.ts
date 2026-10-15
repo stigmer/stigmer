@@ -400,9 +400,11 @@ export function newDerivedTupleSource(
         (await reachableTuples()).get(pairKey(object, relation)) ?? [];
       const declaration = model.byType(object.type);
       if (declaration === undefined || isAffiliation(object, relation)) {
-        // An organization's `affiliated` tuples are the person's rows'
-        // (tuplesOfPersonRow); the organization's own row derives none, so
-        // it is not read for them.
+        // An organization's stored `affiliated` tuples are the person's
+        // rows' (tuplesOfPersonRow); the organization's own row derives
+        // none, so it is not read for them. Its computed half
+        // (`parent_admin`, a parent's admins on a child) is the
+        // evaluator's to walk, through the row's `parent_org` edge.
         return fromRows;
       }
       const fromRow = (await derivedTuplesOf(object)).filter(onPair);

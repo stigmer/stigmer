@@ -15,10 +15,11 @@
  *      and an admin's own session must not quietly become a mint.
  *   3. Authorization, from the method's annotation:
  *      `can_mint_user_tokens` on the organization the token is for, its
- *      admins and its parent's admins (fga/model/tenancy/organization.fga).
- *      A management permission, so a key bound to its organization reaches
- *      a child of it (authorization/credential-binding.ts) and nothing
- *      else.
+ *      admins, a child's parent's admins among them
+ *      (fga/model/tenancy/organization.fga). A key bound to its
+ *      organization reaches each child of it
+ *      (authorization/credential-binding.ts) and nothing else, so a
+ *      parent's service account mints into its children.
  *
  * The settings that apply (create_accounts_on_sign_in, sign_in_role) are
  * the minting service account's organization's embedding settings

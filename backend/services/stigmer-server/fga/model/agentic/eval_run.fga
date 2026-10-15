@@ -22,7 +22,8 @@ module agentic
 #   and their results, and its viewers read nothing through it.
 # - No owner of its own (OWNER_ATTRIBUTION_TYPE_NONE). The subject's owner
 #   already includes the organization's admins, who hold the purse the
-#   eval run spends.
+#   eval run spends; on a child organization those include the parent's
+#   admins, whose purse it is when the child runs on its parent's plan.
 
 type eval_run
   relations

@@ -42,6 +42,7 @@ import type { VaultService } from "../../vault/service.js";
 import { VaultConnectionSource } from "../../vault/service.js";
 import { FILE_CONTENT_CEILING_BYTES, RECONNECT_GITHUB } from "../api.js";
 import { CONNECT_GITHUB_FIRST, registerGitHubServices } from "../controller.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 const ORG = "org_00000000000000000000000001";
@@ -58,6 +59,7 @@ beforeEach(() => {
   dir = mkdtempSync(path.join(tmpdir(), "github-queries-"));
   store = SqliteStore.open(path.join(dir, "test.db"));
   vaults = newVaultService({
+    credentialBinding: UNBOUND_CREDENTIAL_BINDING,
     store,
     logger: silentLogger,
     secretService: SecretService.create(undefined),
@@ -95,6 +97,7 @@ function client(authorizer: Authorizer = newPermissiveSingleTeamAuthorizer()) {
   const transport = createRouterTransport(
     (router) => {
       registerGitHubServices(router, {
+        credentialBinding: UNBOUND_CREDENTIAL_BINDING,
         logger: silentLogger,
         authorizer,
         vaults,

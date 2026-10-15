@@ -27,7 +27,9 @@
  * The person is admitted BOUND to the execution's organization
  * (`CallerIdentity.boundOrg`, authorization/credential-binding.ts): a run
  * belongs to one organization, so its credential works there and nowhere
- * else, whoever started the run and with whatever credential. Without it a
+ * else, its children included (the binding's `reachesChildren` admits
+ * children for an account's own credential classes only, never `runner`),
+ * whoever started the run and with whatever credential. Without it a
  * credential bound to one organization could start a run there, exchange
  * itself for the run's credential, and act as the person in every other
  * organization they belong to. A row that names no organization admits

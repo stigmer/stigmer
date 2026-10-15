@@ -1,5 +1,5 @@
 # Who may mint a user token for an organization (can_mint_user_tokens):
-# its admins, and the admins of its parent for a child. Minting can create
+# its admins, which on a child include its parent's admins. Minting can create
 # a person's account and grant the organization's embedding sign-in role,
 # so a member or viewer never holds it, a service account holds it exactly
 # when its role is admin, and the admins of an unrelated organization hold

@@ -26,14 +26,19 @@
  *
  * A resource's list names only people who belong to its organization.
  * The model bounds every direct grant on an organization-scoped object by
- * the organization (fga/model/tenancy/organization.fga `affiliated`), and
- * the grant path revokes a departed person's shares, but it keeps their
- * authorship row (grant-path.ts), which reaches nothing while they are
- * away. A row that grants nothing is not access, so an account that holds
- * no row on the resource's organization is left out of that resource's
- * list, read from the same rows (one indexed `findByPrincipal` per listed
- * account). An organization's own list is its roles and is never
- * filtered.
+ * the organization (fga/model/tenancy/organization.fga `affiliated`: a
+ * role row on the organization, or on a child organization an admin or
+ * owner row on its parent), and the grant path revokes a departed person's
+ * shares, but it keeps their authorship row (grant-path.ts), which reaches
+ * nothing while they are away. A row that grants nothing is not access, so
+ * an account that holds no role row on the resource's organization, and
+ * no admin or owner row on that organization's parent, is left out of
+ * that resource's list, read from the same rows (one indexed
+ * `findByPrincipal` per listed account) and one read of the organization's
+ * `spec.parent_org`. So an agent a parent's admin makes in a child lists
+ * them as its owner while they are one of the parent's admins, and stops
+ * listing them when they are not. An organization's own list is its roles
+ * and is never filtered.
  *
  * Every entry names its grantee exactly as the rows hold it: kind, id AND
  * the relation qualifier (`team:<id>#member`), and entries group by all
@@ -62,11 +67,16 @@ import {
   kindByEnumName,
   kindEnumName,
 } from "../../pipeline/apiresource-meta.js";
+import { loadOrganization, parentOrgOf } from "../organization/children.js";
+import type { Store } from "../../store/interface.js";
 import { assignableRelations, roleInfoFromRelation } from "./roles.js";
 import type { GrantStore } from "./store.js";
 
 const ACCOUNT_KIND = kindEnumName(ApiResourceKind.identity_account);
 const ORGANIZATION_KIND = kindEnumName(ApiResourceKind.organization);
+
+/** The parent's roles that make a person an admin of each child (`parent_admin: admin from parent_org`). */
+const PARENT_ADMIN_ROLES: ReadonlySet<string> = new Set(["owner", "admin"]);
 
 /** The Java resolver's bounds: ≤5 steps, platform terminates the walk. */
 const MAX_HIERARCHY_DEPTH = 5;
@@ -132,6 +142,7 @@ export interface PrincipalDisplayResolver {
  */
 export async function buildPrincipalAccessList(
   grantStore: GrantStore,
+  organizations: Pick<Store, "getResource">,
   displayResolver: PrincipalDisplayResolver,
   principalDisplay: PrincipalDisplay | undefined,
   hierarchy: ReadonlyArray<HierarchyLevel>,
@@ -157,6 +168,7 @@ export async function buildPrincipalAccessList(
   }
   const departed = await accountsOutsideOrganization(
     grantStore,
+    organizations,
     hierarchy,
     grants.map((grant) => grant.grant),
   );
@@ -218,11 +230,13 @@ export async function buildPrincipalAccessList(
 
 /**
  * The accounts among the rows that hold no row on the resource's
- * organization (the module header's rule). Empty for an organization's own
- * list and for a resource no organization holds.
+ * organization and no admin or owner row on its parent (the module
+ * header's rule). Empty for an organization's own list and for a resource
+ * no organization holds.
  */
 async function accountsOutsideOrganization(
   grants: GrantStore,
+  organizations: Pick<Store, "getResource">,
   hierarchy: ReadonlyArray<HierarchyLevel>,
   rows: ReadonlyArray<Grant>,
 ): Promise<ReadonlySet<string>> {
@@ -243,14 +257,26 @@ async function accountsOutsideOrganization(
       accounts.add(row.spec.principal.id);
     }
   }
+  if (accounts.size === 0) {
+    return new Set();
+  }
+  const row = await loadOrganization(organizations, organization.id);
+  const parent = row === undefined ? "" : parentOrgOf(row);
   const outside = new Set<string>();
   for (const account of accounts) {
     const held = await grants.findByPrincipal(ACCOUNT_KIND, account);
-    const inOrganization = held.some(
-      (grant) =>
-        grant.spec?.resource?.kind === ORGANIZATION_KIND &&
-        grant.spec.resource.id === organization.id,
-    );
+    const inOrganization = held.some((grant) => {
+      const on = grant.spec?.resource;
+      if (on?.kind !== ORGANIZATION_KIND) {
+        return false;
+      }
+      return (
+        on.id === organization.id ||
+        (parent !== "" &&
+          on.id === parent &&
+          PARENT_ADMIN_ROLES.has(grant.spec?.relation ?? ""))
+      );
+    });
     if (!inOrganization) {
       outside.add(account);
     }

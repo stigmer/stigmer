@@ -38,6 +38,7 @@ import {
   notFoundError,
 } from "../../../pipeline/errors.js";
 import { authorizeResolvedResource } from "../../../pipeline/steps/authorize.js";
+import type { OrganizationAdmission } from "../../../pipeline/steps/refuse-bound-elsewhere.js";
 import { refuseBoundElsewhere } from "../../../pipeline/steps/refuse-bound-elsewhere.js";
 import type { PendingOAuthState } from "../../../store/interface.js";
 import type { VaultService } from "../service.js";
@@ -49,6 +50,8 @@ import type { SignInDeps, SignInReturn } from "./start.js";
 export interface PersonSignInDeps extends SignInDeps {
   readonly vaults: VaultService;
   readonly authorizer: Authorizer;
+  /** The composed credential binding: a login lands only in an organization the credential reaches. */
+  readonly credentialBinding: OrganizationAdmission;
 }
 
 export async function startPersonSignIn(
@@ -68,7 +71,7 @@ export async function startPersonSignIn(
   const which = input.vault?.vault;
   const vaultId = which?.case === "id" ? which.value : "";
   // The login lands in this organization's vault.
-  refuseBoundElsewhere(caller, org);
+  await refuseBoundElsewhere(deps.credentialBinding, caller, org);
   await authorizeSignInVault(deps, org, vaultId, caller);
 
   const started = await startSignIn(deps, {
@@ -113,7 +116,7 @@ export async function completePersonSignIn(
       "this sign-in was started by another account; start it again from your own session",
     );
   }
-  refuseBoundElsewhere(caller, pending.org);
+  await refuseBoundElsewhere(deps.credentialBinding, caller, pending.org);
   // Settled before the exchange: a refused completion leaves no live token
   // minted at the provider. A signer's first sign-in creates their My vault
   // here, so an exchange that then fails leaves it, empty.

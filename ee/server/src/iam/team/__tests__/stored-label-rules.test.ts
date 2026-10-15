@@ -26,6 +26,7 @@ import { TeamSpecSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/spec_pb";
 import { newTeamServiceRegistrations, type TeamLaneDeps } from "../handlers.js";
 import { InMemoryTeamStore, storedTeam } from "./in-memory-team-store.js";
 import { inMemoryNames } from "../../../__test-utils__/in-memory-names.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../__test-utils__/unbound-credential-binding.js";
 
 const silent: Logger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -49,6 +50,7 @@ async function teamStoredWithBreakingLabels() {
   const names = inMemoryNames();
   const deps: TeamLaneDeps = {
     authorizer: allowAll,
+    credentialBinding: UNBOUND_CREDENTIAL_BINDING,
     logger: silent,
     teams,
     names,
