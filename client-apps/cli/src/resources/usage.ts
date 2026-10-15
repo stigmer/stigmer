@@ -3,7 +3,7 @@
 // counted in tokens and never priced, so the tables show TOKENS and a SHARE
 // of the report's tokens; no dollar figure appears. A served-by line says
 // whose provider credential served the tokens (the organization's own keys
-// or Stigmer's free model), and "estimated" marks numbers counted from a
+// or a connection the platform provides), and "estimated" marks numbers counted from a
 // run's own runner report rather than the deployment's meter. Mirrors the
 // retired Go CLI's usage_* renderers for layout and date formatting.
 //
@@ -369,7 +369,7 @@ function servedByLabel(source: ProviderKeySource): string {
     case ProviderKeySource.ORGANIZATION:
       return "your keys";
     case ProviderKeySource.PLATFORM:
-      return "Stigmer's free model";
+      return "the platform's connection";
     case ProviderKeySource.UNSPECIFIED:
       return "not recorded";
     default: {

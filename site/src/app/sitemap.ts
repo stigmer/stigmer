@@ -29,6 +29,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
+  // Every static top-level page; a test fails when a new one is missing here.
+  for (const path of ["/pricing", "/contact-sales", "/use-cases", "/download", "/blog"]) {
+    routes.push({
+      url: `${baseUrl}${path}`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    });
+  }
+
   for (const page of source.getPages()) {
     routes.push({
       url: `${baseUrl}${page.url}`,

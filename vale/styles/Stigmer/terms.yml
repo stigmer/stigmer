@@ -52,6 +52,14 @@ swap:
   durable execution: Durable Execution
   stigmer server: Stigmer Server
 
+  # --- Editions and plans ---
+  # The three editions are names: Stigmer (open source), Stigmer Enterprise,
+  # Stigmer Cloud. Cloud's top plan is "Enterprise Cloud", never "Enterprise",
+  # which is the self-hosted edition.
+  '\bStigmer enterprise\b': Stigmer Enterprise
+  '\bStigmer cloud\b': Stigmer Cloud
+  '\bEnterprise plan\b': Enterprise Cloud plan
+
   # --- Common corrections ---
   grpc: gRPC
   Grpc: gRPC

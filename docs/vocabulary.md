@@ -71,6 +71,7 @@ definitions, API names, and examples follow below.
 | **Organization**       | Organization     | Organization                           | Organization           | Organization, `kind: organization`                  | Organization       |
 | **Agent hour**         | agent hours      | ---                                    | agent hours            | `included_agent_hours`, `per_agent_hour_micros`     | agent hours        |
 | **Working time**       | ---              | working time                           | working time           | `working_seconds`                                   | working time       |
+| **Edition**            | the three names  | ---                                    | edition                | `ServerEdition`, `DeploymentMode`                   | edition            |
 | **Team**               | teams            | ---                                    | Team                   | Team, `kind: team`                                  | Team               |
 | **Grant**              | ---              | ---                                    | Grant                  | Grant, `kind: Grant`                                | Grant              |
 | **Vault**              | vault            | vault ("your keys and logins")         | Vault                  | Vault, `kind: Vault`                                | vault              |
@@ -827,6 +828,29 @@ the run whose start began it.
   Stigmer's sandboxes run and never an automatic grade.
 - **Context rule**: "working time" in usage reports; "agent hours" for what a
   plan includes and bills. Never "agent hours" for a usage report's figure.
+
+---
+
+#### Edition
+
+One of the three ways Stigmer is offered: **Stigmer** (open source, free under
+Apache 2.0, run yourself), **Stigmer Enterprise** (the same server with a
+license key, run on your own infrastructure on an annual license) and **Stigmer
+Cloud** (the managed service, on plans). Every edition runs Agents on the
+customer's own model provider key; Stigmer runs no model of its own.
+
+- **Capitalize**: Yes. The three are names: "Stigmer Enterprise", "Stigmer
+  Cloud". Say "Stigmer open source" where the first must be told apart from the
+  other two. "Edition" itself is lowercase.
+- **API surface**: `ServerEdition` (`oss`, `enterprise`, `cloud`; wire names
+  kept); the SDK's `DeploymentMode` (`"local"`, `"enterprise"`, `"cloud"`).
+- **Note**: "Enterprise Cloud" is Stigmer Cloud's quoted top plan, never an
+  edition: Stigmer Enterprise is self-hosted, and Enterprise Cloud is run by
+  Stigmer. The pricing page and the console name the plan "Enterprise Cloud",
+  never "Enterprise" alone.
+- **Context rule**: The same three names on the site, in the README, on the
+  pricing page and in the docs. Never "OSS edition", "self-hosted Cloud", "EE"
+  in prose, or "free model": Stigmer hosts none.
 
 ---
 

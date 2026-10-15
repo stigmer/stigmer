@@ -2,9 +2,12 @@
 
 import { cn } from "@stigmer/theme";
 import type { Plan } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
+import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import { Button } from "../button/index.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { FEATURE_COPY } from "../internal/features.js";
 import {
+  ENTERPRISE_CLOUD_PLAN,
   formatAgentHoursTerms,
   formatChildOrgs,
   formatMonthlyFee,
@@ -12,7 +15,7 @@ import {
 } from "./plan-features.js";
 import { planMove, type PlanMove, type PlanStanding } from "./plan-state.js";
 
-/** Where Enterprise enquiries go by default. */
+/** Where Enterprise Cloud enquiries go by default. */
 export const ENTERPRISE_CONTACT_URL = "https://stigmer.ai/contact-sales";
 
 /** Props for {@link PlanPicker}. */
@@ -32,7 +35,7 @@ export interface PlanPickerProps {
   readonly onChoose: (move: PlanMove) => void;
   /** Disables every choice, e.g. while a change is in flight. */
   readonly disabled?: boolean;
-  /** Where "Talk to us" for Enterprise links. Defaults to {@link ENTERPRISE_CONTACT_URL}. */
+  /** Where "Talk to us" for Enterprise Cloud links. Defaults to {@link ENTERPRISE_CONTACT_URL}. */
   readonly enterpriseHref?: string;
   /** Additional CSS class names. */
   readonly className?: string;
@@ -40,7 +43,7 @@ export interface PlanPickerProps {
 
 /**
  * The plan comparison: Free, each plan that can be bought, and
- * Enterprise, each with its price and what it offers today. A choice
+ * Enterprise Cloud, each with its price and what it offers today. A choice
  * reports the move it makes (subscribe, switch, resume or cancel) for the
  * host to confirm; the plan in force reads "Current plan".
  */
@@ -60,7 +63,7 @@ export function PlanPicker({
       <PlanOption
         name="Free"
         price="$0/month"
-        features={["Channels", "Sharing", "Unlimited members"]}
+        features={[FEATURE_COPY[Feature.channels].label, FEATURE_COPY[Feature.sharing].label, "Unlimited members"]}
         current={standing.kind === "free"}
         action={canManage && freeMove !== null ? { label: "Move to Free", move: freeMove } : undefined}
         disabled={disabled}
@@ -88,10 +91,19 @@ export function PlanPicker({
         );
       })}
       <li className="stg:flex stg:flex-col stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4">
-        <p className="stg:text-sm stg:font-medium stg:text-foreground">Enterprise</p>
-        <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
-          A dedicated deployment, an SLA and annual invoicing, quoted for your organization.
-        </p>
+        <div className="stg:flex stg:items-baseline stg:justify-between stg:gap-2">
+          <p className="stg:text-sm stg:font-medium stg:text-foreground">{ENTERPRISE_CLOUD_PLAN.name}</p>
+          <p className="stg:text-xs stg:text-foreground">Quoted</p>
+        </div>
+        <ul className={cn(UNSTYLED_LIST, "stg:mt-2 stg:space-y-0.5 stg:text-xs stg:text-muted-foreground")}>
+          {[
+            ENTERPRISE_CLOUD_PLAN.includes,
+            ...ENTERPRISE_CLOUD_PLAN.features.map((feature) => FEATURE_COPY[feature].label),
+            ENTERPRISE_CLOUD_PLAN.terms,
+          ].map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
         <a
           href={enterpriseHref}
           target="_blank"

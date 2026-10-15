@@ -603,7 +603,7 @@ line by line, the way the invoice will read it.
 ### PlanPicker
 
 The plan comparison: Free, each plan that can be bought, and
-Enterprise, each with its price and what it offers today. A choice
+Enterprise Cloud, each with its price and what it offers today. A choice
 reports the move it makes (subscribe, switch, resume or cancel) for the
 host to confirm; the plan in force reads "Current plan".
 
@@ -614,7 +614,7 @@ host to confirm; the plan in force reads "Current plan".
     canManage: { type: "boolean", description: "Whether the viewer may change the plan (`can_manage_billing`). Without it the comparison is read-only.", required: true },
     className: { type: "string", description: "Additional CSS class names." },
     disabled: { type: "boolean", description: "Disables every choice, e.g. while a change is in flight." },
-    enterpriseHref: { type: "string", description: "Where \"Talk to us\" for Enterprise links. Defaults to ENTERPRISE_CONTACT_URL." },
+    enterpriseHref: { type: "string", description: "Where \"Talk to us\" for Enterprise Cloud links. Defaults to ENTERPRISE_CONTACT_URL." },
     onChoose: { type: "(move: PlanMove) => void", description: "Called with the move a choice makes; the host confirms it.", required: true },
     periodEnd: { type: "Date", description: "The live period's end, which a cancel runs to." },
     plans: { type: "readonly Plan[]", description: "The plans that can be bought, cheapest first, as `buyablePlans` orders them.", required: true },
@@ -723,7 +723,7 @@ working; only creating more is refused.
     className: { type: "string", description: "Additional CSS class names." },
     error: { type: "Error | null", description: "The refusal, when there was one: its message is the server's own copy, which names the plan that unlocks the act. Absent, the notice is shown ahead of an attempt." },
     feature: { type: "Feature", description: "The feature the organization's plan lacks.", required: true },
-    unlockingPlanName: { type: "string", description: "The plan that unlocks the feature, named ahead of an attempt, e.g. the cheapest one that includes it (`lowestPlanWith`). With a refusal, the server's copy names it instead." },
+    unlockingPlanName: { type: "string", description: "The plan that unlocks the feature, named ahead of an attempt, e.g. the cheapest one that includes it, or Enterprise Cloud when only that quoted plan does. With a refusal, the server's copy names it instead." },
   }}
 />
 
@@ -790,9 +790,18 @@ The billing page the notice links to by default: the settings route every client
 The provider keys page the notice links to by default: the settings route every client serves.
 
 
+### ENTERPRISE_CLOUD_PLAN
+
+Stigmer Cloud's top plan, which is quoted rather than bought, so the
+catalog never lists it: what it includes beyond Business and on what
+terms. The console's plan comparison and stigmer.ai's pricing page both
+render it from here, so the two read alike. Its features are the ones the
+contract tiers to it, and nothing it does not yet deliver.
+
+
 ### ENTERPRISE_CONTACT_URL
 
-Where Enterprise enquiries go by default.
+Where Enterprise Cloud enquiries go by default.
 
 
 ### formatUsd

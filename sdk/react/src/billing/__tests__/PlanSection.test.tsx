@@ -1,5 +1,5 @@
 // The plan section end to end over a mock client: Free with the comparison
-// (only what Cloud offers today, Enterprise as "Talk to us"), a viewer's
+// (only what Cloud offers today, Enterprise Cloud as "Talk to us"), a viewer's
 // read-only view, the card door (leaving through the host's openUrl with
 // the plan to come back to), a subscribe, an active plan's estimate and
 // its switch and cancel copy (child organizations beyond those included
@@ -90,6 +90,14 @@ describe("PlanSection", () => {
     expect(within(plans).getByRole("link", { name: "Talk to us" }).getAttribute("href")).toBe(
       "https://stigmer.ai/contact-sales",
     );
+    // The quoted plan lists what the contract tiers to it, and promises nothing undefined.
+    const enterpriseCloud = await planOption("Enterprise Cloud");
+    expect(Array.from(enterpriseCloud.querySelectorAll("li"), (line) => line.textContent)).toEqual([
+      "Everything in Business",
+      "Access history",
+      "Annual contract, invoiced",
+    ]);
+    expect(within(plans).queryByText(/\bSLA\b|dedicated deployment/)).toBeNull();
     expect(within(plans).getAllByRole("button", { name: "Subscribe" })).toHaveLength(2);
   });
 
@@ -265,7 +273,7 @@ describe("PlanSection", () => {
     renderSection(client);
     const plans = await screen.findByRole("list", { name: "Plans" });
     const names = Array.from(plans.children, (item) => item.querySelector("p")?.textContent);
-    expect(names).toEqual(["Free", "Team", "Business", "Enterprise"]);
+    expect(names).toEqual(["Free", "Team", "Business", "Enterprise Cloud"]);
 
     await userEvent.click(screen.getByRole("button", { name: "Switch to Team" }));
     const down = await screen.findByRole("dialog");

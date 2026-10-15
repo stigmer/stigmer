@@ -35,7 +35,7 @@ describe("summarizeServedBy", () => {
       kind: "split",
       shares: [
         { label: "your keys", tokens: 6_000, percent: 60 },
-        { label: "Stigmer's free model", tokens: 2_000, percent: 20 },
+        { label: "the platform's connection", tokens: 2_000, percent: 20 },
         { label: "source not recorded", tokens: 2_000, percent: 20 },
       ],
     });
@@ -75,7 +75,7 @@ describe("ServedByLine", () => {
   it("renders the split as one labelled line", () => {
     render(<ServedByLine rows={[org(6_000), platform(2_000)]} />);
     expect(screen.getByLabelText("Served by").textContent).toBe(
-      "Served by your keys 6.0k tokens (75%) · Stigmer's free model 2.0k tokens (25%)",
+      "Served by your keys 6.0k tokens (75%) · the platform's connection 2.0k tokens (25%)",
     );
   });
 

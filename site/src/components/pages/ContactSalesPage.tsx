@@ -88,9 +88,9 @@ function ContactSalesPage() {
                   Contact Sales
                 </h1>
                 <p className="text-muted-foreground leading-relaxed">
-                  Tell us about your use case and we will get back to you within
-                  one business day. Enterprise plans include dedicated
-                  infrastructure, SLAs, and custom contracts.
+                  Stigmer Enterprise on your own infrastructure, or Enterprise
+                  Cloud run by us: tell us which, and about your use case, and
+                  we will get back to you within one business day.
                 </p>
               </div>
             </FadeInUp>

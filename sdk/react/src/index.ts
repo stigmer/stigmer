@@ -1356,6 +1356,14 @@ export type {
   PaymentMethodCardProps,
 } from "./billing/index.js";
 
+// Plan vocabulary — the words every surface names a plan feature and
+// Enterprise Cloud with, the console's plan cards and stigmer.ai's pricing
+// page alike. Re-exported from the modules that define them rather than
+// through ./billing/index.js, so a server-rendered page that imports them
+// by name does not take in the billing barrel's client components.
+export { ENTERPRISE_CLOUD_PLAN } from "./billing/plan-features.js";
+export { FEATURE_COPY, type NamedFeature } from "./internal/features.js";
+
 // Model catalog — platform-operator authoring of the model registry
 // baseline: models, capabilities and list prices (gated on
 // can_manage_model_pricing)

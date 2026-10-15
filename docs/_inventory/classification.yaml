@@ -731,11 +731,13 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      Which way to run Stigmer fits the reader's team — what self-hosting
-      includes (the full contract, Postgres, OIDC + API keys, isolation
-      drivers), what Stigmer Cloud adds (tenancy, fine-grained permissions,
-      channels, metered billing, managed ops), and the honest limitation of
-      self-hosting today (two production packagings, no operator).
+      Which of the three editions fits the reader's team — what Stigmer open
+      source includes (the full contract, Postgres, OIDC + API keys, isolation
+      drivers), what Stigmer Enterprise adds on the reader's own infrastructure
+      (many organizations, teams and invitations, federation, the access
+      history), what Stigmer Cloud adds (hosted sign-in, channels, plans and
+      billing, managed ops), and the honest limitation of self-hosting today
+      (two production packagings, no operator).
     medium: none
 
   guides/self-hosting/all-in-one:

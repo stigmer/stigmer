@@ -11,8 +11,8 @@
 **An open-source AI agent platform.**
 
 Define agents in YAML, deploy with one command, call from any app via API.
-Run locally with SQLite or connect to Stigmer Cloud for production.
-Bring your own Anthropic API key — agents run on Claude models.
+Run it yourself on a laptop, one server or Kubernetes, or use Stigmer Cloud.
+Agents run on your own model provider key.
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-community-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/EtANnfsJ8B)
@@ -159,17 +159,19 @@ The React SDK ships the same chat surface the Stigmer Console uses — as drop-i
 
 Every component is themeable with design tokens, and the hooks underneath are exported for fully custom UIs. Follow the [Add agent chat to your app](https://stigmer.ai/docs/getting-started/embed-agent) tutorial for the complete walkthrough.
 
-## Local vs Cloud
+## Open source, Enterprise and Cloud
 
-| | Local Mode (Open Source) | Cloud Mode (Stigmer Cloud) |
-|---|---|---|
-| **Start with** | `stigmer server` | `stigmer config backend set cloud` |
-| **Storage** | SQLite (`~/.stigmer/stigmer.db`) | Distributed (managed) |
-| **Users** | Single implicit user | Organizations, teams, IAM |
-| **LLM** | Anthropic (bring your own API key) | Configurable |
-| **Best for** | Development, personal projects, full data ownership | Team collaboration, production, governance |
+| | Stigmer open source | Stigmer Enterprise | Stigmer Cloud |
+|---|---|---|---|
+| **Start with** | `stigmer server`, Docker Compose or the Helm chart | The Helm chart with a license key Secret | `stigmer config backend set cloud` |
+| **Storage** | SQLite (`~/.stigmer/stigmer.db`) or your Postgres | Your Postgres | Managed |
+| **Users** | One organization, with sign-in, roles and service accounts | Many organizations, teams, invitations and federation | The same, hosted |
+| **LLM** | Your key, held by the runner (Anthropic, or Cursor) | Your key, held by the runner (Anthropic, or Cursor) | Your organization's keys (Anthropic, OpenAI, compatible endpoints, Cursor) |
+| **Best for** | Development, personal projects, one team, full data ownership | Companies that must keep many teams on their own infrastructure | Teams that want a managed platform |
 
-Resource definitions are portable across both modes. The CLI talks to the same gRPC service interfaces regardless of backend.
+Stigmer runs no model of its own: every edition runs your agents on your own provider key. Stigmer Enterprise is licensed annually; [compare the editions](https://stigmer.ai/docs/guides/self-hosting/cloud-vs-self-hosted) or see [pricing](https://stigmer.ai/pricing).
+
+Resource definitions are portable across all three. The CLI talks to the same gRPC service interfaces regardless of backend.
 
 ## Brand assets
 

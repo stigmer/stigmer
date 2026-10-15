@@ -50,7 +50,7 @@ function sourceLabel(source: ProviderKeySource): string | null {
     case ProviderKeySource.ORGANIZATION:
       return "your keys";
     case ProviderKeySource.PLATFORM:
-      return "Stigmer's free model";
+      return "the platform's connection";
     case ProviderKeySource.UNSPECIFIED:
       return null;
     default: {

@@ -210,5 +210,10 @@ export const FOOTER_LINKS = {
       href: `${SITE_CONFIG.githubUrl}/blob/main/LICENSE`,
       external: true,
     },
+    {
+      label: "Enterprise License",
+      href: `${SITE_CONFIG.githubUrl}/blob/main/ee/LICENSE`,
+      external: true,
+    },
   ],
 } as const;

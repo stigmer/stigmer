@@ -1,16 +1,22 @@
 /**
- * The public pricing page: Stigmer Cloud's four flat plans, what each adds,
- * and the one rule behind them — models run on the customer's own provider
- * keys, so the provider bills every token and Stigmer charges only for the
- * platform.
+ * The public pricing page: what it costs to use Stigmer in each of its three
+ * editions. Stigmer Cloud's four flat plans come first; under them, the two
+ * ways to run it yourself, open source at no cost and Stigmer Enterprise on
+ * an annual license. One rule holds in all three: Stigmer runs no model of
+ * its own, so agents run on the customer's own provider keys, the provider
+ * bills every token, and Stigmer charges only for the platform.
  *
- * The plan copy is static and mirrors the console's own plan cards (fee,
- * features, child organizations), so a visitor reads the same words before
- * and after signing up. Nothing is fetched: there is no price list to load
- * because no token is priced.
+ * A plan feature is named through @stigmer/react's plan vocabulary, the
+ * words the console's plan cards use, and Enterprise Cloud is rendered from
+ * the console's own description of it, so a visitor reads the same words
+ * before and after signing up. Prices are hand-kept: the catalog needs a
+ * sign-in and this page is static. Nothing is fetched: there is no price
+ * list to load because no token is priced.
  */
 import * as React from "react";
 import Link from "next/link";
+import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import { ENTERPRISE_CLOUD_PLAN, FEATURE_COPY, type NamedFeature } from "@stigmer/react";
 import { cn } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
 import { Header } from "@/components/layout/Header";
@@ -28,19 +34,25 @@ type Plan = {
   /** Shown after the fee for a monthly plan. */
   period?: string;
   description: string;
-  features: readonly string[];
+  /** The plan below whose features this one includes, e.g. "Everything in Team". */
+  includes?: string;
+  /**
+   * What the plan adds: a feature the contract names, in the console's
+   * words, or a term the catalog states that is not a feature.
+   */
+  features: readonly (NamedFeature | string)[];
   cta: { label: string; href: string; internal?: boolean };
   featured?: boolean;
 };
 
-const PLANS: readonly Plan[] = [
+const CLOUD_PLANS: readonly Plan[] = [
   {
     id: "free",
     name: "Free",
     price: "$0",
     period: "/month",
     description: "Build agents and put them in front of people.",
-    features: ["Channels", "Sharing", "Unlimited members"],
+    features: [Feature.channels, Feature.sharing, "Unlimited members"],
     cta: { label: "Start Free", href: SITE_CONFIG.cloudSignupUrl },
   },
   {
@@ -49,7 +61,8 @@ const PLANS: readonly Plan[] = [
     price: "$99",
     period: "/month",
     description: "Organize your members and grant access by team.",
-    features: ["Everything in Free", "Teams"],
+    includes: "Everything in Free",
+    features: [Feature.teams],
     cta: { label: "Get Started", href: SITE_CONFIG.cloudSignupUrl },
     featured: true,
   },
@@ -59,22 +72,60 @@ const PLANS: readonly Plan[] = [
     price: "$499",
     period: "/month",
     description: "Run organizations for your own customers under yours.",
+    includes: "Everything in Team",
     features: [
-      "Everything in Team",
-      "Child organizations",
+      Feature.child_orgs,
       "5 child organizations included, then $25/month each",
     ],
     cta: { label: "Get Started", href: SITE_CONFIG.cloudSignupUrl },
   },
   {
-    id: "enterprise",
-    name: "Enterprise",
+    id: "enterprise-cloud",
+    name: ENTERPRISE_CLOUD_PLAN.name,
     price: "Custom",
     description: "Quoted for your organization.",
+    includes: ENTERPRISE_CLOUD_PLAN.includes,
+    features: [...ENTERPRISE_CLOUD_PLAN.features, ENTERPRISE_CLOUD_PLAN.terms],
+    cta: {
+      label: "Contact Sales",
+      href: SITE_CONFIG.contactSalesUrl,
+      internal: true,
+    },
+  },
+];
+
+// What each self-hosted edition is, from its own documentation (the Helm
+// chart's README and ee/server/README.md). These come with the edition
+// rather than from a plan's or a license's feature list, so they are
+// written here rather than named through the plan vocabulary.
+const SELF_HOSTED_PLANS: readonly Plan[] = [
+  {
+    id: "open-source",
+    name: "Stigmer open source",
+    price: "$0",
+    description: "Apache 2.0. Run the whole engine on your own machines.",
     features: [
-      "A dedicated deployment",
-      "An SLA",
-      "Annual invoicing",
+      "The full engine: agents, skills, sessions, MCP servers",
+      "One organization, with sign-in and roles",
+      "A laptop, one server or Kubernetes",
+    ],
+    cta: {
+      label: "Self-host",
+      href: "/docs/guides/self-hosting/overview",
+      internal: true,
+    },
+  },
+  {
+    id: "enterprise",
+    name: "Stigmer Enterprise",
+    price: "Custom",
+    description: "Annual license, quoted for your organization.",
+    features: [
+      "Many organizations",
+      "Teams and invitations",
+      "Federation with the identity providers you trust",
+      "Access history",
+      "Runs on your infrastructure; a license key unlocks it",
     ],
     cta: {
       label: "Contact Sales",
@@ -102,7 +153,7 @@ const FAQ_ITEMS: readonly FaqItem[] = [
   },
   {
     q: "Whose model keys do my agents use?",
-    a: "Your own. An admin adds your organization's Anthropic or OpenAI key, a compatible endpoint, or a Cursor key in the console, and every model call runs on it, on every plan. Your provider bills those calls to you directly.",
+    a: "Your own. Stigmer runs no model of its own, so add a key before your first run. An admin adds your organization's Anthropic or OpenAI key, a compatible endpoint, or a Cursor key in the console, and every model call runs on it, on every plan. Your provider bills those calls to you directly.",
     link: {
       href: "/docs/guides/integrations/model-provider-keys",
       label: "Model provider keys",
@@ -113,11 +164,19 @@ const FAQ_ITEMS: readonly FaqItem[] = [
     a: "A paid plan is invoiced through Stripe at the end of each monthly period and charged to the card on file, with tax added where it applies. Changing plans takes effect at once and is prorated; canceling keeps your plan until the end of the period you paid for. On Business, each child organization past the five included adds $25 a month.",
   },
   {
+    q: "What is an agent hour?",
+    a: "The time an agent spends working on a task. It is counted only while the agent works: time spent waiting for a person to reply is never counted. Each plan includes agent hours every month. On Free, new work pauses once the month's hours are used, until the next month starts; a plan with an hourly price never pauses and bills the hours past its allowance on its invoice.",
+    link: {
+      href: "/docs/concepts/billing#agent-hours",
+      label: "Agent hours",
+    },
+  },
+  {
     q: "Can I self-host for free?",
-    a: "Yes. Stigmer's core is open source under Apache 2.0; Stigmer Enterprise, in the repository's ee/ directory, is public under the Stigmer Enterprise License and needs a license key in production. Self-host it anywhere — there is no vendor lock-in. Cloud plans only apply when you use Stigmer Cloud (app.stigmer.ai).",
+    a: "Yes. Stigmer comes in three editions: Stigmer open source, free under Apache 2.0, which you run yourself; Stigmer Enterprise, which you also run yourself, on an annual license whose key turns on many organizations, teams and federation; and Stigmer Cloud, which we run for you on the plans above. Self-host anywhere — there is no vendor lock-in. Cloud plans only apply when you use Stigmer Cloud (app.stigmer.ai).",
     link: {
       href: "/docs/guides/self-hosting/cloud-vs-self-hosted",
-      label: "Compare cloud and self-hosted",
+      label: "Compare the three editions",
     },
   },
 ];
@@ -140,25 +199,26 @@ function PricingPage() {
                 Pay for the platform, not the tokens.
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Every Stigmer Cloud plan is a flat monthly fee. Your agents run
-                on your own model provider keys, so your provider bills every
-                token directly and Stigmer adds nothing to it.
+                Every Stigmer Cloud plan is a flat monthly fee. Stigmer runs no
+                model of its own: your agents run on your own model provider
+                keys, so your provider bills every token directly and Stigmer
+                adds nothing to it.
               </p>
             </FadeInUp>
           </div>
         </section>
 
-        {/* Plans */}
+        {/* Stigmer Cloud */}
         <section className="py-12 sm:py-16 px-4">
           <div className="max-w-6xl mx-auto">
             <FadeInUp>
               <div className="text-center mb-12">
                 <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-4">
-                  Plans
+                  Stigmer Cloud
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Every organization starts on Free. Upgrade when you need
-                  what a plan adds.
+                  Every organization starts on Free, and every plan runs on
+                  your own model keys.
                 </p>
               </div>
             </FadeInUp>
@@ -168,7 +228,7 @@ function PricingPage() {
               staggerDelay={0.1}
               delayChildren={0.1}
             >
-              {PLANS.map((plan) => (
+              {CLOUD_PLANS.map((plan) => (
                 <StaggerItem key={plan.id}>
                   <PlanCard plan={plan} />
                 </StaggerItem>
@@ -183,6 +243,35 @@ function PricingPage() {
                 </p>
               </div>
             </FadeInUp>
+          </div>
+        </section>
+
+        {/* Run it yourself */}
+        <section className="py-12 sm:py-16 px-4">
+          <div className="max-w-3xl mx-auto">
+            <FadeInUp>
+              <div className="text-center mb-12">
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-4">
+                  Run it yourself
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  The same platform on your own infrastructure, with your
+                  agents on your own model keys.
+                </p>
+              </div>
+            </FadeInUp>
+
+            <StaggerContainer
+              className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border rounded-lg overflow-hidden border border-border"
+              staggerDelay={0.1}
+              delayChildren={0.1}
+            >
+              {SELF_HOSTED_PLANS.map((plan) => (
+                <StaggerItem key={plan.id}>
+                  <PlanCard plan={plan} />
+                </StaggerItem>
+              ))}
+            </StaggerContainer>
           </div>
         </section>
 
@@ -249,8 +338,8 @@ function PricingPage() {
                 Need custom terms?
               </h2>
               <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-                For a dedicated deployment, an SLA or annual invoicing — talk to
-                our team.
+                For Stigmer Enterprise on your own infrastructure, or Enterprise
+                Cloud on an annual contract — talk to our team.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Button asChild size="lg">
@@ -265,8 +354,8 @@ function PricingPage() {
             </FadeInUp>
             <FadeInUp delay={0.2}>
               <p className="text-sm text-subtle mt-8">
-                All plans include the full Apache 2.0 open-source platform.
-                Self-host anytime — no vendor lock-in.
+                Stigmer&apos;s core is open source under Apache 2.0.
+                Self-host it anytime — no vendor lock-in.
               </p>
             </FadeInUp>
           </div>
@@ -309,9 +398,9 @@ function PlanCard({ plan }: PlanCardProps) {
       </div>
 
       <ul className="space-y-3 mb-8" aria-label={`${plan.name} features`}>
-        {plan.features.map((feature) => (
+        {featureLines(plan).map((line) => (
           <li
-            key={feature}
+            key={line}
             className="flex items-start gap-2 text-sm text-muted-foreground"
           >
             <Icon
@@ -319,7 +408,7 @@ function PlanCard({ plan }: PlanCardProps) {
               size="sm"
               className="text-foreground shrink-0 mt-0.5"
             />
-            <span>{feature}</span>
+            <span>{line}</span>
           </li>
         ))}
       </ul>
@@ -339,6 +428,14 @@ function PlanCard({ plan }: PlanCardProps) {
       </div>
     </div>
   );
+}
+
+/** A card's lines: what it includes, then each feature in the console's words. */
+function featureLines(plan: Plan): readonly string[] {
+  const features = plan.features.map((feature) =>
+    typeof feature === "string" ? feature : FEATURE_COPY[feature].label,
+  );
+  return plan.includes === undefined ? features : [plan.includes, ...features];
 }
 
 export { PricingPage };

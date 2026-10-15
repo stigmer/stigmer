@@ -14,6 +14,12 @@ const nextConfig: NextConfig = {
     "@stigmer/theme",
     "@stigmer/protos",
   ],
+  experimental: {
+    // The pricing page, a server component, imports @stigmer/react's plan
+    // vocabulary by name. Without this, importing from the package's barrel
+    // makes every client component it re-exports part of that page's bundle.
+    optimizePackageImports: ["@stigmer/react"],
+  },
   webpack: (config, { isServer }) => {
     config.resolve.extensionAlias = {
       ".js": [".ts", ".tsx", ".js"],
