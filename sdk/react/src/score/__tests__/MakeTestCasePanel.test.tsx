@@ -6,12 +6,16 @@
  * from the organization's evals (the first by default), by id in the run's
  * organization, and says so; the panel says the eval's readers see the
  * conversation, or, with no eval in the organization, how to push one; a
- * refused request is shown as an alert. A run with no request offers no
- * test case.
+ * refused request is shown as an alert. Every page of the organization's
+ * evals is offered, the next read when asked for, a next page that fails
+ * shown; while they load the panel says so, and a list that fails is
+ * shown, never as "no evals". A
+ * run with no request offers no test case.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
+import type { ListEvalsRequest } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
 import { create } from "@bufbuild/protobuf";
 import { EvalSchema, type Eval } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
 import {
@@ -71,7 +75,7 @@ function client(options: { evals?: Eval[]; refuse?: Error } = {}) {
       whoAmI: vi.fn(async () => ({ metadata: { id: "ida_me" }, spec: { idpId: "" } })),
     },
     eval: {
-      list: vi.fn(async () => ({ entries: options.evals ?? [], nextPageToken: "" })),
+      list: vi.fn(async (_req: ListEvalsRequest) => ({ entries: options.evals ?? [], nextPageToken: "" })),
       buildCaseFromRun: vi.fn(async (req: BuildEvalCaseFromRunRequest) => {
         builds.push(req);
         if (options.refuse !== undefined) throw options.refuse;
@@ -157,6 +161,53 @@ describe("Make a test case", () => {
     fireEvent.click(screen.getByRole("button", { name: "Download the case folder" }));
     expect(await screen.findByRole("alert")).toHaveProperty("textContent", "[failed_precondition] the run has not ended");
     expect(download.downloadBinaryFile).not.toHaveBeenCalled();
+  });
+
+  it("offers every page of the organization's evals, the next read when asked for", async () => {
+    const { mock, adds } = client();
+    mock.eval.list.mockImplementation(async (req: ListEvalsRequest) =>
+      req.pageToken === ""
+        ? { entries: [anEval("evs_1", "support-evals")], nextPageToken: "page_2" }
+        : { entries: [anEval("evs_2", "billing-evals")], nextPageToken: "" },
+    );
+    render(<MessageThread {...thread()} runScores />, { wrapper: wrap(mock) });
+    await openPanel();
+    fireEvent.click(await screen.findByRole("button", { name: "Load more evals" }));
+    await waitFor(() => expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual(["support-evals", "billing-evals"]));
+    expect(screen.queryByRole("button", { name: "Load more evals" })).toBeNull();
+    fireEvent.change(screen.getByRole("combobox", { name: "Eval" }), { target: { value: "evs_2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add to eval" }));
+    expect(await screen.findByText("Added to billing-evals as a new version.")).toBeDefined();
+    expect(adds.map((req) => req.eval?.id)).toEqual(["evs_2"]);
+  });
+
+  it("shows a next page that fails", async () => {
+    const { mock } = client();
+    mock.eval.list.mockImplementation(async (req: ListEvalsRequest) => {
+      if (req.pageToken !== "") throw new Error("[unavailable] page two is down");
+      return { entries: [anEval("evs_1", "support-evals")], nextPageToken: "page_2" };
+    });
+    render(<MessageThread {...thread()} runScores />, { wrapper: wrap(mock) });
+    await openPanel();
+    fireEvent.click(await screen.findByRole("button", { name: "Load more evals" }));
+    expect(await screen.findByText("More evals could not be listed: [unavailable] page two is down")).toBeDefined();
+  });
+
+  it("says the evals are loading, and shows a list that fails, never as no evals", async () => {
+    const loading = client();
+    loading.mock.eval.list.mockImplementation(() => new Promise(() => undefined));
+    render(<MessageThread {...thread()} runScores />, { wrapper: wrap(loading.mock) });
+    await openPanel();
+    expect(await screen.findByText("Loading the organization's evals…")).toBeDefined();
+    expect(screen.queryByText(/No evals in this organization yet/)).toBeNull();
+    cleanup();
+
+    const failing = client();
+    failing.mock.eval.list.mockImplementation(() => Promise.reject(new Error("[unavailable] the list is down")));
+    render(<MessageThread {...thread()} runScores />, { wrapper: wrap(failing.mock) });
+    await openPanel();
+    expect(await screen.findByText("The organization's evals could not be listed: [unavailable] the list is down")).toBeDefined();
+    expect(screen.queryByText(/No evals in this organization yet/)).toBeNull();
   });
 
   it("shows a refusal that is not an Error by its text", async () => {
