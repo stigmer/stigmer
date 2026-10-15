@@ -1,4 +1,4 @@
-An Evaluator switches AI grading on for one agent. While it is enabled, Stigmer
+A ScoringRule switches AI grading on for one agent. While it is enabled, Stigmer
 sends a sample of the agent's completed runs to an AI judge with four standard
 rubrics, "did the task", "made nothing up", "did only what was asked" and "asked
 when unclear", and records the verdict as a score on each graded run. The sample
@@ -10,14 +10,14 @@ whoever can see the agent sees the settings and this month's spend, members of
 child organizations included when the agent is shared with them.
 
 You switch grading on from the agent's Quality tab in the console; an
-evaluator is never authored as a manifest. The shape below is what `get` and
+scoring rule is never authored as a manifest. The shape below is what `get` and
 `getByAgent` return.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
-kind: Evaluator
+kind: ScoringRule
 metadata:
-  name: evl_01j5q3k7m8r2s4tnz2hfp0q0h2
+  name: srl_01j5q3k7m8r2s4tnz2hfp0q0h2
   org: acme
 spec:
   agent_id: agt_01j5q3k7m8r2s4tnz2hfp0q0a7

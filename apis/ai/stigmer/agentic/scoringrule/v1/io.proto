@@ -1,22 +1,22 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.evaluator.v1;
+package ai.stigmer.agentic.scoringrule.v1;
 
-import "ai/stigmer/agentic/evaluator/v1/api.proto";
+import "ai/stigmer/agentic/scoringrule/v1/api.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/field_mask.proto";
 
-// EvaluatorId wraps an evaluator identifier.
-message EvaluatorId {
-  // Unique identifier of the evaluator.
+// ScoringRuleId wraps a scoring rule identifier.
+message ScoringRuleId {
+  // Unique identifier of the scoring rule.
   string value = 1 [
     (buf.validate.field).required = true,
     (buf.validate.field).string.max_len = 128
   ];
 }
 
-// GetEvaluatorByAgentRequest names the agent whose evaluator to get.
-message GetEvaluatorByAgentRequest {
+// GetScoringRuleByAgentRequest names the agent whose scoring rule to get.
+message GetScoringRuleByAgentRequest {
   // ID of the agent.
   string agent_id = 1 [
     (buf.validate.field).string.min_len = 1,
@@ -24,19 +24,19 @@ message GetEvaluatorByAgentRequest {
   ];
 }
 
-// The changes an update makes to an evaluator: the fields update_mask names,
+// The changes an update makes to a scoring rule: the fields update_mask names,
 // taken from resource.
-message UpdateEvaluatorInput {
+message UpdateScoringRuleInput {
   option (buf.validate.message).cel = {
     id: "update_names_its_target"
-    message: "resource.metadata.id is required: an update names the evaluator by its id"
+    message: "resource.metadata.id is required: an update names the scoring rule by its id"
     expression: "has(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''"
   };
 
-  // The evaluator carrying the new values, named by metadata.id. Only the fields
+  // The scoring rule carrying the new values, named by metadata.id. Only the fields
   // update_mask names are read, so the others may be left empty; the result
   // is validated as a whole.
-  Evaluator resource = 1 [(buf.validate.field).ignore = IGNORE_ALWAYS];
+  ScoringRule resource = 1 [(buf.validate.field).ignore = IGNORE_ALWAYS];
 
   // The paths the update changes, as proto field names (spec.instructions,
   // metadata.labels). A list or map at a named path is replaced whole; "*"

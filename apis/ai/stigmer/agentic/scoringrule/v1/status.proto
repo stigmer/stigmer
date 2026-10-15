@@ -1,17 +1,17 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.evaluator.v1;
+package ai.stigmer.agentic.scoringrule.v1;
 
 import "ai/stigmer/commons/apiresource/status.proto";
 
-// EvaluatorStatus contains this month's grading spend and counts.
+// ScoringRuleStatus contains this month's grading spend and counts.
 //
 // @internal
-// Written only by the grading workflow's budget (the evaluator domain's
+// Written only by the grading workflow's budget (the scoring rule domain's
 // budget.ts, an atomic read-modify-write of the row); create starts it
 // empty and update keeps it verbatim. The period rolls over at the first
 // reservation of a new UTC month.
-message EvaluatorStatus {
+message ScoringRuleStatus {
   // The calendar month the counts below cover, as YYYY-MM in UTC.
   string period = 1;
 

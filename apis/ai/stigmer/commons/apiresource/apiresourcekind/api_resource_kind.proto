@@ -915,14 +915,16 @@ enum ApiResourceKind {
 
   // AI grading switched on for one agent: its sample rate, monthly spending
   // limit and judge model.
-  evaluator = 62 [(kind_meta) = {
+  scoring_rule = 62 [(kind_meta) = {
     group: agentic
     version: v1
-    name: "Evaluator"
-    display_name: "Evaluator"
-    id_prefix: "evl"
+    name: "ScoringRule"
+    display_name: "Scoring Rule"
+    id_prefix: "srl"
+    // Minted as evl_ while the kind was Evaluator.
+    retired_id_prefixes: ["evl"]
     is_versioned: false
-    // Not searchable by design: an evaluator is a setting reached through
+    // Not searchable by design: a scoring rule is a setting reached through
     // its agent's Quality tab, not a library artifact.
     not_search_indexed: true
     tier: open_source
@@ -931,14 +933,14 @@ enum ApiResourceKind {
       // grading, and whoever may view the agent sees the settings.
       scope_type: AUTHORIZATION_SCOPE_TYPE_PARENT
       // No owner of its own: the agent's owner (which includes the
-      // organization's admins, who hold the purse) is the evaluator's.
+      // organization's admins, who hold the purse) is the scoring rule's.
       owner_type: OWNER_ATTRIBUTION_TYPE_NONE
       parent: {
         kind: "agent"
         relation: "agent"
         spec_field: "agent_id"
       }
-      // No visibility config and no grantable roles: an evaluator is
+      // No visibility config and no grantable roles: a scoring rule is
       // reached through its agent, never shared on its own.
     }
   }];
@@ -969,7 +971,7 @@ enum ApiResourceKind {
       // The subject's editors start and delete eval runs; its viewers in
       // its own organization read them (the model's eval_run type).
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-      // No owner of its own, as an evaluator has none: the subject's owner
+      // No owner of its own, as a scoring rule has none: the subject's owner
       // (which includes the organization's admins, who hold the purse) is
       // the eval run's.
       owner_type: OWNER_ATTRIBUTION_TYPE_NONE

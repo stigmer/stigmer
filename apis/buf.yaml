@@ -29,3 +29,20 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request made before launch renames the Evaluator kind
+  # ScoringRule (agentic/scoringrule/v1): the kind's value 62 keeps its
+  # number under the name scoring_rule, and the evaluator package's files
+  # move with every field and value number kept. The release notes name it
+  # under Upgrading. This block exists for that one pull request. While it
+  # stays, buf breaking does not report these rules on the listed files, so
+  # the pull request that removes it lands straight after the merge.
+  ignore_only:
+    ENUM_VALUE_SAME_NAME:
+      - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
+    FILE_NO_DELETE:
+      - ai/stigmer/agentic/evaluator/v1/api.proto
+      - ai/stigmer/agentic/evaluator/v1/command.proto
+      - ai/stigmer/agentic/evaluator/v1/io.proto
+      - ai/stigmer/agentic/evaluator/v1/query.proto
+      - ai/stigmer/agentic/evaluator/v1/spec.proto
+      - ai/stigmer/agentic/evaluator/v1/status.proto

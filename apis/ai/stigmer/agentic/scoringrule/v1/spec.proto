@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.evaluator.v1;
+package ai.stigmer.agentic.scoringrule.v1;
 
 import "buf/validate/validate.proto";
 
-// EvaluatorSpec holds which agent is graded, how often, and within what spend.
+// ScoringRuleSpec holds which agent is graded, how often, and within what spend.
 //
 // @internal
 // agent_id is fixed at create; every other field changes with update. The
@@ -12,17 +12,17 @@ import "buf/validate/validate.proto";
 // (RunStatus.streaming_usage.estimated_cost_usd), not a billed amount: the
 // judge runs on the organization's own provider keys, and the provider
 // bills the organization for the calls it actually served.
-message EvaluatorSpec {
+message ScoringRuleSpec {
   // ID of the agent whose runs are graded.
   //
   // @internal
-  // The authorization parent: the evaluator's access is the agent's.
+  // The authorization parent: the scoring rule's access is the agent's.
   // Immutable after create.
   string agent_id = 1 [(buf.validate.field).string.min_len = 1];
 
   // Whether grading runs.
   //
-  // A disabled evaluator keeps its settings and this month's counts; no
+  // A disabled scoring rule keeps its settings and this month's counts; no
   // new run is graded until it is enabled again.
   bool enabled = 2;
 
