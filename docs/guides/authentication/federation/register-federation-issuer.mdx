@@ -222,21 +222,24 @@ System.out.println("Created Federation Issuer: " + issuer.getMetadata().getId())
 
 ## Which Organization a token works in
 
-Every token a Federation Issuer vouches for is bound to one Organization and
-works there only, whatever roles the user holds elsewhere:
+Every token a Federation Issuer vouches for is bound to one Organization, and
+works there and in that Organization's child organizations only, whatever roles
+the user holds elsewhere:
 
 - Without `externalIdClaim`, the token is bound to the Federation Issuer's own
   Organization (`acme` in the examples on this page).
 - With `externalIdClaim`, it is bound to the child organization of `acme` whose
-  external id the claim carries. Stigmer reads the claim on every token and
-  refuses a token that lacks it or names no child. See
+  external id the claim carries, and works in that child only. Stigmer reads the
+  claim on every token and refuses a token that lacks it or names no child. See
   [Child organizations](/docs/guides/authentication/federation/child-organizations#route-your-customers-sign-ins).
 
-A bound token can still reach what belongs to no Organization, such as the
-user's own Identity Account and API keys, and, in a child organization, can read
-and run the Agents, Skills and Plugins its parent shares with its child
-organizations. It cannot create an Organization, except a child of its own
-Organization, or accept an invitation to another one.
+A token bound to `acme` reaches its children as the user's role allows there: an
+admin of `acme` is an admin in each child. A bound token can still reach what
+belongs to no Organization, such as the user's own Identity Account and API
+keys, and, in a child organization, can read and run the Agents, Skills and
+Plugins its parent shares with its child organizations. It cannot create an
+Organization, except a child of its own Organization, or accept an invitation to
+another one.
 
 ## Enable JIT provisioning
 

@@ -40,6 +40,7 @@ import type { ResourceAuthorizationLifecycle } from "../../../extensions/resourc
 import type { Store } from "../../../store/interface.js";
 import type { VaultRig } from "./support.js";
 import { openVaultRig, seedSharedVault, silentLogger } from "./support.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 const ORG = "acme";
 const ana = testCallerIdentity({ identityId: "ida_ana" });
@@ -261,6 +262,7 @@ function storeWith(overrides: Partial<Record<keyof Store, unknown>>): Store {
 
 function serviceOver(store: Store) {
   return newVaultService({
+    credentialBinding: UNBOUND_CREDENTIAL_BINDING,
     store,
     logger: silentLogger,
     secretService: rig.secrets,
@@ -456,6 +458,7 @@ describe("name claims that outlive their write", () => {
     };
     const over = (store: Store) =>
       newVaultService({
+        credentialBinding: UNBOUND_CREDENTIAL_BINDING,
         store,
         logger: silentLogger,
         secretService: rig.secrets,
@@ -518,6 +521,7 @@ describe("name claims that outlive their write", () => {
     const tuples = tupleRig(0);
     const first = await tuples.over(rig.store).ensureMine(ORG, ana);
     const unsure = newVaultService({
+      credentialBinding: UNBOUND_CREDENTIAL_BINDING,
       store: rig.store,
       logger: silentLogger,
       secretService: rig.secrets,
@@ -595,6 +599,7 @@ describe("a keyless server", () => {
   it("keeps a vault's secrets and logins in plaintext, with one warning per write", async () => {
     const warnings: Array<{ message: string; fields: unknown }> = [];
     const keyless = newVaultService({
+      credentialBinding: UNBOUND_CREDENTIAL_BINDING,
       store: rig.store,
       logger: {
         ...silentLogger,
@@ -642,6 +647,7 @@ describe("a keyless server", () => {
   it("warns nothing where a key seals the values", async () => {
     const warnings: string[] = [];
     const sealing = newVaultService({
+      credentialBinding: UNBOUND_CREDENTIAL_BINDING,
       store: rig.store,
       logger: { ...silentLogger, warn: (message: string) => warnings.push(message) } as typeof silentLogger,
       secretService: rig.secrets,

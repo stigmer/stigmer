@@ -36,6 +36,7 @@ import {
   invalidArgumentError,
   notFoundError,
 } from "../../pipeline/errors.js";
+import type { OrganizationAdmission } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { storedRowHolder } from "../../pipeline/steps/names.js";
 import { moveName } from "../../pipeline/steps/rename.js";
@@ -289,11 +290,18 @@ function persistFailure(error: unknown, id: string): Error {
  * update never changes visibility, and a reverted row would disagree with
  * the visibility tuples updateVisibility wrote). Runs where Persist would.
  */
-export function newPersistVaultUpdateStep(store: Store): PipelineStep<VaultDesc> {
+export function newPersistVaultUpdateStep(
+  store: Store,
+  binding: OrganizationAdmission,
+): PipelineStep<VaultDesc> {
   return {
     name: "PersistVaultUpdate",
     async execute(ctx: RequestContext<VaultDesc>): Promise<void> {
-      refuseBoundElsewhere(ctx.callerIdentity, ctx.newState.metadata?.org ?? "");
+      await refuseBoundElsewhere(
+        binding,
+        ctx.callerIdentity,
+        ctx.newState.metadata?.org ?? "",
+      );
       // The loaded row's entries, whatever a step before put there: an
       // update never writes a request's entries (setSecrets is their door).
       const loaded = ctx.get(EXISTING_RESOURCE_KEY) as Vault | undefined;

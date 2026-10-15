@@ -63,9 +63,7 @@ public interface AccessHistoryPageOrBuilder extends
    * <pre>
    * Set when more entries may follow: pass it as page_token, with the same
    * request otherwise, to continue. Empty when this page reached the end.
-   * A page may be short, even empty, and still carry a token: a parent
-   * organization's administrators are not shown the entries about a child's
-   * resources.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -76,9 +74,7 @@ public interface AccessHistoryPageOrBuilder extends
    * <pre>
    * Set when more entries may follow: pass it as page_token, with the same
    * request otherwise, to continue. Empty when this page reached the end.
-   * A page may be short, even empty, and still carry a token: a parent
-   * organization's administrators are not shown the entries about a child's
-   * resources.
+   * A page may be short, even empty, and still carry a token.
    * </pre>
    *
    * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
@@ -96,9 +92,8 @@ public interface AccessHistoryPageOrBuilder extends
    * the oldest entries first, so an organization's kept entries are always
    * one unbroken run ending at its newest. A tool that asked for what came
    * after N and reads an oldest_sequence above N + 1 knows that N + 1 to
-   * oldest_sequence - 1 were removed by retention, not missed; any other
-   * gap in the numbers is a parent organization's administrator not being
-   * shown the entries about a child's resources.
+   * oldest_sequence - 1 were removed by retention, not missed. Whoever may
+   * read the history reads all of it, so the numbers have no other gaps.
    * </pre>
    *
    * <code>int64 oldest_sequence = 3 [json_name = "oldestSequence"];</code>

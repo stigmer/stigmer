@@ -651,6 +651,23 @@ export async function composeServer(
   // this object; runnerauth/dispatch-credential.ts) — a composed driver
   // that leaves that capability undefined dispatches without one, its
   // runners being credentialed another way.
+  // The credential binding (authorization/credential-binding.ts): a
+  // credential that names an organization works in that organization and
+  // its child organizations, a run's credential in its run's organization
+  // alone. Built before the runner credential provider, whose run
+  // credential exchange asks it, and before the decision drivers it wraps
+  // below. It reads a target's organization from the row where the
+  // built-in authorizer would (the Grant and identity-account ports a
+  // composition may substitute, then the units' row readers, then the
+  // generic store), which is why every posture, not only the built-in one,
+  // refuses a served kind no reader can read.
+  const credentialBinding = newCredentialBinding({
+    store,
+    rowReaders: extensions.drivers.resourceRowReaders,
+    grants,
+    identityAccounts,
+    lifecycle: organizationLifecycle,
+  });
   const runnerAuthService = RunnerAuthService.fromEnv();
   const runnerCredentials =
     extensions.drivers.runnerCredentialProvider ??
@@ -659,6 +676,7 @@ export async function composeServer(
           service: runnerAuthService,
           store,
           accounts: identityAccounts,
+          credentialBinding,
         })
       : newExecutionScopedRunnerCredentialProvider(runnerAuthService));
   // The ONE composed Authorizer, bound here — after the store,
@@ -723,25 +741,12 @@ export async function composeServer(
           logger,
         })
       : undefined);
-  // The credential binding (authorization/credential-binding.ts): a
-  // credential that names an organization works in that organization
-  // only. The three decision drivers resolved above are wrapped with it
-  // HERE, whatever the posture chose, a unit's registration included, so
-  // every controller, every skip lane that calls the Authorizer and every
-  // unit's own consumer of the composed services is bound by
-  // construction; only the raw drivers above are unbound, and nothing
-  // past this point sees them. It reads a target's organization from the
-  // row where the built-in authorizer would (the Grant and
-  // identity-account ports a composition may substitute, then the units'
-  // row readers, then the generic store), which is why every posture, not
-  // only the built-in one, refuses a served kind no reader can read.
-  const credentialBinding = newCredentialBinding({
-    store,
-    rowReaders: extensions.drivers.resourceRowReaders,
-    grants,
-    identityAccounts,
-    lifecycle: organizationLifecycle,
-  });
+  // The three decision drivers resolved above are wrapped with the
+  // credential binding HERE, whatever the posture chose, a unit's
+  // registration included, so every controller, every skip lane that calls
+  // the Authorizer and every unit's own consumer of the composed services
+  // is bound by construction; only the raw drivers above are unbound, and
+  // nothing past this point sees them.
   const authorizer: Authorizer = bindAuthorizer(
     postureAuthorizer,
     credentialBinding,
@@ -950,6 +955,7 @@ export async function composeServer(
     secretService,
     authorizationLifecycle,
     authorizer,
+    credentialBinding,
   });
   myVaultDeparture = newMyVaultDeparture({
     store,
@@ -1683,6 +1689,7 @@ export async function composeServer(
       store,
       logger,
       authorizer,
+      credentialBinding,
       gateSteps: extensions.gateSteps,
       // The delete revokes the organization's rows through the one grant
       // path, before its row goes (domain/organization/steps.ts).
@@ -1706,6 +1713,7 @@ export async function composeServer(
       store,
       logger,
       authorizer,
+      credentialBinding,
       authorizationLifecycle,
       listReadScope,
       accounts: identityAccounts,
@@ -1763,6 +1771,7 @@ export async function composeServer(
     registerGrantServices(router, {
       grantPath,
       grants,
+      organizations: store,
       accounts: identityAccounts,
       authorizer,
       grantScope:
@@ -1779,6 +1788,7 @@ export async function composeServer(
       store,
       logger,
       authorizer,
+      credentialBinding,
       authorizationLifecycle,
       secretService,
       listReadScope,
@@ -1791,6 +1801,7 @@ export async function composeServer(
         logger,
         secretService,
         authorizer,
+        credentialBinding,
         vaults: vaultService,
         pendingOAuthStates: store.pendingOAuthStates,
         clientRegistrations: store.oauthClientRegistrations,
@@ -1816,6 +1827,7 @@ export async function composeServer(
       secretService,
       logger,
       authorizer,
+      credentialBinding,
       authorizationLifecycle,
       listReadScope,
     });
@@ -1842,6 +1854,7 @@ export async function composeServer(
       store,
       logger,
       authorizer,
+      credentialBinding,
       authorizationLifecycle,
       listReadScope,
       modelRegistry: modelCatalog,
@@ -1857,6 +1870,7 @@ export async function composeServer(
       store,
       logger,
       authorizer,
+      credentialBinding,
       temporalConfig,
       gateSteps: extensions.gateSteps,
       sandboxLane,
@@ -1883,6 +1897,7 @@ export async function composeServer(
       store,
       logger,
       authorizer,
+      credentialBinding,
       authorizationLifecycle,
       listReadScope,
     });
@@ -1890,6 +1905,7 @@ export async function composeServer(
       store,
       logger,
       authorizer,
+      credentialBinding,
       authorizationLifecycle,
       listReadScope,
       // The SAME composed catalog provider the registry lanes read —
@@ -1900,15 +1916,21 @@ export async function composeServer(
       // posture; a composed runtime serves install + write/delete hooks.
       channelRuntime: extensions.drivers.channelRuntime,
     });
-    registerChannelMessageServices(router, extensions.drivers.channelRuntime);
+    registerChannelMessageServices(
+      router,
+      extensions.drivers.channelRuntime,
+      credentialBinding,
+    );
     registerChannelConversationServices(
       router,
       extensions.drivers.channelRuntime,
+      credentialBinding,
     );
     registerChannelAppServices(router, {
       store,
       logger,
       authorizer,
+      credentialBinding,
       secretService,
       authorizationLifecycle,
       listReadScope,
@@ -1923,6 +1945,7 @@ export async function composeServer(
       store,
       logger,
       authorizer,
+      credentialBinding,
       modelRegistry: modelCatalog,
       clock: () => scheduleSyncer,
       runner: () => scheduleRunStarter,
@@ -1933,6 +1956,7 @@ export async function composeServer(
       store,
       logger,
       authorizer,
+      credentialBinding,
       authorizationLifecycle,
       listReadScope,
       personAccounts,
@@ -1942,6 +1966,7 @@ export async function composeServer(
       store,
       logger,
       authorizer,
+      credentialBinding,
       authorizationLifecycle,
       listReadScope,
     });
@@ -1949,12 +1974,14 @@ export async function composeServer(
       store,
       logger,
       authorizer,
+      credentialBinding,
       authorizationLifecycle,
     });
     registerEvalRunServices(router, {
       store,
       logger,
       authorizer,
+      credentialBinding,
       authorizationLifecycle,
       modelCatalog,
       suites: newPluginArchiveReader({ store, archives: pluginArtifactStorage }),
@@ -2032,6 +2059,7 @@ export async function composeServer(
         store,
         logger,
         authorizer,
+        credentialBinding,
         engineState: pluginToolsEngineState,
         runnerAuth: runnerCredentials,
         vaultResolver,
@@ -2057,6 +2085,7 @@ export async function composeServer(
     registerGitHubServices(router, {
       logger,
       authorizer,
+      credentialBinding,
       vaults: vaultService,
       fetchImpl: options.fetchImpl,
     });

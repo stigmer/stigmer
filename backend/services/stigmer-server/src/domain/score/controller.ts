@@ -40,6 +40,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { UpdateScoreInput } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { CredentialBinding } from "../../extensions/credential-binding.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
@@ -105,6 +106,12 @@ export interface ScoreControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam: the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
+  /**
+   * The composed credential binding: the persist and rename backstops
+   * refuse a credential that does not reach the row's organization
+   * (pipeline/steps/refuse-bound-elsewhere.ts).
+   */
+  readonly credentialBinding: CredentialBinding;
   /** The composed tuple-lifecycle driver; undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed list read scope; undefined = trusted local, nothing narrowed. */
@@ -177,7 +184,7 @@ async function createScore(
     .addStep(newStampScoredRunStep())
     .addStep(newInitializeScoreStateStep())
     .addStep(newClaimNameStep(deps.store, ApiResourceKind.score))
-    .addStep(newPersistStep(deps.store))
+    .addStep(newPersistStep(deps.store, deps.credentialBinding))
     .addStep(
       newCreateAuthorizationTuplesStep(
         deps.authorizationLifecycle,
@@ -218,7 +225,7 @@ async function updateScore(
       .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newValidateScoreUpdateStep())
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
-      .addStep(newPersistStep(deps.store))
+      .addStep(newPersistStep(deps.store, deps.credentialBinding))
       .build()
       .execute(reqCtx);
     return reqCtx.newState;

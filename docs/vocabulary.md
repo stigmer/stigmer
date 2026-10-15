@@ -740,7 +740,7 @@ Organization an integrator runs for one of its customers.
 - **Note**: One level deep: a child has no children, and is never moved to
   another parent. `parent_org` and `external_id` are fixed at create. An
   Organization that still has children cannot be deleted. Nobody owns a child
-  when it is created; its parent's admins manage it.
+  when it is created; its parent's admins are its admins.
 - **Context rule**: Use in concepts, how-to and reference. On the sales site,
   say "an organization for each of your customers". Never "platform-managed",
   "managed organization", "tenant organization" or "sub-organization".
@@ -766,18 +766,22 @@ keys.
 
 #### Parent admin
 
-An admin of a parent organization, as seen from one of its child organizations.
+An admin of a parent organization, who is an admin in each of its child
+organizations.
 
 - **Capitalize**: No.
 - **API surface**: the model relation `parent_admin` on the child
-  (`fga/model/tenancy/organization.fga`), which feeds `can_view_settings`,
-  `can_edit`, `can_delete`, `can_grant_access`, `can_view_access`,
-  `can_assign_roles` and `can_view_billing`, and no role; and, from the child's
-  invitations (`fga/model/iam/invitation.fga`), their `owner` and `viewer`.
-- **Note**: A parent admin manages a child (settings, members, access, and the
-  invitations that grant that access), sees its billing, and reads nothing else
-  it holds. To look inside, they join the child as a member, which its member
-  list and access history show; nothing impersonates a child's user.
+  (`fga/model/tenancy/organization.fga`), which feeds the child's `admin` role,
+  and with it every permission a child's admin holds, and its `can_delete` and
+  `can_assign_roles`.
+- **Note**: A parent admin needs no joining step: they read and change a child's
+  Agents, Skills, Plugins, shared Vaults, eval runs, teams, Federation Issuers
+  and sign-in settings, grant access, and see its billing and full access
+  history, as the child's own admins can; they also delete the child and make
+  someone its owner. A person's conversations (Sessions), My vault and Memories
+  stay private from every admin, a parent admin's included; nothing impersonates
+  a child's user. The same shape as Stripe's connected accounts and Twilio's
+  subaccounts.
 - **Context rule**: Use in concepts and reference. In how-to, say "your
   Organization's admins" when the reader is the parent.
 
@@ -1057,8 +1061,8 @@ Stigmer without creating Stigmer-native accounts.
 
 #### Bound credential
 
-A credential that names one Organization and works in that Organization only,
-whatever roles its person holds elsewhere.
+A credential that names one Organization and works in that Organization and its
+child organizations only, whatever roles its person holds elsewhere.
 
 - **Capitalize**: No. "Bound credential" is a property of a credential, not a
   Stigmer resource type.
@@ -1070,19 +1074,22 @@ whatever roles its person holds elsewhere.
   one run (bound to the run's Organization). A person signed in at the Stigmer
   Console with their own Stigmer sign-in is not bound and moves between all
   their Organizations.
-- **Reach**: its Organization's resources; the person's own account, and their
-  API keys limited to the same Organization; in a child organization, reading
-  and running the Agents, Skills and Plugins its parent shares at
-  `visibility_child_orgs`; and, for a credential bound to a parent, managing
-  that parent's child organizations (never reading what they hold). It cannot
-  create an Organization, except a child of its own, or accept an invitation to
-  another one. One exception: a platform operator's acts (plans, the model
-  catalog, licenses) follow the person's platform role, so their limited key
-  still performs them.
+- **Reach**: its Organization's resources; for a credential bound to a parent,
+  each of that parent's child organizations, exactly as the account behind it
+  would there (an admin service account's key acts as an admin in each child, a
+  viewer's only reads), and minting keys limited to one of them; the person's
+  own account, and their API keys limited to the same Organization; in a child
+  organization, reading and running the Agents, Skills and Plugins its parent
+  shares at `visibility_child_orgs`. A credential bound to a child never reaches
+  the parent or another child, and the credential a runner holds for one run
+  works only in the run's Organization. It cannot create an Organization, except
+  a child of its own, or accept an invitation to another one. One exception: a
+  platform operator's acts (plans, the model catalog, licenses) follow the
+  person's platform role, so their limited key still performs them.
 - **Context rule**: Use in authentication guides and reference. On the sales
-  site, say "a key that works in one Organization." In quickstart, avoid unless
-  the tutorial covers API keys, federation or minted user tokens.
-- **Note**: a bound credential used in another Organization gets
+  site, say "a key limited to one Organization." In quickstart, avoid unless the
+  tutorial covers API keys, federation or minted user tokens.
+- **Note**: a bound credential used in an Organization it does not reach gets
   `PERMISSION_DENIED`. A federated token whose external id claim is missing or
   names no child organization gets `UNAUTHENTICATED`, on every sign-in.
 
@@ -1221,9 +1228,9 @@ which role, and which shared vaults their runs use.
 
 - **Note**: the service account's key authenticates your backend, not your
   users. The backend calls `mintUserToken` to get user-scoped JWTs, each a
-  **bound credential** that works in one Organization only. This is the same
-  pattern used by Twilio (Access Tokens), Stream (User Tokens), and Liveblocks
-  (access tokens).
+  **bound credential**: one minted into a child works in that child only. This
+  is the same pattern used by Twilio (Access Tokens), Stream (User Tokens), and
+  Liveblocks (access tokens).
 
 <!-- vale Vale.Spelling = YES -->
 

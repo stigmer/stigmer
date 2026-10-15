@@ -31,10 +31,12 @@
  *     renewal and unset answer
  *     not-minted; so does keyless. Under trusted-local the controller's
  *     own arms mint for anyone, and this capability does not exist. A
- *     caller bound to another organization than the run's is refused with
- *     the binding's sentence, and the verifier admits a run credential's
- *     person bound to the run's organization, so a credential limited to
- *     one organization cannot widen itself through a run.
+ *     caller whose credential the binding does not admit to the run's
+ *     organization is refused with the binding's sentence (a credential
+ *     bound to the run organization's parent is admitted), and the verifier
+ *     admits a run credential's person bound to the run's organization, so
+ *     a credential limited to one organization cannot widen itself through
+ *     a run.
  *
  * Written failing on 2026-09-16, before src/runnerauth/built-in-runner-credential-provider.ts
  * existed; the module turned it green.
@@ -54,8 +56,10 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 
 import type { AccountsByCaller } from "../../domain/identityaccount/resolve.js";
 import { newConnectExecutionId } from "../../domain/plugin/tools/execution-id.js";
+import type { OrganizationAdmission } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { BOUND_ELSEWHERE_DENY_REASON } from "../../authorization/credential-binding.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
+import { boundOrgOf } from "../../extensions/identity.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { ConnectAttemptRecord } from "../../store/interface.js";
 import type { BoundExecutionStore } from "../bound-execution.js";
@@ -169,10 +173,21 @@ const accounts: AccountsByCaller = {
   },
 };
 
+/** The binding's one predicate: a bound organization and its children (acme_parent is acme's parent). */
+const binding: OrganizationAdmission = {
+  admitsOrganization: (caller, org) => {
+    const bound = boundOrgOf(caller);
+    return Promise.resolve(
+      bound === undefined || org === bound || (bound === "acme_parent" && org === "acme"),
+    );
+  },
+};
+
 const provider = newBuiltInRunnerCredentialProvider({
   service,
   store,
   accounts,
+  credentialBinding: binding,
 });
 
 /** The identity the runner-subject verifier mints for a run credential. */
@@ -286,12 +301,14 @@ describe("exchangeScopedToken — the mint gate", () => {
     expect(failure.rawMessage).toBe(BOUND_ELSEWHERE_DENY_REASON);
   });
 
-  it("a credential bound to the run's own organization is minted the run credential", async () => {
-    const minted = await exchange(
-      { arm: "agent-execution", executionId: "aex_agent_run" },
-      { ...carol, boundOrg: "acme" },
-    );
-    expect(minted.minted).toBe(true);
+  it("a credential bound to the run's own organization, or to its parent, is minted the run credential", async () => {
+    for (const boundOrg of ["acme", "acme_parent"]) {
+      const minted = await exchange(
+        { arm: "agent-execution", executionId: "aex_agent_run" },
+        { ...carol, boundOrg },
+      );
+      expect(minted.minted).toBe(true);
+    }
   });
 
   it("a run whose creator stamp names nobody is nobody's to hold — refused with the same sentence", async () => {
@@ -349,6 +366,7 @@ describe("exchangeScopedToken — the mint gate", () => {
       service: RunnerAuthService.create(undefined),
       store,
       accounts,
+      credentialBinding: binding,
     });
     expect(
       await keyless.exchangeScopedToken!(

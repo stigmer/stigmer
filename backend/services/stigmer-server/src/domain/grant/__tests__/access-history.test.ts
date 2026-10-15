@@ -21,14 +21,15 @@
  *   - the read: newest first, or oldest first after a number; every
  *     person and grantee named at read time, an unknown account by its id;
  *     the role as the access list renders it; the resource as a reference;
+ *     one mode, every entry for every caller the annotation admits, with
+ *     nothing more asked of the Authorizer;
  *   - the pages: the token only while more entries exist, every entry once
  *     across a walk in either direction, the default and maximum sizes,
  *     and the refusals of a token that is not this request's;
  *   - a store fault is INTERNAL with a static message;
  *   - retention: every page carries the window and the organization's
- *     oldest kept number (its true oldest for a parent's admin too), and
- *     a pass between the page and the oldest read never reports a
- *     returned entry as removed.
+ *     oldest kept number, and a pass between the page and the oldest read
+ *     never reports a returned entry as removed.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
@@ -126,8 +127,6 @@ async function harness(options: {
   gate?: PipelineStep<DescMessage>;
   grants?: GrantStore;
   principalDisplay?: PrincipalDisplay;
-  /** The answer to `can_view` on the organization: who sees what it holds (a parent's admin does not). */
-  canView?: AuthzDecision;
   /** The composition's access-history window; undefined keeps everything. */
   retentionDays?: number;
 } = {}): Promise<Harness> {
@@ -154,9 +153,6 @@ async function harness(options: {
   const authorizer: Authorizer = {
     authorize(_caller, check) {
       checks.push(check);
-      if (check.permission === IamPermission.can_view) {
-        return Promise.resolve(options.canView ?? { kind: "allow" });
-      }
       return Promise.resolve(options.decision ?? { kind: "allow" });
     },
   };
@@ -378,8 +374,8 @@ describe("listAccessHistory's read", () => {
     expect([...times].sort((a, b) => b - a)).toEqual(times);
   });
 
-  it("shows a parent's admin only the entries about the organization itself, in short pages that keep their token", async () => {
-    const h = await harness({ canView: { kind: "deny", reason: "a parent's admin" } });
+  it("shows every caller the annotation admits every entry, a resource's included, and asks nothing more", async () => {
+    const h = await harness();
     const agent = { kind: "agent", id: "agt_private" };
     await h.grant(orgRole(RAJ, "member", ACME));
     await h.grant(triple({ kind: "identity_account", id: RAJ }, "editor", agent));
@@ -387,29 +383,14 @@ describe("listAccessHistory's read", () => {
     await h.revoke(orgRole(RAJ, "member", ACME), { cause: "organization_access_revoked" });
 
     const first = await h.query.listAccessHistory({ org: ACME, pageSize: 2 });
-    expect(sequences(first.entries)).toEqual([4]);
-    expect(first.nextPageToken).not.toBe("");
+    expect(sequences(first.entries)).toEqual([4, 3]);
     const second = await h.query.listAccessHistory({ org: ACME, pageSize: 2, pageToken: first.nextPageToken });
-    expect(sequences(second.entries)).toEqual([1]);
+    expect(sequences(second.entries)).toEqual([2, 1]);
     expect(second.nextPageToken).toBe("");
-    for (const entry of [...first.entries, ...second.entries]) {
-      expect(entry.resource).toMatchObject({ kind: ApiResourceKind.organization, id: ACME });
-    }
-    expect(h.checks.filter((check) => check.permission === IamPermission.can_view)).toEqual([
-      expect.objectContaining({ resourceKind: ApiResourceKind.organization, resourceId: ACME }),
-      expect.objectContaining({ resourceKind: ApiResourceKind.organization, resourceId: ACME }),
+    expect(h.checks.map((check) => check.permission)).toEqual([
+      IamPermission.can_view_access_history,
+      IamPermission.can_view_access_history,
     ]);
-
-    const follow = await h.query.listAccessHistory({ org: ACME, afterSequence: 0n });
-    expect(sequences(follow.entries)).toEqual([1, 4]);
-  });
-
-  it("answers an outage deciding what the caller may see as INTERNAL, never a smaller history", async () => {
-    const h = await harness({ canView: { kind: "unavailable", cause: new Error("engine down") } });
-    await h.grant(orgRole(RAJ, "member", ACME));
-    const error = await rejection(h.query.listAccessHistory({ org: ACME }));
-    expect(error.code).toBe(Code.Internal);
-    expect(error.rawMessage).toBe("failed to authorize the access history");
   });
 
   it("reads only the organization asked about", async () => {
@@ -582,15 +563,6 @@ describe("listAccessHistory's retention", () => {
     expect(page.entries).toEqual([]);
     expect(page.oldestSequence).toBe(0n);
     expect(page.retentionDays).toBe(0);
-  });
-
-  it("gives a parent's admin the organization's true oldest number, whatever the page leaves out", async () => {
-    const h = await harness({ canView: { kind: "deny", reason: "a parent's admin" }, retentionDays: 30 });
-    await h.grant(triple({ kind: "identity_account", id: RAJ }, "editor", { kind: "agent", id: "agt_private" }));
-    await h.grant(orgRole(RAJ, "member", ACME));
-    const page = await h.query.listAccessHistory({ org: ACME, afterSequence: 0n });
-    expect(sequences(page.entries)).toEqual([2]);
-    expect(page.oldestSequence).toBe(1n);
   });
 
   it("never reports an entry the page returned as removed when a pass runs between the page and the oldest read", async () => {

@@ -86,6 +86,7 @@ import { FederationIssuerQueryController } from "@stigmer/protos/ai/stigmer/iam/
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type {
   Authorizer,
+  CredentialBinding,
   ExtensionServiceRegistration,
   ListReadScope,
   Logger,
@@ -145,6 +146,8 @@ import { normalizeIssuers, routeTakenError, validateIssuer } from "./validation.
 
 export interface FederationIssuerLaneDeps {
   readonly authorizer: Authorizer;
+  /** The composed credential binding: the rename refuses a credential that does not reach the row's organization. */
+  readonly credentialBinding: Pick<CredentialBinding, "admitsOrganization">;
   readonly logger: Logger;
   readonly store: FederationIssuerStore;
   /** The server's one name table, where a provider's slug is claimed (steps.ts). */
@@ -285,6 +288,7 @@ export function providerCommands(deps: FederationIssuerLaneDeps): Commands {
           names: deps.names,
           rows: portRenameRows(FederationIssuerSchema, deps.store),
           authorizer: deps.authorizer,
+          credentialBinding: deps.credentialBinding,
           logger: deps.logger,
           beforeLoad: [refuseServiceAccount()],
           afterLoad: [newRefuseRenamingDeletedIssuerStep(deps.store)],

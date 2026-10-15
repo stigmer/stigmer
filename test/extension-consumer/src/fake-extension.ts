@@ -1328,11 +1328,14 @@ const organizationDirectory: OrganizationDirectory = {
  * bound Authorizer's denial copy are part of the surface too.
  */
 let consumerCredentialBinding: CredentialBinding | undefined;
-export function consumerMayActIn(caller: CallerIdentity, org: string): boolean {
+export async function consumerMayActIn(
+  caller: CallerIdentity,
+  org: string,
+): Promise<boolean> {
   if (boundOrgOf(caller) === undefined) {
     return true;
   }
-  return consumerCredentialBinding?.admitsOrganization(caller, org) ?? false;
+  return (await consumerCredentialBinding?.admitsOrganization(caller, org)) ?? false;
 }
 export const consumerOutsideVerdict: BindingVerdict = "outside";
 

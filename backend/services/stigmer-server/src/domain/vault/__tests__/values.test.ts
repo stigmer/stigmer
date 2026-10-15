@@ -63,6 +63,7 @@ import { fetchExecutionValues } from "../values.js";
 import type { ExecutionValuesDeps } from "../values.js";
 import type { VaultRig } from "./support.js";
 import { openVaultRig, silentLogger } from "./support.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 const ORG = "acme";
 const ANA = "ida_ana";
@@ -492,6 +493,7 @@ describe("the registered service", () => {
     const transport = createRouterTransport(
       (router) => {
         registerVaultServices(router, {
+          credentialBinding: UNBOUND_CREDENTIAL_BINDING,
           store: rig.store,
           logger: silentLogger,
           authorizer: newPermissiveSingleTeamAuthorizer(),

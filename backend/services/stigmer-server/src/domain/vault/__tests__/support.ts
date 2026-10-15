@@ -27,6 +27,7 @@ import { myVaultSlugOf } from "../constants.js";
 import { newVaultService } from "../service.js";
 import type { VaultService } from "../service.js";
 import { namingSaves } from "../../../store/__tests__/named-saves.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 export const silentLogger = createLogger({
   level: "error",
@@ -71,6 +72,7 @@ export function openVaultRig(): VaultRig {
     writeVersion: "v9",
   });
   const vaults = newVaultService({
+    credentialBinding: UNBOUND_CREDENTIAL_BINDING,
     store,
     logger: silentLogger,
     secretService: secrets,

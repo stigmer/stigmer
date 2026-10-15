@@ -47,6 +47,7 @@ import type { MessagingChannels } from "@stigmer/protos/ai/stigmer/agentic/agent
 
 import { failedPreconditionError } from "../../pipeline/errors.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
+import type { OrganizationAdmission } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import type { ChannelRuntime } from "./channel-runtime.js";
 import { PROACTIVE_MESSAGING_UNAVAILABLE_MESSAGE } from "./constants.js";
@@ -59,6 +60,7 @@ import { PROACTIVE_MESSAGING_UNAVAILABLE_MESSAGE } from "./constants.js";
 export function registerChannelMessageServices(
   router: ConnectRouter,
   channelRuntime: ChannelRuntime | undefined,
+  binding: OrganizationAdmission,
 ): void {
   if (channelRuntime === undefined) {
     router.service(ChannelMessageCommandController, {
@@ -80,17 +82,18 @@ export function registerChannelMessageServices(
   }
 
   const { messaging } = channelRuntime;
-  // The runtime decides who may message or read templates; a credential
-  // bound to one organization names no other (refuse-bound-elsewhere.ts).
+  // The runtime decides who may message or read templates; a bound
+  // credential names only the organizations it reaches
+  // (refuse-bound-elsewhere.ts).
   router.service(ChannelMessageCommandController, {
-    sendMessage: (input, ctx) => {
-      refuseBoundElsewhere(callerIdentityOf(ctx), input.org);
+    sendMessage: async (input, ctx) => {
+      await refuseBoundElsewhere(binding, callerIdentityOf(ctx), input.org);
       return messaging.sendMessage(input, callerIdentityOf(ctx));
     },
   });
   router.service(ChannelMessageQueryController, {
-    listTemplates: (input, ctx) => {
-      refuseBoundElsewhere(callerIdentityOf(ctx), input.org);
+    listTemplates: async (input, ctx) => {
+      await refuseBoundElsewhere(binding, callerIdentityOf(ctx), input.org);
       return messaging.listTemplates(input, callerIdentityOf(ctx));
     },
     listMessagingChannels: (input, ctx) =>

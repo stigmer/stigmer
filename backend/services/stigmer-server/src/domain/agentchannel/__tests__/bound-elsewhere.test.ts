@@ -1,11 +1,12 @@
 /**
  * Pins the channel lanes' binding check (message.ts, conversation.ts): the
  * runtime decides who may message, read templates or list conversations,
- * but a credential bound to one organization that names another is refused
- * with the binding's sentence before the runtime is asked; its own
- * organization reaches the runtime. The handlers run on an in-process
- * router whose verifier stamps a bound caller; the runtime is a recording
- * fake.
+ * but a bound credential that names an organization the binding does not
+ * admit is refused with the binding's sentence before the runtime is
+ * asked; what it admits (its own organization and its child) reaches the
+ * runtime. The handlers run on an in-process router whose verifier stamps
+ * a bound caller; the runtime is a recording fake and the binding a fake
+ * of the one predicate the lanes ask.
  */
 import {
   Code,
@@ -22,6 +23,8 @@ import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agenti
 import { BOUND_ELSEWHERE_DENY_REASON } from "../../../authorization/credential-binding.js";
 import { createLogger } from "../../../boot/logger.js";
 import type { IdentityVerifier } from "../../../extensions/identity.js";
+import { boundOrgOf } from "../../../extensions/identity.js";
+import type { OrganizationAdmission } from "../../../pipeline/steps/refuse-bound-elsewhere.js";
 import { createVerifierChainInterceptor } from "../../../pipeline/interceptors/auth.js";
 import type { ChannelRuntime } from "../channel-runtime.js";
 import { registerChannelConversationServices } from "../conversation.js";
@@ -44,6 +47,16 @@ const boundVerifier: IdentityVerifier = {
   }),
 };
 
+/** org_a_child is a child of org_a; the binding admits a bound organization and its children. */
+const binding: OrganizationAdmission = {
+  admitsOrganization: (caller, org) => {
+    const bound = boundOrgOf(caller);
+    return Promise.resolve(
+      bound === undefined || org === bound || (bound === "org_a" && org === "org_a_child"),
+    );
+  },
+};
+
 function harness() {
   const reached: string[] = [];
   const runtime = {
@@ -59,8 +72,8 @@ function harness() {
   } as unknown as ChannelRuntime;
   const transport = createRouterTransport(
     (router) => {
-      registerChannelMessageServices(router, runtime);
-      registerChannelConversationServices(router, runtime);
+      registerChannelMessageServices(router, runtime, binding);
+      registerChannelConversationServices(router, runtime, binding);
     },
     {
       router: {
@@ -109,14 +122,16 @@ describe("channel lanes under a credential bound to one organization", () => {
     expect(h.reached).toEqual([]);
   });
 
-  it("hand its own organization to the runtime", async () => {
-    const h = harness();
-    for (const call of h.calls("org_a")) await call();
-    expect(h.reached).toEqual([
-      "sendMessage",
-      "listTemplates",
-      "list",
-      "countConversations",
-    ]);
+  it("hand its own organization and its child to the runtime", async () => {
+    for (const org of ["org_a", "org_a_child"]) {
+      const h = harness();
+      for (const call of h.calls(org)) await call();
+      expect(h.reached).toEqual([
+        "sendMessage",
+        "listTemplates",
+        "list",
+        "countConversations",
+      ]);
+    }
   });
 });

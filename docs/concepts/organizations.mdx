@@ -163,14 +163,14 @@ graph TD
 A child organization is a full tenant boundary. Its own people work in it as in
 any Organization, and nothing it holds is visible to another child.
 
-The parent's admins **manage** every child and read **nothing** a child holds.
-They can change a child's settings, rename or delete it, manage its members,
-roles and invitations, and see its billing; they cannot see its Agents,
-Sessions, Vaults or files, its usage reports, or run anything in it. A parent
-admin who needs to look inside adds themselves as a member of the child, through
-its ordinary members screen; the child's member list and
-[access history](/docs/guides/authentication/access-history) show it, and the
-child's own admins can remove them. Nobody owns a child when it is created: the
+The parent's admins are **admins in every child**, with no joining step. They
+read and change a child's Agents, Skills, Plugins, shared Vaults, eval runs,
+teams and sign-in settings, grant access in it, and see its billing and its full
+[access history](/docs/guides/authentication/access-history), exactly as the
+child's own admins can; they also rename or delete a child and make someone its
+owner. What stays private from every admin, the parent's included, is each
+person's own: their conversations (Sessions), their My vault and their
+remembered facts (Memories). Nobody owns a child when it is created: the
 parent's admins grant its first members and owner.
 
 A child's people sign in through the parent's Federation Issuer, whose

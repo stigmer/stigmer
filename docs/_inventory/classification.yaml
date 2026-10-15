@@ -575,7 +575,7 @@ pages:
     diataxis: explanation
     teaches:
       Organizations are the tenant boundary; a parent organization has one child
-      organization per customer, which it manages and never reads.
+      organization per customer, and its admins are admins in every child.
     medium: diagram
     why: Tenancy fan-out is structure; the two existing mermaids carry it.
 
@@ -687,8 +687,8 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Give each customer an isolated child organization under yours, manage it
-      without reading it, route sign-ins with externalIdClaim or minted user
+      Give each customer an isolated child organization under yours, administer
+      it as one of its admins, route sign-ins with externalIdClaim or minted user
       tokens, and share a catalog with every child.
     medium: diagram
     why: Parent-to-child fan-out is structure; the two mermaids carry it.

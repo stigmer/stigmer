@@ -11,7 +11,7 @@
       "type": {
         "kind": "bool"
       },
-      "description": "Members may create agents. On by default: a new organization lets its\n members create agents, as a GitHub organization lets its members\n create repositories. When off, only admins create agents. A member's\n agent is theirs: private or shared with the organization, never with\n child organizations, which stays an admin's choice.",
+      "description": "Members may create agents, and the evals that test them. On by\n default: a new organization lets its members create agents, as a\n GitHub organization lets its members create repositories. When off,\n only admins create agents and evals. A member's\n agent is theirs: private or shared with the organization, never with\n child organizations, which stays an admin's choice.",
       "required": false
     }
   ]

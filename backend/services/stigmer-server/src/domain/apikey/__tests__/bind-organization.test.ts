@@ -6,7 +6,8 @@
  *     denial or a missing organization answers the same PERMISSION_DENIED,
  *     so a create never tells which organization ids exist;
  *   - a caller bound to one organization fills an empty organization with
- *     its own and is refused any other, before the Authorizer is asked;
+ *     its own, may name one the binding admits (a child of its own), and
+ *     is refused any other, before the Authorizer is asked;
  *   - an update keeps the stored organization, so a limited key cannot
  *     free itself.
  */
@@ -25,6 +26,8 @@ import type {
   AuthzDecision,
 } from "../../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
+import { boundOrgOf } from "../../../extensions/identity.js";
+import type { OrganizationAdmission } from "../../../pipeline/steps/refuse-bound-elsewhere.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 import {
@@ -39,6 +42,16 @@ const person: CallerIdentity = {
   callerClass: "user",
   issuer: "",
   rawToken: "token",
+};
+
+/** org_acme_cust is a child of org_acme; the binding admits a bound organization and its children. */
+const binding: OrganizationAdmission = {
+  admitsOrganization: (caller, org) => {
+    const bound = boundOrgOf(caller);
+    return Promise.resolve(
+      bound === undefined || org === bound || (bound === "org_acme" && org === "org_acme_cust"),
+    );
+  },
 };
 
 function answering(
@@ -80,7 +93,7 @@ describe("BindApiKeyOrganization", () => {
   it("asks nothing for an unbound caller's key that names no organization", async () => {
     const authorizer = answering({ kind: "allow" });
     const ctx = contextFor(person, "");
-    await newBindApiKeyOrganizationStep(authorizer).execute(ctx);
+    await newBindApiKeyOrganizationStep(authorizer, binding).execute(ctx);
     expect(ctx.newState.spec?.boundOrg).toBe("");
     expect(authorizer.checks).toEqual([]);
   });
@@ -88,7 +101,7 @@ describe("BindApiKeyOrganization", () => {
   it("asks the owner's can_view on the organization a key is limited to", async () => {
     const authorizer = answering({ kind: "allow" });
     const ctx = contextFor(person, "org_acme");
-    await newBindApiKeyOrganizationStep(authorizer).execute(ctx);
+    await newBindApiKeyOrganizationStep(authorizer, binding).execute(ctx);
     expect(authorizer.checks).toEqual([
       {
         permission: IamPermission.can_view,
@@ -104,7 +117,7 @@ describe("BindApiKeyOrganization", () => {
       { kind: "not-found" },
     ] as const) {
       const refused = await refusal(
-        newBindApiKeyOrganizationStep(answering(decision)).execute(
+        newBindApiKeyOrganizationStep(answering(decision), binding).execute(
           contextFor(person, "org_globex"),
         ),
       );
@@ -113,16 +126,31 @@ describe("BindApiKeyOrganization", () => {
     }
   });
 
+  it("lets a bound caller limit a key to a child of its own organization", async () => {
+    const bound: CallerIdentity = { ...person, boundOrg: "org_acme" };
+    const authorizer = answering({ kind: "allow" });
+    const child = contextFor(bound, "org_acme_cust");
+    await newBindApiKeyOrganizationStep(authorizer, binding).execute(child);
+    expect(child.newState.spec?.boundOrg).toBe("org_acme_cust");
+    expect(authorizer.checks).toEqual([
+      {
+        permission: IamPermission.can_view,
+        resourceKind: ApiResourceKind.organization,
+        resourceId: "org_acme_cust",
+      },
+    ]);
+  });
+
   it("limits a bound caller's key to its own organization, and refuses any other before asking", async () => {
     const bound: CallerIdentity = { ...person, boundOrg: "org_acme" };
     const authorizer = answering({ kind: "allow" });
     const filled = contextFor(bound, "");
-    await newBindApiKeyOrganizationStep(authorizer).execute(filled);
+    await newBindApiKeyOrganizationStep(authorizer, binding).execute(filled);
     expect(filled.newState.spec?.boundOrg).toBe("org_acme");
 
     const before = authorizer.checks.length;
     const refused = await refusal(
-      newBindApiKeyOrganizationStep(authorizer).execute(
+      newBindApiKeyOrganizationStep(authorizer, binding).execute(
         contextFor(bound, "org_globex"),
       ),
     );

@@ -47,6 +47,7 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { CredentialBinding } from "../../extensions/credential-binding.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
@@ -142,6 +143,12 @@ export interface AgentChannelControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
+  /**
+   * The composed credential binding: the persist and rename backstops
+   * refuse a credential that does not reach the row's organization
+   * (pipeline/steps/refuse-bound-elsewhere.ts).
+   */
+  readonly credentialBinding: CredentialBinding;
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly modelRegistry: ModelCatalogProvider;
@@ -244,7 +251,7 @@ async function createChannel(
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, CHANNEL_VAULT_ATTACHMENTS))
     .addStep(newClaimNameStep(deps.store, ApiResourceKind.agent_channel))
-    .addStep(newPersistStep(deps.store))
+    .addStep(newPersistStep(deps.store, deps.credentialBinding))
     .addStep(
       newCreateAuthorizationTuplesStep(
         deps.authorizationLifecycle,
@@ -301,7 +308,7 @@ async function update(
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
       .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, CHANNEL_VAULT_ATTACHMENTS))
-      .addStep(newPersistStep(deps.store))
+      .addStep(newPersistStep(deps.store, deps.credentialBinding))
       .build()
       .execute(reqCtx);
     return reqCtx.newState;

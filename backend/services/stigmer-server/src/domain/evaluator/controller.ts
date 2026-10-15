@@ -30,6 +30,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { UpdateEvaluatorInput } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { CredentialBinding } from "../../extensions/credential-binding.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
@@ -83,6 +84,12 @@ export interface EvaluatorControllerDeps {
   readonly logger: Logger;
   /** The composed authorization seam: the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
+  /**
+   * The composed credential binding: the persist and rename backstops
+   * refuse a credential that does not reach the row's organization
+   * (pipeline/steps/refuse-bound-elsewhere.ts).
+   */
+  readonly credentialBinding: CredentialBinding;
   /** The composed tuple-lifecycle driver; undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
 }
@@ -143,7 +150,7 @@ async function createEvaluator(
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newClaimNameStep(deps.store, ApiResourceKind.evaluator))
-    .addStep(newPersistStep(deps.store))
+    .addStep(newPersistStep(deps.store, deps.credentialBinding))
     .addStep(
       newCreateAuthorizationTuplesStep(
         deps.authorizationLifecycle,
@@ -183,7 +190,7 @@ async function updateEvaluator(
       .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newValidateEvaluatorUpdateStep())
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
-      .addStep(newPersistEvaluatorSettingsStep(deps.store))
+      .addStep(newPersistEvaluatorSettingsStep(deps.store, deps.credentialBinding))
       .build()
       .execute(reqCtx);
     return reqCtx.newState;

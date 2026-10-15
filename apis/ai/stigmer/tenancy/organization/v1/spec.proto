@@ -59,12 +59,12 @@ message OrganizationSpec {
   // @internal
   // Fixed at create: update and apply keep the stored value. Creating a
   // child needs can_manage_child_orgs on the parent, and the parent may not
-  // itself be a child (one level). The parent's admins manage the child
-  // (settings, members, access) and see its billing, but read none of its
-  // resources;
-  // to look inside, one grants themselves a role in the child, which the
-  // child's members and access history show. The edge resolver turns a
-  // slug into the parent's id, so the stored value is always an id.
+  // itself be a child (one level). The parent's admins are admins in the
+  // child, with no joining step: they read and change what its own admins
+  // can, and also delete it and make someone its owner; a person's
+  // sessions, My vault and memories stay private from every admin. The edge
+  // resolver turns a slug into the parent's id, so the stored value is
+  // always an id.
   string parent_org = 8 [(buf.validate.field).string.max_len = 64];
 
   // What the organization lets its members do. Set when the organization is

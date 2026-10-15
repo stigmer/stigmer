@@ -268,7 +268,7 @@ export function newEnterpriseIdentityExtension(
   // children of an organization.
   const children = lateChildOrganizations(`the ${ENTERPRISE_IDENTITY_UNIT} unit`);
   const childOrganizations = children.lookups;
-  // The invitation redeem is the one lane here that asks the binding.
+  // The invitation redeem and the issuer and team renames ask the binding.
   const credentialBinding: Pick<CredentialBinding, "admitsOrganization"> = {
     admitsOrganization: (caller, org) =>
       composed().credentialBinding.admitsOrganization(caller, org),
@@ -495,6 +495,7 @@ export function newEnterpriseIdentityExtension(
         reservedIssuers: ports.reservedIssuers,
         removal: providerRemoval,
         lifecycle,
+        credentialBinding,
         listReadScope,
         invalidate: invalidateIssuers,
         organizations,
@@ -520,6 +521,7 @@ export function newEnterpriseIdentityExtension(
         names,
         removal: teamRemoval,
         lifecycle,
+        credentialBinding,
         ...(ports.teamPlanGate === undefined ? {} : { planGate: ports.teamPlanGate }),
         ...(ports.growthGate === undefined ? {} : { growthGate: ports.growthGate }),
       }),

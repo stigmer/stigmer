@@ -23,9 +23,9 @@
  * seam wants. Expiry is "expires_at set and past"; never_expires is
  * deliberately not read — Java parity (never-expiring keys leave
  * expires_at unset). A key limited to one organization (spec.bound_org) carries
- * it as the identity's `boundOrg`, so it works in that organization only
- * (authorization/credential-binding.ts); a key without one speaks for its
- * owner everywhere.
+ * it as the identity's `boundOrg`, so it works in that organization and its
+ * child organizations (authorization/credential-binding.ts); a key without
+ * one speaks for its owner everywhere.
  *
  * The stamp is then resolved to the owner's account through the
  * identity-account domain's `accountForStamp`
@@ -209,9 +209,10 @@ export function newApiKeyIdentityVerifier(
       const serviceAccount =
         account === undefined ? undefined : serviceAccountCallerOf(account);
       if (serviceAccount !== undefined) {
-        // A service account's key works in its organization only. The
-        // create path binds every such key to it, so a key that says
-        // otherwise is corrupt, refused as no credential at all.
+        // A service account's key is bound to its organization (and so
+        // works there and in its children). The create path binds every
+        // such key to it, so a key that says otherwise is corrupt, refused
+        // as no credential at all.
         if (key.spec?.boundOrg !== serviceAccount.boundOrg) {
           logger.info(
             "API key refused: it is not bound to its service account's organization",

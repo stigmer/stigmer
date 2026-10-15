@@ -22,15 +22,15 @@
  *   - Nobody owns a new child: the creation event carries NONE
  *     (`childOwnerAttribution`), so neither open source's role lifecycle
  *     nor a tuple driver makes the creator its owner. The parent's admins
- *     manage it (`parent_admin`, fga/model/tenancy/organization.fga) and
- *     grant its people; the membership rules skip it
+ *     are its admins (`parent_admin`, fga/model/tenancy/organization.fga)
+ *     and grant its people; the membership rules skip it
  *     (domain/grant/membership.ts).
  *   - LinkChildOrganization (create, after the claims and just before
  *     Persist): the lifecycle's `onChildOrganizationLinked`, so an edition
  *     that stores tuples writes both edges before the row exists. A link
  *     that fails stores nothing; a failure after Persist leaves a child its
- *     parent's admins already manage (`parent_admin`), so they can retry
- *     or delete it. Open source derives the edges at check time
+ *     parent's admins already administer (`parent_admin`), so they can
+ *     retry or delete it. Open source derives the edges at check time
  *     (authorization/model/child-organizations.ts).
  *   - PreserveChildLink (update): `parent_org` and `external_id` stay as
  *     stored; a manifest carries both, so apply is idempotent.

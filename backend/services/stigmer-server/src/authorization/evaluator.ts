@@ -59,7 +59,12 @@ import { ACCOUNT_TYPE, formatObjectRef, isPerson, pairKey } from "./tuples.js";
  * deepest real chain in the model is under ten: a run's `can_view
  * from session` to its session, the session's `viewer from schedule` to
  * its schedule, the schedule's `team#member` userset, then the
- * organization's four-rung ladder.
+ * organization's four-rung ladder, which on a child organization climbs
+ * once more through `admin -> parent_admin -> admin from parent_org` to
+ * the parent's ladder (the model's one recursion through another object
+ * of the same type; it ends at the parent, which has no `parent_org`, and
+ * the (object, relation) cycle guard below would answer a self-parent
+ * row as a resolution cycle, never a silent deny).
  */
 export const MAX_RESOLUTION_DEPTH = 25;
 

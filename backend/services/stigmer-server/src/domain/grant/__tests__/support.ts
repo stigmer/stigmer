@@ -8,7 +8,11 @@
  * drivers (the sqlite and postgres __tests__/support modules under
  * src/store).
  */
-import { create } from "@bufbuild/protobuf";
+import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
+import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
+
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
@@ -22,6 +26,8 @@ import type {
 } from "../../../extensions/resource-authorization.js";
 import type { GrantChange, GrantChangeRecord } from "../change.js";
 import type { StoredResources } from "../grant-path.js";
+import { ResourceNotFoundError } from "../../../store/interface.js";
+import type { Store } from "../../../store/interface.js";
 import { DuplicateGrantError } from "../store.js";
 import type { GrantStore } from "../store.js";
 
@@ -61,6 +67,33 @@ export function triple(
  * fall back to.
  */
 export const NO_STORED_RESOURCES: StoredResources = storedResources({});
+
+/**
+ * The organization rows an access list reads a resource's organization's
+ * parent from: each id maps to its parent ("" for none); any other id, and
+ * any other kind, is not found.
+ */
+export function organizationRows(
+  parents: Readonly<Record<string, string>>,
+): Pick<Store, "getResource"> {
+  return {
+    getResource<Desc extends DescMessage>(
+      kind: ApiResourceKind,
+      id: string,
+      schema: Desc,
+    ): Promise<MessageShape<Desc>> {
+      const parentOrg = parents[id];
+      if (kind !== ApiResourceKind.organization || parentOrg === undefined) {
+        return Promise.reject(new ResourceNotFoundError(`${kind}/${id}`));
+      }
+      const organization = create(OrganizationSchema, {
+        metadata: { id, name: id, slug: id },
+        spec: { parentOrg },
+      });
+      return Promise.resolve(fromBinary(schema, toBinary(OrganizationSchema, organization)));
+    },
+  };
+}
 
 /**
  * Stored rows by `kind:id`: the creator the removal sweep keeps authorship

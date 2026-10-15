@@ -43,8 +43,10 @@ type TokenServiceClient interface {
 	// person's identity, as it would call any server API with its key. Stigmer
 	// resolves the person's identity account in the organization the token is
 	// for, creates it on first sign-in when the organization's embedding
-	// settings allow (granting their sign_in_role), and returns a token that
-	// works in that organization only.
+	// settings allow (granting their sign_in_role), and returns a token bound
+	// to that organization. A token for a child organization works in that
+	// child only; one for the service account's own organization also reaches
+	// its child organizations, only as far as the person's role there allows.
 	//
 	// Only a service account's key may mint, and only one whose account is an
 	// administrator of the organization the token is for, or of its parent
@@ -125,8 +127,10 @@ type TokenServiceServer interface {
 	// person's identity, as it would call any server API with its key. Stigmer
 	// resolves the person's identity account in the organization the token is
 	// for, creates it on first sign-in when the organization's embedding
-	// settings allow (granting their sign_in_role), and returns a token that
-	// works in that organization only.
+	// settings allow (granting their sign_in_role), and returns a token bound
+	// to that organization. A token for a child organization works in that
+	// child only; one for the service account's own organization also reaches
+	// its child organizations, only as far as the person's role there allows.
 	//
 	// Only a service account's key may mint, and only one whose account is an
 	// administrator of the organization the token is for, or of its parent

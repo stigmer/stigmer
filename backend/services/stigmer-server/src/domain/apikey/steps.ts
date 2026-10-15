@@ -13,11 +13,13 @@
  *     and audit rows hold the hash. The INTERNAL copy is byte-pinned to
  *     the Java step's.
  *   - BindApiKeyOrganization: the organization a key is limited to
- *     (spec.bound_org). A credential limited to one organization creates only
- *     keys limited to the same one, so a limited key or an app user can
- *     never mint a key that speaks for the person everywhere: an
- *     empty spec.bound_org takes the caller's organization, and any other is
- *     refused. For every caller, a key is limited only to an organization
+ *     (spec.bound_org). A credential limited to an organization creates only
+ *     keys limited to an organization it reaches (its own, or one of its
+ *     children; the binding's `admitsOrganization`), so a limited key or an
+ *     app user can never mint a key that speaks for the person everywhere,
+ *     nor one limited to a parent or a sibling: an empty spec.bound_org
+ *     takes the caller's own organization, and any other it does not reach
+ *     is refused. For every caller, a key is limited only to an organization
  *     its owner may view. API key create is a skip lane by annotation (any
  *     signed-in person may hold keys), so this step is the one place its
  *     organization is checked.
@@ -47,6 +49,7 @@ import { create } from "@bufbuild/protobuf";
 
 import { boundOrgOf } from "../../extensions/identity.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { OrganizationAdmission } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { alreadyExistsError, internalError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
@@ -91,9 +94,9 @@ export function newGenerateApiKeyStep(): PipelineStep<ApiKeyDesc> {
   };
 }
 
-/** A limited credential asked for a key limited elsewhere, or for none. */
+/** A limited credential asked for a key limited where it does not reach. */
 export const API_KEY_BOUND_ELSEWHERE_MESSAGE =
-  "this credential is limited to one organization, so it can only create API keys limited to that organization";
+  "this credential is limited to one organization, so it can only create API keys limited to that organization or one of its child organizations";
 
 /** The key's organization is one its owner may not view (or does not exist for them). */
 export const API_KEY_ORGANIZATION_NOT_VISIBLE_MESSAGE =
@@ -101,7 +104,7 @@ export const API_KEY_ORGANIZATION_NOT_VISIBLE_MESSAGE =
 
 /**
  * Settles the organization the new key is limited to (the module header):
- * a limited caller's own, filled when empty and required when set; then,
+ * a limited caller's own when empty, one it reaches when set; then,
  * when the key is limited, the owner's `can_view` on that organization
  * through the composed Authorizer. Runs after BuildNewState, on the state
  * that is persisted; spec.bound_org has already been resolved from a slug to the
@@ -109,6 +112,7 @@ export const API_KEY_ORGANIZATION_NOT_VISIBLE_MESSAGE =
  */
 export function newBindApiKeyOrganizationStep(
   authorizer: Authorizer,
+  binding: OrganizationAdmission,
 ): PipelineStep<ApiKeyDesc> {
   return {
     name: "BindApiKeyOrganization",
@@ -119,7 +123,12 @@ export function newBindApiKeyOrganizationStep(
       if (bound !== undefined) {
         if (resource.spec.boundOrg === "") {
           resource.spec.boundOrg = bound;
-        } else if (resource.spec.boundOrg !== bound) {
+        } else if (
+          !(await binding.admitsOrganization(
+            ctx.callerIdentity,
+            resource.spec.boundOrg,
+          ))
+        ) {
           throw new ConnectError(
             API_KEY_BOUND_ELSEWHERE_MESSAGE,
             Code.PermissionDenied,

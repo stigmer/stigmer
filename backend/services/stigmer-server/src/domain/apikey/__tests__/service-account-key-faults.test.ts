@@ -34,6 +34,7 @@ import { deleteKeysOwnedBy } from "../account-keys.js";
 import { registerApiKeyServices } from "../controller.js";
 import { keysOwnedBy } from "../queries.js";
 import { newCheckDuplicateKeyNameStep } from "../steps.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 const ALLOW_ALL: Authorizer = { authorize: () => Promise.resolve({ kind: "allow" }) };
 
@@ -77,6 +78,7 @@ function clientsWithAccounts(
   const transport = createRouterTransport(
     (router) =>
       registerApiKeyServices(router, {
+        credentialBinding: UNBOUND_CREDENTIAL_BINDING,
         store,
         logger: silentLogger,
         authorizer: ALLOW_ALL,

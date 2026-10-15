@@ -57,6 +57,7 @@ import {
   notFoundError,
 } from "../../pipeline/errors.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
+import type { OrganizationAdmission } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import type { ChannelRuntime } from "./channel-runtime.js";
 import {
@@ -72,6 +73,7 @@ import {
 export function registerChannelConversationServices(
   router: ConnectRouter,
   channelRuntime: ChannelRuntime | undefined,
+  binding: OrganizationAdmission,
 ): void {
   if (channelRuntime === undefined) {
     router.service(ChannelConversationQueryController, {
@@ -130,14 +132,14 @@ export function registerChannelConversationServices(
 
   const { conversations } = channelRuntime;
   router.service(ChannelConversationQueryController, {
-    // A credential bound to one organization lists no other's
-    // conversations (refuse-bound-elsewhere.ts); the runtime decides the rest.
-    list: (input, ctx) => {
-      refuseBoundElsewhere(callerIdentityOf(ctx), input.org);
+    // A bound credential lists the conversations of the organizations it
+    // reaches alone (refuse-bound-elsewhere.ts); the runtime decides the rest.
+    list: async (input, ctx) => {
+      await refuseBoundElsewhere(binding, callerIdentityOf(ctx), input.org);
       return conversations.list(input, callerIdentityOf(ctx));
     },
-    countConversations: (input, ctx) => {
-      refuseBoundElsewhere(callerIdentityOf(ctx), input.org);
+    countConversations: async (input, ctx) => {
+      await refuseBoundElsewhere(binding, callerIdentityOf(ctx), input.org);
       return conversations.countConversations(input, callerIdentityOf(ctx));
     },
     getConversation: (input, ctx) =>

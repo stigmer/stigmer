@@ -122,8 +122,9 @@ An eval run (`agentic/eval_run.fga`) is the evaluator's shape under its subject,
 Every organization-scoped type admits its direct subjects only while they belong to the object's organization:
 
 ```fga
-# organization.fga: one stored tuple per person and organization
-define affiliated: [identity_account]
+# organization.fga: one stored tuple per person and organization, and a
+# child's parent's admins, computed
+define affiliated: [identity_account] or parent_admin
 
 # every relation with a direct list, on every organization-scoped type
 define owner: ([identity_account] and affiliated from organization) or admin from organization
@@ -131,9 +132,9 @@ define owner: ([identity_account] and affiliated from organization) or admin fro
 
 The bound is what makes leaving an organization mean what it says. A person who loses their last role in the organization reaches nothing it holds on the next check, whichever way the grant was made: shared with them directly, recorded as its author (open source derives an author's `owner` tuple from the row's creator stamp; the hosted edition stores it), or through a team. No cleanup has to run first and none can be missed. Rejoining gives back what the person authored, because authorship is a fact about the row; the grant path deletes the shares and team memberships the person held when they left, so those do not come back.
 
-`affiliated` is stored so the bound costs one read: a computed `viewer or guest` would walk the role chain again for every object a list checks. It is derived, never granted. The tuple stands exactly while the person holds at least one role row on the organization, a guest included. The grant path refuses it as a grant, and announces every change of a person's organization rows through the resource-authorization lifecycle (`onOrganizationAffiliationChanging` before a row goes, `onOrganizationAffiliationChanged` after any write or delete). The hosted edition re-derives the tuple from those announcements; open source derives it from the rows at check time, so it needs no migration.
+`affiliated` has two halves. The stored half makes the bound cost one read: a computed `viewer or guest` would walk the role chain again for every object a list checks. It is derived, never granted. The tuple stands exactly while the person holds at least one role row on the organization, a guest included. The grant path refuses it as a grant, and announces every change of a person's organization rows through the resource-authorization lifecycle (`onOrganizationAffiliationChanging` before a row goes, `onOrganizationAffiliationChanged` after any write or delete). The hosted edition re-derives the tuple from those announcements; open source derives it from the rows at check time, so it needs no migration. The computed half, `parent_admin`, lets a parent organization's admins inside each child's bound, so what they make in a child is theirs there and stops being theirs the moment they stop being a parent admin; it is walked only when the stored half misses and costs one read of the organization's `parent_org`, empty for an organization with no parent. Storing it instead would mean a tuple per parent admin per child, rewritten whenever either changes.
 
-`affiliated` includes `guest` because the organization's system accounts (the guest, channel and schedule sessions) hold only `guest` and own the sessions they create. The usersets on the same direct list (`organization#viewer`, `team#member`) are already inside the organization, so bounding them changes nothing. Child-organization visibility (`child_org_viewer`) sits outside the bound: it is the one arm that crosses organizations by design, from a parent to its children. A relation that is the kind's structural parent link stays a direct relation, and the bound goes on the permissions that read it instead (`memory.subject_in_organization`).
+`affiliated` includes `guest` because the organization's system accounts (the guest, channel and schedule sessions) hold only `guest` and own the sessions they create. The usersets on the same direct list (`organization#viewer`, `team#member`) are already inside the organization, so bounding them changes nothing. Child-organization visibility (`child_org_viewer`) sits outside the bound: it crosses organizations by design, from a parent to its children. The parent's admins cross the other way, inside the bound, through its computed half. A relation that is the kind's structural parent link stays a direct relation, and the bound goes on the permissions that read it instead (`memory.subject_in_organization`).
 
 Resources: every type with an `organization` relation and a direct `identity_account` list
 
@@ -216,7 +217,7 @@ organization:acme-cust#parent_org@organization:stigmer   ← on the child
 organization:stigmer#child_org@organization:acme-cust    ← on the parent
 ```
 
-Both edges are written once, when the child is created; a child has no `owner` tuple. The parent's admins hold `parent_admin` on the child, which feeds only the management permissions (`can_view_settings`, `can_edit`, `can_delete`, `can_grant_access`, `can_view_access`, `can_view_access_history`, `can_assign_roles`, `can_view_billing`) and the child's invitations, which they create and list through those permissions and so view and revoke too, never a role: they manage the child and read none of its resources. A parent admin who needs to look inside grants themselves a role in the child, which the child's members and access history show.
+Both edges are written once, when the child is created; a child has no `owner` tuple. The parent's admins hold `parent_admin` on the child, which is part of the child's `admin` and of its membership bound (`affiliated`), so they are the child's admins: they read and change what it holds, as Stripe's platform does on a connected account and Twilio's parent account on a subaccount, and they keep `can_delete` and `can_assign_roles`, which a child with no owner needs someone to hold. A person's sessions, My vault and memories stay theirs alone, here as everywhere. `admin -> parent_admin -> admin from parent_org` is the model's first relation that recurses through another object of the same type; it ends at the parent, which has no `parent_org`.
 
 ### Organization Policies
 

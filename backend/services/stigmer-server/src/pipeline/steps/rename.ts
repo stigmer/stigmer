@@ -70,6 +70,7 @@ import { setAuditFieldsForUpdate } from "./defaults.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
 import { holderIsGone, nameTakenError, storedRowHolder } from "./names.js";
 import type { NameHolder, NameTable } from "./names.js";
+import type { OrganizationAdmission } from "./refuse-bound-elsewhere.js";
 import { refuseBoundElsewhere } from "./refuse-bound-elsewhere.js";
 import { metadataOf } from "./shapes.js";
 import { newValidateProtoStep } from "./validation.js";
@@ -254,12 +255,13 @@ export function newValidateNewSlugStep<Desc extends DescMessage>(
  * changes nothing; any other moves the name (moveName), the old one held
  * for RENAMED_NAME_HOLD_MS, and a slug another resource of the kind holds
  * is refused as a create of it is (names.ts nameTakenError). A credential
- * bound to another organization is refused before anything moves, as
- * Persist refuses one.
+ * bound to an organization that does not reach the resource's is refused
+ * before anything moves, as Persist refuses one.
  */
 export function newRenameNameStep<Desc extends DescMessage>(
   names: NameTable,
   rows: RenameRows<Desc>,
+  binding: OrganizationAdmission,
 ): PipelineStep<RenameDesc> {
   return {
     name: "RenameName",
@@ -278,7 +280,7 @@ export function newRenameNameStep<Desc extends DescMessage>(
         );
       }
       if (belongsToAnOrganization(kind)) {
-        refuseBoundElsewhere(ctx.callerIdentity, metadata.org);
+        await refuseBoundElsewhere(binding, ctx.callerIdentity, metadata.org);
       }
       let current;
       try {
@@ -451,6 +453,13 @@ export interface RenameChain<Desc extends DescMessage> {
   readonly names: NameTable;
   readonly rows: RenameRows<Desc>;
   readonly authorizer: Authorizer;
+  /**
+   * The composed credential binding (`ComposedServices.credentialBinding`):
+   * the rename refuses a credential that does not reach the resource's
+   * organization. Required, so a composition that forgets it does not
+   * compile rather than rename unbound.
+   */
+  readonly credentialBinding: OrganizationAdmission;
   readonly logger: Logger;
   /** The kind's slug rules (ValidateNewSlug); absent for a kind with none. */
   readonly newSlugRule?: NewSlugRule<Desc>;
@@ -487,7 +496,7 @@ export async function renameResource<Desc extends DescMessage>(
   }
   await builder
     .addStep(newValidateNewSlugStep(chain.newSlugRule))
-    .addStep(newRenameNameStep(chain.names, chain.rows))
+    .addStep(newRenameNameStep(chain.names, chain.rows, chain.credentialBinding))
     .addStep(newPersistRenamedStep(chain.names, chain.rows, chain.logger))
     .build()
     .execute(ctx);

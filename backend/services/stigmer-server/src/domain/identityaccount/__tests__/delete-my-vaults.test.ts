@@ -39,6 +39,7 @@ import type { OrganizationIds } from "../../organization/__tests__/support.js";
 import { vaultListIndex } from "../../vault/list-index.js";
 import { newVaultService } from "../../vault/service.js";
 import type { VaultService } from "../../vault/service.js";
+import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -102,6 +103,7 @@ beforeAll(async () => {
   platform = createClient(IdentityAccountCommandController, server.inProcessTransport);
   orgs = await seedOrganizations(transport, ["acme", "globex"]);
   vaults = newVaultService({
+    credentialBinding: UNBOUND_CREDENTIAL_BINDING,
     store: server.store,
     logger: silentLogger,
     secretService: server.secrets,
