@@ -31,7 +31,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { AGENT_API_VERSION, AGENT_KIND, makeAgent, makeAgentSpec } from "../support/agents";
 import { makeSharedVault, myVaultTarget, setSecretsInput, vaultTarget } from "../support/vaults";
-import { organizationRole } from "../support/grants";
+import { grantTriple, organizationRole } from "../support/grants";
 import { uniqueName, uniqueOrg } from "../support/naming";
 import {
   createMinter,
@@ -288,17 +288,33 @@ describe("child organizations — the parent's admins are admins in every child"
     expect(kept.spec?.secrets?.PARENT_KEY?.savedBy).toBe(founder);
   });
 
-  it("[rpc:GrantQueryController.listResourceAccessByPrincipal] an agent a parent's admin makes in a child lists them as its owner, and stops once they are no longer one of the parent's admins", async (ctx) => {
+  it("[rpc:GrantQueryController.listResourceAccessByPrincipal] a parent's admin given a role on a child's agent shows in its access list, and reads nothing there once they are no longer one of the parent's admins", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
+    if (!target.capabilities.perResourceGrants) {
+      return ctx.skip("this edition serves no per-resource grants");
+    }
     const on = lane;
     const parent = await tenancy(on);
     const child = await childOf(on, parent);
     const integrator = await personWith(on, parent.org, "admin");
-    const agent = await integrator.clients.agentCommand.create(
+    // What a parent's admin makes in the child is theirs there.
+    const made = await integrator.clients.agentCommand.create(
       makeAgent({ org: child.org, name: uniqueName("made-by-parent") }),
+    );
+    const madeId = made.metadata?.id ?? "";
+    fixtures.defer(() => on.clients.agentCommand.delete({ value: madeId }));
+    const customer = await personWith(on, child.org, "admin");
+    const agent = await customer.clients.agentCommand.create(
+      makeAgent({ org: child.org, name: uniqueName("customers-agent") }),
     );
     const agentId = agent.metadata?.id ?? "";
     fixtures.defer(() => on.clients.agentCommand.delete({ value: agentId }));
+    await customer.clients.grantCommand.create(
+      grantTriple({ kind: "identity_account", id: integrator.id }, "editor", {
+        kind: "agent",
+        id: agentId,
+      }),
+    );
     const holders = async (): Promise<ReadonlyArray<string>> =>
       (
         await on.clients.grantQuery.listResourceAccessByPrincipal({
@@ -306,20 +322,21 @@ describe("child organizations — the parent's admins are admins in every child"
         })
       ).entries.map((entry) => entry.principal?.id ?? "");
 
-    expect(await holders()).toContain(integrator.id);
     expect(
-      (await integrator.clients.agentQuery.get({ value: agentId })).metadata?.id,
-    ).toBe(agentId);
+      await holders(),
+      "the parent's admin holds no role row in the child, and is inside its bound",
+    ).toContain(integrator.id);
 
     await on.clients.grantCommand.delete(
       organizationRole(integrator.id, "admin", parent.org),
     );
-    expect(await holders()).not.toContain(integrator.id);
-    await expectGrpcCode(
-      () => integrator.clients.agentQuery.get({ value: agentId }),
-      Code.PermissionDenied,
-      "a former parent admin reads what they made in the child",
-    );
+    for (const id of [agentId, madeId]) {
+      await expectGrpcCode(
+        () => integrator.clients.agentQuery.get({ value: id }),
+        Code.PermissionDenied,
+        "a former parent admin reads a child's agent",
+      );
+    }
   });
 
   it("[rpc:AgentQueryController.get] everyone in a child reads and runs what the parent shares with child organizations; another parent's child does not", async (ctx) => {
