@@ -1,9 +1,9 @@
 /**
- * The evaluator's purge (domain/organization/purge/kind-purge.ts): every
- * evaluator of an organization being deleted, removed with its delete
- * chain's cleanup (controller.ts `deleteEvaluator`): the row and its
- * access, read through the evaluator list index. It runs before the
- * agents' purge, so each evaluator's access is cleaned while its agent
+ * The scoring rule's purge (domain/organization/purge/kind-purge.ts): every
+ * scoring rule of an organization being deleted, removed with its delete
+ * chain's cleanup (controller.ts `deleteScoringRule`): the row and its
+ * access, read through the scoring rule list index. It runs before the
+ * agents' purge, so each scoring rule's access is cleaned while its agent
  * still links it to the organization. A judge run cannot start meanwhile:
  * its create names the organization, which the deleting-organization
  * interceptor refuses.

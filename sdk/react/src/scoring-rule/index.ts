@@ -1,4 +1,4 @@
-// Evaluators — AI grading switched on for one agent: whether it runs, how
+// ScoringRules — AI grading switched on for one agent: whether it runs, how
 // many runs it samples, its monthly spending limit and its judge model.
 
 export {

@@ -1,6 +1,6 @@
-// Pins the CLI's evaluator verbs: `stigmer get evaluator <id>` reads one by
-// its id through the evaluator client, and `stigmer delete evaluator <id>`
-// deletes it there, switching AI grading off for its agent. An evaluator is
+// Pins the CLI's scoring rule verbs: `stigmer get scoring rule <id>` reads one by
+// its id through the scoring rule client, and `stigmer delete scoring rule <id>`
+// deletes it there, switching AI grading off for its agent. A scoring rule is
 // never applied from a manifest, so no other verb reaches it.
 
 import { create } from "@bufbuild/protobuf";
@@ -14,29 +14,29 @@ import { verbsForKind } from "../../registry/verb-support.js";
 import { DELETE_HANDLERS } from "../delete.js";
 import { getterFor } from "../get-bindings.js";
 
-const evaluator = create(ScoringRuleSchema, {
+const scoringRule = create(ScoringRuleSchema, {
   metadata: { id: "evl_1", org: "acme" },
   spec: { agentId: "agt_1", enabled: true, sampleRate: 0.1, monthlyLimitUsd: 10 },
 });
 
-describe("the evaluator verbs", () => {
-  it("gets an evaluator by its id and deletes it by its id", async () => {
+describe("the scoring rule verbs", () => {
+  it("gets a scoring rule by its id and deletes it by its id", async () => {
     const asked: string[] = [];
     const client = {
-      evaluator: {
+      scoringrule: {
         get: async (id: string) => {
           asked.push(`get ${id}`);
-          return evaluator;
+          return scoringRule;
         },
         delete: async (id: string) => {
           asked.push(`delete ${id}`);
-          return evaluator;
+          return scoringRule;
         },
       },
     } as unknown as Stigmer;
 
     const got = await getterFor(ApiResourceKind.scoring_rule)!(client, { kind: "id", id: "evl_1" });
-    expect(got.message).toBe(evaluator);
+    expect(got.message).toBe(scoringRule);
     await DELETE_HANDLERS.get(ApiResourceKind.scoring_rule)!(client, "evl_1", false);
     expect(asked).toEqual(["get evl_1", "delete evl_1"]);
   });

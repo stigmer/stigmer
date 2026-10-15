@@ -6,7 +6,7 @@
  * the run's own; what these activities add is the per-agent switch, the
  * sample, the monthly budget, and the score.
  *
- *   - plan: the run's agent has an enabled evaluator in the run's own
+ *   - plan: the run's agent has an enabled scoring rule in the run's own
  *     organization (grading never reaches across organizations), the run
  *     is not itself a judge, it is in the sample (domain/score/judge/
  *     sampling.ts), and it has no judge verdict yet. The grade's cap is
@@ -193,28 +193,28 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
       // version; it is adopted the same way, and the grade's record removes
       // it (domain/score/record.ts).
       const earlier = existing ?? (await pendingOfOtherVersions(deps, pending))[0];
-      const evaluator = await scoringRuleOf(deps, run);
-      const evaluatorId = evaluator?.metadata?.id ?? "";
+      const scoringRule = await scoringRuleOf(deps, run);
+      const scoringRuleId = scoringRule?.metadata?.id ?? "";
       if (
-        evaluator === undefined ||
-        evaluator.spec?.enabled !== true ||
-        !isSampled(runId, evaluator.spec.sampleRate)
+        scoringRule === undefined ||
+        scoringRule.spec?.enabled !== true ||
+        !isSampled(runId, scoringRule.spec.sampleRate)
       ) {
-        await abandonPending(deps, earlier, evaluatorId);
+        await abandonPending(deps, earlier, scoringRuleId);
         return { kind: "skip" };
       }
-      const modelName = evaluator.spec.modelName;
+      const modelName = scoringRule.spec.modelName;
       if (earlier !== undefined) {
         return {
           kind: "grade",
-          ticket: { evaluatorId, modelName, capUsd: PER_GRADE_CAP_USD, period: reservedPeriodOf(earlier, now()) },
+          ticket: { evaluatorId: scoringRuleId, modelName, capUsd: PER_GRADE_CAP_USD, period: reservedPeriodOf(earlier, now()) },
         };
       }
 
       const at = now();
       const reservation = await reserve(
         deps.store,
-        evaluatorId,
+        scoringRuleId,
         at,
         PER_GRADE_CAP_USD,
         JUDGE_LIMIT_REACHED_REASON,
@@ -233,13 +233,13 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
       }
 
       const ticket: JudgeTicket = {
-        evaluatorId,
+        evaluatorId: scoringRuleId,
         modelName,
         capUsd: PER_GRADE_CAP_USD,
         period: periodOf(at),
       };
       const giveBack = (): Promise<void> =>
-        settle(deps.store, evaluatorId, now(), ticket.capUsd, ticket.period, 0, { kind: "gone" });
+        settle(deps.store, scoringRuleId, now(), ticket.capUsd, ticket.period, 0, { kind: "gone" });
       let written: ScoreWrite;
       try {
         written = await replaceUnlessGraded(writeDeps(), pending);
@@ -272,9 +272,9 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
           );
         } catch (error) {
           if (error instanceof GradingCallerRefusedError) {
-            deps.logger.warn("grading cannot act for this evaluator", {
+            deps.logger.warn("grading cannot act for this scoring rule", {
               runId,
-              evaluatorId: ticket.evaluatorId,
+              scoringRuleId: ticket.evaluatorId,
               reason: error.message,
             });
             return { kind: "refused", failure: "cannot-act" };
@@ -352,7 +352,7 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
   };
 }
 
-/** The run's agent's evaluator in the run's own organization, if any. */
+/** The run's agent's scoring rule in the run's own organization, if any. */
 async function scoringRuleOf(
   deps: JudgeActivityDeps,
   run: Run,
@@ -362,8 +362,8 @@ async function scoringRuleOf(
     return undefined;
   }
   const org = run.metadata?.org ?? "";
-  const evaluators = await listAgentScoringRules(deps.store, deps.logger, agentId);
-  return evaluators.find((evaluator) => evaluator.metadata?.org === org);
+  const scoringRules = await listAgentScoringRules(deps.store, deps.logger, agentId);
+  return scoringRules.find((scoringRule) => scoringRule.metadata?.org === org);
 }
 
 /**
@@ -396,21 +396,21 @@ async function findJudgeRun(
 
 /**
  * Removes an earlier attempt's pending score when the run is no longer to
- * be graded (grading switched off, the evaluator deleted, or the run out
- * of a changed sample), and gives its cap back to an evaluator still there.
+ * be graded (grading switched off, the scoring rule deleted, or the run out
+ * of a changed sample), and gives its cap back to a scoring rule still there.
  */
 async function abandonPending(
   deps: JudgeActivityDeps,
   earlier: Score | undefined,
-  evaluatorId: string,
+  scoringRuleId: string,
 ): Promise<void> {
   if (earlier === undefined) {
     return;
   }
   await deleteScore(deps.deleter(), earlier.metadata?.id ?? "");
-  if (evaluatorId !== "") {
+  if (scoringRuleId !== "") {
     const now = deps.now?.() ?? new Date();
-    await settle(deps.store, evaluatorId, now, PER_GRADE_CAP_USD, reservedPeriodOf(earlier, now), 0, { kind: "gone" });
+    await settle(deps.store, scoringRuleId, now, PER_GRADE_CAP_USD, reservedPeriodOf(earlier, now), 0, { kind: "gone" });
   }
 }
 

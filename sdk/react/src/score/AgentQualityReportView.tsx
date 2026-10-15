@@ -8,7 +8,7 @@
  *
  * The tiles read the report's total: the runs graded, the run-health pass
  * rate, the AI judge's pass rate per rubric with how many runs it graded,
- * and the thumbs up and down. Each metric is read at its current evaluator
+ * and the thumbs up and down. Each metric is read at its current scoring rule
  * version (`quality-view.ts`): a trend breaks where the judge's rules
  * changed, and a dot under it marks the day a new agent version was first
  * seen. A rate always shows with its count. The version table names a

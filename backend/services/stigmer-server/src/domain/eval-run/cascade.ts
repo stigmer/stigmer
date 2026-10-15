@@ -3,7 +3,7 @@
  * removes the eval runs about it before its row goes, each with its tries'
  * conversations (tries.ts), read through the eval run list index by the
  * subject's key. Each eval run's access goes with its row while the
- * subject still links it to its organization, as the agent's evaluator
+ * subject still links it to its organization, as the agent's scoring rule
  * cascade does (domain/scoring-rule/cascade.ts). An eval run still pending or
  * running refuses the delete, naming cancel: its tries may hold an active
  * run, which a conversation's delete refuses. Runs before every other

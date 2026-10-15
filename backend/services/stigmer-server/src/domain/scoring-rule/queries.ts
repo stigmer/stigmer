@@ -1,6 +1,6 @@
 /**
- * The evaluator kind's shared read, through its list index (list-index.ts
- * beside this file): an agent's evaluators, for getByAgent, the
+ * The scoring rule kind's shared read, through its list index (list-index.ts
+ * beside this file): an agent's scoring rules, for getByAgent, the
  * one-per-agent rule, the agent-delete cascade and the judge planner. Every
  * row is re-checked against the agent it was asked for, whatever the index
  * returned. Undecodable rows are skipped and logged, as the score's reads
@@ -15,7 +15,7 @@ import type { Logger } from "../../boot/logger.js";
 import type { Store } from "../../store/interface.js";
 import { scoringRuleListIndex } from "./list-index.js";
 
-/** Every evaluator of one agent; the one-per-agent rule makes it at most one. */
+/** Every scoring rule of one agent; the one-per-agent rule makes it at most one. */
 export async function listAgentScoringRules(
   store: Store,
   logger: Logger,
@@ -24,17 +24,17 @@ export async function listAgentScoringRules(
   const rows = await store.queryResources(scoringRuleListIndex, {
     anyKey: [{ name: "agent", value: agentId }],
   });
-  const evaluators: ScoringRule[] = [];
+  const scoringRules: ScoringRule[] = [];
   for (const row of rows) {
     try {
-      evaluators.push(fromBinary(ScoringRuleSchema, row.data));
+      scoringRules.push(fromBinary(ScoringRuleSchema, row.data));
     } catch (error) {
-      logger.warn("skipped an evaluator row that does not decode", {
-        evaluatorId: row.id,
+      logger.warn("skipped a scoring rule row that does not decode", {
+        scoringRuleId: row.id,
         agentId,
         error: error instanceof Error ? error.message : String(error),
       });
     }
   }
-  return evaluators.filter((evaluator) => evaluator.spec?.agentId === agentId);
+  return scoringRules.filter((scoringRule) => scoringRule.spec?.agentId === agentId);
 }

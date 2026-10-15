@@ -1,5 +1,5 @@
 /**
- * Which completed runs an evaluator grades. Deterministic: the first eight
+ * Which completed runs a scoring rule grades. Deterministic: the first eight
  * bytes of the SHA-256 of the run's id, read as a fraction of 2^64, below
  * the sample rate. A retried activity or a replayed workflow decides the
  * same way for the same run, and runs are picked evenly whatever their

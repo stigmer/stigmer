@@ -336,7 +336,7 @@ export interface ResolvedExtensionDrivers {
   readonly scheduleFireCaller: ScheduleFireCallerMint | undefined;
   /**
    * The grading caller mint — undefined = judge runs enter the create
-   * pipeline as the `internal` class, or as the evaluator's creator under
+   * pipeline as the `internal` class, or as the scoring rule's creator under
    * the built-in posture (compose.ts).
    */
   readonly gradingCaller: GradingCallerMint | undefined;

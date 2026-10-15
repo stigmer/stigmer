@@ -8,7 +8,7 @@
  * (guest) is never one.
  *
  * Also pins `isServerComposedRequest`, the narrower predicate the label
- * guard, the memory-capture gate, the evaluator and score steps, run status
+ * guard, the memory-capture gate, the scoring rule and score steps, run status
  * updates and the first-party check share: `internal` or an in-process
  * origin, and never a wire `machine` account — the one row where the two
  * predicates part, pinned so a step trusting server-composed

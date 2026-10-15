@@ -1,5 +1,5 @@
 /**
- * Pins an evaluator's monthly grading budget (../budget.ts) on both store
+ * Pins a scoring rule's monthly grading budget (../budget.ts) on both store
  * drivers: SQLite always, Postgres under TEST_DATABASE_URL.
  *
  * The load-bearing pins:
@@ -10,7 +10,7 @@
  *   - twenty concurrent reservations against a limit of five caps set
  *     aside exactly five and never pass it: the store's atomic
  *     read-modify-write loses no increment;
- *   - a disabled or deleted evaluator reserves nothing and writes nothing;
+ *   - a disabled or deleted scoring rule reserves nothing and writes nothing;
  *   - a settle gives the cap back, adds what the judge spent and counts the
  *     grade; a grade reserved in one month and settled in the next lands in
  *     the new month and gives back none of the new month's reservations;
@@ -94,7 +94,7 @@ async function seedScoringRule(
     ScoringRuleSchema,
     create(ScoringRuleSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "Evaluator",
+      kind: "ScoringRule",
       metadata: { id, name: id, org: "org_budget" },
       spec: { agentId: `agt_${seq}`, enabled, sampleRate: 1, monthlyLimitUsd },
     }),
@@ -154,7 +154,7 @@ describe.each(fixtures)("the grading budget ($name)", (fixture) => {
     }
   });
 
-  it("reserves nothing for a disabled or deleted evaluator", async () => {
+  it("reserves nothing for a disabled or deleted scoring rule", async () => {
     const { store, close } = await fixture.open();
     try {
       const id = await seedScoringRule(store, 10, false);

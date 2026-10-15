@@ -9,7 +9,7 @@ module iam
 # The type is declared because the model declares every open-source kind
 # (src/authorization/model/__tests__/registry.test.ts), so a caller who
 # names a grant as a grant target gets the model's answer, a denial,
-# rather than the evaluator's fault for an undeclared target.
+# rather than the scoring rule's fault for an undeclared target.
 #
 # Permission pattern: the organization's admins (owners included) and the
 # grant's creator own it; the admins view it.

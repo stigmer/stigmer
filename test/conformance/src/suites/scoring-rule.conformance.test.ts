@@ -1,18 +1,18 @@
-// Conformance suite for the Evaluator domain: AI grading switched on per
+// Conformance suite for the ScoringRule domain: AI grading switched on per
 // agent, with no engine.
-// Domain: agentic / evaluator — the per-agent AI grading switch.
+// Domain: agentic / scoring rule — the per-agent AI grading switch.
 //
 // What is pinned here, on every edition:
-//   - an agent has no evaluator until one is created: getByAgent answers
+//   - an agent has no scoring rule until one is created: getByAgent answers
 //     NOT_FOUND, which reads as "grading is off";
 //   - create, get, getByAgent, update and delete round-trip the settings,
-//     and a new evaluator's month starts empty;
-//   - one evaluator per agent: a second create is ALREADY_EXISTS carrying
-//     EVALUATOR_EXISTS and the existing evaluator's id;
-//   - an evaluator lives in its agent's organization, grades the agent it
+//     and a new scoring rule's month starts empty;
+//   - one scoring rule per agent: a second create is ALREADY_EXISTS carrying
+//     SCORING_RULE_EXISTS and the existing scoring rule's id;
+//   - a scoring rule lives in its agent's organization, grades the agent it
 //     was made for (agent_id is fixed), and refuses a sample rate outside
 //     (0, 1] and a limit of zero;
-//   - deleting the agent deletes its evaluator;
+//   - deleting the agent deletes its scoring rule;
 //   - under an enforcing authorizer, a member who sees an organization's
 //     agent sees its grading but cannot switch it on or change it, and an
 //     outsider sees nothing.
@@ -61,8 +61,8 @@ async function createAgentIn(org: string, on: ConformanceClients = clients) {
   return agent;
 }
 
-describe("Evaluator conformance", () => {
-  it("[rpc:EvaluatorQueryController.getByAgent] [rpc:EvaluatorCommandController.create] [rpc:EvaluatorQueryController.get] [rpc:EvaluatorCommandController.update] [rpc:EvaluatorCommandController.delete] an agent's grading is off until an evaluator is created, and its settings round-trip", async () => {
+describe("ScoringRule conformance", () => {
+  it("[rpc:ScoringRuleQueryController.getByAgent] [rpc:ScoringRuleCommandController.create] [rpc:ScoringRuleQueryController.get] [rpc:ScoringRuleCommandController.update] [rpc:ScoringRuleCommandController.delete] an agent's grading is off until a scoring rule is created, and its settings round-trip", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentIn(org);
     const agentId = agent.metadata!.id;
@@ -103,11 +103,11 @@ describe("Evaluator conformance", () => {
     await expectGrpcCode(
       () => clients.scoringRuleQuery.getByAgent({ agentId }),
       Code.NotFound,
-      "grading is off again once the evaluator is deleted",
+      "grading is off again once the scoring rule is deleted",
     );
   });
 
-  it("[rpc:EvaluatorCommandController.create] an agent has one evaluator: a second is ALREADY_EXISTS naming the first", async () => {
+  it("[rpc:ScoringRuleCommandController.create] an agent has one scoring rule: a second is ALREADY_EXISTS naming the first", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentIn(org);
     const first = await clients.scoringRuleCommand.create(makeScoringRule({ org, agentId: agent.metadata!.id }));
@@ -116,14 +116,14 @@ describe("Evaluator conformance", () => {
     const again = await expectGrpcCode(
       () => clients.scoringRuleCommand.create(makeScoringRule({ org, agentId: agent.metadata!.id })),
       Code.AlreadyExists,
-      "a second evaluator for the same agent",
+      "a second scoring rule for the same agent",
     );
     const [info] = again.findDetails(ErrorInfoSchema);
     expect(info?.reason).toBe(SCORING_RULE_EXISTS_REASON);
-    expect(info?.metadata["evaluator_id"]).toBe(first.metadata!.id);
+    expect(info?.metadata["scoring_rule_id"]).toBe(first.metadata!.id);
   });
 
-  it("[rpc:EvaluatorCommandController.create] [rpc:EvaluatorCommandController.update] an evaluator lives with its agent, grades only it, and its rate and limit are bounded", async () => {
+  it("[rpc:ScoringRuleCommandController.create] [rpc:ScoringRuleCommandController.update] a scoring rule lives with its agent, grades only it, and its rate and limit are bounded", async () => {
     const { org } = await target.provisionTenancy();
     const other = await target.provisionTenancy();
     const agent = await createAgentIn(org);
@@ -132,12 +132,12 @@ describe("Evaluator conformance", () => {
     await expectGrpcCode(
       () => clients.scoringRuleCommand.create(makeScoringRule({ org, agentId: MISSING_AGENT_ID })),
       Code.NotFound,
-      "an evaluator for an agent that does not exist",
+      "a scoring rule for an agent that does not exist",
     );
     const elsewhere = await expectGrpcCode(
       () => clients.scoringRuleCommand.create(makeScoringRule({ org: other.org, agentId })),
       Code.FailedPrecondition,
-      "an evaluator filed in another organization than its agent's",
+      "a scoring rule filed in another organization than its agent's",
     );
     expect(elsewhere.rawMessage).toBe(scoringRuleOrgMismatchMessage(org));
     for (const sampleRate of [0, 1.5]) {
@@ -153,38 +153,38 @@ describe("Evaluator conformance", () => {
       "a monthly limit of zero",
     );
 
-    const evaluator = await clients.scoringRuleCommand.create(makeScoringRule({ org, agentId }));
-    fixtures.defer(() => clients.scoringRuleCommand.delete({ value: evaluator.metadata!.id }).then(() => undefined));
+    const scoringRule = await clients.scoringRuleCommand.create(makeScoringRule({ org, agentId }));
+    fixtures.defer(() => clients.scoringRuleCommand.delete({ value: scoringRule.metadata!.id }).then(() => undefined));
     const another = await createAgentIn(org);
     const moved = await expectGrpcCode(
       () =>
         clients.scoringRuleCommand.update({ resource: {
-          ...evaluator,
-          spec: { ...evaluator.spec!, agentId: another.metadata!.id },
+          ...scoringRule,
+          spec: { ...scoringRule.spec!, agentId: another.metadata!.id },
         }, updateMask: { paths: ["*"] } }),
       Code.FailedPrecondition,
-      "moving an evaluator to another agent",
+      "moving a scoring rule to another agent",
     );
     expect(moved.rawMessage).toBe(SCORING_RULE_AGENT_IMMUTABLE_MESSAGE);
   });
 
-  it("[rpc:EvaluatorCommandController.create] [rpc:EvaluatorQueryController.get] deleting the agent deletes its evaluator", async () => {
+  it("[rpc:ScoringRuleCommandController.create] [rpc:ScoringRuleQueryController.get] deleting the agent deletes its scoring rule", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("graded") }));
-    const evaluator = await clients.scoringRuleCommand.create(
+    const scoringRule = await clients.scoringRuleCommand.create(
       makeScoringRule({ org, agentId: agent.metadata!.id }),
     );
 
     await clients.agentCommand.delete({ value: agent.metadata!.id });
 
     await expectGrpcCode(
-      () => clients.scoringRuleQuery.get({ value: evaluator.metadata!.id }),
+      () => clients.scoringRuleQuery.get({ value: scoringRule.metadata!.id }),
       Code.NotFound,
-      "the evaluator of a deleted agent",
+      "the scoring rule of a deleted agent",
     );
   });
 
-  it("[rpc:EvaluatorQueryController.getByAgent] [rpc:EvaluatorCommandController.create] [rpc:EvaluatorCommandController.update] a member who only sees the agent sees its grading and cannot change it; an outsider sees nothing", async (ctx) => {
+  it("[rpc:ScoringRuleQueryController.getByAgent] [rpc:ScoringRuleCommandController.create] [rpc:ScoringRuleCommandController.update] a member who only sees the agent sees its grading and cannot change it; an outsider sees nothing", async (ctx) => {
     const enforcing = await enforcingLaneOf(target);
     if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
     const lane = enforcing.lane;
@@ -204,9 +204,9 @@ describe("Evaluator conformance", () => {
     );
     expect(refused.rawMessage).toBe(SCORING_RULE_CREATE_DENIED_MESSAGE);
 
-    const evaluator = await owner.scoringRuleCommand.create(makeScoringRule({ org: tenancy.org, agentId }));
+    const scoringRule = await owner.scoringRuleCommand.create(makeScoringRule({ org: tenancy.org, agentId }));
     const seen = await member.scoringRuleQuery.getByAgent({ agentId });
-    expect(seen.metadata?.id).toBe(evaluator.metadata!.id);
+    expect(seen.metadata?.id).toBe(scoringRule.metadata!.id);
     await expectGrpcCode(
       () =>
         member.scoringRuleCommand.update({ resource: {
@@ -217,7 +217,7 @@ describe("Evaluator conformance", () => {
       "a member who cannot edit the agent raising its limit",
     );
     await expectGrpcCode(
-      () => member.scoringRuleCommand.delete({ value: evaluator.metadata!.id }),
+      () => member.scoringRuleCommand.delete({ value: scoringRule.metadata!.id }),
       Code.PermissionDenied,
       "a member who cannot edit the agent switching grading off",
     );

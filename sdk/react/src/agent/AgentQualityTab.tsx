@@ -79,7 +79,7 @@ export function AgentQualityTab({
   );
 }
 
-/** Today's grading settings: read the agent's evaluator, then its form. */
+/** Today's grading settings: read the agent's scoring rule, then its form. */
 function GradingSettings({
   agent,
   editable,
@@ -88,7 +88,7 @@ function GradingSettings({
   readonly editable: boolean;
 }) {
   const agentId = agent.metadata?.id ?? "";
-  const { evaluator, isLoading, error, refetch } = useAgentScoringRule(agentId);
+  const { scoringRule, isLoading, error, refetch } = useAgentScoringRule(agentId);
 
   if (isLoading) {
     return (
@@ -102,15 +102,15 @@ function GradingSettings({
   }
 
   // A fresh read remounts the form, so the stored settings are its start.
-  const readKey = `${evaluator?.metadata?.id ?? "none"}:${
-    evaluator?.status?.audit?.specAudit?.updatedAt?.seconds?.toString() ?? ""
+  const readKey = `${scoringRule?.metadata?.id ?? "none"}:${
+    scoringRule?.status?.audit?.specAudit?.updatedAt?.seconds?.toString() ?? ""
   }`;
   return (
     <QualityForm
       key={readKey}
       agentId={agentId}
       agentOrg={agent.metadata?.org ?? ""}
-      evaluator={evaluator}
+      scoringRule={scoringRule}
       editable={editable}
       onSaved={refetch}
     />
@@ -120,14 +120,14 @@ function GradingSettings({
 function QualityForm({
   agentId,
   agentOrg,
-  evaluator,
+  scoringRule,
   editable,
   onSaved,
   className,
 }: {
   readonly agentId: string;
   readonly agentOrg: string;
-  readonly evaluator: ScoringRule | null;
+  readonly scoringRule: ScoringRule | null;
   readonly editable: boolean;
   readonly onSaved: () => void;
   readonly className?: string;
@@ -135,9 +135,9 @@ function QualityForm({
   const baseId = useId();
   const { save, isSaving, error: saveError } = useSaveScoringRule();
   const stored =
-    evaluator === null
+    scoringRule === null
       ? { ...DEFAULT_GRADING_SETTINGS, enabled: false }
-      : settingsOf(evaluator);
+      : settingsOf(scoringRule);
   const [draft, setDraft] = useState<GradingSettings>(stored);
   const [limitText, setLimitText] = useState(String(stored.monthlyLimitUsd));
 
@@ -154,7 +154,7 @@ function QualityForm({
       await save(
         { id: agentId, org: agentOrg },
         { ...draft, monthlyLimitUsd: limit },
-        evaluator,
+        scoringRule,
       );
       onSaved();
     } catch {
@@ -162,7 +162,7 @@ function QualityForm({
     }
   };
 
-  const status = evaluator?.status;
+  const status = scoringRule?.status;
 
   return (
     <div className={cn("stg:flex stg:flex-col stg:gap-6", className)}>

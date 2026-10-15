@@ -18,8 +18,8 @@ export const GRADING_SETTING_PATHS: ReadonlyArray<string> = [
 /** Return value of {@link useSaveScoringRule}. */
 export interface UseSaveScoringRuleReturn {
   /**
-   * Save the agent's grading settings: creates the evaluator when the agent
-   * has none, otherwise updates it. Resolves with the stored evaluator.
+   * Save the agent's grading settings: creates the scoring rule when the agent
+   * has none, otherwise updates it. Resolves with the stored scoring rule.
    */
   readonly save: (
     agent: { readonly id: string; readonly org: string },
@@ -35,10 +35,10 @@ export interface UseSaveScoringRuleReturn {
 }
 
 /**
- * Behavior hook that writes an agent's {@link Evaluator} through
- * `evaluator.create()` or `evaluator.update()`. An update names the
- * grading settings alone ({@link GRADING_SETTING_PATHS}) on the evaluator
- * as loaded, carrying the etag it was read at, so an evaluator changed
+ * Behavior hook that writes an agent's {@link ScoringRule} through
+ * `scoringrule.create()` or `scoringrule.update()`. An update names the
+ * grading settings alone ({@link GRADING_SETTING_PATHS}) on the scoring rule
+ * as loaded, carrying the etag it was read at, so a scoring rule changed
  * since it was read refuses the save. Only someone who can edit
  * the agent may; the server's refusal is surfaced as `error`. Turning
  * grading off is a save with `enabled: false`, which keeps this month's
@@ -46,8 +46,8 @@ export interface UseSaveScoringRuleReturn {
  *
  * @example
  * ```tsx
- * const { save, isSaving } = useSaveEvaluator();
- * await save({ id: agentId, org }, { ...settings, enabled: true }, evaluator);
+ * const { save, isSaving } = useSaveScoringRule();
+ * await save({ id: agentId, org }, { ...settings, enabled: true }, scoring rule);
  * ```
  */
 export function useSaveScoringRule(): UseSaveScoringRuleReturn {

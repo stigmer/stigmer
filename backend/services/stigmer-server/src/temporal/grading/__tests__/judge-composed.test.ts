@@ -1,7 +1,7 @@
 /**
  * Pins the AI judge's server half through the REAL stack on a trusted-local
  * server: the score lanes for a judge, the one write rule for the server's
- * scores, the evaluator lanes, and the judge's activities over a real store
+ * scores, the scoring rule lanes, and the judge's activities over a real store
  * with the judge run's create and its session's delete played by doubles
  * that write the rows an engine would (no engine runs here).
  *
@@ -16,11 +16,11 @@
  *     pending score gives way to its grade, and a grade recorded under a
  *     newer version removes an older version's pending score while every
  *     other version's grades stay;
- *   - evaluators: create, the one-per-agent rule, getByAgent, an update
+ *   - scoring rules: create, the one-per-agent rule, getByAgent, an update
  *     that keeps the month's spend written meanwhile, an update that
  *     keeps a write landing between its read and its write (the lost swap
  *     retried from a fresh read), and the agent's delete removing its
- *     evaluator;
+ *     scoring rule;
  *   - the activities: a sampled run is recorded pending and a cap set
  *     aside; the start creates one judge run, found again on a retry; a
  *     judge is shown the turns before the graded one in its session; a
@@ -128,7 +128,7 @@ let server: ComposedServer;
 let wire: Client<typeof ScoreCommandController>;
 let inProcess: Client<typeof ScoreCommandController>;
 let scores: Client<typeof ScoreQueryController>;
-let evaluators: Client<typeof ScoringRuleCommandController>;
+let scoringRules: Client<typeof ScoringRuleCommandController>;
 let scoringRuleQuery: Client<typeof ScoringRuleQueryController>;
 let agents: Client<typeof AgentCommandController>;
 let org: string;
@@ -147,7 +147,7 @@ beforeAll(async () => {
   const transport = createGrpcTransport({ baseUrl: wireBase });
   wire = createClient(ScoreCommandController, transport);
   scores = createClient(ScoreQueryController, transport);
-  evaluators = createClient(ScoringRuleCommandController, transport);
+  scoringRules = createClient(ScoringRuleCommandController, transport);
   scoringRuleQuery = createClient(ScoringRuleQueryController, transport);
   agents = createClient(AgentCommandController, transport);
   inProcess = createClient(ScoreCommandController, server.inProcessTransport);
@@ -415,9 +415,9 @@ async function newAgent(): Promise<string> {
 }
 
 async function newScoringRule(agentId: string, spec: { sampleRate?: number; monthlyLimitUsd?: number; enabled?: boolean } = {}) {
-  return evaluators.create({
+  return scoringRules.create({
     apiVersion: "agentic.stigmer.ai/v1",
-    kind: "Evaluator",
+    kind: "ScoringRule",
     metadata: { org },
     spec: {
       agentId,
@@ -428,7 +428,7 @@ async function newScoringRule(agentId: string, spec: { sampleRate?: number; mont
   });
 }
 
-describe("evaluators", () => {
+describe("scoring rules", () => {
   it("are deleted over the wire, refuse another organization and another agent, and are created in process with no target question", async () => {
     const agentId = await newAgent();
     const otherOrg = (
@@ -439,9 +439,9 @@ describe("evaluators", () => {
       })
     ).metadata!.id;
     const elsewhere = await failureOf(
-      evaluators.create({
+      scoringRules.create({
         apiVersion: "agentic.stigmer.ai/v1",
-        kind: "Evaluator",
+        kind: "ScoringRule",
         metadata: { org: otherOrg },
         spec: { agentId, enabled: true, sampleRate: 1, monthlyLimitUsd: 10 },
       }),
@@ -451,17 +451,17 @@ describe("evaluators", () => {
 
     const created = await createClient(ScoringRuleCommandController, server.inProcessTransport).create({
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "Evaluator",
+      kind: "ScoringRule",
       metadata: { org },
       spec: { agentId, enabled: true, sampleRate: 1, monthlyLimitUsd: 10 },
     });
     const moved = await failureOf(
-      evaluators.update({ resource: { ...created, spec: { ...created.spec!, agentId: await newAgent() } }, updateMask: { paths: ["*"] } }),
+      scoringRules.update({ resource: { ...created, spec: { ...created.spec!, agentId: await newAgent() } }, updateMask: { paths: ["*"] } }),
     );
     expect(moved.code).toBe(Code.FailedPrecondition);
     expect(moved.rawMessage).toBe(SCORING_RULE_AGENT_IMMUTABLE_MESSAGE);
 
-    const deleted = await evaluators.delete({ value: created.metadata!.id });
+    const deleted = await scoringRules.delete({ value: created.metadata!.id });
     expect(deleted.metadata?.id).toBe(created.metadata!.id);
     expect((await failureOf(scoringRuleQuery.get({ value: created.metadata!.id }))).code).toBe(Code.NotFound);
   });
@@ -478,7 +478,7 @@ describe("evaluators", () => {
     // A grade's reservation lands between the person's read and their save.
     const read = await scoringRuleQuery.get({ value: created.metadata!.id });
     expect(await reserve(server.store, created.metadata!.id, new Date(), PER_GRADE_CAP_USD, "limit")).toBe("reserved");
-    const saved = await evaluators.update({ resource: { ...read, spec: { ...read.spec!, sampleRate: 0.5 } }, updateMask: { paths: ["*"] } });
+    const saved = await scoringRules.update({ resource: { ...read, spec: { ...read.spec!, sampleRate: 0.5 } }, updateMask: { paths: ["*"] } });
     expect(saved.spec?.sampleRate).toBe(0.5);
     expect(saved.status?.reservedUsd, "the reservation written meanwhile is kept").toBe(PER_GRADE_CAP_USD);
 
@@ -497,7 +497,7 @@ describe("evaluators", () => {
       ApiResourceKind.scoring_rule,
       id,
       visibilityWrite(server.store, ApiResourceKind.scoring_rule, ScoringRuleSchema, id, ApiResourceVisibility.visibility_org),
-      () => evaluators.update({ resource: { ...created, spec: { ...created.spec!, sampleRate: 0.25 } }, updateMask: { paths: ["*"] } }),
+      () => scoringRules.update({ resource: { ...created, spec: { ...created.spec!, sampleRate: 0.25 } }, updateMask: { paths: ["*"] } }),
     );
     expect(writes, "the lost swap is retried").toBeGreaterThanOrEqual(2);
     expect(updated.spec?.sampleRate).toBe(0.25);
@@ -556,8 +556,8 @@ const VERDICT: JsonObject = {
   [ASKED_WHEN_UNCLEAR]: { reason: "The request had one plain reading.", result: "not_applicable" },
 };
 
-async function scoringRuleStatus(evaluatorId: string) {
-  return (await server.store.getResource(ApiResourceKind.scoring_rule, evaluatorId, ScoringRuleSchema)).status;
+async function scoringRuleStatus(scoringRuleId: string) {
+  return (await server.store.getResource(ApiResourceKind.scoring_rule, scoringRuleId, ScoringRuleSchema)).status;
 }
 
 describe("the judge's in-process lane", () => {
@@ -584,7 +584,7 @@ describe("the judge's in-process lane", () => {
 describe("the judge's activities", () => {
   it("grade a sampled run: pending, one judge run, the verdict, the session gone and the budget settled", async () => {
     const agentId = await newAgent();
-    const evaluator = await newScoringRule(agentId);
+    const scoringRule = await newScoringRule(agentId);
     const judged = await seedRun({ agentId });
     const runId = judged.metadata!.id;
     const lane = judgeLane({ structuredOutput: VERDICT, estimatedCostUsd: 0.012 });
@@ -593,7 +593,7 @@ describe("the judge's activities", () => {
     expect(plan.kind).toBe("grade");
     if (plan.kind !== "grade") return;
     expect((await scoresOf(runId, "judge"))[0]?.status?.state).toBe(ScoreState.pending);
-    expect((await scoringRuleStatus(evaluator.metadata!.id))?.reservedUsd).toBe(PER_GRADE_CAP_USD);
+    expect((await scoringRuleStatus(scoringRule.metadata!.id))?.reservedUsd).toBe(PER_GRADE_CAP_USD);
 
     const start = await lane.activities[START_JUDGE_ACTIVITY_NAME](runId, plan.ticket);
     const retried = await lane.activities[START_JUDGE_ACTIVITY_NAME](runId, plan.ticket);
@@ -615,7 +615,7 @@ describe("the judge's activities", () => {
       [ASKED_WHEN_UNCLEAR, CriterionResult.not_applicable, "The request had one plain reading."],
     ]);
     expect(lane.deletedSessions).toHaveLength(1);
-    const status = await scoringRuleStatus(evaluator.metadata!.id);
+    const status = await scoringRuleStatus(scoringRule.metadata!.id);
     expect(status?.reservedUsd).toBe(0);
     expect(status?.spentUsd).toBe(0.012);
     expect(status?.graded).toBe(1);
@@ -653,7 +653,7 @@ describe("the judge's activities", () => {
   ] as const) {
     it(`leave the run not graded, settled and cleaned up, for ${what}`, async () => {
       const agentId = await newAgent();
-      const evaluator = await newScoringRule(agentId);
+      const scoringRule = await newScoringRule(agentId);
       const runId = (await seedRun({ agentId })).metadata!.id;
       const lane = judgeLane(outcome);
       const plan = await lane.activities[PLAN_JUDGE_ACTIVITY_NAME](runId);
@@ -666,7 +666,7 @@ describe("the judge's activities", () => {
       expect(score?.status?.notGradedReason).toBe(reason);
       expect(score?.spec?.value.case).toBeUndefined();
       expect(lane.deletedSessions).toHaveLength(1);
-      const status = await scoringRuleStatus(evaluator.metadata!.id);
+      const status = await scoringRuleStatus(scoringRule.metadata!.id);
       expect(status?.reservedUsd).toBe(0);
       expect(status?.lastNotGradedReason).toBe(reason);
     });
@@ -711,12 +711,12 @@ describe("the judge's activities", () => {
 
   it("record the limit's refusal without a judge, and skip judge runs, runs of no agent and runs outside the sample", async () => {
     const limited = await newAgent();
-    const evaluator = await newScoringRule(limited, { monthlyLimitUsd: 0.1 });
+    const scoringRule = await newScoringRule(limited, { monthlyLimitUsd: 0.1 });
     const runId = (await seedRun({ agentId: limited })).metadata!.id;
     const lane = judgeLane({});
     expect(await lane.activities[PLAN_JUDGE_ACTIVITY_NAME](runId)).toEqual({ kind: "recorded" });
     expect((await scoresOf(runId, "judge"))[0]?.status?.notGradedReason).toBe(JUDGE_LIMIT_REACHED_REASON);
-    expect((await scoringRuleStatus(evaluator.metadata!.id))?.lastNotGradedReason).toBe(JUDGE_LIMIT_REACHED_REASON);
+    expect((await scoringRuleStatus(scoringRule.metadata!.id))?.lastNotGradedReason).toBe(JUDGE_LIMIT_REACHED_REASON);
 
     const sampledOut = await newAgent();
     await newScoringRule(sampledOut, { sampleRate: 0.0001 });
@@ -751,7 +751,7 @@ describe("the judge's activities", () => {
       sessions: () => ({ delete: async () => undefined }),
       gradingCaller: {
         mintGradingCaller: async () => {
-          throw new GradingCallerRefusedError("the evaluator's creator has left");
+          throw new GradingCallerRefusedError("the scoring rule's creator has left");
         },
       },
     });

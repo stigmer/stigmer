@@ -361,8 +361,8 @@ const ROWS: readonly Row[] = [
     },
   },
   {
-    title: "[rpc:EvaluatorCommandController.create] Evaluator",
-    key: "EvaluatorCommandController.create",
+    title: "[rpc:ScoringRuleCommandController.create] ScoringRule",
+    key: "ScoringRuleCommandController.create",
     kind: ApiResourceKind.scoring_rule,
     async send({ org }, chosenId) {
       const agent = await agentIn(org);

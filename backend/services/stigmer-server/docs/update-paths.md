@@ -22,7 +22,7 @@ Rows read `| Kind | refused path | written by |`, or `| Kind | none | |` for a k
 | ApiKey | `spec.fingerprint` | the server, when the key is minted |
 | ApiKey | `spec.bound_org` | create |
 | ChannelApp | none | |
-| Evaluator | none | |
+| ScoringRule | none | |
 | IdentityAccount | none | |
 | Memory | none | |
 | OAuthApp | none | |

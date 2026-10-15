@@ -1,11 +1,11 @@
-// Canonical Evaluator fixtures and the evaluator lanes' contract copy for the
+// Canonical ScoringRule fixtures and the scoring rule lanes' contract copy for the
 // conformance suites.
 // Domain: conformance support.
 //
-// An Evaluator switches AI grading on for one agent: whether it runs, the
+// An ScoringRule switches AI grading on for one agent: whether it runs, the
 // share of runs sampled, a monthly limit in estimated US dollars and the
 // judge's model. The copy constants are cross-edition contract strings,
-// byte-pinned in the server (domain/evaluator/constants.ts and the judge's
+// byte-pinned in the server (domain/scoring-rule/constants.ts and the judge's
 // not-graded reasons in domain/score/constants.ts) and asserted here over the
 // wire.
 import type { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
@@ -15,7 +15,7 @@ import type { ConformanceClients } from "../harness/clients";
 import type { InitShape } from "./init-shape";
 
 export const SCORING_RULE_API_VERSION = "agentic.stigmer.ai/v1";
-export const SCORING_RULE_KIND = "Evaluator";
+export const SCORING_RULE_KIND = "ScoringRule";
 
 export const JUDGE = "judge";
 
@@ -24,12 +24,12 @@ export { ACTED_ONLY_AS_ASKED, ASKED_WHEN_UNCLEAR, DID_THE_TASK, MADE_NOTHING_UP 
 
 // ─── Contract copy (byte-pinned in the server) ─────────────────────────────
 
-export const SCORING_RULE_EXISTS_REASON = "EVALUATOR_EXISTS";
+export const SCORING_RULE_EXISTS_REASON = "SCORING_RULE_EXISTS";
 
 export const SCORING_RULE_CREATE_DENIED_MESSAGE = "unauthorized to configure grading for agent";
 
 export const SCORING_RULE_AGENT_IMMUTABLE_MESSAGE =
-  "spec.agent_id of an evaluator cannot change; delete it and create one for the other agent";
+  "spec.agent_id of a scoring rule cannot change; delete it and create one for the other agent";
 
 export function scoringRuleOrgMismatchMessage(agentOrg: string): string {
   return `metadata.org must be the agent's organization (${agentOrg})`;
@@ -47,7 +47,7 @@ export interface ScoringRuleOptions {
   modelName?: string;
 }
 
-// A complete, valid Evaluator ready to hand to create or update: enabled,
+// A complete, valid ScoringRule ready to hand to create or update: enabled,
 // every run sampled, ten dollars a month, the platform's default model.
 export function makeScoringRule(opts: ScoringRuleOptions): InitShape<typeof ScoringRuleSchema> {
   return {

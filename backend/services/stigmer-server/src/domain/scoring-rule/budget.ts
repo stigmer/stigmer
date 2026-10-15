@@ -1,8 +1,8 @@
 /**
- * An evaluator's monthly grading budget: a grade sets aside its cap before
+ * A scoring rule's monthly grading budget: a grade sets aside its cap before
  * the judge starts (`reserve`), and gives back the cap and adds what the
  * judge actually spent when the grade is recorded (`settle`). Both change
- * only the evaluator's status, through the store's atomic read-modify-write
+ * only the scoring rule's status, through the store's atomic read-modify-write
  * (store/interface.ts, updateResource), the way a run's own status is
  * written, so concurrent grades are serialized on the row and none loses
  * another's increment.
@@ -58,13 +58,13 @@ export type GradeEnd =
   | { readonly kind: "gone" };
 
 /**
- * Sets `capUsd` aside for one grade, unless the evaluator is gone or
+ * Sets `capUsd` aside for one grade, unless the scoring rule is gone or
  * disabled ("off", nothing written) or the cap would pass the monthly limit
  * ("limit-reached", counted as not graded with `limitReason`).
  */
 export async function reserve(
   store: Store,
-  evaluatorId: string,
+  scoringRuleId: string,
   now: Date,
   capUsd: number,
   limitReason: string,
@@ -73,7 +73,7 @@ export async function reserve(
   try {
     await store.updateResource(
       ApiResourceKind.scoring_rule,
-      evaluatorId,
+      scoringRuleId,
       ScoringRuleSchema,
       (live) => {
         if (live.spec?.enabled !== true) {
@@ -105,11 +105,11 @@ export async function reserve(
 /**
  * Settles one grade: gives back `capUsd` when `reservedPeriod`, the period
  * it was reserved in, is still the live one, adds `spentUsd`, and counts
- * how the grade ended. An evaluator deleted meanwhile has nothing to settle.
+ * how the grade ended. A scoring rule deleted meanwhile has nothing to settle.
  */
 export async function settle(
   store: Store,
-  evaluatorId: string,
+  scoringRuleId: string,
   now: Date,
   capUsd: number,
   reservedPeriod: string,
@@ -119,7 +119,7 @@ export async function settle(
   try {
     await store.updateResource(
       ApiResourceKind.scoring_rule,
-      evaluatorId,
+      scoringRuleId,
       ScoringRuleSchema,
       (live) => {
         const status = rolledOver(live.status, now);
@@ -176,7 +176,7 @@ function dollars(amount: number): number {
 /** Thrown inside the atomic write to skip it when grading is off. */
 class GradingOff extends Error {
   constructor() {
-    super("grading is off for this evaluator");
+    super("grading is off for this scoring rule");
     this.name = "GradingOff";
   }
 }

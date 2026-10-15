@@ -1067,7 +1067,7 @@ export type {
   TrendSeries,
 } from "./charts/index.js";
 
-// Evaluators — AI grading switched on per agent: its sample, its monthly
+// ScoringRules — AI grading switched on per agent: its sample, its monthly
 // spending limit and its judge model (the agent's Quality tab)
 export {
   useAgentScoringRule,

@@ -10,21 +10,21 @@ import { useFetch } from "../internal/useFetch.js";
 /** Return value of {@link useAgentScoringRule}. */
 export interface UseAgentScoringRuleReturn {
   /**
-   * The agent's evaluator, or `null` when the agent has none (AI grading
+   * The agent's scoring rule, or `null` when the agent has none (AI grading
    * is off) or while loading.
    */
-  readonly evaluator: ScoringRule | null;
+  readonly scoringRule: ScoringRule | null;
   /** `true` while the initial fetch is in flight. */
   readonly isLoading: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
-  /** Re-fetch the evaluator (after a save). */
+  /** Re-fetch the scoring rule (after a save). */
   readonly refetch: () => void;
 }
 
 /**
- * Data hook that loads an agent's {@link Evaluator}, the setting that
- * switches AI grading on for it, through `evaluator.getByAgent()`. Anyone
+ * Data hook that loads an agent's {@link ScoringRule}, the setting that
+ * switches AI grading on for it, through `scoringrule.getByAgent()`. Anyone
  * who can view the agent can read it; an agent with grading off answers
  * `null`.
  *
@@ -32,7 +32,7 @@ export interface UseAgentScoringRuleReturn {
  *
  * @example
  * ```tsx
- * const { evaluator } = useAgentEvaluator(agent?.metadata?.id ?? "");
+ * const { scoringRule } = useAgentScoringRule(agent?.metadata?.id ?? "");
  * ```
  */
 export function useAgentScoringRule(agentId: string): UseAgentScoringRuleReturn {
@@ -55,5 +55,5 @@ export function useAgentScoringRule(agentId: string): UseAgentScoringRuleReturn 
     null,
   );
 
-  return { evaluator: data, isLoading, error, refetch };
+  return { scoringRule: data, isLoading, error, refetch };
 }

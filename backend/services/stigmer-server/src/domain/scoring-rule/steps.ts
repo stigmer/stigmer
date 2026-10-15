@@ -1,6 +1,6 @@
 /**
- * Evaluator domain steps: who may switch grading on for an agent, the
- * agent an evaluator belongs to, one evaluator per agent, and the update
+ * ScoringRule domain steps: who may switch grading on for an agent, the
+ * agent a scoring rule belongs to, one scoring rule per agent, and the update
  * that changes settings without touching this month's budget.
  *
  * The create chain asks its question before it reads anything, in the
@@ -10,14 +10,14 @@
  *
  * Status has one writer besides create and update's audit stamp: the
  * grading budget (budget.ts). An update therefore persists by
- * compare-and-swap on the row it read (PersistEvaluatorSettings), and a
+ * compare-and-swap on the row it read (PersistScoringRuleSettings), and a
  * grade that settles in between makes it run again from a fresh read
  * (pipeline/guarded-write.ts), so a person saving settings never loses
  * the grade's increment.
  *
  * Proven by __tests__/steps.test.ts (the faults),
  * temporal/grading/__tests__/judge-composed.test.ts and
- * evaluator.conformance.test.ts.
+ * scoring-rule.conformance.test.ts.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
@@ -63,7 +63,7 @@ import { listAgentScoringRules } from "./queries.js";
 export const EVALUATED_AGENT_KEY = "evaluatedAgent";
 
 /** Context key for getByAgent's answer. */
-export const SCORING_RULE_RESULT_KEY = "evaluatorResult";
+export const SCORING_RULE_RESULT_KEY = "scoringRuleResult";
 
 /**
  * The create lane's authorization question, for AuthorizeResolvedTarget
@@ -111,20 +111,20 @@ export function newLoadEvaluatedAgentStep(
 }
 
 /**
- * ResolveEvaluatorDefaults: metadata.org is required and must be the
+ * ResolveScoringRuleDefaults: metadata.org is required and must be the
  * agent's organization (the request names it so the deleting-organization
- * interceptor covers the lane, and an evaluator lives where its agent
- * does); the id is minted here so an unnamed evaluator is named by it.
+ * interceptor covers the lane, and a scoring rule lives where its agent
+ * does); the id is minted here so an unnamed scoring rule is named by it.
  */
 export function newResolveScoringRuleDefaultsStep(): PipelineStep<
   typeof ScoringRuleSchema
 > {
   return {
-    name: "ResolveEvaluatorDefaults",
+    name: "ResolveScoringRuleDefaults",
     execute(ctx: RequestContext<typeof ScoringRuleSchema>): void {
       const metadata = ctx.newState.metadata;
       if (metadata === undefined || metadata.org === "") {
-        throw invalidArgumentError("metadata.org is required for an evaluator");
+        throw invalidArgumentError("metadata.org is required for a scoring rule");
       }
       const agent = ctx.get(EVALUATED_AGENT_KEY) as Agent | undefined;
       if (agent === undefined) {
@@ -146,8 +146,8 @@ export function newResolveScoringRuleDefaultsStep(): PipelineStep<
 }
 
 /**
- * CheckEvaluatorUnique: one evaluator per agent, refused with
- * ALREADY_EXISTS carrying EVALUATOR_EXISTS and the existing evaluator's id,
+ * CheckScoringRuleUnique: one scoring rule per agent, refused with
+ * ALREADY_EXISTS carrying SCORING_RULE_EXISTS and the existing scoring rule's id,
  * so a client switches to update without parsing text. Read before the
  * write, as every slug in the platform is (duplicate.ts): a double click
  * can race it, which the console prevents by disabling the switch while a
@@ -158,21 +158,21 @@ export function newCheckScoringRuleUniqueStep(
   logger: Logger,
 ): PipelineStep<typeof ScoringRuleSchema> {
   return {
-    name: "CheckEvaluatorUnique",
+    name: "CheckScoringRuleUnique",
     async execute(ctx: RequestContext<typeof ScoringRuleSchema>): Promise<void> {
       const agentId = ctx.newState.spec?.agentId ?? "";
       let existing: ScoringRule[];
       try {
         existing = await listAgentScoringRules(store, logger, agentId);
       } catch (error) {
-        throw internalError(error, "failed to read the agent's evaluator");
+        throw internalError(error, "failed to read the agent's scoring rule");
       }
       const first = existing[0];
       if (first !== undefined) {
         const id = first.metadata?.id ?? "";
         throw alreadyExistsWithReasonError(scoringRuleExistsMessage(id), {
           reason: SCORING_RULE_EXISTS_REASON,
-          metadata: { evaluator_id: id },
+          metadata: { scoring_rule_id: id },
         });
       }
     },
@@ -180,20 +180,20 @@ export function newCheckScoringRuleUniqueStep(
 }
 
 /**
- * ValidateEvaluatorUpdate: the agent an evaluator grades is fixed. Runs
+ * ValidateScoringRuleUpdate: the agent a scoring rule grades is fixed. Runs
  * after LoadExisting and BuildUpdateState, which keep the status.
  */
 export function newValidateScoringRuleUpdateStep(): PipelineStep<
   typeof ScoringRuleSchema
 > {
   return {
-    name: "ValidateEvaluatorUpdate",
+    name: "ValidateScoringRuleUpdate",
     execute(ctx: RequestContext<typeof ScoringRuleSchema>): void {
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as ScoringRule | undefined;
       if (existing === undefined) {
         throw internalError(
-          new Error("existing evaluator not found in context"),
-          "existing evaluator not found in context",
+          new Error("existing scoring rule not found in context"),
+          "existing scoring rule not found in context",
         );
       }
       if (ctx.newState.spec?.agentId !== existing.spec?.agentId) {
@@ -204,7 +204,7 @@ export function newValidateScoringRuleUpdateStep(): PipelineStep<
 }
 
 /**
- * PersistEvaluatorSettings: the update's write. The settings, metadata and
+ * PersistScoringRuleSettings: the update's write. The settings, metadata and
  * audit come from the request, the month's spend and counts from the row
  * the chain read (BuildUpdateState), stored by compare-and-swap on that
  * row, so a budget write between the read and the write makes the chain
@@ -215,40 +215,40 @@ export function newPersistScoringRuleSettingsStep(
   binding: OrganizationAdmission,
 ): PipelineStep<typeof ScoringRuleSchema> {
   return {
-    name: "PersistEvaluatorSettings",
+    name: "PersistScoringRuleSettings",
     async execute(ctx: RequestContext<typeof ScoringRuleSchema>): Promise<void> {
       await refuseBoundElsewhere(
         binding,
         ctx.callerIdentity,
         ctx.newState.metadata?.org ?? "",
       );
-      await swapOntoLoadedRow(store, ctx, "failed to save the evaluator");
+      await swapOntoLoadedRow(store, ctx, "failed to save the scoring rule");
     },
   };
 }
 
-/** GetEvaluatorByAgent: the agent's evaluator, or NOT_FOUND when grading is off. */
+/** GetScoringRuleByAgent: the agent's scoring rule, or NOT_FOUND when grading is off. */
 export function newGetScoringRuleByAgentStep(
   store: Store,
   logger: Logger,
 ): PipelineStep<typeof GetScoringRuleByAgentRequestSchema> {
   return {
-    name: "GetEvaluatorByAgent",
+    name: "GetScoringRuleByAgent",
     async execute(
       ctx: RequestContext<typeof GetScoringRuleByAgentRequestSchema>,
     ): Promise<void> {
       const agentId = ctx.input.agentId;
-      let evaluators: ScoringRule[];
+      let scoringRules: ScoringRule[];
       try {
-        evaluators = await listAgentScoringRules(store, logger, agentId);
+        scoringRules = await listAgentScoringRules(store, logger, agentId);
       } catch (error) {
-        throw internalError(error, "failed to read the agent's evaluator");
+        throw internalError(error, "failed to read the agent's scoring rule");
       }
-      const evaluator = evaluators[0];
-      if (evaluator === undefined) {
+      const scoringRule = scoringRules[0];
+      if (scoringRule === undefined) {
         throw new ConnectError(noScoringRuleMessage(agentId), Code.NotFound);
       }
-      ctx.set(SCORING_RULE_RESULT_KEY, evaluator);
+      ctx.set(SCORING_RULE_RESULT_KEY, scoringRule);
     },
   };
 }

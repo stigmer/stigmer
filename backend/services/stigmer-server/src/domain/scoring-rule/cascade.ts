@@ -1,9 +1,9 @@
 /**
- * CascadeDeleteEvaluators: an agent's delete removes its evaluator before
- * the agent row goes, read through the evaluator list index. Each
- * evaluator's access goes with its row while the agent still links it to
+ * CascadeDeleteScoringRules: an agent's delete removes its scoring rule before
+ * the agent row goes, read through the scoring rule list index. Each
+ * scoring rule's access goes with its row while the agent still links it to
  * its organization (the agent's other cascades do the same,
- * domain/agent/steps.ts). An evaluator of a deleted agent would grade
+ * domain/agent/steps.ts). A scoring rule of a deleted agent would grade
  * nothing, since nothing can run the agent, but would keep its settings
  * and spend visible to nobody.
  *
@@ -34,7 +34,7 @@ export function newCascadeDeleteScoringRulesStep<Desc extends DescMessage>(
   logger: Logger,
 ): PipelineStep<Desc> {
   return {
-    name: "CascadeDeleteEvaluators",
+    name: "CascadeDeleteScoringRules",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
       const agent = ctx.get(EXISTING_RESOURCE_KEY) as Agent | undefined;
       if (agent === undefined) {
@@ -46,32 +46,32 @@ export function newCascadeDeleteScoringRulesStep<Desc extends DescMessage>(
         );
       }
       const agentId = agent.metadata?.id ?? "";
-      let evaluators: ScoringRule[];
+      let scoringRules: ScoringRule[];
       try {
-        evaluators = await listAgentScoringRules(store, logger, agentId);
+        scoringRules = await listAgentScoringRules(store, logger, agentId);
       } catch (error) {
         throw internalError(
           error,
-          "failed to list the agent's evaluator for cascade delete",
+          "failed to list the agent's scoring rule for cascade delete",
         );
       }
-      for (const evaluator of evaluators) {
-        const evaluatorId = evaluator.metadata?.id ?? "";
+      for (const scoringRule of scoringRules) {
+        const scoringRuleId = scoringRule.metadata?.id ?? "";
         try {
-          await store.deleteResource(ApiResourceKind.scoring_rule, evaluatorId);
+          await store.deleteResource(ApiResourceKind.scoring_rule, scoringRuleId);
         } catch (error) {
           if (!(error instanceof ResourceNotFoundError)) {
             throw internalError(
               error,
-              `failed to cascade-delete evaluator ${evaluatorId} of agent ${agentId}`,
+              `failed to cascade-delete scoring rule ${scoringRuleId} of agent ${agentId}`,
             );
           }
         }
-        await releaseNamesOfDeleted(store, logger, ApiResourceKind.scoring_rule, evaluator.metadata?.org ?? "", evaluatorId);
+        await releaseNamesOfDeleted(store, logger, ApiResourceKind.scoring_rule, scoringRule.metadata?.org ?? "", scoringRuleId);
         await cleanUpDeletedResource(lifecycle, logger, {
           kind: ApiResourceKind.scoring_rule,
-          resourceId: evaluatorId,
-          orgId: evaluator.metadata?.org ?? "",
+          resourceId: scoringRuleId,
+          orgId: scoringRule.metadata?.org ?? "",
           caller: ctx.callerIdentity,
         });
       }

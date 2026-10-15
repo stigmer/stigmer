@@ -1,11 +1,11 @@
 /**
- * Pins the evaluator steps' fault arms, which the composed lanes cannot
- * reach: a store fault while reading the agent, the agent's evaluators or
- * saving the settings is a sanitized INTERNAL; an evaluator deleted between
+ * Pins the scoring rule steps' fault arms, which the composed lanes cannot
+ * reach: a store fault while reading the agent, the agent's scoring rules or
+ * saving the settings is a sanitized INTERNAL; a scoring rule deleted between
  * the update's read and its write loses the swap (the rerun's read then
  * answers NOT_FOUND); a chain built without the
  * row a step reads fails loudly as INTERNAL; the cascade's own faults; an
- * undecodable evaluator row is skipped; a budget write's fault is thrown,
+ * undecodable scoring rule row is skipped; a budget write's fault is thrown,
  * not read as "grading off".
  */
 import { create } from "@bufbuild/protobuf";
@@ -84,8 +84,8 @@ async function codeOf(work: () => unknown): Promise<Code | undefined> {
   return undefined;
 }
 
-describe("the evaluator steps' faults", () => {
-  it("answers a store fault reading the agent, the agent's evaluators or saving the settings as INTERNAL", async () => {
+describe("the scoring rule steps' faults", () => {
+  it("answers a store fault reading the agent, the agent's scoring rules or saving the settings as INTERNAL", async () => {
     expect(await codeOf(() => newLoadEvaluatedAgentStep(failing(temp.store, "getResource")).execute(scoringRuleCtx()))).toBe(Code.Internal);
     expect(await codeOf(() => newLoadEvaluatedAgentStep(temp.store).execute(scoringRuleCtx()))).toBe(Code.NotFound);
     expect(
@@ -105,7 +105,7 @@ describe("the evaluator steps' faults", () => {
     );
   });
 
-  it("loses its swap when the evaluator went between the update's read and its write (the rerun's read answers NOT_FOUND)", async () => {
+  it("loses its swap when the scoring rule went between the update's read and its write (the rerun's read answers NOT_FOUND)", async () => {
     const ctx = scoringRuleCtx();
     ctx.set(EXISTING_RESOURCE_BYTES_KEY, new Uint8Array([1]));
     expect(await codeOf(() => newPersistScoringRuleSettingsStep(temp.store, UNBOUND_CREDENTIAL_BINDING).execute(ctx))).toBe(Code.Aborted);
@@ -143,7 +143,7 @@ describe("the evaluator steps' faults", () => {
     ).toBe(Code.Internal);
   });
 
-  it("skips an evaluator row that does not decode", async () => {
+  it("skips a scoring rule row that does not decode", async () => {
     const undecodable = new Proxy(temp.store, {
       get(target, property, receiver) {
         if (property === "queryResources") {

@@ -1,5 +1,5 @@
 /**
- * Pins the evaluator write hook's error handling: a refused save is kept as
+ * Pins the scoring rule write hook's error handling: a refused save is kept as
  * `error` and rethrown, and `clearError` resets it.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DEFAULT_GRADING_SETTINGS } from "../grading-settings";
-import { useSaveScoringRule } from "../useSaveEvaluator";
+import { useSaveScoringRule } from "../useSaveScoringRule";
 
 afterEach(() => {
   cleanup();
@@ -25,10 +25,10 @@ function wrap(mock: unknown) {
   };
 }
 
-describe("useSaveEvaluator", () => {
+describe("useSaveScoringRule", () => {
   it("keeps and rethrows a refused save, and clears it", async () => {
     const refusal = new Error("unauthorized to configure grading for agent");
-    const mock = { evaluator: { create: vi.fn().mockRejectedValue(refusal), update: vi.fn() } };
+    const mock = { scoringrule: { create: vi.fn().mockRejectedValue(refusal), update: vi.fn() } };
     const { result } = renderHook(() => useSaveScoringRule(), { wrapper: wrap(mock) });
     await act(async () => {
       await expect(

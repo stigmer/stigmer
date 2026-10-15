@@ -1,5 +1,5 @@
 // Pins the AI-grading suites' fixtures, copy and reads
-// (support/evaluators.ts): a fresh evaluator is enabled, samples every run and spends ten dollars a
+// (support/scoring-rules.ts): a fresh scoring rule is enabled, samples every run and spends ten dollars a
 // month unless told otherwise; the verdict read polls a run's scores past
 // the judge's pending score until a grade or a not-graded reason lands,
 // failing loudly once its budget is spent; the judge-run count reads the
@@ -38,8 +38,8 @@ function listing(pages: Score[][]): ConformanceClients {
   } as unknown as ConformanceClients;
 }
 
-describe("evaluator fixtures", () => {
-  it("a fresh evaluator is enabled, samples every run and spends ten dollars a month", () => {
+describe("scoring rule fixtures", () => {
+  it("a fresh scoring rule is enabled, samples every run and spends ten dollars a month", () => {
     expect(makeScoringRule({ org: "org_1", agentId: "agt_1" })).toMatchObject({
       metadata: { org: "org_1" },
       spec: { agentId: "agt_1", enabled: true, sampleRate: 1, monthlyLimitUsd: 10, modelName: "" },
@@ -51,7 +51,7 @@ describe("evaluator fixtures", () => {
   });
 });
 
-describe("evaluator copy", () => {
+describe("scoring rule copy", () => {
   it("names the agent's organization in the mismatch refusal, as the server does", () => {
     expect(scoringRuleOrgMismatchMessage("org_1")).toBe("metadata.org must be the agent's organization (org_1)");
   });

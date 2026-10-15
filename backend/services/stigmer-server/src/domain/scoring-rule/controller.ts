@@ -1,19 +1,19 @@
 /**
- * Evaluator controller: AI grading switched on for one agent, served on
+ * ScoringRule controller: AI grading switched on for one agent, served on
  * both editions.
  *
- * An evaluator is a child of its agent (kind_meta: scope PARENT through
+ * A scoring rule is a child of its agent (kind_meta: scope PARENT through
  * spec.agent_id): whoever may edit the agent creates, changes and deletes
- * its evaluator, and whoever may view the agent reads it. It has no owner
+ * its scoring rule, and whoever may view the agent reads it. It has no owner
  * of its own. The agent's delete removes it (cascade.ts), and an
  * organization's purge removes them all (purge.ts).
  *
  * No apply RPC: grading is configured in the console, never authored as a
- * manifest. Not search-indexed: an evaluator is a setting reached through
+ * manifest. Not search-indexed: a scoring rule is a setting reached through
  * its agent, so no IndexSearch or DeleteSearchIndex step appears here.
  *
  * Proven by temporal/grading/__tests__/judge-composed.test.ts, the steps'
- * faults in __tests__/steps.test.ts, and evaluator.conformance.test.ts.
+ * faults in __tests__/steps.test.ts, and scoring-rule.conformance.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
@@ -94,13 +94,13 @@ export interface ScoringRuleControllerDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
 }
 
-/** Registers both evaluator services on the router (routes stage). */
+/** Registers both scoring rule services on the router (routes stage). */
 export function registerScoringRuleServices(
   router: ConnectRouter,
   deps: ScoringRuleControllerDeps,
 ): void {
   router.service(ScoringRuleCommandController, {
-    create: (evaluator, ctx) => createScoringRule(deps, evaluator, ctx),
+    create: (scoringRule, ctx) => createScoringRule(deps, scoringRule, ctx),
     update: (input, ctx) => updateScoringRule(deps, input, ctx),
     delete: (id, ctx) => deleteScoringRule(deps, id, ctx),
   });
@@ -117,21 +117,21 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 /**
  * Create: AuthorizeResolvedTarget asks can_edit on the agent before it is
  * read; then the agent's organization, then one per agent (steps.ts). The
- * tuple step writes the evaluator's link to its agent, through which every
+ * tuple step writes the scoring rule's link to its agent, through which every
  * later question about it is answered.
  */
 async function createScoringRule(
   deps: ScoringRuleControllerDeps,
-  evaluator: ScoringRule,
+  scoringRule: ScoringRule,
   ctx: HandlerContext,
 ): Promise<ScoringRule> {
   const reqCtx = new RequestContext(
     ScoringRuleSchema,
-    evaluator,
+    scoringRule,
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof ScoringRuleSchema>("evaluator-create", deps.logger)
+  await newPipeline<typeof ScoringRuleSchema>("scoring-rule-create", deps.logger)
     .addStep(
       newAuthorizeStep(ScoringRuleCommandController.method.create, deps.authorizer),
     )
@@ -164,7 +164,7 @@ async function createScoringRule(
 }
 
 /**
- * Update: can_edit on the evaluator (its agent's). The agent is fixed, and
+ * Update: can_edit on the scoring rule (its agent's). The agent is fixed, and
  * the write keeps the live row's spend and counts (steps.ts).
  */
 async function updateScoringRule(
@@ -179,7 +179,7 @@ async function updateScoringRule(
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
-    await newPipeline<typeof ScoringRuleSchema>("evaluator-update", deps.logger)
+    await newPipeline<typeof ScoringRuleSchema>("scoring-rule-update", deps.logger)
       .addStep(
         newAuthorizeStep(ScoringRuleCommandController.method.update, deps.authorizer,
         input,
@@ -197,7 +197,7 @@ async function updateScoringRule(
   });
 }
 
-/** Delete: can_delete on the evaluator (can_edit on its agent). Scores already recorded stay. */
+/** Delete: can_delete on the scoring rule (can_edit on its agent). Scores already recorded stay. */
 async function deleteScoringRule(
   deps: ScoringRuleControllerDeps,
   id: ScoringRuleId,
@@ -209,7 +209,7 @@ async function deleteScoringRule(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof ScoringRuleIdSchema>("evaluator-delete", deps.logger)
+  await newPipeline<typeof ScoringRuleIdSchema>("scoring-rule-delete", deps.logger)
     .addStep(
       newAuthorizeStep(ScoringRuleCommandController.method.delete, deps.authorizer),
     )
@@ -226,11 +226,11 @@ async function deleteScoringRule(
 
   return chainResult<ScoringRule>(
     reqCtx.get(EXISTING_RESOURCE_KEY),
-    "deleted evaluator",
+    "deleted scoring rule",
   );
 }
 
-/** Get: can_view on the evaluator, which is can_view on its agent. */
+/** Get: can_view on the scoring rule, which is can_view on its agent. */
 async function getScoringRule(
   deps: ScoringRuleControllerDeps,
   id: ScoringRuleId,
@@ -242,7 +242,7 @@ async function getScoringRule(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof ScoringRuleIdSchema>("evaluator-get", deps.logger)
+  await newPipeline<typeof ScoringRuleIdSchema>("scoring-rule-get", deps.logger)
     .addStep(
       newAuthorizeStep(ScoringRuleQueryController.method.get, deps.authorizer),
     )
@@ -254,11 +254,11 @@ async function getScoringRule(
 
   return chainResult<ScoringRule>(
     reqCtx.get(TARGET_RESOURCE_KEY),
-    "target evaluator",
+    "target scoring rule",
   );
 }
 
-/** GetByAgent: the agent's evaluator; Authorize asks can_view on the agent. */
+/** GetByAgent: the agent's scoring rule; Authorize asks can_view on the agent. */
 async function getByAgent(
   deps: ScoringRuleControllerDeps,
   req: GetScoringRuleByAgentRequest,
@@ -271,7 +271,7 @@ async function getByAgent(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof input>("evaluator-get-by-agent", deps.logger)
+  await newPipeline<typeof input>("scoring-rule-get-by-agent", deps.logger)
     .addStep(
       newAuthorizeStep(
         ScoringRuleQueryController.method.getByAgent,
@@ -284,6 +284,6 @@ async function getByAgent(
     .execute(reqCtx);
   return chainResult<ScoringRule>(
     reqCtx.get(SCORING_RULE_RESULT_KEY),
-    "evaluator",
+    "scoring rule",
   );
 }

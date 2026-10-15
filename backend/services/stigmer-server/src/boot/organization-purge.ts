@@ -7,7 +7,7 @@
  * The order. Schedules go in the quiesce stage, before anything else, so
  * nothing fires while the rest is removed. The content stage then removes
  * leaves first: a run before the session it belongs to, a blueprint's
- * shares, channels and evaluator
+ * shares, channels and scoring rule
  * before the blueprint, a plugin's evals before the plugin, and the vaults and clients a run or a blueprint
  * reads last. Each kind's purge cascades what its delete chain
  * cascades, so an order that met a parent first would still converge; the
@@ -106,7 +106,7 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
       newScorePurge(deps),
       newAgentExecutionPurge(deps),
       newSessionPurge(deps),
-      // A blueprint's shares, channels and evaluator before the blueprint;
+      // A blueprint's shares, channels and scoring rule before the blueprint;
       // a channel before the channel app it references.
       newAgentSharePurge(deps),
       newAgentChannelPurge(deps),

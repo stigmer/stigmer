@@ -105,7 +105,7 @@ export const VERB_SUPPORT: ReadonlyMap<
   [ApiResourceKind.score, new Set<Verb>([Verb.Get])],
   // AI grading is switched on in the console's Quality tab, never as a
   // manifest, so an agent's YAML carries no grading criteria; the CLI reads
-  // an evaluator by id and deletes it to switch grading off.
+  // a scoring rule by id and deletes it to switch grading off.
   [ApiResourceKind.scoring_rule, new Set<Verb>([Verb.Get, Verb.Delete])],
   // An eval run is one run of test cases, started by `stigmer eval run` or
   // an agent's or a plugin's Evals tab, never applied from a manifest; the

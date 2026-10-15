@@ -53,9 +53,9 @@ const PINNED: Readonly<
     fingerprint:
       "score{agent=field:status.agent_id,eval_run=label:stigmer.ai/eval-run,run=field:spec.run_id,session=field:spec.session_id}",
   },
-  evaluator: {
+  scoring_rule: {
     revision: 1,
-    fingerprint: "evaluator{agent=field:spec.agent_id}",
+    fingerprint: "scoring_rule{agent=field:spec.agent_id}",
   },
   eval: { revision: 1, fingerprint: "eval{}" },
   eval_run: {

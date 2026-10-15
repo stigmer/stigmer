@@ -113,9 +113,9 @@ A run holds nothing of its own: its one direct relation is the `session` link, e
 
 A score (`agentic/score.fga`) is seen through its run (`can_view: can_view from run`) but is not its run's whole: the person who rated owns the rating (`OWNER_ATTRIBUTION_TYPE_DIRECT`), edits it while they can still see the run (`can_edit: owner and can_view`), and the run's owner deletes any score on it. Its lists are asked on the run or the session, never through the list read scope.
 
-An evaluator (`agentic/scoring_rule.fga`) has no relation of its own but its `agent` link: it is viewed, edited and deleted by whoever views or edits its agent (`can_view from agent`, `can_edit from agent`), and has no owner (`OWNER_ATTRIBUTION_TYPE_NONE`), because the agent's owner already includes the organization's admins. It is read by its id or by its agent, never through the list read scope.
+A scoring rule (`agentic/scoring_rule.fga`) has no relation of its own but its `agent` link: it is viewed, edited and deleted by whoever views or edits its agent (`can_view from agent`, `can_edit from agent`), and has no owner (`OWNER_ATTRIBUTION_TYPE_NONE`), because the agent's owner already includes the organization's admins. It is read by its id or by its agent, never through the list read scope.
 
-An eval run (`agentic/eval_run.fga`) is the evaluator's shape under its subject, an agent or a plugin: the kind has two optional parents, `agent` and `plugin`, and the spec's subject oneof writes exactly one of them, as a vault's owner oneof does, so every relation reads both and the one never written adds nothing. It is started, cancelled and deleted by whoever edits its subject (`can_edit from agent or can_edit from plugin`), with no owner. It is read by the subject's viewers in the subject's own organization (`org_viewer from agent or org_viewer from plugin`), not by a child organization's, because its tries spend the organization's money and may use its connections. `agent.fga` and `plugin.fga` name that set `org_viewer: viewer and affiliated from organization`, an intersection since the model has no `but not`, and leave `viewer` unchanged, so the grants and visibility tuples written on them stay as they are. A plugin an eval run compares on an agent is no parent: it writes no tuple and its viewers read nothing through it. The tries' sessions carry the read-only `eval_run` link, the channel and schedule links' third use. It is read by its id or by its subject, never through the list read scope.
+An eval run (`agentic/eval_run.fga`) is the scoring rule's shape under its subject, an agent or a plugin: the kind has two optional parents, `agent` and `plugin`, and the spec's subject oneof writes exactly one of them, as a vault's owner oneof does, so every relation reads both and the one never written adds nothing. It is started, cancelled and deleted by whoever edits its subject (`can_edit from agent or can_edit from plugin`), with no owner. It is read by the subject's viewers in the subject's own organization (`org_viewer from agent or org_viewer from plugin`), not by a child organization's, because its tries spend the organization's money and may use its connections. `agent.fga` and `plugin.fga` name that set `org_viewer: viewer and affiliated from organization`, an intersection since the model has no `but not`, and leave `viewer` unchanged, so the grants and visibility tuples written on them stay as they are. A plugin an eval run compares on an agent is no parent: it writes no tuple and its viewers read nothing through it. The tries' sessions carry the read-only `eval_run` link, the channel and schedule links' third use. It is read by its id or by its subject, never through the list read scope.
 
 ### Bounded by the Organization (every direct grant)
 
@@ -299,12 +299,12 @@ fga/
 │       ├── channel_app.fga         # Bring-your-own channel provider apps (restricted)
 │       ├── eval.fga                # Pushed evals, an agent's test cases (private or the organization)
 │       ├── eval_run.fga            # Eval runs on an agent or a plugin (the subject's editors; its own organization's viewers)
-│       ├── evaluator.fga           # An agent's AI grading settings (the agent's access)
 │       ├── memory.fga              # An identity's memories (subject-only)
 │       ├── plugin.fga              # Installed plugins, the unit of install
 │       ├── run.fga                 # Runs (inherits from session)
 │       ├── schedule.fga            # Scheduled runs (owner-scoped)
 │       ├── score.fga               # A finished run's grades (seen through the run)
+│       ├── scoring_rule.fga        # An agent's AI grading settings (the agent's access)
 │       ├── session.fga             # Conversations (personal)
 │       ├── skill.fga               # Knowledge bases (open access)
 │       └── vault.fga               # Logins and secrets runs use (My vault, shared vaults)

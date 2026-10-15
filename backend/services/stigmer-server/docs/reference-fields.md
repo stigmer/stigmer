@@ -87,12 +87,12 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.evalrun.v1.ListEvalRunsByAgentRequest.agent_id` | stamped id |
 | `ai.stigmer.agentic.evalrun.v1.ListEvalRunsByPluginRequest.plugin_id` | stamped id |
 
-## `ai.stigmer.agentic.evaluator.v1`
+## `ai.stigmer.agentic.scoringrule.v1`
 
 | Field | Class |
 |---|---|
-| `ai.stigmer.agentic.evaluator.v1.EvaluatorSpec.agent_id` | stamped id |
-| `ai.stigmer.agentic.evaluator.v1.GetEvaluatorByAgentRequest.agent_id` | stamped id |
+| `ai.stigmer.agentic.scoringrule.v1.ScoringRuleSpec.agent_id` | stamped id |
+| `ai.stigmer.agentic.scoringrule.v1.GetScoringRuleByAgentRequest.agent_id` | stamped id |
 
 ## `ai.stigmer.agentic.memory.v1`
 

@@ -1,7 +1,7 @@
 /**
  * Pins the agent detail view's Quality tab: it is offered beside Shares,
  * and opening it shows the agent's AI grading read through
- * `evaluator.getByAgent`, editable on a plugin-managed agent too when the
+ * `scoringrule.getByAgent`, editable on a plugin-managed agent too when the
  * host makes the view editable (grading is not the agent's definition).
  * The report on top hands the view's `onNavigateToRun` to its flagged
  * runs, and a version's eval link opens the Evals tab on that eval.
@@ -33,13 +33,13 @@ describe("AgentDetailView's Quality tab", () => {
     const agent = samples.agent({ name: "Support Bot", org: ACME_ID });
     agent.metadata = { ...agent.metadata!, labels: { "stigmer.ai/plugin": "acme/support" } };
     const getByAgent = vi.fn(async () => {
-      throw new StigmerError("not-found", "no evaluator", Code.NotFound);
+      throw new StigmerError("not-found", "no scoring rule", Code.NotFound);
     });
     render(<AgentDetailView org="acme" slug="support-bot" editable />, {
       wrapper: orgWrapper(
         {
           agent: { getByReference: vi.fn(async () => agent), update: vi.fn() },
-          evaluator: { getByAgent, create: vi.fn(), update: vi.fn() },
+          scoringrule: { getByAgent, create: vi.fn(), update: vi.fn() },
           score: {
             getAgentQualityReport: vi.fn(async () => emptyReport()),
             listFlaggedByAgent: vi.fn(async () => ({ entries: [], nextPageToken: "" })),
@@ -72,9 +72,9 @@ describe("AgentDetailView's Quality tab", () => {
       wrapper: orgWrapper(
         {
           agent: { getByReference: vi.fn(async () => agent), update: vi.fn() },
-          evaluator: {
+          scoringrule: {
             getByAgent: vi.fn(async () => {
-              throw new StigmerError("not-found", "no evaluator", Code.NotFound);
+              throw new StigmerError("not-found", "no scoring rule", Code.NotFound);
             }),
           },
           score: {

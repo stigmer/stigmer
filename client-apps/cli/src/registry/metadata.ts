@@ -94,7 +94,7 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
   ],
   [
     ApiResourceKind.scoring_rule,
-    { name: "Evaluator", displayName: "Evaluator", idPrefix: "evl" },
+    { name: "ScoringRule", displayName: "Scoring Rule", idPrefix: "srl", retiredIdPrefixes: ["evl"] },
   ],
   [
     ApiResourceKind.eval,

@@ -1,9 +1,9 @@
 /**
  * Pins the agent's Quality tab's grading settings, below the quality
  * report (pinned by `score/__tests__/AgentQualityReportView.test.tsx`,
- * mounted here over an empty report): an agent with no evaluator shows grading
- * off and, when editable, switching it on creates the evaluator with one
- * run in ten and ten dollars a month; a stored evaluator shows its
+ * mounted here over an empty report): an agent with no scoring rule shows grading
+ * off and, when editable, switching it on creates the scoring rule with one
+ * run in ten and ten dollars a month; a stored scoring rule shows its
  * settings and this month's spend and last not-graded reason, and a save
  * updates it by id; read-only, the controls are disabled and no save is
  * offered.
@@ -51,15 +51,15 @@ function stored() {
   });
 }
 
-function client(evaluator: ReturnType<typeof stored> | null) {
+function client(scoringRule: ReturnType<typeof stored> | null) {
   return {
-    evaluator: {
-      getByAgent: evaluator === null
+    scoringrule: {
+      getByAgent: scoringRule === null
         ? vi.fn().mockRejectedValue(
             // What the SDK client throws for NOT_FOUND (its error mapping).
-            new StigmerError("not-found", "agent agt_1 has no evaluator: AI grading is off", Code.NotFound),
+            new StigmerError("not-found", "agent agt_1 has no scoring rule: AI grading is off", Code.NotFound),
           )
-        : vi.fn().mockResolvedValue(evaluator),
+        : vi.fn().mockResolvedValue(scoringRule),
       create: vi.fn().mockImplementation(async () => stored()),
       update: vi.fn().mockImplementation(async () => stored()),
     },
@@ -83,15 +83,15 @@ describe("AgentQualityTab", () => {
     expect(toggle.getAttribute("aria-checked")).toBe("false");
     fireEvent.click(toggle);
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(mock.evaluator.create).toHaveBeenCalledTimes(1));
-    expect(mock.evaluator.create.mock.calls[0]?.[0]).toMatchObject({
+    await waitFor(() => expect(mock.scoringrule.create).toHaveBeenCalledTimes(1));
+    expect(mock.scoringrule.create.mock.calls[0]?.[0]).toMatchObject({
       org: "org_acme",
       agentId: "agt_1",
       enabled: true,
       sampleRate: 0.1,
       monthlyLimitUsd: 10,
     });
-    expect(mock.evaluator.update).not.toHaveBeenCalled();
+    expect(mock.scoringrule.update).not.toHaveBeenCalled();
   });
 
   it("shows the stored settings and this month, and updates by id", async () => {
@@ -106,8 +106,8 @@ describe("AgentQualityTab", () => {
       target: { value: "30" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(mock.evaluator.update).toHaveBeenCalledTimes(1));
-    const sent = sentUpdate<ScoringRule>(mock.evaluator.update);
+    await waitFor(() => expect(mock.scoringrule.update).toHaveBeenCalledTimes(1));
+    const sent = sentUpdate<ScoringRule>(mock.scoringrule.update);
     expect(sent.id).toBe("evl_1");
     expect(sent.paths).toEqual(["spec.enabled", "spec.sample_rate", "spec.monthly_limit_usd", "spec.model_name"]);
     expect(sent.resource.spec).toMatchObject({ monthlyLimitUsd: 30, sampleRate: 0.5 });
@@ -123,14 +123,14 @@ describe("AgentQualityTab", () => {
 
   it("changes the sample and the model, and shows a refused save", async () => {
     const mock = client(stored());
-    mock.evaluator.update.mockRejectedValueOnce(new Error("unauthorized to update evaluator"));
+    mock.scoringrule.update.mockRejectedValueOnce(new Error("unauthorized to update scoring rule"));
     render(<AgentQualityTab agent={agent} editable />, { wrapper: wrap(mock) });
     fireEvent.change(await screen.findByLabelText("Grade one in N runs"), { target: { value: "4" } });
     fireEvent.click(screen.getByRole("button", { name: "pick a model" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByRole("alert")).toBeDefined();
-    expect(screen.getByRole("alert").textContent).toContain("unauthorized to update evaluator");
-    expect(sentUpdate<ScoringRule>(mock.evaluator.update).resource.spec).toMatchObject({
+    expect(screen.getByRole("alert").textContent).toContain("unauthorized to update scoring rule");
+    expect(sentUpdate<ScoringRule>(mock.scoringrule.update).resource.spec).toMatchObject({
       sampleRate: 0.25,
       modelName: "claude-haiku-4-5",
     });
@@ -138,7 +138,7 @@ describe("AgentQualityTab", () => {
 
   it("shows a read that failed for another reason than grading being off", async () => {
     const mock = client(stored());
-    mock.evaluator.getByAgent = vi.fn().mockRejectedValue(new Error("server unavailable"));
+    mock.scoringrule.getByAgent = vi.fn().mockRejectedValue(new Error("server unavailable"));
     render(<AgentQualityTab agent={agent} />, { wrapper: wrap(mock) });
     expect(await screen.findByText(/server unavailable/)).toBeDefined();
   });

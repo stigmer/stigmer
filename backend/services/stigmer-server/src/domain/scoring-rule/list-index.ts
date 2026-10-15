@@ -1,5 +1,5 @@
 /**
- * The evaluator list index (store/list-index.ts): `agent` is the key the
+ * The scoring rule list index (store/list-index.ts): `agent` is the key the
  * agent's lookup (getByAgent, the judge planner), the one-per-agent rule
  * and the agent-delete cascade read. The organization and the creation
  * order are every declaration's, which the organization purge reads.

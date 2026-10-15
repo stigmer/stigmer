@@ -1,6 +1,6 @@
 /**
  * The Quality tab's settings, as a person edits them, and their mapping to
- * and from an {@link Evaluator}. Kept apart from the component so the
+ * and from an {@link ScoringRule}. Kept apart from the component so the
  * conversions are unit-testable without React.
  *
  * The sample rate is shown as "one in N runs", N from 1 to 100, so a
@@ -28,7 +28,7 @@ export interface GradingSettings {
   readonly modelName: string;
 }
 
-/** The settings a new evaluator starts from: one run in ten, ten dollars a month. */
+/** The settings a new scoring rule starts from: one run in ten, ten dollars a month. */
 export const DEFAULT_GRADING_SETTINGS: GradingSettings = {
   enabled: true,
   oneIn: 10,
@@ -36,9 +36,9 @@ export const DEFAULT_GRADING_SETTINGS: GradingSettings = {
   modelName: "",
 };
 
-/** The settings an evaluator holds. */
-export function settingsOf(evaluator: ScoringRule): GradingSettings {
-  const spec = evaluator.spec;
+/** The settings a scoring rule holds. */
+export function settingsOf(scoringRule: ScoringRule): GradingSettings {
+  const spec = scoringRule.spec;
   const rate = spec?.sampleRate ?? 0;
   return {
     enabled: spec?.enabled ?? false,
@@ -48,7 +48,7 @@ export function settingsOf(evaluator: ScoringRule): GradingSettings {
   };
 }
 
-/** The create or update input for an agent's evaluator with `settings`. */
+/** The create or update input for an agent's scoring rule with `settings`. */
 export function scoringRuleInputOf(
   agent: { readonly id: string; readonly org: string },
   settings: GradingSettings,
