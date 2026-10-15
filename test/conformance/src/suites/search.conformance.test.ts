@@ -21,9 +21,11 @@
 //
 // The reach arms run on the target's enforcing lane (the primary on the
 // cloud, open source's OIDC sibling on the local targets): a search naming
-// no organization covers the organizations the caller belongs to, and a
-// child organization's people still find what its parent shares with its
-// children. A target with no enforcing lane skips them visibly.
+// no organization covers the organizations the caller belongs to, a child
+// organization's people still find what its parent shares with its
+// children, and a parent's admin searching inside a child finds the
+// child's agents, as one of its admins. A target with no enforcing lane
+// skips them visibly.
 import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -311,6 +313,27 @@ describe("Search conformance — reach", () => {
       inParent.entries.map((entry) => entry.id),
       "naming the parent finds only what it shares with its children",
     ).toEqual([shared]);
+  });
+
+  it("[rpc:SearchService.search] a parent's admin searching inside a child finds the child's agents, and inside the parent none of a child's", async (ctx) => {
+    if (lane === undefined) return ctx.skip(laneReason);
+    const on = lane;
+    const parent = await laneTenancy(on);
+    const child = await laneChildOf(on, parent);
+    const token = uniqueToken();
+    const inChild = await laneAgent(on, child, `reach-${token}-child`);
+    const inParent = await laneAgent(on, parent.org, `reach-${token}-parent`);
+
+    const searchIn = async (org: string): Promise<ReadonlyArray<string>> =>
+      (
+        await on.clients.search.search({
+          kinds: [ApiResourceKind.agent],
+          org,
+          query: token,
+        })
+      ).entries.map((entry) => entry.id);
+    expect(await searchIn(child)).toEqual([inChild]);
+    expect(await searchIn(parent.org)).toEqual([inParent]);
   });
 });
 
