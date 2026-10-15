@@ -157,7 +157,7 @@ import {
   newValidateMcpServersStep,
   newValidatePluginListStep,
 } from "./steps.js";
-import { newCascadeDeleteEvaluatorsStep } from "../evaluator/cascade.js";
+import { newCascadeDeleteScoringRulesStep } from "../scoring-rule/cascade.js";
 import { newCascadeDeleteChannelsStep } from "../channel/cascade.js";
 import type { ChannelRuntime } from "../channel/channel-runtime.js";
 import { newCascadeDeleteEvalRunsStep } from "../eval-run/cascade.js";
@@ -428,7 +428,7 @@ async function apply(
  * children before the parent (delete_cascade.go): the agent's evals,
  * refused while one runs (so a refused delete tears down no Slack or
  * WhatsApp install), then the agent's same-org channels (cascade.ts in the
- * channel domain) and the agent's evaluator,
+ * channel domain) and the agent's scoring rule,
  * each one's access cleaned with its row, then the agent's version rows (best-effort), the agent row, its
  * access and its index entry. Returns the deleted agent (the audit-trail
  * convention).
@@ -472,7 +472,7 @@ async function deleteAgent(
       }),
     )
     .addStep(
-      newCascadeDeleteEvaluatorsStep(
+      newCascadeDeleteScoringRulesStep(
         deps.store,
         deps.authorizationLifecycle,
         deps.logger,

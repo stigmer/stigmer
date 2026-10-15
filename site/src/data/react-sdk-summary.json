@@ -120,13 +120,6 @@
       "components": 2
     },
     {
-      "slug": "evaluator",
-      "title": "evaluator",
-      "description": "",
-      "hooks": 2,
-      "components": 0
-    },
-    {
       "slug": "federation-issuer",
       "title": "Federation Issuer",
       "description": "Hooks and components for registering federation issuers, the outside issuers whose tokens Stigmer accepts.",
@@ -258,6 +251,13 @@
       "description": "",
       "hooks": 5,
       "components": 2
+    },
+    {
+      "slug": "scoring-rule",
+      "title": "scoring-rule",
+      "description": "",
+      "hooks": 2,
+      "components": 0
     },
     {
       "slug": "service-account",

@@ -21,9 +21,9 @@
  * a blueprint shared with child organizations, and listChildOrgs pages
  * them (domain/organization/list-index.ts). And `score` joins for its
  * parents: a conversation's view reads one session's scores, and a run's
- * delete one run's (domain/score/list-index.ts). And `evaluator` joins for
- * its parent: the grading workflow reads one agent's evaluator for every
- * completed run that names an agent (domain/evaluator/list-index.ts).
+ * delete one run's (domain/score/list-index.ts). And `scoring_rule` joins for
+ * its parent: the grading workflow reads one agent's scoring rule for every
+ * completed run that names an agent (domain/scoring-rule/list-index.ts).
  * And `eval_run` joins for its subject: an agent's and a plugin's page
  * list their eval runs newest first, and each subject's delete reads them
  * (domain/eval-run/list-index.ts). And `api_key` joins for its owner:
@@ -43,7 +43,7 @@ import { pluginListIndex } from "../domain/plugin/list-index.js";
 import { scheduleListIndex } from "../domain/schedule/list-index.js";
 import { skillListIndex } from "../domain/skill/list-index.js";
 import { agentExecutionListIndex } from "../domain/run/list-index.js";
-import { evaluatorListIndex } from "../domain/evaluator/list-index.js";
+import { scoringRuleListIndex } from "../domain/scoring-rule/list-index.js";
 import { evalListIndex } from "../domain/eval/list-index.js";
 import { evalRunListIndex } from "../domain/eval-run/list-index.js";
 import { grantListIndex } from "../domain/grant/list-index.js";
@@ -65,7 +65,7 @@ export const LIST_INDEXES: ReadonlyArray<ListIndexDeclaration> = [
   pluginListIndex,
   scheduleListIndex,
   skillListIndex,
-  evaluatorListIndex,
+  scoringRuleListIndex,
   evalListIndex,
   evalRunListIndex,
   grantListIndex,

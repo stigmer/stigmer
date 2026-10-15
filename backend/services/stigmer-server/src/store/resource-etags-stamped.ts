@@ -43,7 +43,7 @@ import type { DescMessage } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
@@ -81,7 +81,7 @@ export const RESOURCE_SCHEMAS: ReadonlyMap<ApiResourceKind, DescMessage> = new M
   [ApiResourceKind.channel, ChannelSchema],
   [ApiResourceKind.api_key, ApiKeySchema],
   [ApiResourceKind.channel_app, ChannelAppSchema],
-  [ApiResourceKind.evaluator, EvaluatorSchema],
+  [ApiResourceKind.scoring_rule, ScoringRuleSchema],
   [ApiResourceKind.grant, GrantSchema],
   [ApiResourceKind.identity_account, IdentityAccountSchema],
   [ApiResourceKind.federation_issuer, FederationIssuerSchema],
@@ -107,16 +107,18 @@ export const RESOURCE_SCHEMAS: ReadonlyMap<ApiResourceKind, DescMessage> = new M
 /**
  * The stored name of each kind renamed after this step and the label and
  * tag report (Postgres v29 and v32, SQLite v34 and v36), as their rows
- * spelled it. Postgres v34 and SQLite v38 renamed `iam_policy` to `grant`.
+ * spelled it. Postgres v34 and SQLite v38 renamed `iam_policy` to `grant`;
+ * Postgres v36 and SQLite v40 renamed `evaluator` to `scoring_rule`.
  */
 export const KIND_NAMES_AT_STEP: ReadonlyMap<ApiResourceKind, string> = new Map([
   [ApiResourceKind.grant, "iam_policy"],
+  [ApiResourceKind.scoring_rule, "evaluator"],
 ]);
 
 /**
  * The kinds merged into another after this step and the label and tag
  * report, by the name their rows carried then, with the frozen shape their
- * rows decode through (frozen-envelopes.ts). Postgres v36 and SQLite v40
+ * rows decode through (frozen-envelopes.ts). Postgres v37 and SQLite v41
  * merged `agent_share` and `agent_channel` into `channel`
  * (channel-kinds-merged.ts); no `channel` row existed before them.
  */

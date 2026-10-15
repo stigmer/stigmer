@@ -21,7 +21,6 @@ Rows read `| Kind | refused path | written by |`, or `| Kind | none | |` for a k
 | ApiKey | `spec.bound_org` | create |
 | Channel | none | |
 | ChannelApp | none | |
-| Evaluator | none | |
 | IdentityAccount | none | |
 | Memory | none | |
 | OAuthApp | none | |
@@ -32,6 +31,7 @@ Rows read `| Kind | refused path | written by |`, or `| Kind | none | |` for a k
 | Run | none | |
 | Schedule | none | |
 | Score | none | |
+| ScoringRule | none | |
 | Session | none | |
 | Vault | `spec.secrets` | setSecrets and removeSecrets |
 | Vault | `spec.connections` | a sign-in and removeConnections |

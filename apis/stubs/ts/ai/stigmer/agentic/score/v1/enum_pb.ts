@@ -39,7 +39,7 @@ export enum ScoreSource {
 
   /**
    * An AI judge grading the run against Stigmer's standard rubrics, switched
-   * on per agent by its evaluator.
+   * on per agent by its scoring rule.
    *
    * @generated from enum value: score_source_judge = 3;
    */

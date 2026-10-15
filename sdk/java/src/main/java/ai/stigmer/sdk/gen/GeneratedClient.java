@@ -12,7 +12,6 @@ public class GeneratedClient {
     public final ChannelAppClient channelapp;
     public final EvalClient eval;
     public final EvalRunClient evalrun;
-    public final EvaluatorClient evaluator;
     public final FederationIssuerClient federationIssuer;
     public final GrantClient grant;
     public final IdentityAccountClient identityAccount;
@@ -27,6 +26,7 @@ public class GeneratedClient {
     public final RunClient run;
     public final ScheduleClient schedule;
     public final ScoreClient score;
+    public final ScoringRuleClient scoringrule;
     public final SessionClient session;
     public final SkillClient skill;
     public final SubscriptionClient subscription;
@@ -40,7 +40,6 @@ public class GeneratedClient {
         this.channelapp = new ChannelAppClient(channel);
         this.eval = new EvalClient(channel);
         this.evalrun = new EvalRunClient(channel);
-        this.evaluator = new EvaluatorClient(channel);
         this.federationIssuer = new FederationIssuerClient(channel);
         this.grant = new GrantClient(channel);
         this.identityAccount = new IdentityAccountClient(channel);
@@ -55,6 +54,7 @@ public class GeneratedClient {
         this.run = new RunClient(channel);
         this.schedule = new ScheduleClient(channel);
         this.score = new ScoreClient(channel);
+        this.scoringrule = new ScoringRuleClient(channel);
         this.session = new SessionClient(channel);
         this.skill = newSkillClient(channel);
         this.subscription = new SubscriptionClient(channel);

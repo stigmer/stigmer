@@ -6,10 +6,13 @@
  * itself, and none for an agent of another organization. Not ready while
  * the plugins load; a plugin that cannot be read leaves the other keys
  * named. Without an organization list, an organization reference is taken
- * as the id it names.
+ * as the id it names; with one, a reference to the organization the person
+ * has open outside their list (a child its parent's admin opened) names its
+ * id too, so that organization's agents read their keys.
  */
 import { describe, it, expect, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
+import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -17,6 +20,7 @@ import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_p
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { OrgProvider, useOrg } from "../../organization/OrgProvider";
 import { useOrganizationId, usePersonalKeys } from "../usePersonalKeys";
 
 const ORG = "org_acme";
@@ -125,5 +129,49 @@ describe("usePersonalKeys", () => {
       wrapper: wrapperFor(vi.fn()),
     });
     expect(result.current).toBe("org_acme");
+  });
+});
+
+describe("usePersonalKeys in an organization opened outside the person's list", () => {
+  const CHILD_ID = "org_01jccccccccccccccccccccccc";
+  const child = { metadata: { id: CHILD_ID, slug: "acme-customer" }, spec: { parentOrg: ORG } } as Organization;
+
+  function wrapperInOpenedChild() {
+    localStorage.setItem("stigmer:activeOrg", CHILD_ID);
+    const client = {
+      plugin: { getByReference: vi.fn() },
+      organization: {
+        listMine: vi.fn(async () => ({ entries: [{ metadata: { id: ORG, slug: "acme" } }], nextPageToken: "" })),
+        get: vi.fn(async () => child),
+      },
+    } as unknown as Stigmer;
+    return function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <FetchCacheContext.Provider value={null}>
+          <StigmerContext.Provider value={client}>
+            <OrgProvider>{children}</OrgProvider>
+          </StigmerContext.Provider>
+        </FetchCacheContext.Provider>
+      );
+    };
+  }
+
+  it("names the open child's id for its slug, so its agent's keys are read", async () => {
+    const agent = create(AgentSchema, {
+      metadata: { id: "agt_2", org: CHILD_ID, slug: "support" },
+      spec: { env: { SUPPORT_TOKEN: {} } },
+    });
+    const { result } = renderHook(
+      () => ({
+        activeId: useOrg().activeOrg?.metadata?.id,
+        id: useOrganizationId("acme-customer"),
+        keys: usePersonalKeys(agent, agent.spec, "acme-customer"),
+      }),
+      { wrapper: wrapperInOpenedChild() },
+    );
+    await waitFor(() => expect(result.current.activeId).toBe(CHILD_ID));
+    expect(result.current.id).toBe(CHILD_ID);
+    await waitFor(() => expect(result.current.keys).toEqual({ keys: ["SUPPORT_TOKEN"], isReady: true }));
+    localStorage.clear();
   });
 });

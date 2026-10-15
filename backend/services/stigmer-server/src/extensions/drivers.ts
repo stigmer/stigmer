@@ -199,7 +199,7 @@ export interface ExtensionDrivers {
    * judge run acts as when the grading workflow creates it. When composed,
    * the workflow propagates the minted caller through the in-process
    * caller header; when absent, judge runs enter as the `internal` class,
-   * or as the evaluator's creator under the built-in authorization posture
+   * or as the scoring rule's creator under the built-in authorization posture
    * (bound at the compose.ts consumption site).
    */
   readonly gradingCaller?: GradingCallerMint;

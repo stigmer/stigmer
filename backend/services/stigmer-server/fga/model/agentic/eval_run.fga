@@ -11,7 +11,7 @@ module agentic
 #   spec's subject oneof; the kind's two optional parents). Every relation
 #   below reads both, and the one never written contributes nothing.
 # - The subject's editors start, cancel and delete its eval runs, as an
-#   agent's editors own its evaluator.
+#   agent's editors own its scoring rule.
 # - The subject's viewers in the subject's own organization read the eval
 #   run and, through the session link (session#eval_run), its tries. A
 #   child organization's viewer of a shared agent or plugin does not: a try

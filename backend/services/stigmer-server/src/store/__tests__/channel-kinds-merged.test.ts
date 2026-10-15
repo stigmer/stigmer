@@ -51,12 +51,12 @@ import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { canonicalTripleText } from "../../domain/grant/constants.js";
 import { derivedId } from "../../pipeline/steps/defaults.js";
 import {
-  AGENT_CHANNEL_MERGE_V36,
+  AGENT_CHANNEL_MERGE_V37,
   CHANNEL_ID_LABEL_AT_MERGE,
   CHANNEL_MERGE_SLUG_SAMPLE,
   MERGED_CHANNEL_KINDS,
   SHARE_ID_LABEL_AT_MERGE,
-  SHARE_MERGE_V36,
+  SHARE_MERGE_V37,
   assignChannelSlugs,
   convertToChannel,
   encodeChannel,
@@ -122,10 +122,10 @@ function rawRow(kindString: "AgentShare" | "AgentChannel", spec: Uint8Array, sta
 describe("the step's names are frozen literals", () => {
   it("merges agent_share and agent_channel into channel, its grants re-keyed by both", () => {
     expect(MERGED_CHANNEL_KINDS).toEqual(["agent_share", "agent_channel"]);
-    expect(SHARE_MERGE_V36.kind).toEqual(["agent_share", "channel"]);
-    expect(SHARE_MERGE_V36.kindString).toEqual(["AgentShare", "Channel"]);
-    expect(AGENT_CHANNEL_MERGE_V36.kind).toEqual(["agent_channel", "channel"]);
-    expect(AGENT_CHANNEL_MERGE_V36.kindString).toEqual(["AgentChannel", "Channel"]);
+    expect(SHARE_MERGE_V37.kind).toEqual(["agent_share", "channel"]);
+    expect(SHARE_MERGE_V37.kindString).toEqual(["AgentShare", "Channel"]);
+    expect(AGENT_CHANNEL_MERGE_V37.kind).toEqual(["agent_channel", "channel"]);
+    expect(AGENT_CHANNEL_MERGE_V37.kindString).toEqual(["AgentChannel", "Channel"]);
     expect(SHARE_ID_LABEL_AT_MERGE).toBe("stigmer.ai/share-id");
     expect(CHANNEL_ID_LABEL_AT_MERGE).toBe("stigmer.ai/channel-id");
   });

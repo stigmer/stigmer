@@ -18,7 +18,6 @@ import {
   OrgPreferencesSection,
   OrgPoliciesSection,
   OrgEmbeddingSection,
-  OrgProfileSection,
   ServiceAccountsSection,
   TeamsSection,
   UsageSection,
@@ -49,6 +48,7 @@ const RunPage = lazy(() => import("./pages/runs/RunPage"));
 const SettingsLayout = lazy(() => import("./pages/settings/SettingsLayout"));
 const SettingsLanding = lazy(() => import("./pages/settings/SettingsLanding"));
 const BillingPage = lazy(() => import("./pages/settings/BillingPage"));
+const OrgProfilePage = lazy(() => import("./pages/settings/OrgProfilePage"));
 const ModelCatalogPage = lazy(() => import("./pages/settings/ModelCatalogPage"));
 const LicensesPage = lazy(() => import("./pages/settings/LicensesPage"));
 const PlansPage = lazy(() => import("./pages/settings/PlansPage"));
@@ -262,7 +262,14 @@ const routes: RouteObject[] = [
                 element: <MembersSection serviceAccountsHref="#/settings/service-accounts" />,
               },
               { path: "teams", element: <TeamsSection /> },
-              { path: "org-profile", element: <OrgProfileSection /> },
+              {
+                path: "org-profile",
+                element: (
+                  <LazyPage>
+                    <OrgProfilePage />
+                  </LazyPage>
+                ),
+              },
               { path: "org-preferences", element: <OrgPreferencesSection /> },
               { path: "org-policies", element: <OrgPoliciesSection /> },
               {

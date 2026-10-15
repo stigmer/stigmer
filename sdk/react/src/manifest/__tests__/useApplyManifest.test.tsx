@@ -323,3 +323,66 @@ describe("useApplyManifest's org-mismatch warning, inside the person's organizat
     expect(warning).toContain('target org "acme"');
   });
 });
+
+describe("useApplyManifest's org-mismatch warning, inside an organization opened outside the person's list", () => {
+  const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
+  const CHILD_ID = "org_01jccccccccccccccccccccccc";
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    localStorage.setItem("stigmer:activeOrg", CHILD_ID);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    localStorage.clear();
+  });
+
+  function inOpenedChild() {
+    const client = {
+      ...(createMockStigmer() as object),
+      organization: {
+        listMine: vi.fn().mockResolvedValue({
+          entries: [{ metadata: { id: ACME_ID, slug: "acme", name: "Acme" } }],
+          nextPageToken: "",
+        }),
+        get: vi.fn().mockResolvedValue({
+          metadata: { id: CHILD_ID, slug: "acme-customer", name: "Customer" },
+          spec: { parentOrg: ACME_ID },
+        }),
+      },
+    };
+    return function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <StigmerContext.Provider value={client as never}>
+          <FetchCacheContext.Provider value={null}>
+            <OrgProvider>{children}</OrgProvider>
+          </FetchCacheContext.Provider>
+        </StigmerContext.Provider>
+      );
+    };
+  }
+
+  async function warningFor(documentOrg: string): Promise<string | undefined> {
+    const { result } = renderHook(() => useApplyManifest(CHILD_ID), { wrapper: inOpenedChild() });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    act(() => {
+      result.current.setContent(AGENT_YAML.replace("  name: clinic-patient-assistant\n", `  name: clinic-patient-assistant\n  org: ${documentOrg}\n`));
+    });
+    await act(settleValidation);
+    expect(result.current.entries).toHaveLength(1);
+    return result.current.entries![0].document.warning;
+  }
+
+  it("stays quiet for a document naming the open child by its slug", async () => {
+    expect(await warningFor("acme-customer")).toBeUndefined();
+  });
+
+  it("warns for a document naming another organization, and names the open child by its slug", async () => {
+    const warning = await warningFor("globex");
+    expect(warning).toContain('"globex"');
+    expect(warning).toContain('target org "acme-customer"');
+  });
+});

@@ -87,11 +87,11 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 |---|---|
 | EvalRunCommandController.create | metadata.org |
 
-## `ai.stigmer.agentic.evaluator.v1`
+## `ai.stigmer.agentic.scoringrule.v1`
 
 | Method | Fills |
 |---|---|
-| EvaluatorCommandController.create | metadata.org |
+| ScoringRuleCommandController.create | metadata.org |
 
 ## `ai.stigmer.agentic.memory.v1`
 

@@ -7,7 +7,7 @@
  * The order. Schedules go in the quiesce stage, before anything else, so
  * nothing fires while the rest is removed. The content stage then removes
  * leaves first: a run before the session it belongs to, a blueprint's
- * shares, channels and evaluator
+ * shares, channels and scoring rule
  * before the blueprint, a plugin's evals before the plugin, and the vaults and clients a run or a blueprint
  * reads last. Each kind's purge cascades what its delete chain
  * cascades, so an order that met a parent first would still converge; the
@@ -39,7 +39,7 @@ import { newChannelPurge } from "../domain/channel/purge.js";
 import { newAgentExecutionPurge } from "../domain/run/purge.js";
 import { newApiKeyPurge } from "../domain/apikey/purge.js";
 import { newChannelAppPurge } from "../domain/channelapp/purge.js";
-import { newEvaluatorPurge } from "../domain/evaluator/purge.js";
+import { newScoringRulePurge } from "../domain/scoring-rule/purge.js";
 import { newEvalRunPurge } from "../domain/eval-run/purge.js";
 import type { EvalRunWorkflows } from "../domain/eval-run/workflows.js";
 import { newMemoryPurge } from "../domain/memory/purge.js";
@@ -105,10 +105,10 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
       newScorePurge(deps),
       newAgentExecutionPurge(deps),
       newSessionPurge(deps),
-      // A blueprint's channels and evaluator before the blueprint; a
+      // A blueprint's channels and scoring rule before the blueprint; a
       // channel before the channel app it references.
       newChannelPurge(deps),
-      newEvaluatorPurge(deps),
+      newScoringRulePurge(deps),
       // Eval runs before the agents and plugins they are about; their tries
       // went with the sessions above.
       newEvalRunPurge(deps),
@@ -143,7 +143,7 @@ export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.run,
   ApiResourceKind.session,
   ApiResourceKind.channel,
-  ApiResourceKind.evaluator,
+  ApiResourceKind.scoring_rule,
   ApiResourceKind.eval_run,
   ApiResourceKind.channel_app,
   ApiResourceKind.memory,

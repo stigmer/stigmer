@@ -31,9 +31,9 @@ function renderView(plugins: readonly string[], onNavigateToRun = vi.fn()) {
       {
         agent: { getByReference: vi.fn(async () => agent), update: vi.fn() },
         evalrun: { listByAgent, get: vi.fn(async () => latest) },
-        evaluator: {
+        scoringrule: {
           getByAgent: vi.fn(async () => {
-            throw new StigmerError("not-found", "no evaluator", Code.NotFound);
+            throw new StigmerError("not-found", "no scoring rule", Code.NotFound);
           }),
         },
         plugin: { getByReference: vi.fn(async () => undefined) },

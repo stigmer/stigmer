@@ -126,6 +126,7 @@ import {
   KIND_RENAME_PAGE_SIZE,
   KIND_RENAME_GRANT_KIND,
   GRANT_RENAME_V34,
+  SCORING_RULE_RENAME_V36,
   RUN_RENAME_V18,
   RUN_RENAME_V21,
   movedGrant,
@@ -289,11 +290,14 @@ export const SCHEMA_VERSION_38 = 38;
 /** v39: the plugin eval and agent eval rows removed, with every grant naming one, and their tries relabelled. */
 export const SCHEMA_VERSION_39 = 39;
 
-/** v40: the agent share and agent channel kinds merged into the channel kind: rows, names, grants, history, conversations. */
+/** v40: the evaluator is a scoring rule: its names. */
 export const SCHEMA_VERSION_40 = 40;
 
+/** v41: the agent share and agent channel kinds merged into the channel kind: rows, names, grants, history, conversations. */
+export const SCHEMA_VERSION_41 = 41;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_40;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_41;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -358,7 +362,8 @@ export function runMigrations(
     [SCHEMA_VERSION_37, migrateToV37],
     [SCHEMA_VERSION_38, migrateToV38],
     [SCHEMA_VERSION_39, migrateToV39],
-    [SCHEMA_VERSION_40, (migrating) => migrateToV40(migrating, logger)],
+    [SCHEMA_VERSION_40, migrateToV40],
+    [SCHEMA_VERSION_41, (migrating) => migrateToV41(migrating, logger)],
   ];
 
   for (const [version, migrate] of chain) {
@@ -2227,8 +2232,19 @@ function migrateToV39(db: DatabaseSync): void {
 }
 
 /**
- * v40: the agent share and agent channel kinds merge into the channel
- * kind; the Postgres driver's v36 in this engine's terms
+ * v40: the evaluator is a scoring rule — the Postgres driver's v36 in this
+ * engine's terms: the v18 transformation (`renameKind`) with this step's
+ * frozen names (`SCORING_RULE_RENAME_V36`). Runs inside
+ * applyInTransaction's BEGIN, so a throw rolls the whole step back and the
+ * boot stops on the row it names.
+ */
+function migrateToV40(db: DatabaseSync): void {
+  renameKind(db, SCORING_RULE_RENAME_V36);
+}
+
+/**
+ * v41: the agent share and agent channel kinds merge into the channel
+ * kind; the Postgres driver's v37 in this engine's terms
  * (../channel-kinds-merged.ts says what one row becomes, which row keeps a
  * slug two held, and why an unreadable row fails the step).
  *
@@ -2250,7 +2266,7 @@ function migrateToV39(db: DatabaseSync): void {
  * sample. Runs inside applyInTransaction's BEGIN, so a throw rolls the
  * whole step back and the boot stops on the row it names.
  */
-function migrateToV40(db: DatabaseSync, logger: StoreLogger): void {
+function migrateToV41(db: DatabaseSync, logger: StoreLogger): void {
   const [shareKind, agentChannelKind] = MERGED_CHANNEL_KINDS;
   const audit = db
     .prepare(`SELECT kind, resource_id FROM resource_audit WHERE kind IN (?, ?) ORDER BY kind, resource_id LIMIT 1`)

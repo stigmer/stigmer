@@ -81,13 +81,18 @@
  * grant whose id is not its triple's fails the step, naming it, and leaves
  * the database at v37. A grant held before v34 reaches the head carrying
  * its etag.
- * v40 merges the agent share and agent channel kinds into the channel kind
+ * v40 renames the evaluator kind to scoring rule, the Postgres driver's v36
+ * in this engine's terms: its row, audit, list key and name take the
+ * kind's new name, its bytes the new kind string with its id, settings and
+ * spend kept, and every other kind's row keeps its bytes; a row it cannot
+ * decode fails the step, naming it, and leaves the database at v39.
+ * v41 merges the agent share and agent channel kinds into the channel kind
  * (../../channel-kinds-merged.ts): every row converted under its old id
  * across keyset pages, a slug two rows held kept by the older, the names
  * claimed under channel, every grant re-keyed and its history moved across
  * keyset pages, a guest conversation relabelled; a row, grant, history
  * entry or conversation it cannot read, an archived version or a previous
- * name fails the step, naming it, and leaves the database at v39.
+ * name fails the step, naming it, and leaves the database at v40.
  * A schema written by a newer release is refused before any migration or
  * list-index reconciliation, with the failed store's connection closed.
  */
@@ -109,6 +114,7 @@ import {
   RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -150,6 +156,7 @@ import {
   SCHEMA_VERSION_38,
   SCHEMA_VERSION_39,
   SCHEMA_VERSION_40,
+  SCHEMA_VERSION_41,
   SCHEMA_VERSION_7,
   getSchemaVersion,
   runMigrations,
@@ -3954,8 +3961,81 @@ describe("v39: the plugin eval and agent eval rows and the grants naming them le
   });
 });
 
-describe("v40: the agent share and agent channel kinds merge into the channel kind", () => {
-  const MERGE_VERSION = SCHEMA_VERSION_40;
+describe("v40: the evaluator is a scoring rule", () => {
+  const ORG = "org_01jz0000000000000000000000";
+  const SEEDED_AT = "2026-10-15 00:00:00";
+
+  /** A v39 database: the chain replayed up to the step before v40. */
+  function v39Database(): { dbPath: string; db: DatabaseSync } {
+    const dbPath = tempDbPath();
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_39);
+    return { dbPath, db };
+  }
+
+  /** An evaluator as a release before v40 stored it: its kind string, an evl_ id, its settings and this month's spend. */
+  const stored = () =>
+    create(ScoringRuleSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Evaluator",
+      metadata: { id: "evl_1", org: ORG, name: "evl_1", slug: "evl_1" },
+      spec: { agentId: "agt_1", enabled: true, sampleRate: 0.25, monthlyLimitUsd: 12, modelName: "claude-sonnet-4-6" },
+      status: { period: "2026-10", spentUsd: 1.5, reservedUsd: 0.25, graded: 7, notGraded: 1, lastNotGradedReason: "spending limit reached" },
+    });
+
+  function seed(db: DatabaseSync, id: string, data: Uint8Array): void {
+    db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('evaluator', ?, ?, ?)`).run(id, data, SEEDED_AT);
+    db.prepare(`INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('evaluator', ?, ?, '', '')`).run(
+      id,
+      new Uint8Array([0x00]),
+    );
+    db.prepare(`INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('evaluator', ?, 'agent', 'agt_1', '')`).run(id);
+    db.prepare(
+      `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ('evaluator', ?, ?, ?, 'current', ?)`,
+    ).run(ORG, id, id, SEEDED_AT);
+  }
+
+  it("moves the kind's rows to its new name in every table, its bytes to the new kind string, with its id, settings and spend kept", () => {
+    const { db } = v39Database();
+    seed(db, "evl_1", toBinary(ScoringRuleSchema, stored()));
+    const agent = toBinary(AgentSchema, create(AgentSchema, { kind: "Agent", metadata: { id: "agt_1", org: ORG } }));
+    db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('agent', 'agt_1', ?, ?)`).run(agent, SEEDED_AT);
+
+    runMigrations(db, SCHEMA_VERSION_40);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_40);
+
+    for (const [table, column] of [
+      ["resources", "id"],
+      ["resource_audit", "resource_id"],
+      ["resource_list_keys", "id"],
+      ["resource_names", "id"],
+    ] as const) {
+      expect(db.prepare(`SELECT kind FROM ${table} WHERE ${column} = 'evl_1'`).all()).toEqual([{ kind: "scoring_rule" }]);
+    }
+    const row = db.prepare(`SELECT data, updated_at FROM resources WHERE kind = 'scoring_rule' AND id = 'evl_1'`).get() as {
+      data: Uint8Array;
+      updated_at: string;
+    };
+    const expected = stored();
+    expected.kind = "ScoringRule";
+    expect(fromBinary(ScoringRuleSchema, new Uint8Array(row.data))).toEqual(expected);
+    expect(row.updated_at).toBe(SEEDED_AT);
+    expect(new Uint8Array((db.prepare(`SELECT data FROM resources WHERE kind = 'agent'`).get() as { data: Uint8Array }).data)).toEqual(agent);
+  });
+
+  it("an evaluator that does not decode fails the step, names the row, and leaves the database at v39", () => {
+    const { db } = v39Database();
+    seed(db, "evl_broken", new Uint8Array([0xff, 0xff, 0xff]));
+    expect(() => runMigrations(db, SCHEMA_VERSION_40)).toThrow(/evl_broken/);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_39);
+    expect(db.prepare(`SELECT kind FROM resources WHERE id = 'evl_broken'`).all()).toEqual([{ kind: "evaluator" }]);
+  });
+});
+
+
+describe("v41: the agent share and agent channel kinds merge into the channel kind", () => {
+  const MERGE_VERSION = SCHEMA_VERSION_41;
   const SEEDED_AT = "2026-10-15 00:00:00";
   const SHARE_LABEL = "stigmer.ai/share-id";
   const CHANNEL_LABEL = "stigmer.ai/channel-id";
@@ -3966,12 +4046,12 @@ describe("v40: the agent share and agent channel kinds merge into the channel ki
   const older = new Date("2026-01-01T00:00:00Z");
   const newer = new Date("2026-02-01T00:00:00Z");
 
-  /** A v39 database: the chain replayed up to the step before the merge. */
-  function v39Database(): { dbPath: string; db: DatabaseSync } {
+  /** A v40 database: the chain replayed up to the step before the merge. */
+  function v40Database(): { dbPath: string; db: DatabaseSync } {
     const dbPath = tempDbPath();
     const setup = new DatabaseSync(dbPath);
-    runMigrations(setup, SCHEMA_VERSION_39);
-    expect(getSchemaVersion(setup)).toBe(SCHEMA_VERSION_39);
+    runMigrations(setup, SCHEMA_VERSION_40);
+    expect(getSchemaVersion(setup)).toBe(SCHEMA_VERSION_40);
     return { dbPath, db: setup };
   }
 
@@ -4121,7 +4201,7 @@ describe("v40: the agent share and agent channel kinds merge into the channel ki
   }
 
   it("converts every share and agent channel to a channel under its old id, keeping every field but the two it drops", () => {
-    const { dbPath, db: setup } = v39Database();
+    const { dbPath, db: setup } = v40Database();
     seedEveryShape(setup);
     const slackSession = dataOf(setup, "session", "ses_slack");
     setup.close();
@@ -4174,7 +4254,7 @@ describe("v40: the agent share and agent channel kinds merge into the channel ki
   });
 
   it("gives a slug a share and a channel shared to the older row, and the other `<slug>-<type>`, with the names claimed under channel", () => {
-    const { dbPath, db: setup } = v39Database();
+    const { dbPath, db: setup } = v40Database();
     seedEveryShape(setup);
     setup.close();
 
@@ -4197,7 +4277,7 @@ describe("v40: the agent share and agent channel kinds merge into the channel ki
   });
 
   it("re-keys every grant on either kind to the channel's triple, and moves its history", () => {
-    const { dbPath, db: setup } = v39Database();
+    const { dbPath, db: setup } = v40Database();
     seedEveryShape(setup);
     setup.close();
 
@@ -4221,7 +4301,7 @@ describe("v40: the agent share and agent channel kinds merge into the channel ki
   });
 
   it("relabels a chat link's guest conversation with the channel id, and the store finds it and the channels by their keys at open", async () => {
-    const { dbPath, db: setup } = v39Database();
+    const { dbPath, db: setup } = v40Database();
     seedEveryShape(setup);
     setup.close();
 
@@ -4247,7 +4327,7 @@ describe("v40: the agent share and agent channel kinds merge into the channel ki
   });
 
   it("reads rows across keyset pages, converting the share past the first page", () => {
-    const { dbPath, db: setup } = v39Database();
+    const { dbPath, db: setup } = v40Database();
     setup.exec("BEGIN");
     for (let i = 0; i <= CHANNEL_MERGE_PAGE_SIZE; i++) {
       const id = `ash_page_${String(i).padStart(4, "0")}`;
@@ -4263,20 +4343,20 @@ describe("v40: the agent share and agent channel kinds merge into the channel ki
     expect(count(db, "resources", "agent_share")).toBe(0);
   });
 
-  it("a row holding a field the merge does not know fails the step, names the row, and leaves the database at v39", () => {
-    const { dbPath, db: setup } = v39Database();
+  it("a row holding a field the merge does not know fails the step, names the row, and leaves the database at v40", () => {
+    const { dbPath, db: setup } = v40Database();
     insert(setup, "agent_share", "ash_odd", shareRowBytes({ id: "ash_odd", slug: "odd", agentRef: AGENT, unknownSpecField: 40 }));
     setup.close();
 
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
     expect(() => runMigrations(db, MERGE_VERSION)).toThrow("agent_share 'ash_odd' cannot be read to merge");
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_39);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_40);
     expect(count(db, "resources", "agent_share")).toBe(1);
   });
 
   it("moves grant history entries across keyset pages, re-keying the entry past the first page", () => {
-    const { dbPath, db: setup } = v39Database();
+    const { dbPath, db: setup } = v40Database();
     const onShare = { principal: "identity_account:ida_viewer", relation: "viewer", resource: "agent_share:ash_public" };
     const entry = setup.prepare(
       `INSERT INTO grant_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, grant_id,
@@ -4300,19 +4380,19 @@ describe("v40: the agent share and agent channel kinds merge into the channel ki
     expect(kinds).toEqual([{ resource_kind: "channel", grant_id: grantIdAfterV34(moved), n: CHANNEL_MERGE_PAGE_SIZE + 1 }]);
   });
 
-  it("a grant that does not decode fails the step, names the row, and leaves the database at v39", () => {
-    const { dbPath, db: setup } = v39Database();
+  it("a grant that does not decode fails the step, names the row, and leaves the database at v40", () => {
+    const { dbPath, db: setup } = v40Database();
     insert(setup, "grant", "grt_undecodable", new Uint8Array([0x22, 0xff]));
     setup.close();
 
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
     expect(() => runMigrations(db, MERGE_VERSION)).toThrow("grant 'grt_undecodable' cannot be read to merge");
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_39);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_40);
   });
 
-  it("a grant history entry on a merged kind that does not decode fails the step, names the entry, and leaves the database at v39", () => {
-    const { dbPath, db: setup } = v39Database();
+  it("a grant history entry on a merged kind that does not decode fails the step, names the entry, and leaves the database at v40", () => {
+    const { dbPath, db: setup } = v40Database();
     setup
       .prepare(
         `INSERT INTO grant_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, grant_id,
@@ -4325,22 +4405,22 @@ describe("v40: the agent share and agent channel kinds merge into the channel ki
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
     expect(() => runMigrations(db, MERGE_VERSION)).toThrow(`grant_history '${MERGE_ORG}/7' cannot be read to merge`);
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_39);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_40);
   });
 
-  it("a conversation that does not decode fails the step, names the row, and leaves the database at v39", () => {
-    const { dbPath, db: setup } = v39Database();
+  it("a conversation that does not decode fails the step, names the row, and leaves the database at v40", () => {
+    const { dbPath, db: setup } = v40Database();
     insert(setup, "session", "ses_undecodable", new Uint8Array([0x22, 0xff]));
     setup.close();
 
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
     expect(() => runMigrations(db, MERGE_VERSION)).toThrow("session 'ses_undecodable' cannot be read to merge");
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_39);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_40);
   });
 
-  it("an archived version of a merged kind fails the step, names it, and leaves the database at v39", () => {
-    const { dbPath, db: setup } = v39Database();
+  it("an archived version of a merged kind fails the step, names it, and leaves the database at v40", () => {
+    const { dbPath, db: setup } = v40Database();
     insert(setup, "agent_channel", "ach_one", agentChannelRowBytes({ id: "ach_one", slug: "one", agentRef: AGENT, provider: "slack" }));
     setup
       .prepare(`INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('agent_channel', 'ach_one', ?, '', '')`)
@@ -4350,11 +4430,11 @@ describe("v40: the agent share and agent channel kinds merge into the channel ki
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
     expect(() => runMigrations(db, MERGE_VERSION)).toThrow("agent_channel 'ach_one' has an archived version");
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_39);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_40);
   });
 
-  it("a previous name of a merged kind fails the step, names it, and leaves the database at v39", () => {
-    const { dbPath, db: setup } = v39Database();
+  it("a previous name of a merged kind fails the step, names it, and leaves the database at v40", () => {
+    const { dbPath, db: setup } = v40Database();
     setup
       .prepare(
         `INSERT INTO resource_names (kind, org, name, id, state, claimed_at, expires_at) VALUES ('agent_share', ?, 'old', 'ash_gone', 'previous', '2026-01-01T00:00:00Z', '2026-12-01T00:00:00Z')`,
@@ -4365,7 +4445,7 @@ describe("v40: the agent share and agent channel kinds merge into the channel ki
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
     expect(() => runMigrations(db, MERGE_VERSION)).toThrow(`agent_share name '${MERGE_ORG}/old' is a previous name`);
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_39);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_40);
   });
 
   it("replays every frozen step over a share from before the slug ledger, its slug-only references rewritten to ids, then converts it", () => {

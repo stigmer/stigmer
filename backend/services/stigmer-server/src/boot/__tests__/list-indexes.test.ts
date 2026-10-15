@@ -53,9 +53,9 @@ const PINNED: Readonly<
     fingerprint:
       "score{agent=field:status.agent_id,eval_run=label:stigmer.ai/eval-run,run=field:spec.run_id,session=field:spec.session_id}",
   },
-  evaluator: {
+  scoring_rule: {
     revision: 1,
-    fingerprint: "evaluator{agent=field:spec.agent_id}",
+    fingerprint: "scoring_rule{agent=field:spec.agent_id}",
   },
   eval: { revision: 1, fingerprint: "eval{}" },
   eval_run: {
@@ -81,7 +81,7 @@ const PINNED: Readonly<
     fingerprint: "schedule{agent=field:spec.agent.agent_ref.id}",
   },
   // The agent share and the agent channel merged into the channel (SQLite
-  // v40, Postgres v36) with the key both declared, so the merged kind
+  // v41, Postgres v37) with the key both declared, so the merged kind
   // starts at revision 1.
   channel: {
     revision: 1,

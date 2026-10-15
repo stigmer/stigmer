@@ -12,7 +12,6 @@ type Client struct {
 	ChannelApp       *ChannelAppClient
 	Eval             *EvalClient
 	EvalRun          *EvalRunClient
-	Evaluator        *EvaluatorClient
 	FederationIssuer *FederationIssuerClient
 	Grant            *GrantClient
 	IdentityAccount  *IdentityAccountClient
@@ -27,6 +26,7 @@ type Client struct {
 	Run              *RunClient
 	Schedule         *ScheduleClient
 	Score            *ScoreClient
+	ScoringRule      *ScoringRuleClient
 	Session          *SessionClient
 	Skill            *SkillClient
 	Subscription     *SubscriptionClient
@@ -43,7 +43,6 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		ChannelApp:       NewChannelAppClient(conn),
 		Eval:             NewEvalClient(conn),
 		EvalRun:          NewEvalRunClient(conn),
-		Evaluator:        NewEvaluatorClient(conn),
 		FederationIssuer: NewFederationIssuerClient(conn),
 		Grant:            NewGrantClient(conn),
 		IdentityAccount:  NewIdentityAccountClient(conn),
@@ -58,6 +57,7 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		Run:              NewRunClient(conn),
 		Schedule:         NewScheduleClient(conn),
 		Score:            NewScoreClient(conn),
+		ScoringRule:      NewScoringRuleClient(conn),
 		Session:          NewSessionClient(conn),
 		Skill:            NewSkillClient(conn),
 		Subscription:     NewSubscriptionClient(conn),

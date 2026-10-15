@@ -1475,35 +1475,39 @@ per Agent version. The top of the Agent's Quality tab.
 
 ---
 
-#### Evaluator
+#### Scoring Rule
 
 AI grading switched on for one Agent: how many of its runs an AI judge grades,
 the monthly spending limit, and the judge's model.
 
 - **Capitalize**: As the resource name in labels and reference pages
-  (`kind: Evaluator`). In prose say "AI grading" for what it does; "evaluator"
-  in lower case for the setting itself.
-- **API surface**: `kind: Evaluator`, prefix `evl`. proto:
-  `agentic/evaluator/v1/spec.proto`. Set in the Agent's Quality tab in the
-  console; there is no `apply` and no manifest, so an Agent's YAML never carries
-  grading criteria. CLI:
+  (`kind: ScoringRule`, display name "Scoring Rule"). In prose say "AI grading"
+  for what it does; "scoring rule" in lower case for the setting itself.
+- **API surface**: `kind: ScoringRule`, prefix `srl` (ids minted while it was
+  named Evaluator keep `evl`). proto: `agentic/scoringrule/v1/spec.proto`. Set
+  in the Agent's Quality tab in the console; there is no `apply` and no
+  manifest, so an Agent's YAML never carries grading criteria. CLI:
 
   ```bash
-  stigmer get evaluator <id>
-  stigmer delete evaluator <id>
+  stigmer get scoring-rule <id>
+  stigmer delete scoring-rule <id>
   ```
 
 - **Key fields**: `agent_id`, `enabled`, `sample_rate` (0 to 1: 0.1 grades one
   run in ten), `monthly_limit_usd` (estimated model spend per UTC month),
   `model_name`, and the status's `spent_usd`, `reserved_usd`, `graded`,
   `not_graded` and `last_not_graded_reason` for the current month.
-- **Boundaries**: an Evaluator configures grading; the grades themselves are
+- **Boundaries**: a scoring rule configures grading; the grades themselves are
   Scores on each run. The rubrics are Stigmer's, the same in every Organization:
   `did-the-task`, `made-nothing-up`, `acted-only-as-asked` and
-  `asked-when-unclear`.
-- **Note**: the name is Langfuse's word for an LLM judge configured to run on
-  live data. Access is the Agent's: whoever may edit the Agent configures its
-  grading, whoever may view it sees the settings.
+  `asked-when-unclear`. A Score's `evaluator_version` is the version of the
+  checks or rubrics that gave it, on every kind of score, not this resource.
+- **Note**: other products call one judge an evaluator and the setting that
+  turns judges on for live traffic a rule; this is that rule, with Stigmer's
+  four judges, and beside Eval and Eval Run the name does not read as the thing
+  that runs evals. It was named Evaluator until then. Access is the Agent's:
+  whoever may edit the Agent configures its grading, whoever may view it sees
+  the settings.
 
 ---
 
@@ -1576,8 +1580,8 @@ compare side by side.
   (whether the Agent attaches it, whether it is compared, the version its tries
   ran, its cases' results), one block per eval it runs (the version its tries
   ran, its cases' results), `aggregates` and `cost_usd`.
-- **Boundaries**: an eval run measures an Agent or a plugin on test cases; an
-  Evaluator grades an Agent's live runs. The criteria live in the plugins'
+- **Boundaries**: an eval run measures an Agent or a plugin on test cases; a
+  scoring rule grades an Agent's live runs. The criteria live in the plugins'
   `evals/` folders or in evals, in Claude Code's plugin-eval format, never in an
   Agent's YAML.
 - **Note**: the editors of its Agent or plugin start, cancel and delete it, and

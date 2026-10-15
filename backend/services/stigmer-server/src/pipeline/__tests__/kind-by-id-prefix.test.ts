@@ -13,8 +13,9 @@
  *     prefix followed by an underscore is the unknown kind.
  *   - A RETIRED prefix still names its kind. Ids are identities and are
  *     never rewritten, so a run minted as `aex_…` before the kind's
- *     prefix became `run` is still a run; a pre-upgrade run waiting on an
- *     approval keeps its credential. A derived id is the one exception to
+ *     prefix became `run` is still a run (a pre-upgrade run waiting on an
+ *     approval keeps its credential), and a scoring rule minted as `evl_…`
+ *     while the kind was named Evaluator is still a scoring rule. A derived id is the one exception to
  *     "never rewritten": a grant's id is its triple's, so the kind's rename
  *     moved stored `iamp_…` ids to `grt_…`; `iamp` stays listed so the
  *     prefix stays reserved and an id held outside the store still names
@@ -49,6 +50,8 @@ describe("kindByIdPrefix — a minted id names its kind by prefix", () => {
     ["chn_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.channel],
     ["ash_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.channel],
     ["ach_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.channel],
+    ["srl_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.scoring_rule],
+    ["evl_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.scoring_rule],
     ["ses_x", ApiResourceKind.session],
     ["ida_carol", ApiResourceKind.identity_account],
   ])("%s is %s", (id, kind) => {

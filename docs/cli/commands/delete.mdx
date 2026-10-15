@@ -51,10 +51,10 @@ stigmer delete agent my-agent --force
 | Channel      | `channel`, `chn`                       | Tears the channel down: its chat link stops working, or its Slack workspace or WhatsApp number stops serving the agent            |
 | Channel App  | `channel-app`, `channelapp`, `chapp`   | Permanently deletes the app and its stored provider secrets                                                                       |
 | Eval Run     | `eval-run`, `evr`, `eval-runs`         | Deletes the eval run with its tries' conversations, runs and scores; a pending or running eval run is refused, so cancel it first |
-| Evaluator    | `evaluator`, `evl`, `evaluators`       | Switches AI grading off for its agent; scores already recorded stay on their runs                                                 |
 | Organization | `organization`, `org`, `organizations` | Deletes the organization at once and everything it owned in the background; its slug is free when that finishes                   |
 | Run          | `run`, `runs`                          | Gracefully cancels a run in progress                                                                                              |
 | Schedule     | `schedule`, `sch`, `schedules`         | Permanently deletes the schedule and tears down its firing clock                                                                  |
+| Scoring Rule | `scoring-rule`, `srl`, `scoring-rules` | Switches AI grading off for its agent; scores already recorded stay on their runs                                                 |
 | Skill        | `skill`, `skills`                      | Permanently deletes the skill                                                                                                     |
 | Vault        | `vault`, `vlt`, `vaults`               | Permanently deletes the vault and every value it holds; runs that name it are refused until they name another                     |
 

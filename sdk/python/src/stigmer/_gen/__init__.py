@@ -8,7 +8,6 @@ from ._channel import ChannelClient, ChannelInput, WebChannelConfigInput, WebCha
 from ._channelapp import ChannelAppClient, ChannelAppInput, SlackChannelAppConfigInput, WhatsAppChannelAppConfigInput
 from ._eval import EvalClient, EvalInput
 from ._evalrun import EvalRunClient, EvalRunInput, EvalRunCaseSourceInput, EvalRunTargetInput
-from ._evaluator import EvaluatorClient, EvaluatorInput
 from ._federationissuer import FederationIssuerClient, FederationIssuerInput
 from ._grant import GrantClient, GrantInput, ApiResourceRefInput
 from ._identityaccount import IdentityAccountClient, IdentityAccountInput, IdentityAccountPreferencesInput
@@ -23,6 +22,7 @@ from ._providerkey import ProviderKeyClient
 from ._run import RunClient, RunInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, AttachmentInput, ConversationCatchupInput, EvalCaseContextInput, EvalMockServerInput, EvalMockToolInput, EvalMockPluginHomeInput, EvalMockAgentHomeInput
 from ._schedule import ScheduleClient, ScheduleInput, AgentInvocationInput
 from ._score import ScoreClient, ScoreInput, ScoreCriterionInput
+from ._scoringrule import ScoringRuleClient, ScoringRuleInput
 from ._session import SessionClient, SessionInput
 from ._skill import SkillClient, SkillInput
 from ._subscription import SubscriptionClient, SubscriptionInput
@@ -72,8 +72,6 @@ __all__ = [
     "EvalRunInput",
     "EvalRunCaseSourceInput",
     "EvalRunTargetInput",
-    "EvaluatorClient",
-    "EvaluatorInput",
     "FederationIssuerClient",
     "FederationIssuerInput",
     "GrantClient",
@@ -126,6 +124,8 @@ __all__ = [
     "ScoreClient",
     "ScoreInput",
     "ScoreCriterionInput",
+    "ScoringRuleClient",
+    "ScoringRuleInput",
     "SessionClient",
     "SessionInput",
     "SkillClient",

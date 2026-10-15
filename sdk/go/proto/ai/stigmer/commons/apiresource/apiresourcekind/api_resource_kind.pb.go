@@ -256,7 +256,7 @@ const (
 	ApiResourceKind_score ApiResourceKind = 61
 	// AI grading switched on for one agent: its sample rate, monthly spending
 	// limit and judge model.
-	ApiResourceKind_evaluator ApiResourceKind = 62
+	ApiResourceKind_scoring_rule ApiResourceKind = 62
 	// One run of test cases on an agent, or on a plugin on the built-in
 	// assistant, optionally with and without a plugin.
 	ApiResourceKind_eval_run ApiResourceKind = 65
@@ -310,7 +310,7 @@ var (
 		58: "plugin",
 		59: "vault",
 		61: "score",
-		62: "evaluator",
+		62: "scoring_rule",
 		65: "eval_run",
 		66: "eval",
 		70: "plan",
@@ -340,7 +340,7 @@ var (
 		"plugin":                    58,
 		"vault":                     59,
 		"score":                     61,
-		"evaluator":                 62,
+		"scoring_rule":              62,
 		"eval_run":                  65,
 		"eval":                      66,
 		"plan":                      70,
@@ -555,7 +555,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"enterprise\x10\x03*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xa7 \n" +
+	"\astigmer\x10\x01*\xb4 \n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x126\n" +
@@ -589,9 +589,9 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x10identity_account\x12\x06person\x1a\x06person \x01\" \n" +
 	"\forganization\x12\torg_owned\x1a\x03org \x01*\x02\x18\x01:\x01\aB\x01\aJ5\b\a\x121Use this vault's logins and secrets in their runs\x12D\n" +
 	"\x05score\x10=\x1a9\xaa\xff+5\b\x01\x10\x01\x1a\x05Score\"\x05Score*\x03scr8\x01@\x01J\x18\b\x03\x10\x01\x1a\x12\n" +
-	"\x03run\x12\x03run\x1a\x06run_id\x12V\n" +
-	"\tevaluator\x10>\x1aG\xaa\xff+C\b\x01\x10\x01\x1a\tEvaluator\"\tEvaluator*\x03evl8\x01@\x01J\x1e\b\x03\x10\x04\x1a\x18\n" +
-	"\x05agent\x12\x05agent\x1a\bagent_id\x12s\n" +
+	"\x03run\x12\x03run\x1a\x06run_id\x12c\n" +
+	"\fscoring_rule\x10>\x1aQ\xaa\xff+M\b\x01\x10\x01\x1a\vScoringRule\"\fScoring Rule*\x03srl8\x01@\x01J\x1e\b\x03\x10\x04\x1a\x18\n" +
+	"\x05agent\x12\x05agent\x1a\bagent_idR\x03evl\x12s\n" +
 	"\beval_run\x10A\x1ae\xaa\xff+a\b\x01\x10\x01\x1a\aEvalRun\"\bEval Run*\x03evr8\x01@\x01J?\b\x02\x10\x04\"\x1a\n" +
 	"\x05agent\x12\x05agent\x1a\bagent_id \x01\"\x1d\n" +
 	"\x06plugin\x12\x06plugin\x1a\tplugin_id \x01\x12\xd2\x01\n" +

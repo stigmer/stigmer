@@ -2,7 +2,7 @@
  * The one data migration both store drivers run when the AgentShare and
  * AgentChannel kinds become one Channel kind (agentic/channel/v1), whose
  * type says how people reach the agent: a share is a web channel, an agent
- * channel a Slack or WhatsApp one. Postgres v36 and SQLite v40. The drivers
+ * channel a Slack or WhatsApp one. Postgres v37 and SQLite v41. The drivers
  * own the SQL (which rows to read, in what pages, how to write and delete
  * them, the transaction); this module owns what is driver-neutral: what one
  * row becomes, which row keeps a slug two rows held, which grant and which
@@ -141,7 +141,7 @@ export const CHANNEL_MERGE_PAGE_SIZE = 500;
 export const CHANNEL_MERGE_SLUG_SAMPLE = 10;
 
 /** The share's half of the merge, as the grant re-key reads it (kind-rename.ts). */
-export const SHARE_MERGE_V36: KindRename = {
+export const SHARE_MERGE_V37: KindRename = {
   kind: [SHARE_KIND_AT_MERGE, CHANNEL_KIND_AT_MERGE],
   kindString: ["AgentShare", "Channel"],
   schema: FrozenAgentShareSchema,
@@ -149,7 +149,7 @@ export const SHARE_MERGE_V36: KindRename = {
 };
 
 /** The agent channel's half of the merge, as the grant re-key reads it (kind-rename.ts). */
-export const AGENT_CHANNEL_MERGE_V36: KindRename = {
+export const AGENT_CHANNEL_MERGE_V37: KindRename = {
   kind: [AGENT_CHANNEL_KIND_AT_MERGE, CHANNEL_KIND_AT_MERGE],
   kindString: ["AgentChannel", "Channel"],
   schema: FrozenAgentChannelSchema,
@@ -325,8 +325,8 @@ export function relabelChannelSessionRow(kindName: string, data: Uint8Array): Ui
  */
 export function rekeyedChannelGrant(data: Uint8Array): RekeyedGrant | undefined {
   return (
-    rekeyedGrant(SHARE_MERGE_V36, data, GRANT_ID_PREFIX_V34) ??
-    rekeyedGrant(AGENT_CHANNEL_MERGE_V36, data, GRANT_ID_PREFIX_V34)
+    rekeyedGrant(SHARE_MERGE_V37, data, GRANT_ID_PREFIX_V34) ??
+    rekeyedGrant(AGENT_CHANNEL_MERGE_V37, data, GRANT_ID_PREFIX_V34)
   );
 }
 

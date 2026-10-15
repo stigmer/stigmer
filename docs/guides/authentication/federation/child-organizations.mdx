@@ -278,8 +278,12 @@ System.out.println("Found: " + child.getMetadata().getSlug() + " (" + child.getM
 
 `listChildOrgs` pages through all of your Organization's children, newest first
 (`pageSize` up to 100; pass the response's `nextPageToken` as `pageToken` to
-continue). The console shows the same list, read-only, on your Organization's
-profile page.
+continue). The console shows the same list on your Organization's profile page,
+with an **Open** action on each child. As your Organization's admin you are an
+admin in every child, so Open switches the console into that child: it stays
+open across reloads and appears in the console's Organization menu, marked as a
+child of your Organization, until you choose another Organization there. The
+menu lists only the Organizations you belong to, plus the child you have open.
 
 ## Route your customers' sign-ins
 

@@ -21,6 +21,9 @@
  *     history entry's copy of it moves from its `iamp_` id to the `grt_`
  *     id with the same hash; one already moved is left alone, and one whose
  *     id is not its triple's, or that holds no triple, throws;
+ *   - at v36, an evaluator's kind string becomes `ScoringRule`, keeping
+ *     its evl_ id, settings and spend, and the fetched row passes the
+ *     contract's validation;
  *   - a step after v34 (the channel merge) re-keys a grant under the
  *     `grt_` prefix it names, the same hash the default `iamp_` re-key
  *     derives.
@@ -30,6 +33,7 @@ import { createValidator } from "@bufbuild/protovalidate";
 import { describe, expect, it } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 
@@ -41,6 +45,7 @@ import {
   GRANT_RENAME_V34,
   RUN_RENAME_V18,
   RUN_RENAME_V21,
+  SCORING_RULE_RENAME_V36,
   movedGrant,
   rekeyedGrant,
   renamedKindRow,
@@ -65,6 +70,41 @@ describe("each step's names are frozen literals", () => {
   it("v30 renamed the identity provider to a federation issuer", () => {
     expect(FEDERATION_ISSUER_RENAME_V30.kind).toEqual(["identity_provider", "federation_issuer"]);
     expect(FEDERATION_ISSUER_RENAME_V30.kindString).toEqual(["IdentityProvider", "FederationIssuer"]);
+  });
+
+  it("v36 renamed the evaluator to a scoring rule", () => {
+    expect(SCORING_RULE_RENAME_V36.kind).toEqual(["evaluator", "scoring_rule"]);
+    expect(SCORING_RULE_RENAME_V36.kindString).toEqual(["Evaluator", "ScoringRule"]);
+  });
+});
+
+describe("v36: the evaluator is a scoring rule", () => {
+  const ruleBytes = (kind: string) =>
+    toBinary(
+      ScoringRuleSchema,
+      create(ScoringRuleSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind,
+        metadata: { id: "evl_1", org: "acme", name: "evl_1" },
+        spec: { agentId: "agt_1", enabled: true, sampleRate: 0.5, monthlyLimitUsd: 10 },
+        status: { period: "2026-10", spentUsd: 2.5, graded: 3 },
+      }),
+    );
+
+  it("rewrites an evaluator's kind string and keeps its evl_ id, settings and spend", () => {
+    const migrated = renamedKindRow(SCORING_RULE_RENAME_V36, ruleBytes("Evaluator"));
+    expect(migrated).toEqual(ruleBytes("ScoringRule"));
+    const rule = fromBinary(ScoringRuleSchema, migrated!);
+    expect([rule.metadata?.id, rule.spec?.sampleRate, rule.status?.spentUsd]).toEqual(["evl_1", 0.5, 2.5]);
+    expect(renamedKindRow(SCORING_RULE_RENAME_V36, ruleBytes("ScoringRule"))).toBeUndefined();
+  });
+
+  it("a fetched scoring rule passes the contract's own validation, so it can be sent back through update", () => {
+    const rule = fromBinary(ScoringRuleSchema, renamedKindRow(SCORING_RULE_RENAME_V36, ruleBytes("Evaluator"))!);
+    const kindViolations = createValidator()
+      .validate(ScoringRuleSchema, rule)
+      .violations?.filter((v) => v.toString().startsWith("kind:"));
+    expect(kindViolations ?? []).toEqual([]);
   });
 });
 

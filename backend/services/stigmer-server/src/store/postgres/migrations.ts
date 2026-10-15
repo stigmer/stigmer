@@ -144,6 +144,7 @@ import {
   KIND_RENAME_GRANT_KIND,
   FEDERATION_ISSUER_RENAME_V30,
   GRANT_RENAME_V34,
+  SCORING_RULE_RENAME_V36,
   RUN_RENAME_V18,
   RUN_RENAME_V21,
   movedGrant,
@@ -296,11 +297,14 @@ export const SCHEMA_VERSION_34 = 34;
 /** v35: the plugin eval and agent eval rows removed, with every grant naming one, and their tries relabelled. */
 export const SCHEMA_VERSION_35 = 35;
 
-/** v36: the agent share and agent channel kinds merged into the channel kind: rows, names, grants, history, conversations. */
+/** v36: the evaluator is a scoring rule: its names. */
 export const SCHEMA_VERSION_36 = 36;
 
+/** v37: the agent share and agent channel kinds merged into the channel kind: rows, names, grants, history, conversations. */
+export const SCHEMA_VERSION_37 = 37;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_36;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_37;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -376,7 +380,8 @@ export async function runMigrations(
       [SCHEMA_VERSION_33, migrateToV33],
       [SCHEMA_VERSION_34, migrateToV34],
       [SCHEMA_VERSION_35, migrateToV35],
-      [SCHEMA_VERSION_36, (migrating) => migrateToV36(migrating, logger)],
+      [SCHEMA_VERSION_36, migrateToV36],
+      [SCHEMA_VERSION_37, (migrating) => migrateToV37(migrating, logger)],
     ];
 
     for (const [version, migrate] of chain) {
@@ -2435,7 +2440,19 @@ async function migrateToV35(client: PoolClient): Promise<void> {
 }
 
 /**
- * v36: the agent share and agent channel kinds merge into the channel kind
+ * v36: the evaluator is a scoring rule. The kind `evaluator` and its kind
+ * string `Evaluator` become `scoring_rule` and `ScoringRule` by the same
+ * transformation as v13 (`renameKind`), with this step's frozen names
+ * (kind-rename.ts `SCORING_RULE_RENAME_V36`). Its rows keep their `evl_`
+ * ids and their settings and spend. The kind lists no grantable roles, so
+ * no grant and no permission history entry names it.
+ */
+async function migrateToV36(client: PoolClient): Promise<void> {
+  await renameKind(client, SCORING_RULE_RENAME_V36);
+}
+
+/**
+ * v37: the agent share and agent channel kinds merge into the channel kind
  * (../channel-kinds-merged.ts says what one row becomes, which row keeps a
  * slug two held, and why an unreadable row fails the step).
  *
@@ -2460,7 +2477,7 @@ async function migrateToV35(client: PoolClient): Promise<void> {
  * chain's advisory lock keeps a second instance's boot out of the step,
  * and the transaction makes it whole or nothing.
  */
-async function migrateToV36(client: PoolClient, logger: StoreLogger): Promise<void> {
+async function migrateToV37(client: PoolClient, logger: StoreLogger): Promise<void> {
   const mergedKinds = [...MERGED_CHANNEL_KINDS];
   const audit = (
     await client.query<{ kind: string; resource_id: string }>(

@@ -1,6 +1,6 @@
 /**
  * Share and agent channel rows as the releases before the merge wrote them
- * (Postgres v36, SQLite v40), for the driver-neutral test of
+ * (Postgres v37, SQLite v41), for the driver-neutral test of
  * ../channel-kinds-merged.ts and both drivers' migration arms. The two
  * kinds' generated messages are gone, so each row is encoded by field
  * number, exactly as AgentShare and AgentChannel laid their fields out,

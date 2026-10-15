@@ -33,7 +33,7 @@ import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
-import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
@@ -102,7 +102,7 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
   [ApiResourceKind.channel_app, { schema: ChannelAppSchema }],
   [ApiResourceKind.eval, { schema: EvalSchema }],
   [ApiResourceKind.eval_run, { schema: EvalRunSchema }],
-  [ApiResourceKind.evaluator, { schema: EvaluatorSchema }],
+  [ApiResourceKind.scoring_rule, { schema: ScoringRuleSchema }],
   [ApiResourceKind.memory, { schema: MemorySchema }],
   [ApiResourceKind.plugin, { schema: PluginSchema }],
   [ApiResourceKind.run, { schema: RunSchema }],

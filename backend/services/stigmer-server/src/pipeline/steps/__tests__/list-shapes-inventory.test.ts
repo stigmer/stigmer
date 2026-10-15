@@ -238,12 +238,12 @@ describe("the list-shape inventory (docs/list-shapes.md) is true to the contract
     expect(pageInfoFields(services)).toEqual([]);
   });
 
-  it("evaluator getByAgent answers one evaluator, so it is a get and not a list", () => {
+  it("scoring rule getByAgent answers one scoring rule, so it is a get and not a list", () => {
     const method = services
       .find(
         (service) =>
           service.typeName ===
-          "ai.stigmer.agentic.evaluator.v1.EvaluatorQueryController",
+          "ai.stigmer.agentic.scoringrule.v1.ScoringRuleQueryController",
       )
       ?.methods.find((m) => m.localName === "getByAgent");
     expect(method).toBeDefined();

@@ -7,7 +7,7 @@
     "session",
     "run",
     "score",
-    "evaluator",
+    "scoring-rule",
     "composer",
     "---Agents---",
     "agent",

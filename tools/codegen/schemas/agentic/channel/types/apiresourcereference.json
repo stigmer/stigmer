@@ -47,7 +47,7 @@
           "plugin",
           "vault",
           "score",
-          "evaluator",
+          "scoring_rule",
           "eval_run",
           "eval",
           "plan",

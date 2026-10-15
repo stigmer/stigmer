@@ -94,9 +94,9 @@ export const DELETE_HANDLERS: ReadonlyMap<ApiResourceKind, DeleteFn> = new Map<
   // Deleting an eval deletes every version of it.
   [ApiResourceKind.eval, (c, id) => c.eval.delete(id)],
   [ApiResourceKind.api_key, (c, id) => c.apiKey.delete(id)],
-  // Deleting an evaluator switches AI grading off for its agent; scores
+  // Deleting a scoring rule switches AI grading off for its agent; scores
   // already recorded stay on their runs.
-  [ApiResourceKind.evaluator, (c, id) => c.evaluator.delete(id)],
+  [ApiResourceKind.scoring_rule, (c, id) => c.scoringrule.delete(id)],
   // Deleting an eval run deletes its tries' conversations, runs and
   // scores; the server refuses a pending or running one and names cancel.
   [ApiResourceKind.eval_run, (c, id) => c.evalrun.delete(id)],

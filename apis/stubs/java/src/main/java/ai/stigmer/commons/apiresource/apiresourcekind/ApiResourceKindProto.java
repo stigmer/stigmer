@@ -80,7 +80,7 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "source_tier_unspecified\020\000\022\017\n\013open_source" +
       "\020\001\022\016\n\ncloud_only\020\002\022\016\n\nenterprise\020\003*A\n\017Pl" +
       "atformIdValue\022!\n\035platform_id_value_unspe" +
-      "cified\020\000\022\013\n\007stigmer\020\001*\247 \n\017ApiResourceKin" +
+      "cified\020\000\022\013\n\007stigmer\020\001*\264 \n\017ApiResourceKin" +
       "d\022\035\n\031api_resource_kind_unknown\020\000\022[\n\024api_" +
       "resource_version\020\001\032A\252\377+=\010\001\020\001\032\022ApiResourc" +
       "eVersion\"\024API Resource Version*\003ver8\001@\002J" +
@@ -162,38 +162,39 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "*\002\030\001:\001\007B\001\007J5\010\007\0221Use this vault\'s logins " +
       "and secrets in their runs\022D\n\005score\020=\0329\252\377" +
       "+5\010\001\020\001\032\005Score\"\005Score*\003scr8\001@\001J\030\010\003\020\001\032\022\n\003r" +
-      "un\022\003run\032\006run_id\022V\n\tevaluator\020>\032G\252\377+C\010\001\020\001" +
-      "\032\tEvaluator\"\tEvaluator*\003evl8\001@\001J\036\010\003\020\004\032\030\n" +
-      "\005agent\022\005agent\032\010agent_id\022s\n\010eval_run\020A\032e\252" +
-      "\377+a\010\001\020\001\032\007EvalRun\"\010Eval Run*\003evr8\001@\001J?\010\002\020" +
-      "\004\"\032\n\005agent\022\005agent\032\010agent_id \001\"\035\n\006plugin\022" +
-      "\006plugin\032\tplugin_id \001\022\322\001\n\004eval\020B\032\307\001\252\377+\302\001\010" +
-      "\001\020\001\032\004Eval\"\004Eval*\003evs0\0018\001@\001J\244\001\010\002\020\001*\004\030\001 \001:" +
-      "\002\001\004B\001\004JS\010\001\022OEverything, including pushin" +
-      "g versions, deleting it and deciding who" +
-      " has accessJ<\010\004\0228See its cases and downl" +
-      "oad any version; cannot change it\022-\n\004pla" +
-      "n\020F\032#\252\377+\037\010\004\020\001\032\004Plan\"\004Plan*\003pln8\001@\002J\004\010\005\020\004" +
-      "\022E\n\014subscription\020G\0323\252\377+/\010\004\020\001\032\014Subscripti" +
-      "on\"\014Subscription*\003sub8\001@\002J\004\010\002\020\004\0226\n\007licen" +
-      "se\020H\032)\252\377+%\010\004\020\001\032\007License\"\007License*\003lic8\001@" +
-      "\002J\004\010\005\020\004\"\004\010\027\020\027\"\004\010,\020,\"\004\010-\020-\"\004\010.\020.\"\004\0101\0201\"\004\010" +
-      "2\0202\"\004\0103\0203\"\004\0104\0204\"\004\0105\0205\"\004\0106\0206\"\004\0107\0207\"\004\010<\020<\"" +
-      "\004\010?\020?\"\004\010@\020@*\017platform_client*\nmcp_server" +
-      "*\016agent_instance*\013agent_share*\tdatastore" +
-      "*\010workflow*\021workflow_instance*\014workflow_" +
-      "run*\013environment*\021execution_context*\010art" +
-      "ifact*\007project*\013plugin_eval*\nagent_eval:" +
-      "\205\001\n\tkind_meta\022!.google.protobuf.EnumValu" +
-      "eOptions\030\365\277\005 \001(\0132C.ai.stigmer.commons.ap" +
-      "iresource.apiresourcekind.ApiResourceKin" +
-      "dMetaR\010kindMetaB\364\001B\024ApiResourceKindProto" +
-      "P\001\242\002\005ASCAA\252\002.Ai.Stigmer.Commons.Apiresou" +
-      "rce.Apiresourcekind\312\002.Ai\\Stigmer\\Commons" +
-      "\\Apiresource\\Apiresourcekind\342\002:Ai\\Stigme" +
-      "r\\Commons\\Apiresource\\Apiresourcekind\\GP" +
-      "BMetadata\352\0022Ai::Stigmer::Commons::Apires" +
-      "ource::Apiresourcekindb\006proto3"
+      "un\022\003run\032\006run_id\022c\n\014scoring_rule\020>\032Q\252\377+M\010" +
+      "\001\020\001\032\013ScoringRule\"\014Scoring Rule*\003srl8\001@\001J" +
+      "\036\010\003\020\004\032\030\n\005agent\022\005agent\032\010agent_idR\003evl\022s\n\010" +
+      "eval_run\020A\032e\252\377+a\010\001\020\001\032\007EvalRun\"\010Eval Run*" +
+      "\003evr8\001@\001J?\010\002\020\004\"\032\n\005agent\022\005agent\032\010agent_id" +
+      " \001\"\035\n\006plugin\022\006plugin\032\tplugin_id \001\022\322\001\n\004ev" +
+      "al\020B\032\307\001\252\377+\302\001\010\001\020\001\032\004Eval\"\004Eval*\003evs0\0018\001@\001J" +
+      "\244\001\010\002\020\001*\004\030\001 \001:\002\001\004B\001\004JS\010\001\022OEverything, inc" +
+      "luding pushing versions, deleting it and" +
+      " deciding who has accessJ<\010\004\0228See its ca" +
+      "ses and download any version; cannot cha" +
+      "nge it\022-\n\004plan\020F\032#\252\377+\037\010\004\020\001\032\004Plan\"\004Plan*\003" +
+      "pln8\001@\002J\004\010\005\020\004\022E\n\014subscription\020G\0323\252\377+/\010\004\020" +
+      "\001\032\014Subscription\"\014Subscription*\003sub8\001@\002J\004" +
+      "\010\002\020\004\0226\n\007license\020H\032)\252\377+%\010\004\020\001\032\007License\"\007Li" +
+      "cense*\003lic8\001@\002J\004\010\005\020\004\"\004\010\027\020\027\"\004\010,\020,\"\004\010-\020-\"\004" +
+      "\010.\020.\"\004\0101\0201\"\004\0102\0202\"\004\0103\0203\"\004\0104\0204\"\004\0105\0205\"\004\0106\0206" +
+      "\"\004\0107\0207\"\004\010<\020<\"\004\010?\020?\"\004\010@\020@*\017platform_clien" +
+      "t*\nmcp_server*\016agent_instance*\013agent_sha" +
+      "re*\tdatastore*\010workflow*\021workflow_instan" +
+      "ce*\014workflow_run*\013environment*\021execution" +
+      "_context*\010artifact*\007project*\013plugin_eval" +
+      "*\nagent_eval:\205\001\n\tkind_meta\022!.google.prot" +
+      "obuf.EnumValueOptions\030\365\277\005 \001(\0132C.ai.stigm" +
+      "er.commons.apiresource.apiresourcekind.A" +
+      "piResourceKindMetaR\010kindMetaB\364\001B\024ApiReso" +
+      "urceKindProtoP\001\242\002\005ASCAA\252\002.Ai.Stigmer.Com" +
+      "mons.Apiresource.Apiresourcekind\312\002.Ai\\St" +
+      "igmer\\Commons\\Apiresource\\Apiresourcekin" +
+      "d\342\002:Ai\\Stigmer\\Commons\\Apiresource\\Apire" +
+      "sourcekind\\GPBMetadata\352\0022Ai::Stigmer::Co" +
+      "mmons::Apiresource::Apiresourcekindb\006pro" +
+      "to3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

@@ -103,8 +103,8 @@ kind's ids it follows the rename (`kind-rename.ts` has the reasons).
 ## Two kinds merged into one
 
 The agent share (a hosted chat link) and the agent channel (a Slack or WhatsApp
-connection) became one Channel kind whose type says which (Postgres v36,
-SQLite v40, `channel-kinds-merged.ts`). Each stored row is converted, not
+connection) became one Channel kind whose type says which (Postgres v37,
+SQLite v41, `channel-kinds-merged.ts`). Each stored row is converted, not
 retired, and keeps its id: a chat link lives in pages Stigmer does not control
 and a connection in a provider's install, so an `ash_` or `ach_` id stays
 valid under the kind's retired prefixes. The rows are read by field number,
