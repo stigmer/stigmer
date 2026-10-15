@@ -1,4 +1,11 @@
-Stigmer {{ .Chart.AppVersion }} is installed as release {{ .Release.Name }} in namespace {{ .Release.Namespace }}.
+{{- $licensed := include "stigmer.licenseSecret" . -}}
+{{- $fenced := include "stigmer.egressFenced" . -}}
+Stigmer {{ if $licensed }}Enterprise {{ end }}{{ .Chart.AppVersion }} is installed as release {{ .Release.Name }} in namespace {{ .Release.Namespace }}.
+
+{{- if $licensed }}
+
+The server runs the Stigmer Enterprise image with the license key from the Secret {{ $licensed }}. A key it cannot verify stops the server container with one `boot failed:` line saying why (kubectl -n {{ .Release.Namespace }} logs deploy/{{ include "stigmer.fullname" . }} -c server). Renew a key by updating that Secret and restarting the pod; a lapsed license keeps everything working and refuses only growth.
+{{- end }}
 
 The server and the runner share one pod; Postgres is {{ ternary "bundled" (printf "yours at %s" (include "stigmer.postgresHost" .)) .Values.postgres.enabled }} and Temporal is {{ ternary "bundled" (printf "yours at %s" (include "stigmer.temporalHostPort" .)) .Values.temporal.enabled }}.
 
@@ -40,6 +47,19 @@ The runner is not running yet. It needs its own API key, and only someone signed
 {{- end }}
 {{- end }}
 
-One trust domain: stdio MCP servers run inside the runner container and can reach its filesystem and network. Whoever reaches Temporal can start work on the runner's queue{{ if and .Values.temporal.enabled .Values.temporal.networkPolicy.enabled }}; the bundled Temporal admits only the stigmer pod (a NetworkPolicy, enforced only by a network plugin that supports it){{ end }}.{{ if and .Values.postgres.enabled (dig "networkPolicy" "enabled" true .Values.postgres) }} The bundled Postgres admits only the stigmer and Temporal pods, by the same kind of fence; a backup job in its own pod needs a NetworkPolicy of yours that admits it.{{ end }}
+{{ if $fenced -}}
+{{- $through := list "DNS" -}}
+{{- if .Values.postgres.enabled }}{{ $through = append $through "the bundled Postgres" }}{{ end -}}
+{{- if .Values.temporal.enabled }}{{ $through = append $through "the bundled Temporal" }}{{ end -}}
+{{- $through = append $through "the public internet" -}}
+{{- if dig "egressPolicy" "allowedCidrs" (list) .Values.AsMap }}{{ $through = append $through "egressPolicy.allowedCidrs" }}{{ end -}}
+One trust domain: stdio MCP servers run inside the runner container and can reach its filesystem. The stigmer pod's outbound network is fenced (egressPolicy, a NetworkPolicy, enforced only by a network plugin that supports it): it reaches {{ join ", " $through }}, and no other private address. An identity provider or model endpoint on a private address needs its CIDR in egressPolicy.allowedCidrs.
+{{- $own := list -}}
+{{- if not .Values.postgres.enabled }}{{ $own = append $own (printf "your Postgres at %s" (include "stigmer.postgresHost" .)) }}{{ end -}}
+{{- if not .Values.temporal.enabled }}{{ $own = append $own (printf "your Temporal at %s" (include "stigmer.temporalHostPort" .)) }}{{ end -}}
+{{- if $own }} The fence lets {{ join " and " $own }} through only on a public address: on a private one, list the CIDR in egressPolicy.allowedCidrs, or the pod waits.{{ end }}
+{{- else -}}
+One trust domain: stdio MCP servers run inside the runner container and can reach its filesystem and network.
+{{- end }} Whoever reaches Temporal can start work on the runner's queue{{ if and .Values.temporal.enabled .Values.temporal.networkPolicy.enabled }}; the bundled Temporal admits only the stigmer pod (a NetworkPolicy, enforced only by a network plugin that supports it){{ end }}.{{ if and .Values.postgres.enabled (dig "networkPolicy" "enabled" true .Values.postgres) }} The bundled Postgres admits only the stigmer and Temporal pods, by the same kind of fence; a backup job in its own pod needs a NetworkPolicy of yours that admits it.{{ end }}
 
 A complete backup is {{ ternary "the bundled Postgres's claim" "your database" .Values.postgres.enabled }}, the {{ include "stigmer.fullname" . }}-artifacts and {{ include "stigmer.fullname" . }}-server-data claims, and the Secret {{ .Values.secrets.existingSecret }}. `helm uninstall` leaves every claim in place.

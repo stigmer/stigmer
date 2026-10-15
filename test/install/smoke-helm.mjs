@@ -38,6 +38,17 @@
  *      install of the same name adopts them and the execution is still
  *      there.
  *
+ * The enterprise profile, run only when named (--profiles=enterprise; it
+ * builds the Enterprise image, which the CI gate does not): the release is
+ * installed with a license Secret holding a key signed here on the spot, as
+ * the first install before signing in (the server alone, no runner key).
+ * No released image trusts a production signing key yet, and a fresh key is
+ * one no image ever trusts, so the proof is the refusal: the server
+ * container exits 1 with the server's `boot failed: The Stigmer Enterprise
+ * license key ...` line and the pod never becomes ready. That the image runs
+ * as the chart says (the Enterprise repository at the server's tag) is
+ * checked on the live Deployment.
+ *
  * The BYO profile first applies ci/byo-infra.yaml (a Postgres and a
  * Temporal the chart did not install) and proves the externalDatabase and
  * externalTemporal wiring against them.
@@ -53,14 +64,16 @@
  *       stage-compose-runner-cli` and bundle-slim first — make smoke-helm
  *       does all of it), tags them as the chart's repositories at tag
  *       `compose-dev`, loads them into kind and installs with pullPolicy
- *       Never.
+ *       Never. With the enterprise profile, also the Enterprise image,
+ *       through its own smoke's build (`make bundle-ee-slim` first).
  *
  *   node test/install/smoke-helm.mjs --published --version=vX.Y.Z
  *       Installs the chart pointing at the published ghcr.io images at that
  *       tag (the release lane's mode).
  *
  *   --chart=<dir|file.tgz>   the chart to install (default: deploy/helm/stigmer)
- *   --profiles=bundled,byo   which profiles to run (default: both)
+ *   --profiles=bundled,byo   which profiles to run (default: both; `enterprise`
+ *                            only when named)
  *   --cluster=<name>         use an existing kind cluster and leave it
  *   --keep                   leave the cluster running for debugging
  *   --fake-model=error       the fake answers every model call with an error,
@@ -77,7 +90,7 @@
  * Plain node + the helm, kind, kubectl and docker CLIs, no dependencies.
  */
 import { spawnSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { generateKeyPairSync, randomBytes, randomUUID, sign } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
@@ -495,7 +508,104 @@ async function adversarialArms(release, args, executionId) {
   );
 }
 
+/** The line the Enterprise server prints when it refuses a key (ee/server/scripts/smoke-image.mjs checks the same). */
+const LICENSE_REFUSAL = "boot failed: The Stigmer Enterprise license key";
+
+/** A key in the license verifier's form, signed by a key pair made here: one no image trusts. */
+function untrustedLicenseKey() {
+  const { privateKey } = generateKeyPairSync("ed25519");
+  const segment = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  const header = segment({ alg: "EdDSA", kid: `helm-smoke-${randomUUID()}`, typ: "JWT" });
+  const payload = segment({ iss: "stigmer helm smoke", sub: "a key no release trusts" });
+  const signature = sign(null, Buffer.from(`${header}.${payload}`, "ascii"), privateKey).toString("base64url");
+  return `${header}.${payload}.${signature}`;
+}
+
+/**
+ * The enterprise profile: the chart runs the Enterprise image with the
+ * license key, and the server refuses a key it cannot verify, stopping the
+ * pod short of ready with its reason.
+ */
+async function runEnterpriseProfile(args, postgresPassword, modelBaseUrl) {
+  const namespace = "smoke-enterprise";
+  log(`=== profile enterprise (namespace ${namespace}) ===`);
+  const release = createStigmerRelease(cluster, {
+    namespace,
+    valuesFile: profileValues("enterprise"),
+    modelBaseUrl,
+    postgresPassword,
+    // The first install, before anyone has signed in to create the
+    // runner's key: the server alone.
+    extraSets: ["runner.stigmerToken.existingSecret="],
+    log,
+  });
+  current = release;
+  release.createSecrets();
+  kubectl([
+    "-n",
+    namespace,
+    "create",
+    "secret",
+    "generic",
+    "stigmer-license",
+    `--from-literal=STIGMER_LICENSE_KEY=${untrustedLicenseKey()}`,
+  ]);
+  log("helm install with a license Secret holding a key no image trusts (no --wait: it must never become ready)");
+  await release.install(chartFor(args.release, { chart: args.chart }), { wait: false });
+
+  const images = await release.images();
+  const tag = chartFor(args.release).imageTag ?? `v${args.version}`;
+  if (images.server !== `ghcr.io/stigmer/stigmer-server-ee:${tag}`) {
+    throw new Error(`the licensed server runs ${images.server}; want the Enterprise image at the server's tag ${tag}`);
+  }
+  if (images.runner !== undefined) {
+    throw new Error("the pod runs a runner before its key is named");
+  }
+  log(`the server container runs ${images.server}`);
+
+  // The init container waits for the bundled Postgres and Temporal first.
+  const deadline = Date.now() + 10 * 60_000;
+  let refusal;
+  let exitCode;
+  while (Date.now() < deadline && refusal === undefined) {
+    const pods = kubectlJson(["-n", namespace, "get", "pods", "-l", "app.kubernetes.io/component=stigmer"]).items;
+    const status = pods[0]?.status?.containerStatuses?.find((container) => container.name === "server");
+    if (status?.ready === true) {
+      throw new Error("the server became ready with a key no image trusts; a licensed boot must verify its key");
+    }
+    const terminated = status?.state?.terminated ?? status?.lastState?.terminated;
+    if (terminated !== undefined) {
+      const previous = status.state?.terminated === undefined;
+      const logs = cluster.kubectlQuiet([
+        "-n",
+        namespace,
+        "logs",
+        pods[0].metadata.name,
+        "-c",
+        "server",
+        ...(previous ? ["--previous"] : []),
+      ]);
+      refusal = `${logs.stdout ?? ""}\n${logs.stderr ?? ""}`.split("\n").find((line) => line.startsWith(LICENSE_REFUSAL));
+      exitCode = terminated.exitCode;
+    }
+    if (refusal === undefined) await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+  if (refusal === undefined) {
+    throw new Error(`no "${LICENSE_REFUSAL} ..." line from the server container within 10 minutes`);
+  }
+  if (exitCode !== 1) throw new Error(`the server container exited ${exitCode}; want 1`);
+  const deployment = kubectlJson(["-n", namespace, "get", "deployment", RELEASE]);
+  if ((deployment.status?.readyReplicas ?? 0) !== 0) throw new Error("the Deployment reports a ready replica");
+  log(`refused, exit 1, never ready: ${refusal}`);
+  log("=== profile enterprise: PASS ===");
+  kubectl(["delete", "namespace", namespace, "--wait=false"]);
+}
+
 async function runProfile(profile, args, postgresPassword, fake, modelBaseUrl) {
+  if (profile === "enterprise") {
+    await runEnterpriseProfile(args, postgresPassword, modelBaseUrl);
+    return;
+  }
   const namespace = `smoke-${profile}`;
   log(`=== profile ${profile} (namespace ${namespace}) ===`);
   // The bundled profile runs fenced: the whole smoke, agent run included,
@@ -553,6 +663,7 @@ async function main() {
   try {
     await cluster.start();
     if (args.mode === "build") cluster.loadSourceImages();
+    if (args.mode === "build" && args.profiles.includes("enterprise")) cluster.loadEnterpriseSourceImage();
     const modelBaseUrl = fakeModelEnv(fake, cluster.hostAddress()).ANTHROPIC_BASE_URL;
     log(`the model: the fake at ${modelBaseUrl}, mode ${args.fakeModel}`);
 

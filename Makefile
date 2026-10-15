@@ -641,8 +641,10 @@ smoke-compose: build-server build-web stage-compose-runner-cli ## Build the comp
 # test:scripts lane), smoke-helm the kind install with the same probes as
 # smoke-compose plus the adversarial arms, from source-built images (the
 # release lane runs the same script against the pushed tags).
+# smoke-helm-enterprise runs its opt-in enterprise profile, which builds the
+# Enterprise image too, so it is not part of the gate.
 HELM_CHART_DIR := deploy/helm/stigmer
-HELM_PROFILES := bundled byo ingress-oidc
+HELM_PROFILES := bundled byo ingress-oidc enterprise
 # The floor Chart.yaml declares (native gRPC probes are GA in 1.27).
 HELM_KUBE_VERSION := 1.27.0
 
@@ -686,6 +688,12 @@ smoke-helm: build-server build-web stage-compose-runner-cli ## Build both images
 	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the Helm smoke needs it"; exit 1; }; done
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
 	node test/install/smoke-helm.mjs --build
+
+.PHONY: smoke-helm-enterprise
+smoke-helm-enterprise: build-server build-web stage-compose-runner-cli bundle-ee-slim ## Build the server, runner and Enterprise images from source and install the chart's enterprise profile on kind: the licensed server refuses a key it cannot verify (needs Docker, kind, helm, kubectl)
+	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the Helm smoke needs it"; exit 1; }; done
+	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
+	node test/install/smoke-helm.mjs --build --profiles=enterprise
 
 # The upgrade rehearsal (test/install/rehearse-upgrade.mjs): one install moved from
 # the newest published release to THIS checkout by the procedure its guide

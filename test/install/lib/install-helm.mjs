@@ -34,6 +34,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { connect } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { FAKE_MODEL_API_KEY } from "./fake-model.mjs";
 import { buildSourceImages } from "./install-compose.mjs";
@@ -54,6 +55,8 @@ export const HELM_ARTIFACT_PORT = 7235;
 /** The chart's two repositories; a source build is tagged under them. */
 const IMAGE_REGISTRY = "ghcr.io/stigmer";
 const SOURCE_TAG = "compose-dev";
+/** The tag the Enterprise image smoke builds its local image under (ee/server/scripts/smoke-image.mjs, LOCAL_TAG). */
+const ENTERPRISE_LOCAL_TAG = "stigmer-server-ee:smoke-local";
 /** The Secret each release's namespace carries for runner.llm.existingSecret. */
 const LLM_SECRET = "stigmer-smoke-llm";
 // First install pulls or loads two large images, starts Postgres, lets
@@ -168,6 +171,19 @@ export function createKindCluster({ existing = "", log }) {
         run("kind", ["load", "docker-image", tagged, "--name", name], { stdio: "inherit" });
       }
     },
+    /**
+     * The Stigmer Enterprise image built from source by its own smoke's
+     * build (`make bundle-ee-slim` first, for ee/server/dist-slim), tagged
+     * as the chart's enterprise repository at `compose-dev`, and loaded.
+     */
+    loadEnterpriseSourceImage() {
+      log("building stigmer-server-ee through its image smoke (--build-only)");
+      run(process.execPath, [join(repoRoot, "ee", "server", "scripts", "smoke-image.mjs"), "--build-only"], { stdio: "inherit" });
+      const tagged = `${IMAGE_REGISTRY}/stigmer-server-ee:${SOURCE_TAG}`;
+      run("docker", ["tag", ENTERPRISE_LOCAL_TAG, tagged]);
+      log(`kind load docker-image ${tagged}`);
+      run("kind", ["load", "docker-image", tagged, "--name", name], { stdio: "inherit" });
+    },
     /** Delete a cluster this module created (unless `keep`); an existing one is left. */
     async stop({ keep = false } = {}) {
       if (own && keep) log(`--keep: cluster ${name} left running (kubeconfig ${kubeconfig})`);
@@ -190,17 +206,12 @@ export function createKindCluster({ existing = "", log }) {
 export function createStigmerRelease(cluster, { namespace, valuesFile, modelBaseUrl, postgresPassword, extraSets = [], log }) {
   let installedFrom;
 
-  const helmArgs = (verb, spec) => {
+  const helmArgs = (verb, spec, { wait = true } = {}) => {
     const args = [verb, RELEASE, spec.chart];
     if (spec.version !== undefined) args.push("--version", spec.version);
+    args.push("-n", namespace, "-f", valuesFile);
+    if (wait) args.push("--wait", "--timeout", INSTALL_TIMEOUT);
     args.push(
-      "-n",
-      namespace,
-      "-f",
-      valuesFile,
-      "--wait",
-      "--timeout",
-      INSTALL_TIMEOUT,
       // The model, as a user configures it: the key from a Secret, the address
       // as an extra runner env var (the chart has no dedicated value for it).
       "--set",
@@ -248,8 +259,9 @@ export function createStigmerRelease(cluster, { namespace, valuesFile, modelBase
         `--from-literal=ANTHROPIC_API_KEY=${FAKE_MODEL_API_KEY}`,
       ]);
     },
-    async install(spec) {
-      cluster.helm(helmArgs("install", spec), { stdio: "inherit" });
+    /** `helm install`; `wait: false` returns once the objects exist, for a release that is never meant to become ready. */
+    async install(spec, { wait = true } = {}) {
+      cluster.helm(helmArgs("install", spec, { wait }), { stdio: "inherit" });
       installedFrom = spec;
     },
     /** `helm upgrade` to `spec` with the same values and --wait (the guide's upgrade). */

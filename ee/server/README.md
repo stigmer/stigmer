@@ -36,14 +36,18 @@ Every release also publishes this server as a container image, `ghcr.io/stigmer/
 docker run -d -p 7234:7234 -p 7235:7235 -v stigmer-data:/data \
   ghcr.io/stigmer/stigmer-server-ee:latest
 
-# A license key, on Postgres.
+# A license key, on Postgres, signing callers in through your identity provider.
 docker run -d -p 7234:7234 -p 7235:7235 -v stigmer-data:/data \
   -e STIGMER_LICENSE_KEY="<the key>" \
   -e DATABASE_URL="postgres://<user>:<password>@<host>:5432/<database>" \
+  -e STIGMER_OIDC_ISSUER="https://<your issuer>" \
+  -e STIGMER_OIDC_AUDIENCE="<your API audience>" \
   ghcr.io/stigmer/stigmer-server-ee:latest
 ```
 
-The image reads the variables in the table above, and everything the open-source image reads. A key it cannot verify stops the container with exit code 1 and one `boot failed:` line saying why. An image only trusts the signing keys compiled into its release, and none is compiled in yet: until a release carries the production key, every image refuses every key, and runs as open source without one.
+The image reads the variables in the table above, and everything the open-source image reads. A key it cannot verify stops the container with exit code 1 and one `boot failed:` line saying why. An image only trusts the signing keys compiled into its release, and none is compiled in yet: until a release carries the production key, every image refuses every key, and runs as open source without one. A licensed server refuses to start without Postgres or without sign-in (`STIGMER_OIDC_ISSUER`).
+
+On Kubernetes, the repository's Helm chart runs this image: a license Secret named in `enterprise.license.existingSecret` switches the chart's server to it, with the settings above as chart values and an outbound network fence on by default (`deploy/helm/stigmer/README.md`, "Stigmer Enterprise").
 
 Its labels say what it holds: `org.opencontainers.image.title` is `stigmer-server-ee`, and `org.opencontainers.image.licenses` is `LicenseRef-Stigmer-Enterprise AND Apache-2.0`, this package under `LICENSE` (which sits beside `main.js` in `/app`) and the open-source server under the Apache License 2.0.
 

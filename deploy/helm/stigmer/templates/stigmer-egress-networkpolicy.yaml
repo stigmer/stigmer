@@ -1,0 +1,92 @@
+{{- /*
+The stigmer pod's outbound fence. Everything an agent runs (its commands,
+stdio MCP servers, fetches) leaves from this pod, as does everything the
+server dials, so without a fence the pod's reach into the cluster is every
+signed-in person's: databases, internal dashboards, cloud metadata. Under a
+license that is every organization's. The fence lets through:
+
+  - DNS, UDP and TCP 53, to any address: cluster DNS sits on a private
+    address, NodeLocal DNSCache on a link-local one, and DNS pod labels
+    vary by distribution;
+  - the bundled Postgres and Temporal, by the labels their own fences use,
+    on the ports their Services expose;
+  - every public address: the private (RFC 1918, fc00::/7), shared
+    (100.64.0.0/10), link-local and loopback ranges are excepted;
+  - egressPolicy.allowedCidrs: the operator's own private destinations.
+
+Rendered on request (egressPolicy.enabled) or under a strict license
+(stigmer.egressFenced). Egress only: what reaches the pod's ports is the
+API, which authenticates once sign-in is on. Inside the fence the pod is
+still one trust domain. A cluster whose network plugin does not enforce
+NetworkPolicy ignores this object, and Kubernetes always allows a pod's
+traffic to its own node; the README says both.
+*/ -}}
+{{- if include "stigmer.egressFenced" . }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "stigmer.fullname" . }}-egress
+  labels:
+    {{- include "stigmer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: stigmer
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "stigmer.selectorLabels" (dict "root" . "component" "stigmer") | nindent 6 }}
+  policyTypes:
+    - Egress
+  egress:
+    # DNS, wherever the cluster serves it.
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    {{- if .Values.postgres.enabled }}
+    # The bundled Postgres.
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "stigmer.selectorLabels" (dict "root" . "component" "postgres") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 5432
+    {{- end }}
+    {{- if .Values.temporal.enabled }}
+    # The bundled Temporal's frontend.
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "stigmer.selectorLabels" (dict "root" . "component" "temporal") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 7233
+    {{- end }}
+    # The public internet: the model providers, MCP servers and package
+    # registries an agent uses, and the identity provider and the model
+    # registry the server reads.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+              - 127.0.0.0/8
+        - ipBlock:
+            cidr: ::/0
+            except:
+              - fc00::/7
+              - fe80::/10
+              - ::1/128
+    {{- with dig "egressPolicy" "allowedCidrs" (list) .Values.AsMap }}
+    # The operator's own private destinations.
+    - to:
+        {{- range . }}
+        - ipBlock:
+            cidr: {{ . | quote }}
+        {{- end }}
+    {{- end }}
+{{- end }}
