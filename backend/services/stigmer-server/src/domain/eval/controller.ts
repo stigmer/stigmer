@@ -27,8 +27,6 @@
  * Proven by __tests__/eval.test.ts (composed-server round trips) and
  * eval.conformance.test.ts.
  */
-import { createHash } from "node:crypto";
-
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
@@ -39,7 +37,6 @@ import { EvalCommandController } from "@stigmer/protos/ai/stigmer/agentic/eval/v
 import {
   EvalArchiveDownloadUrlSchema,
   EvalArchiveSchema,
-  EvalCaseArchiveSchema,
   EvalArtifactUploadUrlSchema,
   EvalListSchema,
   PushEvalRequestSchema,
@@ -152,17 +149,15 @@ import {
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { ArchiveStaging, DownloadCapability, StagedUpload } from "../skill/transfer/staging.js";
-import { buildCaseFromRun, RESERVED_CASE_NAMES } from "./case-from-run.js";
+import { buildCaseFromRun, caseArchiveOf, RESERVED_CASE_NAMES } from "./case-from-run.js";
 import {
   EVAL_CASE_OTHER_ORGANIZATION,
   EVAL_CASE_RUN_DENIED,
   EVAL_NOUN,
   EVAL_TRANSFER_LANE_NOT_CONFIGURED,
-  MAX_CASE_ARCHIVE_BYTES,
   evalCaseExistsMessage,
   evalCaseReservedNameMessage,
   evalCaseRunNotEndedMessage,
-  evalCaseTooLargeMessage,
   evalCaseVersionMessage,
 } from "./constants.js";
 import { evalListIndex } from "./list-index.js";
@@ -344,17 +339,7 @@ async function buildCaseFromRunHandler(
   const caller = await validatedCaller(deps, EvalQueryController.method.buildCaseFromRun, req, ctx);
   refuseReservedName(req.caseName);
   const run = await viewableEndedRun(deps, caller, req.runId);
-  const built = await buildCaseFromRun(deps.store, deps.logger, { run, caseName: req.caseName, skill: req.skill, callerId: caller.identityId });
-  const artifact = writeArchive(built.files);
-  if (artifact.length > MAX_CASE_ARCHIVE_BYTES) {
-    throw new ConnectError(evalCaseTooLargeMessage(artifact.length), Code.ResourceExhausted);
-  }
-  return create(EvalCaseArchiveSchema, {
-    caseName: built.caseName,
-    artifact,
-    digest: createHash("sha256").update(artifact).digest("hex"),
-    notes: [...built.notes],
-  });
+  return caseArchiveOf(await buildCaseFromRun(deps.store, deps.logger, { run, caseName: req.caseName, skill: req.skill, callerId: caller.identityId }));
 }
 
 /**
@@ -461,19 +446,15 @@ async function viewableEndedRun(deps: EvalControllerDeps, caller: CallerIdentity
  */
 async function evalOfOrganization(deps: EvalControllerDeps, ref: ApiResourceReference, org: string): Promise<Eval> {
   const name = ref.slug !== "" ? ref.slug : ref.id;
-  let found: Eval;
   try {
-    found = await loadByReferenceWithVersion(deps.store, evalVersionBinding, { ...ref, org, version: "" });
+    // The ladder's read by id holds the eval to the organization given.
+    return await loadByReferenceWithVersion(deps.store, evalVersionBinding, { ...ref, org, version: "" });
   } catch (error) {
     if (error instanceof ConnectError && error.code === Code.NotFound) {
       throw notFoundError("eval", name);
     }
     throw error;
   }
-  if ((found.metadata?.org ?? "") !== org) {
-    throw notFoundError("eval", name);
-  }
-  return found;
 }
 
 /** The eval's current row by id; NotFound once it is gone. */

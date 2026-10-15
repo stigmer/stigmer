@@ -20,9 +20,16 @@
  *     person's is not theirs to quote), else a placeholder; a named skill
  *     adds a `tool_used: Skill` check; the request's attachments are noted;
  *   - every case built here loads through `readEvalFolder` with no finding;
+ *     an event of the session that belongs to no run is no turn; a store
+ *     fault reading the session or an earlier run is thrown as it came;
+ *   - the archive answered is the case zipped as the CLI zips a folder, its
+ *     digest the archive's, refused past the inline limit;
  *   - `suggestCaseName` names a case after its request, as the CLI did.
  */
+import { createHash } from "node:crypto";
+
 import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { parseTranscript } from "@stigmer/eval-runtime";
@@ -32,15 +39,19 @@ import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { CriterionResult, ScoreSource } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
+import type { Store } from "../../../store/interface.js";
 import { RunEventsBuilder, appendRunEvents } from "../../session/events/__tests__/run-events-fixture.js";
+import { draftOf } from "../../session/events/codec.js";
 import type { BuiltCase } from "../case-from-run.js";
-import { DEFAULT_CASE_NAME, buildCaseFromRun, suggestCaseName } from "../case-from-run.js";
+import { DEFAULT_CASE_NAME, buildCaseFromRun, caseArchiveOf, suggestCaseName } from "../case-from-run.js";
+import { evalCaseTooLargeMessage } from "../constants.js";
 
 const ORG = "acme";
 const SESSION = "ses_1";
@@ -225,6 +236,37 @@ describe("a case from a turn that continues a conversation", () => {
     );
   });
 
+  it("leaves out an event of the session that belongs to no run", async () => {
+    const run = await seedConversation();
+    const noRun = create(SessionEventSchema, { runId: "", event: { case: "sessionStatusIdle", value: { id: "ses_1.idle", stopReason: { type: "end_turn" } } } });
+    await temp.store.sessionEvents.append(SESSION, ORG, [draftOf(noRun)], {
+      kind: ApiResourceKind.session,
+      id: SESSION,
+      schema: SessionSchema,
+      admit: () => undefined,
+    });
+    const built = await buildCaseFromRun(temp.store, logger, { run, caseName: "cite-the-bug", skill: "", callerId: CALLER });
+    expect(parseTranscript(fileOf(built, "history.jsonl") ?? "", { requirePairing: true }).ok).toBe(true);
+  });
+
+  it("throws a store fault reading the session or an earlier run as it came", async () => {
+    const run = await seedConversation();
+    const failing = (kind: ApiResourceKind): Store =>
+      new Proxy(temp.store, {
+        get(target, property, receiver) {
+          const value: unknown = Reflect.get(target, property, receiver);
+          if (property === "getResource") {
+            return (asked: ApiResourceKind, ...rest: unknown[]) =>
+              asked === kind ? Promise.reject(new Error("disk unavailable")) : (target.getResource as (...args: unknown[]) => unknown).call(target, asked, ...rest);
+          }
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
+    for (const kind of [ApiResourceKind.session, ApiResourceKind.run]) {
+      await expect(buildCaseFromRun(failing(kind), logger, { run, caseName: "cite-the-bug", skill: "", callerId: CALLER })).rejects.toThrow("disk unavailable");
+    }
+  });
+
   it("writes the history when the session's row is gone, as a native conversation", async () => {
     const run = await seedConversation();
     await temp.store.deleteResource(ApiResourceKind.session, SESSION);
@@ -274,6 +316,25 @@ describe("a case's rubric", () => {
     expectLoads(built);
     const bare = await buildCaseFromRun(temp.store, logger, { run: runRow("run_3", "Refund it."), caseName: "bare", skill: "refund.policy", callerId: CALLER });
     expect(fileOf(bare, "graders/skill-fired.md")).toContain("refund\\.policy");
+  });
+});
+
+describe("caseArchiveOf", () => {
+  it("zips the case as the CLI zips a folder, its digest the archive's, and refuses one past the inline limit", async () => {
+    await seedSession();
+    const run = await seedRun(runRow("run_3", "Refund it."), new RunEventsBuilder("run_3").user("Refund it."));
+    const built = await buildCaseFromRun(temp.store, logger, { run, caseName: "refund-it", skill: "", callerId: CALLER });
+    const archive = caseArchiveOf(built);
+    expect([archive.caseName, archive.digest]).toEqual(["refund-it", createHash("sha256").update(archive.artifact).digest("hex")]);
+    let refused: unknown;
+    try {
+      caseArchiveOf(built, 10);
+    } catch (error) {
+      refused = error;
+    }
+    expect(refused).toBeInstanceOf(ConnectError);
+    expect((refused as ConnectError).code).toBe(Code.ResourceExhausted);
+    expect((refused as ConnectError).rawMessage).toBe(evalCaseTooLargeMessage(archive.artifact.length, 10));
   });
 });
 

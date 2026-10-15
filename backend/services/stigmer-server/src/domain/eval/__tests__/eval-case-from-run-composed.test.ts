@@ -23,9 +23,15 @@
  *     the add writes, and one landing between the add's read of the eval
  *     and the push's own read, each makes the add run again on it; an eval
  *     deleted under an add answers not found.
+ *
+ * And on a trusted-local boot, where no authorization answers first: a run
+ * that is not there is not found, an eval whose archive is gone answers
+ * its archive not found, and a store fault reading the run, looking the
+ * eval up or reading its current row is an internal fault, never a
+ * refusal.
  */
 import { createHash } from "node:crypto";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -54,6 +60,7 @@ import { baseConfig, fakeJwt, fakeVerifier, silentLogger, transportFor } from ".
 import type { ServerExtension } from "../../../extensions/registry.js";
 import { writeLandsMidUpdate } from "../../../pipeline/__tests__/race-support.js";
 import { RunEventsBuilder, appendRunEvents } from "../../session/events/__tests__/run-events-fixture.js";
+import { organizationId, seedOrganizations } from "../../organization/__tests__/support.js";
 import {
   EVAL_CASE_OTHER_ORGANIZATION,
   EVAL_CASE_RUN_DENIED,
@@ -277,14 +284,16 @@ describe("an eval case from a run (built-in posture, composed server)", () => {
     const runId = await seedConversation("ses_race_read", carolId);
     const slug = "carols-reread";
     const pushed = await carolEvals().push({ org: ORG, slug, artifact: folder("first") });
-    const id = pushed.metadata!.id;
-    const landAfterFirstRead = async (land: () => Promise<unknown>, add: () => Promise<unknown>): Promise<unknown> => {
+    let id = pushed.metadata!.id;
+    // The add reads the eval twice before its push does: the reference's
+    // lookup, then the current row inside the write's attempt. The landing
+    // write follows the second, unless the test names the first.
+    const landAfterHeadRead = async (land: () => Promise<unknown>, add: () => Promise<unknown>, after = 2): Promise<unknown> => {
       const getResource = server.store.getResource.bind(server.store);
-      let landed = false;
+      let reads = 0;
       server.store.getResource = (async (...args: Parameters<typeof getResource>) => {
         const row = await getResource(...args);
-        if (!landed && args[0] === ApiResourceKind.eval && args[1] === id) {
-          landed = true;
+        if (args[0] === ApiResourceKind.eval && args[1] === id && ++reads === after) {
           await land();
         }
         return row;
@@ -296,18 +305,117 @@ describe("an eval case from a run (built-in posture, composed server)", () => {
       }
     };
 
-    const added = (await landAfterFirstRead(
+    const added = (await landAfterHeadRead(
       () => carolEvals().push({ org: ORG, slug, artifact: folder("first", "landed") }),
       () => carolEvals().addCaseFromRun({ runId, eval: { slug } }),
     )) as Awaited<ReturnType<ReturnType<typeof carolEvals>["addCaseFromRun"]>>;
     expect(added.status?.cases.map((c) => c.caseName).sort()).toEqual(["first", "landed", "refund-it"]);
 
     const gone = await failureOf(
-      landAfterFirstRead(
+      landAfterHeadRead(
         () => carolEvals().delete({ value: id }),
         () => carolEvals().addCaseFromRun({ runId, eval: { slug }, caseName: "after-delete" }),
       ),
     );
     expect(gone.code).toBe(Code.NotFound);
+
+    // Deleted after the reference's lookup, before the attempt reads it.
+    const again = await carolEvals().push({ org: ORG, slug: "carols-reread-again", artifact: folder("first") });
+    id = again.metadata!.id;
+    const goneEarly = await failureOf(
+      landAfterHeadRead(
+        () => carolEvals().delete({ value: id }),
+        () => carolEvals().addCaseFromRun({ runId, eval: { slug: "carols-reread-again" } }),
+        1,
+      ),
+    );
+    expect(goneEarly.code).toBe(Code.NotFound);
+  });
+});
+
+describe("an eval case from a run (trusted-local, composed server)", () => {
+  let dir: string;
+  let server: ComposedServer;
+  let transport: Transport;
+  let orgId: string;
+
+  beforeAll(async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "eval-case-from-run-local-"));
+    server = await composeServer({ config: loadConfig(baseConfig(dir)), logger: silentLogger, portOverride: 0, host: "127.0.0.1" });
+    transport = transportFor(await server.start(), "");
+    orgId = organizationId(await seedOrganizations(transport, ["local-org"]), "local-org");
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  async function seedTurn(runId: string): Promise<void> {
+    await server.store.saveResource(
+      ApiResourceKind.session,
+      `ses_${runId}`,
+      SessionSchema,
+      create(SessionSchema, { metadata: { id: `ses_${runId}`, org: orgId }, spec: { harness: Harness.NATIVE } }),
+    );
+    await server.store.saveResource(
+      ApiResourceKind.run,
+      runId,
+      RunSchema,
+      create(RunSchema, {
+        metadata: { id: runId, org: orgId },
+        spec: { target: { case: "sessionId", value: `ses_${runId}` }, message: "Refund it." },
+        status: { phase: RunPhase.RUN_COMPLETED },
+      }),
+    );
+    await appendRunEvents(server.store, `ses_${runId}`, orgId, new RunEventsBuilder(runId).user("Refund it.").turnMessage("No.").build());
+  }
+
+  /** Runs `call` with the store's read of `kind` failing from its `nth` call on. */
+  async function withFailingRead<T>(kind: ApiResourceKind, nth: number, call: () => Promise<T>): Promise<T> {
+    const getResource = server.store.getResource.bind(server.store);
+    let reads = 0;
+    server.store.getResource = (async (...args: Parameters<typeof getResource>) => {
+      if (args[0] === kind && ++reads >= nth) {
+        throw new Error("disk unavailable");
+      }
+      return getResource(...args);
+    }) as typeof server.store.getResource;
+    try {
+      return await call();
+    } finally {
+      server.store.getResource = getResource;
+    }
+  }
+
+  it("answers a run that is not there as not found, and a fault reading the run as internal", async () => {
+    const query = createClient(EvalQueryController, transport);
+    expect((await failureOf(query.buildCaseFromRun({ runId: "run_absent" }))).code).toBe(Code.NotFound);
+    await seedTurn("run_local_fault");
+    const fault = await failureOf(withFailingRead(ApiResourceKind.run, 1, () => query.buildCaseFromRun({ runId: "run_local_fault" })));
+    expect(fault.code).toBe(Code.Internal);
+  });
+
+  it("answers an eval whose archive is gone as its archive not found, and faults looking it up or reading it as internal", async () => {
+    await seedTurn("run_local_add");
+    const evals = createClient(EvalCommandController, transport);
+    const pushed = await evals.push({ org: orgId, slug: "local-cases", artifact: folder("first") });
+    const add = () => evals.addCaseFromRun({ runId: "run_local_add", eval: { slug: "local-cases" } });
+
+    expect((await failureOf(withFailingRead(ApiResourceKind.eval, 1, add))).code).toBe(Code.Internal);
+    expect((await failureOf(withFailingRead(ApiResourceKind.eval, 2, add))).code).toBe(Code.Internal);
+
+    const archive = `${pushed.status?.digest ?? ""}.zip`;
+    const removeArchive = (at: string): void => {
+      for (const entry of readdirSync(at, { withFileTypes: true })) {
+        const full = path.join(at, entry.name);
+        if (entry.isDirectory()) removeArchive(full);
+        else if (entry.name === archive) rmSync(full);
+      }
+    };
+    removeArchive(dir);
+    const gone = await failureOf(add());
+    expect(gone.code).toBe(Code.NotFound);
+    expect(gone.rawMessage).toContain("eval archive");
   });
 });

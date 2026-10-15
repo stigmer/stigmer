@@ -43,9 +43,14 @@
  * events, and every case it builds loads through the library's
  * `readEvalFolder` with no finding.
  */
+import { createHash } from "node:crypto";
+
 import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 
 import { isToolNameSegment } from "@stigmer/plugin-package";
+import { EvalCaseArchiveSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
+import type { EvalCaseArchive } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -56,6 +61,7 @@ import { CriterionResult, ScoreSource } from "@stigmer/protos/ai/stigmer/agentic
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ToolUse } from "@stigmer/session-log";
 
+import { writeArchive } from "../../archive/write.js";
 import type { ArchiveFile } from "../../archive/write.js";
 import type { Logger } from "../../boot/logger.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
@@ -66,6 +72,7 @@ import { evalTraceOf } from "../score/eval/trace.js";
 import { listRunScores } from "../score/queries.js";
 import { toolUsesOf, turnOfTranscript } from "../score/turn.js";
 import { readSessionEvents } from "../session/events/run-events.js";
+import { MAX_CASE_ARCHIVE_BYTES, evalCaseTooLargeMessage } from "./constants.js";
 
 /** What a case is built from. */
 export interface CaseFromRunInput {
@@ -132,6 +139,7 @@ export async function buildCaseFromRun(store: Store, logger: Logger, input: Case
         harness,
         pluginsByDigest: new Map(),
         wantedFiles: [],
+        /* v8 ignore next -- @preserve: wantedFiles is empty, so the trace reads no file */
         readArtifact: () => Promise.reject(new Error("a history reads no file")),
       });
       lines.push(...trace.traceLines);
@@ -164,6 +172,24 @@ export async function buildCaseFromRun(store: Store, logger: Logger, input: Case
     files: files.map((file) => ({ path: `${caseName}/${file.path}`, bytes: encoder.encode(file.content) })),
     notes,
   };
+}
+
+/**
+ * The case as the archive buildCaseFromRun answers: its files zipped as the
+ * CLI zips a folder, its digest, its notes. One past `limit` bytes is
+ * refused (RESOURCE_EXHAUSTED), since it could not travel inline.
+ */
+export function caseArchiveOf(built: BuiltCase, limit = MAX_CASE_ARCHIVE_BYTES): EvalCaseArchive {
+  const artifact = writeArchive(built.files);
+  if (artifact.length > limit) {
+    throw new ConnectError(evalCaseTooLargeMessage(artifact.length, limit), Code.ResourceExhausted);
+  }
+  return create(EvalCaseArchiveSchema, {
+    caseName: built.caseName,
+    artifact,
+    digest: createHash("sha256").update(artifact).digest("hex"),
+    notes: [...built.notes],
+  });
 }
 
 /**

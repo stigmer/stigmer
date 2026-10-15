@@ -38,8 +38,8 @@ export function evalCaseReservedNameMessage(name: string): string {
 }
 
 /** ResourceExhausted copy for a case too large to answer inline. */
-export function evalCaseTooLargeMessage(sizeBytes: number): string {
-  return `the case is ${sizeBytes} bytes zipped, more than ${MAX_CASE_ARCHIVE_BYTES} can travel inline; add it to an eval with addCaseFromRun, which writes it on the server`;
+export function evalCaseTooLargeMessage(sizeBytes: number, limitBytes: number): string {
+  return `the case is ${sizeBytes} bytes zipped, more than ${limitBytes} can travel inline; add it to an eval with addCaseFromRun, which writes it on the server`;
 }
 
 /** FailedPrecondition copy for an eval named in another organization than the run's. */
