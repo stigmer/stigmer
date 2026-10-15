@@ -2,9 +2,9 @@
 // newest first, and export it as JSON Lines for a security team's tools.
 //
 // The history records every time someone was given or lost access to the
-// organization or anything in it: who did it, why and when. It is read by
-// the organization's owners and admins (and a parent's admins for a child);
-// an open-source server keeps none and says so, and that sentence reaches
+// organization or anything in it: who did it, why and when. It is read,
+// all of it, by the organization's owners and admins (a parent's admins are
+// admins in each child); an open-source server keeps none and says so, and that sentence reaches
 // the user as the server wrote it.
 //
 // `list` reads newest first, up to `--limit` entries, following pages,

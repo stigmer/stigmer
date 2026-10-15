@@ -22,7 +22,7 @@ customers' people reach Stigmer, which you chose on the
 | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | Sign in as themselves: the console, or your own sign-in through an [Federation Issuer](/docs/guides/authentication/federation/overview) | Each person's own My vault; a team's key in a shared vault the team may use | That person alone; for a shared vault, the people granted its use                             |
 | Get a token your backend [mints with a service account's key](/docs/guides/authentication/product-users), all in your Organization      | One private shared vault per customer                                       | On Stigmer Cloud, the customer's accounts you grant **Can use**; on open source, your backend |
-| Each customer is a [child organization](/docs/guides/authentication/federation/child-organizations)                                     | A shared vault in that customer's child, with **Organization** visibility   | The child's members, who are that customer's people alone                                     |
+| Each customer is a [child organization](/docs/guides/authentication/federation/child-organizations)                                     | A shared vault in that customer's child, with **Organization** visibility   | The child's members, who are that customer's people, and your Organization's admins           |
 
 <Callout type="warn">
   In one Organization shared by several customers, never give a customer's vault
@@ -71,10 +71,9 @@ How the vault reaches the conversation depends on the edition:
 The customer's vault lives in their child organization, where only that
 customer's people are members, so **Organization** visibility is safe there: an
 app user you mint into the child as a member, and every other member, may use
-it. This works in every edition. Your Organization's admins manage a child but
-read nothing in it, its vaults included, so the vault is created by an admin of
-the child, or by one of your admins after they add themselves to the child,
-which the child's member list shows.
+it. This works in every edition. Your Organization's admins are admins in every
+child, so one of them, an admin of the child, or your admin service account's
+key creates the vault there.
 
 ## Put a key in, and rotate it
 

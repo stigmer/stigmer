@@ -24,8 +24,9 @@ export interface ChildOrganizationsListProps {
  * (`can_manage_child_orgs`, checked fail-closed so nothing flashes for a
  * caller the server would refuse), the server holds more than one
  * organization, and the organization has at least one child. A parent's
- * admins manage a child's settings and members and see its billing, but
- * read none of its resources; the list says so.
+ * admins are admins in every child, with no joining step, while each
+ * person's conversations, My vault and memories stay private to them; the
+ * list says so.
  *
  * @example
  * ```tsx
@@ -54,8 +55,8 @@ export function ChildOrganizationsList({ org, className }: ChildOrganizationsLis
         Child organizations
       </h3>
       <p className="stg:text-muted-foreground stg:mb-3 stg:text-xs">
-        Organizations under this one. Their admins and this organization&apos;s admins manage them; this
-        organization&apos;s admins see none of their agents, sessions or files unless they join as a member.
+        Organizations under this one. This organization&apos;s admins are admins in each of them, as their own
+        admins are; each person&apos;s conversations, My vault and memories stay private to them.
       </p>
       {error !== null ? (
         <p className="stg:text-destructive stg:text-xs" role="alert">

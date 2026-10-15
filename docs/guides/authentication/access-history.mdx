@@ -17,13 +17,11 @@ so an Organization that upgrades reads its whole past.
 
 ## Who can read it
 
-Your Organization's owners and admins read its access history. An Organization's
-admins also read part of the history of each of its
-[child organizations](/docs/concepts/organizations#parent-and-child-organizations):
-the changes to who holds which role in the child, the part they manage. They do
-not see the changes on the child's Agents and other resources, which they cannot
-see either, so the numbers in what they read have gaps. Members, viewers and
-guests see who has access, on the members list, but not how it changed.
+Your Organization's owners and admins read all of its access history. The admins
+of a parent Organization are admins in each of its
+[child organizations](/docs/concepts/organizations#parent-and-child-organizations),
+so they read all of each child's history too. Members, viewers and guests see
+who has access, on the members list, but not how it changed.
 
 ## What an entry says
 
@@ -151,8 +149,7 @@ stderr, in a line of its own, and writes only entries to stdout:
 entries 43 to 100 are no longer kept: this server removes entries older than 365 days
 ```
 
-Any other gap in the numbers means the reader is a parent Organization's admin,
-who is not shown the entries about a child's resources.
+Whoever may read the history reads all of it, so the numbers have no other gaps.
 
 A tool that runs on a schedule needs a key of its own. Create a
 [service account](/docs/guides/authentication/service-accounts) with the

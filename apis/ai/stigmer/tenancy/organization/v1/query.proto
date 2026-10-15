@@ -15,8 +15,8 @@ service OrganizationQueryController {
   //
   // @internal
   // Authorization: Requires can_view_settings on the organization: its
-  // members, and the admins of its parent, who manage a child without
-  // reading its resources.
+  // members, the admins of its parent included, who are admins in every
+  // child.
   rpc get(OrganizationId) returns (Organization) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_view_settings;
@@ -39,8 +39,7 @@ service OrganizationQueryController {
   //
   // @internal
   // Authorization: Requires can_manage_child_orgs on the parent (its
-  // admins). The parent's admins read the child's settings, never its
-  // resources.
+  // admins), who are admins in every child.
   rpc getByExternalId(OrganizationExternalLookup) returns (Organization) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_child_orgs;
@@ -52,8 +51,8 @@ service OrganizationQueryController {
   //
   // @internal
   // Authorization: Requires can_manage_child_orgs on the parent (its
-  // admins). Every child is listed: the parent's admins manage all of
-  // them, so no per-row read scope runs.
+  // admins). Every child is listed: the parent's admins are admins in all
+  // of them, so no per-row read scope runs.
   rpc listChildOrgs(ListChildOrgsInput) returns (ChildOrgList) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_child_orgs;

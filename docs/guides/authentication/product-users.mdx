@@ -50,7 +50,8 @@ sequenceDiagram
 3. Stigmer returns a signed token for that user, bound to the Organization the
    call names: your own, or one of its
    [child organizations](/docs/guides/authentication/federation/child-organizations).
-   The token works in that Organization only.
+   A token minted into a child works in that child only; one minted into your
+   own Organization also works in its children as far as the user's role allows.
 4. Your frontend passes the token to `StigmerProvider` through `getAccessToken`.
 
 ## Prerequisites
@@ -252,7 +253,7 @@ All SDKs return structured errors with actionable messages:
 | `INVALID_ARGUMENT`    | `user_id` is blank or contains `\|`                                                              | Pass your stable user identifier.                                                            |
 | `UNAUTHENTICATED`     | An API call bearing a token whose service account was deleted                                    | Mint a new token with an active service account's key.                                       |
 | `UNAUTHENTICATED`     | An API call bearing a token that names no service account, or another Organization than its own  | Use a token `mintUserToken` returned, unchanged.                                             |
-| `PERMISSION_DENIED`   | An API call bearing the minted token targets another Organization than the one it was minted for | Minted tokens work in one Organization only. Mint a token for the target Organization.       |
+| `PERMISSION_DENIED`   | An API call bearing the minted token targets another Organization than the one it was minted for | Minted tokens work in that Organization and its children only. Mint a token for the target.  |
 | `PERMISSION_DENIED`   | A browser API call bearing the minted token came from an origin not in the allowed origins       | Add the requesting origin to the allowed origins in the Organization's embedding settings.   |
 
 ## Security notes
@@ -318,8 +319,9 @@ origin is not in the allowed origins. Add it under Settings > Embedding.
 
 ### Check the target Organization
 
-A minted token works only in the Organization it was minted for, whatever roles
-the user holds elsewhere. `PERMISSION_DENIED` on a call that names another
+A minted token works only in the Organization it was minted for, and in that
+Organization's children as far as the user's role allows, whatever roles the
+user holds elsewhere. `PERMISSION_DENIED` on a call that names another
 Organization's resource means the token is bound elsewhere. The token can still
 reach the user's own account and API keys, and, in a child organization, read
 and run the Agents, Skills and Plugins its parent shares with its children.

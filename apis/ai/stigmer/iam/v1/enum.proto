@@ -259,11 +259,9 @@ enum IamPermission {
   // name, slug, description and preferences): OrganizationQueryController.get.
   //
   // @internal
-  // Held by everyone who holds can_view (every role in the organization)
-  // and by the admins of its parent organization, who manage a child's
-  // settings, members and access, and see its billing, without holding
-  // can_view, so they read none of the child's resources, reports or
-  // lists.
+  // Held by everyone who holds can_view (every role in the organization),
+  // the admins of its parent organization included: they are admins in
+  // every child.
   can_view_settings = 50;
 
   // Whether the caller may save logins and secrets in their own My vault in
@@ -298,13 +296,14 @@ enum IamPermission {
   can_manage_keys = 55;
 
   // Whether the caller may read an organization's access history: its
-  // owners and administrators, and a parent organization's administrators
-  // for a child.
+  // owners and administrators, a parent organization's administrators
+  // included, since they are administrators in every child.
   can_view_access_history = 56;
 
   // Whether the caller may mint a user token for an organization:
-  // TokenService.mintUserToken with org naming it. Its administrators, and
-  // a parent organization's administrators for a child.
+  // TokenService.mintUserToken with org naming it. Its administrators, a
+  // parent organization's administrators included, since they are
+  // administrators in every child.
   //
   // @internal
   // Asked of a service account's key only; the mint refuses every other
