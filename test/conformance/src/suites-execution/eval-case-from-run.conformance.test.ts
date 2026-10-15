@@ -150,7 +150,8 @@ describe.skipIf(!runnerServesTries)("an eval case built from a run", () => {
       `${CASE}/mocks/${SERVER}/${ECHO_TOOL_NAME}.md`,
       `${CASE}/prompt.md`,
     ]);
-    expect(files[`${CASE}/prompt.md`]?.trim()).toBe(SECOND_REQUEST);
+    // An empty frontmatter block first, so a request that opens with "---" stays the prompt.
+    expect(files[`${CASE}/prompt.md`]).toBe(`---\n---\n${SECOND_REQUEST}\n`);
     const history = files[`${CASE}/history.jsonl`] ?? "";
     expect([history.includes(FIRST_REQUEST), history.includes(FIRST_REPLY), history.includes(SECOND_REQUEST)]).toEqual([true, true, false]);
     expect(files[`${CASE}/case.yaml`]).toContain("history_file: history.jsonl");
