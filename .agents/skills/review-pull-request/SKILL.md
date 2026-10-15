@@ -79,7 +79,7 @@ checks.
   - its domains `backend/services/stigmer-server/src/domain/apikey`,
     `backend/services/stigmer-server/src/domain/grant`,
     `backend/services/stigmer-server/src/domain/identityaccount`,
-    `backend/services/stigmer-server/src/domain/agentshare`,
+    `backend/services/stigmer-server/src/domain/channel`,
     `backend/services/stigmer-server/src/domain/organization`,
     `backend/services/stigmer-server/src/domain/vault`,
     `backend/services/stigmer-server/src/domain/oauthapp`,

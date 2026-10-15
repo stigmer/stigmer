@@ -252,15 +252,15 @@ Cloud, so a link from a local backend won't serve visitors. See the
 
 ## Manage sharing declaratively
 
-Sharing lives in its own resource — an `AgentShare` — separate from the Agent it
-points at. If you manage resources with YAML manifests, manage the share the
-same way:
+The chat link lives in its own resource — a `Channel` of type `web` — separate
+from the Agent it points at. If you manage resources with YAML manifests, manage
+the link the same way:
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
-kind: AgentShare
+kind: Channel
 metadata:
-  name: internal-helper
+  name: internal-helper-web
   org: acme-corp
 spec:
   agent_ref:
@@ -268,22 +268,23 @@ spec:
     org: acme-corp
     slug: internal-helper
   enabled: true
-  audience: agent_share_audience_org
+  web:
+    audience: channel_audience_org
 ```
 
-Apply it with `stigmer apply -f share.yaml`. Because the share is a separate
+Apply it with `stigmer apply -f share.yaml`. Because the link is a separate
 resource, applying your Agent's manifest never changes sharing — and applying
-the share never changes the Agent. `metadata.org` and `agent_ref.org` name the
-same Organization: a share lives where its Agent lives.
+the link never changes the Agent. `metadata.org` and `agent_ref.org` name the
+same Organization: a link lives where its Agent lives.
 
 <Callout type="warn">
-  An apply replaces the share's settings as a whole, and a missing `audience`
-  means Organization members. Keep `audience: agent_share_audience_public` in
-  every apply of a public share — a manifest that omits it makes the share
+  An apply replaces the link's settings as a whole, and a missing `audience`
+  means Organization members. Keep `audience: channel_audience_public` in every
+  apply of a public link — a manifest that omits it makes the link
   organization-only.
 </Callout>
 
-See the [AgentShare reference](/docs/sdk/resources/agent-share) for every field,
+See the [Channel reference](/docs/sdk/resources/channel) for every field,
 including embed origins, visitor messages, and tool credentials.
 
 ## Go further with the SDK

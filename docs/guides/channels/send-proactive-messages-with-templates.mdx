@@ -34,11 +34,11 @@ the Agent an honest outcome either way.
 ## Turn on proactive messaging
 
 Proactive sending is off until the channel's owner turns it on. Set
-`proactive_messaging_enabled` on the channel:
+`proactive_messaging_enabled` in the channel's `whatsapp` settings:
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
-kind: AgentChannel
+kind: Channel
 metadata:
   name: isc-whatsapp
   org: isc
@@ -48,13 +48,13 @@ spec:
     org: isc
     slug: assistant
   enabled: true
-  proactive_messaging_enabled: true
   whatsapp:
     phone_number_id: "106540352242922"
-  app_ref:
-    kind: channel_app
-    org: isc
-    slug: isc-whatsapp-app
+    app_ref:
+      kind: channel_app
+      org: isc
+      slug: isc-whatsapp-app
+    proactive_messaging_enabled: true
 ```
 
 Apply it with `stigmer apply -f channel.yaml`. From the next run onward, the
