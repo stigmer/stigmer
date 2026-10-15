@@ -556,6 +556,42 @@ describe("ResolveEvalRunDefaults' case sources and store faults", () => {
     expect(fault.rawMessage).toBe("failed to authorize an eval case source");
   });
 
+  it("names a source the caller sent by slug by that slug, never the id it resolved to, whether hidden or missing", async () => {
+    await temp.store.saveResource(ApiResourceKind.plugin, "plg_candidate", PluginSchema, CANDIDATE);
+    await temp.store.saveResource(
+      ApiResourceKind.eval,
+      "evs_private",
+      EvalSchema,
+      create(EvalSchema, { metadata: { id: "evs_private", org: ORG, slug: "private-tests", name: "private-tests" }, status: { digest: OTHER_DIGEST } }),
+    );
+    // As sent: by slug. As NormalizeReferences leaves it: the id, the slug
+    // cleared, when the slug resolves; as sent when it does not.
+    const sentBySlug = (kind: "plugin" | "eval", slug: string, resolvedId: string) => {
+      const row = evalRow("", EvalRunPhase.unspecified);
+      const value = { kind: kind === "plugin" ? ApiResourceKind.plugin : ApiResourceKind.eval, org: ORG, slug };
+      row.spec!.cases = [create(EvalRunCaseSourceSchema, { source: { case: kind, value } })];
+      const ctx = createCtx(row);
+      if (resolvedId !== "") {
+        ctx.newState.spec!.cases = [
+          create(EvalRunCaseSourceSchema, { source: { case: kind, value: { ...value, slug: "", id: resolvedId } } }),
+        ];
+      }
+      ctx.set(EVAL_RUN_SUBJECT_KEY, { kind: "agent", org: ORG, row: AGENT } satisfies LoadedSubject);
+      return ctx;
+    };
+    const deny: Authorizer = { authorize: () => Promise.resolve({ kind: "deny", reason: "" }) };
+
+    const hiddenEval = await failure(() => newResolveEvalRunDefaultsStep(temp.store, deny).execute(sentBySlug("eval", "private-tests", "evs_private")));
+    const missingEval = await failure(() => newResolveEvalRunDefaultsStep(temp.store, deny).execute(sentBySlug("eval", "no-such-tests", "")));
+    expect([hiddenEval.rawMessage, missingEval.rawMessage]).toEqual([
+      evalRunUnreadableEvalMessage("private-tests"),
+      evalRunUnreadableEvalMessage("no-such-tests"),
+    ]);
+
+    const hiddenPlugin = await failure(() => newResolveEvalRunDefaultsStep(temp.store, deny).execute(sentBySlug("plugin", "candidate", "plg_candidate")));
+    expect(hiddenPlugin.rawMessage).toBe(evalRunUnloadedCaseSourceMessage("candidate"));
+  });
+
   it("passes a store fault reading an Eval's head through, never as a missing Eval", async () => {
     const ctx = await namingAnEval();
     const broken = new Proxy(temp.store, {

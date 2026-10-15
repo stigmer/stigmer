@@ -515,9 +515,9 @@ async function readComparedPlugin(
  * Whose cases run (the module header): each case source the spec names. A
  * plugin source is matched to a plugin a try loads by id, else by
  * organization and slug (INVALID_ARGUMENT naming one the try would not
- * load: by the slug its row holds when the caller may view it, since the
- * reference rule stored it by id, else by the id the request holds, so the
- * refusal tells nobody the slug or the existence of a plugin they cannot
+ * load: by the slug the caller sent; for one sent by id, by the slug its
+ * row holds when the caller may view it, else by that id, so the refusal
+ * tells nobody the slug, the id or the existence of a plugin they cannot
  * view). An Eval source is read and stamped (readEvalSource), once per
  * Eval. With none named, the compared plugin, else every attached plugin.
  */
@@ -538,9 +538,14 @@ async function selectedSources(
   }
   const selected = new Set<string>();
   const evals: SelectedEval[] = [];
-  for (const source of spec.cases) {
+  for (const [index, source] of spec.cases.entries()) {
+    // NormalizeReferences has replaced a slug the caller sent with the id
+    // it resolves to; a refusal names the source as it was sent, so it
+    // tells nobody the id of a source they cannot view.
+    const sent = ctx.input.spec?.cases[index]?.source;
+    const sentSlug = sent !== undefined && sent.case === source.source.case ? (sent.value?.slug ?? "") : "";
     if (source.source.case === "eval") {
-      const read = await readEvalSource(store, authorizer, ctx, source.source.value, agentOrg);
+      const read = await readEvalSource(store, authorizer, ctx, source.source.value, agentOrg, sentSlug);
       if (!evals.some((entry) => entry.eval.metadata?.id === read.eval.metadata?.id)) {
         evals.push(read);
       }
@@ -552,7 +557,7 @@ async function selectedSources(
     const ref = source.source.value;
     const match = plugins.find((entry) => namesPlugin(ref, entry.plugin, agentOrg));
     if (match === undefined) {
-      throw invalidArgumentError(evalRunUnloadedCaseSourceMessage(await nameOf(store, authorizer, ctx, ref)));
+      throw invalidArgumentError(evalRunUnloadedCaseSourceMessage(sentSlug !== "" ? sentSlug : await nameOf(store, authorizer, ctx, ref)));
     }
     selected.add(match.plugin.metadata?.id ?? "");
   }
@@ -566,7 +571,9 @@ async function selectedSources(
  * caller, so it reveals none of them); then the version the reference
  * names, a tag or a digest, or the current one, whose digest create
  * stamps; a version it does not hold is named with the Eval's slug, which
- * the caller may now see. A server-composed request asks no question.
+ * the caller may now see. The refusal names the Eval as the caller sent it
+ * (`sentSlug`, else the id it sent), never the id its slug resolved to. A
+ * server-composed request asks no question.
  */
 async function readEvalSource(
   store: Store,
@@ -574,8 +581,9 @@ async function readEvalSource(
   ctx: RequestContext<typeof EvalRunSchema>,
   ref: ApiResourceReference,
   agentOrg: string,
+  sentSlug: string,
 ): Promise<SelectedEval> {
-  const name = ref.slug !== "" ? ref.slug : ref.id;
+  const name = sentSlug !== "" ? sentSlug : ref.slug !== "" ? ref.slug : ref.id;
   const unreadable = (): ConnectError => invalidArgumentError(evalRunUnreadableEvalMessage(name));
   const at = { ...ref, org: ref.org === "" ? agentOrg : ref.org };
   const head = await evalOrUndefined(() => loadByReferenceWithVersion(store, evalVersionBinding, { ...at, version: "" }));
