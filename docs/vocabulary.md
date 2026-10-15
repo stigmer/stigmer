@@ -1540,10 +1540,11 @@ for the Agent's own servers and its plugins'.
 #### Eval Run
 
 One run of test cases: on an Agent, the cases of the plugins it uses or of the
-evals it names, tried several times on the Agent itself; or on a plugin, the plugin's own cases, tried
-on the built-in assistant. Comparing a plugin tries each case with the plugin
-and without it and records the difference it makes. An eval run on an Agent is
-stamped with the Agent's version, so two versions compare side by side.
+evals it names, tried several times on the Agent itself; or on a plugin, the
+plugin's own cases, tried on the built-in assistant. Comparing a plugin tries
+each case with the plugin and without it and records the difference it makes. An
+eval run on an Agent is stamped with the Agent's version, so two versions
+compare side by side.
 
 - **User-facing alternative**: "eval run" in prose ("start an eval run", "the
   Agent's eval runs"); "evals" for the feature and the tab. The cases are a
