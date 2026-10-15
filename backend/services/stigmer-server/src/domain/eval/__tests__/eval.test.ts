@@ -10,8 +10,10 @@
  * tag moves the tag and adds no version; a changed folder is a second
  * version with its message, reachable by tag and by digest; an
  * unspecified level and an empty name keep the stored ones; a folder where
- * no case loads, an archive that is not a zip and a `latest` tag are
- * refused writing nothing; a renamed-away slug is refused for a push while
+ * no case loads, an archive that is not a zip, an entry that fails to
+ * inflate and a `latest` tag are refused writing nothing; a push returning
+ * to an archived version naming no tag shows the tag that version holds; a
+ * staged push whose write loses once runs again on the bytes it consumed; a renamed-away slug is refused for a push while
  * reads follow it. Downloads return the bytes that were pushed, at the
  * head and at an older digest, inline and over the transfer lane, as does
  * a push staged through an upload URL; the skill lane, which serves its
@@ -29,6 +31,8 @@ import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { buildZip } from "@stigmer/zip-structure/testing";
+
 import { EvalCommandController } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/command_pb";
 import { EvalQueryController } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/query_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
@@ -40,6 +44,7 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import { writeLandsMidUpdate } from "../../../pipeline/__tests__/race-support.js";
 import { organizationId, seedOrganizations } from "../../organization/__tests__/support.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
@@ -239,6 +244,60 @@ describe("Eval push", () => {
       "failed to read eval archive:",
     );
     await expectCode(evalQuery.getByReference({ org: ORG, slug, kind: ApiResourceKind.eval }), Code.NotFound);
+  });
+
+  it("refuses a folder whose entry fails to inflate, naming the entry", async () => {
+    const sentinel = "PROMPT-SENTINEL-0123456789";
+    const zip = buildZip([
+      { name: "c/prompt.md", content: sentinel },
+      { name: "c/graders/judge.md", content: JUDGE },
+    ]);
+    // The payload is stored, so its bytes sit in the archive as written:
+    // change one and its checksum no longer matches.
+    const at = Buffer.from(zip).indexOf(sentinel);
+    expect(at).toBeGreaterThan(0);
+    const corrupt = new Uint8Array(zip);
+    corrupt[at] = "Q".charCodeAt(0);
+    await expectCode(
+      evals.push({ org: ORG, slug: uniqueSlug("corrupt"), artifact: corrupt }),
+      Code.InvalidArgument,
+      "failed to read eval archive: failed to read 'c/prompt.md' from the eval archive: zip: checksum error",
+    );
+  });
+
+  it("shows the tag a version holds when a push returns to it naming none", async () => {
+    const slug = uniqueSlug("returned");
+    const v1 = supportCases(" One.");
+    await evals.push({ org: ORG, slug, artifact: v1, tag: "stable" });
+    await evals.push({ org: ORG, slug, artifact: supportCases(" Two.") });
+    const back = await evals.push({ org: ORG, slug, artifact: v1 });
+    expect(back.status?.digest).toBe(digestOf(v1));
+    expect(back.spec?.tag).toBe("stable");
+    const head = await evalQuery.getByReference({ org: ORG, slug, kind: ApiResourceKind.eval });
+    expect(head.spec?.tag).toBe("stable");
+  });
+
+  it("runs a staged push again from a fresh read when a write lands mid-push, its consumed upload kept", async () => {
+    const slug = uniqueSlug("raced");
+    const first = await evals.push({ org: ORG, slug, artifact: supportCases(" First.") });
+    const id = first.metadata!.id;
+    const next = supportCases(" Next.");
+    const minted = await evals.createArtifactUploadUrl({ org: ORG, slug, sizeBytes: BigInt(next.length) });
+    const put = await fetch(minted.url, { method: "PUT", body: Buffer.from(next), headers: { "content-type": "application/zip" } });
+    expect(put.status).toBe(204);
+
+    const { result, writes } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.eval,
+      id,
+      () => evals.updateVisibility({ resourceId: id, visibility: ApiResourceVisibility.visibility_private }),
+      () => evals.push({ org: ORG, slug, artifactUploadRef: minted.artifactUploadRef }),
+    );
+    expect(writes).toBeGreaterThanOrEqual(2);
+    expect(result.status?.digest).toBe(digestOf(next));
+    // The level the landed write set is kept: the push named none.
+    expect(result.metadata?.visibility).toBe(ApiResourceVisibility.visibility_private);
+    expect(await versionCount(id)).toBe(2);
   });
 
   it("refuses latest as a tag", async () => {

@@ -449,11 +449,8 @@ async function deleteEval(deps: EvalControllerDeps, id: EvalId, ctx: HandlerCont
     .addStep(newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger))
     .build()
     .execute(reqCtx);
-  const deleted = reqCtx.get(EXISTING_RESOURCE_KEY);
-  if (deleted === undefined) {
-    throw internalError(new Error("deleted eval not found in context"), "deleted eval not found in context");
-  }
-  return deleted as Eval;
+  // LoadExistingForDelete stashed the row the chain deleted.
+  return reqCtx.get(EXISTING_RESOURCE_KEY) as Eval;
 }
 
 // ─── queries ─────────────────────────────────────────────────────────────
@@ -565,13 +562,13 @@ async function getDownloadUrl(
   });
 }
 
-/** The digest of the version a reference resolved to; a version without one is a stored row gone wrong. */
+/**
+ * The digest of the version a reference resolved to. Every stored version
+ * has one; one without would name no archive, and its read answers
+ * NotFound as a missing archive does.
+ */
 function digestOf(version: Eval): string {
-  const digest = version.status?.digest ?? "";
-  if (digest === "") {
-    throw internalError(new Error("resolved eval version has no digest"), "failed to load eval archive");
-  }
-  return digest;
+  return version.status?.digest ?? "";
 }
 
 /** A missing archive is NotFound naming the version; any other failure is an infrastructure fault. */
