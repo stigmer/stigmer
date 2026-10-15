@@ -288,6 +288,30 @@ describe("the eval trace, a plugin skill's read", () => {
     }
   });
 
+  it("names a read by the plugin whose mount it is in for a case that is no plugin's own, and an organization's skill bare", async () => {
+    const OTHER = "e".repeat(64);
+    const run = runOf(
+      [
+        call("p1", "read_file", { file_path: `.stigmer/plugins/${DIGEST}/skills/review/SKILL.md` }),
+        call("p2", "read_file", { file_path: `.stigmer/plugins/${OTHER}/skills/triage/SKILL.md` }),
+        call("p3", "read_file", { file_path: `.stigmer/plugins/${"f".repeat(64)}/skills/gone/SKILL.md` }),
+        call("p4", "read_file", { file_path: ".stigmer/skills/house-style/SKILL.md" }),
+      ],
+      [],
+    );
+    const pluginsByDigest = new Map([
+      [DIGEST, { name: "thermos", skillNames }],
+      [OTHER, { name: "desk", skillNames: new Map<string, string>() }],
+    ]);
+    const trace = await evalTraceOf(run, deps(Harness.NATIVE, { pluginName: "", pluginsByDigest }));
+    expect(trace.toolCalls.map((toolCall) => toolCall.input)).toEqual([
+      JSON.stringify({ skill: "thermos:code-review" }),
+      JSON.stringify({ skill: "desk:triage" }),
+      JSON.stringify({ skill: "gone" }),
+      JSON.stringify({ skill: "house-style" }),
+    ]);
+  });
+
   it("matches only a SKILL.md inside a mounted plugin's tree", () => {
     expect(
       PLUGIN_SKILL_READ_PATH.exec(`.stigmer/plugins/${DIGEST}/skills/review/SKILL.md`)?.slice(1),

@@ -54,6 +54,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/io_pb";
 import type { EvalRunList } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/io_pb";
 import { EvalRunPluginSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { EvalRunCaseSourceSchema, EvalRunTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
@@ -584,15 +585,24 @@ describe("PlanEvalRun on an agent", () => {
     return create(PluginSchema, { metadata: { id, slug, name: slug, org: ORG }, status: { digest } });
   }
 
-  function planCtx(row: EvalRun, plugins: ReadonlyArray<Plugin>, selected?: ReadonlyArray<string>) {
+  function planCtx(
+    row: EvalRun,
+    plugins: ReadonlyArray<Plugin>,
+    selected?: ReadonlyArray<string>,
+    evals: EvaluatedLoad["evals"] = [],
+  ) {
     const ctx = createCtx(row);
     ctx.set(EVAL_RUN_LOAD_KEY, {
       agentSpec: AGENT.spec,
       plugins: plugins.map((entry) => ({ plugin: entry, digest: entry.status?.digest ?? "", attached: true, compared: false })),
       selected: new Set(selected ?? plugins.map((entry) => entry.metadata?.id ?? "")),
-      evals: [],
+      evals,
     } satisfies EvaluatedLoad);
     return ctx;
+  }
+
+  function anEval(id: string, slug: string, digest: string): EvaluatedLoad["evals"][number] {
+    return { eval: create(EvalSchema, { metadata: { id, slug, name: slug, org: ORG }, status: { digest } }), digest };
   }
 
   function planRow(spec: Partial<{ caseGlob: string; runs: number }> = {}): EvalRun {
@@ -667,6 +677,49 @@ describe("PlanEvalRun on an agent", () => {
     );
     expect(tooLarge.code).toBe(Code.FailedPrecondition);
     expect(tooLarge.rawMessage).toBe(evalRunTooLargeMessage(240, 240));
+  });
+
+  it("stamps each Eval after the plugins, reads its suite by its kind, and counts its cases with theirs", async () => {
+    const files = source({ [DIGEST]: suiteOf(2), [OTHER_DIGEST]: suiteOf(3, "e") });
+    const reads: string[] = [];
+    const kinds = { readArchive: (ref: Parameters<EvalSuiteSource["readArchive"]>[0]) => (reads.push(ref.kind), files.readArchive(ref)) };
+    const ctx = planCtx(planRow(), [plugin("plg_1", "thermos", DIGEST)], undefined, [anEval("evs_1", "support", OTHER_DIGEST)]);
+    await newPlanEvalRunStep(kinds, catalog).execute(ctx);
+    expect(reads).toEqual(["plugin", "eval"]);
+    const status = ctx.newState.status;
+    expect(status?.evals.map((entry) => [entry.evalId, entry.evalSlug, entry.evalDigest, entry.notRunReason])).toEqual([
+      ["evs_1", "support", OTHER_DIGEST, ""],
+    ]);
+    expect(status?.triesTotal).toBe(5);
+  });
+
+  it("stamps an Eval with no version or no case to read as not run, and runs on with the plugins", async () => {
+    const files = source({ [DIGEST]: suiteOf(1), [OTHER_DIGEST]: suiteOf(0) });
+    const ctx = planCtx(planRow(), [plugin("plg_1", "thermos", DIGEST)], undefined, [
+      anEval("evs_0", "unbuilt", ""),
+      anEval("evs_1", "empty", OTHER_DIGEST),
+    ]);
+    await newPlanEvalRunStep(files, catalog).execute(ctx);
+    expect(ctx.newState.status?.evals.map((entry) => entry.notRunReason)).toEqual([PLUGIN_NO_CASES_REASON, PLUGIN_NO_CASES_REASON]);
+    expect(ctx.newState.status?.triesTotal).toBe(1);
+  });
+
+  it("passes an Eval suite source's own refusal through, and makes any other fault INTERNAL", async () => {
+    const support = [anEval("evs_1", "support", OTHER_DIGEST)];
+    const failing = (error: Error): EvalSuiteSource => ({
+      readArchive: (ref) => (ref.kind === "eval" ? Promise.reject(error) : Promise.resolve(suiteOf(1))),
+    });
+    const notFound = await failure(() =>
+      newPlanEvalRunStep(failing(new ConnectError("eval version not found", Code.NotFound)), catalog).execute(
+        planCtx(planRow(), [], undefined, support),
+      ),
+    );
+    expect(notFound.code).toBe(Code.NotFound);
+    const broken = await failure(() =>
+      newPlanEvalRunStep(failing(new Error("disk")), catalog).execute(planCtx(planRow(), [], undefined, support)),
+    );
+    expect(broken.code).toBe(Code.Internal);
+    expect(broken.rawMessage).toBe("failed to read the evals' cases");
   });
 
   it("refuses filters that keep no case of any plugin", async () => {

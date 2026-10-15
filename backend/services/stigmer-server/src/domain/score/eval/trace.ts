@@ -319,8 +319,10 @@ function skillReadOf(path: string, deps: EvalTraceDeps): string | undefined {
     const [, digest = "", skillPath = ""] = pluginRead;
     const plugin = byDigest?.get(digest);
     const names = byDigest === undefined ? deps.skillNames : plugin?.skillNames;
-    const skill = names?.get(skillPath) ?? skillPath.split("/").pop();
-    return `${byDigest === undefined ? deps.pluginName : (plugin?.name ?? "")}:${skill}`;
+    const skill = names?.get(skillPath) ?? skillPath.split("/").pop() ?? skillPath;
+    if (byDigest === undefined) return `${deps.pluginName}:${skill}`;
+    // A mount whose plugin version is gone since names its skill by path alone.
+    return plugin === undefined ? skill : `${plugin.name}:${skill}`;
   }
   const own = SKILL_READ_PATH.exec(path)?.[1];
   if (own === undefined) return undefined;
