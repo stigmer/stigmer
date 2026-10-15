@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/stigmer/stigmer/security/advisories/new
+    about: Report a vulnerability privately, never in a public issue. See SECURITY.md.
   - name: Question or Help
     url: https://discord.gg/stigmer
     about: For questions, troubleshooting, and getting started help, join the Stigmer Community Discord.
