@@ -20,6 +20,8 @@ import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/a
 import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_command_pb";
 import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
+import { EvalCommandController } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/command_pb";
+import { EvalQueryController } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/query_pb";
 import { EvalRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/command_pb";
 import { EvalRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/query_pb";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
@@ -148,6 +150,8 @@ export interface ConformanceClients {
   skillQuery: Client<typeof SkillQueryController>;
   pluginCommand: Client<typeof PluginCommandController>;
   pluginQuery: Client<typeof PluginQueryController>;
+  evalCommand: Client<typeof EvalCommandController>;
+  evalQuery: Client<typeof EvalQueryController>;
   evalRunCommand: Client<typeof EvalRunCommandController>;
   evalRunQuery: Client<typeof EvalRunQueryController>;
   platformQuery: Client<typeof PlatformQueryController>;
@@ -284,6 +288,8 @@ export function makeClients(transport: Transport): ConformanceClients {
     skillQuery: createClient(SkillQueryController, transport),
     pluginCommand: createClient(PluginCommandController, transport),
     pluginQuery: createClient(PluginQueryController, transport),
+    evalCommand: createClient(EvalCommandController, transport),
+    evalQuery: createClient(EvalQueryController, transport),
     evalRunCommand: createClient(EvalRunCommandController, transport),
     evalRunQuery: createClient(EvalRunQueryController, transport),
     platformQuery: createClient(PlatformQueryController, transport),
