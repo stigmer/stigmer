@@ -26,14 +26,15 @@ var File_ai_stigmer_agentic_eval_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_eval_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/eval/v1/query.proto\x12\x1aai.stigmer.agentic.eval.v1\x1a$ai/stigmer/agentic/eval/v1/api.proto\x1a#ai/stigmer/agentic/eval/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xd8\x05\n" +
+	"&ai/stigmer/agentic/eval/v1/query.proto\x12\x1aai.stigmer.agentic.eval.v1\x1a$ai/stigmer/agentic/eval/v1/api.proto\x1a#ai/stigmer/agentic/eval/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xd8\x06\n" +
 	"\x13EvalQueryController\x12v\n" +
 	"\x03get\x12\".ai.stigmer.agentic.eval.v1.EvalId\x1a .ai.stigmer.agentic.eval.v1.Eval\")¸\x18%\b\x01\x10B\"\x05value*\x18unauthorized to get eval\x12n\n" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a .ai.stigmer.agentic.eval.v1.Eval\"\x04и\x18\x01\x12`\n" +
 	"\x04list\x12,.ai.stigmer.agentic.eval.v1.ListEvalsRequest\x1a$.ai.stigmer.agentic.eval.v1.EvalList\"\x04и\x18\x01\x12}\n" +
 	"\flistVersions\x121.ai.stigmer.agentic.eval.v1.ListEvalVersionsInput\x1a4.ai.stigmer.agentic.eval.v1.ListEvalVersionsResponse\"\x04и\x18\x01\x12o\n" +
 	"\bdownload\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a'.ai.stigmer.agentic.eval.v1.EvalArchive\"\x04и\x18\x01\x12\x80\x01\n" +
-	"\x0egetDownloadUrl\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a2.ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl\"\x04и\x18\x01\x1a\x04\xa0\xff+BB\x87\x02\n" +
+	"\x0egetDownloadUrl\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a2.ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl\"\x04и\x18\x01\x12~\n" +
+	"\x10buildCaseFromRun\x127.ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest\x1a+.ai.stigmer.agentic.eval.v1.EvalCaseArchive\"\x04и\x18\x01\x1a\x04\xa0\xff+BB\x87\x02\n" +
 	"\x1ecom.ai.stigmer.agentic.eval.v1B\n" +
 	"QueryProtoP\x01ZJgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/eval/v1;evalv1\xa2\x02\x04ASAE\xaa\x02\x1aAi.Stigmer.Agentic.Eval.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Eval_\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Agentic::Eval::V1b\x06proto3"
 
@@ -42,30 +43,34 @@ var file_ai_stigmer_agentic_eval_v1_query_proto_goTypes = []any{
 	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
 	(*ListEvalsRequest)(nil),                 // 2: ai.stigmer.agentic.eval.v1.ListEvalsRequest
 	(*ListEvalVersionsInput)(nil),            // 3: ai.stigmer.agentic.eval.v1.ListEvalVersionsInput
-	(*Eval)(nil),                             // 4: ai.stigmer.agentic.eval.v1.Eval
-	(*EvalList)(nil),                         // 5: ai.stigmer.agentic.eval.v1.EvalList
-	(*ListEvalVersionsResponse)(nil),         // 6: ai.stigmer.agentic.eval.v1.ListEvalVersionsResponse
-	(*EvalArchive)(nil),                      // 7: ai.stigmer.agentic.eval.v1.EvalArchive
-	(*EvalArchiveDownloadUrl)(nil),           // 8: ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl
+	(*BuildEvalCaseFromRunRequest)(nil),      // 4: ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest
+	(*Eval)(nil),                             // 5: ai.stigmer.agentic.eval.v1.Eval
+	(*EvalList)(nil),                         // 6: ai.stigmer.agentic.eval.v1.EvalList
+	(*ListEvalVersionsResponse)(nil),         // 7: ai.stigmer.agentic.eval.v1.ListEvalVersionsResponse
+	(*EvalArchive)(nil),                      // 8: ai.stigmer.agentic.eval.v1.EvalArchive
+	(*EvalArchiveDownloadUrl)(nil),           // 9: ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl
+	(*EvalCaseArchive)(nil),                  // 10: ai.stigmer.agentic.eval.v1.EvalCaseArchive
 }
 var file_ai_stigmer_agentic_eval_v1_query_proto_depIdxs = []int32{
-	0, // 0: ai.stigmer.agentic.eval.v1.EvalQueryController.get:input_type -> ai.stigmer.agentic.eval.v1.EvalId
-	1, // 1: ai.stigmer.agentic.eval.v1.EvalQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // 2: ai.stigmer.agentic.eval.v1.EvalQueryController.list:input_type -> ai.stigmer.agentic.eval.v1.ListEvalsRequest
-	3, // 3: ai.stigmer.agentic.eval.v1.EvalQueryController.listVersions:input_type -> ai.stigmer.agentic.eval.v1.ListEvalVersionsInput
-	1, // 4: ai.stigmer.agentic.eval.v1.EvalQueryController.download:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
-	1, // 5: ai.stigmer.agentic.eval.v1.EvalQueryController.getDownloadUrl:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
-	4, // 6: ai.stigmer.agentic.eval.v1.EvalQueryController.get:output_type -> ai.stigmer.agentic.eval.v1.Eval
-	4, // 7: ai.stigmer.agentic.eval.v1.EvalQueryController.getByReference:output_type -> ai.stigmer.agentic.eval.v1.Eval
-	5, // 8: ai.stigmer.agentic.eval.v1.EvalQueryController.list:output_type -> ai.stigmer.agentic.eval.v1.EvalList
-	6, // 9: ai.stigmer.agentic.eval.v1.EvalQueryController.listVersions:output_type -> ai.stigmer.agentic.eval.v1.ListEvalVersionsResponse
-	7, // 10: ai.stigmer.agentic.eval.v1.EvalQueryController.download:output_type -> ai.stigmer.agentic.eval.v1.EvalArchive
-	8, // 11: ai.stigmer.agentic.eval.v1.EvalQueryController.getDownloadUrl:output_type -> ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl
-	6, // [6:12] is the sub-list for method output_type
-	0, // [0:6] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: ai.stigmer.agentic.eval.v1.EvalQueryController.get:input_type -> ai.stigmer.agentic.eval.v1.EvalId
+	1,  // 1: ai.stigmer.agentic.eval.v1.EvalQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
+	2,  // 2: ai.stigmer.agentic.eval.v1.EvalQueryController.list:input_type -> ai.stigmer.agentic.eval.v1.ListEvalsRequest
+	3,  // 3: ai.stigmer.agentic.eval.v1.EvalQueryController.listVersions:input_type -> ai.stigmer.agentic.eval.v1.ListEvalVersionsInput
+	1,  // 4: ai.stigmer.agentic.eval.v1.EvalQueryController.download:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
+	1,  // 5: ai.stigmer.agentic.eval.v1.EvalQueryController.getDownloadUrl:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
+	4,  // 6: ai.stigmer.agentic.eval.v1.EvalQueryController.buildCaseFromRun:input_type -> ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest
+	5,  // 7: ai.stigmer.agentic.eval.v1.EvalQueryController.get:output_type -> ai.stigmer.agentic.eval.v1.Eval
+	5,  // 8: ai.stigmer.agentic.eval.v1.EvalQueryController.getByReference:output_type -> ai.stigmer.agentic.eval.v1.Eval
+	6,  // 9: ai.stigmer.agentic.eval.v1.EvalQueryController.list:output_type -> ai.stigmer.agentic.eval.v1.EvalList
+	7,  // 10: ai.stigmer.agentic.eval.v1.EvalQueryController.listVersions:output_type -> ai.stigmer.agentic.eval.v1.ListEvalVersionsResponse
+	8,  // 11: ai.stigmer.agentic.eval.v1.EvalQueryController.download:output_type -> ai.stigmer.agentic.eval.v1.EvalArchive
+	9,  // 12: ai.stigmer.agentic.eval.v1.EvalQueryController.getDownloadUrl:output_type -> ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl
+	10, // 13: ai.stigmer.agentic.eval.v1.EvalQueryController.buildCaseFromRun:output_type -> ai.stigmer.agentic.eval.v1.EvalCaseArchive
+	7,  // [7:14] is the sub-list for method output_type
+	0,  // [0:7] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_eval_v1_query_proto_init() }

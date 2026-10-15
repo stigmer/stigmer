@@ -392,6 +392,245 @@ func (x *EvalArchive) GetDigest() string {
 	return ""
 }
 
+// BuildEvalCaseFromRunRequest asks for one eval case built from a run: the
+// turn the run answered, the conversation before it, the tool answers it
+// got and a rubric to fill in.
+type BuildEvalCaseFromRunRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The run whose turn becomes the case. It must have ended.
+	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	// The case's directory name. Empty suggests one from the request.
+	CaseName string `protobuf:"bytes,2,opt,name=case_name,json=caseName,proto3" json:"case_name,omitempty"`
+	// A skill the run should have read and did not, as "<plugin>:<skill>":
+	// the case gains a check that the skill is read. Empty adds none.
+	Skill         string `protobuf:"bytes,3,opt,name=skill,proto3" json:"skill,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BuildEvalCaseFromRunRequest) Reset() {
+	*x = BuildEvalCaseFromRunRequest{}
+	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BuildEvalCaseFromRunRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BuildEvalCaseFromRunRequest) ProtoMessage() {}
+
+func (x *BuildEvalCaseFromRunRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BuildEvalCaseFromRunRequest.ProtoReflect.Descriptor instead.
+func (*BuildEvalCaseFromRunRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_eval_v1_io_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *BuildEvalCaseFromRunRequest) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
+}
+
+func (x *BuildEvalCaseFromRunRequest) GetCaseName() string {
+	if x != nil {
+		return x.CaseName
+	}
+	return ""
+}
+
+func (x *BuildEvalCaseFromRunRequest) GetSkill() string {
+	if x != nil {
+		return x.Skill
+	}
+	return ""
+}
+
+// EvalCaseArchive is one eval case folder as a ZIP archive: the case's
+// directory at the archive's root, in the order `stigmer push eval` writes
+// it.
+type EvalCaseArchive struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The case's directory name, the archive's one top-level directory.
+	CaseName string `protobuf:"bytes,1,opt,name=case_name,json=caseName,proto3" json:"case_name,omitempty"`
+	// The archive bytes.
+	Artifact []byte `protobuf:"bytes,2,opt,name=artifact,proto3" json:"artifact,omitempty"`
+	// SHA-256 of the archive.
+	Digest string `protobuf:"bytes,3,opt,name=digest,proto3" json:"digest,omitempty"`
+	// What the case leaves out or keeps differently from the run, one
+	// sentence each: a tool answered differently on a later call, a platform
+	// tool no mock stands in for, an attachment, a tool use the conversation
+	// never answered. Empty when the case is the run's turn whole.
+	Notes         []string `protobuf:"bytes,4,rep,name=notes,proto3" json:"notes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EvalCaseArchive) Reset() {
+	*x = EvalCaseArchive{}
+	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EvalCaseArchive) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EvalCaseArchive) ProtoMessage() {}
+
+func (x *EvalCaseArchive) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EvalCaseArchive.ProtoReflect.Descriptor instead.
+func (*EvalCaseArchive) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_eval_v1_io_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *EvalCaseArchive) GetCaseName() string {
+	if x != nil {
+		return x.CaseName
+	}
+	return ""
+}
+
+func (x *EvalCaseArchive) GetArtifact() []byte {
+	if x != nil {
+		return x.Artifact
+	}
+	return nil
+}
+
+func (x *EvalCaseArchive) GetDigest() string {
+	if x != nil {
+		return x.Digest
+	}
+	return ""
+}
+
+func (x *EvalCaseArchive) GetNotes() []string {
+	if x != nil {
+		return x.Notes
+	}
+	return nil
+}
+
+// AddEvalCaseFromRunRequest asks for a run's turn built as a case (as
+// buildCaseFromRun builds it) and added to an eval as a new version.
+type AddEvalCaseFromRunRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The run whose turn becomes the case. It must have ended.
+	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	// The eval to add the case to, by slug or id; its organization must be
+	// the run's. Its version is ignored: the case joins the current one.
+	Eval *apiresource.ApiResourceReference `protobuf:"bytes,2,opt,name=eval,proto3" json:"eval,omitempty"`
+	// The case's directory name. Empty suggests one from the request. A name
+	// the eval already holds is refused.
+	CaseName string `protobuf:"bytes,3,opt,name=case_name,json=caseName,proto3" json:"case_name,omitempty"`
+	// A skill the run should have read and did not, as "<plugin>:<skill>".
+	Skill string `protobuf:"bytes,4,opt,name=skill,proto3" json:"skill,omitempty"`
+	// The new version's message. Empty is "case <name> from run <id>".
+	Message string `protobuf:"bytes,5,opt,name=message,proto3" json:"message,omitempty"`
+	// Optional tag to move to the new version. "latest" is refused.
+	Tag           string `protobuf:"bytes,6,opt,name=tag,proto3" json:"tag,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddEvalCaseFromRunRequest) Reset() {
+	*x = AddEvalCaseFromRunRequest{}
+	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddEvalCaseFromRunRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddEvalCaseFromRunRequest) ProtoMessage() {}
+
+func (x *AddEvalCaseFromRunRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddEvalCaseFromRunRequest.ProtoReflect.Descriptor instead.
+func (*AddEvalCaseFromRunRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_eval_v1_io_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *AddEvalCaseFromRunRequest) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
+}
+
+func (x *AddEvalCaseFromRunRequest) GetEval() *apiresource.ApiResourceReference {
+	if x != nil {
+		return x.Eval
+	}
+	return nil
+}
+
+func (x *AddEvalCaseFromRunRequest) GetCaseName() string {
+	if x != nil {
+		return x.CaseName
+	}
+	return ""
+}
+
+func (x *AddEvalCaseFromRunRequest) GetSkill() string {
+	if x != nil {
+		return x.Skill
+	}
+	return ""
+}
+
+func (x *AddEvalCaseFromRunRequest) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *AddEvalCaseFromRunRequest) GetTag() string {
+	if x != nil {
+		return x.Tag
+	}
+	return ""
+}
+
 // EvalArchiveDownloadUrl is a URL to download one version of an eval over
 // HTTP.
 type EvalArchiveDownloadUrl struct {
@@ -411,7 +650,7 @@ type EvalArchiveDownloadUrl struct {
 
 func (x *EvalArchiveDownloadUrl) Reset() {
 	*x = EvalArchiveDownloadUrl{}
-	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -423,7 +662,7 @@ func (x *EvalArchiveDownloadUrl) String() string {
 func (*EvalArchiveDownloadUrl) ProtoMessage() {}
 
 func (x *EvalArchiveDownloadUrl) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -436,7 +675,7 @@ func (x *EvalArchiveDownloadUrl) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvalArchiveDownloadUrl.ProtoReflect.Descriptor instead.
 func (*EvalArchiveDownloadUrl) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_eval_v1_io_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_eval_v1_io_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *EvalArchiveDownloadUrl) GetUrl() string {
@@ -486,7 +725,7 @@ type ListEvalVersionsInput struct {
 
 func (x *ListEvalVersionsInput) Reset() {
 	*x = ListEvalVersionsInput{}
-	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -498,7 +737,7 @@ func (x *ListEvalVersionsInput) String() string {
 func (*ListEvalVersionsInput) ProtoMessage() {}
 
 func (x *ListEvalVersionsInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -511,7 +750,7 @@ func (x *ListEvalVersionsInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListEvalVersionsInput.ProtoReflect.Descriptor instead.
 func (*ListEvalVersionsInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_eval_v1_io_proto_rawDescGZIP(), []int{6}
+	return file_ai_stigmer_agentic_eval_v1_io_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListEvalVersionsInput) GetOrg() string {
@@ -563,7 +802,7 @@ type EvalVersionEntry struct {
 
 func (x *EvalVersionEntry) Reset() {
 	*x = EvalVersionEntry{}
-	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -575,7 +814,7 @@ func (x *EvalVersionEntry) String() string {
 func (*EvalVersionEntry) ProtoMessage() {}
 
 func (x *EvalVersionEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -588,7 +827,7 @@ func (x *EvalVersionEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvalVersionEntry.ProtoReflect.Descriptor instead.
 func (*EvalVersionEntry) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_eval_v1_io_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_agentic_eval_v1_io_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *EvalVersionEntry) GetDigest() string {
@@ -647,7 +886,7 @@ type ListEvalVersionsResponse struct {
 
 func (x *ListEvalVersionsResponse) Reset() {
 	*x = ListEvalVersionsResponse{}
-	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -659,7 +898,7 @@ func (x *ListEvalVersionsResponse) String() string {
 func (*ListEvalVersionsResponse) ProtoMessage() {}
 
 func (x *ListEvalVersionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -672,7 +911,7 @@ func (x *ListEvalVersionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListEvalVersionsResponse.ProtoReflect.Descriptor instead.
 func (*ListEvalVersionsResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_eval_v1_io_proto_rawDescGZIP(), []int{8}
+	return file_ai_stigmer_agentic_eval_v1_io_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ListEvalVersionsResponse) GetEntries() []*EvalVersionEntry {
@@ -710,7 +949,7 @@ type ListEvalsRequest struct {
 
 func (x *ListEvalsRequest) Reset() {
 	*x = ListEvalsRequest{}
-	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[9]
+	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -722,7 +961,7 @@ func (x *ListEvalsRequest) String() string {
 func (*ListEvalsRequest) ProtoMessage() {}
 
 func (x *ListEvalsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[9]
+	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -735,7 +974,7 @@ func (x *ListEvalsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListEvalsRequest.ProtoReflect.Descriptor instead.
 func (*ListEvalsRequest) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_eval_v1_io_proto_rawDescGZIP(), []int{9}
+	return file_ai_stigmer_agentic_eval_v1_io_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ListEvalsRequest) GetOrg() string {
@@ -780,7 +1019,7 @@ type EvalList struct {
 
 func (x *EvalList) Reset() {
 	*x = EvalList{}
-	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[10]
+	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -792,7 +1031,7 @@ func (x *EvalList) String() string {
 func (*EvalList) ProtoMessage() {}
 
 func (x *EvalList) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[10]
+	mi := &file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -805,7 +1044,7 @@ func (x *EvalList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvalList.ProtoReflect.Descriptor instead.
 func (*EvalList) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_eval_v1_io_proto_rawDescGZIP(), []int{10}
+	return file_ai_stigmer_agentic_eval_v1_io_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *EvalList) GetEntries() []*Eval {
@@ -826,7 +1065,7 @@ var File_ai_stigmer_agentic_eval_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_eval_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"#ai/stigmer/agentic/eval/v1/io.proto\x12\x1aai.stigmer.agentic.eval.v1\x1a$ai/stigmer/agentic/eval/v1/api.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"&\n" +
+	"#ai/stigmer/agentic/eval/v1/io.proto\x12\x1aai.stigmer.agentic.eval.v1\x1a$ai/stigmer/agentic/eval/v1/api.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"&\n" +
 	"\x06EvalId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xbf\x04\n" +
 	"\x0fPushEvalRequest\x12\x18\n" +
@@ -853,7 +1092,23 @@ const file_ai_stigmer_agentic_eval_v1_io_proto_rawDesc = "" +
 	"ttlSeconds\"A\n" +
 	"\vEvalArchive\x12\x1a\n" +
 	"\bartifact\x18\x01 \x01(\fR\bartifact\x12\x16\n" +
-	"\x06digest\x18\x02 \x01(\tR\x06digest\"\x82\x01\n" +
+	"\x06digest\x18\x02 \x01(\tR\x06digest\"\x9d\x01\n" +
+	"\x1bBuildEvalCaseFromRunRequest\x12\x1d\n" +
+	"\x06run_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05runId\x12?\n" +
+	"\tcase_name\x18\x02 \x01(\tB\"\xbaH\x1fr\x1d\x18?2\x19^$|^[a-z0-9][a-z0-9._-]*$R\bcaseName\x12\x1e\n" +
+	"\x05skill\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\xc8\x01R\x05skill\"x\n" +
+	"\x0fEvalCaseArchive\x12\x1b\n" +
+	"\tcase_name\x18\x01 \x01(\tR\bcaseName\x12\x1a\n" +
+	"\bartifact\x18\x02 \x01(\fR\bartifact\x12\x16\n" +
+	"\x06digest\x18\x03 \x01(\tR\x06digest\x12\x14\n" +
+	"\x05notes\x18\x04 \x03(\tR\x05notes\"\xc1\x02\n" +
+	"\x19AddEvalCaseFromRunRequest\x12\x1d\n" +
+	"\x06run_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05runId\x12P\n" +
+	"\x04eval\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x06\xbaH\x03\xc8\x01\x01R\x04eval\x12?\n" +
+	"\tcase_name\x18\x03 \x01(\tB\"\xbaH\x1fr\x1d\x18?2\x19^$|^[a-z0-9][a-z0-9._-]*$R\bcaseName\x12\x1e\n" +
+	"\x05skill\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\xc8\x01R\x05skill\x12\x18\n" +
+	"\amessage\x18\x05 \x01(\tR\amessage\x128\n" +
+	"\x03tag\x18\x06 \x01(\tB&\xbaH#r!\x18\x80\x012\x14^$|^[a-zA-Z0-9._-]+$Z\x06latestR\x03tag\"\x82\x01\n" +
 	"\x16EvalArchiveDownloadUrl\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x1f\n" +
 	"\vttl_seconds\x18\x02 \x01(\x05R\n" +
@@ -904,37 +1159,42 @@ func file_ai_stigmer_agentic_eval_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_eval_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_ai_stigmer_agentic_eval_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_ai_stigmer_agentic_eval_v1_io_proto_goTypes = []any{
 	(*EvalId)(nil),                             // 0: ai.stigmer.agentic.eval.v1.EvalId
 	(*PushEvalRequest)(nil),                    // 1: ai.stigmer.agentic.eval.v1.PushEvalRequest
 	(*CreateEvalArtifactUploadUrlRequest)(nil), // 2: ai.stigmer.agentic.eval.v1.CreateEvalArtifactUploadUrlRequest
 	(*EvalArtifactUploadUrl)(nil),              // 3: ai.stigmer.agentic.eval.v1.EvalArtifactUploadUrl
 	(*EvalArchive)(nil),                        // 4: ai.stigmer.agentic.eval.v1.EvalArchive
-	(*EvalArchiveDownloadUrl)(nil),             // 5: ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl
-	(*ListEvalVersionsInput)(nil),              // 6: ai.stigmer.agentic.eval.v1.ListEvalVersionsInput
-	(*EvalVersionEntry)(nil),                   // 7: ai.stigmer.agentic.eval.v1.EvalVersionEntry
-	(*ListEvalVersionsResponse)(nil),           // 8: ai.stigmer.agentic.eval.v1.ListEvalVersionsResponse
-	(*ListEvalsRequest)(nil),                   // 9: ai.stigmer.agentic.eval.v1.ListEvalsRequest
-	(*EvalList)(nil),                           // 10: ai.stigmer.agentic.eval.v1.EvalList
-	nil,                                        // 11: ai.stigmer.agentic.eval.v1.ListEvalsRequest.LabelsEntry
-	(apiresource.ApiResourceVisibility)(0),     // 12: ai.stigmer.commons.apiresource.ApiResourceVisibility
-	(*timestamppb.Timestamp)(nil),              // 13: google.protobuf.Timestamp
-	(*apiresource.ApiResourceAuditActor)(nil),  // 14: ai.stigmer.commons.apiresource.ApiResourceAuditActor
-	(*Eval)(nil),                               // 15: ai.stigmer.agentic.eval.v1.Eval
+	(*BuildEvalCaseFromRunRequest)(nil),        // 5: ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest
+	(*EvalCaseArchive)(nil),                    // 6: ai.stigmer.agentic.eval.v1.EvalCaseArchive
+	(*AddEvalCaseFromRunRequest)(nil),          // 7: ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest
+	(*EvalArchiveDownloadUrl)(nil),             // 8: ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl
+	(*ListEvalVersionsInput)(nil),              // 9: ai.stigmer.agentic.eval.v1.ListEvalVersionsInput
+	(*EvalVersionEntry)(nil),                   // 10: ai.stigmer.agentic.eval.v1.EvalVersionEntry
+	(*ListEvalVersionsResponse)(nil),           // 11: ai.stigmer.agentic.eval.v1.ListEvalVersionsResponse
+	(*ListEvalsRequest)(nil),                   // 12: ai.stigmer.agentic.eval.v1.ListEvalsRequest
+	(*EvalList)(nil),                           // 13: ai.stigmer.agentic.eval.v1.EvalList
+	nil,                                        // 14: ai.stigmer.agentic.eval.v1.ListEvalsRequest.LabelsEntry
+	(apiresource.ApiResourceVisibility)(0),     // 15: ai.stigmer.commons.apiresource.ApiResourceVisibility
+	(*apiresource.ApiResourceReference)(nil),   // 16: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*timestamppb.Timestamp)(nil),              // 17: google.protobuf.Timestamp
+	(*apiresource.ApiResourceAuditActor)(nil),  // 18: ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	(*Eval)(nil),                               // 19: ai.stigmer.agentic.eval.v1.Eval
 }
 var file_ai_stigmer_agentic_eval_v1_io_proto_depIdxs = []int32{
-	12, // 0: ai.stigmer.agentic.eval.v1.PushEvalRequest.visibility:type_name -> ai.stigmer.commons.apiresource.ApiResourceVisibility
-	13, // 1: ai.stigmer.agentic.eval.v1.EvalVersionEntry.pushed_at:type_name -> google.protobuf.Timestamp
-	14, // 2: ai.stigmer.agentic.eval.v1.EvalVersionEntry.pushed_by:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditActor
-	7,  // 3: ai.stigmer.agentic.eval.v1.ListEvalVersionsResponse.entries:type_name -> ai.stigmer.agentic.eval.v1.EvalVersionEntry
-	11, // 4: ai.stigmer.agentic.eval.v1.ListEvalsRequest.labels:type_name -> ai.stigmer.agentic.eval.v1.ListEvalsRequest.LabelsEntry
-	15, // 5: ai.stigmer.agentic.eval.v1.EvalList.entries:type_name -> ai.stigmer.agentic.eval.v1.Eval
-	6,  // [6:6] is the sub-list for method output_type
-	6,  // [6:6] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	15, // 0: ai.stigmer.agentic.eval.v1.PushEvalRequest.visibility:type_name -> ai.stigmer.commons.apiresource.ApiResourceVisibility
+	16, // 1: ai.stigmer.agentic.eval.v1.AddEvalCaseFromRunRequest.eval:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	17, // 2: ai.stigmer.agentic.eval.v1.EvalVersionEntry.pushed_at:type_name -> google.protobuf.Timestamp
+	18, // 3: ai.stigmer.agentic.eval.v1.EvalVersionEntry.pushed_by:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	10, // 4: ai.stigmer.agentic.eval.v1.ListEvalVersionsResponse.entries:type_name -> ai.stigmer.agentic.eval.v1.EvalVersionEntry
+	14, // 5: ai.stigmer.agentic.eval.v1.ListEvalsRequest.labels:type_name -> ai.stigmer.agentic.eval.v1.ListEvalsRequest.LabelsEntry
+	19, // 6: ai.stigmer.agentic.eval.v1.EvalList.entries:type_name -> ai.stigmer.agentic.eval.v1.Eval
+	7,  // [7:7] is the sub-list for method output_type
+	7,  // [7:7] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_eval_v1_io_proto_init() }
@@ -949,7 +1209,7 @@ func file_ai_stigmer_agentic_eval_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_eval_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_eval_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -36,6 +36,28 @@ service EvalCommandController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
+  // Add a case built from a run (as buildCaseFromRun builds it) to an
+  // eval, as a new version holding the current version's files and the
+  // case.
+  //
+  // Error Cases:
+  //
+  // - NOT_FOUND: no such run, or no such eval
+  // - PERMISSION_DENIED: the caller may not view the run, or may not edit
+  //   the eval
+  // - FAILED_PRECONDITION: the run has not ended, or the eval is not of the
+  //   run's organization
+  // - ALREADY_EXISTS: the eval already holds a case of that name
+  //
+  // @internal
+  // Authorization in-handler: can_view on the run, then the push's own
+  // question, can_edit on the eval. The eval's current version is read and
+  // the new archive built inside each attempt of the guarded write, so a
+  // push landing meanwhile is kept.
+  rpc addCaseFromRun(AddEvalCaseFromRunRequest) returns (Eval) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
   // Mint a short-lived, single-use upload URL for staging an eval archive
   // that exceeds the gRPC message-size cap (10MB). Flow:
   //

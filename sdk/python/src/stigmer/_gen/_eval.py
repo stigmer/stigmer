@@ -33,6 +33,12 @@ class EvalClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def add_case_from_run(self, input: io_pb2.AddEvalCaseFromRunRequest) -> api_pb2.Eval:
+        try:
+            return self._command.addCaseFromRun(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def create_artifact_upload_url(self, input: io_pb2.CreateEvalArtifactUploadUrlRequest) -> io_pb2.EvalArtifactUploadUrl:
         try:
             return self._command.createArtifactUploadUrl(input)
@@ -120,6 +126,12 @@ class EvalClient:
             proto = ref._to_proto()
             proto.kind = api_resource_kind_pb2.eval
             return self._query.getDownloadUrl(proto)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def build_case_from_run(self, input: io_pb2.BuildEvalCaseFromRunRequest) -> io_pb2.EvalCaseArchive:
+        try:
+            return self._query.buildCaseFromRun(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

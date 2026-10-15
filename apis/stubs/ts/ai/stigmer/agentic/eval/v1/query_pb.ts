@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { EvalSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_eval_v1_api } from "./api_pb.js";
-import type { EvalArchiveDownloadUrlSchema, EvalArchiveSchema, EvalIdSchema, EvalListSchema, ListEvalsRequestSchema, ListEvalVersionsInputSchema, ListEvalVersionsResponseSchema } from "./io_pb.js";
+import type { BuildEvalCaseFromRunRequestSchema, EvalArchiveDownloadUrlSchema, EvalArchiveSchema, EvalCaseArchiveSchema, EvalIdSchema, EvalListSchema, ListEvalsRequestSchema, ListEvalVersionsInputSchema, ListEvalVersionsResponseSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_eval_v1_io } from "./io_pb.js";
 import type { ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/eval/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_eval_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvZXZhbC92MS9xdWVyeS5wcm90bxIaYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEy2AUKE0V2YWxRdWVyeUNvbnRyb2xsZXISdgoDZ2V0EiIuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuRXZhbElkGiAuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuRXZhbCIpwrgYJQgBEEIiBXZhbHVlKhh1bmF1dGhvcml6ZWQgdG8gZ2V0IGV2YWwSbgoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaIC5haS5zdGlnbWVyLmFnZW50aWMuZXZhbC52MS5FdmFsIgTQuBgBEmAKBGxpc3QSLC5haS5zdGlnbWVyLmFnZW50aWMuZXZhbC52MS5MaXN0RXZhbHNSZXF1ZXN0GiQuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuRXZhbExpc3QiBNC4GAESfQoMbGlzdFZlcnNpb25zEjEuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuTGlzdEV2YWxWZXJzaW9uc0lucHV0GjQuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuTGlzdEV2YWxWZXJzaW9uc1Jlc3BvbnNlIgTQuBgBEm8KCGRvd25sb2FkEjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlGicuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuRXZhbEFyY2hpdmUiBNC4GAESgAEKDmdldERvd25sb2FkVXJsEjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlGjIuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuRXZhbEFyY2hpdmVEb3dubG9hZFVybCIE0LgYARoEoP8rQmIGcHJvdG8z", [file_ai_stigmer_agentic_eval_v1_api, file_ai_stigmer_agentic_eval_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvZXZhbC92MS9xdWVyeS5wcm90bxIaYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEy2AYKE0V2YWxRdWVyeUNvbnRyb2xsZXISdgoDZ2V0EiIuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuRXZhbElkGiAuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuRXZhbCIpwrgYJQgBEEIiBXZhbHVlKhh1bmF1dGhvcml6ZWQgdG8gZ2V0IGV2YWwSbgoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaIC5haS5zdGlnbWVyLmFnZW50aWMuZXZhbC52MS5FdmFsIgTQuBgBEmAKBGxpc3QSLC5haS5zdGlnbWVyLmFnZW50aWMuZXZhbC52MS5MaXN0RXZhbHNSZXF1ZXN0GiQuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuRXZhbExpc3QiBNC4GAESfQoMbGlzdFZlcnNpb25zEjEuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuTGlzdEV2YWxWZXJzaW9uc0lucHV0GjQuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuTGlzdEV2YWxWZXJzaW9uc1Jlc3BvbnNlIgTQuBgBEm8KCGRvd25sb2FkEjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlGicuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuRXZhbEFyY2hpdmUiBNC4GAESgAEKDmdldERvd25sb2FkVXJsEjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlGjIuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuRXZhbEFyY2hpdmVEb3dubG9hZFVybCIE0LgYARJ+ChBidWlsZENhc2VGcm9tUnVuEjcuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuQnVpbGRFdmFsQ2FzZUZyb21SdW5SZXF1ZXN0GisuYWkuc3RpZ21lci5hZ2VudGljLmV2YWwudjEuRXZhbENhc2VBcmNoaXZlIgTQuBgBGgSg/ytCYgZwcm90bzM", [file_ai_stigmer_agentic_eval_v1_api, file_ai_stigmer_agentic_eval_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * EvalQueryController handles read operations for evals.
@@ -99,6 +99,31 @@ export const EvalQueryController: GenService<{
     methodKind: "unary";
     input: typeof ApiResourceReferenceSchema;
     output: typeof EvalArchiveDownloadUrlSchema;
+  },
+  /**
+   * Build an eval case from a run, to keep on disk or push in an eval.
+   *
+   * The case is the turn the run answered: its request as the prompt, the
+   * conversation before it as the case's history (so the case resumes where
+   * the person was), each MCP tool answer the run got as a fixed mock under
+   * the server name the turn gave it, and a rubric to fill in, seeded with
+   * why the run went wrong (an AI judge's failing reason, or the caller's
+   * own thumbs-down note). It never carries a verdict of its own.
+   *
+   * Error Cases:
+   *
+   * - NOT_FOUND: no such run
+   * - PERMISSION_DENIED: the caller may not view the run
+   * - FAILED_PRECONDITION: the run has not ended
+   * - RESOURCE_EXHAUSTED: the case is too large to answer inline; add it
+   *   to an eval with addCaseFromRun, which writes it on the server
+   *
+   * @generated from rpc ai.stigmer.agentic.eval.v1.EvalQueryController.buildCaseFromRun
+   */
+  buildCaseFromRun: {
+    methodKind: "unary";
+    input: typeof BuildEvalCaseFromRunRequestSchema;
+    output: typeof EvalCaseArchiveSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_eval_v1_query, 0);

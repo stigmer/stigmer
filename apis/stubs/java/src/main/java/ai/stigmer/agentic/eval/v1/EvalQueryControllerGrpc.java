@@ -201,6 +201,37 @@ public final class EvalQueryControllerGrpc {
     return getGetDownloadUrlMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest,
+      ai.stigmer.agentic.eval.v1.EvalCaseArchive> getBuildCaseFromRunMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "buildCaseFromRun",
+      requestType = ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest.class,
+      responseType = ai.stigmer.agentic.eval.v1.EvalCaseArchive.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest,
+      ai.stigmer.agentic.eval.v1.EvalCaseArchive> getBuildCaseFromRunMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest, ai.stigmer.agentic.eval.v1.EvalCaseArchive> getBuildCaseFromRunMethod;
+    if ((getBuildCaseFromRunMethod = EvalQueryControllerGrpc.getBuildCaseFromRunMethod) == null) {
+      synchronized (EvalQueryControllerGrpc.class) {
+        if ((getBuildCaseFromRunMethod = EvalQueryControllerGrpc.getBuildCaseFromRunMethod) == null) {
+          EvalQueryControllerGrpc.getBuildCaseFromRunMethod = getBuildCaseFromRunMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest, ai.stigmer.agentic.eval.v1.EvalCaseArchive>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "buildCaseFromRun"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.eval.v1.EvalCaseArchive.getDefaultInstance()))
+              .setSchemaDescriptor(new EvalQueryControllerMethodDescriptorSupplier("buildCaseFromRun"))
+              .build();
+        }
+      }
+    }
+    return getBuildCaseFromRunMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -338,6 +369,28 @@ public final class EvalQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetDownloadUrlMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Build an eval case from a run, to keep on disk or push in an eval.
+     * The case is the turn the run answered: its request as the prompt, the
+     * conversation before it as the case's history (so the case resumes where
+     * the person was), each MCP tool answer the run got as a fixed mock under
+     * the server name the turn gave it, and a rubric to fill in, seeded with
+     * why the run went wrong (an AI judge's failing reason, or the caller's
+     * own thumbs-down note). It never carries a verdict of its own.
+     * Error Cases:
+     * - NOT_FOUND: no such run
+     * - PERMISSION_DENIED: the caller may not view the run
+     * - FAILED_PRECONDITION: the run has not ended
+     * - RESOURCE_EXHAUSTED: the case is too large to answer inline; add it
+     *   to an eval with addCaseFromRun, which writes it on the server
+     * </pre>
+     */
+    default void buildCaseFromRun(ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.eval.v1.EvalCaseArchive> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getBuildCaseFromRunMethod(), responseObserver);
+    }
   }
 
   /**
@@ -450,6 +503,29 @@ public final class EvalQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetDownloadUrlMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Build an eval case from a run, to keep on disk or push in an eval.
+     * The case is the turn the run answered: its request as the prompt, the
+     * conversation before it as the case's history (so the case resumes where
+     * the person was), each MCP tool answer the run got as a fixed mock under
+     * the server name the turn gave it, and a rubric to fill in, seeded with
+     * why the run went wrong (an AI judge's failing reason, or the caller's
+     * own thumbs-down note). It never carries a verdict of its own.
+     * Error Cases:
+     * - NOT_FOUND: no such run
+     * - PERMISSION_DENIED: the caller may not view the run
+     * - FAILED_PRECONDITION: the run has not ended
+     * - RESOURCE_EXHAUSTED: the case is too large to answer inline; add it
+     *   to an eval with addCaseFromRun, which writes it on the server
+     * </pre>
+     */
+    public void buildCaseFromRun(ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.eval.v1.EvalCaseArchive> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getBuildCaseFromRunMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -542,6 +618,28 @@ public final class EvalQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetDownloadUrlMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Build an eval case from a run, to keep on disk or push in an eval.
+     * The case is the turn the run answered: its request as the prompt, the
+     * conversation before it as the case's history (so the case resumes where
+     * the person was), each MCP tool answer the run got as a fixed mock under
+     * the server name the turn gave it, and a rubric to fill in, seeded with
+     * why the run went wrong (an AI judge's failing reason, or the caller's
+     * own thumbs-down note). It never carries a verdict of its own.
+     * Error Cases:
+     * - NOT_FOUND: no such run
+     * - PERMISSION_DENIED: the caller may not view the run
+     * - FAILED_PRECONDITION: the run has not ended
+     * - RESOURCE_EXHAUSTED: the case is too large to answer inline; add it
+     *   to an eval with addCaseFromRun, which writes it on the server
+     * </pre>
+     */
+    public ai.stigmer.agentic.eval.v1.EvalCaseArchive buildCaseFromRun(ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getBuildCaseFromRunMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -633,6 +731,28 @@ public final class EvalQueryControllerGrpc {
     public ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl getDownloadUrl(ai.stigmer.commons.apiresource.ApiResourceReference request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetDownloadUrlMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Build an eval case from a run, to keep on disk or push in an eval.
+     * The case is the turn the run answered: its request as the prompt, the
+     * conversation before it as the case's history (so the case resumes where
+     * the person was), each MCP tool answer the run got as a fixed mock under
+     * the server name the turn gave it, and a rubric to fill in, seeded with
+     * why the run went wrong (an AI judge's failing reason, or the caller's
+     * own thumbs-down note). It never carries a verdict of its own.
+     * Error Cases:
+     * - NOT_FOUND: no such run
+     * - PERMISSION_DENIED: the caller may not view the run
+     * - FAILED_PRECONDITION: the run has not ended
+     * - RESOURCE_EXHAUSTED: the case is too large to answer inline; add it
+     *   to an eval with addCaseFromRun, which writes it on the server
+     * </pre>
+     */
+    public ai.stigmer.agentic.eval.v1.EvalCaseArchive buildCaseFromRun(ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getBuildCaseFromRunMethod(), getCallOptions(), request);
     }
   }
 
@@ -732,6 +852,29 @@ public final class EvalQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetDownloadUrlMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Build an eval case from a run, to keep on disk or push in an eval.
+     * The case is the turn the run answered: its request as the prompt, the
+     * conversation before it as the case's history (so the case resumes where
+     * the person was), each MCP tool answer the run got as a fixed mock under
+     * the server name the turn gave it, and a rubric to fill in, seeded with
+     * why the run went wrong (an AI judge's failing reason, or the caller's
+     * own thumbs-down note). It never carries a verdict of its own.
+     * Error Cases:
+     * - NOT_FOUND: no such run
+     * - PERMISSION_DENIED: the caller may not view the run
+     * - FAILED_PRECONDITION: the run has not ended
+     * - RESOURCE_EXHAUSTED: the case is too large to answer inline; add it
+     *   to an eval with addCaseFromRun, which writes it on the server
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.eval.v1.EvalCaseArchive> buildCaseFromRun(
+        ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getBuildCaseFromRunMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
@@ -740,6 +883,7 @@ public final class EvalQueryControllerGrpc {
   private static final int METHODID_LIST_VERSIONS = 3;
   private static final int METHODID_DOWNLOAD = 4;
   private static final int METHODID_GET_DOWNLOAD_URL = 5;
+  private static final int METHODID_BUILD_CASE_FROM_RUN = 6;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -781,6 +925,10 @@ public final class EvalQueryControllerGrpc {
         case METHODID_GET_DOWNLOAD_URL:
           serviceImpl.getDownloadUrl((ai.stigmer.commons.apiresource.ApiResourceReference) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl>) responseObserver);
+          break;
+        case METHODID_BUILD_CASE_FROM_RUN:
+          serviceImpl.buildCaseFromRun((ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.eval.v1.EvalCaseArchive>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -842,6 +990,13 @@ public final class EvalQueryControllerGrpc {
               ai.stigmer.commons.apiresource.ApiResourceReference,
               ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl>(
                 service, METHODID_GET_DOWNLOAD_URL)))
+        .addMethod(
+          getBuildCaseFromRunMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest,
+              ai.stigmer.agentic.eval.v1.EvalCaseArchive>(
+                service, METHODID_BUILD_CASE_FROM_RUN)))
         .build();
   }
 
@@ -896,6 +1051,7 @@ public final class EvalQueryControllerGrpc {
               .addMethod(getListVersionsMethod())
               .addMethod(getDownloadMethod())
               .addMethod(getGetDownloadUrlMethod())
+              .addMethod(getBuildCaseFromRunMethod())
               .build();
         }
       }
