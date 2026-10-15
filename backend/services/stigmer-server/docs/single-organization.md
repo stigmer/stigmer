@@ -36,15 +36,15 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | AgentQueryController.list | org |
 | AgentQueryController.listVersions | org |
 
-## `ai.stigmer.agentic.agentchannel.v1`
+## `ai.stigmer.agentic.channel.v1`
 
 | Method | Fills |
 |---|---|
-| AgentChannelCommandController.apply | metadata.org |
-| AgentChannelCommandController.create | metadata.org |
-| AgentChannelQueryController.listByAgent | org |
-| AgentChannelQueryController.getByReference | org |
-| AgentChannelQueryController.list | org |
+| ChannelCommandController.apply | metadata.org |
+| ChannelCommandController.create | metadata.org |
+| ChannelQueryController.listByAgent | org |
+| ChannelQueryController.getByReference | org |
+| ChannelQueryController.list | org |
 | ChannelConversationQueryController.countConversations | org |
 | ChannelConversationQueryController.list | org |
 | ChannelMessageCommandController.sendMessage | org |
@@ -59,16 +59,6 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | RunQueryController.getRunSummary | org |
 | RunQueryController.getOrgUsageReport | org |
 | RunQueryController.list | org |
-
-## `ai.stigmer.agentic.agentshare.v1`
-
-| Method | Fills |
-|---|---|
-| AgentShareCommandController.apply | metadata.org |
-| AgentShareCommandController.create | metadata.org |
-| AgentShareQueryController.listByAgent | org |
-| AgentShareQueryController.getByReference | org |
-| AgentShareQueryController.list | org |
 
 ## `ai.stigmer.agentic.channelapp.v1`
 

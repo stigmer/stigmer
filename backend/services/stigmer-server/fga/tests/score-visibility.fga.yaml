@@ -96,15 +96,15 @@ tuples:
     object: score:bobs-run-health
 
   # --- A channel session, its run and its run-health score ---
-  - user: agent_channel:slack-conn
+  - user: channel:slack-conn
     relation: channel
     object: session:channel-chat
   - user: organization:acme
     relation: organization
-    object: agent_channel:slack-conn
+    object: channel:slack-conn
   - user: identity_account:bob
     relation: owner
-    object: agent_channel:slack-conn
+    object: channel:slack-conn
   - user: organization:acme
     relation: organization
     object: session:channel-chat

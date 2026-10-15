@@ -45,7 +45,7 @@ export function noExistingSecretMessage(fieldName: string): string {
 /**
  * InvalidArgument copy for a provider-arm change on update — Go steps.go
  * validateProviderImmutableStep, byte-pinned. Deliberately a DIFFERENT
- * code than agentchannel's provider rule (InvalidArgument here vs
+ * code than the channel's type rule (InvalidArgument here vs
  * FailedPrecondition there) — a pinned cross-domain inconsistency both
  * editions share; harmonization is a post-cutover wire change.
  */
@@ -53,8 +53,8 @@ export const PROVIDER_IMMUTABLE_MESSAGE =
   "the provider of a channel app cannot be changed";
 
 /**
- * FailedPrecondition copy for deleting a ChannelApp still referenced by an
- * AgentChannel — Go steps.go checkNoReferencingChannelsStep, byte-pinned.
+ * FailedPrecondition copy for deleting a ChannelApp still referenced by a
+ * Slack or WhatsApp channel (Go steps.go checkNoReferencingChannelsStep).
  * Names the referencing channel by metadata.name (not slug), as Go does.
  */
 export function deleteBlockedByChannelMessage(
@@ -62,5 +62,5 @@ export function deleteBlockedByChannelMessage(
   slug: string,
   channelName: string,
 ): string {
-  return `cannot delete ChannelApp '${org}/${slug}': referenced by agent channel '${channelName}'`;
+  return `cannot delete ChannelApp '${org}/${slug}': referenced by channel '${channelName}'`;
 }

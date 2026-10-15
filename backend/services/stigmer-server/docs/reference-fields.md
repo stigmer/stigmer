@@ -27,36 +27,29 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.agent.v1.ListAgentVersionsInput.slug` | request reference |
 | `ai.stigmer.agentic.agent.v1.TagAgentVersionInput.agent_id` | stamped id |
 
-## `ai.stigmer.agentic.agentchannel.v1`
+## `ai.stigmer.agentic.channel.v1`
 
 | Field | Class |
 |---|---|
-| `ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.agent_ref` | manifest reference |
-| `ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.app_ref` | manifest reference |
-| `ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.vaults` | manifest reference |
-| `ai.stigmer.agentic.agentchannel.v1.ChannelConversation.agent_channel_id` | stamped id |
-| `ai.stigmer.agentic.agentchannel.v1.ConversationControlInput.agent_channel_id` | stamped id |
-| `ai.stigmer.agentic.agentchannel.v1.CountChannelConversationsInput.agent_channel_id` | stamped id |
-| `ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput.agent_channel_id` | stamped id |
-| `ai.stigmer.agentic.agentchannel.v1.GetConversationMediaDownloadUrlInput.agent_channel_id` | stamped id |
-| `ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsByAgentRequest.agent_id` | stamped id |
-| `ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput.agent_channel_id` | stamped id |
-| `ai.stigmer.agentic.agentchannel.v1.ListConversationTimelineInput.agent_channel_id` | stamped id |
-| `ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput.agent_channel_id` | stamped id |
-| `ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus.channel_app_id` | stamped id |
-| `ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus.team_id` | stamped id |
-| `ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.channel_app_id` | stamped id |
-
-## `ai.stigmer.agentic.agentshare.v1`
-
-| Field | Class |
-|---|---|
-| `ai.stigmer.agentic.agentshare.v1.AgentShareSpec.agent_ref` | manifest reference |
-| `ai.stigmer.agentic.agentshare.v1.AgentShareSpec.vaults` | manifest reference |
-| `ai.stigmer.agentic.agentshare.v1.AgentShareStatus.agent_id` | stamped id |
-| `ai.stigmer.agentic.agentshare.v1.ListAgentSharesByAgentRequest.agent_id` | stamped id |
-| `ai.stigmer.agentic.agentshare.v1.SharedAgentProfile.agent_ref` | stamped reference |
-| `ai.stigmer.agentic.agentshare.v1.SharedAgentProfile.slug` | not a resource: the share's own name, beside its org |
+| `ai.stigmer.agentic.channel.v1.ChannelAgentProfile.agent_ref` | stamped reference |
+| `ai.stigmer.agentic.channel.v1.ChannelAgentProfile.slug` | not a resource: the channel's own name, beside its org |
+| `ai.stigmer.agentic.channel.v1.ChannelConversation.channel_id` | stamped id |
+| `ai.stigmer.agentic.channel.v1.ChannelSpec.agent_ref` | manifest reference |
+| `ai.stigmer.agentic.channel.v1.ChannelSpec.vaults` | manifest reference |
+| `ai.stigmer.agentic.channel.v1.ConversationControlInput.channel_id` | stamped id |
+| `ai.stigmer.agentic.channel.v1.CountChannelConversationsInput.channel_id` | stamped id |
+| `ai.stigmer.agentic.channel.v1.GetChannelAgentProfileRequest.channel_id` | stamped id |
+| `ai.stigmer.agentic.channel.v1.GetChannelConversationInput.channel_id` | stamped id |
+| `ai.stigmer.agentic.channel.v1.GetConversationMediaDownloadUrlInput.channel_id` | stamped id |
+| `ai.stigmer.agentic.channel.v1.ListChannelConversationsInput.channel_id` | stamped id |
+| `ai.stigmer.agentic.channel.v1.ListChannelsByAgentRequest.agent_id` | stamped id |
+| `ai.stigmer.agentic.channel.v1.ListConversationTimelineInput.channel_id` | stamped id |
+| `ai.stigmer.agentic.channel.v1.ReplyToConversationInput.channel_id` | stamped id |
+| `ai.stigmer.agentic.channel.v1.SlackChannelConfig.app_ref` | manifest reference |
+| `ai.stigmer.agentic.channel.v1.SlackInstallStatus.channel_app_id` | stamped id |
+| `ai.stigmer.agentic.channel.v1.SlackInstallStatus.team_id` | stamped id |
+| `ai.stigmer.agentic.channel.v1.WhatsAppChannelConfig.app_ref` | manifest reference |
+| `ai.stigmer.agentic.channel.v1.WhatsAppInstallStatus.channel_app_id` | stamped id |
 
 ## `ai.stigmer.agentic.eval.v1`
 
@@ -173,6 +166,7 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.session.v1.ListSessionEventsRequest.run_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.ListSessionEventsRequest.session_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.agent_id` | stamped id |
+| `ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest.channel_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.ReviewFileChangesInput.session_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.SessionEvent.run_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.SessionEvent.session_id` | stamped id |
@@ -221,6 +215,12 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.iam.identityaccount.v1.ExternalSubLookup.federation_issuer_ref` | request reference |
 | `ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec.federation_issuer_ref` | stamped reference |
 | `ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput.federation_issuer_ref` | request reference |
+
+## `ai.stigmer.iam.token.v1`
+
+| Field | Class |
+|---|---|
+| `ai.stigmer.iam.token.v1.MintGuestTokenRequest.channel_id` | stamped id |
 
 ## `ai.stigmer.platform.v1`
 

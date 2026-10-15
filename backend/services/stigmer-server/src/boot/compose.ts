@@ -89,10 +89,9 @@ import { newEvalsConfigFromEnv } from "../temporal/evals/config.js";
 import { newEvalsWorkerFactory } from "../temporal/evals/worker.js";
 import { evalModelCatalogOf } from "../domain/eval-run/matrix.js";
 import { registerScheduleServices } from "../domain/schedule/controller.js";
-import { registerAgentChannelServices } from "../domain/agentchannel/controller.js";
-import { registerChannelConversationServices } from "../domain/agentchannel/conversation.js";
-import { registerChannelMessageServices } from "../domain/agentchannel/message.js";
-import { registerAgentShareServices } from "../domain/agentshare/controller.js";
+import { registerChannelServices } from "../domain/channel/controller.js";
+import { registerChannelConversationServices } from "../domain/channel/conversation.js";
+import { registerChannelMessageServices } from "../domain/channel/message.js";
 import { registerApiKeyServices } from "../domain/apikey/controller.js";
 import {
   newCreateAccountPath,
@@ -1862,6 +1861,9 @@ export async function composeServer(
         sessions: evalRunTrySessions,
         workflows: evalRunWorkflows,
       },
+      // The agent's delete tears down its Slack and WhatsApp channels
+      // through the same runtime the channel's own delete uses.
+      channelRuntime: extensions.drivers.channelRuntime,
     });
     registerSessionServices(router, {
       store,
@@ -1885,20 +1887,11 @@ export async function composeServer(
       engineState: executionEngineState,
       statusObservers: runStatusObservers,
     });
-    // The sharing/channel family registers after the agent family, as in
-    // Go server.go (agent 378 → agentshare 384 → agentchannel 391 →
-    // channelmessage 399 → channelconversation 408 → channelapp 416).
+    // The channel family registers after the agent family: the channel,
+    // its messaging and conversation services, then the channel apps.
     // ChannelApp shares the ONE SecretService instance every secret kind
     // seals with: one key, one enc:v1: format.
-    registerAgentShareServices(router, {
-      store,
-      logger,
-      authorizer,
-      credentialBinding,
-      authorizationLifecycle,
-      listReadScope,
-    });
-    registerAgentChannelServices(router, {
+    registerChannelServices(router, {
       store,
       logger,
       authorizer,

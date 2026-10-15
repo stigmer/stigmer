@@ -80,13 +80,12 @@ const PINNED: Readonly<
     revision: 1,
     fingerprint: "schedule{agent=field:spec.agent.agent_ref.id}",
   },
-  agent_channel: {
+  // The agent share and the agent channel merged into the channel (SQLite
+  // v40, Postgres v36) with the key both declared, so the merged kind
+  // starts at revision 1.
+  channel: {
     revision: 1,
-    fingerprint: "agent_channel{agent=field:spec.agent_ref.id}",
-  },
-  agent_share: {
-    revision: 1,
-    fingerprint: "agent_share{agent=field:spec.agent_ref.id}",
+    fingerprint: "channel{agent=field:spec.agent_ref.id}",
   },
   oauth_app: { revision: 1, fingerprint: "oauth_app{}" },
   channel_app: { revision: 1, fingerprint: "channel_app{}" },

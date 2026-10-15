@@ -1,6 +1,6 @@
 /**
  * Pins the ChannelRuntime driver seam's SERVING posture (channel-runtime.ts)
- * — the complement of agentchannel.test.ts, which pins the
+ * — the complement of channel.test.ts, which pins the
  * storing posture this seam must leave byte-identical. Same real stack:
  * a composed server on an ephemeral port with ONE extension unit carrying
  * a recording fake runtime, native gRPC clients, the full interceptor
@@ -18,7 +18,11 @@
  *     is the request's refusal;
  *   - teardownOnDelete runs between the load and the row delete: a
  *     throwing teardown fails the delete AND leaves the row (idempotent
- *     retry heals).
+ *     retry heals);
+ *   - the runtime is a Slack or WhatsApp channel's: a web channel's
+ *     create, update and delete never reach enforceWriteConstraints or
+ *     teardownOnDelete, and its install RPCs refuse with
+ *     INSTALL_NOT_APPLICABLE_MESSAGE before the driver is asked.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -40,26 +44,27 @@ import {
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
-import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
-import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_command_pb";
-import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
-import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_command_pb";
-import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_query_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/command_pb";
+import { ChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/query_pb";
+import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_command_pb";
+import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_query_pb";
+import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_command_pb";
+import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_query_pb";
 import {
   ChannelConversationCountSchema,
   ChannelConversationListSchema,
   ChannelConversationSchema,
   ConversationMediaDownloadUrlSchema,
   ConversationTimelineSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
-import { InitiateChannelInstallOutputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { InitiateChannelInstallOutputSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
 import {
   ChannelTemplatesSchema,
   MessagingChannelsSchema,
   SendChannelMessageOutputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
+import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { loadConfig } from "../../../boot/config.js";
@@ -69,6 +74,7 @@ import { createLogger } from "../../../boot/logger.js";
 import { invalidArgumentError } from "../../../pipeline/errors.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { ChannelRuntime } from "../channel-runtime.js";
+import { INSTALL_NOT_APPLICABLE_MESSAGE } from "../constants.js";
 import {
   organizationId,
   seedOrganizations,
@@ -253,8 +259,8 @@ const fakeRuntime: ChannelRuntime = {
 };
 
 let server: ComposedServer;
-let channels: Client<typeof AgentChannelCommandController>;
-let query: Client<typeof AgentChannelQueryController>;
+let channels: Client<typeof ChannelCommandController>;
+let query: Client<typeof ChannelQueryController>;
 let agents: Client<typeof AgentCommandController>;
 let messageCommand: Client<typeof ChannelMessageCommandController>;
 let messageQuery: Client<typeof ChannelMessageQueryController>;
@@ -272,7 +278,7 @@ beforeAll(async () => {
   server = await composeServer({
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
-      // No engine behind composed tests — the agentchannel.test.ts posture.
+      // No engine behind composed tests — the channel.test.ts posture.
       TEMPORAL_HOST_PORT: "127.0.0.1:1",
       DB_PATH: path.join(dir, "stigmer.db"),
       ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
@@ -289,8 +295,8 @@ beforeAll(async () => {
     baseUrl: `http://127.0.0.1:${port}`,
   });
   ORG_ID = organizationId(await seedOrganizations(transport, [ORG]), ORG);
-  channels = createClient(AgentChannelCommandController, transport);
-  query = createClient(AgentChannelQueryController, transport);
+  channels = createClient(ChannelCommandController, transport);
+  query = createClient(ChannelQueryController, transport);
   agents = createClient(AgentCommandController, transport);
   messageCommand = createClient(ChannelMessageCommandController, transport);
   messageQuery = createClient(ChannelMessageQueryController, transport);
@@ -334,14 +340,28 @@ async function createTestAgent(name: string): Promise<Agent> {
   });
 }
 
-async function createTestChannel(agentSlug: string): Promise<AgentChannel> {
+async function createTestChannel(agentSlug: string): Promise<Channel> {
   return channels.create({
     apiVersion: API_VERSION,
-    kind: "AgentChannel",
+    kind: "Channel",
     metadata: { name: uniqueName("runtime channel"), org: ORG },
     spec: {
       agentRef: { kind: ApiResourceKind.agent, slug: agentSlug },
-      providerConfig: { case: "slack", value: {} },
+      type: { case: "slack", value: {} },
+    },
+  });
+}
+
+/** A web channel (a chat link): it has no provider runtime. */
+async function createTestWebChannel(agentSlug: string): Promise<Channel> {
+  return channels.create({
+    apiVersion: API_VERSION,
+    kind: "Channel",
+    metadata: { name: uniqueName("runtime web channel"), org: ORG },
+    spec: {
+      agentRef: { kind: ApiResourceKind.agent, slug: agentSlug },
+      enabled: true,
+      type: { case: "web", value: { audience: ChannelAudience.public } },
     },
   });
 }
@@ -399,11 +419,34 @@ describe("install arms — per-arm delegation behind the OSS load contract", () 
 
   it("keeps the OSS NOT_FOUND load contract — the driver never sees a missing id", async () => {
     const err = await expectCode(
-      () => channels.initiateInstall({ resourceId: "ach_01runtimemissing" }),
+      () => channels.initiateInstall({ resourceId: "chn_01runtimemissing" }),
       Code.NotFound,
     );
-    expect(err.rawMessage).toBe("AgentChannel not found: ach_01runtimemissing");
+    expect(err.rawMessage).toBe("Channel not found: chn_01runtimemissing");
     expect(calls.filter((c) => c.arm === "initiateInstall")).toHaveLength(0);
+  });
+
+  it("a web channel's install RPCs refuse as not applicable — the driver never sees them", async () => {
+    const agent = await createTestAgent(uniqueName("web install agent"));
+    const web = await createTestWebChannel(agent.metadata!.slug);
+    calls.length = 0;
+
+    const initiate = await expectCode(
+      () => channels.initiateInstall({ resourceId: web.metadata!.id }),
+      Code.FailedPrecondition,
+    );
+    expect(initiate.rawMessage).toBe(INSTALL_NOT_APPLICABLE_MESSAGE);
+    const complete = await expectCode(
+      () =>
+        channels.completeInstall({
+          resourceId: web.metadata!.id,
+          state: "state-token-web",
+          code: "oauth-code-web",
+        }),
+      Code.FailedPrecondition,
+    );
+    expect(complete.rawMessage).toBe(INSTALL_NOT_APPLICABLE_MESSAGE);
+    expect(calls).toHaveLength(0);
   });
 });
 
@@ -443,19 +486,19 @@ describe("conversation surface — whole-method delegation", () => {
     expect(lastCall("countConversations").inputMarker).toBe(ORG_ID);
 
     await conversationQuery.getConversation({
-      agentChannelId: "ach_x",
+      channelId: "chn_x",
       conversationKey: "conv-1",
     });
     expect(lastCall("getConversation").inputMarker).toBe("conv-1");
 
     await conversationQuery.listTimeline({
-      agentChannelId: "ach_x",
+      channelId: "chn_x",
       conversationKey: "conv-2",
     });
     expect(lastCall("listTimeline").inputMarker).toBe("conv-2");
 
     await conversationQuery.getMediaDownloadUrl({
-      agentChannelId: "ach_x",
+      channelId: "chn_x",
       conversationKey: "conv-3",
       itemId: "item-9",
     });
@@ -463,7 +506,7 @@ describe("conversation surface — whole-method delegation", () => {
   });
 
   it("delegates every command", async () => {
-    const control = { agentChannelId: "ach_x", conversationKey: "conv-cmd" };
+    const control = { channelId: "chn_x", conversationKey: "conv-cmd" };
     await conversationCommand.reply({
       ...control,
       payload: { kind: { case: "text", value: { body: "hi" } } },
@@ -514,19 +557,30 @@ describe("enforceWriteConstraints — the edition-split CRUD hook", () => {
       () =>
         channels.create({
           apiVersion: API_VERSION,
-          kind: "AgentChannel",
+          kind: "Channel",
           metadata: { name: uniqueName("refused channel"), org: ORG },
           spec: {
             agentRef: {
               kind: ApiResourceKind.agent,
               slug: agent.metadata!.slug,
             },
-            providerConfig: { case: "slack", value: {} },
+            type: { case: "slack", value: {} },
           },
         }),
       Code.InvalidArgument,
     );
     expect(err.rawMessage).toBe(FAKE_PIN_REQUIRED_MESSAGE);
+  });
+
+  it("is never asked for a web channel, on create or on update", async () => {
+    const agent = await createTestAgent(uniqueName("web constraint agent"));
+    // Armed: were the hook asked, the create would be refused.
+    refuseWrites = true;
+    const web = await createTestWebChannel(agent.metadata!.slug);
+    web.spec!.enabled = false;
+    const updated = await channels.update({ resource: web, updateMask: { paths: ["*"] } });
+    expect(updated.spec?.enabled).toBe(false);
+    expect(calls.filter((c) => c.arm === "enforceWriteConstraints")).toHaveLength(0);
   });
 });
 
@@ -564,5 +618,17 @@ describe("teardownOnDelete — the delete-chain cascade hook", () => {
     const call = lastCall("teardownOnDelete");
     expect(call.channelId).toBe(channel.metadata!.id);
     expect(call.caller.identityId).not.toBe("");
+  });
+
+  it("is never asked for a web channel — its delete goes through untouched", async () => {
+    const agent = await createTestAgent(uniqueName("web delete agent"));
+    const web = await createTestWebChannel(agent.metadata!.slug);
+    // Armed: were the hook asked, the delete would fail.
+    failTeardown = true;
+    calls.length = 0;
+
+    await channels.delete({ value: web.metadata!.id });
+    expect(calls.filter((c) => c.arm === "teardownOnDelete")).toHaveLength(0);
+    await expectCode(() => query.get({ value: web.metadata!.id }), Code.NotFound);
   });
 });

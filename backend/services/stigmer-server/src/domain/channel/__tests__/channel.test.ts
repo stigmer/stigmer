@@ -1,23 +1,34 @@
 /**
- * Pins the agentchannel domain against Go's agentchannel_test.go,
- * case-for-case — through the REAL stack: a composed server on an
- * ephemeral port, native gRPC clients for all four registration blocks
- * (channel command/query, message, conversation), the full interceptor
- * chain.
+ * Pins the Channel domain's Slack and WhatsApp types, and the rules every
+ * type shares, through the REAL stack: a composed server on an ephemeral
+ * port, native gRPC clients for all four registration blocks (channel
+ * command/query, message, conversation), the full interceptor chain. The
+ * cases began as Go's agentchannel_test.go, case-for-case, when these
+ * connections were their own AgentChannel kind; the web channel's own
+ * cases live in web-channel.test.ts.
  *
  * One deliberate adaptation from the Go file, a strengthening: Go pins
- * provider-arm immutability at the STEP level with a no-arm stand-in
- * (the test predates the WhatsApp arm); here a real slack→whatsapp flip
- * runs through the wire and pins the copy. Go's TestProviderFieldName
- * ports as a seam-level pin below — the TS derivation resolves the PROTO
- * field name through the schema descriptor, because the oneof `case` is
- * the camelCased localName and would silently diverge from Go's pinned
- * error copy on a future snake_case arm.
+ * type immutability at the STEP level with a no-arm stand-in (the test
+ * predates the WhatsApp arm); here real slack→whatsapp and web→slack
+ * flips run through the wire and pin typeImmutableMessage. Go's
+ * TestProviderFieldName ports as a seam-level pin of typeFieldName below —
+ * the TS derivation resolves the PROTO field name through the schema
+ * descriptor, because the oneof `case` is the camelCased localName and
+ * would silently diverge from the pinned error copy on a future
+ * snake_case arm.
  *
- * One arm beyond the Go file: an update keeps a write that lands between
- * its read and its write (pipeline/guarded-write.ts) — the lost swap reruns
- * from a fresh read, so the stored channel and the answer carry both the
- * landed visibility and the update's spec.
+ * Beyond the Go file:
+ *   - an update keeps a write that lands between its read and its write
+ *     (pipeline/guarded-write.ts) — the lost swap reruns from a fresh
+ *     read, so the stored channel and the answer carry both the landed
+ *     visibility and the update's spec;
+ *   - a nameless channel takes the slug `<agent slug>-<type>` and the name
+ *     `<agent name> (<Type>)`, one rule for every type;
+ *   - the type-shaped lanes refuse the other types: a web channel's
+ *     install RPCs (INSTALL_NOT_APPLICABLE_MESSAGE), a Slack channel's
+ *     rotateLink (ROTATE_LINK_NOT_APPLICABLE_MESSAGE) and both profile
+ *     reads of a Slack channel (the uniform NotFound);
+ *   - rename moves the slug, and the old slug still resolves for reading.
  *
  * Go tests run one store per test function; this file shares ONE server,
  * so count-sensitive assertions use dedicated orgs and every agent /
@@ -28,6 +39,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { create } from "@bufbuild/protobuf";
+import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
@@ -35,19 +47,28 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentChannelSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/spec_pb";
-import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
-import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
-import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_command_pb";
-import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
-import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_command_pb";
-import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_query_pb";
-import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import {
+  ChannelAudience,
+  ChannelSpecSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
+import type {
+  SlackChannelConfig,
+  WhatsAppChannelConfig,
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
+import { ChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/command_pb";
+import { ChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/query_pb";
+import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_command_pb";
+import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_query_pb";
+import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_command_pb";
+import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_query_pb";
+import { ChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import type { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
@@ -57,18 +78,20 @@ import {
   visibilityWrite,
   writeLandsMidUpdate,
 } from "../../../pipeline/__tests__/race-support.js";
-import { providerFieldName } from "../steps.js";
+import { linkNotFound, typeFieldName } from "../steps.js";
 import {
-  APP_REF_FROZEN_WHILE_INSTALLED_MESSAGE,
   APP_REF_REQUIRED_FOR_WHATSAPP_MESSAGE,
-  APP_REF_SAME_ORG_MESSAGE,
   CONVERSATION_PARTICIPATION_UNAVAILABLE_MESSAGE,
+  INSTALL_NOT_APPLICABLE_MESSAGE,
   INSTALL_UNAVAILABLE_MESSAGE,
   NO_DOWNLOADABLE_MEDIA_MESSAGE,
   PROACTIVE_MESSAGING_UNAVAILABLE_MESSAGE,
+  ROTATE_LINK_NOT_APPLICABLE_MESSAGE,
   agentRefImmutableMessage,
-  providerImmutableMessage,
+  appRefFrozenWhileInstalledMessage,
+  appRefSameOrgMessage,
   sameOrgInvariantMessage,
+  typeImmutableMessage,
 } from "../constants.js";
 import {
   organizationId,
@@ -91,8 +114,8 @@ let ORG_ID: string;
 let OTHER_ORG_ID: string;
 
 let server: ComposedServer;
-let channels: Client<typeof AgentChannelCommandController>;
-let query: Client<typeof AgentChannelQueryController>;
+let channels: Client<typeof ChannelCommandController>;
+let query: Client<typeof ChannelQueryController>;
 let agents: Client<typeof AgentCommandController>;
 let messageCommand: Client<typeof ChannelMessageCommandController>;
 let messageQuery: Client<typeof ChannelMessageQueryController>;
@@ -101,7 +124,7 @@ let conversationQuery: Client<typeof ChannelConversationQueryController>;
 let dir: string;
 
 beforeAll(async () => {
-  dir = mkdtempSync(path.join(tmpdir(), "agentchannel-domain-test-"));
+  dir = mkdtempSync(path.join(tmpdir(), "channel-domain-test-"));
   vi.stubEnv("STIGMER_ENCRYPTION_KEY", Buffer.alloc(32, 7).toString("base64"));
   vi.stubEnv(
     "STIGMER_RUNNER_TOKEN_KEY",
@@ -135,8 +158,8 @@ beforeAll(async () => {
   ]);
   ORG_ID = organizationId(organizationIds, ORG);
   OTHER_ORG_ID = organizationId(organizationIds, "channel-other-org");
-  channels = createClient(AgentChannelCommandController, transport);
-  query = createClient(AgentChannelQueryController, transport);
+  channels = createClient(ChannelCommandController, transport);
+  query = createClient(ChannelQueryController, transport);
   agents = createClient(AgentCommandController, transport);
   messageCommand = createClient(ChannelMessageCommandController, transport);
   messageQuery = createClient(ChannelMessageQueryController, transport);
@@ -237,39 +260,79 @@ async function createTestAgent(
   });
 }
 
+type ReferenceInit = MessageInitShape<typeof ApiResourceReferenceSchema>;
+
 /**
- * A named Slack channel for an agent. Unlike shares, channels have no
- * canonical-slug default (N per agent), so tests always provide a
- * name for the generic derive-from-name slug.
+ * A named Slack channel for an agent, bound to `appRef` when given. Most
+ * cases name their channel (N per agent) for the generic derive-from-name
+ * slug; an empty name leaves the channel nameless, which defaults its slug
+ * to `<agent slug>-slack`.
  */
-function channelFor(agent: Agent, name: string, enabled: boolean) {
+function channelFor(
+  agent: Agent,
+  name: string,
+  enabled: boolean,
+  appRef?: ReferenceInit,
+) {
   return {
     apiVersion: API_VERSION,
-    kind: "AgentChannel",
+    kind: "Channel",
     metadata: { name, org: agent.metadata!.org },
     spec: {
       agentRef: { kind: ApiResourceKind.agent, slug: agent.metadata!.slug },
       enabled,
-      providerConfig: { case: "slack" as const, value: {} },
+      type: {
+        case: "slack" as const,
+        value: appRef === undefined ? {} : { appRef },
+      },
     },
   };
 }
 
-/** The whatsapp variant — no app_ref by default (the BYO-only arms test it). */
-function whatsAppChannelFor(agent: Agent, name: string) {
+/** The whatsapp variant — no app_ref unless given (the BYO-only arms test it). */
+function whatsAppChannelFor(agent: Agent, name: string, appRef?: ReferenceInit) {
   return {
     apiVersion: API_VERSION,
-    kind: "AgentChannel",
+    kind: "Channel",
     metadata: { name, org: agent.metadata!.org },
     spec: {
       agentRef: { kind: ApiResourceKind.agent, slug: agent.metadata!.slug },
       enabled: true,
-      providerConfig: {
+      type: {
         case: "whatsapp" as const,
-        value: { phoneNumberId: "106540352242922" },
+        value:
+          appRef === undefined
+            ? { phoneNumberId: "106540352242922" }
+            : { phoneNumberId: "106540352242922", appRef },
       },
     },
   };
+}
+
+/** A named web channel (a chat link) for an agent. */
+function webChannelFor(agent: Agent, name: string) {
+  return {
+    apiVersion: API_VERSION,
+    kind: "Channel",
+    metadata: { name, org: agent.metadata!.org },
+    spec: {
+      agentRef: { kind: ApiResourceKind.agent, slug: agent.metadata!.slug },
+      enabled: true,
+      type: {
+        case: "web" as const,
+        value: { audience: ChannelAudience.public },
+      },
+    },
+  };
+}
+
+/** A channel's app-bearing settings; fails the case for a web channel. */
+function appSettingsOf(channel: Channel): SlackChannelConfig | WhatsAppChannelConfig {
+  const type = channel.spec?.type;
+  if (type?.case !== "slack" && type?.case !== "whatsapp") {
+    throw new Error(`expected a Slack or WhatsApp channel, got ${String(type?.case)}`);
+  }
+  return type.value;
 }
 
 async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
@@ -335,17 +398,17 @@ describe("model-pin existence (oss#774)", () => {
 // Create (Go TestAgentChannelController_Create).
 // ---------------------------------------------------------------------------
 
-describe("agentchannel create", () => {
-  it("creates with ach_ prefix, normalized ref, pending_install", async () => {
+describe("channel create", () => {
+  it("creates with chn_ prefix, normalized ref, pending_install", async () => {
     const agent = await createTestAgent(uniqueName("Create Basics Agent"));
     const channel = await channels.create(
       channelFor(agent, uniqueName("Slack Workspace"), true),
     );
 
-    expect(channel.metadata?.id).toMatch(/^ach_/);
+    expect(channel.metadata?.id).toMatch(/^chn_/);
     expect(channel.spec?.agentRef?.org).toBe(agent.metadata!.org);
     expect(channel.status?.installState).toBe(
-      AgentChannelInstallState.pending_install,
+      ChannelInstallState.pending_install,
     );
   });
 
@@ -360,22 +423,39 @@ describe("agentchannel create", () => {
     expect(channel.metadata?.slug).not.toBe(agent.metadata!.slug);
   });
 
-  it("nameless and slugless channel is INVALID_ARGUMENT, never agent-slug fallback", async () => {
+  it("a nameless Slack channel takes the slug <agent slug>-slack and the name <agent name> (Slack)", async () => {
     const agent = await createTestAgent(uniqueName("No Name Agent"));
+    const channel = await channels.create(channelFor(agent, "", true));
+    expect(channel.metadata?.slug).toBe(`${agent.metadata!.slug}-slack`);
+    expect(channel.metadata?.name).toBe(`${agent.metadata!.name} (Slack)`);
+
+    // One nameless channel of a type per agent: a second is a duplicate.
     const err = await grpcError(() =>
       channels.create(channelFor(agent, "", true)),
     );
-    expect(err.code).toBe(Code.InvalidArgument);
+    expect(err.code).toBe(Code.AlreadyExists);
+  });
+
+  it("a nameless WhatsApp channel takes the slug <agent slug>-whatsapp and the name <agent name> (WhatsApp)", async () => {
+    const agent = await createTestAgent(uniqueName("No Name WA Agent"));
+    const channel = await channels.create(
+      whatsAppChannelFor(agent, "", {
+        kind: ApiResourceKind.channel_app,
+        slug: "acme-meta-app",
+      }),
+    );
+    expect(channel.metadata?.slug).toBe(`${agent.metadata!.slug}-whatsapp`);
+    expect(channel.metadata?.name).toBe(`${agent.metadata!.name} (WhatsApp)`);
   });
 
   it("client-provided status is discarded, never trusted", async () => {
     const agent = await createTestAgent(uniqueName("Status Forgery Agent"));
     const created = await channels.create({
       ...channelFor(agent, uniqueName("Forged Status Slack"), true),
-      status: { installState: AgentChannelInstallState.installed },
+      status: { installState: ChannelInstallState.installed },
     });
     expect(created.status?.installState).toBe(
-      AgentChannelInstallState.pending_install,
+      ChannelInstallState.pending_install,
     );
   });
 
@@ -392,12 +472,12 @@ describe("agentchannel create", () => {
     const err = await grpcError(() =>
       channels.create({
         apiVersion: API_VERSION,
-        kind: "AgentChannel",
+        kind: "Channel",
         metadata: { name: uniqueName("Refless Channel"), org: ORG },
         spec: {
           agentRef: { kind: ApiResourceKind.agent },
           enabled: true,
-          providerConfig: { case: "slack" as const, value: {} },
+          type: { case: "slack" as const, value: {} },
         },
       }),
     );
@@ -410,12 +490,12 @@ describe("agentchannel create", () => {
     const err = await grpcError(() =>
       channels.create({
         apiVersion: API_VERSION,
-        kind: "AgentChannel",
+        kind: "Channel",
         metadata: { name: uniqueName("Ghost Channel"), org: ORG },
         spec: {
           agentRef: { kind: ApiResourceKind.agent, slug: "no-such-agent" },
           enabled: true,
-          providerConfig: { case: "slack" as const, value: {} },
+          type: { case: "slack" as const, value: {} },
         },
       }),
     );
@@ -447,7 +527,7 @@ describe("agentchannel create", () => {
     const err = await grpcError(() =>
       channels.create({
         apiVersion: API_VERSION,
-        kind: "AgentChannel",
+        kind: "Channel",
         metadata: { name: uniqueName("Probe Channel"), org: ORG },
         spec: {
           agentRef: {
@@ -456,7 +536,7 @@ describe("agentchannel create", () => {
             slug: "possibly-private-slug",
           },
           enabled: true,
-          providerConfig: { case: "slack" as const, value: {} },
+          type: { case: "slack" as const, value: {} },
         },
       }),
     );
@@ -474,12 +554,12 @@ describe("agentchannel create", () => {
     expect(err.code).toBe(Code.AlreadyExists);
   });
 
-  it("missing provider arm is INVALID_ARGUMENT (required oneof)", async () => {
+  it("missing type is INVALID_ARGUMENT (required oneof)", async () => {
     const agent = await createTestAgent(uniqueName("Providerless Agent"));
     const err = await grpcError(() =>
       channels.create({
         apiVersion: API_VERSION,
-        kind: "AgentChannel",
+        kind: "Channel",
         metadata: { name: uniqueName("Providerless Channel"), org: ORG },
         spec: {
           agentRef: { kind: ApiResourceKind.agent, slug: agent.metadata!.slug },
@@ -503,10 +583,10 @@ describe("agentchannel create", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Update (Go TestAgentChannelController_Update + provider immutability).
+// Update (Go TestAgentChannelController_Update + type immutability).
 // ---------------------------------------------------------------------------
 
-describe("agentchannel update", () => {
+describe("channel update", () => {
   it("disable is a config-preserving pause; status survives a status-less manifest", async () => {
     const agent = await createTestAgent(uniqueName("Pause Agent"));
     const created = await channels.create(
@@ -518,7 +598,7 @@ describe("agentchannel update", () => {
     const updated = await channels.update({ resource: created, updateMask: { paths: ["*"] } });
     expect(updated.spec?.enabled).toBe(false);
     expect(updated.status?.installState).toBe(
-      AgentChannelInstallState.pending_install,
+      ChannelInstallState.pending_install,
     );
   });
 
@@ -561,34 +641,54 @@ describe("agentchannel update", () => {
     await channels.update({ resource: relative, updateMask: { paths: ["*"] } });
   });
 
-  it("providerFieldName derives the PROTO field name (Go TestProviderFieldName)", () => {
+  it("typeFieldName derives the PROTO field name (Go TestProviderFieldName)", () => {
     // The error copy interpolates this; a camelCase/snake_case mismatch
     // with Go would be a silent cross-edition wire divergence.
-    const slack = create(AgentChannelSpecSchema, {
-      providerConfig: { case: "slack", value: {} },
+    const slack = create(ChannelSpecSchema, {
+      type: { case: "slack", value: {} },
     });
-    expect(providerFieldName(slack)).toBe("slack");
-    expect(providerFieldName(create(AgentChannelSpecSchema))).toBe("");
-    expect(providerFieldName(undefined)).toBe("");
+    expect(typeFieldName(slack)).toBe("slack");
+    const web = create(ChannelSpecSchema, {
+      type: { case: "web", value: {} },
+    });
+    expect(typeFieldName(web)).toBe("web");
+    expect(typeFieldName(create(ChannelSpecSchema))).toBe("");
+    expect(typeFieldName(undefined)).toBe("");
   });
 
-  it("provider arm is immutable — a real slack→whatsapp flip refuses with the shared copy", async () => {
+  it("type is immutable — a real slack→whatsapp flip refuses with typeImmutableMessage", async () => {
     const agent = await createTestAgent(uniqueName("Provider Flip Agent"));
     const created = await channels.create(
       channelFor(agent, uniqueName("Prov Slack"), true),
     );
 
-    const flipped = whatsAppChannelFor(agent, created.metadata!.name);
-    (flipped.metadata as Record<string, string>).id = created.metadata!.id;
-    (flipped.metadata as Record<string, string>).slug = created.metadata!.slug;
-    (flipped.spec as Record<string, unknown>).appRef = {
+    const flipped = whatsAppChannelFor(agent, created.metadata!.name, {
       kind: ApiResourceKind.channel_app,
       slug: "acme-meta-app",
-    };
+    });
+    (flipped.metadata as Record<string, string>).id = created.metadata!.id;
+    (flipped.metadata as Record<string, string>).slug = created.metadata!.slug;
 
     const err = await grpcError(() => channels.update({ resource: flipped, updateMask: { paths: ["*"] } }));
     expect(err.code).toBe(Code.FailedPrecondition);
-    expect(err.rawMessage).toBe(providerImmutableMessage("slack"));
+    expect(err.rawMessage).toBe(typeImmutableMessage("slack"));
+  });
+
+  it("type is immutable — a web channel cannot become a Slack channel, and keeps its type", async () => {
+    const agent = await createTestAgent(uniqueName("Web Flip Agent"));
+    const created = await channels.create(
+      webChannelFor(agent, uniqueName("Flip Web")),
+    );
+
+    const flipped = channelFor(agent, created.metadata!.name, true);
+    (flipped.metadata as Record<string, string>).id = created.metadata!.id;
+    (flipped.metadata as Record<string, string>).slug = created.metadata!.slug;
+
+    const err = await grpcError(() => channels.update({ resource: flipped, updateMask: { paths: ["*"] } }));
+    expect(err.code).toBe(Code.FailedPrecondition);
+    expect(err.rawMessage).toBe(typeImmutableMessage("web"));
+    const stored = await query.get({ value: created.metadata!.id });
+    expect(stored.spec?.type.case).toBe("web");
   });
 
   it("an update keeps a write that lands between its read and its write", async () => {
@@ -605,12 +705,12 @@ describe("agentchannel update", () => {
     created.status = undefined;
     const { result: updated, writes } = await writeLandsMidUpdate(
       server.store,
-      ApiResourceKind.agent_channel,
+      ApiResourceKind.channel,
       id,
       visibilityWrite(
         server.store,
-        ApiResourceKind.agent_channel,
-        AgentChannelSchema,
+        ApiResourceKind.channel,
+        ChannelSchema,
         id,
         ApiResourceVisibility.visibility_org,
       ),
@@ -618,9 +718,9 @@ describe("agentchannel update", () => {
     );
 
     const stored = await server.store.getResource(
-      ApiResourceKind.agent_channel,
+      ApiResourceKind.channel,
       id,
-      AgentChannelSchema,
+      ChannelSchema,
     );
     for (const channel of [updated, stored]) {
       expect(channel.metadata?.visibility).toBe(
@@ -649,14 +749,14 @@ describe("apply semantics", () => {
     const created = await channels.apply(channelFor(agent, name, true));
     expect(created.metadata?.id).not.toBe("");
     expect(created.status?.installState).toBe(
-      AgentChannelInstallState.pending_install,
+      ChannelInstallState.pending_install,
     );
 
     const updated = await channels.apply(channelFor(agent, name, false));
     expect(updated.metadata?.id).toBe(created.metadata!.id);
     expect(updated.spec?.enabled).toBe(false);
     expect(updated.status?.installState).toBe(
-      AgentChannelInstallState.pending_install,
+      ChannelInstallState.pending_install,
     );
 
     const list = await query.list({ org });
@@ -733,39 +833,36 @@ describe("vaults (channel-bound credentials)", () => {
 describe("app_ref (BYO channel-app binding)", () => {
   it("an empty app_ref org normalizes to the channel's org and persists", async () => {
     const agent = await createTestAgent(uniqueName("App Ref Agent"));
-    const ch = channelFor(agent, uniqueName("BYO Slack"), true);
-    (ch.spec as Record<string, unknown>).appRef = {
+    const ch = channelFor(agent, uniqueName("BYO Slack"), true, {
       kind: ApiResourceKind.channel_app,
       slug: "acme-support-app",
-    };
+    });
 
     const created = await channels.create(ch);
-    expect(created.spec?.appRef?.org).toBe(agent.metadata!.org);
-    expect(created.spec?.appRef?.slug).toBe("acme-support-app");
+    expect(appSettingsOf(created).appRef?.org).toBe(agent.metadata!.org);
+    expect(appSettingsOf(created).appRef?.slug).toBe("acme-support-app");
   });
 
   it("a cross-org app_ref is FAILED_PRECONDITION with the shared copy", async () => {
     const agent = await createTestAgent(uniqueName("Cross Org App Agent"));
-    const ch = channelFor(agent, uniqueName("Cross Org App Slack"), true);
-    (ch.spec as Record<string, unknown>).appRef = {
+    const ch = channelFor(agent, uniqueName("Cross Org App Slack"), true, {
       kind: ApiResourceKind.channel_app,
       org: "channel-other-org",
       slug: "their-app",
-    };
+    });
 
     const err = await grpcError(() => channels.create(ch));
     expect(err.code).toBe(Code.FailedPrecondition);
-    expect(err.rawMessage).toBe(APP_REF_SAME_ORG_MESSAGE);
+    expect(err.rawMessage).toBe(appRefSameOrgMessage("slack"));
   });
 
   it("a non-channel_app ref kind is INVALID_ARGUMENT (proto CEL)", async () => {
     const agent = await createTestAgent(uniqueName("Wrong Kind App Agent"));
-    const ch = channelFor(agent, uniqueName("Wrong Kind App Slack"), true);
-    (ch.spec as Record<string, unknown>).appRef = {
+    const ch = channelFor(agent, uniqueName("Wrong Kind App Slack"), true, {
       kind: ApiResourceKind.agent,
       org: agent.metadata!.org,
       slug: "not-a-channel-app",
-    };
+    });
 
     const err = await grpcError(() => channels.create(ch));
     expect(err.code).toBe(Code.InvalidArgument);
@@ -773,77 +870,72 @@ describe("app_ref (BYO channel-app binding)", () => {
 
   it("a pending channel may rebind freely — rebind-before-install is the intended flow", async () => {
     const agent = await createTestAgent(uniqueName("Pending Rebind Agent"));
-    const ch = channelFor(agent, uniqueName("Pending Rebind Slack"), true);
-    (ch.spec as Record<string, unknown>).appRef = {
+    const ch = channelFor(agent, uniqueName("Pending Rebind Slack"), true, {
       kind: ApiResourceKind.channel_app,
       slug: "first-app",
-    };
+    });
     const created = await channels.create(ch);
 
-    const rebound = channelFor(agent, created.metadata!.name, true);
-    (rebound.metadata as Record<string, string>).id = created.metadata!.id;
-    (rebound.metadata as Record<string, string>).slug = created.metadata!.slug;
-    (rebound.spec as Record<string, unknown>).appRef = {
+    const rebound = channelFor(agent, created.metadata!.name, true, {
       kind: ApiResourceKind.channel_app,
       slug: "second-app",
-    };
+    });
+    (rebound.metadata as Record<string, string>).id = created.metadata!.id;
+    (rebound.metadata as Record<string, string>).slug = created.metadata!.slug;
     const updated = await channels.update({ resource: rebound, updateMask: { paths: ["*"] } });
-    expect(updated.spec?.appRef?.slug).toBe("second-app");
+    expect(appSettingsOf(updated).appRef?.slug).toBe("second-app");
   });
 
   it("app_ref is frozen while installed, with the shared copy", async () => {
     const agent = await createTestAgent(uniqueName("Installed Freeze Agent"));
     const name = uniqueName("Installed Freeze Slack");
-    const ch = channelFor(agent, name, true);
-    (ch.spec as Record<string, unknown>).appRef = {
+    const ch = channelFor(agent, name, true, {
       kind: ApiResourceKind.channel_app,
       slug: "granted-app",
-    };
+    });
     const created = await channels.create(ch);
 
     // Flip the stored row to installed directly — OSS has no install
     // flow, and the freeze keys on stored status, not on how it got there.
     const stored = await server.store.getResource(
-      ApiResourceKind.agent_channel,
+      ApiResourceKind.channel,
       created.metadata!.id,
-      AgentChannelSchema,
+      ChannelSchema,
     );
-    stored.status!.installState = AgentChannelInstallState.installed;
+    stored.status!.installState = ChannelInstallState.installed;
     await namingSaves(server.store).saveResource(
-      ApiResourceKind.agent_channel,
+      ApiResourceKind.channel,
       created.metadata!.id,
-      AgentChannelSchema,
+      ChannelSchema,
       stored,
     );
 
-    const rebindBase = () => {
-      const c = channelFor(agent, name, true);
+    const rebindBase = (appRef?: ReferenceInit) => {
+      const c = channelFor(agent, name, true, appRef);
       (c.metadata as Record<string, string>).id = created.metadata!.id;
       (c.metadata as Record<string, string>).slug = created.metadata!.slug;
       return c;
     };
 
-    const rebound = rebindBase();
-    (rebound.spec as Record<string, unknown>).appRef = {
+    const rebound = rebindBase({
       kind: ApiResourceKind.channel_app,
       slug: "different-app",
-    };
+    });
     const err = await grpcError(() => channels.update({ resource: rebound, updateMask: { paths: ["*"] } }));
     expect(err.code).toBe(Code.FailedPrecondition);
-    expect(err.rawMessage).toBe(APP_REF_FROZEN_WHILE_INSTALLED_MESSAGE);
+    expect(err.rawMessage).toBe(appRefFrozenWhileInstalledMessage("slack"));
 
     // Unbinding while installed is equally a change.
     const unbindErr = await grpcError(() => channels.update({ resource: rebindBase(), updateMask: { paths: ["*"] } }));
     expect(unbindErr.code).toBe(Code.FailedPrecondition);
 
     // An unchanged binding must pass — the disable toggle keeps it.
-    const unchanged = rebindBase();
-    unchanged.spec.enabled = false;
-    (unchanged.spec as Record<string, unknown>).appRef = {
+    const unchanged = rebindBase({
       kind: ApiResourceKind.channel_app,
       org: agent.metadata!.org,
       slug: "granted-app",
-    };
+    });
+    unchanged.spec.enabled = false;
     await channels.update({ resource: unchanged, updateMask: { paths: ["*"] } });
   });
 });
@@ -872,25 +964,23 @@ describe("whatsapp app_ref (BYO-only)", () => {
 
   it("create with app_ref passes; empty org normalizes", async () => {
     const agent = await createTestAgent(uniqueName("WA Bound Agent"));
-    const ch = whatsAppChannelFor(agent, uniqueName("WA Bound"));
-    (ch.spec as Record<string, unknown>).appRef = {
+    const ch = whatsAppChannelFor(agent, uniqueName("WA Bound"), {
       kind: ApiResourceKind.channel_app,
       slug: "acme-meta-app",
-    };
+    });
 
     const created = await channels.create(ch);
-    expect(created.spec?.appRef?.slug).toBe("acme-meta-app");
-    expect(created.spec?.appRef?.org).toBe(agent.metadata!.org);
+    expect(appSettingsOf(created).appRef?.slug).toBe("acme-meta-app");
+    expect(appSettingsOf(created).appRef?.org).toBe(agent.metadata!.org);
   });
 
   it("update clearing app_ref is INVALID_ARGUMENT — the binding may change, never disappear", async () => {
     const agent = await createTestAgent(uniqueName("WA Unbind Agent"));
     const name = uniqueName("WA Unbind");
-    const ch = whatsAppChannelFor(agent, name);
-    (ch.spec as Record<string, unknown>).appRef = {
+    const ch = whatsAppChannelFor(agent, name, {
       kind: ApiResourceKind.channel_app,
       slug: "acme-meta-app",
-    };
+    });
     const created = await channels.create(ch);
 
     const unbound = whatsAppChannelFor(agent, name);
@@ -904,22 +994,22 @@ describe("whatsapp app_ref (BYO-only)", () => {
 
   it("update keeping the binding passes (uninstalled rebind stays legitimate)", async () => {
     const agent = await createTestAgent(uniqueName("WA Rebind Agent"));
-    const ch = whatsAppChannelFor(agent, uniqueName("WA Rebind"));
-    (ch.spec as Record<string, unknown>).appRef = {
+    const ch = whatsAppChannelFor(agent, uniqueName("WA Rebind"), {
       kind: ApiResourceKind.channel_app,
       slug: "first-meta-app",
-    };
+    });
     const created = await channels.create(ch);
 
     // A read answers the reference by id and name; naming another app
     // beside the first one's id names two resources, and is refused.
-    (created.spec!.appRef as Record<string, unknown>).slug = "second-meta-app";
+    const appRef = appSettingsOf(created).appRef!;
+    appRef.slug = "second-meta-app";
     const mixed = await grpcError(() => channels.update({ resource: created, updateMask: { paths: ["*"] } }));
     expect(mixed.code).toBe(Code.InvalidArgument);
 
-    (created.spec!.appRef as Record<string, unknown>).id = "";
+    appRef.id = "";
     const updated = await channels.update({ resource: created, updateMask: { paths: ["*"] } });
-    expect(updated.spec?.appRef?.slug).toBe("second-meta-app");
+    expect(appSettingsOf(updated).appRef?.slug).toBe("second-meta-app");
   });
 });
 
@@ -946,7 +1036,7 @@ describe("delete and queries", () => {
 
   it("nonexistent channel delete is NOT_FOUND", async () => {
     const err = await grpcError(() =>
-      channels.delete({ value: "ach_does_not_exist" }),
+      channels.delete({ value: "chn_does_not_exist" }),
     );
     expect(err.code).toBe(Code.NotFound);
   });
@@ -961,7 +1051,7 @@ describe("delete and queries", () => {
     expect(fetched.metadata?.slug).toBe(created.metadata!.slug);
 
     const byRef = await query.getByReference({
-      kind: ApiResourceKind.agent_channel,
+      kind: ApiResourceKind.channel,
       org: created.metadata!.org,
       slug: created.metadata!.slug,
     });
@@ -1033,11 +1123,11 @@ describe("install posture", () => {
     );
 
     const missErr = await grpcError(() =>
-      channels.initiateInstall({ resourceId: "ach_does_not_exist" }),
+      channels.initiateInstall({ resourceId: "chn_does_not_exist" }),
     );
     expect(missErr.code).toBe(Code.NotFound);
     expect(missErr.rawMessage).toBe(
-      "AgentChannel not found: ach_does_not_exist",
+      "Channel not found: chn_does_not_exist",
     );
 
     const refuseErr = await grpcError(() =>
@@ -1049,7 +1139,7 @@ describe("install posture", () => {
     // completeInstall mirrors the same contract.
     const completeMiss = await grpcError(() =>
       channels.completeInstall({
-        resourceId: "ach_does_not_exist",
+        resourceId: "chn_does_not_exist",
         state: "some-state",
         code: "some-code",
       }),
@@ -1076,8 +1166,114 @@ describe("install posture", () => {
     // The refused install persists nothing.
     const fetched = await query.get({ value: created.metadata!.id });
     expect(fetched.status?.installState).toBe(
-      AgentChannelInstallState.pending_install,
+      ChannelInstallState.pending_install,
     );
+  });
+
+  it("a web channel refuses initiateInstall and completeInstall as not applicable", async () => {
+    const agent = await createTestAgent(uniqueName("Web Install Agent"));
+    const web = await channels.create(
+      webChannelFor(agent, uniqueName("Uninstallable Web")),
+    );
+    // A web channel has nothing to install, so it starts at no install state.
+    expect(web.status?.installState).toBe(
+      ChannelInstallState.channel_install_state_unspecified,
+    );
+
+    const initiate = await grpcError(() =>
+      channels.initiateInstall({ resourceId: web.metadata!.id }),
+    );
+    expect(initiate.code).toBe(Code.FailedPrecondition);
+    expect(initiate.rawMessage).toBe(INSTALL_NOT_APPLICABLE_MESSAGE);
+
+    const complete = await grpcError(() =>
+      channels.completeInstall({
+        resourceId: web.metadata!.id,
+        state: "some-state",
+        code: "some-code",
+      }),
+    );
+    expect(complete.code).toBe(Code.FailedPrecondition);
+    expect(complete.rawMessage).toBe(INSTALL_NOT_APPLICABLE_MESSAGE);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The web channel's link lanes, asked of a Slack channel.
+// ---------------------------------------------------------------------------
+
+describe("the link lanes refuse a Slack channel", () => {
+  it("rotateLink on a Slack channel is FAILED_PRECONDITION and writes nothing", async () => {
+    const agent = await createTestAgent(uniqueName("Slack Rotate Agent"));
+    const created = await channels.create(
+      channelFor(agent, uniqueName("Linkless Slack"), true),
+    );
+
+    const err = await grpcError(() =>
+      channels.rotateLink({ resourceId: created.metadata!.id }),
+    );
+    expect(err.code).toBe(Code.FailedPrecondition);
+    expect(err.rawMessage).toBe(ROTATE_LINK_NOT_APPLICABLE_MESSAGE);
+    const fetched = await query.get({ value: created.metadata!.id });
+    expect(fetched.status?.typeStatus.case).toBeUndefined();
+  });
+
+  it("both profile reads answer the uniform NotFound for an enabled Slack channel", async () => {
+    const agent = await createTestAgent(uniqueName("Slack Profile Agent"));
+    const created = await channels.create(
+      channelFor(agent, uniqueName("Profileless Slack"), true),
+    );
+    const id = created.metadata!.id;
+
+    const anonymous = await grpcError(() =>
+      query.getAgentProfile({ channelId: id }),
+    );
+    expect(anonymous.code).toBe(Code.NotFound);
+    expect(anonymous.rawMessage).toBe(linkNotFound(id).rawMessage);
+
+    const member = await grpcError(() =>
+      query.getAgentProfileForMember({ value: id }),
+    );
+    expect(member.code).toBe(Code.NotFound);
+    expect(member.rawMessage).toBe(linkNotFound(id).rawMessage);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Rename.
+// ---------------------------------------------------------------------------
+
+describe("rename", () => {
+  it("moves the slug; the old slug still resolves through getByReference for reading", async () => {
+    const agent = await createTestAgent(uniqueName("Rename Agent"));
+    const created = await channels.create(
+      channelFor(agent, uniqueName("Before Rename Slack"), true),
+    );
+    const oldSlug = created.metadata!.slug;
+    const newSlug = `${oldSlug}-renamed`;
+
+    const renamed = await channels.rename({
+      resourceId: created.metadata!.id,
+      slug: newSlug,
+    });
+    expect(renamed.metadata?.id).toBe(created.metadata!.id);
+    expect(renamed.metadata?.slug).toBe(newSlug);
+
+    const byNew = await query.getByReference({
+      kind: ApiResourceKind.channel,
+      org: ORG,
+      slug: newSlug,
+    });
+    expect(byNew.metadata?.id).toBe(created.metadata!.id);
+    expect(byNew.metadata?.slug).toBe(newSlug);
+
+    const byOld = await query.getByReference({
+      kind: ApiResourceKind.channel,
+      org: ORG,
+      slug: oldSlug,
+    });
+    expect(byOld.metadata?.id).toBe(created.metadata!.id);
+    expect(byOld.metadata?.slug).toBe(newSlug);
   });
 });
 
@@ -1165,7 +1361,7 @@ describe("channel messaging posture (cloud-only runtime)", () => {
 
 describe("channel conversation posture (cloud-only runtime)", () => {
   const controlInput = {
-    agentChannelId: "ach-123",
+    channelId: "chn-123",
     conversationKey: "15551234567",
   };
 
@@ -1178,7 +1374,7 @@ describe("channel conversation posture (cloud-only runtime)", () => {
     expect(counted.count).toBe(0);
 
     const timeline = await conversationQuery.listTimeline({
-      agentChannelId: "ach-123",
+      channelId: "chn-123",
       conversationKey: "15551234567",
     });
     expect(timeline.entries).toHaveLength(0);
@@ -1188,7 +1384,7 @@ describe("channel conversation posture (cloud-only runtime)", () => {
   it("single-row reads answer the uniform miss", async () => {
     const getErr = await grpcError(() =>
       conversationQuery.getConversation({
-        agentChannelId: "ach-123",
+        channelId: "chn-123",
         conversationKey: "15551234567",
       }),
     );
@@ -1196,7 +1392,7 @@ describe("channel conversation posture (cloud-only runtime)", () => {
 
     const mediaErr = await grpcError(() =>
       conversationQuery.getMediaDownloadUrl({
-        agentChannelId: "ach-123",
+        channelId: "chn-123",
         conversationKey: "15551234567",
         itemId: "wa:wamid.abc123",
       }),
@@ -1211,7 +1407,7 @@ describe("channel conversation posture (cloud-only runtime)", () => {
         "reply",
         () =>
           conversationCommand.reply({
-            agentChannelId: "ach-123",
+            channelId: "chn-123",
             conversationKey: "15551234567",
             payload: {
               kind: { case: "text" as const, value: { body: "on my way" } },
@@ -1253,17 +1449,17 @@ describe("channel conversation posture (cloud-only runtime)", () => {
       ],
       [
         "listTimeline without conversation key",
-        () => conversationQuery.listTimeline({ agentChannelId: "ach-123" }),
+        () => conversationQuery.listTimeline({ channelId: "chn-123" }),
       ],
       [
         "getConversation without conversation key",
-        () => conversationQuery.getConversation({ agentChannelId: "ach-123" }),
+        () => conversationQuery.getConversation({ channelId: "chn-123" }),
       ],
       [
         "getMediaDownloadUrl without item id",
         () =>
           conversationQuery.getMediaDownloadUrl({
-            agentChannelId: "ach-123",
+            channelId: "chn-123",
             conversationKey: "15551234567",
           }),
       ],
@@ -1275,7 +1471,7 @@ describe("channel conversation posture (cloud-only runtime)", () => {
         "reply without payload",
         () =>
           conversationCommand.reply({
-            agentChannelId: "ach-123",
+            channelId: "chn-123",
             conversationKey: "15551234567",
           }),
       ],

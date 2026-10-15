@@ -38,7 +38,7 @@ function client(guestTokenMinting: GuestTokenMinting | undefined) {
 describe("TokenService.mintGuestToken", () => {
   it("answers UNIMPLEMENTED with the edition sentence when no capability is composed", async () => {
     const refused = await client(undefined)
-      .mintGuestToken({ shareId: "share-1" })
+      .mintGuestToken({ channelId: "share-1" })
       .then(
         () => undefined,
         (error: unknown) => ConnectError.from(error),
@@ -66,10 +66,10 @@ describe("TokenService.mintGuestToken", () => {
       },
     };
     const answered = await client(minting).mintGuestToken(
-      { shareId: "share-1", guestCookieId: "cookie-1" },
+      { channelId: "share-1", guestCookieId: "cookie-1" },
       { headers: { origin: "https://app.example" } },
     );
-    expect(seen.request?.shareId).toBe("share-1");
+    expect(seen.request?.channelId).toBe("share-1");
     expect(seen.origin).toBe("https://app.example");
     expect([answered.accessToken, answered.guestCookieId]).toEqual(["guest-jwt", "cookie-1"]);
   });

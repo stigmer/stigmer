@@ -10,7 +10,7 @@ module agentic
 # agent blueprint it references.
 #
 # Authorization model (OWNER-SCOPED — deliberately narrow, the
-# agent_channel template): the creator owns the schedule; view/edit/delete
+# channel template): the creator owns the schedule; view/edit/delete
 # require ownership or an explicit grant. Plain org members get NO implicit
 # access: a schedule carries billing-affecting levers (enabled, the cron
 # itself — every fire creates a run that spends on the owning org's own

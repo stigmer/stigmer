@@ -2,7 +2,7 @@
  * Model-pin existence validation and did-you-mean machinery — ports the Go
  * server's pin_validation.go. Lives beside the store it queries (the
  * registry is the shared validation authority): the agent, schedule and
- * agentchannel pin-existence checks, and
+ * channel pin-existence checks, and
  * agentexecution's thinking-mode validator consume the same functions, so
  * every pin error suggests identically.
  *

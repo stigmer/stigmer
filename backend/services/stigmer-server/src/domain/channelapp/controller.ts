@@ -2,7 +2,7 @@
  * ChannelApp controller — ports pkg/domain/channelapp/controller (command +
  * query sides): the org-scoped holder of customer messaging-app credentials
  * (Slack OAuth client + signing secret; WhatsApp app_secret / access_token /
- * verify_token), referenced by AgentChannel spec.app_ref. The channel-domain
+ * verify_token), referenced by a Slack or WhatsApp channel's app_ref. The channel-domain
  * sibling of OAuthApp: inline encrypted secrets (AES-256-GCM via the shared
  * SecretService — the same instance every secret kind uses), ***REDACTED*** on
  * every response surface, delete blocked while referenced.
@@ -286,7 +286,7 @@ async function rename(
  * Apply — kubectl-style create-or-update (the OAuthApp apply shape): a
  * minimal probe pipeline decides existence, then delegates to Create or
  * Update with the ORIGINAL request message (Go delegates `app`, not the
- * pipeline's clone — unlike agentshare/agentchannel, whose defaults live
+ * pipeline's clone — unlike the channel, whose defaults live
  * on the clone; channelapp's Update re-resolves the slug itself); the
  * update arm carries the resolved id via withResolvedApplyId. Sending
  * the marker for a secret field on an apply that resolves to update
@@ -337,8 +337,8 @@ async function apply(
 }
 
 /**
- * Delete — blocked with FAILED_PRECONDITION while any AgentChannel
- * references this app via spec.app_ref. The deleted ChannelApp is returned
+ * Delete — blocked with FAILED_PRECONDITION while any Slack or WhatsApp
+ * channel references this app through its app_ref. The deleted ChannelApp is returned
  * for audit purposes, redacted like every other response. The id is seeded
  * manually because ApiResourceDeleteInput carries resource_id, not the
  * `value` field ExtractResourceId expects (the oauthapp delete shape).

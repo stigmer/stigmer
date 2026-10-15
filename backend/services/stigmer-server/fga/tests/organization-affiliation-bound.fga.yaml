@@ -44,16 +44,16 @@ tuples:
   - {user: identity_account:left, relation: owner, object: plugin:x}
   - {user: identity_account:back, relation: owner, object: plugin:x}
   - {user: identity_account:left, relation: viewer, object: plugin:x}
-  - {user: organization:acme, relation: organization, object: agent_channel:x}
-  - {user: identity_account:stays, relation: owner, object: agent_channel:x}
-  - {user: identity_account:left, relation: owner, object: agent_channel:x}
-  - {user: identity_account:back, relation: owner, object: agent_channel:x}
-  - {user: identity_account:left, relation: viewer, object: agent_channel:x}
-  - {user: organization:acme, relation: organization, object: agent_share:x}
-  - {user: identity_account:stays, relation: owner, object: agent_share:x}
-  - {user: identity_account:left, relation: owner, object: agent_share:x}
-  - {user: identity_account:back, relation: owner, object: agent_share:x}
-  - {user: identity_account:left, relation: viewer, object: agent_share:x}
+  - {user: organization:acme, relation: organization, object: channel:x}
+  - {user: identity_account:stays, relation: owner, object: channel:x}
+  - {user: identity_account:left, relation: owner, object: channel:x}
+  - {user: identity_account:back, relation: owner, object: channel:x}
+  - {user: identity_account:left, relation: viewer, object: channel:x}
+  - {user: organization:acme, relation: organization, object: channel:link}
+  - {user: identity_account:stays, relation: owner, object: channel:link}
+  - {user: identity_account:left, relation: owner, object: channel:link}
+  - {user: identity_account:back, relation: owner, object: channel:link}
+  - {user: identity_account:left, relation: viewer, object: channel:link}
   - {user: organization:acme, relation: organization, object: channel_app:x}
   - {user: identity_account:stays, relation: viewer, object: channel_app:x}
   - {user: identity_account:left, relation: viewer, object: channel_app:x}
@@ -83,7 +83,7 @@ tuples:
   - {user: organization:acme, relation: organization, object: oauth_app:x}
   - {user: identity_account:stays, relation: viewer, object: oauth_app:x}
   - {user: identity_account:left, relation: viewer, object: oauth_app:x}
-  - {user: identity_account:left, relation: participant, object: agent_channel:x}
+  - {user: identity_account:left, relation: participant, object: channel:x}
   - {user: identity_account:left, relation: editor, object: agent:x}
   - {user: organization:acme, relation: organization, object: session:guest-chat}
   - {user: identity_account:sys-guest, relation: owner, object: session:guest-chat}
@@ -101,8 +101,8 @@ tests:
       - {user: identity_account:left, object: agent:x, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: skill:x, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: plugin:x, assertions: {owner: false, viewer: false, can_view: false}}
-      - {user: identity_account:left, object: agent_channel:x, assertions: {owner: false, viewer: false, can_view: false}}
-      - {user: identity_account:left, object: agent_share:x, assertions: {owner: false, viewer: false, can_view: false}}
+      - {user: identity_account:left, object: channel:x, assertions: {owner: false, viewer: false, can_view: false}}
+      - {user: identity_account:left, object: channel:link, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: channel_app:x, assertions: {viewer: false, can_view: false}}
       - {user: identity_account:left, object: schedule:x, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: vault:mine-left, assertions: {owner: false, can_view: false, can_use: false}}
@@ -110,7 +110,7 @@ tests:
       - {user: identity_account:left, object: session:x, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: federation_issuer:x, assertions: {viewer: false, can_view: false}}
       - {user: identity_account:left, object: oauth_app:x, assertions: {viewer: false, can_view: false}}
-      - {user: identity_account:left, object: agent_channel:x, assertions: {participant: false}}
+      - {user: identity_account:left, object: channel:x, assertions: {participant: false}}
       - {user: identity_account:left, object: agent:x, assertions: {editor: false, can_edit: false}}
       - {user: identity_account:left, object: memory:left, assertions: {can_view: false, can_edit: false, can_delete: false}}
   - name: a member keeps what they authored
@@ -118,8 +118,8 @@ tests:
       - {user: identity_account:stays, object: agent:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:stays, object: skill:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:stays, object: plugin:x, assertions: {owner: true, can_view: true}}
-      - {user: identity_account:stays, object: agent_channel:x, assertions: {owner: true, can_view: true}}
-      - {user: identity_account:stays, object: agent_share:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:stays, object: channel:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:stays, object: channel:link, assertions: {owner: true, can_view: true}}
       - {user: identity_account:stays, object: channel_app:x, assertions: {viewer: true, can_view: true}}
       - {user: identity_account:stays, object: schedule:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:stays, object: vault:mine-stays, assertions: {owner: true, can_view: true, can_use: true}}
@@ -133,8 +133,8 @@ tests:
       - {user: identity_account:back, object: agent:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: skill:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: plugin:x, assertions: {owner: true, can_view: true}}
-      - {user: identity_account:back, object: agent_channel:x, assertions: {owner: true, can_view: true}}
-      - {user: identity_account:back, object: agent_share:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:back, object: channel:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:back, object: channel:link, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: schedule:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: vault:mine-back, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: session:x, assertions: {owner: true, can_view: true}}

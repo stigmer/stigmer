@@ -48,14 +48,12 @@ Rows read `| \`package.Service.method\` | class |`.
 | `ai.stigmer.activity.v1.ActivityQueryController.listRecentActivity` | exempt: the recent activity window, the caller's most recent sessions by last activity, at most `page_size` of them by design, with no second page |
 | `ai.stigmer.agentic.agent.v1.AgentQueryController.list` | paged |
 | `ai.stigmer.agentic.agent.v1.AgentQueryController.listVersions` | paged |
-| `ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.list` | paged |
-| `ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryController.listByAgent` | paged |
-| `ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.list` | paged |
-| `ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.listTimeline` | paged |
-| `ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController.listMessagingChannels` | exempt: computed, the channels the calling agent may send business-initiated messages on, derived from its credential |
-| `ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController.listTemplates` | exempt: an outside system's answer, the channel provider's message templates, read live from its registry |
-| `ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.list` | paged |
-| `ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.listByAgent` | paged |
+| `ai.stigmer.agentic.channel.v1.ChannelConversationQueryController.list` | paged |
+| `ai.stigmer.agentic.channel.v1.ChannelConversationQueryController.listTimeline` | paged |
+| `ai.stigmer.agentic.channel.v1.ChannelMessageQueryController.listMessagingChannels` | exempt: computed, the channels the calling agent may send business-initiated messages on, derived from its credential |
+| `ai.stigmer.agentic.channel.v1.ChannelMessageQueryController.listTemplates` | exempt: an outside system's answer, the channel provider's message templates, read live from its registry |
+| `ai.stigmer.agentic.channel.v1.ChannelQueryController.list` | paged |
+| `ai.stigmer.agentic.channel.v1.ChannelQueryController.listByAgent` | paged |
 | `ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.list` | paged |
 | `ai.stigmer.agentic.eval.v1.EvalQueryController.list` | paged |
 | `ai.stigmer.agentic.eval.v1.EvalQueryController.listVersions` | paged |

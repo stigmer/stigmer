@@ -1,12 +1,15 @@
 /**
- * The agent channel's purge (domain/organization/purge/kind-purge.ts):
- * every channel of an organization being deleted, removed with its delete
- * chain's cleanup (controller.ts `deleteChannel`): the composed channel
- * runtime's teardown when one is composed (an edition's install and its
- * stored delivery state), the row, its access.
+ * The channel's purge (domain/organization/purge/kind-purge.ts): every
+ * channel of an organization being deleted, removed with its delete
+ * chain's cleanup (controller.ts `deleteChannel`): for a Slack or WhatsApp
+ * channel, the composed channel runtime's teardown when one is composed (an
+ * edition's install and its stored delivery state); the row; its access.
+ * An agent's own purge cascades its channels first (cascade.ts); this one
+ * removes any the organization holds that its agents' purges did not
+ * reach.
  */
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
@@ -21,25 +24,25 @@ import type {
   KindPurgeDeps,
 } from "../organization/purge/kind-purge.js";
 
-type DeleteInput = typeof AgentChannelCommandController.method.delete.input;
+type DeleteInput = typeof ChannelCommandController.method.delete.input;
 
-export interface AgentChannelPurgeDeps extends KindPurgeDeps {
+export interface ChannelPurgeDeps extends KindPurgeDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed channel runtime; undefined when no unit composes one. */
   readonly channelRuntime: ChannelRuntime | undefined;
 }
 
-export function newAgentChannelPurge(deps: AgentChannelPurgeDeps): KindPurge {
+export function newChannelPurge(deps: ChannelPurgeDeps): KindPurge {
   return newKindPurge(deps, {
-    kind: ApiResourceKind.agent_channel,
-    schema: AgentChannelSchema,
-    input: AgentChannelCommandController.method.delete.input,
+    kind: ApiResourceKind.channel,
+    schema: ChannelSchema,
+    input: ChannelCommandController.method.delete.input,
     steps: [
       ...(deps.channelRuntime === undefined
         ? []
         : [newTeardownChannelRuntimeStep<DeleteInput>(deps.channelRuntime)]),
       newDeleteResourceStep(deps.store),
-      newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.agent_channel),
+      newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.channel),
       newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
     ],
   });

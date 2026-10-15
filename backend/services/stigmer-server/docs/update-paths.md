@@ -16,11 +16,10 @@ Rows read `| Kind | refused path | written by |`, or `| Kind | none | |` for a k
 | Kind | Refused path | Written by |
 |---|---|---|
 | Agent | none | |
-| AgentChannel | none | |
-| AgentShare | none | |
 | ApiKey | `spec.key_hash` | the server, when the key is minted |
 | ApiKey | `spec.fingerprint` | the server, when the key is minted |
 | ApiKey | `spec.bound_org` | create |
+| Channel | none | |
 | ChannelApp | none | |
 | Evaluator | none | |
 | IdentityAccount | none | |

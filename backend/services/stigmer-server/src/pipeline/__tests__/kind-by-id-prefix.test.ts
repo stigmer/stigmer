@@ -18,7 +18,9 @@
  *     "never rewritten": a grant's id is its triple's, so the kind's rename
  *     moved stored `iamp_…` ids to `grt_…`; `iamp` stays listed so the
  *     prefix stays reserved and an id held outside the store still names
- *     a grant.
+ *     a grant. The channel kind merged two kinds, so it reads both
+ *     predecessors' prefixes: a chat link minted as `ash_…` and a Slack or
+ *     WhatsApp connection minted as `ach_…` are each a channel (`chn_…`).
  *   - Every prefix in the contract, current and retired together, is
  *     UNIQUE. The lookup is a Map over the `kind_meta` table; a duplicate
  *     prefix would silently win for one kind and lose for the other. The
@@ -44,6 +46,9 @@ describe("kindByIdPrefix — a minted id names its kind by prefix", () => {
     ["idp_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.federation_issuer],
     ["grt_vkbjb6nvqm77vtwnr2bj0x95f9", ApiResourceKind.grant],
     ["iamp_vkbjb6nvqm77vtwnr2bj0x95f9", ApiResourceKind.grant],
+    ["chn_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.channel],
+    ["ash_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.channel],
+    ["ach_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.channel],
     ["ses_x", ApiResourceKind.session],
     ["ida_carol", ApiResourceKind.identity_account],
   ])("%s is %s", (id, kind) => {
@@ -115,5 +120,14 @@ describe("kindByIdPrefix — a minted id names its kind by prefix", () => {
       kind_meta,
     );
     expect(meta.retiredIdPrefixes).toEqual(["iamp"]);
+  });
+
+  it("the channel kind mints chn_ and still reads the ash_ and ach_ ids its two predecessor kinds minted", () => {
+    expect(getIdPrefix(ApiResourceKind.channel)).toBe("chn");
+    const meta = getOption(
+      ApiResourceKindSchema.values.find((v) => v.number === ApiResourceKind.channel)!,
+      kind_meta,
+    );
+    expect(meta.retiredIdPrefixes).toEqual(["ash", "ach"]);
   });
 });

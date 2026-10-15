@@ -21,7 +21,7 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 import type { DescMessage } from "@bufbuild/protobuf";
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
-import type { ChannelRuntime } from "../../domain/agentchannel/channel-runtime.js";
+import type { ChannelRuntime } from "../../domain/channel/channel-runtime.js";
 import type { SecretCodec } from "../../encryption/codec.js";
 import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";

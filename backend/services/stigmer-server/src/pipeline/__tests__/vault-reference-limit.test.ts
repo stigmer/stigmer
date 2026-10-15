@@ -1,7 +1,8 @@
 /**
  * Pins the cap on how many vaults one resource may name: every `vaults`
- * list (a session's, an agent share's, an agent channel's, a schedule's
- * AgentInvocation and an organization's embedding settings) holds at most 20
+ * list (a session's, a channel's, whether a public web channel or a Slack
+ * one, a schedule's AgentInvocation and an organization's embedding
+ * settings) holds at most 20
  * references (`repeated.max_items = 20` on each field), so the resolver's
  * per-run work stays bounded whoever writes the list.
  *
@@ -26,8 +27,7 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import type { Violation } from "@bufbuild/protovalidate";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { AgentChannelSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/spec_pb";
-import { AgentShareSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
+import { ChannelAudience, ChannelSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
 import { AgentInvocationSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -80,8 +80,18 @@ interface ListRow {
 
 const lists: readonly ListRow[] = [
   { name: "a session's", check: (n) => vaultsViolations(SessionSpecSchema, { vaults: vaultRefs(n) }) },
-  { name: "an agent share's", check: (n) => vaultsViolations(AgentShareSpecSchema, { vaults: vaultRefs(n) }) },
-  { name: "an agent channel's", check: (n) => vaultsViolations(AgentChannelSpecSchema, { vaults: vaultRefs(n) }) },
+  {
+    name: "a public web channel's",
+    check: (n) =>
+      vaultsViolations(ChannelSpecSchema, {
+        vaults: vaultRefs(n),
+        type: { case: "web", value: { audience: ChannelAudience.public } },
+      }),
+  },
+  {
+    name: "a Slack channel's",
+    check: (n) => vaultsViolations(ChannelSpecSchema, { vaults: vaultRefs(n), type: { case: "slack", value: {} } }),
+  },
   {
     name: "a schedule's agent invocation's",
     check: (n) => vaultsViolations(AgentInvocationSchema, { vaults: vaultRefs(n) }),

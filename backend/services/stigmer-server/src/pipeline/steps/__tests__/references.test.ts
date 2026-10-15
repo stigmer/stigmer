@@ -34,9 +34,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
@@ -105,8 +104,7 @@ const SCHEMAS_UNDER_THE_RULE: ReadonlyArray<DescMessage> = [
   AgentSchema,
   VaultSchema,
   ScheduleSchema,
-  AgentChannelSchema,
-  AgentShareSchema,
+  ChannelSchema,
   SessionSchema,
   RunSchema,
   OrganizationSchema,
@@ -1245,9 +1243,9 @@ describe("the writer clause: a write may introduce only a vault its writer may u
   }
 
   function channelNaming(...slugs: string[]) {
-    return create(AgentChannelSchema, {
+    return create(ChannelSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentChannel",
+      kind: "Channel",
       metadata: {
         name: "Team helper",
         org: "acme",
@@ -1271,19 +1269,19 @@ describe("the writer clause: a write may introduce only a vault its writer may u
     readonly checks?: string[];
   }): Promise<unknown> {
     const ctx = new RequestContext(
-      AgentChannelSchema,
+      ChannelSchema,
       channelNaming(...opts.names),
       testCallerIdentity({
         identityId: opts.writer,
         callerClass: opts.callerClass ?? "user",
       }),
-      K.agent_channel,
+      K.channel,
     );
     if (opts.stored !== undefined) {
       ctx.set(EXISTING_RESOURCE_KEY, channelNaming(...opts.stored));
     }
     return failureOf(() =>
-      newValidateReferencesStep<typeof AgentChannelSchema>(
+      newValidateReferencesStep<typeof ChannelSchema>(
         store,
         vaultUses(opts.checks ?? []),
       ).execute(ctx),
@@ -1366,20 +1364,20 @@ describe("the writer clause: a write may introduce only a vault its writer may u
 
   it("a malformed reference beside a refused one still answers INVALID_ARGUMENT first", async () => {
     const ctx = new RequestContext(
-      AgentChannelSchema,
-      create(AgentChannelSchema, {
+      ChannelSchema,
+      create(ChannelSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
-        kind: "AgentChannel",
+        kind: "Channel",
         metadata: { name: "No org", org: "", visibility: V.visibility_org },
         spec: {
           vaults: [{ kind: K.vault, org: "", slug: "ana-keys" }],
         },
       }),
       testCallerIdentity({ identityId: "acc_ben" }),
-      K.agent_channel,
+      K.channel,
     );
     const error = await failureOf(() =>
-      newValidateReferencesStep<typeof AgentChannelSchema>(
+      newValidateReferencesStep<typeof ChannelSchema>(
         store,
         vaultUses([]),
       ).execute(ctx),

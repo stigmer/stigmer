@@ -2,10 +2,17 @@
  * The channel-runtime driver seam: open source serves the channel
  * contract, and a composition with a delivery runtime serves the delivery,
  * expressed as code.
- * Lives in src/domain/agentchannel beside the surfaces it fronts (the
+ * Lives in src/domain/channel beside the surfaces it fronts (the
  * ModelCatalogProvider / RunnerCredentialProvider placement precedent).
  *
- * OSS serves the AgentChannel CONTRACT: resource CRUD, discovery-shaped
+ * The runtime is a Slack or WhatsApp channel's: the server calls the
+ * install lanes, enforceWriteConstraints and teardownOnDelete for those
+ * types only. A web channel's runtime is the guest door (the edition's
+ * GuestTokenMinting and its guest gates). The conversation and messaging
+ * lanes still pass whole to the driver, which refuses a web channel's id
+ * as it refuses any id it does not serve.
+ *
+ * OSS serves the Channel CONTRACT: resource CRUD, discovery-shaped
  * reads, and engineered refusals on every arm that would need a delivery
  * runtime (constants.ts — the three byte-pinned "requires Stigmer Cloud"
  * strings). A composition that HAS a delivery runtime registers ONE
@@ -55,12 +62,12 @@
  * the extension package, never a silent OSS refusal a live channel user
  * meets in production.
  */
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import type {
   CompleteChannelInstallInput,
   InitiateChannelInstallInput,
   InitiateChannelInstallOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
 import type {
   ChannelTemplates,
   ListChannelTemplatesInput,
@@ -68,7 +75,7 @@ import type {
   MessagingChannels,
   SendChannelMessageInput,
   SendChannelMessageOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
 import type {
   ChannelConversation,
   ChannelConversationCount,
@@ -83,7 +90,7 @@ import type {
   ListChannelConversationsInput,
   ListConversationTimelineInput,
   ReplyToConversationInput,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 
 import type { CallerIdentity } from "../../extensions/identity.js";
 
@@ -95,16 +102,16 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 export interface ChannelRuntimeInstalls {
   /** The OAuth-initiate arm — the driver issues the state token and the redirect. */
   initiateInstall(
-    channel: AgentChannel,
+    channel: Channel,
     input: InitiateChannelInstallInput,
     caller: CallerIdentity,
   ): Promise<InitiateChannelInstallOutput>;
   /** The OAuth-complete arm — the driver exchanges the code and stamps install status. */
   completeInstall(
-    channel: AgentChannel,
+    channel: Channel,
     input: CompleteChannelInstallInput,
     caller: CallerIdentity,
-  ): Promise<AgentChannel>;
+  ): Promise<Channel>;
 }
 
 /**
@@ -201,7 +208,7 @@ export interface ChannelRuntime {
    * correct code and the runtime's conformance-pinned copy; returning
    * resolves the write.
    */
-  enforceWriteConstraints(channel: AgentChannel): Promise<void>;
+  enforceWriteConstraints(channel: Channel): Promise<void>;
   /**
    * The delete-time cascade over runtime state (the edition's sealed
    * channel credentials, pending deliveries), invoked after LoadExistingForDelete
@@ -209,7 +216,7 @@ export interface ChannelRuntime {
    * leaves the row for an idempotent retry.
    */
   teardownOnDelete(
-    channel: AgentChannel,
+    channel: Channel,
     caller: CallerIdentity,
   ): Promise<void>;
 }

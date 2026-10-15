@@ -215,10 +215,10 @@ describe("a resource shared with a person", () => {
     const r = rig(
       () => false,
       undefined,
-      { "agent_share:shr_1": { kind: "agent", id: "agt_1" } },
-      { "agent_share:shr_1": ACME_ID },
+      { "channel:chn_1": { kind: "agent", id: "agt_1" } },
+      { "channel:chn_1": ACME_ID },
     );
-    await r.run(spec({ kind: "identity_account", id: "vic" }, "viewer", { kind: "agent_share", id: "shr_1" }));
+    await r.run(spec({ kind: "identity_account", id: "vic" }, "viewer", { kind: "channel", id: "chn_1" }));
     expect(r.asked).toEqual([]);
   });
 

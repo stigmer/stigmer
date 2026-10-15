@@ -1,17 +1,17 @@
 /**
  * Pins AuthorizeMemberAudience (steps.ts), the member-profile lane's gate:
- * membership (can_view on the loaded share's organization, since the link
- * names only the share) is asked after the share loads; deny and not-found
- * both answer the lane's one NOT_FOUND, byte-identical to a missing share,
- * so a share link teaches a non-member nothing; unavailable is INTERNAL;
- * the internal class skips.
+ * membership (can_view on the loaded web channel's organization, since the
+ * link names only the channel) is asked after the channel loads; deny and
+ * not-found both answer the lane's one NOT_FOUND, byte-identical to a
+ * missing channel (linkNotFound), so a chat link teaches a non-member
+ * nothing; unavailable is INTERNAL; the internal class skips.
  */
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { AgentShareIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelIdSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
@@ -25,12 +25,12 @@ import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { AUTHORIZATION_UNAVAILABLE_MESSAGE } from "../../../pipeline/steps/authorize.js";
 import {
-  RESOLVED_SHARE_KEY,
+  RESOLVED_CHANNEL_KEY,
+  linkNotFound,
   newAuthorizeMemberAudienceStep,
-  sharedNotFound,
 } from "../steps.js";
 
-const SHARE_ID = "ash_01j9helper";
+const CHANNEL_ID = "chn_01j9helper";
 
 function fakeAuthorizer(decision: AuthzDecision): {
   authorizer: Authorizer;
@@ -50,15 +50,16 @@ function fakeAuthorizer(decision: AuthzDecision): {
 
 function ctxFor(org: string, caller: CallerIdentity = testCallerIdentity()) {
   const ctx = new RequestContext(
-    AgentShareIdSchema,
-    create(AgentShareIdSchema, { value: SHARE_ID }),
+    ChannelIdSchema,
+    create(ChannelIdSchema, { value: CHANNEL_ID }),
     caller,
-    ApiResourceKind.agent_share,
+    ApiResourceKind.channel,
   );
   ctx.set(
-    RESOLVED_SHARE_KEY,
-    create(AgentShareSchema, {
-      metadata: { id: SHARE_ID, org, slug: "helper" },
+    RESOLVED_CHANNEL_KEY,
+    create(ChannelSchema, {
+      metadata: { id: CHANNEL_ID, org, slug: "helper" },
+      spec: { type: { case: "web", value: {} } },
     }),
   );
   return ctx;
@@ -76,7 +77,7 @@ async function captureError(
 }
 
 describe("AuthorizeMemberAudience", () => {
-  it("asks can_view on the loaded share's organization and admits an allow", async () => {
+  it("asks can_view on the loaded channel's organization and admits an allow", async () => {
     const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
     await newAuthorizeMemberAudienceStep(authorizer).execute(ctxFor("acme"));
     expect(checks).toEqual([
@@ -88,7 +89,7 @@ describe("AuthorizeMemberAudience", () => {
     ]);
   });
 
-  it("deny and not-found both answer the lane's NOT_FOUND, byte-identical to a missing share", async () => {
+  it("deny and not-found both answer the lane's NOT_FOUND, byte-identical to a missing channel", async () => {
     for (const decision of [
       { kind: "deny", reason: "not a member" },
       { kind: "not-found" },
@@ -98,7 +99,7 @@ describe("AuthorizeMemberAudience", () => {
         newAuthorizeMemberAudienceStep(authorizer).execute(ctxFor("acme")),
       );
       expect(error.code).toBe(Code.NotFound);
-      expect(error.rawMessage).toBe(sharedNotFound(SHARE_ID).rawMessage);
+      expect(error.rawMessage).toBe(linkNotFound(CHANNEL_ID).rawMessage);
     }
   });
 

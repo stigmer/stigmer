@@ -16,9 +16,10 @@
  *   - hooks at apply: an inline block is stored with Claude Code's format
  *     filled, and a malformed one is refused on the create and on the
  *     update an apply delegates to (ValidateHooks runs on both chains);
- *   - cascade delete (oss#611): same-org shares are deleted, cross-org
- *     shares of the same agent SURVIVE, and a bystander agent's share is
- *     untouched;
+ *   - cascade delete (oss#611): same-org channels of every type are
+ *     deleted, a stored cross-org channel of the same agent SURVIVES, and
+ *     a bystander agent's channel is untouched; the agent's purge (an
+ *     organization's delete) removes its channels the same way;
  *   - the server assigns a new agent's id (stigmer#1266): an id the
  *     request carries is replaced, on create and on an apply that
  *     creates, and the chosen id addresses nothing;
@@ -42,7 +43,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -52,6 +53,7 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import { serverActingFor } from "../../../pipeline/interceptors/auth.js";
 import {
   visibilityWrite,
   writeLandsMidUpdate,
@@ -62,6 +64,7 @@ import {
   seedOrganizations,
 } from "../../organization/__tests__/support.js";
 import { namingSaves } from "../../../store/__tests__/named-saves.js";
+import { newAgentPurge } from "../purge.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -76,6 +79,9 @@ const API_VERSION = "agentic.stigmer.ai/v1";
 const ORG = "acme";
 let ORG_ID: string;
 let GLOBEX_ID: string;
+// The organization the purge case empties: it holds nothing else.
+const PURGED_ORG = "initech";
+let PURGED_ORG_ID: string;
 
 let dir: string;
 let server: ComposedServer;
@@ -106,9 +112,10 @@ beforeAll(async () => {
   });
   const port = await server.start();
   transport = createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` });
-  const organizationIds = await seedOrganizations(transport, [ORG, "globex"]);
+  const organizationIds = await seedOrganizations(transport, [ORG, "globex", PURGED_ORG]);
   ORG_ID = organizationId(organizationIds, ORG);
   GLOBEX_ID = organizationId(organizationIds, "globex");
+  PURGED_ORG_ID = organizationId(organizationIds, PURGED_ORG);
   command = createClient(AgentCommandController, transport);
   query = createClient(AgentQueryController, transport);
 });
@@ -370,7 +377,49 @@ describe("agent hooks at apply", () => {
 });
 
 describe("agent cascade delete (oss#611)", () => {
-  it("deletes same-org shares, keeps a stored cross-org share, and leaves a bystander agent's share", async () => {
+  /**
+   * A stored channel row of `org` naming the agent `agentId` of
+   * `agentOrg`, of the given type, seeded straight into the store.
+   */
+  async function seedChannel(
+    id: string,
+    org: string,
+    agentId: string,
+    type: "web" | "slack",
+    agentOrg: string = org,
+  ): Promise<void> {
+    await namingSaves(server.store).saveResource(
+      ApiResourceKind.channel,
+      id,
+      ChannelSchema,
+      create(ChannelSchema, {
+        metadata: { id, name: id.replaceAll("_", "-"), slug: id.replaceAll("_", "-"), org },
+        spec: {
+          agentRef: { kind: ApiResourceKind.agent, org: agentOrg, id: agentId },
+          type:
+            type === "web"
+              ? { case: "web", value: {} }
+              : { case: "slack", value: {} },
+        },
+      }),
+    );
+  }
+
+  async function channelExists(id: string): Promise<boolean> {
+    return server.store
+      .getResource(ApiResourceKind.channel, id, ChannelSchema)
+      .then(
+        () => true,
+        (error: unknown) => {
+          if (error instanceof ResourceNotFoundError) {
+            return false;
+          }
+          throw error;
+        },
+      );
+  }
+
+  it("deletes same-org channels, keeps a stored cross-org channel, and leaves a bystander agent's channel", async () => {
     const agent = await command.create(
       agentInput({
         name: "Cascade Target",
@@ -379,87 +428,56 @@ describe("agent cascade delete (oss#611)", () => {
     );
     const agentId = agent.metadata!.id;
 
-    // A bystander agent whose share must survive the sweep untouched.
+    // A bystander agent whose channel must survive the sweep untouched.
     const bystander = await command.create(agentInput({ name: "Bystander" }));
 
-    // Shares are seeded directly into the store, holding the agent's id as
-    // a stored reference does; the cascade matches spec.agent_ref.id.
-    const sameOrgShare = create(AgentShareSchema, {
-      metadata: { id: "ash_same_org", name: "same-org-share", org: ORG_ID },
-      spec: {
-        agentRef: { kind: ApiResourceKind.agent, org: ORG_ID, id: agentId },
-      },
-    });
-    await namingSaves(server.store).saveResource(
-      ApiResourceKind.agent_share,
-      "ash_same_org",
-      AgentShareSchema,
-      sameOrgShare,
-    );
-    // A share in another organization is a row no create admits any more
-    // (a share's agent lives in the share's organization); one written
-    // before that rule is still another organization's row, and the
-    // cascade leaves it as it always did.
-    const crossOrgShare = create(AgentShareSchema, {
-      metadata: {
-        id: "ash_cross_org",
-        name: "cross-org-share",
-        org: GLOBEX_ID,
-      },
-      spec: {
-        agentRef: { kind: ApiResourceKind.agent, org: ORG_ID, id: agentId },
-      },
-    });
-    await namingSaves(server.store).saveResource(
-      ApiResourceKind.agent_share,
-      "ash_cross_org",
-      AgentShareSchema,
-      crossOrgShare,
-    );
-
-    const bystanderShare = create(AgentShareSchema, {
-      metadata: { id: "ash_bystander", name: "bystander-share", org: ORG_ID },
-      spec: {
-        agentRef: {
-          kind: ApiResourceKind.agent,
-          org: ORG_ID,
-          id: bystander.metadata!.id,
-        },
-      },
-    });
-    await namingSaves(server.store).saveResource(
-      ApiResourceKind.agent_share,
-      "ash_bystander",
-      AgentShareSchema,
-      bystanderShare,
-    );
+    // Channels are seeded directly into the store, holding the agent's id
+    // as a stored reference does; the cascade matches spec.agent_ref.id.
+    // Both types go: a chat link and a Slack connection (no channel
+    // runtime is composed here, so the Slack one has nothing to tear down).
+    await seedChannel("chn_same_org_web", ORG_ID, agentId, "web");
+    await seedChannel("chn_same_org_slack", ORG_ID, agentId, "slack");
+    // A channel in another organization is a row no create admits any
+    // more (a channel's agent lives in the channel's organization); one
+    // written before that rule is still another organization's row, and
+    // the cascade leaves it as it always did.
+    await seedChannel("chn_cross_org", GLOBEX_ID, agentId, "web", ORG_ID);
+    await seedChannel("chn_bystander", ORG_ID, bystander.metadata!.id, "web");
 
     const deleted = await command.delete({ value: agentId });
     expect(deleted.metadata?.id).toBe(agentId);
 
-    // Same-org share deleted; the cross-org share of the SAME agent
+    // Same-org channels deleted; the cross-org channel of the SAME agent
     // survives — it is another org's resource and fails closed instead.
-    await expect(
-      server.store.getResource(
-        ApiResourceKind.agent_share,
-        "ash_same_org",
-        AgentShareSchema,
-      ),
-    ).rejects.toBeInstanceOf(ResourceNotFoundError);
-    const survivor = await server.store.getResource(
-      ApiResourceKind.agent_share,
-      "ash_cross_org",
-      AgentShareSchema,
-    );
-    expect(survivor.metadata?.id).toBe("ash_cross_org");
+    expect(await channelExists("chn_same_org_web")).toBe(false);
+    expect(await channelExists("chn_same_org_slack")).toBe(false);
+    expect(await channelExists("chn_cross_org")).toBe(true);
 
-    // The bystander agent's share was not swept.
-    const untouched = await server.store.getResource(
-      ApiResourceKind.agent_share,
-      "ash_bystander",
-      AgentShareSchema,
+    // The bystander agent's channel was not swept.
+    expect(await channelExists("chn_bystander")).toBe(true);
+  });
+
+  it("the agent purge removes the agent's channels too", async () => {
+    const created = await command.create(
+      agentInput({ name: "Purged Agent", org: PURGED_ORG }),
     );
-    expect(untouched.metadata?.id).toBe("ash_bystander");
+    const agentId = created.metadata!.id;
+    await seedChannel("chn_purged_web", PURGED_ORG_ID, agentId, "web");
+    await seedChannel("chn_purged_slack", PURGED_ORG_ID, agentId, "slack");
+
+    const purge = newAgentPurge({
+      store: server.store,
+      logger: silentLogger,
+      grantPath: { cleanupResource: () => Promise.resolve() },
+      authorizationLifecycle: undefined,
+      channelRuntime: undefined,
+    });
+    const target = { id: PURGED_ORG_ID, parentOrg: "" };
+    await purge.purge(target, serverActingFor("organization-purge"));
+
+    expect(await purge.holdsAny(target)).toBe(false);
+    expect(await channelExists("chn_purged_web")).toBe(false);
+    expect(await channelExists("chn_purged_slack")).toBe(false);
   });
 });
 

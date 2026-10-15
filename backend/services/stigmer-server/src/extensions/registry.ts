@@ -46,7 +46,7 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 
 import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-storage.js";
 import { BUILT_IN_STORAGE_TYPES } from "../artifactstorage/artifact-storage.js";
-import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
+import type { ChannelRuntime } from "../domain/channel/channel-runtime.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type { GrantStore } from "../domain/grant/store.js";
 import type { SecretCodec } from "../encryption/codec.js";
@@ -316,7 +316,7 @@ export interface ResolvedExtensionDrivers {
   >;
   /**
    * The composed channel runtime, or undefined when none is registered —
-   * the agentchannel consumption sites serve the byte-pinned refusal
+   * the channel consumption sites serve the byte-pinned refusal
    * posture for the undefined arm (the default lives with the consumer
    * that defines its semantics, not with this data holder).
    */

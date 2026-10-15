@@ -18,8 +18,8 @@
  *     unchanged re-apply naming a tag moves it too;
  *   - delete drops the agent's version rows;
  *   - a reference to an agent that names a version is accepted on a run
- *     surface (a share) and kept as written: the session the surface
- *     starts pins that version.
+ *     surface (a web channel) and kept as written: the session the
+ *     surface starts pins that version.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -33,7 +33,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
+import { ChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { loadConfig } from "../../../boot/config.js";
@@ -56,7 +56,7 @@ let server: ComposedServer;
 let transport: Transport;
 let command: Client<typeof AgentCommandController>;
 let query: Client<typeof AgentQueryController>;
-let shares: Client<typeof AgentShareCommandController>;
+let channels: Client<typeof ChannelCommandController>;
 
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "agent-versions-test-"));
@@ -78,7 +78,7 @@ beforeAll(async () => {
   await seedOrganizations(transport, [ORG]);
   command = createClient(AgentCommandController, transport);
   query = createClient(AgentQueryController, transport);
-  shares = createClient(AgentShareCommandController, transport);
+  channels = createClient(ChannelCommandController, transport);
 });
 
 afterAll(async () => {
@@ -304,11 +304,11 @@ describe("agent versions: delete and references", () => {
     expect(await versionRows(id)).toBe(0);
   });
 
-  it("a share whose agent reference names a version is accepted and keeps the version as written", async () => {
+  it("a web channel whose agent reference names a version is accepted and keeps the version as written", async () => {
     const agent = await command.apply(agentInput(uniqueName("Shared"), "v1"));
-    const share = await shares.create({
+    const channel = await channels.create({
       apiVersion: API_VERSION,
-      kind: "AgentShare",
+      kind: "Channel",
       metadata: { name: uniqueName("share"), org: ORG },
       spec: {
         agentRef: {
@@ -316,8 +316,9 @@ describe("agent versions: delete and references", () => {
           slug: agent.metadata!.slug,
           version: agent.status!.versionHash,
         },
+        type: { case: "web", value: {} },
       },
     });
-    expect(share.spec?.agentRef?.version).toBe(agent.status!.versionHash);
+    expect(channel.spec?.agentRef?.version).toBe(agent.status!.versionHash);
   });
 });

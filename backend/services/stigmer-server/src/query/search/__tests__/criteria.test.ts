@@ -55,9 +55,9 @@ describe("searchIndexedKinds derivation (kind_meta)", () => {
     );
   });
 
-  it("excludes not_search_indexed kinds (agent_channel, memory)", () => {
+  it("excludes not_search_indexed kinds (channel, memory)", () => {
     const kinds = searchIndexedKinds();
-    expect(kinds).not.toContain(ApiResourceKind.agent_channel);
+    expect(kinds).not.toContain(ApiResourceKind.channel);
     expect(kinds).not.toContain(ApiResourceKind.channel_app);
     expect(kinds).not.toContain(ApiResourceKind.memory);
   });
@@ -163,20 +163,20 @@ describe("effectiveKinds (the #440 contract)", () => {
   it("non-searchable kinds are silently dropped from a mixed request", () => {
     expect(
       criteria({
-        kinds: [ApiResourceKind.agent, ApiResourceKind.agent_channel],
+        kinds: [ApiResourceKind.agent, ApiResourceKind.channel],
       }).effectiveKinds(),
     ).toEqual([ApiResourceKind.agent]);
   });
 
   it("ONLY non-searchable kinds yields the empty set — never discover (#440)", () => {
-    const c = criteria({ kinds: [ApiResourceKind.agent_channel] });
+    const c = criteria({ kinds: [ApiResourceKind.channel] });
     expect(c.effectiveKinds()).toEqual([]);
     expect(c.isDiscoverMode()).toBe(false);
   });
 
   it("kinds() returns the request verbatim, including unsearchable ones", () => {
-    const c = criteria({ kinds: [ApiResourceKind.agent_channel] });
-    expect(c.kinds()).toEqual([ApiResourceKind.agent_channel]);
+    const c = criteria({ kinds: [ApiResourceKind.channel] });
+    expect(c.kinds()).toEqual([ApiResourceKind.channel]);
   });
 });
 

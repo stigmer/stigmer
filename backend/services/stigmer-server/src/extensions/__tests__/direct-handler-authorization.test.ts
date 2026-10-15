@@ -24,8 +24,8 @@ import type { Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/command_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
@@ -90,13 +90,14 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
       }),
     );
     await namingSaves(server.store).saveResource(
-      ApiResourceKind.agent_channel,
-      "ach_01authztarget",
-      AgentChannelSchema,
-      create(AgentChannelSchema, {
+      ApiResourceKind.channel,
+      "chn_01authztarget",
+      ChannelSchema,
+      create(ChannelSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
-        kind: "AgentChannel",
-        metadata: { id: "ach_01authztarget", name: "target", org: "acme" },
+        kind: "Channel",
+        metadata: { id: "chn_01authztarget", name: "target", org: "acme" },
+        spec: { type: { case: "slack", value: {} } },
       }),
     );
     // The mid-chain-check target: listVersions resolves by org+slug
@@ -157,21 +158,21 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
   });
 
   it("channel initiateInstall and completeInstall deny with their annotation copy", async () => {
-    const command = createClient(AgentChannelCommandController, transport);
+    const command = createClient(ChannelCommandController, transport);
     // PermissionDenied — NOT the storing edition's FailedPrecondition —
     // proves the authorization runs before the refuse-or-delegate split.
     await expectDenied(
-      () => command.initiateInstall({ resourceId: "ach_01authztarget" }),
-      "unauthorized to install agent channel",
+      () => command.initiateInstall({ resourceId: "chn_01authztarget" }),
+      "unauthorized to install channel",
     );
     await expectDenied(
       () =>
         command.completeInstall({
-          resourceId: "ach_01authztarget",
+          resourceId: "chn_01authztarget",
           state: "some-state",
           code: "some-code",
         }),
-      "unauthorized to install agent channel",
+      "unauthorized to install channel",
     );
   });
 
@@ -179,7 +180,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
   it("session listByChannel denies at the channel gate with the Java handler's copy", async () => {
     const query = createClient(SessionQueryController, transport);
     await expectDenied(
-      () => query.listByChannel({ channelId: "ach_01authztarget" }),
+      () => query.listByChannel({ channelId: "chn_01authztarget" }),
       "unauthorized to list channel conversations",
     );
   });
@@ -193,13 +194,13 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
   });
 
   it("channel install on a MISSING id answers NotFound even under denial (load-first)", async () => {
-    const command = createClient(AgentChannelCommandController, transport);
+    const command = createClient(ChannelCommandController, transport);
     const error = await command
-      .initiateInstall({ resourceId: "ach_doesnotexist" })
+      .initiateInstall({ resourceId: "chn_doesnotexist" })
       .catch((e: unknown) => e);
     expect((error as ConnectError).code).toBe(Code.NotFound);
     expect((error as ConnectError).rawMessage).toBe(
-      "AgentChannel not found: ach_doesnotexist",
+      "Channel not found: chn_doesnotexist",
     );
   });
 });

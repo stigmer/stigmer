@@ -2,9 +2,9 @@
 # `channel` structural link).
 #
 # A session created by the channel runtime carries a single
-#   session#channel@agent_channel:<id>
+#   session#channel@channel:<id>
 # tuple and inherits the channel's viewer set (connector owner + org admins
-# via `admin from organization` on agent_channel) into can_view ONLY —
+# via `admin from organization` on channel) into can_view ONLY —
 # `viewer from channel` is composed into session.can_view, deliberately NOT
 # into session.viewer, so channel observers never gain
 # can_create_run_in / can_edit / can_delete / can_grant_access.
@@ -53,13 +53,13 @@ tuples:
     relation: affiliated
     object: organization:rival
 
-  # --- The AgentChannel (tuples written on create: org link + creator owner) ---
+  # --- The channel (tuples written on create: org link + creator owner) ---
   - user: organization:acme
     relation: organization
-    object: agent_channel:slack-conn
+    object: channel:slack-conn
   - user: identity_account:bob
     relation: owner
-    object: agent_channel:slack-conn
+    object: channel:slack-conn
 
   # --- The channel session (owned by the org's system-channel account) ---
   - user: organization:acme
@@ -78,7 +78,7 @@ tuples:
     relation: owner
     object: session:channel-chat
   # The structural link written by ChannelSessionLinkStep:
-  - user: agent_channel:slack-conn
+  - user: channel:slack-conn
     relation: channel
     object: session:channel-chat
 

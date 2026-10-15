@@ -194,10 +194,10 @@ export type {
   ResolvedParentLink,
 } from "./extensions/resource-authorization.js";
 export type { OrganizationDirectory } from "./extensions/organization-directory.js";
-// Who a chat link reaches: the one predicate every edition's guest lane
-// asks (an omitted audience means the organization; only public admits
-// anyone).
-export { shareAdmitsAnyone } from "./domain/agentshare/audience.js";
+// Who a web channel's chat link reaches: the one predicate every edition's
+// guest lane asks (an omitted audience means the organization; only public
+// admits anyone; a Slack or WhatsApp channel admits no guest).
+export { channelAdmitsAnyone } from "./domain/channel/audience.js";
 // The child-organization lookups (ComposedServices.childOrganizations): a
 // composition's sign-in routing by external id and its billing roll-up.
 export type { ChildOrganizations } from "./extensions/child-organizations.js";
@@ -967,7 +967,7 @@ export type {
   ChannelRuntimeConversations,
   ChannelRuntimeInstalls,
   ChannelRuntimeMessaging,
-} from "./domain/agentchannel/channel-runtime.js";
+} from "./domain/channel/channel-runtime.js";
 
 // The worker factory seam extension workers implement. Factories
 // construct workers ONLY through deps.createWorker — this package's

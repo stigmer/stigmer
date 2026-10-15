@@ -1,6 +1,6 @@
 /**
- * ChannelMessage controllers — ports pkg/domain/agentchannel/controller/
- * message.go: the runtime messaging surface beside the AgentChannel
+ * ChannelMessage controllers (the retired Go server's message.go): the
+ * runtime messaging surface beside the Channel
  * resource controllers, kept off the resource CRUD surface. Stateless on
  * the storing edition — no store.
  *
@@ -34,16 +34,16 @@
  * INVALID_ARGUMENT contract holds before every refusal AND before every
  * delegation.
  *
- * Proven by agentchannel.conformance.test.ts (CONFORMANCE_TARGET=local)
- * and __tests__/agentchannel.test.ts.
+ * Proven by channel.conformance.test.ts (CONFORMANCE_TARGET=local)
+ * and __tests__/channel.test.ts.
  */
 import type { ConnectRouter } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 
-import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_command_pb";
-import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
-import { MessagingChannelsSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
-import type { MessagingChannels } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_command_pb";
+import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_query_pb";
+import { MessagingChannelsSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
+import type { MessagingChannels } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
 
 import { failedPreconditionError } from "../../pipeline/errors.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";

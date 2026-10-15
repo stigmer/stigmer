@@ -1,0 +1,254 @@
+# Channels are owner-scoped configuration (a chat link since 2026-07-12, a
+# Slack or WhatsApp connection since 2026-07-13, one type since the two
+# merged): the creator owns the channel; view/edit/delete/rotate/install
+# require ownership or an explicit grant. Plain org members get NO implicit
+# access, and, critically, no visitor-facing tuples exist at all: a chat
+# link's guest and member admission to the hosted chat is app-level (the
+# agent profile, guest mint and create-time gates), and a Slack or WhatsApp
+# workspace user's admission to the channel runtime is app-level (webhook
+# signature, channel caller identity, per-turn gates), never FGA.
+#
+# Org ADMINS inherit owner (since 2026-07-13, consistent with agents: an
+# admin who can manage the agent can manage its channels). The narrowness
+# these tests pin, on a web channel and a Slack channel alike: owner and
+# admins have control, granted viewers read, plain members have nothing. A
+# team's members may hold a read-only grant on any type, a chat link
+# included.
+#
+# Run: fga model test --tests channel-owner.fga.yaml
+
+name: channel-owner
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # Org membership for both accounts — proving membership grants nothing.
+  - user: identity_account:alice
+    relation: member
+    object: organization:acme
+  - user: identity_account:alice
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:mallory
+    relation: member
+    object: organization:acme
+  - user: identity_account:mallory
+    relation: affiliated
+    object: organization:acme
+
+  # Org admin — proving admin owner inheritance reaches channels.
+  - user: identity_account:ana
+    relation: admin
+    object: organization:acme
+  - user: identity_account:ana
+    relation: affiliated
+    object: organization:acme
+
+  # An explicit viewer grant to carol, who holds the organization's
+  # lowest role: the role reaches nothing here by itself, the grant does.
+  - user: identity_account:carol
+    relation: viewer
+    object: organization:acme
+  - user: identity_account:carol
+    relation: affiliated
+    object: organization:acme
+
+  # A team of the organization, with vic as its member.
+  - user: identity_account:vic
+    relation: viewer
+    object: organization:acme
+  - user: identity_account:vic
+    relation: affiliated
+    object: organization:acme
+  - user: organization:acme
+    relation: organization
+    object: team:docs
+  - user: identity_account:vic
+    relation: member
+    object: team:docs
+
+  # The web channel, created by alice (the config-driven create tuples),
+  # with carol's grant and the same grant to dave, who holds no role in the
+  # organization (never joined, or was removed): a direct grant reaches only
+  # the organization's people.
+  - user: organization:acme
+    relation: organization
+    object: channel:support-bot-web
+  - user: identity_account:alice
+    relation: owner
+    object: channel:support-bot-web
+  - user: identity_account:carol
+    relation: viewer
+    object: channel:support-bot-web
+  - user: identity_account:dave
+    relation: viewer
+    object: channel:support-bot-web
+
+  # The Slack channel, created by alice (the config-driven create tuples),
+  # with carol's grant and the same grant to dave, who holds no role in the
+  # organization (never joined, or was removed): a direct grant reaches only
+  # the organization's people.
+  - user: organization:acme
+    relation: organization
+    object: channel:support-bot-slack
+  - user: identity_account:alice
+    relation: owner
+    object: channel:support-bot-slack
+  - user: identity_account:carol
+    relation: viewer
+    object: channel:support-bot-slack
+  - user: identity_account:dave
+    relation: viewer
+    object: channel:support-bot-slack
+
+  # The docs team's members may read the chat link.
+  - user: team:docs#member
+    relation: viewer
+    object: channel:support-bot-web
+
+tests:
+  - name: owner has full control including grant management (web channel)
+    check:
+      - user: identity_account:alice
+        object: channel:support-bot-web
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+          can_view_access: true
+
+  - name: a grant to someone outside the organization reaches nothing (web channel)
+    check:
+      - user: identity_account:dave
+        object: channel:support-bot-web
+        assertions:
+          can_view: false
+          can_view_access: false
+          can_edit: false
+
+  - name: explicitly granted viewer can read but not mutate (web channel)
+    check:
+      - user: identity_account:carol
+        object: channel:support-bot-web
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_view_access: true
+
+  - name: fellow org member has no implicit access (web channel)
+    check:
+      - user: identity_account:mallory
+        object: channel:support-bot-web
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_view_access: false
+
+  - name: org admin inherits channel management (web channel)
+    check:
+      - user: identity_account:ana
+        object: channel:support-bot-web
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+
+  - name: owner has full control including grant management (Slack channel)
+    check:
+      - user: identity_account:alice
+        object: channel:support-bot-slack
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+          can_view_access: true
+
+  - name: a grant to someone outside the organization reaches nothing (Slack channel)
+    check:
+      - user: identity_account:dave
+        object: channel:support-bot-slack
+        assertions:
+          can_view: false
+          can_view_access: false
+          can_edit: false
+
+  - name: explicitly granted viewer can read but not mutate (Slack channel)
+    check:
+      - user: identity_account:carol
+        object: channel:support-bot-slack
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_view_access: true
+
+  - name: fellow org member has no implicit access (Slack channel)
+    check:
+      - user: identity_account:mallory
+        object: channel:support-bot-slack
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_view_access: false
+
+  - name: org admin inherits channel management (Slack channel)
+    check:
+      - user: identity_account:ana
+        object: channel:support-bot-slack
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+
+  - name: a team's members read a chat link they were granted, and nothing more
+    check:
+      - user: identity_account:vic
+        object: channel:support-bot-web
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_participate: false
+      - user: identity_account:vic
+        object: channel:support-bot-slack
+        assertions:
+          can_view: false
+
+  - name: listing channels reflects ownership and grants, not membership
+    list_objects:
+      - user: identity_account:alice
+        type: channel
+        assertions:
+          can_view:
+            - channel:support-bot-web
+            - channel:support-bot-slack
+          can_edit:
+            - channel:support-bot-web
+            - channel:support-bot-slack
+      - user: identity_account:carol
+        type: channel
+        assertions:
+          can_view:
+            - channel:support-bot-web
+            - channel:support-bot-slack
+          can_edit: []
+      - user: identity_account:mallory
+        type: channel
+        assertions:
+          can_view: []
+      - user: identity_account:vic
+        type: channel
+        assertions:
+          can_view:
+            - channel:support-bot-web

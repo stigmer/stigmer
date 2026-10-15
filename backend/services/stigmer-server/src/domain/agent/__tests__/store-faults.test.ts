@@ -9,8 +9,8 @@
  * an in-process router. The composed suites reach only a real store, which
  * cannot fail selectively, so it runs here against a store whose read throws.
  *
- * Out of scope: the NotFound copy itself (wire contract) and getByAgent's
- * empty-list answer on an agent-read fault in the channel and share domains
+ * Out of scope: the NotFound copy itself (wire contract) and listByAgent's
+ * empty-list answer on an agent-read fault in the channel domain
  * (stigmer/stigmer#1375).
  */
 import type { Client, ConnectError } from "@connectrpc/connect";
@@ -63,6 +63,7 @@ function agentCommand(store: Store): Client<typeof AgentCommandController> {
         authorizationLifecycle: undefined,
         listReadScope: undefined,
         modelRegistry: {} as ModelCatalogProvider,
+        channelRuntime: undefined,
       });
     },
     {
