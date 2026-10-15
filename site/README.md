@@ -76,7 +76,7 @@ site/
 
 One build, `.github/workflows/build.website.yaml`, makes the static export for both of its uses:
 
-- **Production.** A merge to `main` that touches the site, the docs, the tours or a package the site links runs `release.website.yaml`, which deploys the export to the Cloudflare Worker `stigmer-website` (`wrangler.jsonc`). GitHub Pages receives the same export until stigmer.ai is served by the Worker.
+- **Production.** A merge to `main` that touches the site, the docs, the tours or a package the site links runs `release.website.yaml`, which deploys the export to the Cloudflare Worker `stigmer-website` (`wrangler.jsonc`).
 - **Review sites.** Every pull request that would redeploy the site gets the same build at `https://review-<pull request number>.stigmer.ai`, linked in a comment on the pull request. `preview.website.yaml` builds it with no key; `publish.website-preview.yaml`, which runs from `main`, uploads it as a version of `stigmer-website-preview`, marks it `noindex`, and closes it when the pull request is merged or closed. A pull request from a fork waits for a maintainer's approval before its review site goes up.
 
 The deploy jobs never install the site's dependencies: they install only the pinned wrangler in `deploy/`, and `deploy/check-export-read.sh` refuses a deploy unless wrangler reads every file of the export.
