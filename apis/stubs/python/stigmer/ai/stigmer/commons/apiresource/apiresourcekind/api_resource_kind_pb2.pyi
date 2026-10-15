@@ -44,8 +44,7 @@ class ApiResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     run: _ClassVar[ApiResourceKind]
     session: _ClassVar[ApiResourceKind]
     skill: _ClassVar[ApiResourceKind]
-    agent_share: _ClassVar[ApiResourceKind]
-    agent_channel: _ClassVar[ApiResourceKind]
+    channel: _ClassVar[ApiResourceKind]
     channel_app: _ClassVar[ApiResourceKind]
     schedule: _ClassVar[ApiResourceKind]
     memory: _ClassVar[ApiResourceKind]
@@ -81,8 +80,7 @@ agent: ApiResourceKind
 run: ApiResourceKind
 session: ApiResourceKind
 skill: ApiResourceKind
-agent_share: ApiResourceKind
-agent_channel: ApiResourceKind
+channel: ApiResourceKind
 channel_app: ApiResourceKind
 schedule: ApiResourceKind
 memory: ApiResourceKind

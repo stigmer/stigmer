@@ -13,9 +13,10 @@ import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
-import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/query_pb";
+import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
+import { ChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
@@ -140,18 +141,31 @@ const knownSkill = create(SkillSchema, {
   spec: { description: "triage a ticket" },
 });
 
-// Spec/status populated to exercise every AGENT_CHANNEL_TABLE column:
-// agent_ref, the provider oneof, install_state, and enabled.
-const knownChannel = create(AgentChannelSchema, {
+// Spec/status populated to exercise every CHANNEL_TABLE column: agent_ref,
+// the type oneof, install_state (a WhatsApp channel's STATE), and enabled.
+const knownChannel = create(ChannelSchema, {
   apiVersion: "agentic.stigmer.ai/v1",
-  kind: "AgentChannel",
-  metadata: { name: "clinic-patient-whatsapp", slug: "clinic-patient-whatsapp", org: ACME_ID, id: "ach_1" },
+  kind: "Channel",
+  metadata: { name: "clinic-patient-whatsapp", slug: "clinic-patient-whatsapp", org: ACME_ID, id: "chn_1" },
   spec: {
     enabled: true,
     agentRef: { kind: ApiResourceKind.agent, org: ACME_ID, slug: "clinic-assistant" },
-    providerConfig: { case: "whatsapp", value: { phoneNumberId: "106540352242922" } },
+    type: { case: "whatsapp", value: { phoneNumberId: "106540352242922" } },
   },
-  status: { installState: AgentChannelInstallState.installed },
+  status: { installState: ChannelInstallState.installed },
+});
+
+// A web channel's STATE is its audience; it has nothing to install. Its id
+// carries the prefix chat links were minted with before they were channels.
+const webChannel = create(ChannelSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "Channel",
+  metadata: { name: "clinic-assistant-web", slug: "clinic-assistant-web", org: ACME_ID, id: "ash_2" },
+  spec: {
+    enabled: false,
+    agentRef: { kind: ApiResourceKind.agent, org: ACME_ID, slug: "clinic-assistant" },
+    type: { case: "web", value: { audience: ChannelAudience.public } },
+  },
 });
 
 // Secret fields carry the redaction marker, matching what the server's
@@ -316,18 +330,18 @@ beforeAll(async () => {
         return { entries: [knownVault] };
       },
     });
-    router.service(AgentChannelQueryController, {
+    router.service(ChannelQueryController, {
       get: (req) => {
-        if (req.value !== "ach_1") throw new ConnectError("agent channel not found", Code.NotFound);
+        if (req.value !== "chn_1") throw new ConnectError("channel not found", Code.NotFound);
         return knownChannel;
       },
       getByReference: (req) => {
-        if (req.slug !== "clinic-patient-whatsapp") throw new ConnectError("agent channel not found", Code.NotFound);
+        if (req.slug !== "clinic-patient-whatsapp") throw new ConnectError("channel not found", Code.NotFound);
         return knownChannel;
       },
       list: (req) => {
         if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
-        return { entries: [knownChannel] };
+        return { entries: [knownChannel, webChannel] };
       },
     });
     router.service(ChannelAppQueryController, {
@@ -469,20 +483,20 @@ describe("get integration", () => {
     });
   });
 
-  it("fetches an agent channel by org/slug and renders backend protojson", async () => {
-    const { schema, message } = await fetchResource(client, ApiResourceKind.agent_channel, {
+  it("fetches a channel by org/slug and renders backend protojson", async () => {
+    const { schema, message } = await fetchResource(client, ApiResourceKind.channel, {
       kind: "ref",
       org: "acme",
       slug: "clinic-patient-whatsapp",
     });
     const rendered = JSON.parse(renderResource(schema, message, "json"));
-    expect(rendered).toEqual(toJson(AgentChannelSchema, knownChannel, { useProtoFieldName: true }));
+    expect(rendered).toEqual(toJson(ChannelSchema, knownChannel, { useProtoFieldName: true }));
   });
 
-  it("fetches an agent channel by ID", async () => {
-    const { message } = await fetchResource(client, ApiResourceKind.agent_channel, { kind: "id", id: "ach_1" });
-    expect(JSON.parse(renderResource(AgentChannelSchema, message, "json"))).toMatchObject({
-      metadata: { id: "ach_1" },
+  it("fetches a channel by ID", async () => {
+    const { message } = await fetchResource(client, ApiResourceKind.channel, { kind: "id", id: "chn_1" });
+    expect(JSON.parse(renderResource(ChannelSchema, message, "json"))).toMatchObject({
+      metadata: { id: "chn_1" },
       spec: { enabled: true },
     });
   });
@@ -652,21 +666,30 @@ describe("list integration", () => {
     expect(row).toMatch(/clinic-tools\s+Clinic tools\s+organization\s+1\s+1/);
   });
 
-  it("lists agent channels via the dedicated list RPC as JSON", async () => {
-    const out = await listResources(client, ApiResourceKind.agent_channel, "acme", 50, "json");
-    expect(JSON.parse(out)).toEqual([toJson(AgentChannelSchema, knownChannel, { useProtoFieldName: true })]);
+  it("lists channels via the dedicated list RPC as JSON", async () => {
+    const out = await listResources(client, ApiResourceKind.channel, "acme", 50, "json");
+    expect(JSON.parse(out)).toEqual([
+      toJson(ChannelSchema, knownChannel, { useProtoFieldName: true }),
+      toJson(ChannelSchema, webChannel, { useProtoFieldName: true }),
+    ]);
   });
 
-  it("renders a human table for agent channels with the serving signals", async () => {
-    const out = await listResources(client, ApiResourceKind.agent_channel, "acme", 50, "table");
-    expect(out).toContain("PROVIDER");
-    expect(out).toContain("STATE");
-    expect(out).toContain("ENABLED");
-    expect(out).toContain("acme/clinic-assistant"); // agent_ref as org/slug, the org by slug
+  it("renders a human table for channels with the type and the serving signals", async () => {
+    const out = await listResources(client, ApiResourceKind.channel, "acme", 50, "table");
+    for (const header of ["ID", "SLUG", "AGENT", "TYPE", "STATE", "ENABLED"]) {
+      expect(out).toContain(header);
+    }
+    expect(out).not.toContain("PROVIDER");
     expect(out).not.toContain(ACME_ID);
-    expect(out).toContain("whatsapp"); // derived from the provider oneof
-    expect(out).toContain("installed"); // status.install_state
-    expect(out).toContain("true"); // spec.enabled
+    const rows = out.split("\n");
+    // A WhatsApp channel's STATE is its install state.
+    expect(rows.find((line) => line.includes("chn_1"))).toMatch(
+      /clinic-patient-whatsapp\s+acme\/clinic-assistant\s+whatsapp\s+installed\s+true/,
+    );
+    // A web channel's STATE is its audience, never an install state.
+    expect(rows.find((line) => line.includes("ash_2"))).toMatch(
+      /clinic-assistant-web\s+acme\/clinic-assistant\s+web\s+public\s+false/,
+    );
   });
 
   it("lists channel apps via list as JSON", async () => {
@@ -744,12 +767,12 @@ describe("list integration", () => {
   });
 
   it("rejects a kind whose list is unwired with a usage error", async () => {
-    // agent_share's read verbs are narrowed out of the verb matrix
+    // oauth_app's read verbs are narrowed out of the verb matrix
     // (stigmer/stigmer#354): the command layer refuses at the gate, and this
     // resource-layer fallback answers anyone bypassing the gate. Wiring
-    // agent_share list requires BOTH the LIST_HANDLERS entry and the matrix
+    // oauth_app list requires BOTH the LIST_HANDLERS entry and the matrix
     // line — the registry conformance test enforces the pairing.
-    const err = await listResources(client, ApiResourceKind.agent_share, "acme", 50, "json").catch((e) => e);
+    const err = await listResources(client, ApiResourceKind.oauth_app, "acme", 50, "json").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
   });
 });

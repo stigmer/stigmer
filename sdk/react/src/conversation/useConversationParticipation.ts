@@ -3,13 +3,13 @@
 import { create } from "@bufbuild/protobuf";
 import type {
   ChannelConversation,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import {
   ConversationControlInputSchema,
   GetChannelConversationInputSchema,
   ReplyToConversationInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
-import type { SendChannelMessageOutput } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import type { SendChannelMessageOutput } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { useCallback, useMemo } from "react";
 import { useStigmer } from "../hooks.js";
 import { useKeyedSubmission } from "../internal/useKeyedSubmission.js";
@@ -56,8 +56,8 @@ export type ConversationReplyPayload =
 
 /** Options for {@link useConversationParticipation}. */
 export interface UseConversationParticipationOptions {
-  /** AgentChannel the conversation belongs to. */
-  readonly agentChannelId: string;
+  /** Channel the conversation belongs to. */
+  readonly channelId: string;
   /** Conversation key within the channel. */
   readonly conversationKey: string;
   /**
@@ -118,20 +118,20 @@ export interface UseConversationParticipationReturn {
 export function useConversationParticipation(
   options: UseConversationParticipationOptions,
 ): UseConversationParticipationReturn {
-  const { agentChannelId, conversationKey, onConversation } = options;
+  const { channelId, conversationKey, onConversation } = options;
   const stigmer = useStigmer();
   const submission = useKeyedSubmission<unknown>();
   const { run } = submission;
 
   const controlInput = useCallback(
-    () => create(ConversationControlInputSchema, { agentChannelId, conversationKey }),
-    [agentChannelId, conversationKey],
+    () => create(ConversationControlInputSchema, { channelId, conversationKey }),
+    [channelId, conversationKey],
   );
 
   const takeOver = useCallback(
     () =>
       run("takeOver", async () => {
-        const fresh = await stigmer.agentChannel.takeOver(controlInput());
+        const fresh = await stigmer.channel.takeOver(controlInput());
         onConversation?.(fresh);
         return fresh;
       }) as Promise<ChannelConversation>,
@@ -141,7 +141,7 @@ export function useConversationParticipation(
   const handBack = useCallback(
     () =>
       run("handBack", async () => {
-        const fresh = await stigmer.agentChannel.handBack(controlInput());
+        const fresh = await stigmer.channel.handBack(controlInput());
         onConversation?.(fresh);
         return fresh;
       }) as Promise<ChannelConversation>,
@@ -151,7 +151,7 @@ export function useConversationParticipation(
   const clearAttention = useCallback(
     () =>
       run("clearAttention", async () => {
-        const fresh = await stigmer.agentChannel.clearAttention(controlInput());
+        const fresh = await stigmer.channel.clearAttention(controlInput());
         onConversation?.(fresh);
         return fresh;
       }) as Promise<ChannelConversation>,
@@ -161,9 +161,9 @@ export function useConversationParticipation(
   const reply = useCallback(
     (payload: ConversationReplyPayload) =>
       run("reply", async () => {
-        const output = await stigmer.agentChannel.reply(
+        const output = await stigmer.channel.reply(
           create(ReplyToConversationInputSchema, {
-            agentChannelId,
+            channelId,
             conversationKey,
             payload: {
               kind:
@@ -188,9 +188,9 @@ export function useConversationParticipation(
         if (onConversation) {
           try {
             onConversation(
-              await stigmer.agentChannel.getConversation(
+              await stigmer.channel.getConversation(
                 create(GetChannelConversationInputSchema, {
-                  agentChannelId,
+                  channelId,
                   conversationKey,
                 }),
               ),
@@ -201,7 +201,7 @@ export function useConversationParticipation(
         }
         return output;
       }) as Promise<SendChannelMessageOutput>,
-    [run, stigmer, agentChannelId, conversationKey, onConversation],
+    [run, stigmer, channelId, conversationKey, onConversation],
   );
 
   return useMemo(

@@ -81,7 +81,7 @@ export const DELETE_HANDLERS: ReadonlyMap<ApiResourceKind, DeleteFn> = new Map<
     ApiResourceKind.vault,
     (c, id, force) => c.vault.delete({ resourceId: id, force }),
   ],
-  [ApiResourceKind.agent_channel, (c, id) => c.agentChannel.delete(id)],
+  [ApiResourceKind.channel, (c, id) => c.channel.delete(id)],
   [
     ApiResourceKind.channel_app,
     (c, id, force) => c.channelapp.delete({ resourceId: id, force }),
@@ -320,7 +320,7 @@ function buildDeleteWarning(
     warning.hint("This will delete the eval and all its versions.");
   }
 
-  if (info.kind === ApiResourceKind.agent_channel) {
+  if (info.kind === ApiResourceKind.channel) {
     // The server's documented distinction: delete is the connection's full
     // teardown; disabling is the config-preserving pause.
     warning.hint(

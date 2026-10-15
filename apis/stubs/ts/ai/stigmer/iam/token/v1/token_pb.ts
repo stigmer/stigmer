@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/token/v1/token.proto.
  */
 export const file_ai_stigmer_iam_token_v1_token: GenFile = /*@__PURE__*/
-  fileDesc("CiNhaS9zdGlnbWVyL2lhbS90b2tlbi92MS90b2tlbi5wcm90bxIXYWkuc3RpZ21lci5pYW0udG9rZW4udjEihgEKFE1pbnRVc2VyVG9rZW5SZXF1ZXN0EhYKA29yZxgBIAEoCUIJukgGcgQQARhAEhsKB3VzZXJfaWQYAiABKAlCCrpIB3IFEAEYgAISHAoKdXNlcl9lbWFpbBgDIAEoCUIIukgFcgMYwAISGwoJdXNlcl9uYW1lGAQgASgJQgi6SAVyAxiAAiJVChVNaW50VXNlclRva2VuUmVzcG9uc2USFAoMYWNjZXNzX3Rva2VuGAEgASgJEhIKCnRva2VuX3R5cGUYAiABKAkSEgoKZXhwaXJlc19pbhgDIAEoBSK6AwoVTWludEd1ZXN0VG9rZW5SZXF1ZXN0EhwKCHNoYXJlX2lkGAEgASgJQgq6SAdyBRABGIABEhcKD2d1ZXN0X2Nvb2tpZV9pZBgCIAEoCRLLAgoMZW1iZWRfb3JpZ2luGAMgASgJQrQCukiwAroBrAIKE2VtYmVkX29yaWdpbi5mb3JtYXQSd2VtYmVkX29yaWdpbiBtdXN0IGJlIGVtcHR5LCAibnVsbCIsIG9yIGFuIGV4YWN0IHdlYiBvcmlnaW4gbGlrZSBodHRwczovL2V4YW1wbGUuY29tIChubyBwYXRoLCBxdWVyeSwgb3IgdHJhaWxpbmcgc2xhc2gpGpsBdGhpcyA9PSAnJyB8fCB0aGlzID09ICdudWxsJyB8fCB0aGlzLm1hdGNoZXMoJ15odHRwcz86Ly9bQS1aYS16MC05XShbQS1aYS16MC05LV0qW0EtWmEtejAtOV0pPyhcXC5bQS1aYS16MC05XShbQS1aYS16MC05LV0qW0EtWmEtejAtOV0pPykqKDpbMC05XXsxLDV9KT8kJykSHAoKbGlua190b2tlbhgEIAEoCUIIukgFcgMYgAEibwoWTWludEd1ZXN0VG9rZW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRISCgpleHBpcmVzX2luGAMgASgFEhcKD2d1ZXN0X2Nvb2tpZV9pZBgEIAEoCTK/AgoMVG9rZW5TZXJ2aWNlErUBCg1taW50VXNlclRva2VuEi0uYWkuc3RpZ21lci5pYW0udG9rZW4udjEuTWludFVzZXJUb2tlblJlcXVlc3QaLi5haS5zdGlnbWVyLmlhbS50b2tlbi52MS5NaW50VXNlclRva2VuUmVzcG9uc2UiRcK4GEEIORAeIgNvcmcqNnVuYXV0aG9yaXplZCB0byBtaW50IHVzZXIgdG9rZW5zIGZvciB0aGlzIG9yZ2FuaXphdGlvbhJ3Cg5taW50R3Vlc3RUb2tlbhIuLmFpLnN0aWdtZXIuaWFtLnRva2VuLnYxLk1pbnRHdWVzdFRva2VuUmVxdWVzdBovLmFpLnN0aWdtZXIuaWFtLnRva2VuLnYxLk1pbnRHdWVzdFRva2VuUmVzcG9uc2UiBMi4GAFiBnByb3RvMw", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
+  fileDesc("CiNhaS9zdGlnbWVyL2lhbS90b2tlbi92MS90b2tlbi5wcm90bxIXYWkuc3RpZ21lci5pYW0udG9rZW4udjEihgEKFE1pbnRVc2VyVG9rZW5SZXF1ZXN0EhYKA29yZxgBIAEoCUIJukgGcgQQARhAEhsKB3VzZXJfaWQYAiABKAlCCrpIB3IFEAEYgAISHAoKdXNlcl9lbWFpbBgDIAEoCUIIukgFcgMYwAISGwoJdXNlcl9uYW1lGAQgASgJQgi6SAVyAxiAAiJVChVNaW50VXNlclRva2VuUmVzcG9uc2USFAoMYWNjZXNzX3Rva2VuGAEgASgJEhIKCnRva2VuX3R5cGUYAiABKAkSEgoKZXhwaXJlc19pbhgDIAEoBSK8AwoVTWludEd1ZXN0VG9rZW5SZXF1ZXN0Eh4KCmNoYW5uZWxfaWQYASABKAlCCrpIB3IFEAEYgAESFwoPZ3Vlc3RfY29va2llX2lkGAIgASgJEssCCgxlbWJlZF9vcmlnaW4YAyABKAlCtAK6SLACugGsAgoTZW1iZWRfb3JpZ2luLmZvcm1hdBJ3ZW1iZWRfb3JpZ2luIG11c3QgYmUgZW1wdHksICJudWxsIiwgb3IgYW4gZXhhY3Qgd2ViIG9yaWdpbiBsaWtlIGh0dHBzOi8vZXhhbXBsZS5jb20gKG5vIHBhdGgsIHF1ZXJ5LCBvciB0cmFpbGluZyBzbGFzaCkamwF0aGlzID09ICcnIHx8IHRoaXMgPT0gJ251bGwnIHx8IHRoaXMubWF0Y2hlcygnXmh0dHBzPzovL1tBLVphLXowLTldKFtBLVphLXowLTktXSpbQS1aYS16MC05XSk/KFxcLltBLVphLXowLTldKFtBLVphLXowLTktXSpbQS1aYS16MC05XSk/KSooOlswLTldezEsNX0pPyQnKRIcCgpsaW5rX3Rva2VuGAQgASgJQgi6SAVyAxiAASJvChZNaW50R3Vlc3RUb2tlblJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRISCgp0b2tlbl90eXBlGAIgASgJEhIKCmV4cGlyZXNfaW4YAyABKAUSFwoPZ3Vlc3RfY29va2llX2lkGAQgASgJMr8CCgxUb2tlblNlcnZpY2UStQEKDW1pbnRVc2VyVG9rZW4SLS5haS5zdGlnbWVyLmlhbS50b2tlbi52MS5NaW50VXNlclRva2VuUmVxdWVzdBouLmFpLnN0aWdtZXIuaWFtLnRva2VuLnYxLk1pbnRVc2VyVG9rZW5SZXNwb25zZSJFwrgYQQg5EB4iA29yZyo2dW5hdXRob3JpemVkIHRvIG1pbnQgdXNlciB0b2tlbnMgZm9yIHRoaXMgb3JnYW5pemF0aW9uEncKDm1pbnRHdWVzdFRva2VuEi4uYWkuc3RpZ21lci5pYW0udG9rZW4udjEuTWludEd1ZXN0VG9rZW5SZXF1ZXN0Gi8uYWkuc3RpZ21lci5pYW0udG9rZW4udjEuTWludEd1ZXN0VG9rZW5SZXNwb25zZSIEyLgYAWIGcHJvdG8z", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
 
 /**
  * MintUserTokenRequest names the organization and the person a user token
@@ -106,17 +106,17 @@ export const MintUserTokenResponseSchema: GenMessage<MintUserTokenResponse> = /*
   messageDesc(file_ai_stigmer_iam_token_v1_token, 1);
 
 /**
- * MintGuestTokenRequest identifies a shared agent and optional visitor cookie id.
+ * MintGuestTokenRequest identifies a chat link and optional visitor cookie id.
  *
  * @generated from message ai.stigmer.iam.token.v1.MintGuestTokenRequest
  */
 export type MintGuestTokenRequest = Message<"ai.stigmer.iam.token.v1.MintGuestTokenRequest"> & {
   /**
-   * Id of the share, from the hosted chat link (required).
+   * Id of the web channel, from the hosted chat link (required).
    *
-   * @generated from field: string share_id = 1;
+   * @generated from field: string channel_id = 1;
    */
-  shareId: string;
+  channelId: string;
 
   /**
    * Per-browser visitor cookie id from a prior mint (optional).
@@ -130,7 +130,7 @@ export type MintGuestTokenRequest = Message<"ai.stigmer.iam.token.v1.MintGuestTo
   guestCookieId: string;
 
   /**
-   * Web origin of the page embedding the shared agent (optional).
+   * Web origin of the page embedding the chat (optional).
    *
    * Set by the hosted chat page when it runs inside an iframe (the embedding
    * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
@@ -143,10 +143,10 @@ export type MintGuestTokenRequest = Message<"ai.stigmer.iam.token.v1.MintGuestTo
   embedOrigin: string;
 
   /**
-   * Link token from the share link's `?k=` parameter (optional).
+   * Link token from the chat link's `?k=` parameter (optional).
    *
-   * Required when the share link has been locked with rotateShareLink;
-   * ignored for plain share links.
+   * Required when the chat link has been locked with rotateLink; ignored
+   * for plain chat links.
    *
    * @generated from field: string link_token = 4;
    */
@@ -167,7 +167,7 @@ export const MintGuestTokenRequestSchema: GenMessage<MintGuestTokenRequest> = /*
  */
 export type MintGuestTokenResponse = Message<"ai.stigmer.iam.token.v1.MintGuestTokenResponse"> & {
   /**
-   * Stigmer-signed JWT for authenticating shared-agent chat API calls.
+   * Stigmer-signed JWT for authenticating a chat link visitor's API calls.
    *
    * @generated from field: string access_token = 1;
    */
@@ -208,7 +208,7 @@ export const MintGuestTokenResponseSchema: GenMessage<MintGuestTokenResponse> = 
 /**
  * TokenService mints the short-lived tokens a browser uses to talk to
  * Stigmer on someone's behalf: a person signed in to an organization's own
- * product, or an anonymous visitor of a shared agent's chat link.
+ * product, or an anonymous visitor of an agent's chat link.
  *
  * It manages no resource. Each token is signed by the server's own
  * platform-token key and verified on every request; minting requires a
@@ -262,11 +262,11 @@ export const TokenService: GenService<{
     output: typeof MintUserTokenResponseSchema;
   },
   /**
-   * Mint a guest token for an anonymous visitor of a shared agent's chat link.
+   * Mint a guest token for an anonymous visitor of an agent's chat link.
    *
-   * Resolves the share id from the hosted chat link to an AgentShare and
-   * returns a short-lived token scoped to that share's organization. Editions
-   * that do not host shared-agent pages answer it UNIMPLEMENTED.
+   * Resolves the channel id from the hosted chat link to a web channel and
+   * returns a short-lived token scoped to that channel's organization.
+   * Editions that do not host chat-link pages answer it UNIMPLEMENTED.
    *
    * @generated from rpc ai.stigmer.iam.token.v1.TokenService.mintGuestToken
    */

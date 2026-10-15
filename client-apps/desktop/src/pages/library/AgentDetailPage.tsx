@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import {
-  AgentChannelsPanel,
+  ChannelsPanel,
   AgentDetailView,
   EditResourceYamlDialog,
   useAgent,
@@ -26,8 +26,8 @@ import { useCanonicalDetailSlug } from "./canonical-slug";
  * Share links must be reachable by anyone, so they point at the public
  * web console — never the desktop app's own Tauri origin.
  */
-function buildShareUrl(shareId: string): string {
-  return buildChatUrl(CONSOLE_URL, shareId);
+function buildShareUrl(channelId: string): string {
+  return buildChatUrl(CONSOLE_URL, channelId);
 }
 
 /**
@@ -95,7 +95,7 @@ export default function AgentDetailPage() {
               id: "channels",
               label: "Channels",
               content: (
-                <AgentChannelsPanel
+                <ChannelsPanel
                   agent={agent}
                   onConnectExternal={handleConnectExternal}
                   // A plain-anchor hash URL: the in-app WhatsApp connect

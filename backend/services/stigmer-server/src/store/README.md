@@ -100,6 +100,23 @@ its row, its list keys and its history entries: a grant's id is derived from
 its triple and copied by nothing but its own history, so unlike every other
 kind's ids it follows the rename (`kind-rename.ts` has the reasons).
 
+## Two kinds merged into one
+
+The agent share (a hosted chat link) and the agent channel (a Slack or WhatsApp
+connection) became one Channel kind whose type says which (Postgres v37,
+SQLite v41, `channel-kinds-merged.ts`). Each stored row is converted, not
+retired, and keeps its id: a chat link lives in pages Stigmer does not control
+and a connection in a provider's install, so an `ash_` or `ach_` id stays
+valid under the kind's retired prefixes. The rows are read by field number,
+since the two generated messages are gone; the frozen shapes in
+`frozen-envelopes.ts` keep the older steps reading them as they did. Names
+were kept per kind, so a share and a channel of one organization could hold
+one slug: the older row keeps it, by creation time then by id, the name
+backfill's own rule (`resource-names-backfill.ts`), and the other takes its
+type as a suffix, logged. Grants on either kind are re-keyed to the channel's
+triple and their history follows, and a chat link's guest conversations take
+the one label every channel's conversations carry, `stigmer.ai/channel-id`.
+
 ## Contract and continuity
 
 The behavioral contract both drivers must satisfy identically is

@@ -9,9 +9,8 @@ import type { DescFile, DescMessage, Registry } from "@bufbuild/protobuf";
 import { createRegistry } from "@bufbuild/protobuf";
 
 import { file_ai_stigmer_agentic_agent_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { file_ai_stigmer_agentic_agentchannel_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { file_ai_stigmer_agentic_channel_v1_api } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { file_ai_stigmer_agentic_run_v1_api } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { file_ai_stigmer_agentic_agentshare_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { file_ai_stigmer_agentic_channelapp_v1_api } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { file_ai_stigmer_agentic_eval_v1_api } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
 import { file_ai_stigmer_agentic_evalrun_v1_api } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
@@ -37,9 +36,8 @@ import { file_ai_stigmer_tenancy_organization_v1_api } from "@stigmer/protos/ai/
 
 const ROOT_FILES: DescFile[] = [
   file_ai_stigmer_agentic_agent_v1_api,
-  file_ai_stigmer_agentic_agentchannel_v1_api,
+  file_ai_stigmer_agentic_channel_v1_api,
   file_ai_stigmer_agentic_run_v1_api,
-  file_ai_stigmer_agentic_agentshare_v1_api,
   file_ai_stigmer_agentic_channelapp_v1_api,
   file_ai_stigmer_agentic_eval_v1_api,
   file_ai_stigmer_agentic_evalrun_v1_api,

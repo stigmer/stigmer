@@ -65,7 +65,7 @@
  *        writing organization's own parent, answered with ONE sentence
  *        that does not say which failed. The caller has no standing to
  *        learn what another organization holds (the anti-probe posture the
- *        AgentShare lane set first). The writer's parent is read once, from
+ *        chat link lane set first). The writer's parent is read once, from
  *        its organization's row, only when a reference crosses
  *        organizations, so a reference no run of the writer's could use is
  *        refused at write instead of stored. No vault, OAuth app or

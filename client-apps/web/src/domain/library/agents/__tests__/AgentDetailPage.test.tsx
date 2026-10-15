@@ -20,7 +20,7 @@ const page = vi.hoisted(() => ({
 }));
 
 vi.mock("@stigmer/react", () => ({
-  AgentChannelsPanel: () => null,
+  ChannelsPanel: () => null,
   AgentDetailView: (props: ViewProps) => {
     page.view.push(props);
     return null;

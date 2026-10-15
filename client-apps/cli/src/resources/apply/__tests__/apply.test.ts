@@ -420,6 +420,7 @@ describe("the renamable manifest kinds' handlers", () => {
       ApiResourceKind.agent,
       ApiResourceKind.schedule,
       ApiResourceKind.channel_app,
+      ApiResourceKind.channel,
       ApiResourceKind.oauth_app,
       ApiResourceKind.federation_issuer,
     ]) {
@@ -427,7 +428,7 @@ describe("the renamable manifest kinds' handlers", () => {
       expect(handler?.rename, ApiResourceKind[kind]).toBeDefined();
       expect(handler?.getByReference, ApiResourceKind[kind]).toBeDefined();
     }
-    for (const kind of [ApiResourceKind.agent_share, ApiResourceKind.agent_channel, ApiResourceKind.session]) {
+    for (const kind of [ApiResourceKind.session]) {
       expect(APPLY_HANDLERS.get(kind)?.rename, ApiResourceKind[kind]).toBeUndefined();
     }
   });

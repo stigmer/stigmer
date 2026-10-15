@@ -393,8 +393,7 @@
               "run",
               "session",
               "skill",
-              "agent_share",
-              "agent_channel",
+              "channel",
               "channel_app",
               "schedule",
               "memory",
@@ -723,7 +722,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, plugin), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, channel,\n skill, plugin), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -818,19 +817,14 @@
           "description": "Knowledge resource that provides domain-specific context to an agent."
         },
         {
-          "name": "agent_share",
-          "number": 46,
-          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
-        },
-        {
-          "name": "agent_channel",
+          "name": "channel",
           "number": 47,
-          "description": "Connection binding an agent to an external messaging platform workspace."
+          "description": "A way people reach an agent: a chat link or website widget, a Slack\n workspace, or a WhatsApp number."
         },
         {
           "name": "channel_app",
           "number": 48,
-          "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
+          "description": "Customer-owned messaging-platform app (e.g. a Slack app) that\n channels can install through instead of the shared platform app."
         },
         {
           "name": "schedule",

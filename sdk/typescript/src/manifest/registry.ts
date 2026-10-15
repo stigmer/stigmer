@@ -23,12 +23,9 @@ import type {
 import { type Agent, AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { type AgentChannel, AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
-import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
-import { type AgentShare, AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
-import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/query_pb";
+import { type Channel, ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/command_pb";
+import { ChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/query_pb";
 import { type ChannelApp, ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
@@ -67,7 +64,7 @@ export interface ManifestKindHandler {
   readonly schema: DescMessage;
   /**
    * Position in the dependency apply order (ascending). Referenced kinds
-   * apply before their dependents, e.g. everything an AgentChannel
+   * apply before their dependents, e.g. everything a Channel
    * references before the channel.
    */
   readonly applyOrder: number;
@@ -145,26 +142,18 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     getByReference: (c, ref) => c(ChannelAppQueryController).getByReference(ref),
     rename: (c, i) => c(ChannelAppCommandController).rename(i),
   },
+  // A Channel references an Agent, vaults, and (Slack or WhatsApp) a
+  // ChannelApp.
   {
-    kind: ApiResourceKind.agent_share,
-    yamlKind: "AgentShare",
-    displayName: "Agent Share",
+    kind: ApiResourceKind.channel,
+    yamlKind: "Channel",
+    displayName: "Channel",
     apiVersion: AGENTIC_V1,
-    schema: AgentShareSchema,
-    applyOrder: 10,
-    apply: (c, m) => c(AgentShareCommandController).apply(m as AgentShare),
-    getByReference: (c, ref) => c(AgentShareQueryController).getByReference(ref),
-  },
-  // An AgentChannel references an Agent, a ChannelApp, and vaults.
-  {
-    kind: ApiResourceKind.agent_channel,
-    yamlKind: "AgentChannel",
-    displayName: "Agent Channel",
-    apiVersion: AGENTIC_V1,
-    schema: AgentChannelSchema,
+    schema: ChannelSchema,
     applyOrder: 11,
-    apply: (c, m) => c(AgentChannelCommandController).apply(m as AgentChannel),
-    getByReference: (c, ref) => c(AgentChannelQueryController).getByReference(ref),
+    apply: (c, m) => c(ChannelCommandController).apply(m as Channel),
+    getByReference: (c, ref) => c(ChannelQueryController).getByReference(ref),
+    rename: (c, i) => c(ChannelCommandController).rename(i),
   },
   // Last: a Schedule references an Agent — it applies after every kind it
   // can target.

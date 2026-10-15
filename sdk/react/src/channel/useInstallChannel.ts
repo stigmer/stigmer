@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { InitiateChannelInstallInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
+import { InitiateChannelInstallInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
@@ -82,7 +82,7 @@ export function useInstallChannel(): UseInstallChannelReturn {
       setError(null);
 
       try {
-        const output = await stigmer.agentChannel.initiateInstall(
+        const output = await stigmer.channel.initiateInstall(
           create(InitiateChannelInstallInputSchema, { resourceId: channelId }),
         );
 

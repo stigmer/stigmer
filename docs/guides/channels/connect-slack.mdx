@@ -173,13 +173,13 @@ The channel card gives you three levels of control:
 
 ## Manage the channel declaratively
 
-The connection lives in its own resource — an `AgentChannel` — separate from the
-Agent it points at. If you manage resources with YAML manifests, manage the
-channel the same way:
+The connection lives in its own resource — a `Channel` of type `slack` —
+separate from the Agent it points at. If you manage resources with YAML
+manifests, manage the channel the same way:
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
-kind: AgentChannel
+kind: Channel
 metadata:
   name: support-agent-slack
   org: acme-corp
@@ -202,8 +202,7 @@ credentials it binds. The Slack install itself always happens through the
 console's connect flow: workspace identity and provider credentials live in the
 channel's status, and applying a manifest never touches them.
 
-See the [AgentChannel reference](/docs/sdk/resources/agent-channel) for every
-field.
+See the [Channel reference](/docs/sdk/resources/channel) for every field.
 
 ## Pin the model your channel runs
 
@@ -211,7 +210,7 @@ A channel's conversations run unattended — nobody is watching a model picker
 when a workspace member messages your Agent at 3 AM — so the model they use is
 pinned on the channel itself, in `spec.run_config`:
 
-```yaml validate-as="AgentChannel"
+```yaml validate-as="Channel"
 spec:
   agent_ref:
     kind: agent

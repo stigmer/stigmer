@@ -170,7 +170,7 @@ To enforce a timeout, watch the session and call its `interrupt` (or the run's `
 
 ## Unattended Surfaces (Channels and Guest Shares)
 
-Some surfaces have **no approver present at the conversation**: a WhatsApp or Slack channel user is a customer, not an org member, and a guest visiting a shared agent link is anonymous. A turn that waited for an answer there would wait forever — nobody on that surface is authorized to decide.
+Some surfaces have **no approver present at the conversation**: a WhatsApp or Slack channel user is a customer, not an org member, and a guest visiting a public chat link is anonymous. A turn that waited for an answer there would wait forever — nobody on that surface is authorized to decide.
 
 The server records `status.approval_mode = APPROVAL_MODE_UNATTENDED` on these turns (the hosted edition's channel and shared-agent guest turns), and on every schedule fire, where nobody is present either. The mode is a fact of the lane the turn came through: no request field sets it, so neither the external user nor any other caller can choose it. Every other turn is `APPROVAL_MODE_INTERACTIVE`. In unattended mode:
 

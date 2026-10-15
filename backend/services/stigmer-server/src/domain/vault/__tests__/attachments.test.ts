@@ -1,6 +1,6 @@
 /**
  * Pins the vault attachments step: a My vault is refused on every surface
- * that runs for someone else (a conversation, a share, a channel, an
+ * that runs for someone else (a conversation, a channel of any type, an
  * organization's embedding settings, which an Organization row carries
  * under its own id rather than metadata.org, an eval run, whose tries its plugin's viewers read)
  * and admitted on its owner's own schedule only;
@@ -18,8 +18,8 @@ import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/status_pb";
@@ -178,7 +178,7 @@ async function refusalOf(promise: Promise<unknown>): Promise<ConnectError> {
 }
 
 describe("a My vault", () => {
-  it("is refused on a conversation, a share, a channel and an organization's embedding settings, even by its own person", async () => {
+  it("is refused on a conversation, a web channel, a Slack channel and an organization's embedding settings, even by its own person", async () => {
     const mine = ref((await rig.vaults.findById(anasId))!.metadata!.slug);
     const cases: Array<[string, Promise<unknown>]> = [
       [
@@ -186,21 +186,30 @@ describe("a My vault", () => {
         run(SessionSchema, ApiResourceKind.session, session(mine.slug), SESSION, { writer: "ida_ana" }),
       ],
       [
-        "a share link",
+        "a channel",
         run(
-          AgentShareSchema,
-          ApiResourceKind.agent_share,
-          create(AgentShareSchema, { metadata: { org: ORG }, spec: { vaults: [mine] } }),
-          unrecorded("a share link"),
+          ChannelSchema,
+          ApiResourceKind.channel,
+          create(ChannelSchema, {
+            metadata: { org: ORG },
+            spec: {
+              vaults: [mine],
+              type: { case: "web", value: { audience: ChannelAudience.public } },
+            },
+          }),
+          unrecorded("a channel"),
           { writer: "ida_ana" },
         ),
       ],
       [
         "a channel",
         run(
-          AgentChannelSchema,
-          ApiResourceKind.agent_channel,
-          create(AgentChannelSchema, { metadata: { org: ORG }, spec: { vaults: [mine] } }),
+          ChannelSchema,
+          ApiResourceKind.channel,
+          create(ChannelSchema, {
+            metadata: { org: ORG },
+            spec: { vaults: [mine], type: { case: "slack", value: {} } },
+          }),
           unrecorded("a channel"),
           { writer: "ida_ana" },
         ),

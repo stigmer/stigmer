@@ -1,13 +1,13 @@
 /**
  * Ask AI wiring constants.
  *
- * `SHARE` is the id (`ash_…`) of the public AgentShare applied from
- * `docs-agent/shares/stigmer-docs.yaml`, and `APP_ORIGIN` the Stigmer app
- * that hosts its chat page. A hosted chat link names a share only by its id,
- * which the server mints when the share is first applied, so the id is read
- * back from the deployment and set here (`docs-agent/README.md` has the
- * steps). Empty means no share is wired: the Ask AI button and panel render
- * nothing. Hardcoded absolutes, matching the `ScenarEmbed` precedent: the
+ * `SHARE` is the id of the public web channel (the chat link) applied from
+ * `docs-agent/channels/stigmer-docs.yaml`, and `APP_ORIGIN` the Stigmer app
+ * that hosts its chat page. A hosted chat link names its channel only by its
+ * id, which the server mints when the channel is first applied, so the id is
+ * read back from the deployment and set here (`docs-agent/README.md` has the
+ * steps). Empty means no chat link is wired: the Ask AI button and panel
+ * render nothing. Hardcoded absolutes, matching the `ScenarEmbed` precedent: the
  * docs site is a single-origin static export with no environment plumbing,
  * and a relative or env-derived value would only add a way to be wrong.
  */

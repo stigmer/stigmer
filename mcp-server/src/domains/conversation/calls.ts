@@ -16,10 +16,10 @@
 import { create } from "@bufbuild/protobuf";
 import {
   ChannelConversationCommandController,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_command_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_command_pb";
 import {
   EscalateConversationInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { withClient } from "../client.js";
 
 /**

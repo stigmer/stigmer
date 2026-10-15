@@ -500,7 +500,7 @@ export function newFilterByAgentStep(
 /**
  * AuthorizeChannelAccess — the Java SessionListByChannelHandler's
  * two-stage authorization, stage one: an explicit can_view check on the
- * TARGET agent_channel before any session work, so a caller without
+ * TARGET channel before any session work, so a caller without
  * channel access learns nothing about the channel's sessions. The
  * mid-chain resolved-target evaluation (the is_skip_authorization
  * annotation makes the position-1 step a no-op on this lane); deny copy is
@@ -519,7 +519,7 @@ export function newAuthorizeChannelAccessStep(
         : [
             {
               permission: IamPermission.can_view,
-              resourceKind: ApiResourceKind.agent_channel,
+              resourceKind: ApiResourceKind.channel,
               resourceId: input.channelId,
               deniedMessage: "unauthorized to list channel conversations",
             },
@@ -535,7 +535,7 @@ export function newAuthorizeChannelAccessStep(
  * (Slack/WhatsApp inbound turns), which stamps the label at create time;
  * the OSS runtime has no channel broker, so this filter typically matches
  * nothing — the RPC exists for contract parity with Stigmer Cloud (which
- * additionally gates on can_view of the agent_channel and intersects with
+ * additionally gates on can_view of the channel and intersects with
  * FGA-authorized session IDs).
  */
 export function newFilterByChannelStep(

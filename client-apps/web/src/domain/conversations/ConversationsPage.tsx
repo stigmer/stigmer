@@ -24,7 +24,7 @@ function parseSelection(path: string): ConversationIdentity | null {
   const match = path.match(CONVERSATION_DETAIL_RE);
   if (!match) return null;
   return {
-    agentChannelId: decodeURIComponent(match[1]),
+    channelId: decodeURIComponent(match[1]),
     conversationKey: decodeURIComponent(match[2]),
   };
 }
@@ -50,7 +50,7 @@ export function ConversationsPage() {
     (selection: ConversationIdentity | null) => {
       navigate(
         selection
-          ? `/conversations/${encodeURIComponent(selection.agentChannelId)}/${encodeURIComponent(selection.conversationKey)}`
+          ? `/conversations/${encodeURIComponent(selection.channelId)}/${encodeURIComponent(selection.conversationKey)}`
           : "/conversations",
       );
     },
@@ -68,9 +68,9 @@ export function ConversationsPage() {
             ? ({ channel }) => (
                 <ManageAccessButton
                   resource={{
-                    kind: ApiResourceKind.agent_channel,
-                    kindString: "agent_channel",
-                    id: selected.agentChannelId,
+                    kind: ApiResourceKind.channel,
+                    kindString: "channel",
+                    id: selected.channelId,
                     org,
                     // The dialog's subtitle names the channel — the
                     // scope every grant covers.

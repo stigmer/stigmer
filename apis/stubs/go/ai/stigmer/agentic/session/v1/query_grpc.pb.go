@@ -45,10 +45,10 @@ type SessionQueryControllerClient interface {
 	// Results are filtered to the sessions the caller can view. An eval
 	// run's tries are left out, as in list.
 	ListByAgent(ctx context.Context, in *ListSessionsByAgentRequest, opts ...grpc.CallOption) (*SessionList, error)
-	// List the conversations an agent channel created.
+	// List the conversations a channel served.
 	//
-	// Returns the sessions the channel runtime (Slack, WhatsApp) created for
-	// the given agent channel, newest first. The caller must be able to view
+	// Returns the sessions the given channel's visitors or its Slack or
+	// WhatsApp runtime started, newest first. The caller must be able to view
 	// the channel; results are additionally filtered to sessions the caller
 	// can view.
 	ListByChannel(ctx context.Context, in *ListSessionsByChannelRequest, opts ...grpc.CallOption) (*SessionList, error)
@@ -163,10 +163,10 @@ type SessionQueryControllerServer interface {
 	// Results are filtered to the sessions the caller can view. An eval
 	// run's tries are left out, as in list.
 	ListByAgent(context.Context, *ListSessionsByAgentRequest) (*SessionList, error)
-	// List the conversations an agent channel created.
+	// List the conversations a channel served.
 	//
-	// Returns the sessions the channel runtime (Slack, WhatsApp) created for
-	// the given agent channel, newest first. The caller must be able to view
+	// Returns the sessions the given channel's visitors or its Slack or
+	// WhatsApp runtime started, newest first. The caller must be able to view
 	// the channel; results are additionally filtered to sessions the caller
 	// can view.
 	ListByChannel(context.Context, *ListSessionsByChannelRequest) (*SessionList, error)

@@ -59,7 +59,7 @@ interface DetailProps {
   onSkillClick: (ref: { org: string; slug: string }) => void;
   onPluginClick: (ref: { org: string; slug: string }) => void;
   onAgentClick: (ref: { org: string; slug: string }) => void;
-  buildShareUrl: (shareId: string) => string;
+  buildShareUrl: (channelId: string) => string;
   onNavigateToRun: (runId: string) => void;
   onRenamed: (agent: { metadata?: { slug: string } }) => void;
 }
@@ -79,7 +79,7 @@ const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
 const noop = () => undefined;
 
 vi.mock("@stigmer/react", () => ({
-  AgentChannelsPanel: () => null,
+  ChannelsPanel: () => null,
   AgentDetailView: (props: DetailProps) => {
     page.detail.push(props);
     return null;

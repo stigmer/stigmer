@@ -4,20 +4,20 @@ import {
   channelPresentationOf,
   DEFAULT_CHANNEL_PRESENTATION,
 } from "../providerPresentation";
-import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { ChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 
 function makeChannel(overrides: {
   installState?: number;
-  providerStatus?: unknown;
-}): AgentChannel {
+  typeStatus?: unknown;
+}): Channel {
   return {
     metadata: { id: "ach_1", org: "acme", slug: "c", name: "C" },
     spec: {},
     status: {
       installState:
-        overrides.installState ?? AgentChannelInstallState.installed,
-      providerStatus: overrides.providerStatus ?? { case: undefined },
+        overrides.installState ?? ChannelInstallState.installed,
+      typeStatus: overrides.typeStatus ?? { case: undefined },
     },
   } as never;
 }
@@ -60,7 +60,7 @@ describe("channel provider presentation", () => {
   it("describes an installed WhatsApp channel by its number facts", () => {
     const text = channelPresentationOf("whatsapp")!.describeChannel(
       makeChannel({
-        providerStatus: {
+        typeStatus: {
           case: "whatsapp",
           value: {
             phoneNumberId: "106540352242922",
@@ -78,7 +78,7 @@ describe("channel provider presentation", () => {
   it("falls back to the phone number ID when no display number was observed", () => {
     const text = channelPresentationOf("whatsapp")!.describeChannel(
       makeChannel({
-        providerStatus: {
+        typeStatus: {
           case: "whatsapp",
           value: { phoneNumberId: "106540352242922" },
         },
@@ -90,7 +90,7 @@ describe("channel provider presentation", () => {
 
   it("describes a pending WhatsApp channel without Slack vocabulary", () => {
     const text = channelPresentationOf("whatsapp")!.describeChannel(
-      makeChannel({ installState: AgentChannelInstallState.pending_install }),
+      makeChannel({ installState: ChannelInstallState.pending_install }),
     );
 
     expect(text).toContain("WhatsApp");
@@ -101,7 +101,7 @@ describe("channel provider presentation", () => {
     const presentation = channelPresentationOf("slack")!;
     const text = presentation.describeChannel(
       makeChannel({
-        providerStatus: { case: "slack", value: { teamName: "Acme HQ" } },
+        typeStatus: { case: "slack", value: { teamName: "Acme HQ" } },
       }),
     );
     expect(text).toContain("Acme HQ");

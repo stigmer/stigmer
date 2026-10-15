@@ -6,7 +6,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * <pre>
  * TokenService mints the short-lived tokens a browser uses to talk to
  * Stigmer on someone's behalf: a person signed in to an organization's own
- * product, or an anonymous visitor of a shared agent's chat link.
+ * product, or an anonymous visitor of an agent's chat link.
  * It manages no resource. Each token is signed by the server's own
  * platform-token key and verified on every request; minting requires a
  * server that authenticates its callers, and a server that trusts every
@@ -147,7 +147,7 @@ public final class TokenServiceGrpc {
    * <pre>
    * TokenService mints the short-lived tokens a browser uses to talk to
    * Stigmer on someone's behalf: a person signed in to an organization's own
-   * product, or an anonymous visitor of a shared agent's chat link.
+   * product, or an anonymous visitor of an agent's chat link.
    * It manages no resource. Each token is signed by the server's own
    * platform-token key and verified on every request; minting requires a
    * server that authenticates its callers, and a server that trusts every
@@ -196,10 +196,10 @@ public final class TokenServiceGrpc {
 
     /**
      * <pre>
-     * Mint a guest token for an anonymous visitor of a shared agent's chat link.
-     * Resolves the share id from the hosted chat link to an AgentShare and
-     * returns a short-lived token scoped to that share's organization. Editions
-     * that do not host shared-agent pages answer it UNIMPLEMENTED.
+     * Mint a guest token for an anonymous visitor of an agent's chat link.
+     * Resolves the channel id from the hosted chat link to a web channel and
+     * returns a short-lived token scoped to that channel's organization.
+     * Editions that do not host chat-link pages answer it UNIMPLEMENTED.
      * </pre>
      */
     default void mintGuestToken(ai.stigmer.iam.token.v1.MintGuestTokenRequest request,
@@ -213,7 +213,7 @@ public final class TokenServiceGrpc {
    * <pre>
    * TokenService mints the short-lived tokens a browser uses to talk to
    * Stigmer on someone's behalf: a person signed in to an organization's own
-   * product, or an anonymous visitor of a shared agent's chat link.
+   * product, or an anonymous visitor of an agent's chat link.
    * It manages no resource. Each token is signed by the server's own
    * platform-token key and verified on every request; minting requires a
    * server that authenticates its callers, and a server that trusts every
@@ -234,7 +234,7 @@ public final class TokenServiceGrpc {
    * <pre>
    * TokenService mints the short-lived tokens a browser uses to talk to
    * Stigmer on someone's behalf: a person signed in to an organization's own
-   * product, or an anonymous visitor of a shared agent's chat link.
+   * product, or an anonymous visitor of an agent's chat link.
    * It manages no resource. Each token is signed by the server's own
    * platform-token key and verified on every request; minting requires a
    * server that authenticates its callers, and a server that trusts every
@@ -295,10 +295,10 @@ public final class TokenServiceGrpc {
 
     /**
      * <pre>
-     * Mint a guest token for an anonymous visitor of a shared agent's chat link.
-     * Resolves the share id from the hosted chat link to an AgentShare and
-     * returns a short-lived token scoped to that share's organization. Editions
-     * that do not host shared-agent pages answer it UNIMPLEMENTED.
+     * Mint a guest token for an anonymous visitor of an agent's chat link.
+     * Resolves the channel id from the hosted chat link to a web channel and
+     * returns a short-lived token scoped to that channel's organization.
+     * Editions that do not host chat-link pages answer it UNIMPLEMENTED.
      * </pre>
      */
     public void mintGuestToken(ai.stigmer.iam.token.v1.MintGuestTokenRequest request,
@@ -313,7 +313,7 @@ public final class TokenServiceGrpc {
    * <pre>
    * TokenService mints the short-lived tokens a browser uses to talk to
    * Stigmer on someone's behalf: a person signed in to an organization's own
-   * product, or an anonymous visitor of a shared agent's chat link.
+   * product, or an anonymous visitor of an agent's chat link.
    * It manages no resource. Each token is signed by the server's own
    * platform-token key and verified on every request; minting requires a
    * server that authenticates its callers, and a server that trusts every
@@ -373,10 +373,10 @@ public final class TokenServiceGrpc {
 
     /**
      * <pre>
-     * Mint a guest token for an anonymous visitor of a shared agent's chat link.
-     * Resolves the share id from the hosted chat link to an AgentShare and
-     * returns a short-lived token scoped to that share's organization. Editions
-     * that do not host shared-agent pages answer it UNIMPLEMENTED.
+     * Mint a guest token for an anonymous visitor of an agent's chat link.
+     * Resolves the channel id from the hosted chat link to a web channel and
+     * returns a short-lived token scoped to that channel's organization.
+     * Editions that do not host chat-link pages answer it UNIMPLEMENTED.
      * </pre>
      */
     public ai.stigmer.iam.token.v1.MintGuestTokenResponse mintGuestToken(ai.stigmer.iam.token.v1.MintGuestTokenRequest request) throws io.grpc.StatusException {
@@ -390,7 +390,7 @@ public final class TokenServiceGrpc {
    * <pre>
    * TokenService mints the short-lived tokens a browser uses to talk to
    * Stigmer on someone's behalf: a person signed in to an organization's own
-   * product, or an anonymous visitor of a shared agent's chat link.
+   * product, or an anonymous visitor of an agent's chat link.
    * It manages no resource. Each token is signed by the server's own
    * platform-token key and verified on every request; minting requires a
    * server that authenticates its callers, and a server that trusts every
@@ -450,10 +450,10 @@ public final class TokenServiceGrpc {
 
     /**
      * <pre>
-     * Mint a guest token for an anonymous visitor of a shared agent's chat link.
-     * Resolves the share id from the hosted chat link to an AgentShare and
-     * returns a short-lived token scoped to that share's organization. Editions
-     * that do not host shared-agent pages answer it UNIMPLEMENTED.
+     * Mint a guest token for an anonymous visitor of an agent's chat link.
+     * Resolves the channel id from the hosted chat link to a web channel and
+     * returns a short-lived token scoped to that channel's organization.
+     * Editions that do not host chat-link pages answer it UNIMPLEMENTED.
      * </pre>
      */
     public ai.stigmer.iam.token.v1.MintGuestTokenResponse mintGuestToken(ai.stigmer.iam.token.v1.MintGuestTokenRequest request) {
@@ -467,7 +467,7 @@ public final class TokenServiceGrpc {
    * <pre>
    * TokenService mints the short-lived tokens a browser uses to talk to
    * Stigmer on someone's behalf: a person signed in to an organization's own
-   * product, or an anonymous visitor of a shared agent's chat link.
+   * product, or an anonymous visitor of an agent's chat link.
    * It manages no resource. Each token is signed by the server's own
    * platform-token key and verified on every request; minting requires a
    * server that authenticates its callers, and a server that trusts every
@@ -528,10 +528,10 @@ public final class TokenServiceGrpc {
 
     /**
      * <pre>
-     * Mint a guest token for an anonymous visitor of a shared agent's chat link.
-     * Resolves the share id from the hosted chat link to an AgentShare and
-     * returns a short-lived token scoped to that share's organization. Editions
-     * that do not host shared-agent pages answer it UNIMPLEMENTED.
+     * Mint a guest token for an anonymous visitor of an agent's chat link.
+     * Resolves the channel id from the hosted chat link to a web channel and
+     * returns a short-lived token scoped to that channel's organization.
+     * Editions that do not host chat-link pages answer it UNIMPLEMENTED.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.token.v1.MintGuestTokenResponse> mintGuestToken(

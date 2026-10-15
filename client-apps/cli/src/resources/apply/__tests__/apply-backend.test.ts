@@ -174,9 +174,9 @@ const CHANNEL_APP_YAML = [
   "",
 ].join("\n");
 
-const AGENT_CHANNEL_YAML = [
+const CHANNEL_YAML = [
   "apiVersion: agentic.stigmer.ai/v1",
-  "kind: AgentChannel",
+  "kind: Channel",
   "metadata:",
   "  name: isc-whatsapp",
   "  slug: isc-whatsapp",
@@ -287,10 +287,10 @@ describe("file-mode apply — channel app (#353)", () => {
       // the registry unification all three kinds fell to a shared default
       // priority and applied in this (broken) file order.
       writeYaml(dir, "a-schedule.yaml", SCHEDULE_YAML);
-      writeYaml(dir, "b-channel.yaml", AGENT_CHANNEL_YAML);
+      writeYaml(dir, "b-channel.yaml", CHANNEL_YAML);
       writeYaml(dir, "c-chapp.yaml", CHANNEL_APP_YAML);
       const items = resolveApplyItems(dir);
-      expect(items.map((i) => i.handler.displayName)).toEqual(["Channel App", "Agent Channel", "Schedule"]);
+      expect(items.map((i) => i.handler.displayName)).toEqual(["Channel App", "Channel", "Schedule"]);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -375,6 +375,30 @@ describe("file-mode apply — kinds the registry does not know", () => {
       writeYaml(dir, "environment.yaml", ["kind: Environment", "metadata:", "  name: Prod", "  slug: prod", ""].join("\n"));
       expect(() => resolveApplyItems(dir)).toThrow(
         /kind 'Environment' in .*environment\.yaml is no longer a Stigmer resource: logins and secrets live in vaults.*stigmer vault set-secret <NAME> --mine/,
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses an AgentShare manifest, naming the web channel its settings move into", () => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(dir, "share.yaml", ["kind: AgentShare", "metadata:", "  name: Support", ""].join("\n"));
+      expect(() => resolveApplyItems(dir)).toThrow(
+        /kind 'AgentShare' in .*share\.yaml is now a channel\. Rewrite the file as `kind: Channel` and move `audience`, `allowed_origins` and `messages` from `spec` under `spec\.web`\. A file with no `metadata\.name` edited the link named after its agent: give it `metadata\.name: <the agent's slug>` so it still edits that link instead of creating another/,
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses an AgentChannel manifest, naming the channel type its app settings move into", () => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(dir, "connection.yaml", ["kind: AgentChannel", "metadata:", "  name: Support", ""].join("\n"));
+      expect(() => resolveApplyItems(dir)).toThrow(
+        /kind 'AgentChannel' in .*connection\.yaml is now a channel\. Rewrite the file as `kind: Channel`, keep `spec\.slack` or `spec\.whatsapp`.*`spec\.whatsapp\.proactive_messaging_enabled`/,
       );
     } finally {
       rmSync(dir, { recursive: true, force: true });

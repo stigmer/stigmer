@@ -1,6 +1,6 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
 import type { ChannelProviderId } from "./providers.js";
 
 /**
@@ -11,7 +11,7 @@ import type { ChannelProviderId } from "./providers.js";
  * stable facts every surface needs — while this module carries the
  * *prose* the channels panel renders per provider. Keeping prose out of
  * the descriptor keeps the registry declaration-shaped, and keeping it
- * here keeps `AgentChannelsPanel` free of provider `if` branches.
+ * here keeps `ChannelsPanel` free of provider `if` branches.
  */
 export interface ChannelProviderPresentation {
   readonly id: ChannelProviderId;
@@ -20,7 +20,7 @@ export interface ChannelProviderPresentation {
    * line): where the channel is installed, since when, or why it isn't
    * serving yet.
    */
-  readonly describeChannel: (channel: AgentChannel) => string;
+  readonly describeChannel: (channel: Channel) => string;
   /**
    * The card's serving-app line: which provider app serves the channel
    * and how members reach the agent through it. `servingAppName` is the
@@ -36,21 +36,21 @@ const slackPresentation: ChannelProviderPresentation = {
   id: "slack",
   describeChannel: (channel) => {
     const slack =
-      channel.status?.providerStatus?.case === "slack"
-        ? channel.status.providerStatus.value
+      channel.status?.typeStatus?.case === "slack"
+        ? channel.status.typeStatus.value
         : null;
     const installedAt = slack?.installedAt
       ? timestampDate(slack.installedAt)
       : null;
     switch (installStateOf(channel)) {
-      case AgentChannelInstallState.installed:
+      case ChannelInstallState.installed:
         return [
           slack?.teamName ? `Workspace: ${slack.teamName}` : "Workspace connected",
           installedAt ? `since ${formatDate(installedAt)}` : null,
         ]
           .filter(Boolean)
           .join(" \u00b7 ");
-      case AgentChannelInstallState.revoked:
+      case ChannelInstallState.revoked:
         return slack?.teamName
           ? `The Slack app was removed from ${slack.teamName} — reconnect to resume.`
           : "The Slack app was removed from the workspace — reconnect to resume.";
@@ -73,14 +73,14 @@ const whatsappPresentation: ChannelProviderPresentation = {
   id: "whatsapp",
   describeChannel: (channel) => {
     const whatsapp =
-      channel.status?.providerStatus?.case === "whatsapp"
-        ? channel.status.providerStatus.value
+      channel.status?.typeStatus?.case === "whatsapp"
+        ? channel.status.typeStatus.value
         : null;
     const installedAt = whatsapp?.installedAt
       ? timestampDate(whatsapp.installedAt)
       : null;
     switch (installStateOf(channel)) {
-      case AgentChannelInstallState.installed: {
+      case ChannelInstallState.installed: {
         const number =
           whatsapp?.displayPhoneNumber || whatsapp?.phoneNumberId || null;
         return [
@@ -94,7 +94,7 @@ const whatsappPresentation: ChannelProviderPresentation = {
       // Meta emits no revocation events, so WhatsApp channels
       // never transition to revoked today — handled anyway so a future
       // server that learns to observe revocation degrades sensibly.
-      case AgentChannelInstallState.revoked:
+      case ChannelInstallState.revoked:
         return "The WhatsApp connection was revoked — reconnect to resume.";
       default:
         return "The WhatsApp connection hasn't been completed yet.";
@@ -128,7 +128,7 @@ export const DEFAULT_CHANNEL_PRESENTATION: ChannelProviderPresentation =
   slackPresentation;
 
 /**
- * Resolve a provider's presentation from a `provider_config` oneof case
+ * Resolve a provider's presentation from a `ChannelSpec.type` oneof case
  * name. Returns `null` for unknown cases — callers fall back the same
  * way they do for {@link channelProviderOf}.
  */
@@ -138,10 +138,10 @@ export function channelPresentationOf(
   return PRESENTATIONS.find((p) => p.id === providerCase) ?? null;
 }
 
-function installStateOf(channel: AgentChannel): AgentChannelInstallState {
+function installStateOf(channel: Channel): ChannelInstallState {
   return (
     channel.status?.installState ??
-    AgentChannelInstallState.agent_channel_install_state_unspecified
+    ChannelInstallState.channel_install_state_unspecified
   );
 }
 

@@ -26,12 +26,12 @@ import type { AddressInfo } from "node:net";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_command_pb";
+import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_command_pb";
 import {
   ChannelSendOutcome,
   SendChannelMessageOutputSchema,
   type SendChannelMessageInput,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
-import { GetConversationMediaDownloadUrlInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+import { GetConversationMediaDownloadUrlInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
@@ -50,7 +50,7 @@ export interface UseConversationMediaUrlOptions {
 /**
  * Data hook that resolves a **fresh** presigned download URL for one
  * timeline item's ingested media (an image or document the customer sent)
- * via `stigmer.agentChannel.getMediaDownloadUrl()`.
+ * via `stigmer.channel.getMediaDownloadUrl()`.
  *
  * Addressed by `(channel, conversation, item_id)` — never a storage key:
  * the server resolves the blob from its own row, so the read path stays
@@ -65,7 +65,7 @@ export interface UseConversationMediaUrlOptions {
  * Pass empty strings (or `enabled: false`) to skip fetching — the
  * conversation surface's established skip convention.
  *
- * @param agentChannelId - AgentChannel the conversation belongs to, or `""` to skip.
+ * @param channelId - Channel the conversation belongs to, or `""` to skip.
  * @param conversationKey - Conversation key within the channel, or `""` to skip.
  * @param itemId - The timeline item whose media to fetch (e.g. `"wa:<wamid>"`), or `""` to skip.
  * @param options - Optional gating (`enabled`).
@@ -81,7 +81,7 @@ export interface UseConversationMediaUrlOptions {
  * @see useArtifactDownloadUrl — the execution-artifact counterpart this mirrors
  */
 export function useConversationMediaUrl(
-  agentChannelId: string,
+  channelId: string,
   conversationKey: string,
   itemId: string,
   options?: UseConversationMediaUrlOptions,
@@ -89,26 +89,26 @@ export function useConversationMediaUrl(
   const stigmer = useStigmer();
   const enabled = options?.enabled ?? true;
   const active =
-    enabled && agentChannelId !== "" && conversationKey !== "" && itemId !== "";
+    enabled && channelId !== "" && conversationKey !== "" && itemId !== "";
 
   const { data, isLoading, isRefetching, error, refetch } = useFetch(
     active
       ? () =>
-          stigmer.agentChannel
+          stigmer.channel
             .getMediaDownloadUrl(
               create(GetConversationMediaDownloadUrlInputSchema, {
-                agentChannelId,
+                channelId,
                 conversationKey,
                 itemId,
               }),
             )
             .then((result): UrlData => ({ url: result.url || null }))
       : null,
-    [agentChannelId, conversationKey, itemId, active, stigmer],
+    [channelId, conversationKey, itemId, active, stigmer],
     EMPTY,
     {
       cacheKey: active
-        ? `conversation-media-url:${agentChannelId}:${conversationKey}:${itemId}`
+        ? `conversation-media-url:${channelId}:${conversationKey}:${itemId}`
         : undefined,
     },
   );

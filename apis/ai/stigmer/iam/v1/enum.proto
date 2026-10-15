@@ -111,27 +111,24 @@ enum IamPermission {
   // (recording a metered LLM call). Gated to operator (machine account).
   can_execute_billing_ops = 29;
 
-  // Organization-level permission to create agent shares whose runs the
-  // organization pays for.
-  //
-  // @internal
-  // Asked on every share create beside can_manage_audience on the shared
-  // agent: a share spends on the organization's own provider keys for the
-  // open internet, an admin-level act, whichever agent it offers. A share's
-  // agent lives in the share's own organization (the AgentShare spec), so
-  // the two questions are always one organization's.
-  can_create_agent_share = 30;
+  // Value 30 held can_create_agent_share until chat links became the web
+  // type of a channel, created under can_create_channel.
+  reserved 30;
+  reserved "can_create_agent_share";
 
-  // Organization-level permission to connect an agent to a messaging
-  // channel (Slack, WhatsApp).
+  // Organization-level permission to create channels: a chat link, a Slack
+  // workspace connection or a WhatsApp number for one of the organization's
+  // agents.
   //
   // @internal
-  // Asked on every agent-channel create beside can_manage_audience on the
-  // connected agent, the agent share's bar: a channel spends on the
-  // organization's own provider keys for outside traffic, an admin-level
-  // act, whichever agent it serves, so owning an agent (which any member may,
-  // while the organization lets members create agents) is not enough.
-  can_create_agent_channel = 54;
+  // Asked on every channel create beside can_manage_audience on the
+  // channel's agent: a channel spends on the organization's own provider
+  // keys for outside traffic (a public chat link opens it to the internet),
+  // an admin-level act, whichever agent it serves, so owning an agent
+  // (which any member may, while the organization lets members create
+  // agents) is not enough. A channel's agent lives in the channel's own
+  // organization, so the two questions are always one organization's.
+  can_create_channel = 54;
 
   // Organization-level permission to register channel apps (customer-owned
   // messaging-platform apps holding webhook and OAuth credentials).
@@ -164,12 +161,12 @@ enum IamPermission {
   reserved 35;
   reserved "can_manage_cursor_accounts";
 
-  // Resource-level permission to participate in an agent channel's
+  // Resource-level permission to participate in a channel's
   // conversations: reply to customers as the business, take over and
   // hand back the control token, and clear the attention flag.
   //
   // @internal
-  // Computed from the participant role on agent_channel. Deliberately
+  // Computed from the participant role on channel. Deliberately
   // distinct from can_edit — "may talk to this channel's customers" and
   // "may configure this channel" are different powers, and a support
   // team may hold only the first.
@@ -387,14 +384,14 @@ enum IamRole {
   // A person who takes part in a conversation: reads it and sends messages.
   // On a conversation (session), a participant's messages run in the
   // conversation's own workspace, as its creator, using only the vaults the
-  // conversation names; stopping and approving stay with its owners. On an
-  // agent channel, a participant reads the channel's conversations and
+  // conversation names; stopping and approving stay with its owners. On a
+  // channel, a participant reads the channel's conversations and
   // speaks to its customers as the business (reply, take over, hand back,
   // clear attention), and is not a channel configurator.
   //
   // @internal
-  // Grantable on session and agent_channel only, through the
-  // grantable_roles subsetting. A team may hold it on agent_channel
+  // Grantable on session and channel only, through the
+  // grantable_roles subsetting. A team may hold it on channel
   // (team_grantable_roles); a conversation is granted to people only.
   participant = 5 [(role_meta) = {
     display_name: "Participant"

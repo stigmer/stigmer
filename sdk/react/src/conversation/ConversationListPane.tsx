@@ -6,12 +6,12 @@ import { MessageSquare, TriangleAlert, User } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   ChannelConversationListFilter,
   ConversationControl,
   type ChannelConversation,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { channelProviderOf } from "../channel/providers.js";
 import { Button } from "../button/Button.js";
@@ -30,7 +30,7 @@ import {
 
 /** The (channel, key) pair identifying one conversation. */
 export interface ConversationIdentity {
-  readonly agentChannelId: string;
+  readonly channelId: string;
   readonly conversationKey: string;
 }
 
@@ -50,15 +50,15 @@ export interface ConversationListPaneProps {
   readonly isLoadingMore: boolean;
   /**
    * The org's channels the caller can view (from
-   * `useOrgAgentChannelList`) — the channel filter's options, each
+   * `useOrgChannelList`) — the channel filter's options, each
    * row's provider identity, and the honest empty-state distinction
    * (no channel access vs no conversations yet).
    */
-  readonly channels: readonly AgentChannel[];
+  readonly channels: readonly Channel[];
   /** Current channel filter; empty string means all channels. */
   readonly channelFilter: string;
   /** Called when the user picks a channel filter. */
-  readonly onChannelFilterChange: (agentChannelId: string) => void;
+  readonly onChannelFilterChange: (channelId: string) => void;
   /**
    * The server-evaluated predicate filter currently applied to the list
    * (the same predicate the nav badge counts, so the
@@ -88,7 +88,7 @@ export interface ConversationListPaneProps {
  * awaiting-reply indicators.
  *
  * Presentational — pair with `useConversationList` and
- * `useOrgAgentChannelList`, or compose via `ConversationsWorkbench`.
+ * `useOrgChannelList`, or compose via `ConversationsWorkbench`.
  * The wants-human filter is SERVER-evaluated (the list RPC takes the
  * predicate): a client-side tab over one fetched page would
  * silently lie across pages, so the pane only reports the choice and the
@@ -115,7 +115,7 @@ export function ConversationListPane({
   const providerById = new Map(
     channels.map((channel) => [
       channel.metadata?.id ?? "",
-      channelProviderOf(channel.spec?.providerConfig?.case),
+      channelProviderOf(channel.spec?.type?.case),
     ]),
   );
 
@@ -197,18 +197,18 @@ export function ConversationListPane({
               <ul className={cn(UNSTYLED_LIST, "stg:space-y-0.5")}>
                 {conversations.map((conversation) => (
                   <ConversationRow
-                    key={`${conversation.agentChannelId}:${conversation.conversationKey}`}
+                    key={`${conversation.channelId}:${conversation.conversationKey}`}
                     conversation={conversation}
                     label={conversationLabelOf(
                       conversation,
-                      providerById.get(conversation.agentChannelId)?.id ?? null,
+                      providerById.get(conversation.channelId)?.id ?? null,
                     )}
                     contact={conversationContactOf(
                       conversation,
-                      providerById.get(conversation.agentChannelId)?.id ?? null,
+                      providerById.get(conversation.channelId)?.id ?? null,
                     )}
                     isSelected={
-                      selected?.agentChannelId === conversation.agentChannelId &&
+                      selected?.channelId === conversation.channelId &&
                       selected?.conversationKey === conversation.conversationKey
                     }
                     onSelect={onSelect}

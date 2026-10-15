@@ -5,10 +5,10 @@ import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
 import { type ResourceRef } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { Button } from "../button/Button.js";
 import { ChannelToolCredentials } from "./ChannelToolCredentials.js";
-import { useSaveAgentChannel } from "./useSaveAgentChannel.js";
+import { useSaveChannel } from "./useSaveChannel.js";
 import { saveErrorMessage } from "../internal/maskedEdit.js";
 import { keptReference } from "../internal/kept-reference.js";
 
@@ -21,7 +21,7 @@ export interface ChannelCredentialsDialogProps {
   /** The agent the channel serves (drives the readiness hint). */
   readonly agent: Agent;
   /** The channel whose credential bindings are edited. */
-  readonly channel: AgentChannel;
+  readonly channel: Channel;
   /** Called after a successful save (hosts typically pass `refetch`). */
   readonly onSaved?: () => void;
   /**
@@ -36,14 +36,14 @@ export interface ChannelCredentialsDialogProps {
 
 /**
  * Edits an installed channel's tool-credential bindings
- * (`AgentChannelSpec.vaults`) after the fact — the companion
+ * (`ChannelSpec.vaults`) after the fact — the companion
  * to binding at connect time in {@link ConnectSlackDialog}. A save is an
  * update naming `spec.vaults` alone, so the agent reference, provider
  * marker, and install status keep their stored values; an emptied list
  * is an explicit unbind.
  *
  * Built on the native `<dialog>` element, matching the SDK's modal
- * convention. Most hosts mount it via {@link AgentChannelsPanel}'s
+ * convention. Most hosts mount it via {@link ChannelsPanel}'s
  * channel card action.
  */
 export function ChannelCredentialsDialog({
@@ -95,7 +95,7 @@ function ChannelCredentialsDialogBody({
   titleId,
 }: {
   readonly agent: Agent;
-  readonly channel: AgentChannel;
+  readonly channel: Channel;
   readonly onSaved?: () => void;
   readonly onClose: () => void;
   /** Heading id minted by the outer dialog for its aria-labelledby. */
@@ -105,7 +105,7 @@ function ChannelCredentialsDialogBody({
     channel.metadata?.name || channel.metadata?.slug || "this channel";
   const org = channel.metadata?.org ?? "";
 
-  const { update, isPending, error, clearError } = useSaveAgentChannel();
+  const { update, isPending, error, clearError } = useSaveChannel();
 
   const [draft, setDraft] = useState<ResourceRef[]>(() =>
     (channel.spec?.vaults ?? []).map((ref) => ({

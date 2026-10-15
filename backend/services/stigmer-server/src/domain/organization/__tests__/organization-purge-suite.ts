@@ -7,7 +7,7 @@
  * (store/__tests__/organization-census.ts), and its slug can be taken.
  *
  * The seed. The kinds a trusted-local server creates without an engine go
- * through their RPCs (an agent and its version archive, a share of it, a
+ * through their RPCs (an agent and its version archive, a web channel of it, a
  * shared vault holding a sealed secret and an external id, the caller's My
  * vault, a session), so the purge meets rows as their own chains wrote
  * them, and the two vaults' name claims (the external id's, and the
@@ -45,7 +45,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
+import { ChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/command_pb";
+import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
@@ -118,7 +119,7 @@ const STORED_KINDS = [...CORE_PURGED_KINDS].filter(
   (kind) =>
     kind !== ApiResourceKind.grant &&
     kind !== ApiResourceKind.agent &&
-    kind !== ApiResourceKind.agent_share &&
+    kind !== ApiResourceKind.channel &&
     kind !== ApiResourceKind.vault &&
     kind !== ApiResourceKind.session,
 );
@@ -133,7 +134,7 @@ export function describeOrganizationPurge(
     let organizations: Client<typeof OrganizationCommandController>;
     let organizationQuery: Client<typeof OrganizationQueryController>;
     let agents: Client<typeof AgentCommandController>;
-    let shares: Client<typeof AgentShareCommandController>;
+    let channels: Client<typeof ChannelCommandController>;
     let vaults: Client<typeof VaultCommandController>;
     let sessions: Client<typeof SessionCommandController>;
     let internalSessions: Client<typeof SessionCommandController>;
@@ -194,7 +195,7 @@ export function describeOrganizationPurge(
       organizations = createClient(OrganizationCommandController, transport);
       organizationQuery = createClient(OrganizationQueryController, transport);
       agents = createClient(AgentCommandController, transport);
-      shares = createClient(AgentShareCommandController, transport);
+      channels = createClient(ChannelCommandController, transport);
       vaults = createClient(VaultCommandController, transport);
       sessions = createClient(SessionCommandController, transport);
       internalSessions = createClient(
@@ -240,13 +241,17 @@ export function describeOrganizationPurge(
       });
       const agentId = agent.metadata?.id ?? "";
       ids.add(agentId);
-      const share = await shares.create({
+      const channel = await channels.create({
         apiVersion: API_VERSION,
-        kind: "AgentShare",
+        kind: "Channel",
         metadata: { org },
-        spec: { agentRef: { kind: ApiResourceKind.agent, slug: agent.metadata?.slug ?? "" }, enabled: true },
+        spec: {
+          agentRef: { kind: ApiResourceKind.agent, slug: agent.metadata?.slug ?? "" },
+          enabled: true,
+          type: { case: "web", value: { audience: ChannelAudience.public } },
+        },
       });
-      ids.add(share.metadata?.id ?? "");
+      ids.add(channel.metadata?.id ?? "");
       const vault = await vaults.create({
         apiVersion: API_VERSION,
         kind: "Vault",
@@ -286,7 +291,7 @@ export function describeOrganizationPurge(
       // every kind's names go.
       const store = namingSaves(server.store);
       const claimHolders: string[] = [];
-      const named: string[] = [agentId, share.metadata?.id ?? "", vaultId, myVaultId, sessionId];
+      const named: string[] = [agentId, channel.metadata?.id ?? "", vaultId, myVaultId, sessionId];
       for (const kind of STORED_KINDS) {
         const schema: DescMessage | undefined = builtInModel.byKind(kind)?.schema;
         if (schema === undefined) {

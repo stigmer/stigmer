@@ -11,7 +11,7 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // ScheduleQueryController handles read operations for schedules.
 //
 // @internal
-// No anonymous/public RPC by design (the AgentChannel posture): a
+// No anonymous/public RPC by design (the Channel posture for Slack and WhatsApp): a
 // schedule has no public surface at all — its only runtime effect is the
 // runs its fires create.
 service ScheduleQueryController {
@@ -29,8 +29,8 @@ service ScheduleQueryController {
   //
   // @internal
   // Custom authorization in handler — checks both direct resource access
-  // and organization-level visibility permissions (the AgentShare /
-  // AgentChannel pattern).
+  // and organization-level visibility permissions (the Channel
+  // pattern).
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Schedule) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
@@ -43,7 +43,7 @@ service ScheduleQueryController {
   //
   // @internal
   // Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS
-  // (the listByAgent family convention — agent channels, agent shares).
+  // (the listByAgent family convention, as on channels).
   rpc listByAgent(ListSchedulesByAgentRequest) returns (ScheduleList) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }

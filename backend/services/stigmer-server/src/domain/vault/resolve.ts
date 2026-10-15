@@ -35,8 +35,8 @@
  *      through, found from server-stamped facts: the minting platform
  *      client (the run's audit), its schedule (the run's
  *      stigmer.ai/schedule-id), its eval run (the run's
- *      stigmer.ai/eval-run), its share or channel (the session's
- *      stigmer.ai/share-id or stigmer.ai/channel-id). A surface of another
+ *      stigmer.ai/eval-run), its channel of any type (the session's
+ *      stigmer.ai/channel-id). A surface of another
  *      organization than the run's contributes nothing. An eval run's
  *      vaults also serve a try that acts as a person (open source acts as
  *      the eval's creator), after its conversation's: a try's conversation
@@ -140,8 +140,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { McpServerEntry, PluginStatus } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
@@ -215,10 +214,12 @@ import type { SessionOwnValues } from "./session-values.js";
 /** The audit link a schedule stamps on every run it starts (temporal/schedule/run-starter.ts). */
 export { SCHEDULE_ID_LABEL_KEY };
 
-/** The lineage a share link's guest session carries, stamped by the edition's guest lane. */
-export const SHARE_ID_LABEL_KEY = "stigmer.ai/share-id";
-
-/** The lineage a channel's session carries (domain/session/list-index.ts). */
+/**
+ * The lineage every conversation a channel serves carries, whatever its
+ * type: a chat link's guest sessions (stamped by the edition's guest lane)
+ * and a Slack or WhatsApp channel's (stamped by its runtime) alike
+ * (domain/session/list-index.ts).
+ */
 export const CHANNEL_ID_LABEL_KEY = "stigmer.ai/channel-id";
 
 /** The key every clone reads its token from (the runner's workspace provisioner). */
@@ -1106,21 +1107,9 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     if (evalSurface !== undefined) {
       surfaces.push(evalSurface);
     }
-    const shareId = session.metadata?.labels[SHARE_ID_LABEL_KEY] ?? "";
-    if (shareId !== "") {
-      const share = await loadOptional(ApiResourceKind.agent_share, shareId, AgentShareSchema);
-      if (share !== undefined && sameOrganization("share", shareId, share.metadata?.org ?? "")) {
-        surfaces.push({
-          what: `share '${share.metadata?.name ?? shareId}'`,
-          refs: share.spec?.vaults ?? [],
-          attachers: share.status?.vaultAttachers ?? {},
-          org: executionOrg,
-        });
-      }
-    }
     const channelId = session.metadata?.labels[CHANNEL_ID_LABEL_KEY] ?? "";
     if (channelId !== "") {
-      const channel = await loadOptional(ApiResourceKind.agent_channel, channelId, AgentChannelSchema);
+      const channel = await loadOptional(ApiResourceKind.channel, channelId, ChannelSchema);
       if (channel !== undefined && sameOrganization("channel", channelId, channel.metadata?.org ?? "")) {
         surfaces.push({
           what: `channel '${channel.metadata?.name ?? channelId}'`,

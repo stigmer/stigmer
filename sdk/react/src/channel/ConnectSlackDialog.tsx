@@ -6,8 +6,8 @@ import { DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { getErrorReason, type ResourceRef } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
 import { Button } from "../button/Button.js";
 import { useChannelAppList } from "../channel-app/useChannelAppList.js";
 import { useDeploymentMode } from "../deployment-mode.js";
@@ -20,8 +20,8 @@ import { ToolCredentialsSection } from "./connect/ToolCredentialsSection.js";
 import { RefusalBox, VerbatimRefusal } from "./connect/VerbatimRefusal.js";
 import { CheckIcon, CloseIcon, Spinner } from "./connect/icons.js";
 import { useConnectSlackChannel, type SlackConnectPhase } from "./useConnectSlackChannel.js";
-import { useCreateAgentChannel } from "./useCreateAgentChannel.js";
-import { useOrgAgentChannelList } from "./useOrgAgentChannelList.js";
+import { useCreateChannel } from "./useCreateChannel.js";
+import { useOrgChannelList } from "./useOrgChannelList.js";
 import { SlackMarkIcon } from "./SlackMarkIcon.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 
@@ -39,7 +39,7 @@ export interface ConnectSlackDialogProps {
    * When omitted, the dialog opens in **create mode**: a name step
    * creates a new channel, then runs the install flow on it.
    */
-  readonly channel?: AgentChannel | null;
+  readonly channel?: Channel | null;
   /**
    * Called after the channel set changes (created, or install completed).
    * Hosts typically pass the channel list's `refetch`.
@@ -65,7 +65,7 @@ export interface ConnectSlackDialogProps {
 }
 
 /**
- * The connect flow for a Slack channel: create the {@link AgentChannel}
+ * The connect flow for a Slack channel: create the {@link Channel}
  * (create mode), then run the "Add to Slack" OAuth install in a popup
  * and report progress phase by phase.
  *
@@ -80,7 +80,7 @@ export interface ConnectSlackDialogProps {
  * handling, matching the SDK's modal convention ({@link ShareAgentDialog}).
  * All visual properties flow through `--stgm-*` design tokens.
  *
- * Most hosts mount it via {@link AgentChannelsPanel} (the Channels tab).
+ * Most hosts mount it via {@link ChannelsPanel} (the Channels tab).
  * Render it directly only when you own the open-state.
  */
 export function ConnectSlackDialog({
@@ -132,7 +132,7 @@ export function ConnectSlackDialog({
 
 interface ConnectSlackDialogBodyProps {
   readonly agent: Agent;
-  readonly channel: AgentChannel | null;
+  readonly channel: Channel | null;
   readonly onChannelsChanged?: () => void;
   readonly onClose: () => void;
   readonly channelAppsHref?: string;
@@ -153,7 +153,7 @@ function ConnectSlackDialogBody({
   const agentName = agent.metadata?.name || agent.metadata?.slug || "this agent";
   const org = agent.metadata?.org ?? "";
 
-  const { createChannel, isPending: isCreating } = useCreateAgentChannel();
+  const { createChannel, isPending: isCreating } = useCreateChannel();
   const slack = useConnectSlackChannel();
 
   const [name, setName] = useState(() =>
@@ -169,7 +169,7 @@ function ConnectSlackDialogBody({
   // the channel's existing binding — an installed channel's app_ref is
   // frozen server-side.
   const [appRef, setAppRef] = useState<ResourceRef | null>(null);
-  const [installed, setInstalled] = useState<AgentChannel | null>(null);
+  const [installed, setInstalled] = useState<Channel | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
   // The org's channel apps, fetched once here so the serving-app picker,
@@ -182,9 +182,11 @@ function ConnectSlackDialogBody({
 
   // The app the install will (or did) go through: the picker's choice in
   // create mode, the frozen spec.app_ref on a reconnect. null = platform.
+  const storedAppRef =
+    channel?.spec?.type?.case === "slack" ? channel.spec.type.value.appRef : undefined;
   const effectiveAppRef = channel
-    ? channel.spec?.appRef?.slug
-      ? { org: channel.spec.appRef.org || org, slug: channel.spec.appRef.slug }
+    ? storedAppRef?.slug
+      ? { org: storedAppRef.org || org, slug: storedAppRef.slug }
       : null
     : appRef;
   const selectedApp = effectiveAppRef
@@ -203,7 +205,7 @@ function ConnectSlackDialogBody({
   // Advisory only — the list is permission-bounded, and other orgs'
   // holds are invisible; completeInstall stays the arbiter.
   const advisoryActive = deploymentMode === "cloud" && !channel && !installed;
-  const { channels: orgChannels } = useOrgAgentChannelList(
+  const { channels: orgChannels } = useOrgChannelList(
     advisoryActive && org ? org : null,
   );
   const alreadyServed = useMemo(() => {
@@ -212,9 +214,9 @@ function ConnectSlackDialogBody({
     if (selectedAppId === undefined) return [];
     return orgChannels.filter(
       (c) =>
-        c.status?.installState === AgentChannelInstallState.installed &&
-        c.status?.providerStatus?.case === "slack" &&
-        c.status.providerStatus.value.channelAppId === selectedAppId,
+        c.status?.installState === ChannelInstallState.installed &&
+        c.status?.typeStatus?.case === "slack" &&
+        c.status.typeStatus.value.channelAppId === selectedAppId,
     );
   }, [orgChannels, effectiveAppRef, selectedApp]);
 
@@ -235,8 +237,7 @@ function ConnectSlackDialogBody({
             slug: agent.metadata?.slug ?? "",
           },
           enabled: true,
-          slack: {},
-          ...(appRef ? { appRef } : {}),
+          slack: appRef ? { appRef } : {},
           ...(vaults.length > 0 ? { vaults } : {}),
         });
         // The channel now exists even if the install below fails or is
@@ -485,14 +486,14 @@ function AlreadyServedNote({
   channels,
 }: {
   readonly botName: string;
-  readonly channels: readonly AgentChannel[];
+  readonly channels: readonly Channel[];
 }) {
   return (
     <div role="status" className="stg:space-y-0.5 stg:text-xs stg:text-warning">
       {channels.map((c) => {
         const slack =
-          c.status?.providerStatus?.case === "slack"
-            ? c.status.providerStatus.value
+          c.status?.typeStatus?.case === "slack"
+            ? c.status.typeStatus.value
             : null;
         const team = slack?.teamName || slack?.teamId || "a workspace";
         const agent = c.spec?.agentRef?.slug || "another agent";
@@ -574,12 +575,12 @@ function InstalledSummary({
   agentName,
   botName,
 }: {
-  readonly channel: AgentChannel;
+  readonly channel: Channel;
   readonly agentName: string;
   readonly botName: string;
 }) {
-  const slack = channel.status?.providerStatus?.case === "slack"
-    ? channel.status.providerStatus.value
+  const slack = channel.status?.typeStatus?.case === "slack"
+    ? channel.status.typeStatus.value
     : null;
 
   return (

@@ -13,7 +13,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type {
   ChannelTemplate,
   MessagingChannel,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
 
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { buildMcpApprovalDefault, type ActiveLeases } from "../approval-policy.js";

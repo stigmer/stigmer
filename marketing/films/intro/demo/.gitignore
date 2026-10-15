@@ -1,2 +1,2 @@
-# The share id the seed records (share-id.mjs); each stack mints its own.
-.share-id
+# The channel id the seed records (channel-id.mjs); each stack mints its own.
+.channel-id

@@ -3,9 +3,10 @@ import { SlackMarkIcon } from "./SlackMarkIcon.js";
 import { WhatsAppMarkIcon } from "./WhatsAppMarkIcon.js";
 
 /**
- * Identifier of a channel provider — matches the `provider_config` oneof
- * case name on `AgentChannelSpec` / `ChannelAppSpec`, which is the wire
- * discriminator every channel surface already switches on.
+ * Identifier of a channel provider — matches the `type` oneof case name
+ * on `ChannelSpec` (its Slack and WhatsApp arms) and the `provider_config`
+ * case name on `ChannelAppSpec`, the wire discriminators every channel
+ * surface already switches on.
  */
 export type ChannelProviderId = "slack" | "whatsapp";
 
@@ -111,7 +112,8 @@ export const CHANNEL_PROVIDERS: readonly ChannelProviderDescriptor[] = [
 ];
 
 /**
- * Resolve a provider descriptor from a `provider_config` oneof case name.
+ * Resolve a provider descriptor from a `ChannelSpec.type` (or
+ * `ChannelAppSpec.provider_config`) oneof case name.
  *
  * Returns `null` for unknown cases (e.g. a newer server returning a
  * provider this UI doesn't know yet) — callers hide or fall back rather

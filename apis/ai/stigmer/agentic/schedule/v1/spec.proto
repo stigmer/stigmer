@@ -14,7 +14,7 @@ import "buf/validate/validate.proto";
 //
 // @internal
 // The target oneof is inline
-// (the AgentChannelSpec.provider_config shape) and the agent arm is
+// (the ChannelSpec.type shape) and the agent arm is
 // the shared AgentInvocation — the owner-settable subset of
 // a run, so the schedule speaks the composer's vocabulary instead
 // of a schedule-only one. Apply-time cron validation is purely lexical
@@ -60,7 +60,7 @@ message ScheduleSpec {
   // "paused", the platform's failure-streak latch recorded on
   // status.paused_reason and never on spec (the two words name two
   // levers with two writers). Sibling
-  // bool shape (AgentShareSpec/AgentChannelSpec.enabled): manifests set
+  // bool shape (ChannelSpec.enabled): manifests set
   // `enabled: true` explicitly, no edition defaults it, and no status
   // field echoes it (consoles derive
   // owner-disabled state from spec on read).

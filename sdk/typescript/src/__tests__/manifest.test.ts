@@ -61,9 +61,9 @@ spec:
     verify_token: "verify-token"
 `;
 
-const AGENT_CHANNEL_YAML = `
+const CHANNEL_YAML = `
 apiVersion: agentic.stigmer.ai/v1
-kind: AgentChannel
+kind: Channel
 metadata:
   name: clinic-patient-whatsapp
   org: rakeshreddi098
@@ -75,10 +75,10 @@ spec:
   enabled: true
   whatsapp:
     phone_number_id: "1234567890"
-  app_ref:
-    kind: channel_app
-    org: rakeshreddi098
-    slug: hosipital
+    app_ref:
+      kind: channel_app
+      org: rakeshreddi098
+      slug: hosipital
   vaults:
     - kind: vault
       org: rakeshreddi098
@@ -106,19 +106,19 @@ describe("parseManifest", () => {
     expect(agent.spec?.instructions).toContain("appointment assistant");
   });
 
-  it("parses an AgentChannel manifest with enum-valued resource refs", () => {
-    const docs = parseManifest(AGENT_CHANNEL_YAML);
+  it("parses a Channel manifest with enum-valued resource refs", () => {
+    const docs = parseManifest(CHANNEL_YAML);
     expect(docs).toHaveLength(1);
-    expect(docs[0].handler.yamlKind).toBe("AgentChannel");
+    expect(docs[0].handler.yamlKind).toBe("Channel");
     expect(docs[0].slug).toBe("clinic-patient-whatsapp");
   });
 
   it("sorts multi-document manifests into dependency apply order", () => {
     // Authored channel-first; the ChannelApp must still apply first.
-    const docs = parseManifest(`${AGENT_CHANNEL_YAML}\n---\n${CHANNEL_APP_YAML}`);
+    const docs = parseManifest(`${CHANNEL_YAML}\n---\n${CHANNEL_APP_YAML}`);
     expect(docs.map((d) => d.handler.yamlKind)).toEqual([
       "ChannelApp",
-      "AgentChannel",
+      "Channel",
     ]);
   });
 
@@ -463,7 +463,7 @@ describe("manifest registry", () => {
   });
 
   it("covers the kinds the console flows depend on", () => {
-    for (const kind of ["Agent", "AgentChannel", "ChannelApp"]) {
+    for (const kind of ["Agent", "Channel", "ChannelApp"]) {
       expect(manifestHandlerForYamlKind(kind), `missing handler for ${kind}`).toBeDefined();
     }
   });
@@ -495,7 +495,7 @@ describe("manifest registry", () => {
       expect(await handler.rename?.(recording, input)).toBe(input);
     }
 
-    expect(renamable.map((h) => h.yamlKind).sort()).toEqual(["Agent", "ChannelApp", "FederationIssuer", "OAuthApp", "Schedule"]);
+    expect(renamable.map((h) => h.yamlKind).sort()).toEqual(["Agent", "Channel", "ChannelApp", "FederationIssuer", "OAuthApp", "Schedule"]);
     expect(services).toEqual(renamable.map((h) => h.schema.typeName.replace(/\.([A-Za-z]+)$/, ".$1CommandController")));
   });
 

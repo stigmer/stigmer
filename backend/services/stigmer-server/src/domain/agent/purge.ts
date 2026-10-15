@@ -4,7 +4,7 @@
  * cleanup (controller.ts `deleteAgent`) and without its refusal of a
  * plugin-managed agent: the plugin goes too.
  *
- * The chain's steps after its load, in its order: the agent's shares, its
+ * The chain's steps after its load, in its order: the agent's channels, its
  * version archives, the row, its access, its search entry.
  */
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -21,11 +21,14 @@ import type {
   KindPurge,
   KindPurgeDeps,
 } from "../organization/purge/kind-purge.js";
-import { newCascadeDeleteSharesStep } from "./steps.js";
+import { newCascadeDeleteChannelsStep } from "../channel/cascade.js";
+import type { ChannelRuntime } from "../channel/channel-runtime.js";
 import { newDeleteAgentVersionsStep } from "./versions.js";
 
 export interface AgentPurgeDeps extends KindPurgeDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
+  /** The composed channel runtime; undefined when no unit composes one. */
+  readonly channelRuntime: ChannelRuntime | undefined;
 }
 
 export function newAgentPurge(deps: AgentPurgeDeps): KindPurge {
@@ -34,11 +37,12 @@ export function newAgentPurge(deps: AgentPurgeDeps): KindPurge {
     schema: AgentSchema,
     input: AgentCommandController.method.delete.input,
     steps: [
-      newCascadeDeleteSharesStep(
-        deps.store,
-        deps.authorizationLifecycle,
-        deps.logger,
-      ),
+      newCascadeDeleteChannelsStep({
+        store: deps.store,
+        logger: deps.logger,
+        authorizationLifecycle: deps.authorizationLifecycle,
+        channelRuntime: deps.channelRuntime,
+      }),
       newDeleteAgentVersionsStep(deps.store, deps.logger),
       newDeleteResourceStep(deps.store),
       newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.agent),

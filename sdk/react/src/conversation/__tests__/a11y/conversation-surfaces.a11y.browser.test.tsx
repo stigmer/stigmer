@@ -14,7 +14,7 @@ import { waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import type { Stigmer } from "@stigmer/sdk";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   ChannelConversationListFilter,
   ChannelConversationSchema,
@@ -22,9 +22,9 @@ import {
   ConversationItemAuthor,
   ConversationLane,
   ConversationTimelineItemSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
-import { ChannelDeliveryStatus } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/delivery_pb";
-import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/outbound_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { ChannelDeliveryStatus } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/delivery_pb";
+import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/outbound_pb";
 import { StigmerContext } from "../../../context.js";
 import { ConversationComposer } from "../../ConversationComposer.js";
 import { ConversationListPane } from "../../ConversationListPane.js";
@@ -40,19 +40,19 @@ const NOW = new Date("2026-08-07T12:00:00Z");
 const noop = () => {};
 
 const channels = [
-  create(AgentChannelSchema, {
+  create(ChannelSchema, {
     metadata: { id: "ach_wa", org: "acme", name: "support-line", slug: "support-line" },
-    spec: { providerConfig: { case: "whatsapp", value: {} } },
+    spec: { type: { case: "whatsapp", value: {} } },
   }),
-  create(AgentChannelSchema, {
+  create(ChannelSchema, {
     metadata: { id: "ach_sl", org: "acme", name: "eng-help", slug: "eng-help" },
-    spec: { providerConfig: { case: "slack", value: {} } },
+    spec: { type: { case: "slack", value: {} } },
   }),
 ];
 
 const conversations = [
   create(ChannelConversationSchema, {
-    agentChannelId: "ach_wa",
+    channelId: "ach_wa",
     conversationKey: "15550001111",
     org: "acme",
     displayName: "Pat",
@@ -63,7 +63,7 @@ const conversations = [
     lastActivityAt: timestampFromDate(new Date("2026-08-07T11:55:00Z")),
   }),
   create(ChannelConversationSchema, {
-    agentChannelId: "ach_wa",
+    channelId: "ach_wa",
     conversationKey: "15550002222",
     org: "acme",
     control: ConversationControl.control_human,
@@ -166,7 +166,7 @@ const ONE_PX_PNG =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
 
 const mediaClient = {
-  agentChannel: {
+  channel: {
     getMediaDownloadUrl: () => Promise.resolve({ url: ONE_PX_PNG }),
   },
 } as unknown as Stigmer;
@@ -205,7 +205,7 @@ describe("Conversation surfaces a11y", () => {
         {...listBaseProps}
         conversations={conversations}
         onFilterChange={noop}
-        selected={{ agentChannelId: "ach_wa", conversationKey: "15550001111" }}
+        selected={{ channelId: "ach_wa", conversationKey: "15550001111" }}
       />,
       mode,
     );
@@ -258,7 +258,7 @@ describe("Conversation surfaces a11y", () => {
       <StigmerContext.Provider value={mediaClient}>
         <ConversationTimelineView
           {...timelineBaseProps}
-          agentChannelId="ach_wa"
+          channelId="ach_wa"
           conversationKey="15550001111"
           items={mediaTimelineItems}
           hasOlder={false}

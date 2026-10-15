@@ -186,13 +186,13 @@ export const ListSessionsByAgentRequestSchema: GenMessage<ListSessionsByAgentReq
   messageDesc(file_ai_stigmer_agentic_session_v1_io, 4);
 
 /**
- * ListSessionsByChannelRequest lists the conversations an agent channel created.
+ * ListSessionsByChannelRequest lists the conversations a channel served.
  *
  * @generated from message ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest
  */
 export type ListSessionsByChannelRequest = Message<"ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest"> & {
   /**
-   * Agent channel ID to filter by.
+   * Channel ID to filter by.
    *
    * @generated from field: string channel_id = 1;
    */

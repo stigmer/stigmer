@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MessagesSquare } from "lucide-react";
 import { cn } from "@stigmer/theme";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   ChannelConversationListFilter,
   type ChannelConversation,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
-import { ChannelSendOutcome } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { ChannelSendOutcome } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { channelProviderOf } from "../channel/providers.js";
-import { useOrgAgentChannelList } from "../channel/useOrgAgentChannelList.js";
+import { useOrgChannelList } from "../channel/useOrgChannelList.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { ConversationAttentionBanner } from "./ConversationAttentionBanner.js";
 import { ConversationComposer } from "./ConversationComposer.js";
@@ -44,7 +44,7 @@ export interface ConversationHeaderContext {
    * `spec.agent_ref` (for navigation), so hosts never re-fetch what the
    * workbench already holds.
    */
-  readonly channel: AgentChannel | null;
+  readonly channel: Channel | null;
 }
 
 /** Props for {@link ConversationsWorkbench}. */
@@ -79,7 +79,7 @@ export interface ConversationsWorkbenchProps {
    * `null` for a specific channel keeps it plain text. The SDK never
    * assumes a routing scheme.
    */
-  readonly channelHref?: (channel: AgentChannel) => string | null;
+  readonly channelHref?: (channel: Channel) => string | null;
   /** Frozen instant for deterministic hosts (tests, documentation tours). */
   readonly now?: Date;
   /**
@@ -124,19 +124,25 @@ export function ConversationsWorkbench({
     ChannelConversationListFilter.channel_conversation_list_filter_unspecified,
   );
 
-  const { channels } = useOrgAgentChannelList(org || null);
+  // A chat link's guests are not inbox conversations: the inbox and its
+  // filter list the Slack and WhatsApp channels only.
+  const { channels: orgChannels } = useOrgChannelList(org || null);
+  const channels = useMemo(
+    () => orgChannels.filter((c) => c.spec?.type?.case !== "web"),
+    [orgChannels],
+  );
   const list = useConversationList({
     org: org || null,
-    agentChannelId: channelFilter,
+    channelId: channelFilter,
     filter: listFilter,
   });
 
   const detail = useConversation(
-    selected?.agentChannelId ?? "",
+    selected?.channelId ?? "",
     selected?.conversationKey ?? "",
   );
   const timeline = useConversationTimeline(
-    selected?.agentChannelId ?? "",
+    selected?.channelId ?? "",
     selected?.conversationKey ?? "",
   );
   // A command answer is fresher than any in-flight poll on
@@ -153,7 +159,7 @@ export function ConversationsWorkbench({
     [detailApply, listApply],
   );
   const participation = useConversationParticipation({
-    agentChannelId: selected?.agentChannelId ?? "",
+    channelId: selected?.channelId ?? "",
     conversationKey: selected?.conversationKey ?? "",
     onConversation: adoptConversation,
   });
@@ -161,11 +167,11 @@ export function ConversationsWorkbench({
   const selectedChannel = useMemo(
     () =>
       selected
-        ? channels.find((c) => c.metadata?.id === selected.agentChannelId) ?? null
+        ? channels.find((c) => c.metadata?.id === selected.channelId) ?? null
         : null,
     [channels, selected],
   );
-  const descriptor = channelProviderOf(selectedChannel?.spec?.providerConfig?.case);
+  const descriptor = channelProviderOf(selectedChannel?.spec?.type?.case);
 
   // The handback guard arms on the row's server-derived
   // awaiting_reply fact — bounce-aware (a staff reply the
@@ -216,7 +222,7 @@ export function ConversationsWorkbench({
   const handleSelect = useCallback(
     (conversation: ChannelConversation) =>
       onSelectionChange({
-        agentChannelId: conversation.agentChannelId,
+        channelId: conversation.channelId,
         conversationKey: conversation.conversationKey,
       }),
     [onSelectionChange],
@@ -234,7 +240,7 @@ export function ConversationsWorkbench({
     readonly itemId: string;
   } | null>(null);
   const selectionKey = selected
-    ? `${selected.agentChannelId}:${selected.conversationKey}`
+    ? `${selected.channelId}:${selected.conversationKey}`
     : "";
   const settlingItemId =
     replySettling !== null && replySettling.selectionKey === selectionKey
@@ -343,7 +349,7 @@ export function ConversationsWorkbench({
         // stays outside it so its scroll position and filter survive.
         // Channel ids never contain ":", so the joined key is unambiguous.
         <div
-          key={`${selected.agentChannelId}:${selected.conversationKey}`}
+          key={`${selected.channelId}:${selected.conversationKey}`}
           className="stg:flex stg:min-w-0 stg:flex-1 stg:flex-col"
         >
           <div className="stg:flex stg:items-center stg:justify-between stg:gap-2 stg:border-b stg:border-border stg:px-4 stg:py-2.5">
@@ -394,7 +400,7 @@ export function ConversationsWorkbench({
 
           <ConversationTimelineView
             items={timeline.items}
-            agentChannelId={selected.agentChannelId}
+            channelId={selected.channelId}
             conversationKey={selected.conversationKey}
             isLoading={timeline.isLoading}
             error={timeline.error}

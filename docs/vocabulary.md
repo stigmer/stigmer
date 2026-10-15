@@ -81,7 +81,7 @@ definitions, API names, and examples follow below.
 | **App user**           | ---              | ---                                    | app user               | `provisioning_mode: app_user`                       | app user           |
 | **Run**                | ---              | run                                    | run                    | Run, `kind: Run`                                    | Run                |
 | **Subagent**           | ---              | ---                                    | subagent               | subagent, `subagents`, `<plugin>:<agent>`           | subagent           |
-| **Agent Channel**      | ---              | ---                                    | channel, Agent Channel | AgentChannel, `kind: AgentChannel`                  | Agent Channel      |
+| **Agent Channel**      | ---              | ---                                    | channel, Agent Channel | Channel, `kind: Channel`                            | Agent Channel      |
 | **Channel App**        | ---              | ---                                    | Channel App            | ChannelApp, `kind: ChannelApp`                      | Channel App        |
 | **Schedule**           | ---              | ---                                    | schedule, Schedule     | Schedule, `kind: Schedule`                          | Schedule           |
 | **Label**              | ---              | label                                  | label                  | `metadata.labels`, `labels` filter                  | label              |
@@ -1318,9 +1318,10 @@ credentials.
 - **User-facing alternative**: "chat link" in the console, guides and sales
   copy; "share" for the resource in how-to steps ("create a share").
 - **Capitalize**: Yes, when referring to the Stigmer resource.
-- **API surface**: `kind: AgentShare`, prefix `ash`. proto:
-  `agentshare/v1/spec.proto`. CLI: `stigmer share agent`.
-- **Key fields**: `agent_ref`, `enabled`, `audience` (`org` or `public`).
+- **API surface**: `kind: Channel` with `spec.web`, prefix `chn` (a chat link
+  made before chat links became channels keeps its `ash_` id). proto:
+  `channel/v1/spec.proto`. CLI: `stigmer share agent`.
+- **Key fields**: `agent_ref`, `enabled`, `web.audience` (`org` or `public`).
 - **Context rule**: An omitted audience means the Organization: only its
   signed-in members chat. Say "Anyone with the link can chat" only for the
   `public` audience, an explicit choice. A chat link lets people chat; it never
@@ -1339,13 +1340,14 @@ WhatsApp---so people can chat with it where they already work.
 - **Capitalize**: Yes, when referring to the Stigmer resource. Lowercase
   "channel" is fine in prose once the concept is established ("connect a
   channel," "the channel card").
-- **API surface**: `kind: AgentChannel`, prefix `ach`. proto:
-  `agentchannel/v1/spec.proto`.
-- **Key fields**: `agent_ref`, `enabled`, `slack` or `whatsapp` (provider
-  config), `vaults`, `app_ref` (optional for Slack, required for WhatsApp).
+- **API surface**: `kind: Channel` with `spec.slack` or `spec.whatsapp`, prefix
+  `chn` (a connection made before connections became channels keeps its `ach_`
+  id). proto: `channel/v1/spec.proto`.
+- **Key fields**: `agent_ref`, `enabled`, `slack` or `whatsapp` (the type),
+  `vaults`, the type's `app_ref` (optional for Slack, required for WhatsApp).
 - **Context rule**: On the sales site, say "connect your Agent to Slack" without
   naming the resource. In how-to docs, introduce as "channel" with a gloss, then
-  use "channel." In reference, use `AgentChannel`.
+  use "channel." In reference, use `Channel`.
 - **Note**: Do not confuse with a Slack channel (a room inside a workspace). An
   Agent Channel connects an Agent to a whole workspace (Slack) or a Business
   phone number (WhatsApp); people then reach it from any conversation. Provider

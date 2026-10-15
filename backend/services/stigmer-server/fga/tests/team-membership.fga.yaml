@@ -53,10 +53,10 @@ tuples:
   - {user: team:sre#member, relation: editor, object: agent:runbook}
   - {user: organization:acme, relation: organization, object: agent:partner}
   - {user: team:partners#member, relation: viewer, object: agent:partner}
-  - {user: organization:acme, relation: organization, object: agent_channel:support}
-  - {user: team:sre#member, relation: participant, object: agent_channel:support}
-  - {user: organization:acme, relation: organization, object: agent_channel:alerts}
-  - {user: team:sre#member, relation: viewer, object: agent_channel:alerts}
+  - {user: organization:acme, relation: organization, object: channel:support}
+  - {user: team:sre#member, relation: participant, object: channel:support}
+  - {user: organization:acme, relation: organization, object: channel:alerts}
+  - {user: team:sre#member, relation: viewer, object: channel:alerts}
   - {user: organization:acme, relation: organization, object: schedule:nightly}
   - {user: team:sre#member, relation: viewer, object: schedule:nightly}
 tests:
@@ -89,13 +89,13 @@ tests:
         object: schedule:nightly
         assertions: {viewer: false}
       - user: identity_account:vic
-        object: agent_channel:support
+        object: channel:support
         assertions: {participant: true, viewer: true, can_edit: false}
       - user: identity_account:left
-        object: agent_channel:support
+        object: channel:support
         assertions: {participant: false, viewer: false}
       - user: identity_account:vic
-        object: agent_channel:alerts
+        object: channel:alerts
         assertions: {participant: false, viewer: true}
   - name: a team without its organization link has no members, so its grants reach nobody
     check:

@@ -10,7 +10,7 @@ import "google/protobuf/timestamp.proto";
 // @internal
 // Platform-owned; written only by the scheduling runtime (tick +
 // lifecycle sync) and by the explicit resume command.
-// Preserved VERBATIM across apply and update (the AgentChannel
+// Preserved VERBATIM across apply and update (the Channel
 // posture) — load-bearing for the failure-streak auto-pause,
 // which records on status precisely so the platform never writes spec.
 // A routine manifest apply must never reset the failure streak or

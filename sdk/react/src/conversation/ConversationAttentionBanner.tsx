@@ -6,7 +6,7 @@ import { getUserMessage } from "@stigmer/sdk";
 import {
   ConversationControl,
   type ChannelConversation,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { Button } from "../button/Button.js";
 import type { UseConversationParticipationReturn } from "./useConversationParticipation.js";
 

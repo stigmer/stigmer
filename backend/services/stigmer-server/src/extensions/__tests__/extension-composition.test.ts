@@ -36,7 +36,8 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
-import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
 import {
   RunControlSignal,
   RunPhase,
@@ -1372,7 +1373,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
   });
 
   // stigmer#1603. A parent's delete removes the children it owns (an
-  // agent's same-organization shares, a session's runs) row by row. Each child's access is cleaned as its own
+  // agent's same-organization channels, a session's runs) row by row. Each child's access is cleaned as its own
   // delete would clean it: the same event, the child's own organization, the
   // deleting caller, fired before the parent's, while every link the child
   // reaches its organization through still stands.
@@ -1392,7 +1393,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
       }
     }
 
-    it("an agent's delete cleans its share, then the agent", async () => {
+    it("an agent's delete cleans its channel, then the agent", async () => {
       const command = createClient(AgentCommandController, portTransport);
       const agent = await command.create(
         create(AgentSchema, {
@@ -1403,16 +1404,17 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
         }),
       );
       const agentId = agent.metadata?.id ?? "";
-      // Shares are seeded as the agent domain suite seeds them; the cascade
-      // finds a share by its agent reference.
+      // Channels are seeded as the agent domain suite seeds them; the
+      // cascade finds a channel by its agent reference.
       await server.store.saveResource(
-        ApiResourceKind.agent_share,
-        "ash_seeded_cascade",
-        AgentShareSchema,
-        create(AgentShareSchema, {
-          metadata: { id: "ash_seeded_cascade", name: "seeded-cascade-share", org: seededOrgId },
+        ApiResourceKind.channel,
+        "chn_seeded_cascade",
+        ChannelSchema,
+        create(ChannelSchema, {
+          metadata: { id: "chn_seeded_cascade", name: "seeded-cascade-channel", org: seededOrgId },
           spec: {
             agentRef: { kind: ApiResourceKind.agent, org: seededOrgId, id: agent.metadata?.id ?? "" },
+            type: { case: "web", value: { audience: ChannelAudience.public } },
           },
         }),
       );
@@ -1421,7 +1423,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
       await command.delete({ value: agentId });
 
       expect(cascadeOrder(deletedEvents)).toEqual([
-        [ApiResourceKind.agent_share, "ash_seeded_cascade"],
+        [ApiResourceKind.channel, "chn_seeded_cascade"],
         [ApiResourceKind.agent, agentId],
       ]);
       expectOneCallerAndOrganization(deletedEvents);

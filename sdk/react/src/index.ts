@@ -1647,49 +1647,47 @@ export type {
 } from "./connect-link/index.js";
 
 // Sharing — shared-agent public profile, the anonymous-visitor chat organism,
-// and the owner-side Share experience (Shares tab list, dialog, AgentShare hooks).
+// and the owner-side Share experience over web channels (Shares tab list,
+// dialog, the web channel draft and its save inputs).
 export {
-  useSharedAgentProfile,
+  useChannelAgentProfile,
   SharedAgentChat,
-  draftFromShare,
+  draftFromWebChannel,
   sharingAudienceFromProto,
-  useAgentShares,
-  useCanCreateAgentShare,
-  useSaveAgentShare,
-  useDeleteAgentShare,
-  useRotateShareLink,
+  webChannelCreateInput,
+  webChannelPatch,
+  webConfigOf,
+  webLinkTokenOf,
+  useRotateChannelLink,
   ShareAgentDialog,
-  AgentShareList,
+  WebChannelList,
   useShareToolReadiness,
   validateOrigin,
   MAX_ALLOWED_ORIGINS,
 } from "./sharing/index.js";
 export type {
-  UseSharedAgentProfileOptions,
-  UseSharedAgentProfileReturn,
+  UseChannelAgentProfileOptions,
+  UseChannelAgentProfileReturn,
   SharedAgentChatProps,
-  AgentShareCreateIdentity,
-  AgentShareDraft,
+  WebChannelCreateIdentity,
+  WebChannelDraft,
   SharingAudience,
-  UseAgentSharesReturn,
-  UseCanCreateAgentShareReturn,
-  UseSaveAgentShareReturn,
-  UseDeleteAgentShareReturn,
-  UseRotateShareLinkReturn,
+  UseRotateChannelLinkReturn,
   ShareAgentDialogProps,
-  AgentShareListProps,
+  WebChannelListProps,
   ShareToolReadiness,
 } from "./sharing/index.js";
 
-// Channel — agent channels on external messaging platforms (Slack + WhatsApp):
-// the Channels tab panel, the per-provider connect dialogs, and the
-// AgentChannel hooks.
+// Channel — the one kind for every way people reach an agent (chat links,
+// Slack, WhatsApp): the Channel hooks, the Channels tab panel (Slack and
+// WhatsApp), and the per-provider connect dialogs.
 export {
-  useAgentChannelList,
-  useAgentChannel,
-  useSaveAgentChannel,
-  useCreateAgentChannel,
-  useDeleteAgentChannel,
+  useChannelList,
+  useChannel,
+  useSaveChannel,
+  useCreateChannel,
+  useDeleteChannel,
+  useCanCreateChannel,
   useConnectSlackChannel,
   useInstallChannel,
   useChannelToolReadiness,
@@ -1698,7 +1696,7 @@ export {
   useChannelTemplateList,
   templateStatusPhase,
   splitTemplateBody,
-  AgentChannelsPanel,
+  ChannelsPanel,
   ConnectSlackDialog,
   ConnectWhatsAppDialog,
   ChannelCredentialsDialog,
@@ -1708,11 +1706,12 @@ export {
   ChannelTemplatesDialog,
 } from "./channel/index.js";
 export type {
-  UseAgentChannelListReturn,
-  UseAgentChannelReturn,
-  UseSaveAgentChannelReturn,
-  UseCreateAgentChannelReturn,
-  UseDeleteAgentChannelReturn,
+  UseChannelListReturn,
+  UseChannelReturn,
+  UseSaveChannelReturn,
+  UseCreateChannelReturn,
+  UseDeleteChannelReturn,
+  UseCanCreateChannelReturn,
   UseConnectSlackChannelReturn,
   SlackConnectPhase,
   UseInstallChannelReturn,
@@ -1722,7 +1721,7 @@ export type {
   UseChannelTemplateListOptions,
   UseChannelTemplateListReturn,
   TemplateBodySegment,
-  AgentChannelsPanelProps,
+  ChannelsPanelProps,
   ConnectSlackDialogProps,
   ConnectWhatsAppDialogProps,
   ChannelCredentialsDialogProps,
@@ -1799,11 +1798,11 @@ export type {
 export {
   ChannelConversationListFilter,
   ConversationControl,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 export type {
   ChannelConversation,
   ConversationTimelineItem,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 
 // Error — structured error display with classification, retry, and contextual guidance
 export {

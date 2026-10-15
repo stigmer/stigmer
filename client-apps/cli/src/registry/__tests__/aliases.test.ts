@@ -81,14 +81,14 @@ describe("generateAliases", () => {
   });
 
   it("does not let a multi-word display name steal the parent's name", () => {
-    // "Agent Share" must NOT register "agent" (that belongs to Agent).
+    // "Channel App" must NOT register "channel" (that belongs to Channel).
     const found = normalized(
-      generateAliases("AgentShare", "Agent Share", "ash", "agent_share"),
+      generateAliases("ChannelApp", "Channel App", "chapp", "channel_app"),
     );
-    expect(found).not.toContain("agent");
-    expect(found).toContain("agentshare");
-    expect(found).toContain("agent-share");
-    expect(found).toContain("ash");
+    expect(found).not.toContain("channel");
+    expect(found).toContain("channelapp");
+    expect(found).toContain("channel-app");
+    expect(found).toContain("chapp");
   });
 
   it("produces no duplicate normalized aliases", () => {
@@ -103,7 +103,7 @@ describe("case conversion", () => {
   it.each([
     ["McpServer", "mcp-server"],
     ["Agent", "agent"],
-    ["AgentShare", "agent-share"],
+    ["EvalRun", "eval-run"],
     ["ChannelApp", "channel-app"],
     ["", ""],
   ])("toKebabCase(%s) = %s", (input, expected) => {
@@ -113,7 +113,7 @@ describe("case conversion", () => {
   it.each([
     ["McpServer", "mcp_server"],
     ["Agent", "agent"],
-    ["AgentShare", "agent_share"],
+    ["EvalRun", "eval_run"],
     ["ChannelApp", "channel_app"],
     ["", ""],
   ])("toSnakeCase(%s) = %s", (input, expected) => {

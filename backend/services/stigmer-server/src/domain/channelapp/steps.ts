@@ -2,7 +2,7 @@
  * ChannelApp domain steps — ports pkg/domain/channelapp/controller/steps.go:
  * per-field secret encryption/preservation over the provider oneof, the
  * response-side redaction, provider-arm immutability, and the referential
- * delete block against AgentChannels.
+ * delete block against the Slack and WhatsApp channels that name the app.
  *
  * The marker/ciphertext-guard logic is DELIBERATELY domain-local (not
  * shared with oauthapp or the session's own values): each domain keeps its
@@ -16,7 +16,7 @@
  */
 import { fromBinary } from "@bufbuild/protobuf";
 
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import type { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
@@ -348,8 +348,8 @@ export function newValidateProviderImmutableStep(): PipelineStep<ChannelAppDesc>
 
 /**
  * CheckNoReferencingChannels — Go checkNoReferencingChannelsStep: prevents
- * deletion of a ChannelApp still referenced by any AgentChannel via
- * spec.app_ref — a deleted app would break the referencing channels'
+ * deletion of a ChannelApp still referenced by any Slack or WhatsApp channel
+ * (spec.slack.app_ref, spec.whatsapp.app_ref) — a deleted app would break the referencing channels'
  * webhook verification and any future re-install. Full scan through the store
  * (the OSS lookup posture); malformed rows are skipped with a warning.
  *
@@ -376,27 +376,32 @@ export function newCheckNoReferencingChannelsStep(
 
       let rows: Uint8Array[];
       try {
-        rows = await store.listResources(ApiResourceKind.agent_channel);
+        rows = await store.listResources(ApiResourceKind.channel);
       } catch (error) {
         throw internalError(
           error,
-          "failed to list agent channels for referential integrity check",
+          "failed to list channels for referential integrity check",
         );
       }
 
       for (const bytes of rows) {
         let channel;
         try {
-          channel = fromBinary(AgentChannelSchema, bytes);
+          channel = fromBinary(ChannelSchema, bytes);
         } catch {
           logger.warn(
-            "Failed to unmarshal agent channel during referential integrity check, skipping",
+            "Failed to unmarshal channel during referential integrity check, skipping",
           );
           continue;
         }
 
-        // A channel's app_ref holds the app's id.
-        const ref = channel.spec?.appRef;
+        // A Slack or WhatsApp channel's app_ref holds the app's id; a web
+        // channel names no app.
+        const type = channel.spec?.type;
+        const ref =
+          type?.case === "slack" || type?.case === "whatsapp"
+            ? type.value.appRef
+            : undefined;
         if (ref === undefined || ref.id === "" || id === "") {
           continue;
         }

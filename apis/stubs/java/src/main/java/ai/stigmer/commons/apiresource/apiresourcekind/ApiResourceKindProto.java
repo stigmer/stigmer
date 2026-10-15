@@ -80,7 +80,7 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "source_tier_unspecified\020\000\022\017\n\013open_source" +
       "\020\001\022\016\n\ncloud_only\020\002\022\016\n\nenterprise\020\003*A\n\017Pl" +
       "atformIdValue\022!\n\035platform_id_value_unspe" +
-      "cified\020\000\022\013\n\007stigmer\020\001*\301!\n\017ApiResourceKin" +
+      "cified\020\000\022\013\n\007stigmer\020\001*\264 \n\017ApiResourceKin" +
       "d\022\035\n\031api_resource_kind_unknown\020\000\022[\n\024api_" +
       "resource_version\020\001\032A\252\377+=\010\001\020\001\032\022ApiResourc" +
       "eVersion\"\024API Resource Version*\003ver8\001@\002J" +
@@ -132,19 +132,15 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "@\001J\215\001\010\002\020\001*\006\020\001\030\001 \001:\002\001\004B\001\004JA\010\001\022=Everything" +
       ", including deleting it and deciding who" +
       " has accessJ5\010\004\0221Use it and see what it " +
-      "contains; cannot change it\022\276\001\n\013agent_sha" +
-      "re\020.\032\254\001\252\377+\247\001\010\001\020\001\032\nAgentShare\"\013Agent Shar" +
-      "e*\003ash8\001@\001J\177\010\002\020\001:\002\001\004JA\010\001\022=Everything, in" +
-      "cluding deleting it and deciding who has" +
-      " accessJ2\010\004\022.See the chat link\'s setting" +
-      "s; cannot change it\022\233\002\n\ragent_channel\020/\032" +
-      "\207\002\252\377+\202\002\010\001\020\001\032\014AgentChannel\"\rAgent Channel" +
-      "*\003ach8\001@\001J\325\001\010\002\020\001:\003\001\004\005B\002\004\005JE\010\001\022AEverythin" +
-      "g, including the channel\'s connection an" +
-      "d who has accessJ2\010\004\022.Read the channel\'s" +
-      " conversations; cannot replyJK\010\005\022GRead t" +
-      "he channel\'s conversations and reply to " +
-      "customers as the business\022p\n\013channel_app" +
+      "contains; cannot change it\022\274\002\n\007channel\020/" +
+      "\032\256\002\252\377+\251\002\010\001\020\001\032\007Channel\"\007Channel*\003chn8\001@\001J" +
+      "\375\001\010\002\020\001:\003\001\004\005B\002\004\005JC\010\001\022?Everything, includi" +
+      "ng the channel\'s settings and who has ac" +
+      "cessJI\010\004\022ESee the channel and read its c" +
+      "onversations; cannot change it or replyJ" +
+      "^\010\005\022ZRead the channel\'s Slack and WhatsA" +
+      "pp conversations and reply to customers " +
+      "as the businessR\003ashR\003ach\022p\n\013channel_app" +
       "\0200\032_\252\377+[\010\001\020\001\032\nChannelApp\"\013Channel App*\005c" +
       "happ8\001@\001J1\010\002\020\004:\001\004J(\010\004\022$See its settings;" +
       " cannot change them\022\273\001\n\010schedule\0208\032\254\001\252\377+" +
@@ -182,22 +178,23 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "\001\032\014Subscription\"\014Subscription*\003sub8\001@\002J\004" +
       "\010\002\020\004\0226\n\007license\020H\032)\252\377+%\010\004\020\001\032\007License\"\007Li" +
       "cense*\003lic8\001@\002J\004\010\005\020\004\"\004\010\027\020\027\"\004\010,\020,\"\004\010-\020-\"\004" +
-      "\0101\0201\"\004\0102\0202\"\004\0103\0203\"\004\0104\0204\"\004\0105\0205\"\004\0106\0206\"\004\0107\0207" +
-      "\"\004\010<\020<\"\004\010?\020?\"\004\010@\020@*\017platform_client*\nmcp" +
-      "_server*\016agent_instance*\tdatastore*\010work" +
-      "flow*\021workflow_instance*\014workflow_run*\013e" +
-      "nvironment*\021execution_context*\010artifact*" +
-      "\007project*\013plugin_eval*\nagent_eval:\205\001\n\tki" +
-      "nd_meta\022!.google.protobuf.EnumValueOptio" +
-      "ns\030\365\277\005 \001(\0132C.ai.stigmer.commons.apiresou" +
-      "rce.apiresourcekind.ApiResourceKindMetaR" +
-      "\010kindMetaB\364\001B\024ApiResourceKindProtoP\001\242\002\005A" +
-      "SCAA\252\002.Ai.Stigmer.Commons.Apiresource.Ap" +
-      "iresourcekind\312\002.Ai\\Stigmer\\Commons\\Apire" +
-      "source\\Apiresourcekind\342\002:Ai\\Stigmer\\Comm" +
-      "ons\\Apiresource\\Apiresourcekind\\GPBMetad" +
-      "ata\352\0022Ai::Stigmer::Commons::Apiresource:" +
-      ":Apiresourcekindb\006proto3"
+      "\010.\020.\"\004\0101\0201\"\004\0102\0202\"\004\0103\0203\"\004\0104\0204\"\004\0105\0205\"\004\0106\0206" +
+      "\"\004\0107\0207\"\004\010<\020<\"\004\010?\020?\"\004\010@\020@*\017platform_clien" +
+      "t*\nmcp_server*\016agent_instance*\013agent_sha" +
+      "re*\tdatastore*\010workflow*\021workflow_instan" +
+      "ce*\014workflow_run*\013environment*\021execution" +
+      "_context*\010artifact*\007project*\013plugin_eval" +
+      "*\nagent_eval:\205\001\n\tkind_meta\022!.google.prot" +
+      "obuf.EnumValueOptions\030\365\277\005 \001(\0132C.ai.stigm" +
+      "er.commons.apiresource.apiresourcekind.A" +
+      "piResourceKindMetaR\010kindMetaB\364\001B\024ApiReso" +
+      "urceKindProtoP\001\242\002\005ASCAA\252\002.Ai.Stigmer.Com" +
+      "mons.Apiresource.Apiresourcekind\312\002.Ai\\St" +
+      "igmer\\Commons\\Apiresource\\Apiresourcekin" +
+      "d\342\002:Ai\\Stigmer\\Commons\\Apiresource\\Apire" +
+      "sourcekind\\GPBMetadata\352\0022Ai::Stigmer::Co" +
+      "mmons::Apiresource::Apiresourcekindb\006pro" +
+      "to3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

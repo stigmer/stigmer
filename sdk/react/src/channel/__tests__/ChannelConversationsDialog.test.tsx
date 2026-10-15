@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ChannelConversationsDialog } from "../ChannelConversationsDialog";
@@ -10,7 +10,7 @@ import { ChannelConversationsDialog } from "../ChannelConversationsDialog";
 const CHANNEL = {
   metadata: { id: "ach_1", org: "acme", name: "Leftbin Slack", slug: "leftbin-slack" },
   spec: { enabled: true },
-} as unknown as AgentChannel;
+} as unknown as Channel;
 
 function makeChannelSession(id: string, subject: string, externalUser?: string) {
   return {

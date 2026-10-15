@@ -1,5 +1,5 @@
 A ChannelApp registers your own messaging-platform app (a Slack app or a
-Meta app with WhatsApp Business access) for serving agent channels.
+Meta app with WhatsApp Business access) for serving Slack and WhatsApp channels.
 Channels that reference a ChannelApp via `spec.app_ref` install through
 your app: for Slack this replaces the shared Stigmer app so the bot
 carries your name and icon and multiple agents can serve the same

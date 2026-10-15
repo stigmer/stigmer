@@ -7,7 +7,7 @@
  * button → Slack's consent page (workspace picker + Allow) → Channels
  * tab with the installed channel card.
  *
- * All console steps render the real SDK components (AgentChannelsPanel,
+ * All console steps render the real SDK components (ChannelsPanel,
  * ConnectSlackDialog); only Slack's own consent page is scenario-owned
  * JSX. The dialog's in-flight and success states are internal to the
  * component and unreachable from props, so the honest "after" state is
@@ -16,14 +16,14 @@
 
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentChannelSpecSchema, SlackChannelConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/spec_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelSpecSchema, SlackChannelConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
 import {
-  AgentChannelStatusSchema,
-  AgentChannelInstallState,
+  ChannelStatusSchema,
+  ChannelInstallState,
   SlackInstallStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
 import { samples } from "@stigmer/react/test";
 import type { ScenarioStep } from "@scenar/react";
 
@@ -52,27 +52,27 @@ export function buildDemoAgent() {
  * through the platform Stigmer app (empty channel_app_id), serving
  * switch on, workspace facts observed by the OAuth flow.
  */
-export function buildInstalledChannel(): AgentChannel {
-  return create(AgentChannelSchema, {
+export function buildInstalledChannel(): Channel {
+  return create(ChannelSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
-    kind: "AgentChannel",
+    kind: "Channel",
     metadata: {
-      id: "ach-00000000-0000-0000-0000-000000000001",
+      id: "chn-00000000-0000-0000-0000-000000000001",
       name: `${DEMO_AGENT_SLUG} Slack`,
       slug: `${DEMO_AGENT_SLUG}-slack`,
       org: DEMO_ORG,
     },
-    spec: create(AgentChannelSpecSchema, {
+    spec: create(ChannelSpecSchema, {
       agentRef: { org: DEMO_ORG, slug: DEMO_AGENT_SLUG },
       enabled: true,
-      providerConfig: {
+      type: {
         case: "slack",
         value: create(SlackChannelConfigSchema, {}),
       },
     }),
-    status: create(AgentChannelStatusSchema, {
-      installState: AgentChannelInstallState.installed,
-      providerStatus: {
+    status: create(ChannelStatusSchema, {
+      installState: ChannelInstallState.installed,
+      typeStatus: {
         case: "slack",
         value: create(SlackInstallStatusSchema, {
           teamId: "T0123ABCD",

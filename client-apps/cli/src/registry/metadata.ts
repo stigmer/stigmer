@@ -12,11 +12,11 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { MCP_SERVER_WAY_FORWARD } from "@stigmer/sdk";
 
 export interface KindMeta {
-  /** Proto kind_meta.name — also the YAML `kind` value (e.g. "AgentChannel"). */
+  /** Proto kind_meta.name — also the YAML `kind` value (e.g. "ChannelApp"). */
   readonly name: string;
-  /** Proto kind_meta.display_name (e.g. "Agent Channel"). */
+  /** Proto kind_meta.display_name (e.g. "Channel App"). */
   readonly displayName: string;
-  /** Proto kind_meta.id_prefix (e.g. "ach"): what new ids are minted with. */
+  /** Proto kind_meta.id_prefix (e.g. "chn"): what new ids are minted with. */
   readonly idPrefix: string;
   /**
    * Proto kind_meta.retired_id_prefixes: what this kind's ids were minted
@@ -65,12 +65,13 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
     { name: "Vault", displayName: "Vault", idPrefix: "vlt" },
   ],
   [
-    ApiResourceKind.agent_share,
-    { name: "AgentShare", displayName: "Agent Share", idPrefix: "ash" },
-  ],
-  [
-    ApiResourceKind.agent_channel,
-    { name: "AgentChannel", displayName: "Agent Channel", idPrefix: "ach" },
+    ApiResourceKind.channel,
+    {
+      name: "Channel",
+      displayName: "Channel",
+      idPrefix: "chn",
+      retiredIdPrefixes: ["ash", "ach"],
+    },
   ],
   [
     ApiResourceKind.channel_app,
@@ -122,8 +123,7 @@ export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [
   ApiResourceKind.federation_issuer,
   ApiResourceKind.oauth_app,
   ApiResourceKind.vault,
-  ApiResourceKind.agent_share,
-  ApiResourceKind.agent_channel,
+  ApiResourceKind.channel,
   ApiResourceKind.channel_app,
   ApiResourceKind.schedule,
   ApiResourceKind.session,
@@ -155,6 +155,14 @@ export const RETIRED_KINDS: ReadonlyMap<string, string> = new Map([
     "is no longer a Stigmer resource: logins and secrets live in vaults, which are never written as files. Save each key with `stigmer vault set-secret <NAME> --mine` (or `--vault <ref>` for a shared vault), and delete this file.",
   ],
   ["McpServer", `is no longer a Stigmer resource. ${MCP_SERVER_WAY_FORWARD}`],
+  [
+    "AgentShare",
+    "is now a channel. Rewrite the file as `kind: Channel` and move `audience`, `allowed_origins` and `messages` from `spec` under `spec.web`. A file with no `metadata.name` edited the link named after its agent: give it `metadata.name: <the agent's slug>` so it still edits that link instead of creating another. Then apply it with `stigmer apply -f <file>`.",
+  ],
+  [
+    "AgentChannel",
+    "is now a channel. Rewrite the file as `kind: Channel`, keep `spec.slack` or `spec.whatsapp`, and move `app_ref` and `proactive_messaging_enabled` from `spec` into that type (`spec.slack.app_ref`, `spec.whatsapp.app_ref`, `spec.whatsapp.proactive_messaging_enabled`), then apply it with `stigmer apply -f <file>`.",
+  ],
   [
     "Project",
     "is no longer a Stigmer resource. A folder of resources that belong together is a plugin: run `stigmer push plugin <dir>` to install it as one, or apply each resource file with `stigmer apply -f <file>`.",

@@ -61,7 +61,7 @@ import { create } from "@bufbuild/protobuf";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";

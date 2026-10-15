@@ -154,6 +154,24 @@ import {
 } from "../kind-rename.js";
 import type { KindRename, RekeyedGrant } from "../kind-rename.js";
 import {
+  CHANNEL_KIND_AT_MERGE,
+  CHANNEL_MERGE_GRANT_KIND,
+  CHANNEL_MERGE_PAGE_SIZE,
+  CHANNEL_MERGE_SESSION_KINDS,
+  MERGED_CHANNEL_KINDS,
+  assignChannelSlugs,
+  channelMergeAuditRowError,
+  channelMergePreviousNameError,
+  convertToChannel,
+  encodeChannel,
+  logChannelMerge,
+  rekeyedChannelGrant,
+  relabelChannelSessionRow,
+  unreadableChannelMergeRowError,
+} from "../channel-kinds-merged.js";
+import type { ConvertedChannel } from "../channel-kinds-merged.js";
+import { rfc3339Seconds } from "../rfc3339.js";
+import {
   AGENT_RUN_KIND,
   AGENT_RUN_RETIRED_PAGE_SIZE,
   RETIRED_WORKFLOW_KINDS,
@@ -282,8 +300,11 @@ export const SCHEMA_VERSION_35 = 35;
 /** v36: the evaluator is a scoring rule: its names. */
 export const SCHEMA_VERSION_36 = 36;
 
+/** v37: the agent share and agent channel kinds merged into the channel kind: rows, names, grants, history, conversations. */
+export const SCHEMA_VERSION_37 = 37;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_36;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_37;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -360,6 +381,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_34, migrateToV34],
       [SCHEMA_VERSION_35, migrateToV35],
       [SCHEMA_VERSION_36, migrateToV36],
+      [SCHEMA_VERSION_37, (migrating) => migrateToV37(migrating, logger)],
     ];
 
     for (const [version, migrate] of chain) {
@@ -2040,35 +2062,73 @@ async function migrateToV30(client: PoolClient): Promise<void> {
   const rename = FEDERATION_ISSUER_RENAME_V30;
   await renameKind(client, rename);
   const [fromKind, toKind] = rename.kind;
+  await rekeyGrantHistory(client, {
+    table: "iam_policy_history",
+    idColumn: "policy_id",
+    fromKinds: [fromKind],
+    toKind,
+    pageSize: KIND_RENAME_PAGE_SIZE,
+    rekey: (data) => rekeyedGrant(rename, data),
+    unreadable: (entry, error) => unreadableKindRenameRowError(rename, "iam_policy_history", entry, error),
+  });
+}
+
+/** One step's move of the permission history's entries naming renamed kinds. */
+interface GrantHistoryRekey {
+  /** The history table as the step's time named it (`iam_policy_history` until v34, `grant_history` since). */
+  readonly table: string;
+  /** The column holding each entry's grant id at the step's time (`policy_id` until v34, `grant_id` since). */
+  readonly idColumn: string;
+  /** The kinds an entry's principal or resource may name, which the step moves. */
+  readonly fromKinds: ReadonlyArray<string>;
+  /** The kind they become. */
+  readonly toKind: string;
+  readonly pageSize: number;
+  /** The re-keyed grant of an entry's copy of its grant row, or undefined when it names none of the kinds. */
+  readonly rekey: (data: Uint8Array) => RekeyedGrant | undefined;
+  /** The step's failure for an entry it cannot read, named `org/sequence`. */
+  readonly unreadable: (entry: string, error: unknown) => Error;
+}
+
+/**
+ * The permission history's entries naming one of a step's renamed kinds,
+ * moved (v30 and v36): each takes the new kind's name in its kind columns,
+ * and the id and bytes its grant was re-keyed to, so the history reads the
+ * kind by its name and a revoke after the upgrade names the id the grant's
+ * entry holds. Entries are read in keyset pages on `(org, sequence)`; their
+ * numbers and times are kept.
+ */
+async function rekeyGrantHistory(client: PoolClient, step: GrantHistoryRekey): Promise<void> {
+  const fromKinds = [...step.fromKinds];
   for (let afterOrg = "", afterSequence = 0; ; ) {
     const rows = (
       await client.query<{ org: string; sequence: string; data: Buffer }>(
-        `SELECT org, sequence, data FROM iam_policy_history
-         WHERE (principal_kind = $1 OR resource_kind = $1)
+        `SELECT org, sequence, data FROM ${step.table}
+         WHERE (principal_kind = ANY($1::text[]) OR resource_kind = ANY($1::text[]))
            AND (org COLLATE "C", sequence) > ($2 COLLATE "C", $3)
          ORDER BY org COLLATE "C", sequence
          LIMIT $4`,
-        [fromKind, afterOrg, afterSequence, KIND_RENAME_PAGE_SIZE],
+        [fromKinds, afterOrg, afterSequence, step.pageSize],
       )
     ).rows;
     for (const row of rows) {
       let grant: RekeyedGrant | undefined;
       try {
-        grant = rekeyedGrant(rename, new Uint8Array(row.data));
+        grant = step.rekey(new Uint8Array(row.data));
       } catch (error) {
-        throw unreadableKindRenameRowError(rename, "iam_policy_history", `${row.org}/${row.sequence}`, error);
+        throw step.unreadable(`${row.org}/${row.sequence}`, error);
       }
       await client.query(
-        `UPDATE iam_policy_history
-            SET principal_kind = CASE WHEN principal_kind = $1 THEN $2 ELSE principal_kind END,
-                resource_kind = CASE WHEN resource_kind = $1 THEN $2 ELSE resource_kind END,
-                policy_id = COALESCE($3, policy_id),
+        `UPDATE ${step.table}
+            SET principal_kind = CASE WHEN principal_kind = ANY($1::text[]) THEN $2 ELSE principal_kind END,
+                resource_kind = CASE WHEN resource_kind = ANY($1::text[]) THEN $2 ELSE resource_kind END,
+                ${step.idColumn} = COALESCE($3, ${step.idColumn}),
                 data = COALESCE($4, data)
           WHERE org = $5 AND sequence = $6`,
-        [fromKind, toKind, grant?.id ?? null, grant === undefined ? null : Buffer.from(grant.data), row.org, row.sequence],
+        [fromKinds, step.toKind, grant?.id ?? null, grant === undefined ? null : Buffer.from(grant.data), row.org, row.sequence],
       );
     }
-    if (rows.length < KIND_RENAME_PAGE_SIZE) {
+    if (rows.length < step.pageSize) {
       return;
     }
     const last = rows[rows.length - 1]!;
@@ -2389,4 +2449,165 @@ async function migrateToV35(client: PoolClient): Promise<void> {
  */
 async function migrateToV36(client: PoolClient): Promise<void> {
   await renameKind(client, SCORING_RULE_RENAME_V36);
+}
+
+/**
+ * v37: the agent share and agent channel kinds merge into the channel kind
+ * (../channel-kinds-merged.ts says what one row becomes, which row keeps a
+ * slug two held, and why an unreadable row fails the step).
+ *
+ * - An archived version or a previous name of either kind fails the step,
+ *   naming it: neither kind wrote one.
+ * - Every row of both kinds is read in keyset pages and converted, the
+ *   one namespace's slugs assigned, then each row leaves under its old
+ *   kind with its list keys and is written under `channel` with its id,
+ *   unproven (`updated_at` stamped), so its keys derive at open.
+ * - The names of both kinds are claimed again under `channel`, each with
+ *   the slug its row now holds and the time its old claim was made.
+ * - Every grant naming either kind is re-keyed to the channel triple's
+ *   `grt_` id, its old row leaving with its list keys and the new one
+ *   written unproven; its history entries move by v30's loop
+ *   (`rekeyGrantHistory`) on the tables v34 named.
+ * - Every conversation (session and run) a chat link's guest started takes
+ *   the channel id label in place of the share id, written unproven.
+ *
+ * Each page compares and orders `id` under the column's own collation, so
+ * the keyset is consistent whatever the database's locale. The changed
+ * slugs are logged at warn, once, as a count and a capped sample. The
+ * chain's advisory lock keeps a second instance's boot out of the step,
+ * and the transaction makes it whole or nothing.
+ */
+async function migrateToV37(client: PoolClient, logger: StoreLogger): Promise<void> {
+  const mergedKinds = [...MERGED_CHANNEL_KINDS];
+  const audit = (
+    await client.query<{ kind: string; resource_id: string }>(
+      `SELECT kind, resource_id FROM resource_audit WHERE kind = ANY($1::text[]) ORDER BY kind, resource_id LIMIT 1`,
+      [mergedKinds],
+    )
+  ).rows[0];
+  if (audit !== undefined) {
+    throw channelMergeAuditRowError(audit.kind, audit.resource_id);
+  }
+  const previous = (
+    await client.query<{ kind: string; org: string; name: string }>(
+      `SELECT kind, org, name FROM resource_names WHERE kind = ANY($1::text[]) AND state <> 'current' ORDER BY kind, org, name LIMIT 1`,
+      [mergedKinds],
+    )
+  ).rows[0];
+  if (previous !== undefined) {
+    throw channelMergePreviousNameError(previous.kind, previous.org, previous.name);
+  }
+  const claimedAt = new Map<string, string>();
+  for (const claim of (
+    await client.query<{ id: string; claimed_at: string }>(
+      `SELECT id, claimed_at FROM resource_names WHERE kind = ANY($1::text[])`,
+      [mergedKinds],
+    )
+  ).rows) {
+    claimedAt.set(claim.id, claim.claimed_at);
+  }
+
+  const forEachRow = async (
+    kind: string,
+    visit: (row: { id: string; data: Uint8Array }) => Promise<void> | void,
+  ): Promise<void> => {
+    for (let after = ""; ; ) {
+      const rows = (
+        await client.query<{ id: string; data: Buffer }>(
+          `SELECT id, data FROM resources
+           WHERE kind = $1 AND id > $2
+           ORDER BY id
+           LIMIT $3`,
+          [kind, after, CHANNEL_MERGE_PAGE_SIZE],
+        )
+      ).rows;
+      for (const row of rows) {
+        await visit({ id: row.id, data: new Uint8Array(row.data) });
+      }
+      if (rows.length < CHANNEL_MERGE_PAGE_SIZE) {
+        return;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  };
+
+  const converted: ConvertedChannel[] = [];
+  for (const kind of MERGED_CHANNEL_KINDS) {
+    await forEachRow(kind, (row) => {
+      try {
+        converted.push(convertToChannel(kind, row.id, row.data));
+      } catch (error) {
+        throw unreadableChannelMergeRowError(kind, row.id, error);
+      }
+    });
+  }
+  const changedSlugs = assignChannelSlugs(converted);
+  const now = rfc3339Seconds(new Date());
+  await client.query(`DELETE FROM resource_names WHERE kind = ANY($1::text[])`, [mergedKinds]);
+  await client.query(`DELETE FROM resource_list_keys WHERE kind = ANY($1::text[])`, [mergedKinds]);
+  for (const row of converted) {
+    const slug = changedSlugs.get(row.id) ?? row.slug;
+    await client.query(`DELETE FROM resources WHERE kind = $1 AND id = $2`, [row.fromKind, row.id]);
+    await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, now())`, [
+      CHANNEL_KIND_AT_MERGE,
+      row.id,
+      Buffer.from(encodeChannel(row, slug)),
+    ]);
+    if (slug !== "") {
+      await client.query(
+        `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ($1, $2, $3, $4, 'current', $5)`,
+        [CHANNEL_KIND_AT_MERGE, row.org, slug, row.id, claimedAt.get(row.id) ?? now],
+      );
+    }
+  }
+
+  const rekeyed: Array<{ from: string; grant: RekeyedGrant }> = [];
+  await forEachRow(CHANNEL_MERGE_GRANT_KIND, (row) => {
+    try {
+      const grant = rekeyedChannelGrant(row.data);
+      if (grant !== undefined) {
+        rekeyed.push({ from: row.id, grant });
+      }
+    } catch (error) {
+      throw unreadableChannelMergeRowError(CHANNEL_MERGE_GRANT_KIND, row.id, error);
+    }
+  });
+  for (const { from, grant } of rekeyed) {
+    for (const table of ["resource_list_keys", "resources"]) {
+      await client.query(`DELETE FROM ${table} WHERE kind = $1 AND id = $2`, [CHANNEL_MERGE_GRANT_KIND, from]);
+    }
+    await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, now())`, [
+      CHANNEL_MERGE_GRANT_KIND,
+      grant.id,
+      Buffer.from(grant.data),
+    ]);
+  }
+  await rekeyGrantHistory(client, {
+    table: "grant_history",
+    idColumn: "grant_id",
+    fromKinds: mergedKinds,
+    toKind: CHANNEL_KIND_AT_MERGE,
+    pageSize: CHANNEL_MERGE_PAGE_SIZE,
+    rekey: rekeyedChannelGrant,
+    unreadable: (entry, error) => unreadableChannelMergeRowError("grant_history", entry, error),
+  });
+
+  for (const kind of CHANNEL_MERGE_SESSION_KINDS) {
+    await forEachRow(kind, async (row) => {
+      let relabelled: Uint8Array | undefined;
+      try {
+        relabelled = relabelChannelSessionRow(kind, row.data);
+      } catch (error) {
+        throw unreadableChannelMergeRowError(kind, row.id, error);
+      }
+      if (relabelled !== undefined) {
+        await client.query(`UPDATE resources SET data = $1, updated_at = now() WHERE kind = $2 AND id = $3`, [
+          Buffer.from(relabelled),
+          kind,
+          row.id,
+        ]);
+      }
+    });
+  }
+  logChannelMerge(logger, converted, changedSlugs);
 }

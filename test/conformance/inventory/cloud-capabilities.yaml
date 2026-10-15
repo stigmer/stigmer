@@ -1967,4 +1967,4 @@ metrics:
     surface: billing
     disposition: dropped
     note: >-
-      Emitted by Java's agentic-domain BOOT CHECK (a channel, schedule or guest model pin the registry no longer knows), never by billing code — it carries the billing prefix only because the registry is billing's. The composition validates model pins at write time in the surfaces that own them (channels/model-pinning.ts; the OSS schedule and agentchannel steps) and has no boot-time sweep to attach the counter to; no alert reads it. A boot check, if one is wanted, belongs to the pin-owning surfaces, not to a billing metric.
+      Emitted by Java's agentic-domain BOOT CHECK (a channel, schedule or guest model pin the registry no longer knows), never by billing code — it carries the billing prefix only because the registry is billing's. The composition validates model pins at write time in the surfaces that own them (channels/model-pinning.ts; the OSS schedule and channel steps) and has no boot-time sweep to attach the counter to; no alert reads it. A boot check, if one is wanted, belongs to the pin-owning surfaces, not to a billing metric.

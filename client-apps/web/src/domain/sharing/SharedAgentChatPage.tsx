@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "next-themes";
 import { create } from "@bufbuild/protobuf";
-import { GetSharedProfileRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
+import { GetChannelAgentProfileRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
 import {
   LINK_TOKEN_PARAM,
   Stigmer,
@@ -20,7 +20,7 @@ import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam"
 
 /**
  * Hosted chat page for a shared agent —
- * `/chat/<share id>`, the URL behind an agent's Share toggle and the
+ * `/chat/<channel id>` (a web channel's id), the URL behind an agent's Share toggle and the
  * page the `<stigmer-agent>` embed widget frames.
  *
  * Renders on an auth-OPTIONAL route (see `Providers.tsx`
@@ -39,22 +39,22 @@ import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam"
  *   renders the pure-chat surface, including the unavailable state.
  *
  * Audience routing (standalone page): the page probes the anonymous
- * `getSharedProfile` once. A hit means a public share — the current
+ * `getAgentProfile` once. A hit means a public chat link — the current
  * guest flow, zero login. A NOT_FOUND is deliberately ambiguous (no such
  * agent, unshared, org-members-only, or a token-locked link without its
  * `?k=` token), so the page offers "sign in if you have access": a
  * signed-in member's `SharedAgentChat sharingAudience="org"` resolves
- * through the authenticated `getSharedProfileForMember` and chats with
+ * through the authenticated `getAgentProfileForMember` and chats with
  * the member's own token — membership is re-checked server-side on
  * every turn.
  *
- * Locked links: when the share URL carries `?k=<token>` (an owner reset
+ * Locked links: when the chat URL carries `?k=<token>` (an owner reset
  * the link), the token rides the probe, the guest mint, and the profile
  * fetch. The server validates it everywhere; the page just forwards it.
  *
  * Embedded flow (public shares only — org shares refuse the guest mint):
  * the discovered parent origin rides the mint request, where the server
- * validates it against the share's `allowed_origins` and stamps it into
+ * validates it against the web channel's `allowed_origins` and stamps it into
  * the guest JWT. The mint is eager (unlike the standalone page's lazy
  * first-RPC mint) so a disallowed or unavailable embed hides before the
  * visitor types anything, instead of failing on their first message.
@@ -76,9 +76,10 @@ type EmbedPhase =
 type AccessPath = "probing" | "guest" | "member";
 
 export default function SharedAgentChatPage() {
-  // The link names only the share, by its permanent id; its organization
-  // comes from the resolved profile.
-  const shareId = useStaticRouteParam("share", 1);
+  // The link names only the web channel, by its permanent id (the route
+  // segment keeps its `share` name: the URL is unchanged); its
+  // organization comes from the resolved profile.
+  const channelId = useStaticRouteParam("share", 1);
   const linkToken = useLinkTokenParam();
   const colorMode = usePageColorMode();
   const auth = useAuth();
@@ -100,19 +101,19 @@ export default function SharedAgentChatPage() {
     };
   }, [phase.kind]);
 
-  // Standalone audience probe: one anonymous getSharedProfile decides
+  // Standalone audience probe: one anonymous getAgentProfile decides
   // guest vs member. Embeds skip it — they are public-audience only.
   const [accessPath, setAccessPath] = useState<AccessPath>("probing");
   useEffect(() => {
-    if (phase.kind !== "standalone" || !shareId) return;
+    if (phase.kind !== "standalone" || !channelId) return;
     let cancelled = false;
     const anon = new Stigmer({
       baseUrl: getApiBaseUrl(),
       getAccessToken: () => null,
     });
-    anon.agentShare
-      .getSharedProfile(
-        create(GetSharedProfileRequestSchema, { shareId, linkToken }),
+    anon.channel
+      .getAgentProfile(
+        create(GetChannelAgentProfileRequestSchema, { channelId, linkToken }),
       )
       .then(
         () => {
@@ -131,18 +132,18 @@ export default function SharedAgentChatPage() {
     return () => {
       cancelled = true;
     };
-  }, [phase.kind, shareId, linkToken]);
+  }, [phase.kind, channelId, linkToken]);
 
-  // One guest-auth manager + client per share (+ embed
+  // One guest-auth manager + client per channel (+ embed
   // context). Standalone pages mint lazily on the first RPC, so nothing
   // happens on the network until the page actually renders the chat.
   const guestRuntime = useMemo(() => {
-    if (!shareId) return null;
+    if (!channelId) return null;
     if (phase.kind === "resolving" || phase.kind === "refused") return null;
     const baseUrl = getApiBaseUrl();
     const guestAuth = createGuestAuth({
       baseUrl,
-      shareId,
+      channelId,
       // Required on locked links; harmless (ignored server-side) on plain ones.
       ...(linkToken ? { linkToken } : {}),
       // Absent on the standalone page — the server's absence-means-exempt
@@ -154,7 +155,7 @@ export default function SharedAgentChatPage() {
       getAccessToken: guestAuth.getAccessToken,
     });
     return { client, guestAuth };
-  }, [shareId, linkToken, phase]);
+  }, [channelId, linkToken, phase]);
 
   // The member client carries the signed-in member's own token. Rebuilt
   // on token renewal, mirroring StigmerTransportBridge on authenticated
@@ -200,7 +201,7 @@ export default function SharedAgentChatPage() {
   // rather than a flash of the unavailable state. Refused embeds also
   // render nothing: the loader hides the element, and a blank frame is
   // the graceful fallback for hosts that ignore the protocol.
-  if (!shareId || !guestRuntime) {
+  if (!channelId || !guestRuntime) {
     return null;
   }
 
@@ -229,7 +230,7 @@ export default function SharedAgentChatPage() {
         preset="monochrome"
       >
         <div className="h-screen bg-background text-foreground">
-          <SharedAgentChat shareId={shareId} sharingAudience="org" />
+          <SharedAgentChat channelId={channelId} sharingAudience="org" />
         </div>
       </StigmerProvider>
     );
@@ -249,7 +250,7 @@ export default function SharedAgentChatPage() {
       preset="monochrome"
     >
       <div className="h-screen bg-background text-foreground">
-        <SharedAgentChat shareId={shareId} linkToken={linkToken} />
+        <SharedAgentChat channelId={channelId} linkToken={linkToken} />
       </div>
     </StigmerProvider>
   );

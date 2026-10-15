@@ -39,8 +39,6 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
@@ -56,7 +54,9 @@ import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 
 import {
+  FrozenAgentChannelSchema,
   FrozenAgentEvalEnvelopeSchema,
+  FrozenAgentShareSchema,
   FrozenPlatformClientEnvelopeSchema,
   FrozenPluginEvalEnvelopeSchema,
 } from "./frozen-envelopes.js";
@@ -78,8 +78,8 @@ export interface NamedKindAtBackfill {
 export const NAMED_KINDS_AT_BACKFILL: ReadonlyArray<NamedKindAtBackfill> = [
   { kind: "agent", schema: AgentSchema },
   { kind: "agent_eval", schema: FrozenAgentEvalEnvelopeSchema },
-  { kind: "agent_channel", schema: AgentChannelSchema },
-  { kind: "agent_share", schema: AgentShareSchema },
+  { kind: "agent_channel", schema: FrozenAgentChannelSchema },
+  { kind: "agent_share", schema: FrozenAgentShareSchema },
   { kind: "channel_app", schema: ChannelAppSchema },
   { kind: "evaluator", schema: ScoringRuleSchema },
   {

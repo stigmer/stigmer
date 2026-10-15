@@ -37,16 +37,16 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | AgentQueryController.list | `org` |
 | AgentQueryController.listVersions | `org` |
 
-## `ai.stigmer.agentic.agentchannel.v1`
+## `ai.stigmer.agentic.channel.v1`
 
 | Method | Organization fields |
 |---|---|
-| AgentChannelCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.vaults.org`, `spec.app_ref.org` |
-| AgentChannelCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.vaults.org`, `spec.app_ref.org` |
-| AgentChannelCommandController.update | `resource.metadata.org`, `resource.spec.agent_ref.org`, `resource.spec.vaults.org`, `resource.spec.app_ref.org` |
-| AgentChannelQueryController.listByAgent | `org` |
-| AgentChannelQueryController.getByReference | `org` |
-| AgentChannelQueryController.list | `org` |
+| ChannelCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.vaults.org`, `spec.slack.app_ref.org`, `spec.whatsapp.app_ref.org` |
+| ChannelCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.vaults.org`, `spec.slack.app_ref.org`, `spec.whatsapp.app_ref.org` |
+| ChannelCommandController.update | `resource.metadata.org`, `resource.spec.agent_ref.org`, `resource.spec.vaults.org`, `resource.spec.slack.app_ref.org`, `resource.spec.whatsapp.app_ref.org` |
+| ChannelQueryController.listByAgent | `org` |
+| ChannelQueryController.getByReference | `org` |
+| ChannelQueryController.list | `org` |
 | ChannelConversationQueryController.countConversations | `org` |
 | ChannelConversationQueryController.list | `org` |
 | ChannelMessageCommandController.sendMessage | `org` |
@@ -63,17 +63,6 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | RunQueryController.getRunSummary | `org` |
 | RunQueryController.getOrgUsageReport | `org` |
 | RunQueryController.list | `org` |
-
-## `ai.stigmer.agentic.agentshare.v1`
-
-| Method | Organization fields |
-|---|---|
-| AgentShareCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.vaults.org` |
-| AgentShareCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.vaults.org` |
-| AgentShareCommandController.update | `resource.metadata.org`, `resource.spec.agent_ref.org`, `resource.spec.vaults.org` |
-| AgentShareQueryController.listByAgent | `org` |
-| AgentShareQueryController.getByReference | `org` |
-| AgentShareQueryController.list | `org` |
 
 ## `ai.stigmer.agentic.channelapp.v1`
 

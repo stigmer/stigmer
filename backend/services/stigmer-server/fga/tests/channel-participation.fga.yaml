@@ -75,21 +75,21 @@ tuples:
     relation: affiliated
     object: organization:rival
 
-  # --- The AgentChannel (tuples written on create: org link + creator owner) ---
+  # --- The channel (tuples written on create: org link + creator owner) ---
   - user: organization:acme
     relation: organization
-    object: agent_channel:wa-line
+    object: channel:wa-line
   - user: identity_account:bob
     relation: owner
-    object: agent_channel:wa-line
+    object: channel:wa-line
 
   # --- The participant grants (Grant-written: participant vs plain viewer) ---
   - user: identity_account:trina
     relation: participant
-    object: agent_channel:wa-line
+    object: channel:wa-line
   - user: identity_account:carol
     relation: viewer
-    object: agent_channel:wa-line
+    object: channel:wa-line
 
   # --- A channel session (owned by the org's system-channel account) ---
   - user: organization:acme
@@ -99,7 +99,7 @@ tuples:
     relation: owner
     object: session:member-chat
   # The structural link written by ChannelSessionLinkStep:
-  - user: agent_channel:wa-line
+  - user: channel:wa-line
     relation: channel
     object: session:member-chat
 
@@ -115,7 +115,7 @@ tests:
   - name: a granted participant may read and speak but never configure
     check:
       - user: identity_account:trina
-        object: agent_channel:wa-line
+        object: channel:wa-line
         assertions:
           can_view: true
           can_participate: true
@@ -127,7 +127,7 @@ tests:
   - name: a granted viewer may read but never speak — read and speak are different powers
     check:
       - user: identity_account:carol
-        object: agent_channel:wa-line
+        object: channel:wa-line
         assertions:
           can_view: true
           can_participate: false
@@ -136,7 +136,7 @@ tests:
   - name: the channel owner participates without an explicit tuple
     check:
       - user: identity_account:bob
-        object: agent_channel:wa-line
+        object: channel:wa-line
         assertions:
           can_view: true
           can_participate: true
@@ -147,7 +147,7 @@ tests:
   - name: an org admin participates through owner inheritance, no tuple needed
     check:
       - user: identity_account:alice
-        object: agent_channel:wa-line
+        object: channel:wa-line
         assertions:
           can_view: true
           can_participate: true
@@ -156,7 +156,7 @@ tests:
   - name: a plain org member has no access of any kind
     check:
       - user: identity_account:dave
-        object: agent_channel:wa-line
+        object: channel:wa-line
         assertions:
           can_view: false
           can_participate: false
@@ -168,7 +168,7 @@ tests:
   - name: a foreign org admin has no access of any kind
     check:
       - user: identity_account:eve
-        object: agent_channel:wa-line
+        object: channel:wa-line
         assertions:
           can_view: false
           can_participate: false
@@ -196,20 +196,20 @@ tests:
   - name: list viewable and participable channels resolve per grant (drives listConversations)
     list_objects:
       - user: identity_account:trina
-        type: agent_channel
+        type: channel
         assertions:
           can_view:
-            - agent_channel:wa-line
+            - channel:wa-line
           can_participate:
-            - agent_channel:wa-line
+            - channel:wa-line
       - user: identity_account:carol
-        type: agent_channel
+        type: channel
         assertions:
           can_view:
-            - agent_channel:wa-line
+            - channel:wa-line
           can_participate: []
       - user: identity_account:dave
-        type: agent_channel
+        type: channel
         assertions:
           can_view: []
           can_participate: []

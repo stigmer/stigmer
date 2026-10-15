@@ -9,7 +9,7 @@
  * with the installed channel card → WhatsApp on a phone: a person texts
  * the number and the agent replies.
  *
- * All console steps render the real SDK components (AgentChannelsPanel,
+ * All console steps render the real SDK components (ChannelsPanel,
  * ConnectWhatsAppDialog); only the phone-side WhatsApp conversation is
  * scenario-owned JSX. Unlike Slack there is no consent page — the direct
  * install completes in the dialog — so the phone steps carry the payoff
@@ -21,17 +21,17 @@
 
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import {
-  AgentChannelSpecSchema,
+  ChannelSpecSchema,
   WhatsAppChannelConfigSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/spec_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
 import {
-  AgentChannelStatusSchema,
-  AgentChannelInstallState,
+  ChannelStatusSchema,
+  ChannelInstallState,
   WhatsAppInstallStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import {
@@ -69,7 +69,7 @@ export function buildDemoAgent() {
 /**
  * The org's registered Meta app. Present in every step (not just the
  * dialog): the panel resolves the installed card's serving-app NAME by
- * matching `spec.app_ref.slug` against this list — an empty list would
+ * matching `spec.whatsapp.app_ref.slug` against this list — an empty list would
  * render the raw slug. Secrets carry the server's redaction marker,
  * matching what a real list response looks like.
  */
@@ -102,30 +102,30 @@ export function buildWhatsAppApp(): ChannelApp {
  * through the org's own Meta app (WhatsApp is BYO-only), serving switch
  * on, number facts observed by the install probe echoed into status.
  */
-export function buildInstalledChannel(): AgentChannel {
-  return create(AgentChannelSchema, {
+export function buildInstalledChannel(): Channel {
+  return create(ChannelSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
-    kind: "AgentChannel",
+    kind: "Channel",
     metadata: {
-      id: "ach-00000000-0000-0000-0000-000000000002",
+      id: "chn-00000000-0000-0000-0000-000000000002",
       name: `${DEMO_AGENT_SLUG} WhatsApp`,
       slug: `${DEMO_AGENT_SLUG}-whatsapp`,
       org: DEMO_ORG,
     },
-    spec: create(AgentChannelSpecSchema, {
+    spec: create(ChannelSpecSchema, {
       agentRef: { org: DEMO_ORG, slug: DEMO_AGENT_SLUG },
       enabled: true,
-      providerConfig: {
+      type: {
         case: "whatsapp",
         value: create(WhatsAppChannelConfigSchema, {
           phoneNumberId: DEMO_PHONE_NUMBER_ID,
+          appRef: { org: DEMO_ORG, slug: DEMO_APP_SLUG },
         }),
       },
-      appRef: { org: DEMO_ORG, slug: DEMO_APP_SLUG },
     }),
-    status: create(AgentChannelStatusSchema, {
-      installState: AgentChannelInstallState.installed,
-      providerStatus: {
+    status: create(ChannelStatusSchema, {
+      installState: ChannelInstallState.installed,
+      typeStatus: {
         case: "whatsapp",
         value: create(WhatsAppInstallStatusSchema, {
           phoneNumberId: DEMO_PHONE_NUMBER_ID,

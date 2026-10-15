@@ -17,9 +17,9 @@ import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
-import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/command_pb";
+import { ChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/query_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
@@ -56,8 +56,8 @@ const knownVault = create(VaultSchema, {
   metadata: { name: "Clinic tools", slug: "clinic-tools", org: "acme", id: "vlt_1" },
 });
 
-const knownChannel = create(AgentChannelSchema, {
-  metadata: { name: "clinic-patient-whatsapp", slug: "clinic-patient-whatsapp", org: "acme", id: "ach_1" },
+const knownChannel = create(ChannelSchema, {
+  metadata: { name: "clinic-patient-whatsapp", slug: "clinic-patient-whatsapp", org: "acme", id: "chn_1" },
 });
 
 const knownChannelApp = create(ChannelAppSchema, {
@@ -97,7 +97,7 @@ let agentTagCalls: { agentId: string; versionHash: string; tag: string }[] = [];
 // Force-carrying deletes record what actually rode the RPC.
 let vaultDeletes: { resourceId: string; force: boolean }[] = [];
 let channelAppDeletes: { resourceId: string; force: boolean }[] = [];
-// agent_channel and schedule delete by typed ID — no force field exists on
+// channel and schedule delete by typed ID — no force field exists on
 // their wire contracts.
 let channelDeleteIds: string[] = [];
 let scheduleDeleteIds: string[] = [];
@@ -145,13 +145,13 @@ beforeAll(async () => {
       },
     });
 
-    router.service(AgentChannelQueryController, {
+    router.service(ChannelQueryController, {
       getByReference: (req) => {
-        if (req.slug !== "clinic-patient-whatsapp") throw new ConnectError("agent channel not found", Code.NotFound);
+        if (req.slug !== "clinic-patient-whatsapp") throw new ConnectError("channel not found", Code.NotFound);
         return knownChannel;
       },
     });
-    router.service(AgentChannelCommandController, {
+    router.service(ChannelCommandController, {
       delete: (req) => {
         channelDeleteIds.push(req.value);
         return knownChannel;
@@ -296,7 +296,7 @@ describe("delete (standard kinds)", () => {
     const message = String(err.message);
     for (const wired of [
       "vault",
-      "agentchannel",
+      "channel",
       "channelapp",
       "schedule",
       "run",
@@ -350,7 +350,7 @@ describe("delete (organization)", () => {
   });
 });
 
-describe("delete (cutover kinds: vault, agent channel, channel app)", () => {
+describe("delete (cutover kinds: vault, channel, channel app)", () => {
   it("deletes a vault via the DeleteResourceInput shape", async () => {
     const plan = await planDelete(client, "vault", "clinic-tools", "acme");
     const result = await plan.perform();
@@ -366,8 +366,8 @@ describe("delete (cutover kinds: vault, agent channel, channel app)", () => {
     expect(vaultDeletes).toEqual([{ resourceId: "vlt_1", force: true }]);
   });
 
-  it("deletes an agent channel via its typed-ID contract, ignoring force gracefully", async () => {
-    const plan = await planDelete(client, "agent-channel", "clinic-patient-whatsapp", "acme", true);
+  it("deletes a channel via its typed-ID contract, ignoring force gracefully", async () => {
+    const plan = await planDelete(client, "channel", "clinic-patient-whatsapp", "acme", true);
 
     // The teardown-vs-pause distinction rides the warning (server doc contract).
     expect(plan.warning.hints).toContain(
@@ -376,8 +376,8 @@ describe("delete (cutover kinds: vault, agent channel, channel app)", () => {
 
     const result = await plan.perform();
     expect(result.status).toBe("success");
-    expect(result.message).toBe("Agent Channel deleted successfully");
-    expect(channelDeleteIds).toEqual(["ach_1"]);
+    expect(result.message).toBe("Channel deleted successfully");
+    expect(channelDeleteIds).toEqual(["chn_1"]);
   });
 
   it("deletes a channel app via the DeleteResourceInput shape", async () => {

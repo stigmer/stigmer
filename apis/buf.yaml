@@ -29,17 +29,52 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
-  # One pull request made before launch renames the Evaluator kind
-  # ScoringRule (agentic/scoringrule/v1): the kind's value 62 keeps its
-  # number under the name scoring_rule, and the evaluator package's files
-  # move with every field and value number kept. The release notes name it
-  # under Upgrading. This block exists for that one pull request. While it
-  # stays, buf breaking does not report these rules on the listed files, so
-  # the pull request that removes it lands straight after the merge.
+  # Two pull requests made before launch change the contract in ways buf
+  # breaking reports, each named under Upgrading in its release notes:
+  # - the Evaluator kind is renamed ScoringRule (agentic/scoringrule/v1):
+  #   the kind's value 62 keeps its number under the name scoring_rule, and
+  #   the evaluator package's files move with every field and value number
+  #   kept;
+  # - one Channel kind (agentic/channel/v1) replaces the AgentShare and
+  #   AgentChannel kinds: the share kind's value and its create permission
+  #   are reserved, the channel kind and its create permission renamed with
+  #   their numbers kept, both packages removed, and the guest token
+  #   request's share id renamed channel_id, number kept.
+  # This block exists for those pull requests. While it stays, buf breaking
+  # does not report these rules on the listed files, so the pull request
+  # that removes it lands straight after the merge.
   ignore_only:
+    ENUM_VALUE_NO_DELETE:
+      - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
+      - ai/stigmer/iam/v1/enum.proto
     ENUM_VALUE_SAME_NAME:
       - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
+      - ai/stigmer/iam/v1/enum.proto
+    FIELD_SAME_JSON_NAME:
+      - ai/stigmer/iam/token/v1/token.proto
+    FIELD_SAME_NAME:
+      - ai/stigmer/iam/token/v1/token.proto
     FILE_NO_DELETE:
+      - ai/stigmer/agentic/agentchannel/v1/api.proto
+      - ai/stigmer/agentic/agentchannel/v1/command.proto
+      - ai/stigmer/agentic/agentchannel/v1/conversation_command.proto
+      - ai/stigmer/agentic/agentchannel/v1/conversation_io.proto
+      - ai/stigmer/agentic/agentchannel/v1/conversation_query.proto
+      - ai/stigmer/agentic/agentchannel/v1/delivery.proto
+      - ai/stigmer/agentic/agentchannel/v1/io.proto
+      - ai/stigmer/agentic/agentchannel/v1/message_command.proto
+      - ai/stigmer/agentic/agentchannel/v1/message_io.proto
+      - ai/stigmer/agentic/agentchannel/v1/message_query.proto
+      - ai/stigmer/agentic/agentchannel/v1/outbound.proto
+      - ai/stigmer/agentic/agentchannel/v1/query.proto
+      - ai/stigmer/agentic/agentchannel/v1/spec.proto
+      - ai/stigmer/agentic/agentchannel/v1/status.proto
+      - ai/stigmer/agentic/agentshare/v1/api.proto
+      - ai/stigmer/agentic/agentshare/v1/command.proto
+      - ai/stigmer/agentic/agentshare/v1/io.proto
+      - ai/stigmer/agentic/agentshare/v1/query.proto
+      - ai/stigmer/agentic/agentshare/v1/spec.proto
+      - ai/stigmer/agentic/agentshare/v1/status.proto
       - ai/stigmer/agentic/evaluator/v1/api.proto
       - ai/stigmer/agentic/evaluator/v1/command.proto
       - ai/stigmer/agentic/evaluator/v1/io.proto

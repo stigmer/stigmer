@@ -1,0 +1,20 @@
+{
+  "name": "SlackChannelConfig",
+  "description": "SlackChannelConfig is a Slack channel's settings.\n\n With the shared Stigmer Slack app there is nothing to declare before\n installing: the workspace identity, bot user and granted scopes are\n observed during the OAuth install and recorded in status.",
+  "protoType": "ai.stigmer.agentic.channel.v1.SlackChannelConfig",
+  "protoFile": "apis/ai/stigmer/agentic/channel/v1/spec.proto",
+  "fields": [
+    {
+      "name": "AppRef",
+      "jsonName": "appRef",
+      "protoField": "app_ref",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceReference"
+      },
+      "description": "The ChannelApp this channel installs through.\n\n Absent means the platform's shared Stigmer app, the zero-setup\n default. Set it to install through your own Slack app instead: the bot\n carries the app's name and icon, and each app is its own bot identity,\n so several agents can serve one workspace.",
+      "required": false,
+      "referenceKind": 48
+    }
+  ]
+}

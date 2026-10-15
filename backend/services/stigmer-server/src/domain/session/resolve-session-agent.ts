@@ -4,7 +4,7 @@
  * status.agent_id and status.agent_version_hash. Every turn reaches its
  * agent through that pair by point read, so a version the author saves
  * later never changes an open conversation, and a slug deleted and taken by
- * another agent never redirects it (the share's pin, for the same reason).
+ * another agent never redirects it.
  *
  * The rule, on create, update and apply alike:
  *   - a write naming no agent clears the pin: the built-in assistant. A

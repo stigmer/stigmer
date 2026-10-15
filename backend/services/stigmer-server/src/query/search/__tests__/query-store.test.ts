@@ -192,7 +192,7 @@ describe("write→index→query pins (Go's query_test.go)", () => {
     for (const query of ["", "acme"]) {
       const result = await queryStore.search(
         criteria({
-          kinds: [ApiResourceKind.agent_channel],
+          kinds: [ApiResourceKind.channel],
           query,
           org: "acme",
         }),

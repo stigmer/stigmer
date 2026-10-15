@@ -1,0 +1,216 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.channel.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// ChannelDelivery tracks the delivery of one agent reply to one external
+// conversation.
+//
+// @internal
+// Infrastructure-only. Not a public API resource — no kind, no apiVersion,
+// no CRUD RPCs, no FGA.
+// Stored by the serving edition's channel runtime; the reply lane's
+// correctness backbone. Created at webhook time in the same motion as the
+// Session/Run; claimed atomically by the delivery worker with a
+// status-guarded update; swept for runs whose terminal write raced or
+// bypassed the hook.
+message ChannelDelivery {
+  // Unique delivery identifier.
+  string delivery_id = 1;
+
+  // Channel connection this delivery belongs to.
+  string channel_id = 2;
+
+  // Organization that owns the connection (billing org).
+  // Denormalized from the channel so sweep/worker paths never join.
+  string org = 3;
+
+  // Run whose terminal result this delivery carries.
+  string run_id = 4;
+
+  // Session the run belongs to (conversation continuity + audit).
+  string session_id = 5;
+
+  // Provider-neutral conversation key (the DM thread
+  // timestamp or the mention thread_ts, per mapping).
+  string conversation_key = 6;
+
+  // External user key (e.g. Slack user id) the reply is for.
+  string external_user_key = 7;
+
+  // Delivery lifecycle status.
+  ChannelDeliveryStatus status = 8;
+
+  // Number of delivery attempts made.
+  int32 attempts = 9;
+
+  // Last delivery error, empty unless a delivery attempt failed.
+  string last_error = 10;
+
+  // Idempotency key for outbound provider calls (stable across retries).
+  string idempotency_key = 11;
+
+  // Provider-specific context needed to deliver the reply.
+  oneof delivery_context {
+    // Slack delivery context.
+    SlackDeliveryContext slack = 12;
+
+    // WhatsApp delivery context.
+    WhatsAppDeliveryContext whatsapp = 16;
+  }
+
+  // When the delivery record was created (webhook time).
+  google.protobuf.Timestamp created_at = 13;
+
+  // When the record was last transitioned.
+  google.protobuf.Timestamp updated_at = 14;
+
+  // Earliest time of the next delivery attempt (backoff schedule).
+  google.protobuf.Timestamp next_attempt_at = 15;
+
+  // The reply text as rendered for the external user, recorded when the
+  // delivery reached a terminal status. Empty while pending/delivering, and
+  // on rows terminal before this field existed.
+  //
+  // @internal
+  // The conversation timeline renders agent replies from THIS field, never
+  // by re-running ChannelReplyExtractor at read time — the extractor's
+  // error/cancelled/limit copy constants change over releases, and a
+  // re-derivation would attribute today's words to yesterday's send.
+  // Written by the processor on markDelivered AND markFailed (a
+  // dead-lettered reply's text is what a human taking over needs to see);
+  // deliberately not on markRetry, which is non-terminal and re-extracts.
+  string reply_text = 17;
+
+  // Why the delivery FAILED, in the platform's classification. Unspecified
+  // unless status is failed (and on rows terminal before this field
+  // existed).
+  //
+  // @internal
+  // The classification that
+  // decides whether the failure's explanation may reach the conversation
+  // timeline. Written only by markFailed and the delete cascade, never by
+  // markRetry — a scheduled retry is not a verdict.
+  ChannelAttemptFailureKind failure_kind = 18;
+
+  // The thread-safe explanation of a FAILED delivery, when one was
+  // authored for the conversation surface. Empty unless failure_kind is
+  // attempt_refused or attempt_withdrawn.
+  //
+  // @internal
+  // PLATFORM-authored copy, unlike the outbound ledger's
+  // provider-owned receipt_detail. The write side is the guarantee: only
+  // the refusal and withdrawal arms carry copy here, so raw exception
+  // text (which stays in last_error, an operator-only fact) can
+  // structurally never reach the timeline relay.
+  string attempt_detail = 19;
+}
+
+// ChannelDeliveryStatus is the delivery record lifecycle.
+//
+// @internal
+// pending -> delivering is the atomic claim (single winner across
+// replicas). delivering -> delivered | pending (retry, with backoff via
+// next_attempt_at) | failed (dead-lettered after max attempts, or
+// immediately on a known-terminal provider refusal) |
+// suppressed (withheld under human control; terminal, intended
+// behavior, never an alert condition).
+enum ChannelDeliveryStatus {
+  // Default value when no status is set.
+  channel_delivery_status_unspecified = 0;
+
+  // Awaiting the run's terminal phase, or awaiting (re)claim.
+  pending = 1;
+
+  // Claimed by a delivery worker; provider I/O in flight.
+  delivering = 2;
+
+  // Reply delivered to the provider.
+  delivered = 3;
+
+  // Dead-lettered: attempts were exhausted, or the provider's verdict was
+  // known-terminal and retries were skipped (attempts can be 1);
+  // last_error records why.
+  failed = 4;
+
+  // Withheld because a human held the conversation when the reply came
+  // due; the customer never received it.
+  //
+  // @internal
+  // Terminal like delivered/failed,
+  // but intended behavior — a suppressed settle records its own metric
+  // and never feeds the bad-turn alert. The reply text is deliberately
+  // NOT extracted or persisted (the customer never saw any words, and
+  // the timeline's reply lane excludes this status by contract).
+  suppressed = 5;
+}
+
+// ChannelAttemptFailureKind classifies WHY a send attempt reached
+// status failed — and with it, whether the failure's stored explanation
+// was authored for the conversation surface (attempt_detail) or is an
+// operator-only diagnostic (last_error).
+//
+// @internal
+// Values carry the attempt_ prefix because proto3 enum values
+// are package-scoped — and, as with ChannelReceiptState's receipt_
+// prefix, that is also a feature: the attempt axis and the receipt axis
+// can never be confused on the wire. Shared by ChannelDelivery and
+// ChannelOutboundMessage exactly like ChannelDeliveryStatus (a twin
+// enum would not compile).
+enum ChannelAttemptFailureKind {
+  // Default value when no classification is set (non-failed rows, and
+  // rows that failed before this classification existed).
+  attempt_failure_unspecified = 0;
+
+  // The provider terminally refused the send; attempt_detail carries
+  // the platform's mapped human explanation (e.g. the 24-hour
+  // customer-service-window copy for WhatsApp code 131047).
+  attempt_refused = 1;
+
+  // A technical failure (transport error, unexpected provider error,
+  // unresolvable credentials — exhausted retries or unattemptable at
+  // the first try). attempt_detail is EMPTY by construction; the raw
+  // diagnostic lives in last_error and never reaches the thread.
+  attempt_errored = 2;
+
+  // The platform withdrew the send for a structural reason;
+  // attempt_detail carries the short fact ("channel deleted",
+  // "run no longer exists").
+  attempt_withdrawn = 3;
+}
+
+// SlackDeliveryContext carries what the Slack deliverer needs to post or
+// update the reply.
+message SlackDeliveryContext {
+  // Slack channel (conversation) id the reply posts to.
+  string channel_id = 1;
+
+  // Thread timestamp to reply under; empty for plain DM replies.
+  string thread_ts = 2;
+
+  // Timestamp of the placeholder ("thinking") message to chat.update.
+  //
+  // @internal
+  // Set on the @mention and degraded-DM paths only; the
+  // Assistant DM path uses assistant.threads.setStatus and carries no
+  // placeholder timestamp.
+  string placeholder_ts = 3;
+}
+
+// WhatsAppDeliveryContext carries what the WhatsApp deliverer needs to
+// send the reply through the Meta Cloud API.
+//
+// @internal
+// No placeholder field: WhatsApp cannot edit a sent message, so there is
+// no "thinking" message to update (the Slack chat.update UX has no
+// analog). No credentials either — the deliverer loads the channel by
+// channel_id and resolves the access token from its ChannelApp,
+// the SlackOutboundDeliverer channel-load pattern.
+message WhatsAppDeliveryContext {
+  // Phone number ID the reply sends FROM (the business number).
+  string phone_number_id = 1;
+
+  // WhatsApp user id (wa_id) the reply sends TO.
+  string recipient_wa_id = 2;
+}

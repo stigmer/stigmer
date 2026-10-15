@@ -29,9 +29,8 @@
 import type { DescMessage } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
 import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
@@ -99,8 +98,7 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
     },
   ],
   [ApiResourceKind.agent, { schema: AgentSchema }],
-  [ApiResourceKind.agent_channel, { schema: AgentChannelSchema }],
-  [ApiResourceKind.agent_share, { schema: AgentShareSchema }],
+  [ApiResourceKind.channel, { schema: ChannelSchema }],
   [ApiResourceKind.channel_app, { schema: ChannelAppSchema }],
   [ApiResourceKind.eval, { schema: EvalSchema }],
   [ApiResourceKind.eval_run, { schema: EvalRunSchema }],

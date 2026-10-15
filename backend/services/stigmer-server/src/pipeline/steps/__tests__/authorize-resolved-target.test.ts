@@ -76,10 +76,10 @@ async function captureError(
 }
 
 const ORG_QUESTION: AuthorizationTarget = {
-  permission: IamPermission.can_create_agent_share,
+  permission: IamPermission.can_create_channel,
   resourceKind: ApiResourceKind.organization,
   resourceId: "acme",
-  deniedMessage: "unauthorized to create agent share in this organization",
+  deniedMessage: "unauthorized to create channel in this organization",
 };
 
 const PARENT_QUESTION: AuthorizationTarget = {
@@ -132,7 +132,7 @@ describe("AuthorizeResolvedTarget — the step shell", () => {
     ]).execute(agentCtx());
     expect(checks).toEqual([
       {
-        permission: IamPermission.can_create_agent_share,
+        permission: IamPermission.can_create_channel,
         resourceKind: ApiResourceKind.organization,
         resourceId: "acme",
       },

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  AgentChannelsPanel,
+  ChannelsPanel,
   AgentDetailView,
   EditResourceYamlDialog,
   useAgent,
@@ -76,7 +76,7 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
               id: "channels",
               label: "Channels",
               content: (
-                <AgentChannelsPanel
+                <ChannelsPanel
                   agent={agent}
                   channelAppsHref="/settings/channel-apps"
                   // Channel conversations open in the standard session route;

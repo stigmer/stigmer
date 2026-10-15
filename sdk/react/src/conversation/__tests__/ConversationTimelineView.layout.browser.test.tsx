@@ -20,7 +20,7 @@ import {
   ConversationLane,
   ConversationTimelineItemSchema,
   type ConversationTimelineItem,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { ConversationTimelineView } from "../ConversationTimelineView.js";
 
 const NOW = new Date("2026-08-07T12:00:00Z");

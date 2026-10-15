@@ -12,7 +12,7 @@ function wrapperFor(stigmer: Stigmer) {
 }
 
 function makeStigmer(getMediaDownloadUrl = vi.fn()) {
-  return { agentChannel: { getMediaDownloadUrl } } as unknown as Stigmer;
+  return { channel: { getMediaDownloadUrl } } as unknown as Stigmer;
 }
 
 describe("useConversationMediaUrl", () => {
@@ -26,7 +26,7 @@ describe("useConversationMediaUrl", () => {
     await waitFor(() => expect(result.current.url).toBe("https://fresh/1"));
     expect(fn).toHaveBeenCalledTimes(1);
     const req = fn.mock.calls[0][0];
-    expect(req.agentChannelId).toBe("ach-1");
+    expect(req.channelId).toBe("ach-1");
     expect(req.conversationKey).toBe("15551234567");
     expect(req.itemId).toBe("wa:abc");
   });

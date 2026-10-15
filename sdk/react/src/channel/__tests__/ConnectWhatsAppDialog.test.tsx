@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { StigmerError, type AgentChannelInput } from "@stigmer/sdk";
+import { StigmerError, type ChannelInput } from "@stigmer/sdk";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
@@ -28,13 +28,13 @@ beforeAll(() => {
 afterEach(cleanup);
 
 interface MockOverrides {
-  create?: (input: AgentChannelInput) => Promise<unknown>;
-  update?: (resource: AgentChannel, paths: string[]) => Promise<unknown>;
+  create?: (input: ChannelInput) => Promise<unknown>;
+  update?: (resource: Channel, paths: string[]) => Promise<unknown>;
   initiateInstall?: (input: unknown) => Promise<unknown>;
   get?: (id: string) => Promise<unknown>;
   /** Org channel apps returned by channelapp.list (serving picker). */
   channelApps?: unknown[];
-  /** Org-wide channels returned by agentChannel.list (advisory). */
+  /** Org-wide channels returned by channel.list (advisory). */
   orgChannels?: unknown[];
 }
 
@@ -46,13 +46,13 @@ function makeWhatsAppApp(slug = "acme-meta-app", name = "Acme Meta App") {
   };
 }
 
-/** The channel as agentChannel.get returns it after a completed install. */
+/** The channel as channel.get returns it after a completed install. */
 function installedChannel() {
   return {
     metadata: { id: "ach_new", org: "acme", slug: "support-agent-whatsapp" },
     status: {
       installState: 2,
-      providerStatus: {
+      typeStatus: {
         case: "whatsapp",
         value: {
           phoneNumberId: "106540352242922",
@@ -72,7 +72,7 @@ function createMockStigmer(overrides: MockOverrides = {}) {
         nextPageToken: "",
       }),
     },
-    agentChannel: {
+    channel: {
       list: vi.fn().mockResolvedValue({
         entries: overrides.orgChannels ?? [],
         nextPageToken: "",
@@ -134,11 +134,13 @@ function pendingChannel(overrides: { phoneNumberId?: string; appSlug?: string } 
     spec: {
       agentRef: { org: "acme", slug: "support-agent" },
       enabled: true,
-      providerConfig: {
+      type: {
         case: "whatsapp",
-        value: { phoneNumberId: overrides.phoneNumberId ?? "106540352242922" },
+        value: {
+          phoneNumberId: overrides.phoneNumberId ?? "106540352242922",
+          appRef: { org: "acme", slug: overrides.appSlug ?? "acme-meta-app" },
+        },
       },
-      appRef: { org: "acme", slug: overrides.appSlug ?? "acme-meta-app" },
     },
     status: { installState: 1 },
   } as never;
@@ -291,8 +293,10 @@ describe("ConnectWhatsAppDialog", () => {
         org: "acme",
         agentRef: { org: "acme", slug: "support-agent" },
         enabled: true,
-        whatsapp: { phoneNumberId: "106540352242922" },
-        appRef: { org: "acme", slug: "acme-meta-app" },
+        whatsapp: {
+          phoneNumberId: "106540352242922",
+          appRef: { org: "acme", slug: "acme-meta-app" },
+        },
       }),
     );
 
@@ -376,12 +380,15 @@ describe("ConnectWhatsAppDialog", () => {
     );
 
     // The edit names the number and the app binding alone, so the agent
-    // reference and the credentials keep their stored values.
+    // reference, the credentials and the proactive-messaging switch keep
+    // their stored values.
     await waitFor(() => expect(update).toHaveBeenCalled());
-    const sent = sentUpdate<AgentChannel>(update);
-    expect(sent.paths).toEqual(["spec.whatsapp", "spec.app_ref"]);
-    expect(sent.resource.spec?.providerConfig).toMatchObject({ case: "whatsapp", value: { phoneNumberId: "222" } });
-    expect(sent.resource.spec?.appRef).toMatchObject({ org: "acme", slug: "acme-meta-app" });
+    const sent = sentUpdate<Channel>(update);
+    expect(sent.paths).toEqual(["spec.whatsapp.phone_number_id", "spec.whatsapp.app_ref"]);
+    expect(sent.resource.spec?.type).toMatchObject({
+      case: "whatsapp",
+      value: { phoneNumberId: "222", appRef: { org: "acme", slug: "acme-meta-app" } },
+    });
     await waitFor(() => expect(initiateInstall).toHaveBeenCalled());
   });
 
@@ -478,7 +485,7 @@ describe("ConnectWhatsAppDialog", () => {
         spec: { agentRef: { org: "acme", slug: "other-agent" } },
         status: {
           installState: 2, // installed
-          providerStatus: {
+          typeStatus: {
             case: "whatsapp",
             // The same key the DB uniqueness index uses:
             // (phone number, channel app).

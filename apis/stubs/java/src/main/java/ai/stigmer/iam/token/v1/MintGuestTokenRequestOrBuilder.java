@@ -12,23 +12,23 @@ public interface MintGuestTokenRequestOrBuilder extends
 
   /**
    * <pre>
-   * Id of the share, from the hosted chat link (required).
+   * Id of the web channel, from the hosted chat link (required).
    * </pre>
    *
-   * <code>string share_id = 1 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
-   * @return The shareId.
+   * <code>string channel_id = 1 [json_name = "channelId", (.buf.validate.field) = { ... }</code>
+   * @return The channelId.
    */
-  java.lang.String getShareId();
+  java.lang.String getChannelId();
   /**
    * <pre>
-   * Id of the share, from the hosted chat link (required).
+   * Id of the web channel, from the hosted chat link (required).
    * </pre>
    *
-   * <code>string share_id = 1 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for shareId.
+   * <code>string channel_id = 1 [json_name = "channelId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for channelId.
    */
   com.google.protobuf.ByteString
-      getShareIdBytes();
+      getChannelIdBytes();
 
   /**
    * <pre>
@@ -60,7 +60,7 @@ public interface MintGuestTokenRequestOrBuilder extends
 
   /**
    * <pre>
-   * Web origin of the page embedding the shared agent (optional).
+   * Web origin of the page embedding the chat (optional).
    *
    * Set by the hosted chat page when it runs inside an iframe (the embedding
    * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
@@ -75,7 +75,7 @@ public interface MintGuestTokenRequestOrBuilder extends
   java.lang.String getEmbedOrigin();
   /**
    * <pre>
-   * Web origin of the page embedding the shared agent (optional).
+   * Web origin of the page embedding the chat (optional).
    *
    * Set by the hosted chat page when it runs inside an iframe (the embedding
    * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
@@ -92,10 +92,10 @@ public interface MintGuestTokenRequestOrBuilder extends
 
   /**
    * <pre>
-   * Link token from the share link's `?k=` parameter (optional).
+   * Link token from the chat link's `?k=` parameter (optional).
    *
-   * Required when the share link has been locked with rotateShareLink;
-   * ignored for plain share links.
+   * Required when the chat link has been locked with rotateLink; ignored
+   * for plain chat links.
    * </pre>
    *
    * <code>string link_token = 4 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
@@ -104,10 +104,10 @@ public interface MintGuestTokenRequestOrBuilder extends
   java.lang.String getLinkToken();
   /**
    * <pre>
-   * Link token from the share link's `?k=` parameter (optional).
+   * Link token from the chat link's `?k=` parameter (optional).
    *
-   * Required when the share link has been locked with rotateShareLink;
-   * ignored for plain share links.
+   * Required when the chat link has been locked with rotateLink; ignored
+   * for plain chat links.
    * </pre>
    *
    * <code>string link_token = 4 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>

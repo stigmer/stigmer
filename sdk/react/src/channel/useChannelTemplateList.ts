@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { ChannelTemplate } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
-import { ListChannelTemplatesInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+import type { ChannelTemplate } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
+import { ListChannelTemplatesInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
@@ -95,7 +95,7 @@ export function useChannelTemplateList(
   const fetchFn =
     channelSlug && org
       ? async () => {
-          const result = await stigmer.agentChannel.listTemplates(
+          const result = await stigmer.channel.listTemplates(
             create(ListChannelTemplatesInputSchema, {
               channel: channelSlug,
               org,

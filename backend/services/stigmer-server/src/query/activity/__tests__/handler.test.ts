@@ -159,9 +159,11 @@ describe("listRecentActivity (Go handler_test.go)", () => {
       subject: "personal",
       statusUpdatedAtSeconds: 100,
     });
+    // A chat link's guest conversations carry the channel id since the
+    // share and the agent channel merged into one channel kind (the store's
+    // merge relabels the stored ones), so the channel id covers them.
     const labeled: Array<[id: string, key: string]> = [
       ["ses_channel", "stigmer.ai/channel-id"],
-      ["ses_share", "stigmer.ai/share-id"],
       ["ses_guest", "stigmer.ai/guest-cookie-id"],
       ["ses_schedule", "stigmer.ai/schedule-id"],
       ["ses_eval_run_try", "stigmer.ai/eval-run"],

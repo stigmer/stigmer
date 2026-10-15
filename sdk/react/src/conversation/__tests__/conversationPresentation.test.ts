@@ -8,9 +8,9 @@ import {
   ConversationLane,
   ConversationTimelineItemSchema,
   type ConversationTimelineItem,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
-import { ChannelDeliveryStatus } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/delivery_pb";
-import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/outbound_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { ChannelDeliveryStatus } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/delivery_pb";
+import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/outbound_pb";
 import {
   authorKindOf,
   awaitingIndicatorOf,

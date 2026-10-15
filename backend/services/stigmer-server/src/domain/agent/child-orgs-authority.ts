@@ -11,8 +11,8 @@
  *
  * It runs after RefuseChildOrgsVisibilityInChild, which refuses the level
  * outright in a child organization, so a refusal here only ever means "ask
- * an admin". The question is the agentshare idiom of asking the
- * organization beside the resource (domain/agentshare/steps.ts).
+ * an admin". The question is the channel create's idiom of asking the
+ * organization beside the resource (domain/channel/steps.ts).
  */
 import type { Message } from "@bufbuild/protobuf";
 

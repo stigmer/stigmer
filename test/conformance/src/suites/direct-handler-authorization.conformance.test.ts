@@ -48,7 +48,7 @@ import {
 import { FixtureTracker } from "../harness/fixtures";
 import { expectGrpcCode, grpcCodeOf } from "../contract/errors";
 import { makeAgent, agentRefOf } from "../support/agents";
-import { makeSlackAgentChannel } from "../support/agentchannels";
+import { makeSlackChannel } from "../support/channels";
 import { oneServerPlugin, pushPlugin } from "../support/plugins";
 import { makeSession } from "../support/sessions";
 import { makeSharedVault, vaultTarget } from "../support/vaults";
@@ -206,7 +206,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     expect(link.rawMessage).toBe("unauthorized to make a Connect link for this vault");
   });
 
-  it("[rpc:AgentChannelCommandController.initiateInstall] [rpc:AgentChannelCommandController.completeInstall] the channel install pair refuses an outsider with its annotation copy (the arm both editions declare)", async (ctx) => {
+  it("[rpc:ChannelCommandController.initiateInstall] [rpc:ChannelCommandController.completeInstall] the channel install pair refuses an outsider with its annotation copy (the arm both editions declare)", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
@@ -217,31 +217,31 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     fixtures.defer(() =>
       clients.agentCommand.delete({ value: agent.metadata!.id }),
     );
-    const channel = await clients.agentChannelCommand.create(
-      makeSlackAgentChannel(
+    const channel = await clients.channelCommand.create(
+      makeSlackChannel(
         org,
         uniqueName("authz-channel"),
         agent.metadata!.slug,
       ),
     );
     fixtures.defer(() =>
-      clients.agentChannelCommand.delete({ value: channel.metadata!.id }),
+      clients.channelCommand.delete({ value: channel.metadata!.id }),
     );
 
     const initiateDenied = await expectGrpcCode(
       () =>
-        outsider.agentChannelCommand.initiateInstall({
+        outsider.channelCommand.initiateInstall({
           resourceId: channel.metadata!.id,
         }),
       Code.PermissionDenied,
       "outsider initiateInstall on a foreign channel",
     );
     expect(initiateDenied.rawMessage).toBe(
-      "unauthorized to install agent channel",
+      "unauthorized to install channel",
     );
     const completeDenied = await expectGrpcCode(
       () =>
-        outsider.agentChannelCommand.completeInstall({
+        outsider.channelCommand.completeInstall({
           resourceId: channel.metadata!.id,
           state: "outsider-state",
           code: "outsider-code",
@@ -250,7 +250,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
       "outsider completeInstall on a foreign channel",
     );
     expect(completeDenied.rawMessage).toBe(
-      "unauthorized to install agent channel",
+      "unauthorized to install channel",
     );
   });
 

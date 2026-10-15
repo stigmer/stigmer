@@ -13,7 +13,7 @@ import { agentUsesTools } from "../agent/runServers.js";
  * Channel-scoped wrapper over {@link useToolCredentialsReadiness}:
  * checks whether a tool-using agent's credentials will work over a
  * channel — i.e. whether the channel names vaults
- * (`AgentChannelSpec.vaults`) and each one is a shared vault.
+ * (`ChannelSpec.vaults`) and each one is a shared vault.
  *
  * Channel runs have no person, so they use only the channel's own vaults
  * — exactly the share contract, without the audience arm (channels have no

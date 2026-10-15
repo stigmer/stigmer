@@ -3,11 +3,11 @@
 import { useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
-import type { SharedAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
+import type { ChannelAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
 import { NewSessionViewer } from "../session/NewSessionViewer.js";
 import { SessionViewer } from "../session/SessionViewer.js";
-import { useSharedAgentProfile } from "./useSharedAgentProfile.js";
-import type { SharingAudience } from "./useSaveAgentShare.js";
+import { useChannelAgentProfile } from "./useChannelAgentProfile.js";
+import type { SharingAudience } from "./webChannelDraft.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 // ---------------------------------------------------------------------------
@@ -17,10 +17,11 @@ import { LoadingRegion } from "../internal/LoadingRegion.js";
 /** Props for {@link SharedAgentChat}. */
 export interface SharedAgentChatProps {
   /**
-   * Id of the share, from the hosted chat link (`/chat/<share id>`). The
-   * share's organization and slug come from its resolved profile.
+   * Id of the web channel, from the hosted chat link (`/chat/<channel id>`).
+   * The agent's organization and slug come from the channel's resolved
+   * profile.
    */
-  readonly shareId: string;
+  readonly channelId: string;
   /**
    * Heading above the composer before the first message.
    * Defaults to a prompt built from the agent's name.
@@ -41,21 +42,21 @@ export interface SharedAgentChatProps {
   readonly onSessionCreated?: (sessionId: string) => void;
   /**
    * Which sharing audience this surface serves. Selects the profile
-   * resolution path: `"public"` uses the anonymous `getSharedProfile`
+   * resolution path: `"public"` uses the anonymous `getAgentProfile`
    * RPC (pair with `createGuestAuth`); `"org"` uses the authenticated
-   * `getSharedProfileForMember` RPC and requires a `StigmerProvider`
+   * `getAgentProfileForMember` RPC and requires a `StigmerProvider`
    * whose client carries a signed-in org member's token. The chat
    * presentation is identical either way; what differs is whose keys the
    * conversation reads: a member is a person on their own token, so their
    * conversation includes their own My vault, while a public visitor
-   * brings none and the share's vaults are all its runs use.
+   * brings none and the channel's vaults are all its runs use.
    *
    * @default "public"
    */
   readonly sharingAudience?: SharingAudience;
   /**
-   * Share-link token from the URL's `?k=` parameter (public audience
-   * only). Required when the share link has been locked with a
+   * Chat-link token from the URL's `?k=` parameter (public audience
+   * only). Required when the chat link has been locked with a
    * rotatable token; harmless on plain links. Pair it with the same
    * `linkToken` on `createGuestAuth` so profile resolution and token
    * minting present the same credentialing.
@@ -70,11 +71,11 @@ export interface SharedAgentChatProps {
  * the organism behind a shared agent's hosted page and embeds.
  *
  * Resolves the agent's public profile (name, description, icon, and
- * the share's agent reference) via {@link useSharedAgentProfile}, then
+ * the channel's agent reference) via {@link useChannelAgentProfile}, then
  * renders the session organisms with `audience="guest"`: a pure chat
- * surface with no configuration pickers, pinned to the share's agent
+ * surface with no configuration pickers, pinned to the channel's agent
  * reference exactly as the profile gives it, version included, so the
- * session binds synchronously on mount and runs the version the share
+ * session binds synchronously on mount and runs the version the channel
  * names.
  *
  * Handles all states: loading, unavailable (the agent does not exist
@@ -82,28 +83,28 @@ export interface SharedAgentChatProps {
  * (with retry), and the live chat.
  *
  * **Auth contract:** requires a `StigmerProvider` whose client can
- * chat with this agent. For public shares (the default), pair with
- * `createGuestAuth({ baseUrl, shareId })` from `@stigmer/sdk` —
+ * chat with this agent. For public chat links (the default), pair with
+ * `createGuestAuth({ baseUrl, channelId })` from `@stigmer/sdk` —
  * the profile fetch is public and sessions use the guest token the
- * provider mints on demand. For org-members-only shares, pass
+ * provider mints on demand. For org-members-only chat links, pass
  * `sharingAudience="org"` and a client carrying the signed-in
  * member's own token; the presentation stays the same pure chat.
  *
  * @example
  * ```tsx
- * const guestAuth = createGuestAuth({ baseUrl, shareId });
+ * const guestAuth = createGuestAuth({ baseUrl, channelId });
  * const client = useMemo(
  *   () => new Stigmer({ baseUrl, getAccessToken: guestAuth.getAccessToken }),
  *   [guestAuth],
  * );
  *
  * <StigmerProvider client={client} colorMode="system">
- *   <SharedAgentChat shareId={shareId} />
+ *   <SharedAgentChat channelId={channelId} />
  * </StigmerProvider>
  * ```
  */
 export function SharedAgentChat({
-  shareId,
+  channelId,
   heading,
   placeholder,
   showPoweredBy = true,
@@ -112,13 +113,13 @@ export function SharedAgentChat({
   linkToken,
   className,
 }: SharedAgentChatProps) {
-  const { profile, isLoading, error, refetch } = useSharedAgentProfile(shareId, {
+  const { profile, isLoading, error, refetch } = useChannelAgentProfile(channelId, {
     audience: sharingAudience,
     linkToken,
   });
   // Memoized so the launcher's mount-time pin sees one stable reference.
   const agentRef = useMemo(
-    () => (profile ? shareAgentRef(profile) : null),
+    () => (profile ? channelAgentRef(profile) : null),
     [profile],
   );
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -171,8 +172,8 @@ export function SharedAgentChat({
     );
   }
 
-  // The visitor's session lives in the share's organization, which the
-  // profile names; the link itself names only the share.
+  // The visitor's session lives in the channel's organization, which the
+  // profile names; the link itself names only the channel.
   const { org, slug } = profile;
 
   return (
@@ -254,12 +255,12 @@ export function SharedAgentChat({
 }
 
 /**
- * The share's agent reference as the session flow takes it: organization,
+ * The channel's agent reference as the session flow takes it: organization,
  * slug and version copied as the profile gives them (the edition's guest
- * gate admits a session only on the share's own reference), or `null`
+ * gate admits a session only on the channel's own reference), or `null`
  * when the profile names no agent.
  */
-function shareAgentRef(profile: SharedAgentProfile): ResourceRef | null {
+function channelAgentRef(profile: ChannelAgentProfile): ResourceRef | null {
   const ref = profile.agentRef;
   if (ref === undefined || ref.slug === "") return null;
   return {

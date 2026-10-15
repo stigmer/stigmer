@@ -105,9 +105,9 @@ describe("ManifestClient.apply follows the declared slug", () => {
   });
 
   it("reports a kept slug on a kind with no rename, and the spec still lands", async () => {
-    const share = manifestHandlerForYamlKind("AgentShare")!;
-    expect(share.rename).toBeUndefined();
-    const fake = fakeHandler({ base: share, rename: null, apply: () => Promise.resolve(agent("test-share")) });
+    // Every registered kind has a rename today; the fake without one
+    // stands for the kind that has none.
+    const fake = fakeHandler({ rename: null, apply: () => Promise.resolve(agent("test-share")) });
 
     const applied = await client().apply(documentOf(fake.handler, agent("new-share")));
 
@@ -226,7 +226,7 @@ describe("ManifestClient.resolveTarget", () => {
 
   it("answers update with a kept slug on a kind with no rename", async () => {
     const stored = agent("test-share");
-    const fake = fakeHandler({ base: manifestHandlerForYamlKind("AgentShare")!, rename: null, read: () => Promise.resolve(stored) });
+    const fake = fakeHandler({ rename: null, read: () => Promise.resolve(stored) });
 
     const target = await client().resolveTarget(documentOf(fake.handler, agent("new-share")));
 

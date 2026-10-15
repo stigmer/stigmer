@@ -7,7 +7,7 @@ import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { Button } from "../button/Button.js";
@@ -24,7 +24,7 @@ export interface ChannelConversationsDialogProps {
   /** Called when the dialog requests an open-state change. */
   readonly onOpenChange: (open: boolean) => void;
   /** The channel whose conversations are listed. */
-  readonly channel: AgentChannel;
+  readonly channel: Channel;
   /**
    * Maps a session id to the host's session route (the console passes
    * `` (id) => `/sessions/${id}` ``). When absent, rows render without
@@ -61,7 +61,7 @@ export interface ChannelConversationsDialogProps {
  * its owners and participants).
  *
  * Built on the native `<dialog>` element, matching the SDK's modal
- * convention. Most hosts mount it via {@link AgentChannelsPanel}'s
+ * convention. Most hosts mount it via {@link ChannelsPanel}'s
  * channel card action.
  */
 export function ChannelConversationsDialog({
@@ -105,7 +105,7 @@ function ChannelConversationsDialogBody({
   onClose,
 }: {
   readonly titleId: string;
-  readonly channel: AgentChannel;
+  readonly channel: Channel;
   readonly sessionHref?: (sessionId: string) => string;
   readonly onClose: () => void;
 }) {

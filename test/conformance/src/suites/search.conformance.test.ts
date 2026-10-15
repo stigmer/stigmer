@@ -164,11 +164,11 @@ describe("Search conformance — search mode (text query)", () => {
     const token = uniqueToken();
     await createAgentNamed(org, `nofallback-${token}`);
 
-    // agent_channel is not_search_indexed by proto kind_meta in BOTH
+    // channel is not_search_indexed by proto kind_meta in BOTH
     // editions — a request naming only it must answer emptiness, not
     // silently widen to every searchable kind.
     const response = await clients.search.search({
-      kinds: [ApiResourceKind.agent_channel],
+      kinds: [ApiResourceKind.channel],
       org,
       query: token,
     });

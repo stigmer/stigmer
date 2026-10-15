@@ -1,0 +1,98 @@
+{
+  "name": "ChannelSpec",
+  "description": "ChannelSpec defines the configurable properties of a channel.\n\n The fields every type shares come first: which agent serves the channel,\n whether serving is enabled, which vaults supply the agent's tool\n credentials, and the per-turn run settings. The type, exactly one of\n web, slack or whatsapp, carries what only that type declares.",
+  "protoType": "ai.stigmer.agentic.channel.v1.ChannelSpec",
+  "protoFile": "apis/ai/stigmer/agentic/channel/v1/spec.proto",
+  "fields": [
+    {
+      "name": "AgentRef",
+      "jsonName": "agentRef",
+      "protoField": "agent_ref",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceReference"
+      },
+      "description": "Reference to the agent this channel serves.\n\n The referenced agent must live in this channel's organization: a\n channel offers an agent its own organization owns, billed to that\n organization, with tool credentials bound from it. To offer another\n organization's agent, install the plugin that carries it and make a\n channel for the installed copy.\n\n A version on the reference (a tag or a content hash) is the version\n each new conversation on this channel runs; none, or \"latest\", runs the\n agent's current version when the conversation starts. A started\n conversation keeps the version it started on.\n\n The agent cannot be changed after the channel is created.",
+      "required": true,
+      "referenceKind": 40,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Enabled",
+      "jsonName": "enabled",
+      "protoField": "enabled",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether serving on this channel is enabled.\n\n Disabling is a configuration-preserving pause: a web channel keeps its\n origins, messages, credentials and link token, and its chat link\n answers NOT_FOUND; a Slack or WhatsApp channel keeps its install and\n credentials, and refuses inbound messages. Delete the channel instead\n for a full teardown.",
+      "required": false
+    },
+    {
+      "name": "Vaults",
+      "jsonName": "vaults",
+      "protoField": "vaults",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ApiResourceReference"
+        }
+      },
+      "description": "Vaults whose logins and secrets this channel's conversations use, in\n order: the first vault holding a match wins. At most 20.\n\n This is how a tool-using agent becomes reachable over a channel: attach\n a shared vault holding the needed keys (for example a read-only API\n token). A channel's runs have no person of their own, so they use only\n these vaults, never anyone's My vault, and a My vault cannot be\n attached. A web channel takes vaults only when its audience is public:\n members chatting on an organization link use their own vaults.",
+      "required": false,
+      "referenceKind": 59,
+      "validation": {
+        "maxItems": 20
+      }
+    },
+    {
+      "name": "RunConfig",
+      "jsonName": "runConfig",
+      "protoField": "run_config",
+      "type": {
+        "kind": "message",
+        "messageType": "RunConfig"
+      },
+      "description": "Per-turn model choice and run bounds for this channel's conversations.\n\n These settings are the turn's own layer: unset fields fall to the\n agent's defaults, then to the platform's channel or guest execution\n profile (RunConfig has the rule). A choice set here wins over the\n agent's; max_cost_usd and max_tool_rounds can only lower the agent's\n and the platform's caps, so a channel's owner can reduce what one turn\n may spend, never raise it. What a sender's own request carries is\n never read. A web channel takes run settings only when its audience is\n public.",
+      "required": false
+    },
+    {
+      "name": "Web",
+      "jsonName": "web",
+      "protoField": "web",
+      "type": {
+        "kind": "message",
+        "messageType": "WebChannelConfig"
+      },
+      "description": "A hosted chat link and the chat widget other sites embed.",
+      "required": false,
+      "oneofGroup": "type"
+    },
+    {
+      "name": "Slack",
+      "jsonName": "slack",
+      "protoField": "slack",
+      "type": {
+        "kind": "message",
+        "messageType": "SlackChannelConfig"
+      },
+      "description": "A Slack workspace connection.",
+      "required": false,
+      "oneofGroup": "type"
+    },
+    {
+      "name": "Whatsapp",
+      "jsonName": "whatsapp",
+      "protoField": "whatsapp",
+      "type": {
+        "kind": "message",
+        "messageType": "WhatsAppChannelConfig"
+      },
+      "description": "A WhatsApp Business number connection (Meta Cloud API).",
+      "required": false,
+      "oneofGroup": "type"
+    }
+  ]
+}

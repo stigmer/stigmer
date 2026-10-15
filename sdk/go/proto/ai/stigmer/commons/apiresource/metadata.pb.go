@@ -34,8 +34,8 @@ type ApiResourceMetadata struct {
 	// Organization's own slug is unique across the server).
 	// Combined with org, forms the canonical reference: "org/slug".
 	// Update and apply never change it: a kind whose slug may change has a
-	// rename RPC (organization, agent, vault, schedule, channel app, OAuth
-	// app, team, federation issuer and eval), after which the old
+	// rename RPC (organization, agent, vault, schedule, channel, channel app,
+	// OAuth app, team, federation issuer and eval), after which the old
 	// slug leads to the resource for reading for 30 days.
 	// Format: lowercase alphanumeric characters and hyphens, 2 to 63
 	// characters, the length every reference to a resource holds; must start
@@ -43,7 +43,8 @@ type ApiResourceMetadata struct {
 	// derives the slug from the name, and refuses a name whose derived slug
 	// breaks these rules, never shortening it. A resource the server names
 	// itself is the exception (an identity account, after its email or
-	// subject): its slug is made to fit instead (a letter in front, a
+	// subject; a channel created with no name, after its agent and type):
+	// its slug is made to fit instead (a letter in front, a
 	// fallback, or a cut with a short hash). An update by id keeps the
 	// stored slug, so a new name's derived slug is not checked there.
 	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`

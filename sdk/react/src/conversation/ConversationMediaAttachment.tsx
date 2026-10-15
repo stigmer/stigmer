@@ -4,8 +4,8 @@ import { useCallback, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
-import type { ConversationMediaRef } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
-import { GetConversationMediaDownloadUrlInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+import type { ConversationMediaRef } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { GetConversationMediaDownloadUrlInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { AttachmentImageLightbox } from "../attachment/AttachmentImageLightbox.js";
 import { formatFileSize } from "../attachment/attachment-utils.js";
 import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
@@ -21,8 +21,8 @@ import { useConversationMediaUrl } from "./useConversationMediaUrl.js";
  * it from its own row, so this address is all a client ever holds.
  */
 export interface ConversationMediaAddress {
-  /** AgentChannel the conversation belongs to. */
-  readonly agentChannelId: string;
+  /** Channel the conversation belongs to. */
+  readonly channelId: string;
   /** Conversation key within the channel (WhatsApp: the customer's wa_id). */
   readonly conversationKey: string;
   /** The timeline item carrying the media (its item_id, e.g. `"wa:<wamid>"`). */
@@ -49,7 +49,7 @@ export interface ConversationMediaAttachmentProps {
  * the timeline view holds a conversation address — that conditional
  * mount is what keeps `ConversationTimelineView` renderable without a
  * `StigmerProvider` (its presentational contract; see the view's
- * `agentChannelId` prop).
+ * `channelId` prop).
  *
  * Deliberately a sibling of the run thread's `MessageAttachments`,
  * not a reuse of it: that row renders storage-key-addressed artifacts of
@@ -103,7 +103,7 @@ function MediaImageThumbnail({
   readonly className?: string;
 }) {
   const { url, error } = useConversationMediaUrl(
-    address.agentChannelId,
+    address.channelId,
     address.conversationKey,
     address.itemId,
   );
@@ -241,9 +241,9 @@ function useOpenConversationMedia(address: ConversationMediaAddress): {
     setIsOpening(true);
     setError(null);
     try {
-      const result = await stigmer.agentChannel.getMediaDownloadUrl(
+      const result = await stigmer.channel.getMediaDownloadUrl(
         create(GetConversationMediaDownloadUrlInputSchema, {
-          agentChannelId: address.agentChannelId,
+          channelId: address.channelId,
           conversationKey: address.conversationKey,
           itemId: address.itemId,
         }),
@@ -256,7 +256,7 @@ function useOpenConversationMedia(address: ConversationMediaAddress): {
     } finally {
       setIsOpening(false);
     }
-  }, [stigmer, address.agentChannelId, address.conversationKey, address.itemId, isOpening]);
+  }, [stigmer, address.channelId, address.conversationKey, address.itemId, isOpening]);
 
   return useMemo(() => ({ open, isOpening, error }), [open, isOpening, error]);
 }

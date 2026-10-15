@@ -7,9 +7,8 @@ import "google.golang.org/grpc"
 // Client aggregates all resource-specific sub-clients.
 type Client struct {
 	Agent            *AgentClient
-	AgentChannel     *AgentChannelClient
-	AgentShare       *AgentShareClient
 	ApiKey           *ApiKeyClient
+	Channel          *ChannelClient
 	ChannelApp       *ChannelAppClient
 	Eval             *EvalClient
 	EvalRun          *EvalRunClient
@@ -39,9 +38,8 @@ type Client struct {
 func NewClient(conn grpc.ClientConnInterface) *Client {
 	return &Client{
 		Agent:            NewAgentClient(conn),
-		AgentChannel:     NewAgentChannelClient(conn),
-		AgentShare:       NewAgentShareClient(conn),
 		ApiKey:           NewApiKeyClient(conn),
+		Channel:          NewChannelClient(conn),
 		ChannelApp:       NewChannelAppClient(conn),
 		Eval:             NewEvalClient(conn),
 		EvalRun:          NewEvalRunClient(conn),

@@ -220,22 +220,19 @@ export {
   type HookSourceInput,
 } from "./gen/agent.js";
 export {
-  AgentChannelClient,
-  buildAgentChannelProto,
-  type AgentChannelInput,
+  ChannelClient,
+  buildChannelProto,
+  type ChannelInput,
+  type WebChannelConfigInput,
+  type WebChannelMessagesInput,
   type SlackChannelConfigInput,
-} from "./gen/agentchannel.js";
+  type WhatsAppChannelConfigInput,
+} from "./gen/channel.js";
 export {
   RunClient,
   type RunInput,
   type AttachmentInput,
 } from "./gen/run.js";
-export {
-  AgentShareClient,
-  buildAgentShareProto,
-  type AgentShareInput,
-  type AgentShareMessagesInput,
-} from "./gen/agentshare.js";
 export {
   ApiKeyClient,
   type ApiKeyInput,
@@ -508,8 +505,7 @@ export {
 // (`create({ ...toScheduleInput(res), id: undefined })`). An update never
 // needs one: it takes the resource itself and the paths it changes.
 export { toAgentInput } from "./gen/agent.js";
-export { toAgentChannelInput } from "./gen/agentchannel.js";
-export { toAgentShareInput } from "./gen/agentshare.js";
+export { toChannelInput } from "./gen/channel.js";
 export { toApiKeyInput } from "./gen/apikey.js";
 export { toChannelAppInput } from "./gen/channelapp.js";
 export { toScoringRuleInput } from "./gen/scoringrule.js";

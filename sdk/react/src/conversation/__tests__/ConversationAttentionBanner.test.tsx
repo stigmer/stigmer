@@ -5,7 +5,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   ChannelConversationSchema,
   ConversationControl,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { ConversationAttentionBanner } from "../ConversationAttentionBanner";
 import type {
   ConversationCommand,
@@ -14,7 +14,7 @@ import type {
 
 function conversation(overrides: Record<string, unknown> = {}) {
   return create(ChannelConversationSchema, {
-    agentChannelId: "ach_1",
+    channelId: "ach_1",
     conversationKey: "15550001111",
     org: "acme",
     ...overrides,

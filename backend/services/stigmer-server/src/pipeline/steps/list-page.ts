@@ -16,7 +16,7 @@
  * - A page fills batch by batch until it is full, the rows run out, or
  *   `examineBudgetOf(size)` rows have been examined. A caller who may see
  *   few of the organization's rows gets a short page, possibly empty, with
- *   a token (the timeline's cursor contract, agentchannel/v1
+ *   a token (the timeline's cursor contract, channel/v1
  *   conversation_io.proto), never an unbounded walk.
  * - The token's cursor is the last row RETURNED when the page was cut,
  *   else the last row EXAMINED, so no row is skipped and no refused row is

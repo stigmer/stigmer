@@ -9,20 +9,20 @@
  * it at serve time for the S4d cloud take (see cloud/README.md):
  *   APP_ORIGIN=https://app.stigmer.ai npm run demo:embed
  * The embed names the share by its id, which the last seed recorded
- * (../share-id.mjs); it is filled in at serve time too.
+ * (../channel-id.mjs); it is filled in at serve time too.
  */
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { readShareId } from "../share-id.mjs";
+import { readChannelId } from "../channel-id.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 4173);
 const LOCAL_APP_ORIGIN = "http://localhost:7234";
 const APP_ORIGIN = process.env.APP_ORIGIN ?? LOCAL_APP_ORIGIN;
-const SHARE_ID = readShareId();
+const SHARE_ID = readChannelId();
 
 createServer(async (req, res) => {
   if (req.url !== "/" && req.url !== "/index.html") {

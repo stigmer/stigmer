@@ -19,7 +19,7 @@ import { createGuestAuth, GuestAuth, type GuestIdStorage } from "../guest-auth";
 
 const CONFIG = {
   baseUrl: "https://api.stigmer.ai",
-  shareId: "ash_support",
+  channelId: "ash_support",
 };
 
 function createMemoryStorage(): GuestIdStorage & { store: Map<string, string> } {
@@ -62,9 +62,9 @@ describe("createGuestAuth", () => {
     ).toThrow("baseUrl is required");
   });
 
-  it("throws when shareId is missing", () => {
-    expect(() => createGuestAuth({ ...CONFIG, shareId: "" })).toThrow(
-      "shareId is required",
+  it("throws when channelId is missing", () => {
+    expect(() => createGuestAuth({ ...CONFIG, channelId: "" })).toThrow(
+      "channelId is required",
     );
   });
 
@@ -83,7 +83,7 @@ describe("GuestAuth.getAccessToken", () => {
     expect(token).toBe("guest-jwt-1");
     expect(mintGuestToken).toHaveBeenCalledTimes(1);
     expect(mintGuestToken.mock.calls[0][0]).toMatchObject({
-      shareId: "ash_support",
+      channelId: "ash_support",
       guestCookieId: "",
       // No embedOrigin configured (the unframed hosted page): the field
       // must stay empty so the server's absence-means-exempt rule applies.

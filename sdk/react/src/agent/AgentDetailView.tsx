@@ -17,7 +17,7 @@ import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";
-import { AgentShareList } from "../sharing/AgentShareList.js";
+import { WebChannelList } from "../sharing/WebChannelList.js";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell.js";
 import { Section } from "../resource-detail/Section.js";
 import { useDetailTabs } from "../resource-detail/useDetailTabs.js";
@@ -159,14 +159,14 @@ export interface AgentDetailViewProps {
    */
   readonly onRenamed?: (agent: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb").Agent) => void;
   /**
-   * Builds the absolute public chat URL for shares in the Shares tab.
-   * The host application owns URL construction — its configured public
-   * origin may differ from the rendering origin (e.g. the desktop app).
-   * It receives the share's id (`metadata.id`), the one identity a link
-   * carries. When omitted, share links fall back to the relative
-   * `/chat/<share id>` path.
+   * Builds the absolute public chat URL for shares (web channels) in the
+   * Shares tab. The host application owns URL construction — its
+   * configured public origin may differ from the rendering origin (e.g.
+   * the desktop app). It receives the channel's id (`metadata.id`), the
+   * one identity a link carries. When omitted, share links fall back to
+   * the relative `/chat/<channel id>` path.
    */
-  readonly buildShareUrl?: (shareId: string) => string;
+  readonly buildShareUrl?: (channelId: string) => string;
   /**
    * Called with a run id when the user opens one of an eval's tries from
    * the Evals tab, or a flagged run from the Quality tab; the host owns the
@@ -468,7 +468,7 @@ export function AgentDetailView({
     tabContent = activeAdditionalTab.content;
   } else if (effectiveActiveTab === "shares") {
     tabContent = (
-      <AgentShareList
+      <WebChannelList
         agent={agent}
         buildShareUrl={buildShareUrl}
       />

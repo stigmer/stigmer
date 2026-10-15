@@ -12,7 +12,7 @@ public interface MintGuestTokenResponseOrBuilder extends
 
   /**
    * <pre>
-   * Stigmer-signed JWT for authenticating shared-agent chat API calls.
+   * Stigmer-signed JWT for authenticating a chat link visitor's API calls.
    * </pre>
    *
    * <code>string access_token = 1 [json_name = "accessToken"];</code>
@@ -21,7 +21,7 @@ public interface MintGuestTokenResponseOrBuilder extends
   java.lang.String getAccessToken();
   /**
    * <pre>
-   * Stigmer-signed JWT for authenticating shared-agent chat API calls.
+   * Stigmer-signed JWT for authenticating a chat link visitor's API calls.
    * </pre>
    *
    * <code>string access_token = 1 [json_name = "accessToken"];</code>

@@ -34,10 +34,9 @@ import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/serve
 import { newAgentPurge } from "../domain/agent/purge.js";
 import { newIdentityAccountPurge } from "../domain/identityaccount/purge.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
-import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
-import { newAgentChannelPurge } from "../domain/agentchannel/purge.js";
+import type { ChannelRuntime } from "../domain/channel/channel-runtime.js";
+import { newChannelPurge } from "../domain/channel/purge.js";
 import { newAgentExecutionPurge } from "../domain/run/purge.js";
-import { newAgentSharePurge } from "../domain/agentshare/purge.js";
 import { newApiKeyPurge } from "../domain/apikey/purge.js";
 import { newChannelAppPurge } from "../domain/channelapp/purge.js";
 import { newScoringRulePurge } from "../domain/scoring-rule/purge.js";
@@ -106,10 +105,9 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
       newScorePurge(deps),
       newAgentExecutionPurge(deps),
       newSessionPurge(deps),
-      // A blueprint's shares, channels and scoring rule before the blueprint;
-      // a channel before the channel app it references.
-      newAgentSharePurge(deps),
-      newAgentChannelPurge(deps),
+      // A blueprint's channels and scoring rule before the blueprint; a
+      // channel before the channel app it references.
+      newChannelPurge(deps),
       newScoringRulePurge(deps),
       // Eval runs before the agents and plugins they are about; their tries
       // went with the sessions above.
@@ -144,8 +142,7 @@ export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.score,
   ApiResourceKind.run,
   ApiResourceKind.session,
-  ApiResourceKind.agent_share,
-  ApiResourceKind.agent_channel,
+  ApiResourceKind.channel,
   ApiResourceKind.scoring_rule,
   ApiResourceKind.eval_run,
   ApiResourceKind.channel_app,

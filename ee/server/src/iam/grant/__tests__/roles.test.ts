@@ -37,16 +37,16 @@ describe("the GrantScope built on it (drivers.grantScope)", () => {
     for (const kind of [
       ApiResourceKind.organization,
       ApiResourceKind.agent,
-      ApiResourceKind.agent_channel,
+      ApiResourceKind.channel,
       ApiResourceKind.platform,
       ApiResourceKind.api_resource_kind_unknown,
     ]) {
       expect(scope.grantableRoles(kind)).toEqual(grantableRolesFor(kind));
     }
-    // The participant role exists for agent_channel alone (its kind_meta); a scope
+    // The participant role exists for channel alone (its kind_meta); a scope
     // that dropped it would let the grant succeed while hiding the person
     // from every access listing, a failure no grant test would notice.
-    expect(scope.grantableRoles(ApiResourceKind.agent_channel)).toContain(
+    expect(scope.grantableRoles(ApiResourceKind.channel)).toContain(
       IamRole.participant,
     );
   });

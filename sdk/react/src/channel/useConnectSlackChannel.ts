@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   InitiateChannelInstallInputSchema,
   CompleteChannelInstallInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import {
@@ -50,9 +50,9 @@ export interface UseConnectSlackChannelReturn {
    * Enterprise Grid installs refuse at `completing`.
    *
    * @param channelId - System-generated ID (metadata.id) of the channel.
-   * @returns The installed AgentChannel (status carries the Slack facts).
+   * @returns The installed Channel (status carries the Slack facts).
    */
-  readonly connect: (channelId: string) => Promise<AgentChannel>;
+  readonly connect: (channelId: string) => Promise<Channel>;
   /** `true` while any phase of the install flow is in progress. */
   readonly isInProgress: boolean;
   /** Current phase of the install flow. */
@@ -123,7 +123,7 @@ export function useConnectSlackChannel(): UseConnectSlackChannelReturn {
   }, []);
 
   const connect = useCallback(
-    async (channelId: string): Promise<AgentChannel> => {
+    async (channelId: string): Promise<Channel> => {
       setPhase("initiating");
       setError(null);
       cancelledRef.current = false;
@@ -141,7 +141,7 @@ export function useConnectSlackChannel(): UseConnectSlackChannelReturn {
       popupRef.current = popup;
 
       try {
-        const initOutput = await stigmer.agentChannel.initiateInstall(
+        const initOutput = await stigmer.channel.initiateInstall(
           create(InitiateChannelInstallInputSchema, { resourceId: channelId }),
         );
 
@@ -158,7 +158,7 @@ export function useConnectSlackChannel(): UseConnectSlackChannelReturn {
 
         setPhase("completing");
 
-        const channel = await stigmer.agentChannel.completeInstall(
+        const channel = await stigmer.channel.completeInstall(
           create(CompleteChannelInstallInputSchema, {
             resourceId: channelId,
             state,

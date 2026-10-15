@@ -7,7 +7,7 @@ import "buf/validate/validate.proto";
 
 // TokenService mints the short-lived tokens a browser uses to talk to
 // Stigmer on someone's behalf: a person signed in to an organization's own
-// product, or an anonymous visitor of a shared agent's chat link.
+// product, or an anonymous visitor of an agent's chat link.
 //
 // It manages no resource. Each token is signed by the server's own
 // platform-token key and verified on every request; minting requires a
@@ -61,20 +61,20 @@ service TokenService {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to mint user tokens for this organization";
   }
 
-  // Mint a guest token for an anonymous visitor of a shared agent's chat link.
+  // Mint a guest token for an anonymous visitor of an agent's chat link.
   //
-  // Resolves the share id from the hosted chat link to an AgentShare and
-  // returns a short-lived token scoped to that share's organization. Editions
-  // that do not host shared-agent pages answer it UNIMPLEMENTED.
+  // Resolves the channel id from the hosted chat link to a web channel and
+  // returns a short-lived token scoped to that channel's organization.
+  // Editions that do not host chat-link pages answer it UNIMPLEMENTED.
   //
   // @internal
   // Public: no Bearer token and no credential. The handler gates on an
-  // enabled public-audience share whose org still exists (one uniform
-  // NOT_FOUND when disabled, missing, members-only, its link token does not
-  // match, or its org is gone), counts the mint against that org's budget
-  // only after the share itself admits the visitor, and stamps the resolved
-  // share's id into the guest JWT as the share_id claim; the create-time
-  // gate re-reads the live share by that id on every session/run create.
+  // enabled public-audience web channel whose org still exists (one uniform
+  // NOT_FOUND when disabled, missing, not a web channel, members-only, its
+  // link token does not match, or its org is gone), counts the mint against
+  // that org's budget only after the channel itself admits the visitor, and
+  // stamps the resolved channel's id into the guest JWT; the create-time
+  // gate re-reads the live channel by that id on every session/run create.
   rpc mintGuestToken(MintGuestTokenRequest) returns (MintGuestTokenResponse) {
     option (ai.stigmer.commons.rpc.is_public) = true;
   }
@@ -127,10 +127,10 @@ message MintUserTokenResponse {
   int32 expires_in = 3;
 }
 
-// MintGuestTokenRequest identifies a shared agent and optional visitor cookie id.
+// MintGuestTokenRequest identifies a chat link and optional visitor cookie id.
 message MintGuestTokenRequest {
-  // Id of the share, from the hosted chat link (required).
-  string share_id = 1 [
+  // Id of the web channel, from the hosted chat link (required).
+  string channel_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).string.max_len = 128
   ];
@@ -142,7 +142,7 @@ message MintGuestTokenRequest {
   // be the value previously returned by this RPC for the same visitor.
   string guest_cookie_id = 2;
 
-  // Web origin of the page embedding the shared agent (optional).
+  // Web origin of the page embedding the chat (optional).
   //
   // Set by the hosted chat page when it runs inside an iframe (the embedding
   // page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
@@ -151,7 +151,7 @@ message MintGuestTokenRequest {
   // be determined (opaque origin).
   //
   // @internal
-  // Validated at mint against the share's spec.allowed_origins: empty list
+  // Validated at mint against the channel's spec.web.allowed_origins: empty list
   // admits any origin; a non-empty list refuses PERMISSION_DENIED for
   // unlisted origins and for "null". An empty field always passes for
   // hosted-page and non-browser requests (the anyone-with-link hosted
@@ -178,25 +178,25 @@ message MintGuestTokenRequest {
     expression: "this == '' || this == 'null' || this.matches('^https?://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$')"
   }];
 
-  // Link token from the share link's `?k=` parameter (optional).
+  // Link token from the chat link's `?k=` parameter (optional).
   //
-  // Required when the share link has been locked with rotateShareLink;
-  // ignored for plain share links.
+  // Required when the chat link has been locked with rotateLink; ignored
+  // for plain chat links.
   //
   // @internal
-  // Validated at mint against the share's live status.share_link_token
-  // (mismatch or absence answers the same NOT_FOUND as a disabled share,
+  // Validated at mint against the channel's live status.web.link_token
+  // (mismatch or absence answers the same NOT_FOUND as a disabled channel,
   // so a killed link is indistinguishable from a nonexistent one). The
   // validated value is stamped into the guest JWT as the link_token claim
   // and re-validated against the live value by the guest create-time gate
   // on every session/run create — rotation therefore revokes live
-  // guest tokens on their next message, exactly like disabling the share.
+  // guest tokens on their next message, exactly like disabling the channel.
   string link_token = 4 [(buf.validate.field).string.max_len = 128];
 }
 
 // MintGuestTokenResponse contains the guest JWT and the visitor cookie id.
 message MintGuestTokenResponse {
-  // Stigmer-signed JWT for authenticating shared-agent chat API calls.
+  // Stigmer-signed JWT for authenticating a chat link visitor's API calls.
   string access_token = 1;
 
   // Token type. Always "Bearer".

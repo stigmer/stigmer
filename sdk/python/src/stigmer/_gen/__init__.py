@@ -3,9 +3,8 @@
 from ._bidi import BidiStream
 from ._client import GeneratedClient
 from ._agent import AgentClient, AgentInput, EnvVarDeclarationInput, HookSourceInput, HookConfigInput, HookGroupInput, HookHandlerInput, RunConfigInput, AgentMcpServerInput
-from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput, WhatsAppChannelConfigInput
-from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesInput
 from ._apikey import ApiKeyClient, ApiKeyInput
+from ._channel import ChannelClient, ChannelInput, WebChannelConfigInput, WebChannelMessagesInput, SlackChannelConfigInput, WhatsAppChannelConfigInput
 from ._channelapp import ChannelAppClient, ChannelAppInput, SlackChannelAppConfigInput, WhatsAppChannelAppConfigInput
 from ._eval import EvalClient, EvalInput
 from ._evalrun import EvalRunClient, EvalRunInput, EvalRunCaseSourceInput, EvalRunTargetInput
@@ -55,15 +54,14 @@ __all__ = [
     "HookHandlerInput",
     "RunConfigInput",
     "AgentMcpServerInput",
-    "AgentChannelClient",
-    "AgentChannelInput",
-    "SlackChannelConfigInput",
-    "WhatsAppChannelConfigInput",
-    "AgentShareClient",
-    "AgentShareInput",
-    "AgentShareMessagesInput",
     "ApiKeyClient",
     "ApiKeyInput",
+    "ChannelClient",
+    "ChannelInput",
+    "WebChannelConfigInput",
+    "WebChannelMessagesInput",
+    "SlackChannelConfigInput",
+    "WhatsAppChannelConfigInput",
     "ChannelAppClient",
     "ChannelAppInput",
     "SlackChannelAppConfigInput",

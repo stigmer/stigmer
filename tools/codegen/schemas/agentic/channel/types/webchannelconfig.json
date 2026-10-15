@@ -1,0 +1,50 @@
+{
+  "name": "WebChannelConfig",
+  "description": "WebChannelConfig is a web channel's settings: who may chat over its\n hosted link, which sites may embed it, and what visitors see when a\n limit refuses them.",
+  "protoType": "ai.stigmer.agentic.channel.v1.WebChannelConfig",
+  "protoFile": "apis/ai/stigmer/agentic/channel/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Audience",
+      "jsonName": "audience",
+      "protoField": "audience",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.channel.v1.ChannelAudience",
+        "enumValues": [
+          "channel_audience_public",
+          "channel_audience_org"
+        ]
+      },
+      "description": "Who can chat over this channel's link. Unspecified means the\n organization's members: a link reaches anyone on the internet only\n when audience is set to public. The server writes an omitted audience\n out as org on create, update and apply, so every stored channel and\n every echo says what it means.\n\n Update and apply replace the spec wholesale, so a manifest that omits\n audience makes the link organization-only, never public.",
+      "required": false
+    },
+    {
+      "name": "AllowedOrigins",
+      "jsonName": "allowedOrigins",
+      "protoField": "allowed_origins",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Origins permitted to embed this channel's chat widget.\n\n Each entry is an exact web origin (scheme://host[:port]) with no path,\n for example \"https://docs.example.com\". An empty list allows embedding\n from any site; listing origins restricts embedding to those sites. The\n first-party hosted chat page is always exempt.",
+      "required": false,
+      "validation": {
+        "maxItems": 32
+      }
+    },
+    {
+      "name": "Messages",
+      "jsonName": "messages",
+      "protoField": "messages",
+      "type": {
+        "kind": "message",
+        "messageType": "WebChannelMessages"
+      },
+      "description": "Owner-customizable copy shown to visitors when a limit refuses their\n message. Unset fields fall back to platform defaults.",
+      "required": false
+    }
+  ]
+}

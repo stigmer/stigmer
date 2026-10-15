@@ -30,12 +30,7 @@ import { newValidatePluginListStep } from "../../../domain/agent/steps.js";
 import {
   newResolveChannelDefaultsStep,
   newValidateChannelUpdateStep,
-} from "../../../domain/agentchannel/steps.js";
-import {
-  newResolveShareDefaultsStep,
-  newStampAgentPinStep,
-  newValidateShareUpdateStep,
-} from "../../../domain/agentshare/steps.js";
+} from "../../../domain/channel/steps.js";
 import { newResolveRunAgentStep } from "../../../domain/run/resolve-run-agent.js";
 import {
   newResolveScheduleDefaultsStep,
@@ -57,9 +52,6 @@ const READERS: ReadonlyArray<{ readonly factory: string; readonly build: Factory
   { factory: "newValidateSubagentNamesStep", build: newValidateSubagentNamesStep, step: "ValidateSubagentNames" },
   { factory: "newPinSubagentsStep", build: newPinSubagentsStep, step: "PinSubagents" },
   { factory: "newValidatePluginListStep", build: newValidatePluginListStep, step: "ValidatePluginList" },
-  { factory: "newResolveShareDefaultsStep", build: newResolveShareDefaultsStep, step: "ResolveShareDefaults" },
-  { factory: "newStampAgentPinStep", build: newStampAgentPinStep, step: "StampAgentPin" },
-  { factory: "newValidateShareUpdateStep", build: newValidateShareUpdateStep, step: "ValidateShareUpdate" },
   { factory: "newResolveScheduleDefaultsStep", build: newResolveScheduleDefaultsStep, step: "ResolveScheduleDefaults" },
   { factory: "newValidateScheduleUpdateStep", build: newValidateScheduleUpdateStep, step: "ValidateScheduleUpdate" },
   { factory: "newResolveChannelDefaultsStep", build: newResolveChannelDefaultsStep, step: "ResolveChannelDefaults" },
@@ -75,8 +67,7 @@ const RESOLVER = "newNormalizeReferencesStep";
 /** Every create and update chain of a kind whose spec carries references, by controller. */
 const WRITE_CHAINS: Readonly<Record<string, ReadonlyArray<string>>> = {
   "domain/agent/controller.ts": ["agent-create", "agent-update"],
-  "domain/agentchannel/controller.ts": ["agent-channel-create", "agent-channel-update"],
-  "domain/agentshare/controller.ts": ["agent-share-create", "agent-share-update"],
+  "domain/channel/controller.ts": ["channel-create", "channel-update"],
   "domain/organization/controller.ts": ["organization-update-embedding"],
   "domain/eval-run/controller.ts": ["eval-run-create"],
   "domain/run/controller.ts": ["agent-execution-create", "agent-execution-update"],
@@ -164,11 +155,11 @@ describe("every write chain resolves references before any step reads one", () =
   it("the order check bites: a reader moved ahead of the resolver, and a chain without one, are faults", () => {
     const good: Chain = {
       name: "x-create",
-      factories: ["newValidateProtoStep", RESOLVER, "newResolveShareDefaultsStep", "newValidateReferencesStep"],
+      factories: ["newValidateProtoStep", RESOLVER, "newResolveChannelDefaultsStep", "newValidateReferencesStep"],
     };
     expect(orderFaults("f", good)).toEqual([]);
     expect(
-      orderFaults("f", { ...good, factories: ["newResolveShareDefaultsStep", RESOLVER, "newValidateReferencesStep"] }),
+      orderFaults("f", { ...good, factories: ["newResolveChannelDefaultsStep", RESOLVER, "newValidateReferencesStep"] }),
     ).toHaveLength(1);
     expect(orderFaults("f", { ...good, factories: ["newValidateReferencesStep"] })).toHaveLength(1);
   });

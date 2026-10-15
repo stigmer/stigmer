@@ -1,31 +1,36 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, cleanup, fireEvent } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ChannelTemplatesDialog } from "../ChannelTemplatesDialog";
 
 function makeChannel(overrides?: {
-  installState?: AgentChannelInstallState;
+  installState?: ChannelInstallState;
   enabled?: boolean;
   proactiveMessagingEnabled?: boolean;
-}): AgentChannel {
+}): Channel {
   return {
     metadata: { id: "ach_1", org: "acme", slug: "wa-main", name: "WA Main" },
     spec: {
       enabled: overrides?.enabled ?? true,
-      proactiveMessagingEnabled: overrides?.proactiveMessagingEnabled ?? true,
-      providerConfig: { case: "whatsapp", value: { phoneNumberId: "106" } },
+      type: {
+        case: "whatsapp",
+        value: {
+          phoneNumberId: "106",
+          proactiveMessagingEnabled: overrides?.proactiveMessagingEnabled ?? true,
+        },
+      },
     },
     status: {
       installState:
-        overrides?.installState ?? AgentChannelInstallState.installed,
-      providerStatus: { case: undefined },
+        overrides?.installState ?? ChannelInstallState.installed,
+      typeStatus: { case: undefined },
     },
-  } as unknown as AgentChannel;
+  } as unknown as Channel;
 }
 
 function makeTemplate(overrides?: Partial<Record<string, unknown>>) {
@@ -47,12 +52,12 @@ function makeTemplate(overrides?: Partial<Record<string, unknown>>) {
 function renderDialog(
   listTemplates: (input: unknown) => Promise<unknown>,
   props?: {
-    channel?: AgentChannel;
+    channel?: Channel;
     onEditYaml?: () => void;
     mode?: "cloud" | "local";
   },
 ) {
-  const client = { agentChannel: { listTemplates } } as never;
+  const client = { channel: { listTemplates } } as never;
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <FetchCacheContext.Provider value={null}>
@@ -103,7 +108,7 @@ describe("ChannelTemplatesDialog", () => {
     const listTemplates = vi.fn();
     renderDialog(listTemplates, {
       channel: makeChannel({
-        installState: AgentChannelInstallState.pending_install,
+        installState: ChannelInstallState.pending_install,
       }),
     });
 

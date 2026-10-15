@@ -1,0 +1,46 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: Channel
+metadata:
+  # The slug names the channel in the stigmer org. It is the agent's own slug,
+  # the slug this chat link carried before links were channels, so applying
+  # this file edits the channel the docs site already embeds and never makes a
+  # second one. Its public chat link and the docs site's
+  # <stigmer-agent share="…"> attribute carry the channel's id instead, which
+  # the server minted on the first apply (README.md, "Wire the docs site").
+  name: stigmer-docs
+  org: stigmer
+spec:
+  agent_ref:
+    kind: agent
+    org: stigmer
+    slug: stigmer-docs
+  enabled: true
+  # A web channel: a hosted chat link and the widget the docs site embeds.
+  web:
+    # Public on purpose: docs readers are anonymous. The blueprint itself
+    # stays visibility_org — a channel grants chat access, never blueprint
+    # access. Keep `audience` present in every apply: an apply that omits it
+    # makes the link organization-only, which would close Ask AI to readers.
+    audience: channel_audience_public
+    # Embedding is locked to the docs site's origin. The hosted chat page at
+    # /chat/<channel id> stays reachable for anyone with the link —
+    # allowed_origins constrains only which sites may IFRAME the widget.
+    # NOTE: origins are exact — a preview or staging host needs its own entry.
+    allowed_origins:
+      - "https://stigmer.ai"
+    # Visitor-facing copy when a launch-gate limit refuses a message
+    # (≤300 chars each; empty fields fall back to platform defaults).
+    messages:
+      rate_limited: >-
+        You're sending messages a little too quickly. Give it a moment and try
+        again — the docs at stigmer.ai/docs are always open in the meantime.
+      unavailable: >-
+        Ask AI is temporarily unavailable. Everything it knows comes from the
+        documentation at stigmer.ai/docs — the answer is in there too.
+      conversation_ended: >-
+        This conversation reached its limit. Reload the page to start a fresh
+        one, or continue in the docs at stigmer.ai/docs.
+  # No vaults, deliberately: the agent's only capability is the harness's
+  # built-in web fetch tool reading public URLs, so guest conversations
+  # need zero credentials. If a credentialed tool is ever added to the
+  # agent, attach a shared vault here (`vaults:`), never anyone's My vault.

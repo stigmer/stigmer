@@ -149,22 +149,14 @@ public enum IamPermission
   can_execute_billing_ops(29),
   /**
    * <pre>
-   * Organization-level permission to create agent shares whose runs the
-   * organization pays for.
+   * Organization-level permission to create channels: a chat link, a Slack
+   * workspace connection or a WhatsApp number for one of the organization's
+   * agents.
    * </pre>
    *
-   * <code>can_create_agent_share = 30;</code>
+   * <code>can_create_channel = 54;</code>
    */
-  can_create_agent_share(30),
-  /**
-   * <pre>
-   * Organization-level permission to connect an agent to a messaging
-   * channel (Slack, WhatsApp).
-   * </pre>
-   *
-   * <code>can_create_agent_channel = 54;</code>
-   */
-  can_create_agent_channel(54),
+  can_create_channel(54),
   /**
    * <pre>
    * Organization-level permission to register channel apps (customer-owned
@@ -189,7 +181,7 @@ public enum IamPermission
   can_manage_model_pricing(32),
   /**
    * <pre>
-   * Resource-level permission to participate in an agent channel's
+   * Resource-level permission to participate in a channel's
    * conversations: reply to customers as the business, take over and
    * hand back the control token, and clear the attention flag.
    * </pre>
@@ -474,22 +466,14 @@ public enum IamPermission
   public static final int can_execute_billing_ops_VALUE = 29;
   /**
    * <pre>
-   * Organization-level permission to create agent shares whose runs the
-   * organization pays for.
+   * Organization-level permission to create channels: a chat link, a Slack
+   * workspace connection or a WhatsApp number for one of the organization's
+   * agents.
    * </pre>
    *
-   * <code>can_create_agent_share = 30;</code>
+   * <code>can_create_channel = 54;</code>
    */
-  public static final int can_create_agent_share_VALUE = 30;
-  /**
-   * <pre>
-   * Organization-level permission to connect an agent to a messaging
-   * channel (Slack, WhatsApp).
-   * </pre>
-   *
-   * <code>can_create_agent_channel = 54;</code>
-   */
-  public static final int can_create_agent_channel_VALUE = 54;
+  public static final int can_create_channel_VALUE = 54;
   /**
    * <pre>
    * Organization-level permission to register channel apps (customer-owned
@@ -514,7 +498,7 @@ public enum IamPermission
   public static final int can_manage_model_pricing_VALUE = 32;
   /**
    * <pre>
-   * Resource-level permission to participate in an agent channel's
+   * Resource-level permission to participate in a channel's
    * conversations: reply to customers as the business, take over and
    * hand back the control token, and clear the attention flag.
    * </pre>
@@ -708,8 +692,7 @@ public enum IamPermission
       case 27: return can_view_billing;
       case 28: return can_manage_billing;
       case 29: return can_execute_billing_ops;
-      case 30: return can_create_agent_share;
-      case 54: return can_create_agent_channel;
+      case 54: return can_create_channel;
       case 31: return can_create_channel_app;
       case 32: return can_manage_model_pricing;
       case 36: return can_participate;

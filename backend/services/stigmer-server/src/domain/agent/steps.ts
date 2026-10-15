@@ -30,7 +30,6 @@ import type {
   Agent,
   AgentSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { HookConfig, HookHandler } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -261,110 +260,4 @@ function checkCursorHandler(event: string, handler: HookHandler): void {
       `the agent's ${event} hook reads \${user_config.*}, which Cursor's hook format does not substitute`,
     );
   }
-}
-
-// ---------------------------------------------------------------------------
-// Cascade steps — delete_cascade.go. Children before parent, so a
-// mid-failure retry converges. Each child's access goes with its row: the
-// composed driver hears the child's own delete event right after the row
-// (cleanUpDeletedResource, best-effort as every delete chain's cleanup),
-// while the agent and its organization still hold the links the child
-// reaches its organization through (stigmer#1603). What deliberately
-// SURVIVES an agent delete, and must never be swept into this cascade:
-// sessions and agent executions (historical record, the #582 posture —
-// they reference the agent by its immutable id, and a session's next turn
-// fails naming the agent that is gone) and resource_audit
-// rows (surviving sessions and executions render their historical state
-// from them).
-// ---------------------------------------------------------------------------
-
-/**
- * Deletes the agent's SAME-ORG AgentShares before the agent is deleted.
- * Shares reference the agent by org+slug (spec.agent_ref), so a stale share
- * would silently rebind — audience, link token, and bound credentials
- * included — to whatever agent is later created at that slug. Matching by
- * spec.agent_ref finds them all regardless of each share's own slug (a
- * renamed share stays covered). Cross-org shares (another org sharing this
- * marketplace-public agent) are NOT cascaded: they are that org's
- * resources, and deleting them here would make agent delete a
- * cross-principal destructive action — they fail closed instead, via the
- * dangling-ref check and the status.agent_id pin every share-resolution
- * gate verifies. AgentShare is not search-indexed, so there is no index
- * entry to clean.
- */
-export function newCascadeDeleteSharesStep<Desc extends DescMessage>(
-  store: Store,
-  lifecycle: ResourceAuthorizationLifecycle | undefined,
-  logger: Logger,
-): PipelineStep<Desc> {
-  return {
-    name: "CascadeDeleteShares",
-    async execute(ctx: RequestContext<Desc>): Promise<void> {
-      const agent = ctx.get(EXISTING_RESOURCE_KEY) as Agent | undefined;
-      if (agent === undefined) {
-        throw internalError(
-          new Error(
-            "agent not found in context (LoadExistingForDelete must run first)",
-          ),
-          "agent not found in context (LoadExistingForDelete must run first)",
-        );
-      }
-      const agentOrg = agent.metadata?.org ?? "";
-      const agentSlug = agent.metadata?.slug ?? "";
-      const agentId = agent.metadata?.id ?? "";
-
-      let rows: Uint8Array[];
-      try {
-        rows = await store.listResources(ApiResourceKind.agent_share);
-      } catch (error) {
-        throw internalError(
-          error,
-          "failed to list agent shares for cascade delete",
-        );
-      }
-
-      let deleted = 0;
-      for (const data of rows) {
-        let share;
-        try {
-          share = fromBinary(AgentShareSchema, data);
-        } catch {
-          continue;
-        }
-        const ref = share.spec?.agentRef;
-        if ((ref?.id ?? "") !== agentId || agentId === "") {
-          continue;
-        }
-        if ((share.metadata?.org ?? "") !== agentOrg) {
-          // A cross-org share — another org's resource. Fails closed via
-          // the agent-id pin instead of being deleted here.
-          continue;
-        }
-        const shareId = share.metadata?.id ?? "";
-        try {
-          await store.deleteResource(ApiResourceKind.agent_share, shareId);
-        } catch (error) {
-          throw internalError(
-            error,
-            `failed to cascade-delete share ${shareId} of agent ${agentOrg}/${agentSlug}`,
-          );
-        }
-        await releaseNamesOfDeleted(store, logger, ApiResourceKind.agent_share, agentOrg, shareId);
-        await cleanUpDeletedResource(lifecycle, logger, {
-          kind: ApiResourceKind.agent_share,
-          resourceId: shareId,
-          orgId: agentOrg,
-          caller: ctx.callerIdentity,
-        });
-        deleted++;
-      }
-
-      if (deleted > 0) {
-        logger.info("Cascade-deleted shares of agent", {
-          count: deleted,
-          agent: `${agentOrg}/${agentSlug}`,
-        });
-      }
-    },
-  };
 }

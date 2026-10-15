@@ -26,7 +26,7 @@ function createMockStigmer(overrides: {
   completeInstall?: (input: unknown) => Promise<unknown>;
 } = {}) {
   return {
-    agentChannel: {
+    channel: {
       initiateInstall:
         overrides.initiateInstall ??
         vi.fn().mockResolvedValue({

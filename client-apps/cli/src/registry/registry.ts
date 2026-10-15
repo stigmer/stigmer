@@ -15,17 +15,17 @@ import { verbsForKind } from "./verb-support.js";
 export interface TypeInfo {
   /** Proto enum value this type maps to. */
   readonly kind: ApiResourceKind;
-  /** Kind name (also the YAML `kind` value), e.g. "AgentChannel". */
+  /** Kind name (also the YAML `kind` value), e.g. "ChannelApp". */
   readonly name: string;
-  /** Human-readable name, e.g. "Agent Channel". */
+  /** Human-readable name, e.g. "Channel App". */
   readonly displayName: string;
-  /** ID prefix new ids are minted with, e.g. "ach". */
+  /** ID prefix new ids are minted with, e.g. "chapp". */
   readonly idPrefix: string;
   /** Every prefix this type's ids may carry: `idPrefix`, then any retired ones. */
   readonly idPrefixes: readonly string[];
-  /** Canonical singular form (lowercase name), e.g. "agentchannel". */
+  /** Canonical singular form (lowercase name), e.g. "channelapp". */
   readonly singular: string;
-  /** Plural form for list commands, e.g. "agentchannels". */
+  /** Plural form for list commands, e.g. "channelapps". */
   readonly plural: string;
   /** All accepted input spellings (case-insensitive on lookup). */
   readonly aliases: readonly string[];

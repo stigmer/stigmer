@@ -235,11 +235,10 @@ const (
 	ApiResourceKind_session ApiResourceKind = 42
 	// Knowledge resource that provides domain-specific context to an agent.
 	ApiResourceKind_skill ApiResourceKind = 43
-	// Hosted chat link for an agent with its own audience, origins, and credentials.
-	ApiResourceKind_agent_share ApiResourceKind = 46
-	// Connection binding an agent to an external messaging platform workspace.
-	ApiResourceKind_agent_channel ApiResourceKind = 47
-	// Customer-owned messaging-platform app (e.g. a Slack app) that agent
+	// A way people reach an agent: a chat link or website widget, a Slack
+	// workspace, or a WhatsApp number.
+	ApiResourceKind_channel ApiResourceKind = 47
+	// Customer-owned messaging-platform app (e.g. a Slack app) that
 	// channels can install through instead of the shared platform app.
 	ApiResourceKind_channel_app ApiResourceKind = 48
 	// Recurring trigger that runs an agent on a cron schedule.
@@ -304,8 +303,7 @@ var (
 		41: "run",
 		42: "session",
 		43: "skill",
-		46: "agent_share",
-		47: "agent_channel",
+		47: "channel",
 		48: "channel_app",
 		56: "schedule",
 		57: "memory",
@@ -335,8 +333,7 @@ var (
 		"run":                       41,
 		"session":                   42,
 		"skill":                     43,
-		"agent_share":               46,
-		"agent_channel":             47,
+		"channel":                   47,
 		"channel_app":               48,
 		"schedule":                  56,
 		"memory":                    57,
@@ -558,7 +555,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"enterprise\x10\x03*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xc1!\n" +
+	"\astigmer\x10\x01*\xb4 \n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x126\n" +
@@ -580,10 +577,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\asession\x12\asession\x1a\n" +
 	"session_idR\x03aex\x12\xeb\x01\n" +
 	"\asession\x10*\x1a\xdd\x01\xaa\xff+\xd8\x01\b\x01\x10\x01\x1a\aSession\"\aSession*\x03ses@\x01J\xb8\x01\b\x02\x10\x01:\x03\x01\x05\x04JO\b\x01\x12KEverything, including deleting the conversation and deciding who has accessJ+\b\x05\x12'Read the conversation and send messagesJ/\b\x04\x12+Read the conversation; cannot send messages\x12\xbc\x01\n" +
-	"\x05skill\x10+\x1a\xb0\x01\xaa\xff+\xab\x01\b\x01\x10\x01\x1a\x05Skill\"\x05Skill*\x03skl0\x01@\x01J\x8d\x01\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x02\x01\x04B\x01\x04JA\b\x01\x12=Everything, including deleting it and deciding who has accessJ5\b\x04\x121Use it and see what it contains; cannot change it\x12\xbe\x01\n" +
-	"\vagent_share\x10.\x1a\xac\x01\xaa\xff+\xa7\x01\b\x01\x10\x01\x1a\n" +
-	"AgentShare\"\vAgent Share*\x03ash8\x01@\x01J\x7f\b\x02\x10\x01:\x02\x01\x04JA\b\x01\x12=Everything, including deleting it and deciding who has accessJ2\b\x04\x12.See the chat link's settings; cannot change it\x12\x9b\x02\n" +
-	"\ragent_channel\x10/\x1a\x87\x02\xaa\xff+\x82\x02\b\x01\x10\x01\x1a\fAgentChannel\"\rAgent Channel*\x03ach8\x01@\x01J\xd5\x01\b\x02\x10\x01:\x03\x01\x04\x05B\x02\x04\x05JE\b\x01\x12AEverything, including the channel's connection and who has accessJ2\b\x04\x12.Read the channel's conversations; cannot replyJK\b\x05\x12GRead the channel's conversations and reply to customers as the business\x12p\n" +
+	"\x05skill\x10+\x1a\xb0\x01\xaa\xff+\xab\x01\b\x01\x10\x01\x1a\x05Skill\"\x05Skill*\x03skl0\x01@\x01J\x8d\x01\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x02\x01\x04B\x01\x04JA\b\x01\x12=Everything, including deleting it and deciding who has accessJ5\b\x04\x121Use it and see what it contains; cannot change it\x12\xbc\x02\n" +
+	"\achannel\x10/\x1a\xae\x02\xaa\xff+\xa9\x02\b\x01\x10\x01\x1a\aChannel\"\aChannel*\x03chn8\x01@\x01J\xfd\x01\b\x02\x10\x01:\x03\x01\x04\x05B\x02\x04\x05JC\b\x01\x12?Everything, including the channel's settings and who has accessJI\b\x04\x12ESee the channel and read its conversations; cannot change it or replyJ^\b\x05\x12ZRead the channel's Slack and WhatsApp conversations and reply to customers as the businessR\x03ashR\x03ach\x12p\n" +
 	"\vchannel_app\x100\x1a_\xaa\xff+[\b\x01\x10\x01\x1a\n" +
 	"ChannelApp\"\vChannel App*\x05chapp8\x01@\x01J1\b\x02\x10\x04:\x01\x04J(\b\x04\x12$See its settings; cannot change them\x12\xbb\x01\n" +
 	"\bschedule\x108\x1a\xac\x01\xaa\xff+\xa7\x01\b\x01\x10\x01\x1a\bSchedule\"\bSchedule*\x03sch8\x01@\x01J\x83\x01\b\x02\x10\x01:\x02\x01\x04B\x01\x04JA\b\x01\x12=Everything, including deleting it and deciding who has accessJ3\b\x04\x12/See the schedule and its runs; cannot change it\x12m\n" +
@@ -603,8 +598,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x04eval\x10B\x1a\xc7\x01\xaa\xff+\xc2\x01\b\x01\x10\x01\x1a\x04Eval\"\x04Eval*\x03evs0\x018\x01@\x01J\xa4\x01\b\x02\x10\x01*\x04\x18\x01 \x01:\x02\x01\x04B\x01\x04JS\b\x01\x12OEverything, including pushing versions, deleting it and deciding who has accessJ<\b\x04\x128See its cases and download any version; cannot change it\x12-\n" +
 	"\x04plan\x10F\x1a#\xaa\xff+\x1f\b\x04\x10\x01\x1a\x04Plan\"\x04Plan*\x03pln8\x01@\x02J\x04\b\x05\x10\x04\x12E\n" +
 	"\fsubscription\x10G\x1a3\xaa\xff+/\b\x04\x10\x01\x1a\fSubscription\"\fSubscription*\x03sub8\x01@\x02J\x04\b\x02\x10\x04\x126\n" +
-	"\alicense\x10H\x1a)\xaa\xff+%\b\x04\x10\x01\x1a\aLicense\"\aLicense*\x03lic8\x01@\x02J\x04\b\x05\x10\x04\"\x04\b\x17\x10\x17\"\x04\b,\x10,\"\x04\b-\x10-\"\x04\b1\x101\"\x04\b2\x102\"\x04\b3\x103\"\x04\b4\x104\"\x04\b5\x105\"\x04\b6\x106\"\x04\b7\x107\"\x04\b<\x10<\"\x04\b?\x10?\"\x04\b@\x10@*\x0fplatform_client*\n" +
-	"mcp_server*\x0eagent_instance*\tdatastore*\bworkflow*\x11workflow_instance*\fworkflow_run*\venvironment*\x11execution_context*\bartifact*\aproject*\vplugin_eval*\n" +
+	"\alicense\x10H\x1a)\xaa\xff+%\b\x04\x10\x01\x1a\aLicense\"\aLicense*\x03lic8\x01@\x02J\x04\b\x05\x10\x04\"\x04\b\x17\x10\x17\"\x04\b,\x10,\"\x04\b-\x10-\"\x04\b.\x10.\"\x04\b1\x101\"\x04\b2\x102\"\x04\b3\x103\"\x04\b4\x104\"\x04\b5\x105\"\x04\b6\x106\"\x04\b7\x107\"\x04\b<\x10<\"\x04\b?\x10?\"\x04\b@\x10@*\x0fplatform_client*\n" +
+	"mcp_server*\x0eagent_instance*\vagent_share*\tdatastore*\bworkflow*\x11workflow_instance*\fworkflow_run*\venvironment*\x11execution_context*\bartifact*\aproject*\vplugin_eval*\n" +
 	"agent_eval:\x85\x01\n" +
 	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\x83\x03\n" +
 	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x14ApiResourceKindProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"

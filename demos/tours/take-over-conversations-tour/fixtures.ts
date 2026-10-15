@@ -18,7 +18,7 @@
  */
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   ChannelConversationSchema,
   ConversationControl,
@@ -27,9 +27,9 @@ import {
   ConversationTimelineItemSchema,
   type ChannelConversation,
   type ConversationTimelineItem,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
-import { ChannelDeliveryStatus } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/delivery_pb";
-import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/outbound_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { ChannelDeliveryStatus } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/delivery_pb";
+import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/outbound_pb";
 import { sampleDate } from "@stigmer/react/test";
 import { DEMO_ORG } from "../_shared/fixtures";
 
@@ -49,7 +49,7 @@ const HOUR = 3_600_000;
 
 /** The WhatsApp channel the four conversations live on. */
 export function supportLineChannel() {
-  return create(AgentChannelSchema, {
+  return create(ChannelSchema, {
     metadata: {
       id: CHANNEL_ID,
       org: DEMO_ORG,
@@ -58,7 +58,7 @@ export function supportLineChannel() {
     },
     spec: {
       agentRef: { org: DEMO_ORG, slug: "support-agent" },
-      providerConfig: { case: "whatsapp", value: {} },
+      type: { case: "whatsapp", value: {} },
     },
   });
 }
@@ -69,7 +69,7 @@ function conversation(
   },
 ): ChannelConversation {
   return create(ChannelConversationSchema, {
-    agentChannelId: CHANNEL_ID,
+    channelId: CHANNEL_ID,
     org: DEMO_ORG,
     control: ConversationControl.control_agent,
     ...overrides,

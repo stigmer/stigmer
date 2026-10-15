@@ -11,7 +11,7 @@ import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/re
 import type { ReactNode } from "react";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { RunConfigInput } from "@stigmer/sdk";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { StigmerContext } from "../../context";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
@@ -81,7 +81,7 @@ function makeChannel(runConfig?: {
     spec: {
       agentRef: { org: "acme", slug: "support-agent" },
       enabled: true,
-      providerConfig: { case: "slack", value: {} },
+      type: { case: "slack", value: {} },
       vaults: [],
       ...(runConfig
         ? {
@@ -102,7 +102,7 @@ function makeChannel(runConfig?: {
 
 function createMockStigmer() {
   const update = vi.fn().mockResolvedValue({});
-  const client = { agentChannel: { update } } as never;
+  const client = { channel: { update } } as never;
   return { client, update };
 }
 
@@ -111,7 +111,7 @@ function createMockStigmer() {
  * terms (an unset field is `undefined`), with the one path it names.
  */
 function sentInput(update: { mock: { calls: unknown[][] } }): { runConfig?: Partial<RunConfigInput>; paths: string[] } {
-  const sent = sentUpdate<AgentChannel>(update);
+  const sent = sentUpdate<Channel>(update);
   const stored = sent.resource.spec?.runConfig;
   return {
     paths: sent.paths,

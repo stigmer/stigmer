@@ -124,8 +124,9 @@ export const ChannelAppCommandController: GenService<{
   /**
    * Delete a channel app.
    *
-   * Deletion is blocked while any AgentChannel references this app via
-   * spec.app_ref — disconnect or delete those channels first.
+   * Deletion is blocked while any channel references this app through its
+   * Slack or WhatsApp settings (spec.slack.app_ref, spec.whatsapp.app_ref):
+   * disconnect or delete those channels first.
    *
    * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.delete
    */

@@ -7,8 +7,6 @@ import { tsClientFieldName } from "./gen-common.js";
 
 const PY_CLIENT_FIELD_NAMES = new Map<string, string>([
   ["agent", "agents"],
-  ["agentchannel", "agent_channels"],
-  ["agentshare", "agent_shares"],
   ["apikey", "api_keys"],
   ["federationissuer", "federation_issuers"],
   ["identityaccount", "identity_accounts"],

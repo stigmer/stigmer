@@ -48,11 +48,10 @@ const SUITES = new URL("../../../fga/tests/", import.meta.url);
 /** Every suite the model's folder holds, by file name. */
 const DOCUMENTS = [
   "access-history.fga.yaml",
-  "agent-channel-owner.fga.yaml",
-  "agent-share-owner.fga.yaml",
   "blueprint-editor.fga.yaml",
   "blueprint-private-visibility.fga.yaml",
   "channel-app-administration.fga.yaml",
+  "channel-owner.fga.yaml",
   "channel-participation.fga.yaml",
   "channel-session-visibility.fga.yaml",
   "child-organizations.fga.yaml",

@@ -27,7 +27,7 @@ import type { DescMessage, DescMethod } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter } from "@connectrpc/connect";
 
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import {
@@ -36,13 +36,13 @@ import {
   ChannelConversationSchema,
   ConversationMediaDownloadUrlSchema,
   ConversationTimelineSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
-import { InitiateChannelInstallOutputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { InitiateChannelInstallOutputSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
 import {
   ChannelTemplatesSchema,
   MessagingChannelsSchema,
   SendChannelMessageOutputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { BillingAccountSchema } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { LicenseCommandController } from "@stigmer/protos/ai/stigmer/billing/license/v1/command_pb";
@@ -352,13 +352,13 @@ const CONSUMER_GUEST_TOKEN_TTL_SECONDS = 3600;
 
 /**
  * A consumer's own typed platform-token lane: a guest token signed through
- * the exported envelope with the lane's own lifetime, naming its share, and
+ * the exported envelope with the lane's own lifetime, naming its chat link, and
  * claimed by a verifier on the same envelope — the shape a composition's
  * typed lanes take beside open source's untyped user-token lane.
  */
 export async function mintConsumerGuestToken(
   org: string,
-  shareId: string,
+  channelId: string,
 ): Promise<SignedPlatformToken> {
   if (!canSign(consumerPlatformTokenKeys)) {
     throw new Error("consumer ring cannot sign");
@@ -372,7 +372,7 @@ export async function mintConsumerGuestToken(
       sub: "ida_consumer_guest",
       [TOKEN_TYPE_CLAIM]: "guest",
       org,
-      share_id: shareId,
+      channel_id: channelId,
     },
     options,
   );
@@ -409,20 +409,20 @@ const consumerGuestTokenVerifier: IdentityVerifier = {
 
 /**
  * Where a consumer learns whose guest it mints: a mint names only the
- * share's id, so a real consumer reads the share's row for its organization
+ * web channel's id, so a real consumer reads the channel's row for its organization
  * (the cloud reads it in-process). This fake is only compiled, never run,
  * so an empty map stands in for that read.
  */
-const consumerShareOrgs = new Map<string, string>();
+const consumerChannelOrgs = new Map<string, string>();
 
 /** A consumer's guest-token capability (registered below as `drivers.guestTokenMinting`). */
 const consumerGuestTokenMinting: GuestTokenMinting = {
   async mintGuestToken(request) {
-    const org = consumerShareOrgs.get(request.shareId);
+    const org = consumerChannelOrgs.get(request.channelId);
     if (org === undefined) {
-      throw new ConnectError(`Agent not found: ${request.shareId}`, Code.NotFound);
+      throw new ConnectError(`Agent not found: ${request.channelId}`, Code.NotFound);
     }
-    const signed = await mintConsumerGuestToken(org, request.shareId);
+    const signed = await mintConsumerGuestToken(org, request.channelId);
     return create(MintGuestTokenResponseSchema, {
       accessToken: signed.token,
       tokenType: "Bearer",
@@ -956,7 +956,7 @@ const channelRuntime: ChannelRuntime = {
       );
     },
     completeInstall: (channel) =>
-      Promise.resolve(create(AgentChannelSchema, channel)),
+      Promise.resolve(create(ChannelSchema, channel)),
   },
   messaging: {
     sendMessage: () => Promise.resolve(create(SendChannelMessageOutputSchema)),
@@ -1488,7 +1488,7 @@ export const fakeExtension: ServerExtension = {
     // The list read scope, carrying the authorization parent on its
     // candidates.
     listReadScope,
-    // The channel serving seam: a composed runtime flips the agentchannel
+    // The channel serving seam: a composed runtime flips the channel
     // install/messaging/conversation arms from refusal to serving.
     channelRuntime,
     // The sealing seam: vault-backed wire formats registered

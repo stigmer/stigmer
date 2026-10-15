@@ -29,8 +29,8 @@ message ListSchedulesByAgentRequest {
   // several organizations spans all of them.
   //
   // @internal
-  // Mirrors the org scoping on the sibling listByAgent requests (agent
-  // channels, agent shares). Handlers
+  // Mirrors the org scoping on the sibling listByAgent requests (channels).
+  // Handlers
   // implementing this RPC must apply the filter in their query/list step.
   string org = 3;
 

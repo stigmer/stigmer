@@ -1,0 +1,99 @@
+module agentic
+
+# ========================================
+# CHANNEL TYPE (Organization-scoped, Owner-managed Configuration)
+# ========================================
+# A channel is a way people reach an agent: a web channel (a hosted chat
+# link and the widget sites embed), a Slack workspace or a WhatsApp number.
+# It carries the serving switch, the vaults its conversations use, the run
+# settings, and its type's own settings: a web channel's audience, embed
+# origins and visitor messages, or a Slack or WhatsApp channel's install
+# (workspace identity and credentials, from the install flow). It is
+# independent of the agent blueprint it references, and one type for every
+# kind of channel since chat links and connections merged (2026-10-15).
+#
+# Authorization model (OWNER-SCOPED, deliberately narrow): the creator owns
+# the channel; view/edit/delete/rotate/install require ownership or an
+# explicit grant. Plain org members get NO implicit access: a channel
+# carries billing-affecting levers (enabled, vaults, a public link, the
+# install itself: outside messages spend on the owning org's own provider
+# keys) whose consent bar is can_manage_audience on the referenced agent
+# and can_create_channel on the organization at creation time, and
+# ownership after. Org admins inherit owner (since 2026-07-13): an admin
+# who can manage the agent can also manage its channels.
+#
+# CRITICAL: a channel writes NO visitor-facing visibility tuples. A web
+# channel's guest and org-member admission to the hosted chat is enforced
+# app-level (the agent profile, guest mint, and create-time gates): a
+# public wildcard viewer tuple here would expose the referenced agent's
+# full blueprint (instructions included) to any authenticated account,
+# conflating blueprint visibility with chat access. The same rule holds
+# for the runner serving a guest session: the org's guest account is no
+# viewer of the agent, and the composition admits that runner's reads of
+# the session's blueprint app-level (the hosted edition's blueprint-read
+# admission over a live re-read of this channel), never through a tuple. A
+# Slack or WhatsApp channel's public surface is the provider webhook, which
+# authenticates by signature; workspace-user admission is app-level
+# (channel caller identity and per-turn connection gates), never FGA.
+#
+# FGA tuples on creation (config-driven from the channel kind config:
+# ORGANIZATION scope + DIRECT owner):
+# - channel:<id>#organization@organization:<org>
+# - channel:<id>#owner@identity_account:<creator>
+
+type channel
+  relations
+    # ========================================
+    # ORGANIZATION OWNERSHIP
+    # ========================================
+    define organization: [organization]
+
+    # ========================================
+    # OWNERSHIP (Attribution + Admin)
+    # ========================================
+    # The creator, plus org admins by inheritance (since 2026-07-13, closing
+    # the org-Owner-is-not-agent-owner gap platform-wide).
+    define owner: ([identity_account] and affiliated from organization) or admin from organization
+
+    # ========================================
+    # CONVERSATION PARTICIPANTS (Explicit Grants)
+    # ========================================
+    # Org humans who may read this channel's conversations and speak to
+    # its customers as the business (reply, take over, hand back, clear
+    # attention). NOT channel configurators — config stays owner-only. On
+    # a web channel the role waits for an inbox of its guests'
+    # conversations; today it is the Slack and WhatsApp channels' role.
+    # The "dedicated relation" seam named when channel sessions became
+    # observable (2026-07-17), materialized on 2026-08-06. Includes owner so
+    # connectors and org admins participate by construction — no
+    # double-granting. An Enterprise team's members participate through
+    # team#member, bounded by the organization in team.fga.
+    define participant: ([identity_account, team#member] and affiliated from organization) or owner
+
+    # ========================================
+    # VIEWER ACCESS (Explicit Grants)
+    # ========================================
+    # viewer includes participants: conversation READ rides the existing
+    # session.can_view composition (`viewer from channel`) unchanged, and
+    # participants can see the channel card they participate on. Behavior
+    # for existing grants is preserved: owner ⊆ participant ⊆ viewer. A
+    # read-only grant may name a team's members too (team#member).
+    define viewer: ([identity_account, team#member] and affiliated from organization) or participant
+
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: viewer
+    define can_edit: owner
+    define can_delete: owner
+    # Reply / takeOver / handBack / clearAttention on the channel's
+    # conversations (the participation permission map, 2026-08-06). Deliberately
+    # distinct from can_edit: "may talk to this channel's customers" and
+    # "may configure this channel" are different powers.
+    define can_participate: participant
+
+    # ========================================
+    # ACCESS MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+    define can_view_access: viewer

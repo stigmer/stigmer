@@ -227,9 +227,9 @@ export interface SessionViewerProps {
    *
    * `"observer"` is a read-only transcript: no composer, no
    * approval/edit/retry/build affordances, no access management. The
-   * viewer also self-selects observer for channel-originated sessions
-   * (the `stigmer.ai/channel-id` label) regardless of this prop, since
-   * channel viewers hold `can_view` only.
+   * viewer also self-selects observer for Slack and WhatsApp sessions
+   * (the `stigmer.ai/channel-conversation-key` label) regardless of this
+   * prop, since channel viewers hold `can_view` only.
    *
    * See {@link SessionAudience}.
    *

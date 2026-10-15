@@ -8,7 +8,7 @@
 // Coverage spans the full CRUD + query surface: create/delete, apply
 // create/update branching, update spec replacement with the immutable
 // agent_ref (repointing would bypass the create-time consent bar on the
-// referenced agent — the AgentChannel rule), getByReference, the
+// referenced agent — the Channel rule), getByReference, the
 // agent-id-keyed listByAgent (unknown agent answers an empty list, not an
 // error), and the org-scoped list. The FIRING contract (a trigger records
 // last_fire_at, failed fires accumulate into the platform auto-pause, resume
@@ -187,7 +187,7 @@ describe("Schedule apply contract", () => {
   it("[rpc:ScheduleCommandController.apply] apply-as-update cannot repoint the agent target (FailedPrecondition)", async () => {
     // The agent_ref is immutable on every update path — the create-time
     // consent bar is edit rights on the REFERENCED agent, and a repoint
-    // would bypass it (the AgentChannel rule). Apply routes through update
+    // would bypass it (the Channel rule). Apply routes through update
     // when the schedule exists, so the refusal must hold here too.
     const { org } = await target.provisionTenancy();
     const { slug: agentSlug } = await createAgentFixture(org);

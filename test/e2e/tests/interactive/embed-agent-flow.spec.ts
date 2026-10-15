@@ -1,6 +1,6 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
+import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { test, expect } from "../../fixtures";
 import { ensureDefaultOrg } from "../../fixtures/seed-helpers";
@@ -40,9 +40,9 @@ let server: Server;
 let hostOrigin: string;
 let hostPageAttributes = "";
 
-// Sharing is an AgentShare resource: apply upserts the
-// canonical share by (org, slug) — creating it on first use, exactly the
-// commit path the Share dialog and CLI use. An embed serves anonymous
+// A share is a web Channel: apply upserts the
+// share by (org, slug) — creating it on first use, as the CLI's
+// apply does. An embed serves anonymous
 // visitors, so the share says public: an omitted audience means the
 // organization's members, which an embed never serves.
 /** Applies an enabled public share of the agent and answers its id, which the embed names. */
@@ -50,13 +50,13 @@ async function enableSharing(
   client: Stigmer,
   agent: { org: string; slug: string },
 ): Promise<string> {
-  const share = await client.agentShare.apply({
+  const share = await client.channel.apply({
     org: agent.org,
     slug: agent.slug,
     name: agent.slug,
     agentRef: { org: agent.org, slug: agent.slug },
     enabled: true,
-    audience: AgentShareAudience.public,
+    web: { audience: ChannelAudience.public },
   });
   return share.metadata!.id;
 }
@@ -89,9 +89,9 @@ test.describe("Embed agent flow", () => {
     testAgent,
     stigmerClient,
   }) => {
-    const shareId = await enableSharing(stigmerClient, testAgent);
+    const channelId = await enableSharing(stigmerClient, testAgent);
 
-    hostPageAttributes = `share="${shareId}"`;
+    hostPageAttributes = `share="${channelId}"`;
     await page.goto(`${hostOrigin}/`);
 
     // The loader upgraded the element into an iframe pointed at the hosted
@@ -99,7 +99,7 @@ test.describe("Embed agent flow", () => {
     const embedFrame = page.locator("stigmer-agent iframe");
     await expect(embedFrame).toHaveAttribute(
       "src",
-      `${APP_URL}/chat/${shareId}`,
+      `${APP_URL}/chat/${channelId}`,
       { timeout: 15_000 },
     );
 
@@ -122,15 +122,15 @@ test.describe("Embed agent flow", () => {
     testAgent,
     stigmerClient,
   }) => {
-    const shareId = await enableSharing(stigmerClient, testAgent);
+    const channelId = await enableSharing(stigmerClient, testAgent);
 
-    hostPageAttributes = `share="${shareId}" theme="dark" width="320" height="480"`;
+    hostPageAttributes = `share="${channelId}" theme="dark" width="320" height="480"`;
     await page.goto(`${hostOrigin}/`);
 
     const embedFrame = page.locator("stigmer-agent iframe");
     await expect(embedFrame).toHaveAttribute(
       "src",
-      `${APP_URL}/chat/${shareId}?theme=dark`,
+      `${APP_URL}/chat/${channelId}?theme=dark`,
       { timeout: 15_000 },
     );
 

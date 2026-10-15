@@ -2,8 +2,8 @@
 // old slug keeps leading to it for reading for 30 days.
 // Domain: conformance suites.
 //
-// One table over the six open-source kinds a person may rename (agent,
-// vault, schedule, channel app, OAuth app, eval), each pinned the
+// One table over the seven open-source kinds a person may rename (agent,
+// vault, schedule, channel, channel app, OAuth app, eval), each pinned the
 // same way:
 //   - rename keeps the id, and a read by the old slug answers the resource
 //     by its new slug;
@@ -33,7 +33,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { makeSlackAgentChannel } from "../support/agentchannels";
+import { makeSlackChannel } from "../support/channels";
 import { makeAgent } from "../support/agents";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { uniqueName } from "../support/naming";
@@ -187,6 +187,37 @@ const KINDS: readonly RenamableKind[] = [
       const agent = await agentInOrg(org, uniqueName("sched-agent"));
       return clients.scheduleCommand.apply({
         ...makeSchedule(org, slug, agent.slug, { enabled: false }),
+        metadata: { name: slug, org, slug },
+      });
+    },
+  },
+  {
+    title: "[rpc:ChannelCommandController.rename] a channel",
+    writeTitle:
+      "[rpc:ChannelCommandController.rename] [rpc:ChannelCommandController.apply] a channel's",
+    noun: "Channel",
+    writeVerb: "apply",
+    oldSlugCreateReason: "SLUG_RESERVED",
+    create: async (org, name) => {
+      const agent = await agentInOrg(org, uniqueName("chan-agent"));
+      const channel = await clients.channelCommand.create(
+        makeSlackChannel(org, name, agent.slug),
+      );
+      fixtures.defer(() =>
+        clients.channelCommand
+          .delete({ value: channel.metadata!.id })
+          .catch(() => undefined),
+      );
+      return namedOf(channel);
+    },
+    rename: async (id, slug) =>
+      namedOf(await clients.channelCommand.rename({ resourceId: id, slug })),
+    readByReference: async (org, slug) =>
+      namedOf(await clients.channelQuery.getByReference({ org, slug })),
+    writeBySlug: async (org, slug) => {
+      const agent = await agentInOrg(org, uniqueName("chan-agent"));
+      return clients.channelCommand.apply({
+        ...makeSlackChannel(org, slug, agent.slug),
         metadata: { name: slug, org, slug },
       });
     },
@@ -349,7 +380,7 @@ describe("a renamed resource keeps its id, and its old slug leads to it", () => 
 });
 
 describe("a reference that named a renamed resource comes back with its new slug", () => {
-  it("[rpc:AgentCommandController.rename] [rpc:ChannelAppCommandController.rename] [rpc:SessionQueryController.get] [rpc:ScheduleQueryController.get] [rpc:AgentChannelQueryController.get] [rpc:AgentQueryController.get] a session's, a schedule's and a channel's agent, a parent's subagent and a channel's app", async () => {
+  it("[rpc:AgentCommandController.rename] [rpc:ChannelAppCommandController.rename] [rpc:SessionQueryController.get] [rpc:ScheduleQueryController.get] [rpc:ChannelQueryController.get] [rpc:AgentQueryController.get] a session's, a schedule's and a channel's agent, a parent's subagent and a channel's app", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await agentInOrg(org, uniqueName("renamed-agent"));
     const parent = await agentInOrg(org, uniqueName("parent"), [agent.slug]);
@@ -381,13 +412,13 @@ describe("a reference that named a renamed resource comes back with its new slug
         .delete({ value: schedule.metadata!.id })
         .catch(() => undefined),
     );
-    const channel = await clients.agentChannelCommand.create(
-      makeSlackAgentChannel(org, uniqueName("chan"), agent.slug, {
+    const channel = await clients.channelCommand.create(
+      makeSlackChannel(org, uniqueName("chan"), agent.slug, {
         appRefSlug: app.metadata!.slug,
       }),
     );
     fixtures.defer(() =>
-      clients.agentChannelCommand
+      clients.channelCommand
         .delete({ value: channel.metadata!.id })
         .catch(() => undefined),
     );
@@ -415,14 +446,14 @@ describe("a reference that named a renamed resource comes back with its new slug
         ? fired.spec.target.value.agentRef
         : undefined,
     ).toMatchObject({ id: agent.id, slug: agentSlug });
-    const read = await clients.agentChannelQuery.get({
+    const read = await clients.channelQuery.get({
       value: channel.metadata!.id,
     });
     expect(read.spec?.agentRef).toMatchObject({
       id: agent.id,
       slug: agentSlug,
     });
-    expect(read.spec?.appRef).toMatchObject({
+    expect(read.spec?.type.case === "slack" ? read.spec.type.value.appRef : undefined).toMatchObject({
       id: app.metadata!.id,
       slug: appSlug,
     });

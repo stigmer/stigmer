@@ -39,7 +39,7 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
     private static final String DEFAULT_TARGET = "api.stigmer.ai:443";
     private static final long SHUTDOWN_TIMEOUT_SECONDS = 5;
 
-    private final ManagedChannel channel;
+    private final ManagedChannel grpcChannel;
     private final BillingClient billing;
     private final SearchClient search;
     private final GitHubClient github;
@@ -48,7 +48,7 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
 
     private StigmerClient(ManagedChannel channel, RunnerAdapter runnerAdapter) {
         super(channel);
-        this.channel = channel;
+        this.grpcChannel = channel;
         this.billing = new BillingClient(channel);
         this.search = new SearchClient(channel);
         this.github = new GitHubClient(channel);
@@ -106,16 +106,16 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
      */
     @Override
     public void close() {
-        if (channel.isShutdown()) {
+        if (grpcChannel.isShutdown()) {
             return;
         }
-        channel.shutdown();
+        grpcChannel.shutdown();
         try {
-            if (!channel.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                channel.shutdownNow();
+            if (!grpcChannel.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                grpcChannel.shutdownNow();
             }
         } catch (InterruptedException e) {
-            channel.shutdownNow();
+            grpcChannel.shutdownNow();
             Thread.currentThread().interrupt();
         }
     }

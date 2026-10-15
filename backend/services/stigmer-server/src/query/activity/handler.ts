@@ -65,16 +65,16 @@ export const UNTITLED_SESSION_SUBJECT = "Untitled session";
 
 /**
  * Marks a session as runtime-originated. Recents shows personal sessions
- * only: channel conversations, guest/share
- * sessions, schedule-triggered sessions and an eval run's tries and
- * votes are excluded for every caller — each runtime surface owns its own
- * list (an eval's tries are read through the eval). share/guest are
- * cloud-only today but excluded identically so a future OSS share surface
- * cannot silently regress the recents policy.
+ * only: every channel's conversations (a chat link's guests and a Slack or
+ * WhatsApp channel's alike carry the channel id), guest sessions,
+ * schedule-triggered sessions and an eval run's tries and votes are
+ * excluded for every caller — each runtime surface owns its own list (an
+ * eval's tries are read through the eval). Guests are cloud-only today but
+ * excluded identically so a future OSS guest surface cannot silently
+ * regress the recents policy.
  */
 export const RUNTIME_ORIGIN_LABELS: readonly string[] = [
   "stigmer.ai/channel-id",
-  "stigmer.ai/share-id",
   "stigmer.ai/guest-cookie-id",
   "stigmer.ai/schedule-id",
   EVAL_RUN_LABEL,

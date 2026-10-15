@@ -1307,7 +1307,7 @@ apps inject platform-specific values via props.
   type={{
     accessSlot: { type: "ReactNode", description: "Host-injected access management control (e.g. the Console's `ManageAccessButton` with its own permission gating). Rendered inside the panel's Config facet rather than the header — access is session configuration, not a moment-to-moment action (slot injection)." },
     accountDefaults: { type: "AccountExecutionDefaults", description: "The user's account-level execution defaults, typically from `useAccountExecutionDefaults()` — same seam as `NewSessionViewer.accountDefaults`. On the session page only the `autoApprove` default applies: it seeds the session-scoped auto-approve state so a declared `default_auto_approve` preference covers follow-ups on existing sessions too. An explicit flip of the Config facet's switch wins for this session. Ignored for the `\"guest\"` audience.", typeDescriptionLink: "/docs/sdk/react/identity-account#accountexecutiondefaults" },
-    audience: { type: "SessionAudience", description: "Presentation audience for the viewer. `\"endUser\"` locks the session's agent and hides the plugin, skill and vault configuration in both the composer and the inspector's Setup tab — for product-embedded chat where the agent is configured upstream by the platform. The model selector, interaction mode, attachments, and workspace picker remain.  `\"guest\"` (anonymous visitor with a guest token) is pure chat: it additionally hides the model/mode pickers, attachments, the workspace picker, and the session panel, and skips the org-level reads a guest principal cannot make — follow-ups simply continue on the agent and version the session pinned.  `\"observer\"` is a read-only transcript: no composer, no approval/edit/retry/build affordances, no access management. The viewer also self-selects observer for channel-originated sessions (the `stigmer.ai/channel-id` label) regardless of this prop, since channel viewers hold `can_view` only.  See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
+    audience: { type: "SessionAudience", description: "Presentation audience for the viewer. `\"endUser\"` locks the session's agent and hides the plugin, skill and vault configuration in both the composer and the inspector's Setup tab — for product-embedded chat where the agent is configured upstream by the platform. The model selector, interaction mode, attachments, and workspace picker remain.  `\"guest\"` (anonymous visitor with a guest token) is pure chat: it additionally hides the model/mode pickers, attachments, the workspace picker, and the session panel, and skips the org-level reads a guest principal cannot make — follow-ups simply continue on the agent and version the session pinned.  `\"observer\"` is a read-only transcript: no composer, no approval/edit/retry/build affordances, no access management. The viewer also self-selects observer for Slack and WhatsApp sessions (the `stigmer.ai/channel-conversation-key` label) regardless of this prop, since channel viewers hold `can_view` only.  See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     defaultPanelOpen: { type: "boolean", description: "Initial open state of the session panel in uncontrolled mode — a docking host that wants the workspace visible from the first paint passes `true`. Ignored when SessionViewerProps.panelOpen is provided." },
     enableGitHub: { type: "boolean", description: "Whether to enable GitHub workspace features in the composer." },
@@ -1489,11 +1489,17 @@ function artifactKey(artifact: RunArtifact): string
 
 ### CHANNEL_SESSION_LABELS
 
-Metadata labels the cloud channel runtime stamps on every session it
-creates (one per external conversation). Mirrors
-`ChannelRuntimeConstants` in the Stigmer Cloud backend — the single
-continuity/audit key set for channel conversations. Console-created
-sessions never carry any of them.
+Metadata labels the channel runtime stamps on the sessions a channel
+serves. Console-created sessions carry none of them.
+
+Each label answers one question:
+
+- `channelId` says which channel served this session. Every session a
+  channel serves carries it: a guest's chat-link session as much as a
+  Slack or WhatsApp conversation.
+- `conversationKey` says this session continues a Slack or WhatsApp
+  conversation. Only those carry it; a chat-link session never does.
+- `externalUserKey` names the person on the external platform.
 
 
 ### channelSessionExternalUserKey
@@ -1607,8 +1613,12 @@ function GroupedSessionList() {
 
 ### isChannelOriginSession
 
-Whether a session was created by the channel runtime (a Slack/WhatsApp
-conversation) rather than by a person in the console.
+Whether a session continues a Slack or WhatsApp conversation rather than
+a chat a person holds in the console or over a chat link.
+
+Asked of the conversation key, never the channel id: a guest's chat-link
+session carries the channel id too, and the guest is the session's
+owner, who must keep the composer and auto-approval.
 
 Channel viewers hold read-only access (`can_view` without
 `can_create_run_in`, which a session grants only its owners and
@@ -1825,8 +1835,8 @@ presented to.
   offers what the caller could not do. The session panel stays
   available read-only: usage, artifacts, and setup inspection are
   the point of observability. `SessionViewer` also self-selects this
-  audience for channel-originated sessions (the
-  `stigmer.ai/channel-id` label), so every entry point — a
+  audience for Slack and WhatsApp sessions (the
+  `stigmer.ai/channel-conversation-key` label), so every entry point — a
   conversations list, a pasted URL — renders read-only without host
   wiring. A person's own console conversations ask the server too: a
   conversation shared with the reader as Viewer (`can_view` without
@@ -1912,7 +1922,7 @@ the SDK's controller — extends the vocabulary instead of breaking it.
 
 Owner-pinned run config for a session surface
 (stigmer/stigmer#664) — the client-side subset of the platform
-`RunConfig` that AgentShare and AgentChannel specs pin server-side
+`RunConfig` that Channel specs pin server-side
 (stigmer/stigmer#360). Budget clamps (`max_cost_usd`,
 `max_tool_rounds`) are deliberately absent: those are enforcement,
 which only the server can own.

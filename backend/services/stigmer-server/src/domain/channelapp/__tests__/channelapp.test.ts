@@ -13,23 +13,30 @@
  *   - the marker round-trip preserves the stored ciphertext PER FIELD (one
  *     request rotates one secret while keeping the others);
  *   - the delete block fires for every stored app_ref that holds the app's
- *     id, whatever organization it names, reading seeded store rows
- *     directly;
+ *     id (a Slack channel's spec.slack.app_ref, a WhatsApp channel's
+ *     spec.whatsapp.app_ref), whatever organization it names, reading
+ *     seeded store rows directly;
  *   - an update keeps a write that lands between its read and its write:
  *     the lost swap is retried from a fresh read, so the row and the
  *     redacted response carry both the landing write and the update.
+ *
+ * The delete block's step on its own, against a store faked to fail as
+ * the real one cannot on demand: a fault listing the channels is a
+ * sanitized Internal, never a delete that reads as unreferenced, and a
+ * channel row that does not decode is skipped with a warning while the
+ * rows after it still guard the app.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { create } from "@bufbuild/protobuf";
+import { create, toBinary } from "@bufbuild/protobuf";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
@@ -51,6 +58,11 @@ import {
   visibilityWrite,
   writeLandsMidUpdate,
 } from "../../../pipeline/__tests__/race-support.js";
+import { errorOf, testCallerIdentity } from "../../../pipeline/__tests__/support.js";
+import { RequestContext } from "../../../pipeline/request-context.js";
+import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
+import type { Store } from "../../../store/interface.js";
+import { newCheckNoReferencingChannelsStep } from "../steps.js";
 import {
   PROVIDER_IMMUTABLE_MESSAGE,
   REDACTED_MARKER,
@@ -684,25 +696,30 @@ describe("delete is blocked while referenced", () => {
 
     // Seed a referencing channel directly — the referential check reads
     // stored state, not the channel pipeline (the Go test's posture).
-    const channel = create(AgentChannelSchema, {
+    const channel = create(ChannelSchema, {
       metadata: {
-        id: "ach_01ref",
+        id: "chn_01ref",
         name: "support-bot-slack",
         org: ORG_ID,
         slug: "support-bot-slack",
       },
       spec: {
-        appRef: {
-          org: ORG_ID,
-          kind: ApiResourceKind.channel_app,
-          id: created.metadata!.id,
+        type: {
+          case: "slack",
+          value: {
+            appRef: {
+              org: ORG_ID,
+              kind: ApiResourceKind.channel_app,
+              id: created.metadata!.id,
+            },
+          },
         },
       },
     });
     await server.store.saveResource(
-      ApiResourceKind.agent_channel,
+      ApiResourceKind.channel,
       channel.metadata!.id,
-      AgentChannelSchema,
+      ChannelSchema,
       channel,
     );
 
@@ -719,7 +736,7 @@ describe("delete is blocked while referenced", () => {
     );
 
     await server.store.deleteResource(
-      ApiResourceKind.agent_channel,
+      ApiResourceKind.channel,
       channel.metadata!.id,
     );
     const deleted = await command.delete({ resourceId: created.metadata!.id });
@@ -737,24 +754,31 @@ describe("delete is blocked while referenced", () => {
       newSlackApp(uniqueName("Acme Support App")),
     );
 
-    const channel = create(AgentChannelSchema, {
+    const channel = create(ChannelSchema, {
       metadata: {
-        id: "ach_02rel",
+        id: "chn_02rel",
         name: "relative-ref-channel",
         org: ORG_ID,
         slug: "relative-ref-channel",
       },
+      // A WhatsApp channel this time: the block reads both arms.
       spec: {
-        appRef: {
-          kind: ApiResourceKind.channel_app,
-          id: created.metadata!.id,
+        type: {
+          case: "whatsapp",
+          value: {
+            phoneNumberId: "106540352242922",
+            appRef: {
+              kind: ApiResourceKind.channel_app,
+              id: created.metadata!.id,
+            },
+          },
         },
       },
     });
     await server.store.saveResource(
-      ApiResourceKind.agent_channel,
+      ApiResourceKind.channel,
       channel.metadata!.id,
-      AgentChannelSchema,
+      ChannelSchema,
       channel,
     );
 
@@ -764,8 +788,59 @@ describe("delete is blocked while referenced", () => {
     expect(err.code).toBe(Code.FailedPrecondition);
 
     await server.store.deleteResource(
-      ApiResourceKind.agent_channel,
+      ApiResourceKind.channel,
       channel.metadata!.id,
     );
+  });
+});
+
+describe("the delete block's step against a faulting store", () => {
+  const app = create(ChannelAppSchema, {
+    metadata: { id: "chapp_guarded", org: "org_acme", slug: "guarded-app" },
+  });
+
+  function deleteContext(): RequestContext<typeof ChannelAppCommandController.method.delete.input> {
+    const ctx = new RequestContext(
+      ChannelAppCommandController.method.delete.input,
+      create(ChannelAppCommandController.method.delete.input, { resourceId: "chapp_guarded" }),
+      testCallerIdentity(),
+      ApiResourceKind.channel_app,
+    );
+    ctx.set(EXISTING_RESOURCE_KEY, app);
+    return ctx;
+  }
+
+  it("a fault listing the channels fails the delete with a sanitized Internal", async () => {
+    const store = {
+      listResources: () => Promise.reject(new Error("SQLITE_BUSY: database is locked")),
+    } as unknown as Store;
+    const step = newCheckNoReferencingChannelsStep(store, silentLogger);
+
+    const error = await errorOf(async () => { await step.execute(deleteContext()); });
+
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("failed to list channels for referential integrity check");
+  });
+
+  it("skips a channel row that does not decode, logging it, and still blocks on a referencing row after it", async () => {
+    const lines: string[] = [];
+    const logger = createLogger({ level: "warn", pretty: false, write: (line) => lines.push(line) });
+    const referencing = create(ChannelSchema, {
+      metadata: { id: "chn_referencing", org: "org_acme", name: "referencing" },
+      spec: {
+        type: { case: "slack", value: { appRef: { kind: ApiResourceKind.channel_app, id: "chapp_guarded" } } },
+      },
+    });
+    const store = {
+      listResources: () => Promise.resolve([new Uint8Array([0x22, 0xff]), toBinary(ChannelSchema, referencing)]),
+    } as unknown as Store;
+    const step = newCheckNoReferencingChannelsStep(store, logger);
+
+    const error = await errorOf(async () => { await step.execute(deleteContext()); });
+
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toBe(deleteBlockedByChannelMessage("org_acme", "guarded-app", "referencing"));
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain("Failed to unmarshal channel during referential integrity check, skipping");
   });
 });

@@ -55,7 +55,7 @@
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-storage.js";
-import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
+import type { ChannelRuntime } from "../domain/channel/channel-runtime.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type { GrantStore } from "../domain/grant/store.js";
 import type { SecretCodec } from "../encryption/codec.js";
@@ -146,10 +146,10 @@ export interface ExtensionDrivers {
   readonly organizationDirectory?: OrganizationDirectory;
   /**
    * The channel delivery runtime (single-instance point). When composed, the
-   * agentchannel install arms, the whole
+   * channel install arms, the whole
    * messaging and conversation surfaces, and the two write/delete hooks
    * delegate to it; with none, the byte-pinned refusal posture serves
-   * (src/domain/agentchannel/channel-runtime.ts carries the contract).
+   * (src/domain/channel/channel-runtime.ts carries the contract).
    */
   readonly channelRuntime?: ChannelRuntime;
   /**

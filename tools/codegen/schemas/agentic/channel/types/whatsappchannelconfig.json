@@ -1,0 +1,43 @@
+{
+  "name": "WhatsAppChannelConfig",
+  "description": "WhatsAppChannelConfig is a WhatsApp channel's settings: the Business\n phone number it serves, the Meta app it installs through, and whether the\n agent may message first.\n\n Installing validates the number against the Meta Cloud API and records\n the observed facts in status.",
+  "protoType": "ai.stigmer.agentic.channel.v1.WhatsAppChannelConfig",
+  "protoFile": "apis/ai/stigmer/agentic/channel/v1/spec.proto",
+  "fields": [
+    {
+      "name": "PhoneNumberId",
+      "jsonName": "phoneNumberId",
+      "protoField": "phone_number_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Phone number ID of the WhatsApp Business number this channel serves,\n from Meta's WhatsApp Manager (API Setup), e.g. \"106540352242922\".\n\n This is the Cloud API's identifier for the number, not the phone\n number itself.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "AppRef",
+      "jsonName": "appRef",
+      "protoField": "app_ref",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceReference"
+      },
+      "description": "The ChannelApp (your own Meta app) this channel installs through.\n Required: there is no shared platform WhatsApp app.",
+      "required": false,
+      "referenceKind": 48
+    },
+    {
+      "name": "ProactiveMessagingEnabled",
+      "jsonName": "proactiveMessagingEnabled",
+      "protoField": "proactive_messaging_enabled",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether the agent may send business-initiated (proactive) messages on\n this channel. Off by default: a channel is reply-only until its owner\n grants this.",
+      "required": false
+    }
+  ]
+}

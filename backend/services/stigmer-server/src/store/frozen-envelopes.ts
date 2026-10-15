@@ -32,16 +32,37 @@
  * fields, never through a schema that no longer exists. Each envelope
  * carries its retired message's own full name, the name its rows were
  * written under.
+ *
+ * Two shapes carry more than metadata: the AgentShare and AgentChannel
+ * rows' (the two kinds merged into Channel, channel-kinds-merged.ts). The
+ * reference rewrite (references-by-id.ts) walks every reference under a
+ * row's spec by each field's `reference_kind`, so a store replayed from
+ * before it must still find those rows' references or keep slug-only
+ * references the next write refuses. Each of the two declares its spec
+ * (field 4) with exactly its reference fields, at their numbers and with
+ * their declared kinds, and its status (field 5) with exactly its audit
+ * (field 99), whose creation time the name backfill (resource-names-
+ * backfill.ts) orders two rows sharing a slug by; nothing else: every other
+ * field stays an unknown field, written back verbatim, and the merge reads
+ * the rest by number.
  */
-import { create, createFileRegistry } from "@bufbuild/protobuf";
-import type { DescMessage } from "@bufbuild/protobuf";
+import { create, createFileRegistry, setExtension } from "@bufbuild/protobuf";
+import type { DescFile, DescMessage } from "@bufbuild/protobuf";
 import {
+  DescriptorProtoSchema,
+  FieldDescriptorProtoSchema,
   FieldDescriptorProto_Label,
   FieldDescriptorProto_Type,
+  FieldOptionsSchema,
   FileDescriptorProtoSchema,
 } from "@bufbuild/protobuf/wkt";
+import type { DescriptorProto, FieldDescriptorProto } from "@bufbuild/protobuf/wkt";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
+import { file_ai_stigmer_commons_apiresource_io } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_metadata } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { file_ai_stigmer_commons_apiresource_status } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 
 /** The envelope of a retired AgentInstance row. */
 export const FrozenAgentInstanceEnvelopeSchema = frozenEnvelope(
@@ -93,17 +114,127 @@ export const FrozenAgentEvalEnvelopeSchema = frozenEnvelope(
   "ai.stigmer.agentic.agenteval.v1.AgentEval",
 );
 
-/** The envelope's schema under `typeName`, a retired message's full name (the module header). */
-function frozenEnvelope(typeName: string): DescMessage {
+/**
+ * A retired AgentShare row: the envelope, a spec (AgentShareSpec)
+ * declaring its two reference fields, agent_ref (1) and vaults (8), and a
+ * status declaring its audit.
+ */
+export const FrozenAgentShareSchema = frozenEnvelope(
+  "ai.stigmer.agentic.agentshare.v1.AgentShare",
+  [
+    { name: "agent_ref", number: 1, kind: ApiResourceKind.agent },
+    { name: "vaults", number: 8, kind: ApiResourceKind.vault, repeated: true },
+  ],
+);
+
+/**
+ * A retired AgentChannel row: the envelope, a spec (AgentChannelSpec)
+ * declaring its three reference fields, agent_ref (1), app_ref (5) and
+ * vaults (9), and a status declaring its audit.
+ */
+export const FrozenAgentChannelSchema = frozenEnvelope(
+  "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
+  [
+    { name: "agent_ref", number: 1, kind: ApiResourceKind.agent },
+    { name: "app_ref", number: 5, kind: ApiResourceKind.channel_app },
+    { name: "vaults", number: 9, kind: ApiResourceKind.vault, repeated: true },
+  ],
+);
+
+/** One reference field a frozen spec declares, with the kind its field option declared. */
+interface FrozenReferenceField {
+  readonly name: string;
+  readonly number: number;
+  readonly kind: ApiResourceKind;
+  readonly repeated?: boolean;
+}
+
+/** A reference field's descriptor, its `reference_kind` option set as the live contract sets it. */
+function referenceField(field: FrozenReferenceField): FieldDescriptorProto {
+  const options = create(FieldOptionsSchema);
+  setExtension(options, reference_kind, field.kind);
+  return create(FieldDescriptorProtoSchema, {
+    name: field.name,
+    jsonName: field.name.replace(/_([a-z])/g, (_match: string, letter: string) => letter.toUpperCase()),
+    number: field.number,
+    label: field.repeated === true ? FieldDescriptorProto_Label.REPEATED : FieldDescriptorProto_Label.OPTIONAL,
+    type: FieldDescriptorProto_Type.MESSAGE,
+    typeName: ".ai.stigmer.commons.apiresource.ApiResourceReference",
+    options,
+  });
+}
+
+/**
+ * The envelope's schema under `typeName`, a retired message's full name
+ * (the module header); with `specReferences`, also a spec (field 4) of
+ * message `<name>Spec` declaring exactly those reference fields, and a
+ * status (field 5) of message `<name>Status` declaring its audit (99).
+ */
+function frozenEnvelope(
+  typeName: string,
+  specReferences?: ReadonlyArray<FrozenReferenceField>,
+): DescMessage {
   const split = typeName.lastIndexOf(".");
   const packageName = typeName.slice(0, split);
   const messageName = typeName.slice(split + 1);
+  const specMessages: DescriptorProto[] =
+    specReferences === undefined
+      ? []
+      : [
+          create(DescriptorProtoSchema, {
+            name: `${messageName}Spec`,
+            field: specReferences.map(referenceField),
+          }),
+          create(DescriptorProtoSchema, {
+            name: `${messageName}Status`,
+            field: [
+              {
+                name: "audit",
+                jsonName: "audit",
+                number: 99,
+                label: FieldDescriptorProto_Label.OPTIONAL,
+                type: FieldDescriptorProto_Type.MESSAGE,
+                typeName: ".ai.stigmer.commons.apiresource.ApiResourceAudit",
+              },
+            ],
+          }),
+        ];
+  const specFields =
+    specReferences === undefined
+      ? []
+      : [
+          {
+            name: "spec",
+            jsonName: "spec",
+            number: 4,
+            label: FieldDescriptorProto_Label.OPTIONAL,
+            type: FieldDescriptorProto_Type.MESSAGE,
+            typeName: `.${packageName}.${messageName}Spec`,
+          },
+          {
+            name: "status",
+            jsonName: "status",
+            number: 5,
+            label: FieldDescriptorProto_Label.OPTIONAL,
+            type: FieldDescriptorProto_Type.MESSAGE,
+            typeName: `.${packageName}.${messageName}Status`,
+          },
+        ];
+  const dependencies: ReadonlyArray<DescFile> =
+    specReferences === undefined
+      ? [file_ai_stigmer_commons_apiresource_metadata]
+      : [
+          file_ai_stigmer_commons_apiresource_metadata,
+          file_ai_stigmer_commons_apiresource_io,
+          file_ai_stigmer_commons_apiresource_status,
+        ];
   const file = create(FileDescriptorProtoSchema, {
     name: `stigmer-server/store/frozen/${packageName}.${messageName}.proto`,
     package: packageName,
-    dependency: [file_ai_stigmer_commons_apiresource_metadata.proto.name],
+    dependency: dependencies.map((dependency) => dependency.proto.name),
     syntax: "proto3",
     messageType: [
+      ...specMessages,
       {
         name: messageName,
         field: [
@@ -129,14 +260,13 @@ function frozenEnvelope(typeName: string): DescMessage {
             type: FieldDescriptorProto_Type.MESSAGE,
             typeName: ".ai.stigmer.commons.apiresource.ApiResourceMetadata",
           },
+          ...specFields,
         ],
       },
     ],
   });
   const registry = createFileRegistry(file, (protoFileName) =>
-    protoFileName === file_ai_stigmer_commons_apiresource_metadata.proto.name
-      ? file_ai_stigmer_commons_apiresource_metadata
-      : undefined,
+    dependencies.find((dependency) => dependency.proto.name === protoFileName),
   );
   const message = registry.getMessage(typeName);
   if (message === undefined) {

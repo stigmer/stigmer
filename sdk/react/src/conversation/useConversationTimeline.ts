@@ -1,11 +1,11 @@
 "use client";
 
 import { create, equals } from "@bufbuild/protobuf";
-import type { ConversationTimelineItem } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+import type { ConversationTimelineItem } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import {
   ConversationTimelineItemSchema,
   ListConversationTimelineInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
@@ -91,7 +91,7 @@ const EMPTY_HEAD: HeadPage = { items: [], nextPageToken: "" };
  * Pass empty strings to skip fetching (the `null`-fetchFn convention).
  */
 export function useConversationTimeline(
-  agentChannelId: string,
+  channelId: string,
   conversationKey: string,
   options?: UseConversationTimelineOptions,
 ): UseConversationTimelineReturn {
@@ -100,13 +100,13 @@ export function useConversationTimeline(
     options?.refetchIntervalMs ?? CONVERSATION_DETAIL_POLL_INTERVAL_MS;
   const stigmer = useStigmer();
 
-  const enabled = agentChannelId !== "" && conversationKey !== "";
+  const enabled = channelId !== "" && conversationKey !== "";
 
   const fetchFn = enabled
     ? async (): Promise<HeadPage> => {
-        const result = await stigmer.agentChannel.listTimeline(
+        const result = await stigmer.channel.listTimeline(
           create(ListConversationTimelineInputSchema, {
-            agentChannelId,
+            channelId,
             conversationKey,
             pageSize,
           }),
@@ -121,7 +121,7 @@ export function useConversationTimeline(
     isRefetching,
     error,
     refetch,
-  } = useFetch(fetchFn, [agentChannelId, conversationKey, pageSize, stigmer], EMPTY_HEAD, {
+  } = useFetch(fetchFn, [channelId, conversationKey, pageSize, stigmer], EMPTY_HEAD, {
     refetchInterval: refetchIntervalMs,
     // Returning to the tab is fresh (the head re-upserts, so
     // a focus refetch can never disturb accumulated history).
@@ -145,7 +145,7 @@ export function useConversationTimeline(
     setOlderCursor(null);
     setIsLoadingOlder(false);
     setLoadOlderError(null);
-  }, [agentChannelId, conversationKey, pageSize, stigmer]);
+  }, [channelId, conversationKey, pageSize, stigmer]);
 
   // Fold each head page into the map. `head` is referentially fresh per
   // fetch, so this runs exactly once per answer.
@@ -161,10 +161,10 @@ export function useConversationTimeline(
     setIsLoadingOlder(true);
     setLoadOlderError(null);
 
-    stigmer.agentChannel
+    stigmer.channel
       .listTimeline(
         create(ListConversationTimelineInputSchema, {
-          agentChannelId,
+          channelId,
           conversationKey,
           pageSize,
           pageToken: olderCursor,
@@ -183,7 +183,7 @@ export function useConversationTimeline(
           setIsLoadingOlder(false);
         },
       );
-  }, [enabled, isLoadingOlder, olderCursor, agentChannelId, conversationKey, pageSize, stigmer]);
+  }, [enabled, isLoadingOlder, olderCursor, channelId, conversationKey, pageSize, stigmer]);
 
   const items = useMemo(
     () =>

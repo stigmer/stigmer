@@ -54,7 +54,7 @@ spec:
 
 const CHANNEL_AND_ENV_YAML = `
 apiVersion: agentic.stigmer.ai/v1
-kind: AgentChannel
+kind: Channel
 metadata:
   name: clinic-patient-whatsapp
   org: rakeshreddi098
@@ -128,7 +128,7 @@ describe("useApplyManifest", () => {
     expect(result.current.validationError).toContain("Invalid Agent");
   });
 
-  it("orders multi-document manifests by dependency (ChannelApp before AgentChannel)", async () => {
+  it("orders multi-document manifests by dependency (ChannelApp before Channel)", async () => {
     const { result } = renderHook(() => useApplyManifest("rakeshreddi098"), {
       wrapper: wrapper(createMockStigmer()),
     });
@@ -140,7 +140,7 @@ describe("useApplyManifest", () => {
 
     expect(
       result.current.entries!.map((e) => e.document.handler.yamlKind),
-    ).toEqual(["ChannelApp", "AgentChannel"]);
+    ).toEqual(["ChannelApp", "Channel"]);
     expect(result.current.hasRedactedSecrets).toBe(true);
   });
 

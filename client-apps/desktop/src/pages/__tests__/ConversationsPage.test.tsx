@@ -13,8 +13,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 interface WorkbenchProps {
   org: string;
-  selected: { agentChannelId: string; conversationKey: string } | null;
-  onSelectionChange: (selection: { agentChannelId: string; conversationKey: string } | null) => void;
+  selected: { channelId: string; conversationKey: string } | null;
+  onSelectionChange: (selection: { channelId: string; conversationKey: string } | null) => void;
   headerAccessory?: (args: { channel: unknown }) => ReactNode;
   channelHref: (channel: unknown) => string | null;
 }
@@ -69,12 +69,12 @@ describe("desktop ConversationsPage", () => {
 
     const props = page.workbench.at(-1);
     expect(props?.org).toBe("org_acme");
-    expect(props?.selected).toEqual({ agentChannelId: "ach_1", conversationKey: "wa:+15550100" });
+    expect(props?.selected).toEqual({ channelId: "ach_1", conversationKey: "wa:+15550100" });
     expect(page.access.at(-1)).toMatchObject({
       label: "Channel access",
       resource: {
-        kind: ApiResourceKind.agent_channel,
-        kindString: "agent_channel",
+        kind: ApiResourceKind.channel,
+        kindString: "channel",
         id: "ach_1",
         org: "org_acme",
         name: "Support line",
@@ -92,7 +92,7 @@ describe("desktop ConversationsPage", () => {
   it("navigates to the selected conversation and back to the inbox", () => {
     renderAt("/conversations");
 
-    act(() => page.workbench.at(-1)?.onSelectionChange({ agentChannelId: "ach/2", conversationKey: "k 1" }));
+    act(() => page.workbench.at(-1)?.onSelectionChange({ channelId: "ach/2", conversationKey: "k 1" }));
     expect(screen.getByTestId("location").textContent).toBe("/conversations/ach%2F2/k%201");
 
     act(() => page.workbench.at(-1)?.onSelectionChange(null));

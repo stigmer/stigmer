@@ -5,7 +5,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   ChannelSendOutcome,
   SendChannelMessageOutputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { ConversationComposer } from "../ConversationComposer";
 
 function output(outcome: ChannelSendOutcome, detail = "") {

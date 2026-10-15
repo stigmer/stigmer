@@ -13,7 +13,7 @@
 import { create } from "@bufbuild/protobuf";
 import {
   ChannelMessageCommandController,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_command_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_command_pb";
 import {
   ChannelOutboundPayloadSchema,
   SendChannelMessageInputSchema,
@@ -21,7 +21,7 @@ import {
   TemplatePayloadSchema,
   TextPayloadSchema,
   type ChannelOutboundPayload,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { withClient } from "../client.js";
 import { toProtoJson } from "../marshal.js";
 

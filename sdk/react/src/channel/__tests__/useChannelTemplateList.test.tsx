@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { ListChannelTemplatesInput } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+import type { ListChannelTemplatesInput } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useChannelTemplateList } from "../useChannelTemplateList";
@@ -10,7 +10,7 @@ function createMockStigmer(overrides: {
   listTemplates?: (input: ListChannelTemplatesInput) => Promise<unknown>;
 } = {}) {
   return {
-    agentChannel: {
+    channel: {
       listTemplates:
         overrides.listTemplates ?? vi.fn().mockResolvedValue({ entries: [] }),
     },

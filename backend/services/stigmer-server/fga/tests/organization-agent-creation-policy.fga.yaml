@@ -68,7 +68,7 @@ tests:
         object: organization:closed
         assertions:
           can_create_agent: true
-          can_create_agent_channel: true
+          can_create_channel: true
       - user: identity_account:mia
         object: organization:closed
         assertions:
@@ -83,8 +83,7 @@ tests:
       - user: identity_account:mia
         object: organization:open
         assertions:
-          can_create_agent_channel: false
-          can_create_agent_share: false
+          can_create_channel: false
           can_create_skill: false
           can_create_plugin: false
           can_manage_child_orgs: false

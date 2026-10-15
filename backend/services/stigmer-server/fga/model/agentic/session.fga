@@ -16,7 +16,7 @@ module agentic
 #
 # Sharing a session requires explicit grants per-session, to people only:
 # a participant reads the conversation and sends messages; a viewer only
-# reads it (owner ⊆ participant ⊆ viewer, the agent_channel ladder). Agent
+# reads it (owner ⊆ participant ⊆ viewer, the channel ladder). Agent
 # runs inherit permissions from their parent session, so a participant
 # reads the runs and every run control (stop, approvals, file decisions:
 # run#can_edit) stays the owners'.
@@ -29,7 +29,7 @@ module agentic
 # CHANNEL SESSIONS (structural read-only observability, a parent link
 # composed narrowly): sessions created by the channel runtime
 # (Slack/WhatsApp turns, owned by the per-org system-channel account) carry
-# a single session#channel@agent_channel:<id> tuple and inherit the parent
+# a single session#channel@channel:<id> tuple and inherit the parent
 # channel's viewer set (connector + org admins) into can_view ONLY. The
 # channel link deliberately bypasses `viewer` so channel observers never gain can_create_run_in (injecting a console
 # message into a live external conversation would start a run whose
@@ -63,7 +63,7 @@ module agentic
 # FGA tuples on creation:
 # - session:<id>#organization@organization:<org>
 # - session:<id>#owner@identity_account:<creator>
-# - session:<id>#channel@agent_channel:<channel>  (channel sessions only)
+# - session:<id>#channel@channel:<channel>  (Slack and WhatsApp sessions only)
 # - session:<id>#schedule@schedule:<schedule>     (schedule sessions only)
 # - session:<id>#eval_run@eval_run:<eval_run>     (eval run tries only)
 
@@ -84,7 +84,7 @@ type session
     # (connector + org admins) into can_view below — and ONLY can_view, so
     # channel observers cannot inject runs, edit, delete, or manage
     # grants. Console sessions never carry this tuple.
-    define channel: [agent_channel]
+    define channel: [channel]
 
     # ========================================
     # SCHEDULE LINK (Structural Read-Only Inheritance)

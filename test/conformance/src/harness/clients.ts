@@ -14,20 +14,18 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/query_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
-import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_command_pb";
-import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_query_pb";
-import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_command_pb";
-import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
-import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
+import { ChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/command_pb";
+import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_command_pb";
+import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_query_pb";
+import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_command_pb";
+import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_query_pb";
+import { ChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/query_pb";
 import { EvalCommandController } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/command_pb";
 import { EvalQueryController } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/query_pb";
 import { EvalRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/command_pb";
 import { EvalRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/query_pb";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
-import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
-import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/query_pb";
 import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
 import { ProviderKeyCommandController } from "@stigmer/protos/ai/stigmer/billing/providerkey/v1/command_pb";
 import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/query_pb";
@@ -98,18 +96,16 @@ export interface ConformanceClients {
   subscriptionCommand: Client<typeof SubscriptionCommandController>;
   subscriptionQuery: Client<typeof SubscriptionQueryController>;
   apiKeyQuery: Client<typeof ApiKeyQueryController>;
-  agentChannelCommand: Client<typeof AgentChannelCommandController>;
-  agentChannelQuery: Client<typeof AgentChannelQueryController>;
-  agentShareCommand: Client<typeof AgentShareCommandController>;
-  agentShareQuery: Client<typeof AgentShareQueryController>;
   channelAppCommand: Client<typeof ChannelAppCommandController>;
   channelAppQuery: Client<typeof ChannelAppQueryController>;
+  channelCommand: Client<typeof ChannelCommandController>;
   channelConversationCommand: Client<
     typeof ChannelConversationCommandController
   >;
   channelConversationQuery: Client<typeof ChannelConversationQueryController>;
   channelMessageCommand: Client<typeof ChannelMessageCommandController>;
   channelMessageQuery: Client<typeof ChannelMessageQueryController>;
+  channelQuery: Client<typeof ChannelQueryController>;
   search: Client<typeof SearchService>;
   identityAccountCommand: Client<typeof IdentityAccountCommandController>;
   identityAccountQuery: Client<typeof IdentityAccountQueryController>;
@@ -164,7 +160,7 @@ export interface ConformanceClients {
   oauthAppQuery: Client<typeof OAuthAppQueryController>;
   // The token service, served by every edition: mintUserToken (a service
   // account's key, on a server that authenticates its callers) and
-  // mintGuestToken where an edition hosts shared-agent pages.
+  // mintGuestToken where an edition hosts web channels' chat pages.
   token: Client<typeof TokenService>;
 }
 
@@ -216,12 +212,9 @@ export function createTransport(
 export function makeClients(transport: Transport): ConformanceClients {
   return {
     activityQuery: createClient(ActivityQueryController, transport),
-    agentChannelCommand: createClient(AgentChannelCommandController, transport),
-    agentChannelQuery: createClient(AgentChannelQueryController, transport),
-    agentShareCommand: createClient(AgentShareCommandController, transport),
-    agentShareQuery: createClient(AgentShareQueryController, transport),
     channelAppCommand: createClient(ChannelAppCommandController, transport),
     channelAppQuery: createClient(ChannelAppQueryController, transport),
+    channelCommand: createClient(ChannelCommandController, transport),
     channelConversationCommand: createClient(
       ChannelConversationCommandController,
       transport,
@@ -235,6 +228,7 @@ export function makeClients(transport: Transport): ConformanceClients {
       transport,
     ),
     channelMessageQuery: createClient(ChannelMessageQueryController, transport),
+    channelQuery: createClient(ChannelQueryController, transport),
     search: createClient(SearchService, transport),
     apiKeyCommand: createClient(ApiKeyCommandController, transport),
     billingCommand: createClient(BillingCommandController, transport),

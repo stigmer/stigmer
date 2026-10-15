@@ -7,9 +7,10 @@
  * <stigmer-agent share="ash_01j9z3k8f2q4m6n7p8r9s0t1v2"></stigmer-agent>
  * ```
  *
- * `share` is the share's id: the hosted chat link `/chat/<share id>` names
- * nothing else, so no rename of the share's organization can break an embed
- * and no later holder of that organization's name can take it over.
+ * `share` is the web channel's id (a chat link minted before the Channel
+ * kind keeps its `ash_` id): the hosted chat link `/chat/<channel id>` names
+ * nothing else, so no rename of the channel's organization can break an
+ * embed and no later holder of that organization's name can take it over.
  *
  * The element renders a cross-origin iframe onto the hosted chat page — the
  * iframe is the isolation boundary; no Stigmer UI code runs in the host page.

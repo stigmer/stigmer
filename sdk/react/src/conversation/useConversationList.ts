@@ -1,11 +1,11 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import type { ChannelConversation } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+import type { ChannelConversation } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import {
   ChannelConversationListFilter,
   ListChannelConversationsInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
@@ -17,7 +17,7 @@ export interface UseConversationListOptions {
   /** Organization whose conversations to list. `null` skips fetching. */
   readonly org: string | null;
   /** Optional filter: only conversations on this agent channel. */
-  readonly agentChannelId?: string;
+  readonly channelId?: string;
   /**
    * Optional server-evaluated predicate filter. The generated enum is
    * the vocabulary on purpose — the predicate lives in ONE place, the
@@ -104,7 +104,7 @@ interface Overlay {
 const EMPTY_OVERLAY: Overlay = { rows: new Map(), seq: 0 };
 
 function identityOf(conversation: ChannelConversation): string {
-  return `${conversation.agentChannelId}\u0000${conversation.conversationKey}`;
+  return `${conversation.channelId}\u0000${conversation.conversationKey}`;
 }
 
 /** Activity instant in epoch milliseconds, for sorted overlay inserts. */
@@ -153,7 +153,7 @@ export function useConversationList(
 ): UseConversationListReturn {
   const {
     org,
-    agentChannelId = "",
+    channelId = "",
     filter = ChannelConversationListFilter.channel_conversation_list_filter_unspecified,
     pageSize = 50,
   } = options;
@@ -168,10 +168,10 @@ export function useConversationList(
   const fetchFn = org
     ? async (): Promise<HeadPage> => {
         const seq = applySeqRef.current;
-        const result = await stigmer.agentChannel.listConversations(
+        const result = await stigmer.channel.listConversations(
           create(ListChannelConversationsInputSchema, {
             org,
-            agentChannelId,
+            channelId,
             filter,
             pageSize,
           }),
@@ -188,7 +188,7 @@ export function useConversationList(
     refetch,
   } = useFetch(
     fetchFn,
-    [org, agentChannelId, filter, pageSize, stigmer],
+    [org, channelId, filter, pageSize, stigmer],
     EMPTY_HEAD,
     {
       refetchInterval: refetchIntervalMs,
@@ -211,7 +211,7 @@ export function useConversationList(
     setIsLoadingMore(false);
     setLoadMoreError(null);
     setOverlay(EMPTY_OVERLAY);
-  }, [org, agentChannelId, filter, pageSize, stigmer]);
+  }, [org, channelId, filter, pageSize, stigmer]);
 
   const applyServerState = useCallback(
     (fresh: ChannelConversation) => {
@@ -246,11 +246,11 @@ export function useConversationList(
     setIsLoadingMore(true);
     setLoadMoreError(null);
 
-    stigmer.agentChannel
+    stigmer.channel
       .listConversations(
         create(ListChannelConversationsInputSchema, {
           org,
-          agentChannelId,
+          channelId,
           filter,
           pageSize,
           pageToken: tailToken,
@@ -271,7 +271,7 @@ export function useConversationList(
           setIsLoadingMore(false);
         },
       );
-  }, [org, agentChannelId, filter, pageSize, stigmer, isLoadingMore, tailToken]);
+  }, [org, channelId, filter, pageSize, stigmer, isLoadingMore, tailToken]);
 
   const conversations = useMemo(() => {
     const seen = new Set<string>();
@@ -295,7 +295,7 @@ export function useConversationList(
       ) {
         continue;
       }
-      if (agentChannelId !== "" && fresh.agentChannelId !== agentChannelId) {
+      if (channelId !== "" && fresh.channelId !== channelId) {
         continue;
       }
       const at = activityMillisOf(fresh);
@@ -304,7 +304,7 @@ export function useConversationList(
       seen.add(identity);
     }
     return merged;
-  }, [head.items, older, overlay, agentChannelId, filter]);
+  }, [head.items, older, overlay, channelId, filter]);
 
   const hasMore = tailToken !== "";
 

@@ -2,8 +2,8 @@
  * Agent controller — ports pkg/domain/agent/controller (command + query
  * sides): the agent BLUEPRINT surface. A conversation names an agent
  * directly (session spec.agent_ref); delete is refused while another
- * agent lists this one as a subagent, cascades same-org shares before the
- * agent row, and leaves the sessions that pin it, whose next turn fails
+ * agent lists this one as a subagent, cascades its same-org channels
+ * before the agent row, and leaves the sessions that pin it, whose next turn fails
  * naming the agent that is gone. Create and update pin each subagent the
  * agent lists (subagents.ts), and let only an organization's admins add
  * or change the agent's own MCP servers (guard-mcp-servers.ts). There is
@@ -153,12 +153,13 @@ import type { Store } from "../../store/interface.js";
 import { agentSearchExtractor } from "./search-extractor.js";
 import { newGuardMcpServersStep } from "./guard-mcp-servers.js";
 import {
-  newCascadeDeleteSharesStep,
   newValidateHooksStep,
   newValidateMcpServersStep,
   newValidatePluginListStep,
 } from "./steps.js";
 import { newCascadeDeleteScoringRulesStep } from "../scoring-rule/cascade.js";
+import { newCascadeDeleteChannelsStep } from "../channel/cascade.js";
+import type { ChannelRuntime } from "../channel/channel-runtime.js";
 import { newCascadeDeleteEvalRunsStep } from "../eval-run/cascade.js";
 import type { EvalRunCascadeDeps } from "../eval-run/cascade.js";
 import {
@@ -204,6 +205,12 @@ export interface AgentControllerDeps {
   readonly modelRegistry: ModelCatalogProvider;
   /** The eval runs the delete removes with the agent; absent, it removes none (a composition serving no eval runs). */
   readonly evalRuns?: EvalRunCascadeDeps;
+  /**
+   * The composed channel runtime: the delete tears down the agent's Slack
+   * and WhatsApp channels through it before their rows go. Explicitly
+   * `| undefined` (the storing edition has none).
+   */
+  readonly channelRuntime: ChannelRuntime | undefined;
 }
 
 /** Registers both agent services on the router (routes stage). */
@@ -419,7 +426,9 @@ async function apply(
  * Delete — refused while another agent of the organization lists this
  * one in its subagents (GuardUnlisted, naming them); then cascades
  * children before the parent (delete_cascade.go): the agent's evals,
- * refused while one runs, then same-org shares and the agent's scoring rule,
+ * refused while one runs (so a refused delete tears down no Slack or
+ * WhatsApp install), then the agent's same-org channels (cascade.ts in the
+ * channel domain) and the agent's scoring rule,
  * each one's access cleaned with its row, then the agent's version rows (best-effort), the agent row, its
  * access and its index entry. Returns the deleted agent (the audit-trail
  * convention).
@@ -455,11 +464,12 @@ async function deleteAgent(
       newCascadeDeleteEvalRunsStep<typeof AgentCommandController.method.delete.input>("agent", deps.evalRuns),
     )
     .addStep(
-      newCascadeDeleteSharesStep(
-        deps.store,
-        deps.authorizationLifecycle,
-        deps.logger,
-      ),
+      newCascadeDeleteChannelsStep<typeof AgentCommandController.method.delete.input>({
+        store: deps.store,
+        logger: deps.logger,
+        authorizationLifecycle: deps.authorizationLifecycle,
+        channelRuntime: deps.channelRuntime,
+      }),
     )
     .addStep(
       newCascadeDeleteScoringRulesStep(

@@ -269,7 +269,7 @@ describe("ValidateGrantableRole", () => {
         new Map([
           [ApiResourceKind.agent, [IamRole.owner, IamRole.viewer]],
           [
-            ApiResourceKind.agent_channel,
+            ApiResourceKind.channel,
             [IamRole.owner, IamRole.viewer, IamRole.participant],
           ],
           [ApiResourceKind.session, [IamRole.owner, IamRole.viewer]],
@@ -291,7 +291,7 @@ describe("ValidateGrantableRole", () => {
         perResource.execute(
           contextOf(
             triple(team, "participant", {
-              kind: "agent_channel",
+              kind: "channel",
               id: "ach_1",
             }),
           ),

@@ -14,7 +14,7 @@
  *     refused AlreadyExists (stigmer#2153); the same slug in another
  *     organization lands; a lookup by slug reads the winner; a delete
  *     frees the slug for a new agent, which gets a new id, and frees the
- *     names its cascade deletes (its share's slug) at once;
+ *     names its cascade deletes (its channel's slug) at once;
  *   - findResourceByName reads an empty organization as the platform's own
  *     scope, never every organization, and refuses a kind whose slugs are
  *     not names;
@@ -38,8 +38,8 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
-import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
+import { ChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/command_pb";
+import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
 import {
   ApiResourceKind,
   ApiResourceKindSchema,
@@ -94,8 +94,7 @@ const CLAIMING_KINDS = [
   ApiResourceKind.agent,
   ApiResourceKind.session,
   ApiResourceKind.skill,
-  ApiResourceKind.agent_share,
-  ApiResourceKind.agent_channel,
+  ApiResourceKind.channel,
   ApiResourceKind.channel_app,
   ApiResourceKind.schedule,
   ApiResourceKind.memory,
@@ -459,24 +458,24 @@ describe.each(COMPOSED_DRIVERS)("one agent slug per organization, raced on a com
     expect(found.metadata?.id).toBe(winner.metadata?.id);
   });
 
-  it.skipIf(driver.skip)("frees the names an agent's delete cascades to: its share's slug is free at once", async () => {
-    const shares = createClient(AgentShareCommandController, transport);
-    const shareInput = (agentSlug: string) => ({
+  it.skipIf(driver.skip)("frees the names an agent's delete cascades to: its channel's slug is free at once", async () => {
+    const channels = createClient(ChannelCommandController, transport);
+    const webChannelInput = (agentSlug: string) => ({
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentShare",
+      kind: "Channel",
       metadata: { name: "cascade-share", org: "acme" },
       spec: {
         agentRef: { kind: ApiResourceKind.agent, slug: agentSlug },
         enabled: true,
-        audience: AgentShareAudience.public,
+        type: { case: "web" as const, value: { audience: ChannelAudience.public } },
       },
     });
     const first = await command.create(agentInput("acme", "cascading"));
-    await shares.create(shareInput("cascading"));
+    await channels.create(webChannelInput("cascading"));
     await command.delete({ value: first.metadata?.id ?? "" });
 
     await command.create(agentInput("acme", "cascaded-again"));
-    const again = await shares.create(shareInput("cascaded-again"));
+    const again = await channels.create(webChannelInput("cascaded-again"));
     expect(again.metadata?.slug).toBe("cascade-share");
   });
 

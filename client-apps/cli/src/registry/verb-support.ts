@@ -69,14 +69,12 @@ export const VERB_SUPPORT: ReadonlyMap<
     ApiResourceKind.vault,
     new Set<Verb>([Verb.Get, Verb.List, Verb.Delete]),
   ],
-  // Enable/disable flows through `stigmer share agent`, which is the whole
-  // read/ops surface today; only the declarative apply path is promised
-  // (stigmer/stigmer#354 records the narrowing).
-  [ApiResourceKind.agent_share, new Set<Verb>([Verb.Apply])],
-  // The provider install flow is console-driven and cloud-only; the generic
-  // verbs cover the declarative path (apply a manifest, inspect, tear down).
+  // A Slack or WhatsApp channel's provider install flow is console-driven and
+  // cloud-only, and a web channel's link is switched by `stigmer share
+  // agent`; the generic verbs cover the declarative path (apply a manifest,
+  // inspect, tear down) for every type.
   [
-    ApiResourceKind.agent_channel,
+    ApiResourceKind.channel,
     new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),
   ],
   // Secret fields round-trip as ***REDACTED***; applying a fetched manifest

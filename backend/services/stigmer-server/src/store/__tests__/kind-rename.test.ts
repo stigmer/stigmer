@@ -23,7 +23,10 @@
  *     id is not its triple's, or that holds no triple, throws;
  *   - at v36, an evaluator's kind string becomes `ScoringRule`, keeping
  *     its evl_ id, settings and spend, and the fetched row passes the
- *     contract's validation.
+ *     contract's validation;
+ *   - a step after v34 (the channel merge) re-keys a grant under the
+ *     `grt_` prefix it names, the same hash the default `iamp_` re-key
+ *     derives.
  */
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { createValidator } from "@bufbuild/protovalidate";
@@ -38,6 +41,7 @@ import { canonicalTripleText } from "../../domain/grant/constants.js";
 import { derivedId } from "../../pipeline/steps/defaults.js";
 import {
   FEDERATION_ISSUER_RENAME_V30,
+  GRANT_ID_PREFIX_V34,
   GRANT_RENAME_V34,
   RUN_RENAME_V18,
   RUN_RENAME_V21,
@@ -265,6 +269,17 @@ describe("v34: the IAM policy is a grant", () => {
     const empty = toBinary(GrantSchema, create(GrantSchema, { kind: "IamPolicy", metadata: { id: "iamp_x" } }));
     expect(() => movedGrant("iamp_x", empty)).toThrow("it holds no triple");
     expect(() => movedGrant("iamp_x", new Uint8Array([0xff, 0xff, 0xff]))).toThrow();
+  });
+
+  it("re-keys a grant under the grt_ prefix a step after it names, the hash the iamp_ re-key derives", () => {
+    const row = grantRow({ id: "grt_old", principal: "identity_account:ida_1", relation: "viewer", resource: "agent_run:aex_1" });
+    const before = rekeyedGrant(RUN_RENAME_V21, row);
+    const after = rekeyedGrant(RUN_RENAME_V21, row, GRANT_ID_PREFIX_V34);
+    const migrated = fromBinary(GrantSchema, after!.data);
+    expect(migrated.spec?.resource).toMatchObject({ kind: "run", id: "aex_1" });
+    expect(after!.id).toBe(derivedId("grt", canonicalTripleText(migrated.spec!)));
+    expect(migrated.metadata?.id).toBe(after!.id);
+    expect(after!.id.slice("grt_".length)).toBe(before!.id.slice("iamp_".length));
   });
 
   it("refuses a row whose triple no grant could hold, naming the field", () => {

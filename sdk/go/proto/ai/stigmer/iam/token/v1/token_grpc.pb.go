@@ -29,7 +29,7 @@ const (
 //
 // TokenService mints the short-lived tokens a browser uses to talk to
 // Stigmer on someone's behalf: a person signed in to an organization's own
-// product, or an anonymous visitor of a shared agent's chat link.
+// product, or an anonymous visitor of an agent's chat link.
 //
 // It manages no resource. Each token is signed by the server's own
 // platform-token key and verified on every request; minting requires a
@@ -71,11 +71,11 @@ type TokenServiceClient interface {
 	// to this call: minting is server-to-server, so there is no browser Origin
 	// to check. It applies to the browser requests that bear the minted token.
 	MintUserToken(ctx context.Context, in *MintUserTokenRequest, opts ...grpc.CallOption) (*MintUserTokenResponse, error)
-	// Mint a guest token for an anonymous visitor of a shared agent's chat link.
+	// Mint a guest token for an anonymous visitor of an agent's chat link.
 	//
-	// Resolves the share id from the hosted chat link to an AgentShare and
-	// returns a short-lived token scoped to that share's organization. Editions
-	// that do not host shared-agent pages answer it UNIMPLEMENTED.
+	// Resolves the channel id from the hosted chat link to a web channel and
+	// returns a short-lived token scoped to that channel's organization.
+	// Editions that do not host chat-link pages answer it UNIMPLEMENTED.
 	MintGuestToken(ctx context.Context, in *MintGuestTokenRequest, opts ...grpc.CallOption) (*MintGuestTokenResponse, error)
 }
 
@@ -113,7 +113,7 @@ func (c *tokenServiceClient) MintGuestToken(ctx context.Context, in *MintGuestTo
 //
 // TokenService mints the short-lived tokens a browser uses to talk to
 // Stigmer on someone's behalf: a person signed in to an organization's own
-// product, or an anonymous visitor of a shared agent's chat link.
+// product, or an anonymous visitor of an agent's chat link.
 //
 // It manages no resource. Each token is signed by the server's own
 // platform-token key and verified on every request; minting requires a
@@ -155,11 +155,11 @@ type TokenServiceServer interface {
 	// to this call: minting is server-to-server, so there is no browser Origin
 	// to check. It applies to the browser requests that bear the minted token.
 	MintUserToken(context.Context, *MintUserTokenRequest) (*MintUserTokenResponse, error)
-	// Mint a guest token for an anonymous visitor of a shared agent's chat link.
+	// Mint a guest token for an anonymous visitor of an agent's chat link.
 	//
-	// Resolves the share id from the hosted chat link to an AgentShare and
-	// returns a short-lived token scoped to that share's organization. Editions
-	// that do not host shared-agent pages answer it UNIMPLEMENTED.
+	// Resolves the channel id from the hosted chat link to a web channel and
+	// returns a short-lived token scoped to that channel's organization.
+	// Editions that do not host chat-link pages answer it UNIMPLEMENTED.
 	MintGuestToken(context.Context, *MintGuestTokenRequest) (*MintGuestTokenResponse, error)
 }
 

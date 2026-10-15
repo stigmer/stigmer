@@ -2,9 +2,8 @@
 
 import type { Transport } from "@connectrpc/connect";
 import { AgentClient } from "./agent.js";
-import { AgentChannelClient } from "./agentchannel.js";
-import { AgentShareClient } from "./agentshare.js";
 import { ApiKeyClient } from "./apikey.js";
+import { ChannelClient } from "./channel.js";
 import { ChannelAppClient } from "./channelapp.js";
 import { EvalClient } from "./eval.js";
 import { EvalRunClient } from "./evalrun.js";
@@ -32,9 +31,8 @@ import { VaultClient } from "./vault.js";
 /** Aggregate client with all resource-specific sub-clients. */
 export class GeneratedClient {
   readonly agent: AgentClient;
-  readonly agentChannel: AgentChannelClient;
-  readonly agentShare: AgentShareClient;
   readonly apiKey: ApiKeyClient;
+  readonly channel: ChannelClient;
   readonly channelapp: ChannelAppClient;
   readonly eval: EvalClient;
   readonly evalrun: EvalRunClient;
@@ -61,9 +59,8 @@ export class GeneratedClient {
 
   constructor(transport: Transport) {
     this.agent = new AgentClient(transport);
-    this.agentChannel = new AgentChannelClient(transport);
-    this.agentShare = new AgentShareClient(transport);
     this.apiKey = new ApiKeyClient(transport);
+    this.channel = new ChannelClient(transport);
     this.channelapp = new ChannelAppClient(transport);
     this.eval = new EvalClient(transport);
     this.evalrun = new EvalRunClient(transport);
@@ -93,12 +90,10 @@ export class GeneratedClient {
 // Re-export all resource client types and input types.
 export { AgentClient } from "./agent.js";
 export { type AgentInput, type EnvVarDeclarationInput, type HookSourceInput, type HookConfigInput, type HookGroupInput, type HookHandlerInput, type RunConfigInput, type AgentMcpServerInput } from "./agent.js";
-export { AgentChannelClient } from "./agentchannel.js";
-export { type AgentChannelInput, type SlackChannelConfigInput, type WhatsAppChannelConfigInput } from "./agentchannel.js";
-export { AgentShareClient } from "./agentshare.js";
-export { type AgentShareInput, type AgentShareMessagesInput } from "./agentshare.js";
 export { ApiKeyClient } from "./apikey.js";
 export { type ApiKeyInput } from "./apikey.js";
+export { ChannelClient } from "./channel.js";
+export { type ChannelInput, type WebChannelConfigInput, type WebChannelMessagesInput, type SlackChannelConfigInput, type WhatsAppChannelConfigInput } from "./channel.js";
 export { ChannelAppClient } from "./channelapp.js";
 export { type ChannelAppInput, type SlackChannelAppConfigInput, type WhatsAppChannelAppConfigInput } from "./channelapp.js";
 export { EvalClient } from "./eval.js";

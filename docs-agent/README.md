@@ -4,7 +4,7 @@ The first-party agent behind **Ask AI** on [stigmer.ai/docs](https://stigmer.ai/
 It answers questions about Stigmer from the official documentation — grounded,
 cited, and always current — and reaches readers through Stigmer's own
 share/embed capability. This directory is the complete, declarative definition
-of that experience: the agent, its skill, and its public share.
+of that experience: the agent, its skill, and its public web channel.
 
 ## Design in one paragraph
 
@@ -25,14 +25,14 @@ the agent's knowledge cannot drift.
 |------|------------|
 | [`agents/stigmer-docs.yaml`](agents/stigmer-docs.yaml) | The Agent: instructions and the skill — web retrieval is a harness built-in, so no tool wiring |
 | [`skills/stigmer-docs/SKILL.md`](skills/stigmer-docs/SKILL.md) | The methodology + documentation map (no content snapshot) |
-| [`shares/stigmer-docs.yaml`](shares/stigmer-docs.yaml) | The public AgentShare that powers the hosted chat + docs-site embed |
+| [`channels/stigmer-docs.yaml`](channels/stigmer-docs.yaml) | The public web Channel that powers the hosted chat + docs-site embed |
 
 Three deliberate postures, chosen once and worth preserving:
 
-- **Blueprint is `visibility_org`; chat access is the share's job.** The agent
+- **Blueprint is `visibility_org`; chat access is the channel's job.** The agent
   is first-party infrastructure, not a marketplace template (that role belongs
   to [`org-knowledge-agent`](https://github.com/stigmer/org-knowledge-agent)).
-  The public-audience `AgentShare` grants anonymous chat without exposing the
+  The public-audience web `Channel` grants anonymous chat without exposing the
   blueprint.
 - **Credential-free by construction.** The docs' Markdown exports are public
   and web retrieval is a harness built-in, so the agent declares no MCP
@@ -58,22 +58,22 @@ stigmer push skill skills/stigmer-docs --org stigmer
 stigmer apply --org stigmer -f agents/stigmer-docs.yaml --dry-run
 stigmer apply --org stigmer -f agents/stigmer-docs.yaml
 
-# The share is its own resource — applying the agent never touches it:
-stigmer apply --org stigmer -f shares/stigmer-docs.yaml
+# The web channel is its own resource — applying the agent never touches it:
+stigmer apply --org stigmer -f channels/stigmer-docs.yaml
 ```
 
-The hosted chat goes live at `https://app.stigmer.ai/chat/<share id>`. The
-docs site embeds the same share via `@stigmer/embed`'s `<stigmer-agent>`
+The hosted chat goes live at `https://app.stigmer.ai/chat/<channel id>`. The
+docs site embeds the same channel via `@stigmer/embed`'s `<stigmer-agent>`
 element (see `site/src/components/docs/ask-ai/` in this repo).
 
 ### Wire the docs site
 
-A chat link names a share only by its id, which the server mints on the
-share's first apply, so the docs site learns it from the deployment:
+A chat link names its channel only by its id, which the server mints on the
+channel's first apply, so the docs site learns it from the deployment:
 
-1. Read the share's id (`metadata.id`, `ash_…`) from its link. On a share
-   that is already on, this changes nothing and prints the link, whose last
-   segment is the id:
+1. Read the channel's id (`metadata.id`: `chn_…`, or `ash_…` for a link made
+   before links were channels) from its link. On a link that is already on,
+   this changes nothing and prints the link, whose last segment is the id:
 
    ```bash
    stigmer share agent stigmer/stigmer-docs
@@ -83,8 +83,8 @@ share's first apply, so the docs site learns it from the deployment:
    id and merge it. While the constant is empty, the docs site hides its Ask
    AI button.
 
-The id never changes while the share exists. Deleting and re-applying the
-share mints a new one, and the constant must be set again.
+The id never changes while the channel exists. Deleting and re-applying the
+channel mints a new one, and the constant must be set again.
 
 ## Operational notes
 

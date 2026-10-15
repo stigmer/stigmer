@@ -5,8 +5,9 @@
  * a fault reading the target INTERNAL, never a refusal.
  *
  * Over the steps alone, with a store that answers nothing or fails:
- *   - the share, schedule and channel defaults refuse an agent_ref that
- *     names nothing, INVALID_ARGUMENT, in their copy;
+ *   - the schedule and channel defaults (a web channel's and a Slack
+ *     channel's alike) refuse an agent_ref that names nothing,
+ *     INVALID_ARGUMENT, in their copy;
  *   - the schedule and channel defaults answer a failed agent read INTERNAL;
  *   - getByReference's shared loader refuses a reference that names
  *     nothing and names a missing target by its id.
@@ -17,16 +18,13 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
-import { AGENT_REF_REQUIRED_MESSAGE as CHANNEL_AGENT_REF_REQUIRED } from "../../../domain/agentchannel/constants.js";
-import { newResolveChannelDefaultsStep } from "../../../domain/agentchannel/steps.js";
-import { AGENT_REF_REQUIRED_MESSAGE as SHARE_AGENT_REF_REQUIRED } from "../../../domain/agentshare/constants.js";
-import { newResolveShareDefaultsStep } from "../../../domain/agentshare/steps.js";
+import { AGENT_REF_REQUIRED_MESSAGE as CHANNEL_AGENT_REF_REQUIRED } from "../../../domain/channel/constants.js";
+import { newResolveChannelDefaultsStep } from "../../../domain/channel/steps.js";
 import { newResolveScheduleDefaultsStep } from "../../../domain/schedule/steps.js";
 import type { ModelCatalogProvider } from "../../../modelcatalog/model-catalog-provider.js";
 import type { Store } from "../../../store/interface.js";
@@ -70,8 +68,12 @@ async function refusal<Desc extends DescMessage>(
   throw new Error("expected the step to refuse");
 }
 
-const share = (agentRef?: { id?: string; slug?: string }) =>
-  create(AgentShareSchema, { metadata: { org: ORG }, spec: { agentRef: agentRef && { org: ORG, ...agentRef } } });
+/** A web channel (what a hosted chat link is) whose agent_ref names what the case gives. */
+const webChannel = (agentRef?: { id?: string; slug?: string }) =>
+  create(ChannelSchema, {
+    metadata: { org: ORG },
+    spec: { agentRef: agentRef && { org: ORG, ...agentRef }, type: { case: "web", value: {} } },
+  });
 
 const schedule = (agentRef?: { id?: string; slug?: string }) =>
   create(ScheduleSchema, {
@@ -83,13 +85,18 @@ const schedule = (agentRef?: { id?: string; slug?: string }) =>
     },
   });
 
+/** A Slack channel whose agent_ref names what the case gives. */
 const channel = (agentRef?: { id?: string; slug?: string }) =>
-  create(AgentChannelSchema, { metadata: { org: ORG }, spec: { agentRef: agentRef && { org: ORG, ...agentRef } } });
+  create(ChannelSchema, {
+    metadata: { org: ORG },
+    spec: { agentRef: agentRef && { org: ORG, ...agentRef }, type: { case: "slack", value: {} } },
+  });
 
 describe("the defaults steps ask for an agent_ref that names its agent", () => {
-  it("the share's refuses one that names nothing, INVALID_ARGUMENT", async () => {
-    const error = await refusal(newResolveShareDefaultsStep(empty), AgentShareSchema, share({}), ApiResourceKind.agent_share);
-    expect([error.code, error.rawMessage]).toEqual([Code.InvalidArgument, SHARE_AGENT_REF_REQUIRED]);
+  it("the web channel's refuses one that names nothing, INVALID_ARGUMENT", async () => {
+    const step = newResolveChannelDefaultsStep(empty, noCatalogue, undefined);
+    const error = await refusal(step, ChannelSchema, webChannel({}), ApiResourceKind.channel);
+    expect([error.code, error.rawMessage]).toEqual([Code.InvalidArgument, CHANNEL_AGENT_REF_REQUIRED]);
   });
 
   it("the schedule's refuses one that names nothing, and answers a failed agent read INTERNAL", async () => {
@@ -102,9 +109,9 @@ describe("the defaults steps ask for an agent_ref that names its agent", () => {
 
   it("the channel's refuses one that names nothing, and answers a failed agent read INTERNAL", async () => {
     const step = (store: Store) => newResolveChannelDefaultsStep(store, noCatalogue, undefined);
-    const missing = await refusal(step(empty), AgentChannelSchema, channel(), ApiResourceKind.agent_channel);
+    const missing = await refusal(step(empty), ChannelSchema, channel(), ApiResourceKind.channel);
     expect([missing.code, missing.rawMessage]).toEqual([Code.InvalidArgument, CHANNEL_AGENT_REF_REQUIRED]);
-    const fault = await refusal(step(failing), AgentChannelSchema, channel({ id: "agt_1" }), ApiResourceKind.agent_channel);
+    const fault = await refusal(step(failing), ChannelSchema, channel({ id: "agt_1" }), ApiResourceKind.channel);
     expect(fault.code).toBe(Code.Internal);
   });
 });

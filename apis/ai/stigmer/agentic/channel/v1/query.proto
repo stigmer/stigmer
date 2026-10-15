@@ -1,0 +1,113 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.channel.v1;
+
+import "ai/stigmer/agentic/channel/v1/api.proto";
+import "ai/stigmer/agentic/channel/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// ChannelQueryController handles read operations for channels.
+//
+// @internal
+// The one anonymous read is getAgentProfile, a web channel's hosted chat
+// page. A Slack or WhatsApp channel's public surface is the provider
+// webhook, which authenticates by signature, never a query endpoint.
+service ChannelQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = channel;
+
+  // Get a single channel by ID.
+  rpc get(ChannelId) returns (Channel) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = channel;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get channel";
+  }
+
+  // Get a channel by its organization-scoped reference (org/slug).
+  //
+  // @internal
+  // Custom authorization in handler: checks both direct resource access
+  // and organization-level visibility permissions.
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Channel) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // List the channels of a specific agent, newest first, every type
+  // together. Returns only channels the caller has access to, optionally
+  // scoped to one organization via the request's org field.
+  //
+  // This is how the agent's console tab and the CLI find an agent's
+  // channels regardless of their slugs.
+  //
+  // @internal
+  // Authorization is handled in-handler: FGA-filtered in cloud,
+  // unrestricted in OSS (single-user edition).
+  rpc listByAgent(ListChannelsByAgentRequest) returns (ChannelList) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // List channels with optional label filtering.
+  //
+  // @internal
+  // Authorization is handled in-handler via FGA-filtered queries (cloud)
+  // or unrestricted store queries (OSS).
+  rpc list(ListChannelsRequest) returns (ChannelList) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Get the public profile of the agent a web channel serves, by the
+  // channel's id.
+  //
+  // This is the resolution path for the hosted chat page: anonymous
+  // visitors (no Stigmer account, no token) resolve a chat link to the
+  // trimmed ChannelAgentProfile, never the full Agent, whose spec carries
+  // the system prompt and MCP wiring.
+  //
+  // Returns NOT_FOUND when the channel does not exist, is not a web
+  // channel, is disabled, has the org audience (anonymous callers must not
+  // be able to distinguish an org-internal link from a nonexistent one;
+  // use getAgentProfileForMember instead), or the link is locked and
+  // link_token does not match the channel's current status.web.link_token.
+  // The same NOT_FOUND answers when the channel's organization no longer
+  // exists. The cases are deliberately indistinguishable so an unshared,
+  // revoked, or rotated URL leaks nothing. Returns INVALID_ARGUMENT when
+  // channel_id is empty.
+  //
+  // @internal
+  // Public by design (no authentication): enforcement is the app-level
+  // gate in the handler, not FGA (see WebChannelConfig for why a web
+  // channel writes no visibility tuples).
+  rpc getAgentProfile(GetChannelAgentProfileRequest) returns (ChannelAgentProfile) {
+    option (ai.stigmer.commons.rpc.is_public) = true;
+  }
+
+  // Get the profile of the agent a web channel serves, as a signed-in
+  // organization member.
+  //
+  // This is the resolution path for the hosted chat page when a web
+  // channel has the org audience: the public getAgentProfile deliberately
+  // returns NOT_FOUND for such channels, so a signed-in member resolves the
+  // same trimmed ChannelAgentProfile through this authenticated RPC
+  // instead. Also resolves public-audience channels, so an authenticated
+  // caller can use one resolution path for any chat link.
+  //
+  // Returns NOT_FOUND when the channel does not exist, is not a web
+  // channel, is disabled, the caller is not a member of the channel's
+  // organization, the channel's organization no longer exists, or the
+  // channel is a public-audience channel locked with a link token (this
+  // tokenless path must not reveal a killed link's profile); the cases are
+  // deliberately indistinguishable so a chat link leaks nothing to
+  // non-members. Returns INVALID_ARGUMENT when the id is empty.
+  //
+  // @internal
+  // Custom authorization in handler: requires authentication (not
+  // is_public), then an app-level organization#member FGA check on the
+  // loaded channel's organization for org-audience channels. Membership
+  // is checked live on every call so revoked members lose access
+  // immediately.
+  rpc getAgentProfileForMember(ChannelId) returns (ChannelAgentProfile) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+}

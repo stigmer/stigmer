@@ -48,10 +48,9 @@ message AgentSpec {
   map<string, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> env = 7;
 
   // Field 8 held the embedded sharing configuration (AgentSharing) until
-  // sharing was promoted to the first-class AgentShare resource
-  // (ai.stigmer.agentic.agentshare.v1): sharing is channel
-  // configuration with its own writer and lifecycle, so applying an agent
-  // manifest can never touch a share again.
+  // the chat link became a resource of its own, today a web Channel
+  // (ai.stigmer.agentic.channel.v1): a channel has its own writer and
+  // lifecycle, so applying an agent manifest can never touch one.
   reserved 8;
   reserved "sharing";
 

@@ -39,7 +39,7 @@ import {
 import { FixtureTracker } from "../harness/fixtures";
 import { expectGrpcCode } from "../contract/errors";
 import { makeAgent, agentRefOf } from "../support/agents";
-import { makeSlackAgentChannel } from "../support/agentchannels";
+import { makeSlackChannel } from "../support/channels";
 import { makeSharedVault } from "../support/vaults";
 import { makeSession } from "../support/sessions";
 import { uniqueName } from "../support/naming";
@@ -284,15 +284,15 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
     const outsider = await lane.provisionIdentity();
 
     const agent = await ownerAgent(org);
-    const channel = await clients.agentChannelCommand.create(
-      makeSlackAgentChannel(
+    const channel = await clients.channelCommand.create(
+      makeSlackChannel(
         org,
         uniqueName("iso-channel"),
         agent.metadata!.slug,
       ),
     );
     fixtures.defer(() =>
-      clients.agentChannelCommand.delete({ value: channel.metadata!.id }),
+      clients.channelCommand.delete({ value: channel.metadata!.id }),
     );
 
     const denied = await expectGrpcCode(

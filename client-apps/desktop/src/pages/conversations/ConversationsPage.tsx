@@ -29,7 +29,7 @@ export default function ConversationsPage() {
     () =>
       channelId && key
         ? {
-            agentChannelId: decodeURIComponent(channelId),
+            channelId: decodeURIComponent(channelId),
             conversationKey: decodeURIComponent(key),
           }
         : null,
@@ -40,7 +40,7 @@ export default function ConversationsPage() {
     (selection: ConversationIdentity | null) => {
       navigate(
         selection
-          ? `/conversations/${encodeURIComponent(selection.agentChannelId)}/${encodeURIComponent(selection.conversationKey)}`
+          ? `/conversations/${encodeURIComponent(selection.channelId)}/${encodeURIComponent(selection.conversationKey)}`
           : "/conversations",
       );
     },
@@ -58,9 +58,9 @@ export default function ConversationsPage() {
             ? ({ channel }) => (
                 <ManageAccessButton
                   resource={{
-                    kind: ApiResourceKind.agent_channel,
-                    kindString: "agent_channel",
-                    id: selected.agentChannelId,
+                    kind: ApiResourceKind.channel,
+                    kindString: "channel",
+                    id: selected.channelId,
                     org,
                     // The dialog's subtitle names the channel — the
                     // scope every grant covers.

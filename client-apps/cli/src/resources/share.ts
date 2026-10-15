@@ -1,19 +1,20 @@
 // `share agent` dispatch: enable or disable sharing for an agent and report
 // the hosted chat link + embed snippet.
 //
-// Sharing lives in its own AgentShare resource — the agent is
-// never modified. This module resolves the agent, reads its canonical share,
-// and commits changes via `agentShare.apply`, an idempotent upsert keyed on
-// the share's (org, slug) identity: the first enable creates the share, later
-// toggles update it, one code path.
+// An agent's chat link is a web channel (a Channel whose spec carries
+// `web`) — the agent is never modified. This module resolves the agent,
+// reads its canonical web channel, and commits changes via `channel.apply`,
+// an idempotent upsert: the first enable creates the channel, later toggles
+// update it, one code path.
 //
-// The one correctness invariant here: apply replaces the share's spec
+// The one correctness invariant here: apply replaces the channel's spec
 // WHOLESALE. A naive "set enabled" would silently wipe any allowed_origins,
-// visitor messages, audience, or credential bindings the owner configured in
-// the console. So this module always reads the current share first and sends
-// the complete spec back with only the requested fields flipped — the same
-// merge-preserve discipline as the web dialog. (The rotatable link token is
-// exempt: it is server-owned status, which survives every apply verbatim.)
+// visitor messages, audience, credential bindings or run settings the owner
+// configured in the console. So this module always reads the current
+// channel first and sends the complete spec back with only the requested
+// fields flipped — the same merge-preserve discipline as the web dialog.
+// (The rotatable link token is exempt: it is server-owned status, which
+// survives every apply verbatim.)
 //
 // URL and snippet shapes come from @stigmer/sdk's sharing helpers — the single
 // source of truth shared with the web console — so every surface emits
@@ -22,15 +23,14 @@
 
 import { create } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import {
-  RotateShareLinkInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
-import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { RotateChannelLinkInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
+import { ChannelAudience, type WebChannelConfig } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
 import {
   buildChatUrl,
   buildEmbedSnippet,
-  type AgentShareInput,
+  toChannelInput,
+  type ChannelInput,
   type Stigmer,
 } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
@@ -117,10 +117,10 @@ export async function shareAgent(
     );
   }
   const shareOrg = agentOrg;
-  let share = await resolveCanonicalShare(client, agent, shareOrg);
-  const current = share?.spec;
+  let share = await resolveCanonicalWebChannel(client, agent, shareOrg);
+  const currentWeb = webConfigOf(share);
 
-  const currentAudience = audienceFromProto(current?.audience);
+  const currentAudience = audienceFromProto(currentWeb?.audience);
   const targetAudience = options.audience ?? currentAudience;
 
   // Resetting the link is meaningless for org-members-only shares: their
@@ -146,25 +146,26 @@ export async function shareAgent(
   // target is org by default, and that alone asks for nothing.
   const alreadyInState =
     share !== null
-      ? (current?.enabled ?? false) === options.enabled &&
+      ? (share.spec?.enabled ?? false) === options.enabled &&
         currentAudience === targetAudience
       : !options.enabled && options.audience !== "org";
 
   if (!alreadyInState) {
     // Apply the COMPLETE spec with only the requested fields changed, so a
     // CLI toggle can never wipe console-configured origins, visitor
-    // messages, credential bindings, or an org-members-only audience.
-    share = await client.agentShare.apply(
-      preservingShareInput(agent, share, shareOrg, options.enabled, targetAudience),
+    // messages, credential bindings, run settings, or an org-members-only
+    // audience.
+    share = await client.channel.apply(
+      preservingChannelInput(agent, share, shareOrg, options.enabled, targetAudience),
     );
   }
 
   // The rotation is a separate targeted RPC (the token is server-owned
-  // status, not part of the spec apply merges). The returned share carries
-  // the fresh token, so the link printed below is the new one.
+  // status, not part of the spec apply merges). The returned channel
+  // carries the fresh token, so the link printed below is the new one.
   if (options.resetLink === true && share !== null) {
-    share = await client.agentShare.rotateShareLink(
-      create(RotateShareLinkInputSchema, {
+    share = await client.channel.rotateLink(
+      create(RotateChannelLinkInputSchema, {
         resourceId: share.metadata?.id ?? "",
       }),
     );
@@ -182,101 +183,122 @@ export async function shareAgent(
 }
 
 /**
- * The agent's canonical share **within one sharing org**: the one whose
- * slug equals the agent's (the server's default on create), else the
- * first entry in that org, else null when the agent has never been shared
- * there. Mirrors the web dialog's selection so both surfaces manage the
- * same row. The org scope is the agent's organization, where every share
- * of it lives; the server applies the scope via the request's org field,
- * so a share written in another organization before sharing across
- * organizations was retired is never the row this command edits.
+ * The agent's canonical web channel **within one sharing org**: the one
+ * whose slug is `<agent slug>-web` (the server's name for a nameless web
+ * channel), else the one whose slug equals the agent's (a chat link made
+ * before links were channels keeps the agent's slug), else the first web
+ * channel in that org, else null when the agent has never been shared
+ * there. Slack and WhatsApp channels are never this command's row. Mirrors
+ * the web dialog's selection so both surfaces manage the same row. The org
+ * scope is the agent's organization, where every channel of it lives; the
+ * server applies the scope via the request's org field, so a link written
+ * in another organization before sharing across organizations was retired
+ * is never the row this command edits.
  */
-async function resolveCanonicalShare(
+async function resolveCanonicalWebChannel(
   client: Stigmer,
   agent: Agent,
   shareOrg: string,
-): Promise<AgentShare | null> {
+): Promise<Channel | null> {
   const agentSlug = agent.metadata?.slug ?? "";
-  let first: AgentShare | null = null;
-  for await (const share of client.agentShare.listByAgentAll({
+  let ownSlug: Channel | null = null;
+  let first: Channel | null = null;
+  for await (const channel of client.channel.listByAgentAll({
     agentId: agent.metadata?.id ?? "",
     org: shareOrg,
   })) {
-    if (share.metadata?.slug === agentSlug) return share;
-    first ??= share;
+    if (channel.spec?.type.case !== "web") continue;
+    const slug = channel.metadata?.slug;
+    if (slug === `${agentSlug}-web`) return channel;
+    if (slug === agentSlug) ownSlug ??= channel;
+    first ??= channel;
   }
-  return first;
+  return ownSlug ?? first;
+}
+
+// The web arm of a channel's spec; undefined when there is no channel yet.
+function webConfigOf(channel: Channel | null): WebChannelConfig | undefined {
+  const type = channel?.spec?.type;
+  return type?.case === "web" ? type.value : undefined;
 }
 
 // Unspecified means the organization by contract: a link reaches anyone on
 // the internet only when public is chosen, so a never-shared agent's first
-// share without --audience is organization-only.
-function audienceFromProto(audience: AgentShareAudience | undefined): ShareAudience {
-  return audience === AgentShareAudience.public ? "public" : "org";
+// link without --audience is organization-only.
+function audienceFromProto(audience: ChannelAudience | undefined): ShareAudience {
+  return audience === ChannelAudience.public ? "public" : "org";
 }
 
-// The full share input with the desired `enabled` and audience, preserving
-// origins, messages, and credential bindings (empty defaults when the agent
-// was never shared before). Identity comes from the existing share when one
-// exists — a manifest-created share may carry a non-default slug, and
-// applying with the agent's slug would create a SECOND share — and from the
-// agent's org + the agent's slug otherwise (the server's own default,
-// made explicit). The audience is written explicitly — never left
-// unspecified — so every stored share says what it means.
-function preservingShareInput(
+// The full channel input with the desired `enabled` and audience. An
+// existing channel is restated whole (its id, name, slug, labels, origins,
+// messages, credential bindings and run settings), so the apply changes
+// that row and only the two fields; a manifest-created channel may carry
+// any slug, and applying under another would create a SECOND channel. A
+// never-shared agent gets a nameless web channel with empty configuration:
+// the server names it after the agent (`<agent slug>-web`). The audience is
+// written explicitly — never left unspecified — so every stored channel
+// says what it means.
+function preservingChannelInput(
   agent: Agent,
-  share: AgentShare | null,
+  channel: Channel | null,
   shareOrg: string,
   enabled: boolean,
   audience: ShareAudience,
-): AgentShareInput {
-  const agentOrg = agent.metadata?.org ?? "";
-  const agentSlug = agent.metadata?.slug ?? "";
-  const current = share?.spec;
+): ChannelInput {
+  const protoAudience = audience === "org" ? ChannelAudience.org : ChannelAudience.public;
+  if (channel !== null) {
+    const restated = toChannelInput(channel);
+    const web = webConfigOf(channel);
+    return {
+      ...restated,
+      enabled,
+      web: {
+        audience: protoAudience,
+        allowedOrigins: [...(web?.allowedOrigins ?? [])],
+        messages: {
+          rateLimited: web?.messages?.rateLimited ?? "",
+          unavailable: web?.messages?.unavailable ?? "",
+          conversationEnded: web?.messages?.conversationEnded ?? "",
+        },
+      },
+    };
+  }
   return {
-    org: share?.metadata?.org || shareOrg,
-    slug: share?.metadata?.slug || agentSlug,
-    name: share?.metadata?.name || agent.metadata?.name || agentSlug,
-    agentRef: { org: agentOrg, slug: agentSlug },
+    org: shareOrg,
+    name: "",
+    agentRef: { org: agent.metadata?.org ?? "", slug: agent.metadata?.slug ?? "" },
     enabled,
-    audience:
-      audience === "org"
-        ? AgentShareAudience.org
-        : AgentShareAudience.public,
-    allowedOrigins: [...(current?.allowedOrigins ?? [])],
-    messages: {
-      rateLimited: current?.messages?.rateLimited ?? "",
-      unavailable: current?.messages?.unavailable ?? "",
-      conversationEnded: current?.messages?.conversationEnded ?? "",
+    web: {
+      audience: protoAudience,
+      allowedOrigins: [],
+      messages: { rateLimited: "", unavailable: "", conversationEnded: "" },
     },
-    vaults: (current?.vaults ?? []).map((vaultRef) => ({
-      org: vaultRef.org,
-      slug: vaultRef.slug,
-    })),
+    vaults: [],
   };
 }
 
 // Build the user-facing result. The hosted chat link and the embed name the
-// SHARE by its id, the one identity a link carries, so no rename of the
-// organization breaks them. The slug in the re-enable hint comes from the
-// share's metadata (a share may carry a non-default slug), falling back to
-// the resolved agent's on disable-when-never-shared. The link token comes
-// from the share's status (post-rotation when --reset-link ran) and rides the
+// web channel by its id, the one identity a link carries, so no rename of
+// the organization or the channel breaks them. The re-enable hint names the
+// agent by its own slug, the reference this command takes (a channel's slug
+// names the channel, never the agent). The link token comes from the
+// channel's web status (post-rotation when --reset-link ran) and rides the
 // printed URL and snippet — public audience only (org access is gated by
 // membership). The words a person reads name the organization by
 // `orgLabel`, its slug.
 function describeOutcome(
   agent: Agent,
-  share: AgentShare | null,
+  share: Channel | null,
   options: ShareAgentOptions,
   audience: ShareAudience,
   alreadyInState: boolean,
   orgLabel: string,
 ): CommandResult {
-  const shareId = share?.metadata?.id ?? "";
-  const slug = share?.metadata?.slug || (agent.metadata?.slug ?? "");
+  const channelId = share?.metadata?.id ?? "";
+  const slug = agent.metadata?.slug ?? "";
   const name = agent.metadata?.name || slug;
-  const linkToken = share?.status?.shareLinkToken ?? "";
+  const typeStatus = share?.status?.typeStatus;
+  const linkToken = typeStatus?.case === "web" ? typeStatus.value.linkToken : "";
 
   if (!options.enabled) {
     const result = CommandResult.success(
@@ -298,7 +320,7 @@ function describeOutcome(
   const publicLinkToken = audience === "org" ? undefined : linkToken || undefined;
   result
     .addSection(audience === "org" ? "Member chat link" : "Public chat link")
-    .item(buildChatUrl(options.appOrigin, shareId, publicLinkToken));
+    .item(buildChatUrl(options.appOrigin, channelId, publicLinkToken));
 
   if (audience === "org") {
     // Embeds serve anonymous guests, which org-members-only shares refuse
@@ -307,7 +329,7 @@ function describeOutcome(
     result.hint(`Members chat on ${orgLabel}'s own provider keys.`);
   } else {
     const snippetSection = result.addSection("Embed on your site");
-    for (const line of buildEmbedSnippet(options.appOrigin, shareId, publicLinkToken).split("\n")) {
+    for (const line of buildEmbedSnippet(options.appOrigin, channelId, publicLinkToken).split("\n")) {
       snippetSection.item(line);
     }
 

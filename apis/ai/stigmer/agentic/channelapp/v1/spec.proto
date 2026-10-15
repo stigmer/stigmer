@@ -12,7 +12,7 @@ import "buf/validate/validate.proto";
 //
 // @internal
 // Provider variance is config-shaped, not lifecycle-shaped — one kind,
-// a validated oneof (the AgentChannelSpec.provider_config precedent).
+// a validated oneof (the ChannelSpec.type precedent).
 // Secrets are inline spec fields encrypted at rest and redacted in every
 // response (the OAuthAppSpec.client_secret pipeline, both editions) —
 // NOT a store of install-produced tokens: app credentials are user-authored

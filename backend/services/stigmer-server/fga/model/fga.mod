@@ -17,8 +17,7 @@ contents:
   
   # Agentic
   - agentic/agent.fga
-  - agentic/agent_channel.fga
-  - agentic/agent_share.fga
+  - agentic/channel.fga
   - agentic/channel_app.fga
   - agentic/eval.fga
   - agentic/eval_run.fga

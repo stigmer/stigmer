@@ -2,9 +2,8 @@
   "title": "Resources",
   "pages": [
     "agent",
-    "agent-channel",
-    "agent-share",
     "api-key",
+    "channel",
     "channel-app",
     "commons",
     "eval",

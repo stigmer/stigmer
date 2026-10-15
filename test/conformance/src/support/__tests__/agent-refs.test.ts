@@ -10,8 +10,9 @@
 // one arm — an existing session, or a new conversation's session spec with
 // the agent reference folded into the spec the caller shaped — and a fixture
 // that asks for both arms is refused rather than silently dropping one; a
-// stored turn's session is read through the session_id arm alone; channels
-// and shares pin an agent version only when the caller passes one.
+// stored turn's session is read through the session_id arm alone; Slack,
+// WhatsApp and web channels pin an agent version only when the caller passes
+// one, and a WhatsApp channel binds its app only when given its slug.
 // The slugs a parent lists in `subagents` are read off the agents the server
 // returned, in order, and an agent with no slug is refused.
 // Pure: hand-built resources, no target.
@@ -21,10 +22,9 @@ import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { describe, expect, it } from "vitest";
-import { makeSlackAgentChannel } from "../agentchannels";
+import { WHATSAPP_FIXTURE_PHONE_NUMBER_ID, makeSlackChannel, makeWebChannel, makeWhatsAppChannel } from "../channels";
 import { makeAgentExecution, sessionIdOf } from "../runs";
 import { agentRefOf, makeAgentRef, subagentSlugsOf } from "../agents";
-import { makeAgentShare } from "../agentshares";
 import { makeSessionSpec } from "../sessions";
 
 const REF = { org: "acme", slug: "code-reviewer" };
@@ -131,23 +131,36 @@ describe("sessionIdOf", () => {
   });
 });
 
-describe("channel and share agent versions", () => {
+describe("channel agent versions", () => {
   it("pins the agent version a Slack channel's conversations start on only when given", () => {
-    expect(makeSlackAgentChannel("acme", "chan", "code-reviewer", { agentRefVersion: "stable" }).spec?.agentRef).toEqual({
+    expect(makeSlackChannel("acme", "chan", "code-reviewer", { agentRefVersion: "stable" }).spec?.agentRef).toEqual({
       slug: "code-reviewer",
       kind: ApiResourceKind.agent,
       version: "stable",
     });
-    expect(makeSlackAgentChannel("acme", "chan", "code-reviewer").spec?.agentRef).not.toHaveProperty("version");
+    expect(makeSlackChannel("acme", "chan", "code-reviewer").spec?.agentRef).not.toHaveProperty("version");
   });
 
-  it("pins the agent version a share's conversations start on only when given", () => {
-    expect(makeAgentShare("acme", "code-reviewer", { agentRefVersion: "stable" }).spec?.agentRef).toEqual({
+  it("pins the agent version a web channel's conversations start on only when given", () => {
+    expect(makeWebChannel("acme", "code-reviewer", { agentRefVersion: "stable" }).spec?.agentRef).toEqual({
       slug: "code-reviewer",
       kind: ApiResourceKind.agent,
       version: "stable",
     });
-    expect(makeAgentShare("acme", "code-reviewer").spec?.agentRef).not.toHaveProperty("version");
+    expect(makeWebChannel("acme", "code-reviewer").spec?.agentRef).not.toHaveProperty("version");
+  });
+
+  it("pins the agent version a WhatsApp channel's conversations start on only when given, and binds its app only when named", () => {
+    const pinned = makeWhatsAppChannel("acme", "chan", "code-reviewer", { agentRefVersion: "stable", appRefSlug: "byo" });
+    expect(pinned.spec?.agentRef).toEqual({ slug: "code-reviewer", kind: ApiResourceKind.agent, version: "stable" });
+    expect(pinned.spec?.type).toEqual({
+      case: "whatsapp",
+      value: { phoneNumberId: WHATSAPP_FIXTURE_PHONE_NUMBER_ID, appRef: { slug: "byo", kind: ApiResourceKind.channel_app } },
+    });
+    const bare = makeWhatsAppChannel("acme", undefined, "code-reviewer");
+    expect(bare.metadata).toEqual({ org: "acme" });
+    expect(bare.spec?.agentRef).not.toHaveProperty("version");
+    expect(bare.spec?.type).toEqual({ case: "whatsapp", value: { phoneNumberId: WHATSAPP_FIXTURE_PHONE_NUMBER_ID } });
   });
 });
 

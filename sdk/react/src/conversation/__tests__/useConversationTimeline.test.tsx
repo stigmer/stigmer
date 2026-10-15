@@ -9,9 +9,9 @@ import type { ReactNode } from "react";
 afterEach(cleanup);
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { ConversationTimelineItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
-import { ChannelDeliveryStatus } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/delivery_pb";
-import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/outbound_pb";
+import { ConversationTimelineItemSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { ChannelDeliveryStatus } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/delivery_pb";
+import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/outbound_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useConversationTimeline } from "../useConversationTimeline";
@@ -26,7 +26,7 @@ function item(id: string, iso: string, overrides: Record<string, unknown> = {}) 
 }
 
 function createMockStigmer(listTimeline: (input: unknown) => Promise<unknown>) {
-  return { agentChannel: { listTimeline } } as never;
+  return { channel: { listTimeline } } as never;
 }
 
 function wrapper(client: unknown) {

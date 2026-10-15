@@ -8,17 +8,30 @@
  * agent can flag its own conversation for human attention
  * (escalate-and-continue: the agent keeps serving; nothing is paged).
  *
- * The conditioning signal is the session resource label
- * `stigmer.ai/channel-id`, stamped server-side from the JWT on every
- * channel-created Session (ChannelSessionCreateScopeStep) — the same
- * field the cloud's own ChannelMessagingReach.deriveOrigin reads to
- * answer exactly this question. It is deliberately NOT a
- * SessionSpec.metadata key: none of those asserts "this is a channel
- * conversation" (sender identity is who wrote, the bridge is rollover
- * provenance), and a new key would reach existing live conversations
- * only at rollover. The label is not authorization — a spoofed label
- * buys a tool the server refuses (the reach derives identity from the
- * session token, never from labels the runner read).
+ * The conditioning signal is two session resource labels, stamped
+ * server-side from the JWT on every channel-created Session, each
+ * answering its own question:
+ *
+ *   - `stigmer.ai/channel-id` answers "which channel serves this
+ *     session?". Every conversation a channel serves carries it, a
+ *     chat-link (web channel) guest session included, so it alone does
+ *     not say there is a provider conversation to escalate.
+ *   - `stigmer.ai/channel-conversation-key` answers "which provider
+ *     conversation is this?" (a Slack thread, a WhatsApp chat). Only a
+ *     Slack or WhatsApp conversation carries it; a chat-link session
+ *     never does.
+ *
+ * Escalation acts on exactly one provider conversation, so the tool
+ * attaches only when BOTH labels are present: a chat-link session, with
+ * the channel id and no conversation key, gets no tool. These are the
+ * same fields the cloud's channel messaging reach reads to answer exactly
+ * this question. They are deliberately NOT SessionSpec.metadata keys:
+ * none of those asserts "this is a channel conversation" (sender identity
+ * is who wrote, the bridge is rollover provenance), and a new key would
+ * reach existing live conversations only at rollover. The labels are not
+ * authorization — a spoofed label buys a tool the server refuses (the
+ * reach derives identity from the session token, never from labels the
+ * runner read).
  *
  * ONE connection shape — HTTP against the bridge's /conversation route
  * with the execution's session-scoped credential as the Bearer token —
@@ -64,25 +77,38 @@ export const CONVERSATION_ATTACHMENT_SLUG = CONVERSATION_MCP_SERVER;
 export const CONVERSATION_ROUTE = "/conversation";
 
 /**
- * The session label naming the serving channel. Pinned verbatim to
- * ChannelRuntimeConstants.CHANNEL_ID_METADATA_KEY in stigmer-cloud
- * (mirror guard in this module's test and in ChannelSessionBrokerTest).
- * Drift degrades to honest absence — the tool silently stops attaching,
- * escalation never fires from a tool that was never offered — never
- * worse.
+ * The session label naming the serving channel. Pinned verbatim to the
+ * cloud's channel runtime constant of the same name (mirror guard in this
+ * module's test and on the cloud's side). Drift degrades to honest
+ * absence — the tool silently stops attaching, escalation never fires
+ * from a tool that was never offered — never worse.
  */
 export const CHANNEL_ID_LABEL = "stigmer.ai/channel-id";
 
 /**
- * Read the serving channel id from a session's resource labels. Blank
- * and whitespace-only values are absent: the label is stamped complete
- * or not at all, and a blank channel id must not synthesize a tool.
+ * The session label naming the provider conversation (a Slack thread, a
+ * WhatsApp chat) the session serves. Pinned verbatim to the cloud's
+ * channel runtime constant CONVERSATION_KEY_LABEL, with the same
+ * honest-absence drift as {@link CHANNEL_ID_LABEL}.
+ */
+export const CONVERSATION_KEY_LABEL = "stigmer.ai/channel-conversation-key";
+
+/**
+ * Read the serving channel id of a session that is a live provider
+ * conversation: the channel id, present only when the conversation key is
+ * present too. A session serving a channel with no conversation key (a
+ * chat-link guest session) reads as absent, as do blank and
+ * whitespace-only values: the labels are stamped complete or not at all,
+ * and a blank one must not synthesize a tool.
  */
 export function readChannelConversationId(
   labels: Record<string, string> | undefined,
 ): string | undefined {
   const channelId = labels?.[CHANNEL_ID_LABEL]?.trim();
-  return channelId !== undefined && channelId !== "" ? channelId : undefined;
+  const conversationKey = labels?.[CONVERSATION_KEY_LABEL]?.trim();
+  if (channelId === undefined || channelId === "") return undefined;
+  if (conversationKey === undefined || conversationKey === "") return undefined;
+  return channelId;
 }
 
 /**

@@ -7,14 +7,14 @@ package ai.stigmer.agentic.channelapp.v1;
 
 /**
  * <pre>
- * ChannelApp registers your own messaging-platform app (e.g. a Slack app) for serving agent channels.
+ * ChannelApp registers your own messaging-platform app (e.g. a Slack app) for serving Slack and WhatsApp channels.
  *
- * By default, agent channels install through the platform's shared
+ * By default, Slack channels install through the platform's shared
  * Stigmer app. A ChannelApp lets an organization bring its own provider
  * app instead: the bot carries the app's own name and icon, and because
  * each provider app is a distinct bot identity, multiple agents can
  * serve the same workspace side by side. One ChannelApp can be
- * referenced by many AgentChannel connections via spec.app_ref.
+ * referenced by many Slack or WhatsApp channels through their app_ref.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.channelapp.v1.ChannelApp}
@@ -486,14 +486,14 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ChannelApp registers your own messaging-platform app (e.g. a Slack app) for serving agent channels.
+   * ChannelApp registers your own messaging-platform app (e.g. a Slack app) for serving Slack and WhatsApp channels.
    *
-   * By default, agent channels install through the platform's shared
+   * By default, Slack channels install through the platform's shared
    * Stigmer app. A ChannelApp lets an organization bring its own provider
    * app instead: the bot carries the app's own name and icon, and because
    * each provider app is a distinct bot identity, multiple agents can
    * serve the same workspace side by side. One ChannelApp can be
-   * referenced by many AgentChannel connections via spec.app_ref.
+   * referenced by many Slack or WhatsApp channels through their app_ref.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.channelapp.v1.ChannelApp}

@@ -27,24 +27,36 @@ describe("registry — alias resolution", () => {
     ["oauth_apps", ApiResourceKind.oauth_app],
     ["o_auth_app", ApiResourceKind.oauth_app],
     ["o-auth-app", ApiResourceKind.oauth_app],
-    ["agentchannel", ApiResourceKind.agent_channel],
-    ["agent-channel", ApiResourceKind.agent_channel],
-    ["agent_channel", ApiResourceKind.agent_channel],
-    ["AgentChannel", ApiResourceKind.agent_channel],
-    ["agentchannels", ApiResourceKind.agent_channel],
-    ["ach", ApiResourceKind.agent_channel],
+    ["channel", ApiResourceKind.channel],
+    ["Channel", ApiResourceKind.channel],
+    ["channels", ApiResourceKind.channel],
+    ["chn", ApiResourceKind.channel],
+    ["channelapp", ApiResourceKind.channel_app],
+    ["channel-app", ApiResourceKind.channel_app],
+    ["channel_app", ApiResourceKind.channel_app],
+    ["chapp", ApiResourceKind.channel_app],
   ])("resolves %s -> kind", (alias, kind) => {
     expect(registry.getByAlias(alias)?.kind).toBe(kind);
   });
 
-  it("agent_channel does not steal the agent alias (multi-word first-word guard)", () => {
-    expect(registry.getByAlias("agent")?.kind).toBe(ApiResourceKind.agent);
+  it("channel_app does not steal the channel alias (multi-word first-word guard)", () => {
+    expect(registry.getByAlias("channel")?.kind).toBe(ApiResourceKind.channel);
   });
 
   it("resolution is case-insensitive", () => {
-    expect(registry.getByAlias("AGENT-CHANNEL")?.kind).toBe(
-      ApiResourceKind.agent_channel,
+    expect(registry.getByAlias("CHANNEL-APP")?.kind).toBe(
+      ApiResourceKind.channel_app,
     );
+    expect(registry.getByAlias("CHANNELS")?.kind).toBe(ApiResourceKind.channel);
+  });
+
+  // The share and the Slack/WhatsApp connection merged into one kind; their
+  // old spellings name no type now, so a script using one hears it at once
+  // instead of reaching a kind it did not mean.
+  it("resolves no spelling of the merged share and agent-channel kinds", () => {
+    for (const alias of ["agentshare", "agent-share", "agentchannel", "agent_channel", "AgentChannel", "agentchannels"]) {
+      expect(registry.getByAlias(alias), alias).toBeUndefined();
+    }
   });
 
   it("returns undefined for an unknown alias", () => {
@@ -71,9 +83,11 @@ describe("registry — alias resolution", () => {
 
 describe("registry — YAML kind resolution", () => {
   it("resolves the exact YAML kind", () => {
-    expect(registry.getByYamlKind("AgentChannel")?.kind).toBe(
-      ApiResourceKind.agent_channel,
+    expect(registry.getByYamlKind("Channel")?.kind).toBe(
+      ApiResourceKind.channel,
     );
+    expect(registry.getByYamlKind("AgentChannel")).toBeUndefined();
+    expect(registry.getByYamlKind("AgentShare")).toBeUndefined();
     expect(registry.getByYamlKind("Agent")?.kind).toBe(
       ApiResourceKind.agent,
     );
@@ -104,18 +118,19 @@ describe("registry — verb support matrix", () => {
   });
 
 
-  it("agent_channel supports the full declarative verb set", () => {
+  it("channel supports the full declarative verb set", () => {
     for (const v of [Verb.Apply, Verb.Get, Verb.List, Verb.Delete]) {
-      expect(registry.supportsVerb(ApiResourceKind.agent_channel, v)).toBe(
+      expect(registry.supportsVerb(ApiResourceKind.channel, v)).toBe(
         true,
       );
     }
-    // The install flow is console-driven and cloud-only — never a CLI verb.
-    expect(registry.supportsVerb(ApiResourceKind.agent_channel, Verb.Run)).toBe(
+    // A Slack or WhatsApp install flow is console-driven and cloud-only —
+    // never a CLI verb.
+    expect(registry.supportsVerb(ApiResourceKind.channel, Verb.Run)).toBe(
       false,
     );
     expect(
-      registry.supportsVerb(ApiResourceKind.agent_channel, Verb.Search),
+      registry.supportsVerb(ApiResourceKind.channel, Verb.Search),
     ).toBe(false);
   });
 
@@ -127,15 +142,6 @@ describe("registry — verb support matrix", () => {
     expect(registry.supportsVerb(ApiResourceKind.schedule, Verb.Run)).toBe(
       false,
     );
-  });
-
-  it("agent_share promises only apply (narrowed — stigmer/stigmer#354)", () => {
-    expect(registry.supportsVerb(ApiResourceKind.agent_share, Verb.Apply)).toBe(
-      true,
-    );
-    for (const v of [Verb.Get, Verb.List, Verb.Delete]) {
-      expect(registry.supportsVerb(ApiResourceKind.agent_share, v)).toBe(false);
-    }
   });
 
   it("session promises apply + list; get/delete stay narrowed (stigmer/stigmer#354, #469)", () => {

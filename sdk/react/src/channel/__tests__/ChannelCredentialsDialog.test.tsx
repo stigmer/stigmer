@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { sentRefs, sentUpdate } from "../../internal/__tests__/sent-update";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentChannelInput } from "@stigmer/sdk";
+import type { ChannelInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DeploymentModeContext } from "../../deployment-mode";
@@ -47,7 +47,7 @@ function makeChannel(vaults: { org: string; slug: string }[] = []) {
     spec: {
       agentRef: { org: "acme", slug: "support-agent" },
       enabled: true,
-      providerConfig: { case: "slack", value: {} },
+      type: { case: "slack", value: {} },
       vaults,
     },
     status: { installState: 2 },
@@ -55,10 +55,10 @@ function makeChannel(vaults: { org: string; slug: string }[] = []) {
 }
 
 function createMockStigmer(overrides: {
-  update?: (resource: AgentChannel, paths: string[]) => Promise<unknown>;
+  update?: (resource: Channel, paths: string[]) => Promise<unknown>;
 } = {}) {
   return {
-    agentChannel: {
+    channel: {
       update: overrides.update ?? vi.fn().mockResolvedValue({}),
     },
     vault: {
@@ -150,7 +150,7 @@ describe("ChannelCredentialsDialog", () => {
     // The update names the bindings alone: the agent reference and the
     // provider marker keep their stored values without being sent back.
     await waitFor(() => expect(update).toHaveBeenCalled());
-    const sent = sentUpdate<AgentChannel>(update);
+    const sent = sentUpdate<Channel>(update);
     expect(sent.paths).toEqual(["spec.vaults"]);
     expect(sentRefs(sent.resource.spec?.vaults)).toEqual([{ org: "acme", slug: "github-credentials" }]);
     expect(onSaved).toHaveBeenCalled();
@@ -176,7 +176,7 @@ describe("ChannelCredentialsDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(update).toHaveBeenCalled());
-    const sent = sentUpdate<AgentChannel>(update);
+    const sent = sentUpdate<Channel>(update);
     expect(sent.paths).toEqual(["spec.vaults"]);
     expect(sent.resource.spec?.vaults).toEqual([]);
   });

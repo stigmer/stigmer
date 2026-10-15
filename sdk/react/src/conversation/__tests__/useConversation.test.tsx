@@ -12,14 +12,14 @@ import { StigmerError } from "@stigmer/sdk";
 import {
   ChannelConversationSchema,
   ConversationControl,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useConversation } from "../useConversation";
 
 function row(overrides: { control?: ConversationControl; controlledBy?: string } = {}) {
   return create(ChannelConversationSchema, {
-    agentChannelId: "ach_1",
+    channelId: "ach_1",
     conversationKey: "15550001111",
     org: "acme",
     control: overrides.control ?? ConversationControl.control_agent,
@@ -33,7 +33,7 @@ function notFound() {
 }
 
 function createMockStigmer(getConversation: (input: unknown) => Promise<unknown>) {
-  return { agentChannel: { getConversation } } as never;
+  return { channel: { getConversation } } as never;
 }
 
 function wrapper(client: unknown) {
@@ -69,7 +69,7 @@ describe("useConversation", () => {
     expect(result.current.awaitingCustomer).toBe(false);
     expect(result.current.error).toBeNull();
     expect(getConversation).toHaveBeenCalledWith(
-      expect.objectContaining({ agentChannelId: "ach_1", conversationKey: "15550001111" }),
+      expect.objectContaining({ channelId: "ach_1", conversationKey: "15550001111" }),
     );
   });
 

@@ -45,8 +45,9 @@
  *     local program) since refuses its login; each tool's URL is answered
  *     as read with its plugin and server, none for a local program;
  *   - the surfaces found from server-stamped facts: the minting platform
- *     client, the schedule, the share and the channel (each of another
- *     organization contributes nothing);
+ *     client, the schedule, and the channel of any type (a web channel's
+ *     guest sessions and a Slack or WhatsApp channel's conversations alike
+ *     carry its id; each of another organization contributes nothing);
  *   - a run of an agent of another organization, or one whose row cannot
  *     be read, or whose agent lists a subagent of another organization,
  *     reads no My vault for any requirement;
@@ -75,8 +76,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { McpServerEntrySchema, PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
@@ -119,7 +120,6 @@ import {
   CHANNEL_ID_LABEL_KEY,
   CLONE_TOKEN_KEY,
   SCHEDULE_ID_LABEL_KEY,
-  SHARE_ID_LABEL_KEY,
   SignInRenewalError,
   loginKeyOf,
   newVaultResolver,
@@ -745,26 +745,29 @@ describe("which vaults a run uses", () => {
   it("a surface vault whose attacher lost the use refuses, naming it and the surface; a vault that is gone refuses too", async () => {
     const team = await seedSharedVault(rig.store, ORG, "team", { secrets: { A: "team" } });
     await rig.store.saveResource(
-      ApiResourceKind.agent_share,
-      "shr_public",
-      AgentShareSchema,
-      create(AgentShareSchema, {
-        metadata: { id: "shr_public", name: "public", org: ORG },
-        spec: { vaults: [vaultRef("team"), vaultRef("gone")] },
+      ApiResourceKind.channel,
+      "chn_public",
+      ChannelSchema,
+      create(ChannelSchema, {
+        metadata: { id: "chn_public", name: "public", org: ORG },
+        spec: {
+          vaults: [vaultRef("team"), vaultRef("gone")],
+          type: { case: "web", value: { audience: ChannelAudience.public } },
+        },
         status: { vaultAttachers: { [team.metadata!.id]: ADMIN } },
       }),
     );
     const guestRun = {
       run: runOf(),
-      session: sessionOf({ labels: { [SHARE_ID_LABEL_KEY]: "shr_public" } }),
+      session: sessionOf({ labels: { [CHANNEL_ID_LABEL_KEY]: "chn_public" } }),
       agentSpec: agent({ A: KEY }),
     };
     const revoked = await refusal(resolve(guestRun));
-    expect(revoked.rawMessage).toContain("vault 'team', named by share 'public', may no longer be used");
+    expect(revoked.rawMessage).toContain("vault 'team', named by channel 'public', may no longer be used");
 
     mayUse.add(`${ADMIN}:${team.metadata!.id}`);
     const gone = await refusal(resolve(guestRun));
-    expect(gone.rawMessage).toContain(`vault ${ORG}/gone, named by share 'public', no longer exists`);
+    expect(gone.rawMessage).toContain(`vault ${ORG}/gone, named by channel 'public', no longer exists`);
   });
 
   it("an eval run's vaults reach its tries, checked against their attacher", async () => {
@@ -886,12 +889,12 @@ describe("which vaults a run uses", () => {
   it("a channel's vaults reach its runs, checked against their attacher", async () => {
     const team = await seedSharedVault(rig.store, ORG, "channel-keys", { secrets: { A: "chan" } });
     await rig.store.saveResource(
-      ApiResourceKind.agent_channel,
+      ApiResourceKind.channel,
       "ach_slack",
-      AgentChannelSchema,
-      create(AgentChannelSchema, {
+      ChannelSchema,
+      create(ChannelSchema, {
         metadata: { id: "ach_slack", name: "slack", org: ORG },
-        spec: { vaults: [vaultRef("channel-keys")] },
+        spec: { vaults: [vaultRef("channel-keys")], type: { case: "slack", value: {} } },
         status: { vaultAttachers: { [team.metadata!.id]: ADMIN } },
       }),
     );
@@ -1127,12 +1130,12 @@ describe("what reaches an agent or a surface of another organization", () => {
   it("a person-less run of another organization's agent still takes its surface's vaults", async () => {
     const team = await seedSharedVault(rig.store, ORG, "channel-keys", { secrets: { A: "chan" } });
     await rig.store.saveResource(
-      ApiResourceKind.agent_channel,
+      ApiResourceKind.channel,
       "ach_slack",
-      AgentChannelSchema,
-      create(AgentChannelSchema, {
+      ChannelSchema,
+      create(ChannelSchema, {
         metadata: { id: "ach_slack", name: "slack", org: ORG },
-        spec: { vaults: [vaultRef("channel-keys")] },
+        spec: { vaults: [vaultRef("channel-keys")], type: { case: "slack", value: {} } },
         status: { vaultAttachers: { [team.metadata!.id]: ADMIN } },
       }),
     );
@@ -1166,7 +1169,7 @@ describe("what reaches an agent or a surface of another organization", () => {
     expect(missing.rawMessage).toBe(`the agent Helper needs A: ${elsewhere("A")}`);
   });
 
-  it("a schedule, a share or a channel of another organization contributes no vaults to a run", async () => {
+  it("a schedule, a web channel or a Slack channel of another organization contributes no vaults to a run", async () => {
     const team = await seedSharedVault(rig.store, ORG, "team", { secrets: { A: "team" } });
     mayUse.add(`${ADMIN}:${team.metadata!.id}`);
     const attached = { [team.metadata!.id]: ADMIN };
@@ -1181,29 +1184,32 @@ describe("what reaches an agent or a surface of another organization", () => {
       }),
     );
     await rig.store.saveResource(
-      ApiResourceKind.agent_share,
-      "shr_foreign",
-      AgentShareSchema,
-      create(AgentShareSchema, {
-        metadata: { id: "shr_foreign", name: "foreign", org: "globex" },
-        spec: { vaults: [vaultRef("team")] },
+      ApiResourceKind.channel,
+      "chn_foreign_web",
+      ChannelSchema,
+      create(ChannelSchema, {
+        metadata: { id: "chn_foreign_web", name: "foreign-web", org: "globex" },
+        spec: {
+          vaults: [vaultRef("team")],
+          type: { case: "web", value: { audience: ChannelAudience.public } },
+        },
         status: { vaultAttachers: attached },
       }),
     );
     await rig.store.saveResource(
-      ApiResourceKind.agent_channel,
+      ApiResourceKind.channel,
       "ach_foreign",
-      AgentChannelSchema,
-      create(AgentChannelSchema, {
+      ChannelSchema,
+      create(ChannelSchema, {
         metadata: { id: "ach_foreign", name: "foreign", org: "globex" },
-        spec: { vaults: [vaultRef("team")] },
+        spec: { vaults: [vaultRef("team")], type: { case: "slack", value: {} } },
         status: { vaultAttachers: attached },
       }),
     );
     const nowhere = "the agent Helper needs A: list a vault that holds A on the conversation";
     for (const labelled of [
       { run: runOf({ labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_foreign" } }) },
-      { run: runOf(), session: sessionOf({ labels: { [SHARE_ID_LABEL_KEY]: "shr_foreign" } }) },
+      { run: runOf(), session: sessionOf({ labels: { [CHANNEL_ID_LABEL_KEY]: "chn_foreign_web" } }) },
       { run: runOf(), session: sessionOf({ labels: { [CHANNEL_ID_LABEL_KEY]: "ach_foreign" } }) },
     ]) {
       const failure = await refusal(resolve({ ...labelled, agentSpec: agent({ A: KEY }) }));
@@ -2842,19 +2848,22 @@ describe("a participant's turn", () => {
     await anasVault({ A: "ana-mine" });
     await bensVault({ A: "ben-mine" });
     const team = await seedSharedVault(rig.store, ORG, "team", { secrets: { B: "team" } });
-    const share = await seedSharedVault(rig.store, ORG, "share-keys", { secrets: { A: "share" } });
+    const link = await seedSharedVault(rig.store, ORG, "link-keys", { secrets: { A: "link" } });
     await rig.store.saveResource(
-      ApiResourceKind.agent_share,
-      "shr_link",
-      AgentShareSchema,
-      create(AgentShareSchema, {
-        metadata: { id: "shr_link", name: "link", org: ORG },
-        spec: { vaults: [vaultRef("share-keys")] },
-        status: { vaultAttachers: { [share.metadata!.id]: ADMIN } },
+      ApiResourceKind.channel,
+      "chn_link",
+      ChannelSchema,
+      create(ChannelSchema, {
+        metadata: { id: "chn_link", name: "link", org: ORG },
+        spec: {
+          vaults: [vaultRef("link-keys")],
+          type: { case: "web", value: { audience: ChannelAudience.public } },
+        },
+        status: { vaultAttachers: { [link.metadata!.id]: ADMIN } },
       }),
     );
     mayUse.add(`${ANA}:${team.metadata!.id}`);
-    mayUse.add(`${ADMIN}:${share.metadata!.id}`);
+    mayUse.add(`${ADMIN}:${link.metadata!.id}`);
     expect(
       await resolve({
         run: runOf({ sender: BEN }),
@@ -2862,7 +2871,7 @@ describe("a participant's turn", () => {
           vaults: ["team"],
           includeMyVault: true,
           attachers: { [team.metadata!.id]: ANA },
-          labels: { [SHARE_ID_LABEL_KEY]: "shr_link" },
+          labels: { [CHANNEL_ID_LABEL_KEY]: "chn_link" },
           creator: { id: ANA },
         }),
         agentSpec: agent({ A: { isSecret: true, optional: true }, B: KEY }),

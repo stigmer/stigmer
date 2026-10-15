@@ -3,7 +3,7 @@
 // Domain: conformance suites.
 //
 // A ChannelApp registers a customer-owned messaging-platform app (Slack or
-// Meta/WhatsApp) whose credentials agent channels install through. Three
+// Meta/WhatsApp) whose credentials Slack and WhatsApp channels install through. Three
 // surfaces make the domain distinct, all asserted here:
 //
 //   - The PER-FIELD secret contract: every secret in the provider arm
@@ -18,12 +18,12 @@
 //   - PROVIDER immutability: the provider oneof arm cannot change on update
 //     — every referencing channel's install state and webhook verification
 //     path are provider-shaped. NOTE the deliberate as-is pin: ChannelApp
-//     answers InvalidArgument here while its sibling AgentChannel answers
-//     FailedPrecondition for ITS provider rule — a verified cross-domain
+//     answers InvalidArgument here while its sibling Channel answers
+//     FailedPrecondition for ITS type rule — a verified cross-domain
 //     inconsistency, pinned exactly (harmonizing it would change both
 //     editions; recorded in #851).
 //   - The DELETE-BLOCK: deletion is refused with FailedPrecondition while
-//     any AgentChannel's spec.app_ref resolves to the app — a deleted app
+//     any Channel's app_ref resolves to the app — a deleted app
 //     would break the referencing channels' webhook verification and any
 //     future re-install. Unreferencing frees the delete.
 import { Code } from "@connectrpc/connect";
@@ -32,7 +32,7 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
-import { makeSlackAgentChannel } from "../support/agentchannels";
+import { makeSlackChannel } from "../support/channels";
 import {
   CHANNELAPP_REDACTED_MARKER,
   makeSlackChannelApp,
@@ -256,8 +256,8 @@ describe("ChannelApp conformance — referential delete-block", () => {
       makeAgent({ org, name: uniqueName("channel-agent") }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-    const channel = await clients.agentChannelCommand.create(
-      makeSlackAgentChannel(org, uniqueName("channel"), agent.metadata!.slug, {
+    const channel = await clients.channelCommand.create(
+      makeSlackChannel(org, uniqueName("channel"), agent.metadata!.slug, {
         appRefSlug: app.metadata!.slug,
       }),
     );
@@ -271,7 +271,7 @@ describe("ChannelApp conformance — referential delete-block", () => {
     );
 
     // Unreference by deleting the channel; the app is now free to go.
-    await clients.agentChannelCommand.delete({ value: channel.metadata!.id });
+    await clients.channelCommand.delete({ value: channel.metadata!.id });
     const deleted = await clients.channelAppCommand.delete({ resourceId: app.metadata!.id });
     expect(deleted.metadata?.id).toBe(app.metadata?.id);
   });

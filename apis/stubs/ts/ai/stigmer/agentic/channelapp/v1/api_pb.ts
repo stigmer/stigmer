@@ -20,14 +20,14 @@ export const file_ai_stigmer_agentic_channelapp_v1_api: GenFile = /*@__PURE__*/
   fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvY2hhbm5lbGFwcC92MS9hcGkucHJvdG8SIGFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxIrcCCgpDaGFubmVsQXBwEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEh8KBGtpbmQYAiABKAlCEbpIDnIMCgpDaGFubmVsQXBwEk0KCG1ldGFkYXRhGAMgASgLMjMuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlTWV0YWRhdGFCBrpIA8gBARI+CgRzcGVjGAQgASgLMjAuYWkuc3RpZ21lci5hZ2VudGljLmNoYW5uZWxhcHAudjEuQ2hhbm5lbEFwcFNwZWMSRgoGc3RhdHVzGAUgASgLMjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRTdGF0dXNiBnByb3RvMw", [file_ai_stigmer_agentic_channelapp_v1_spec, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
 
 /**
- * ChannelApp registers your own messaging-platform app (e.g. a Slack app) for serving agent channels.
+ * ChannelApp registers your own messaging-platform app (e.g. a Slack app) for serving Slack and WhatsApp channels.
  *
- * By default, agent channels install through the platform's shared
+ * By default, Slack channels install through the platform's shared
  * Stigmer app. A ChannelApp lets an organization bring its own provider
  * app instead: the bot carries the app's own name and icon, and because
  * each provider app is a distinct bot identity, multiple agents can
  * serve the same workspace side by side. One ChannelApp can be
- * referenced by many AgentChannel connections via spec.app_ref.
+ * referenced by many Slack or WhatsApp channels through their app_ref.
  *
  * @generated from message ai.stigmer.agentic.channelapp.v1.ChannelApp
  */

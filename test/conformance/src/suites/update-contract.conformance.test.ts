@@ -19,8 +19,8 @@
 import { create, toJsonString } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
-import { AgentShareSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { ChannelSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
 import { ChannelAppSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/spec_pb";
 import { ScheduleSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -35,8 +35,8 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { makeAgentShare } from "../support/agentshares";
 import { makeSlackChannelApp } from "../support/channelapps";
+import { makeWebChannel } from "../support/channels";
 import { uniqueName } from "../support/naming";
 import { makeOAuthApp } from "../support/oauthapps";
 import { makeSchedule } from "../support/schedules";
@@ -207,17 +207,17 @@ const KINDS: ReadonlyArray<UpdatableKind> = [
       snapshotOf(ScheduleSpecSchema, await clients.scheduleCommand.update({ resource: { metadata }, updateMask: { paths } })),
   },
   {
-    noun: "AgentShare",
-    rpc: "AgentShareCommandController.update",
+    noun: "Channel",
+    rpc: "ChannelCommandController.update",
     create: async (org) => {
       const agent = await agentIn(org);
-      const share = await clients.agentShareCommand.create(makeAgentShare(org, agent.slug, { name: uniqueName("upd-share") }));
-      fixtures.defer(() => clients.agentShareCommand.delete({ value: share.metadata!.id }));
-      return share.metadata!.id;
+      const channel = await clients.channelCommand.create(makeWebChannel(org, agent.slug, { name: uniqueName("upd-web") }));
+      fixtures.defer(() => clients.channelCommand.delete({ value: channel.metadata!.id }));
+      return channel.metadata!.id;
     },
-    read: async (id) => snapshotOf(AgentShareSpecSchema, await clients.agentShareQuery.get({ value: id })),
+    read: async (id) => snapshotOf(ChannelSpecSchema, await clients.channelQuery.get({ value: id })),
     update: async (metadata, paths) =>
-      snapshotOf(AgentShareSpecSchema, await clients.agentShareCommand.update({ resource: { metadata }, updateMask: { paths } })),
+      snapshotOf(ChannelSpecSchema, await clients.channelCommand.update({ resource: { metadata }, updateMask: { paths } })),
   },
   {
     noun: "ChannelApp",

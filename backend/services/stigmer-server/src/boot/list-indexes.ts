@@ -32,13 +32,11 @@
  *
  * Since every list pages (2026-10-14), every kind a list RPC reads joins:
  * `agent`, `skill` and `plugin` for their organization lists, and
- * `schedule`, `agent_channel` and `agent_share` for theirs and for one
- * agent's, and `oauth_app` and `channel_app` for their organization lists
+ * `schedule` and `channel` for theirs and for one agent's, and `oauth_app` and `channel_app` for their organization lists
  * (each domain's list-index.ts).
  */
 import { agentListIndex } from "../domain/agent/list-index.js";
-import { agentChannelListIndex } from "../domain/agentchannel/list-index.js";
-import { agentShareListIndex } from "../domain/agentshare/list-index.js";
+import { channelListIndex } from "../domain/channel/list-index.js";
 import { apiKeyListIndex } from "../domain/apikey/list-index.js";
 import { channelAppListIndex } from "../domain/channelapp/list-index.js";
 import { pluginListIndex } from "../domain/plugin/list-index.js";
@@ -60,8 +58,7 @@ import type { ListIndexDeclaration } from "../store/list-index.js";
 export const LIST_INDEXES: ReadonlyArray<ListIndexDeclaration> = [
   agentExecutionListIndex,
   agentListIndex,
-  agentChannelListIndex,
-  agentShareListIndex,
+  channelListIndex,
   apiKeyListIndex,
   channelAppListIndex,
   oauthAppListIndex,

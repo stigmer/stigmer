@@ -5,8 +5,7 @@ package stigmer
 import (
 	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
 	agentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1"
-	agentchannelv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1"
-	agentsharev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentshare/v1"
+	channelv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channel/v1"
 	channelappv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channelapp/v1"
 	evalv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/eval/v1"
 	evalrunv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/evalrun/v1"
@@ -37,19 +36,14 @@ func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 	return gen.AgentInputFromProto(p)
 }
 
-// AgentChannelInputFromProto creates a AgentChannelInput from a proto AgentChannel resource.
-func AgentChannelInputFromProto(p *agentchannelv1.AgentChannel) *AgentChannelInput {
-	return gen.AgentChannelInputFromProto(p)
-}
-
-// AgentShareInputFromProto creates a AgentShareInput from a proto AgentShare resource.
-func AgentShareInputFromProto(p *agentsharev1.AgentShare) *AgentShareInput {
-	return gen.AgentShareInputFromProto(p)
-}
-
 // ApiKeyInputFromProto creates a ApiKeyInput from a proto ApiKey resource.
 func ApiKeyInputFromProto(p *apikeyv1.ApiKey) *ApiKeyInput {
 	return gen.ApiKeyInputFromProto(p)
+}
+
+// ChannelInputFromProto creates a ChannelInput from a proto Channel resource.
+func ChannelInputFromProto(p *channelv1.Channel) *ChannelInput {
+	return gen.ChannelInputFromProto(p)
 }
 
 // ChannelAppInputFromProto creates a ChannelAppInput from a proto ChannelApp resource.

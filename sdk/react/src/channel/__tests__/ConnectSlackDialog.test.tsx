@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vite
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { StigmerError, type AgentChannelInput } from "@stigmer/sdk";
+import { StigmerError, type ChannelInput } from "@stigmer/sdk";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
@@ -38,12 +38,12 @@ function fakePopup() {
 }
 
 interface MockOverrides {
-  create?: (input: AgentChannelInput) => Promise<unknown>;
+  create?: (input: ChannelInput) => Promise<unknown>;
   initiateInstall?: (input: unknown) => Promise<unknown>;
   completeInstall?: (input: unknown) => Promise<unknown>;
   /** Org channel apps returned by channelapp.list (BYO picker). */
   channelApps?: unknown[];
-  /** Org-wide channels returned by agentChannel.list (pre-OAuth advisory). */
+  /** Org-wide channels returned by channel.list (pre-OAuth advisory). */
   orgChannels?: unknown[];
 }
 
@@ -63,7 +63,7 @@ function createMockStigmer(overrides: MockOverrides = {}) {
         nextPageToken: "",
       }),
     },
-    agentChannel: {
+    channel: {
       list: vi.fn().mockResolvedValue({
         entries: overrides.orgChannels ?? [],
         nextPageToken: "",
@@ -85,7 +85,7 @@ function createMockStigmer(overrides: MockOverrides = {}) {
           metadata: { id: "ach_new" },
           status: {
             installState: 2,
-            providerStatus: { case: "slack", value: { teamName: "Acme HQ" } },
+            typeStatus: { case: "slack", value: { teamName: "Acme HQ" } },
           },
         }),
     },
@@ -370,7 +370,7 @@ describe("ConnectSlackDialog", () => {
         spec: { agentRef: { org: "acme", slug: "other-agent" } },
         status: {
           installState: 2, // installed
-          providerStatus: {
+          typeStatus: {
             case: "slack",
             // Empty channelAppId = the platform app — the same key the
             // DB uniqueness index uses.
@@ -424,9 +424,7 @@ describe("ConnectSlackDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: /connect to slack/i }));
 
     await waitFor(() => expect(create).toHaveBeenCalled());
-    expect(create).toHaveBeenCalledWith(
-      expect.not.objectContaining({ appRef: expect.anything() }),
-    );
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ slack: {} }));
   });
 
   it("connecting as your own app carries its appRef on create", async () => {
@@ -452,7 +450,7 @@ describe("ConnectSlackDialog", () => {
     await waitFor(() =>
       expect(create).toHaveBeenCalledWith(
         expect.objectContaining({
-          appRef: { org: "acme", slug: "acme-support-app" },
+          slack: { appRef: { org: "acme", slug: "acme-support-app" } },
         }),
       ),
     );
