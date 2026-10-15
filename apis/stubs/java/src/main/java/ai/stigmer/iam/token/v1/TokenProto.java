@@ -65,35 +65,36 @@ public final class TokenProto extends com.google.protobuf.GeneratedFile {
       "e\030\004 \001(\tB\010\272H\005r\003\030\200\002R\010userName\"x\n\025MintUserT" +
       "okenResponse\022!\n\014access_token\030\001 \001(\tR\013acce" +
       "ssToken\022\035\n\ntoken_type\030\002 \001(\tR\ttokenType\022\035" +
-      "\n\nexpires_in\030\003 \001(\005R\texpiresIn\"\352\003\n\025MintGu" +
-      "estTokenRequest\022%\n\010share_id\030\001 \001(\tB\n\272H\007r\005" +
-      "\020\001\030\200\001R\007shareId\022&\n\017guest_cookie_id\030\002 \001(\tR" +
-      "\rguestCookieId\022\330\002\n\014embed_origin\030\003 \001(\tB\264\002" +
-      "\272H\260\002\272\001\254\002\n\023embed_origin.format\022wembed_ori" +
-      "gin must be empty, \"null\", or an exact w" +
-      "eb origin like https://example.com (no p" +
-      "ath, query, or trailing slash)\032\233\001this ==" +
-      " \'\' || this == \'null\' || this.matches(\'^" +
-      "https?://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-" +
-      "z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Z" +
-      "a-z0-9])?)*(:[0-9]{1,5})?$\')R\013embedOrigi" +
-      "n\022\'\n\nlink_token\030\004 \001(\tB\010\272H\005r\003\030\200\001R\tlinkTok" +
-      "en\"\241\001\n\026MintGuestTokenResponse\022!\n\014access_" +
-      "token\030\001 \001(\tR\013accessToken\022\035\n\ntoken_type\030\002" +
-      " \001(\tR\ttokenType\022\035\n\nexpires_in\030\003 \001(\005R\texp" +
-      "iresIn\022&\n\017guest_cookie_id\030\004 \001(\tR\rguestCo" +
-      "okieId2\277\002\n\014TokenService\022\265\001\n\rmintUserToke" +
-      "n\022-.ai.stigmer.iam.token.v1.MintUserToke" +
-      "nRequest\032..ai.stigmer.iam.token.v1.MintU" +
-      "serTokenResponse\"E\302\270\030A\0109\020\036\"\003org*6unautho" +
-      "rized to mint user tokens for this organ" +
-      "ization\022w\n\016mintGuestToken\022..ai.stigmer.i" +
-      "am.token.v1.MintGuestTokenRequest\032/.ai.s" +
-      "tigmer.iam.token.v1.MintGuestTokenRespon" +
-      "se\"\004\310\270\030\001B\215\001B\nTokenProtoP\001\242\002\004ASIT\252\002\027Ai.St" +
-      "igmer.Iam.Token.V1\312\002\027Ai\\Stigmer\\Iam\\Toke" +
-      "n\\V1\342\002#Ai\\Stigmer\\Iam\\Token\\V1\\GPBMetada" +
-      "ta\352\002\033Ai::Stigmer::Iam::Token::V1b\006proto3"
+      "\n\nexpires_in\030\003 \001(\005R\texpiresIn\"\356\003\n\025MintGu" +
+      "estTokenRequest\022)\n\nchannel_id\030\001 \001(\tB\n\272H\007" +
+      "r\005\020\001\030\200\001R\tchannelId\022&\n\017guest_cookie_id\030\002 " +
+      "\001(\tR\rguestCookieId\022\330\002\n\014embed_origin\030\003 \001(" +
+      "\tB\264\002\272H\260\002\272\001\254\002\n\023embed_origin.format\022wembed" +
+      "_origin must be empty, \"null\", or an exa" +
+      "ct web origin like https://example.com (" +
+      "no path, query, or trailing slash)\032\233\001thi" +
+      "s == \'\' || this == \'null\' || this.matche" +
+      "s(\'^https?://[A-Za-z0-9]([A-Za-z0-9-]*[A" +
+      "-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*" +
+      "[A-Za-z0-9])?)*(:[0-9]{1,5})?$\')R\013embedO" +
+      "rigin\022\'\n\nlink_token\030\004 \001(\tB\010\272H\005r\003\030\200\001R\tlin" +
+      "kToken\"\241\001\n\026MintGuestTokenResponse\022!\n\014acc" +
+      "ess_token\030\001 \001(\tR\013accessToken\022\035\n\ntoken_ty" +
+      "pe\030\002 \001(\tR\ttokenType\022\035\n\nexpires_in\030\003 \001(\005R" +
+      "\texpiresIn\022&\n\017guest_cookie_id\030\004 \001(\tR\rgue" +
+      "stCookieId2\277\002\n\014TokenService\022\265\001\n\rmintUser" +
+      "Token\022-.ai.stigmer.iam.token.v1.MintUser" +
+      "TokenRequest\032..ai.stigmer.iam.token.v1.M" +
+      "intUserTokenResponse\"E\302\270\030A\0109\020\036\"\003org*6una" +
+      "uthorized to mint user tokens for this o" +
+      "rganization\022w\n\016mintGuestToken\022..ai.stigm" +
+      "er.iam.token.v1.MintGuestTokenRequest\032/." +
+      "ai.stigmer.iam.token.v1.MintGuestTokenRe" +
+      "sponse\"\004\310\270\030\001B\215\001B\nTokenProtoP\001\242\002\004ASIT\252\002\027A" +
+      "i.Stigmer.Iam.Token.V1\312\002\027Ai\\Stigmer\\Iam\\" +
+      "Token\\V1\342\002#Ai\\Stigmer\\Iam\\Token\\V1\\GPBMe" +
+      "tadata\352\002\033Ai::Stigmer::Iam::Token::V1b\006pr" +
+      "oto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -118,7 +119,7 @@ public final class TokenProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_token_v1_MintGuestTokenRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_token_v1_MintGuestTokenRequest_descriptor,
-        new java.lang.String[] { "ShareId", "GuestCookieId", "EmbedOrigin", "LinkToken", });
+        new java.lang.String[] { "ChannelId", "GuestCookieId", "EmbedOrigin", "LinkToken", });
     internal_static_ai_stigmer_iam_token_v1_MintGuestTokenResponse_descriptor =
       getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_iam_token_v1_MintGuestTokenResponse_fieldAccessorTable = new

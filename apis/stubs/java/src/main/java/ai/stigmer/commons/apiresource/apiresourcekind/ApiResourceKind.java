@@ -145,23 +145,16 @@ public enum ApiResourceKind
   skill(43),
   /**
    * <pre>
-   * Hosted chat link for an agent with its own audience, origins, and credentials.
+   * A way people reach an agent: a chat link or website widget, a Slack
+   * workspace, or a WhatsApp number.
    * </pre>
    *
-   * <code>agent_share = 46 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   * <code>channel = 47 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
-  agent_share(46),
+  channel(47),
   /**
    * <pre>
-   * Connection binding an agent to an external messaging platform workspace.
-   * </pre>
-   *
-   * <code>agent_channel = 47 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  agent_channel(47),
-  /**
-   * <pre>
-   * Customer-owned messaging-platform app (e.g. a Slack app) that agent
+   * Customer-owned messaging-platform app (e.g. a Slack app) that
    * channels can install through instead of the shared platform app.
    * </pre>
    *
@@ -418,23 +411,16 @@ public enum ApiResourceKind
   public static final int skill_VALUE = 43;
   /**
    * <pre>
-   * Hosted chat link for an agent with its own audience, origins, and credentials.
+   * A way people reach an agent: a chat link or website widget, a Slack
+   * workspace, or a WhatsApp number.
    * </pre>
    *
-   * <code>agent_share = 46 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   * <code>channel = 47 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
-  public static final int agent_share_VALUE = 46;
+  public static final int channel_VALUE = 47;
   /**
    * <pre>
-   * Connection binding an agent to an external messaging platform workspace.
-   * </pre>
-   *
-   * <code>agent_channel = 47 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  public static final int agent_channel_VALUE = 47;
-  /**
-   * <pre>
-   * Customer-owned messaging-platform app (e.g. a Slack app) that agent
+   * Customer-owned messaging-platform app (e.g. a Slack app) that
    * channels can install through instead of the shared platform app.
    * </pre>
    *
@@ -590,8 +576,7 @@ public enum ApiResourceKind
       case 41: return run;
       case 42: return session;
       case 43: return skill;
-      case 46: return agent_share;
-      case 47: return agent_channel;
+      case 47: return channel;
       case 48: return channel_app;
       case 56: return schedule;
       case 57: return memory;

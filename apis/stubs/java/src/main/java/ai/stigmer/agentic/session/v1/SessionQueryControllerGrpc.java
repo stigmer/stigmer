@@ -303,9 +303,9 @@ public final class SessionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List the conversations an agent channel created.
-     * Returns the sessions the channel runtime (Slack, WhatsApp) created for
-     * the given agent channel, newest first. The caller must be able to view
+     * List the conversations a channel served.
+     * Returns the sessions the given channel's visitors or its Slack or
+     * WhatsApp runtime started, newest first. The caller must be able to view
      * the channel; results are additionally filtered to sessions the caller
      * can view.
      * </pre>
@@ -416,9 +416,9 @@ public final class SessionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List the conversations an agent channel created.
-     * Returns the sessions the channel runtime (Slack, WhatsApp) created for
-     * the given agent channel, newest first. The caller must be able to view
+     * List the conversations a channel served.
+     * Returns the sessions the given channel's visitors or its Slack or
+     * WhatsApp runtime started, newest first. The caller must be able to view
      * the channel; results are additionally filtered to sessions the caller
      * can view.
      * </pre>
@@ -515,9 +515,9 @@ public final class SessionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List the conversations an agent channel created.
-     * Returns the sessions the channel runtime (Slack, WhatsApp) created for
-     * the given agent channel, newest first. The caller must be able to view
+     * List the conversations a channel served.
+     * Returns the sessions the given channel's visitors or its Slack or
+     * WhatsApp runtime started, newest first. The caller must be able to view
      * the channel; results are additionally filtered to sessions the caller
      * can view.
      * </pre>
@@ -613,9 +613,9 @@ public final class SessionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List the conversations an agent channel created.
-     * Returns the sessions the channel runtime (Slack, WhatsApp) created for
-     * the given agent channel, newest first. The caller must be able to view
+     * List the conversations a channel served.
+     * Returns the sessions the given channel's visitors or its Slack or
+     * WhatsApp runtime started, newest first. The caller must be able to view
      * the channel; results are additionally filtered to sessions the caller
      * can view.
      * </pre>
@@ -713,9 +713,9 @@ public final class SessionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List the conversations an agent channel created.
-     * Returns the sessions the channel runtime (Slack, WhatsApp) created for
-     * the given agent channel, newest first. The caller must be able to view
+     * List the conversations a channel served.
+     * Returns the sessions the given channel's visitors or its Slack or
+     * WhatsApp runtime started, newest first. The caller must be able to view
      * the channel; results are additionally filtered to sessions the caller
      * can view.
      * </pre>

@@ -174,18 +174,18 @@ func (x *MintUserTokenResponse) GetExpiresIn() int32 {
 	return 0
 }
 
-// MintGuestTokenRequest identifies a shared agent and optional visitor cookie id.
+// MintGuestTokenRequest identifies a chat link and optional visitor cookie id.
 type MintGuestTokenRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Id of the share, from the hosted chat link (required).
-	ShareId string `protobuf:"bytes,1,opt,name=share_id,json=shareId,proto3" json:"share_id,omitempty"`
+	// Id of the web channel, from the hosted chat link (required).
+	ChannelId string `protobuf:"bytes,1,opt,name=channel_id,json=channelId,proto3" json:"channel_id,omitempty"`
 	// Per-browser visitor cookie id from a prior mint (optional).
 	//
 	// When empty, the server generates a high-entropy id and returns it so the
 	// hosted page can persist it in an httpOnly cookie. When supplied, it must
 	// be the value previously returned by this RPC for the same visitor.
 	GuestCookieId string `protobuf:"bytes,2,opt,name=guest_cookie_id,json=guestCookieId,proto3" json:"guest_cookie_id,omitempty"`
-	// Web origin of the page embedding the shared agent (optional).
+	// Web origin of the page embedding the chat (optional).
 	//
 	// Set by the hosted chat page when it runs inside an iframe (the embedding
 	// page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
@@ -193,10 +193,10 @@ type MintGuestTokenRequest struct {
 	// literal value "null" reports a framed page whose parent origin could not
 	// be determined (opaque origin).
 	EmbedOrigin string `protobuf:"bytes,3,opt,name=embed_origin,json=embedOrigin,proto3" json:"embed_origin,omitempty"`
-	// Link token from the share link's `?k=` parameter (optional).
+	// Link token from the chat link's `?k=` parameter (optional).
 	//
-	// Required when the share link has been locked with rotateShareLink;
-	// ignored for plain share links.
+	// Required when the chat link has been locked with rotateLink; ignored
+	// for plain chat links.
 	LinkToken     string `protobuf:"bytes,4,opt,name=link_token,json=linkToken,proto3" json:"link_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -232,9 +232,9 @@ func (*MintGuestTokenRequest) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_iam_token_v1_token_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *MintGuestTokenRequest) GetShareId() string {
+func (x *MintGuestTokenRequest) GetChannelId() string {
 	if x != nil {
-		return x.ShareId
+		return x.ChannelId
 	}
 	return ""
 }
@@ -263,7 +263,7 @@ func (x *MintGuestTokenRequest) GetLinkToken() string {
 // MintGuestTokenResponse contains the guest JWT and the visitor cookie id.
 type MintGuestTokenResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Stigmer-signed JWT for authenticating shared-agent chat API calls.
+	// Stigmer-signed JWT for authenticating a chat link visitor's API calls.
 	AccessToken string `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
 	// Token type. Always "Bearer".
 	TokenType string `protobuf:"bytes,2,opt,name=token_type,json=tokenType,proto3" json:"token_type,omitempty"`
@@ -353,10 +353,11 @@ const file_ai_stigmer_iam_token_v1_token_proto_rawDesc = "" +
 	"\n" +
 	"token_type\x18\x02 \x01(\tR\ttokenType\x12\x1d\n" +
 	"\n" +
-	"expires_in\x18\x03 \x01(\x05R\texpiresIn\"\xea\x03\n" +
-	"\x15MintGuestTokenRequest\x12%\n" +
-	"\bshare_id\x18\x01 \x01(\tB\n" +
-	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\ashareId\x12&\n" +
+	"expires_in\x18\x03 \x01(\x05R\texpiresIn\"\xee\x03\n" +
+	"\x15MintGuestTokenRequest\x12)\n" +
+	"\n" +
+	"channel_id\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\tchannelId\x12&\n" +
 	"\x0fguest_cookie_id\x18\x02 \x01(\tR\rguestCookieId\x12\xd8\x02\n" +
 	"\fembed_origin\x18\x03 \x01(\tB\xb4\x02\xbaH\xb0\x02\xba\x01\xac\x02\n" +
 	"\x13embed_origin.format\x12wembed_origin must be empty, \"null\", or an exact web origin like https://example.com (no path, query, or trailing slash)\x1a\x9b\x01this == '' || this == 'null' || this.matches('^https?://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$')R\vembedOrigin\x12'\n" +

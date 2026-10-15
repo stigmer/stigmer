@@ -1,7 +1,0 @@
-{
-  "name": "SlackChannelConfig",
-  "description": "SlackChannelConfig selects Slack as the channel provider.\n\n Empty in v1 by design: with the multi-tenant Stigmer Slack app there is\n nothing for the user to declare before installing — workspace identity,\n bot user, and granted scopes are observed during the OAuth install and\n recorded in status. Future user-tunable Slack behavior lands here.",
-  "protoType": "ai.stigmer.agentic.agentchannel.v1.SlackChannelConfig",
-  "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/spec.proto",
-  "fields": []
-}

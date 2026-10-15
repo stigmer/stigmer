@@ -12,7 +12,7 @@ public interface ListSessionsByChannelRequestOrBuilder extends
 
   /**
    * <pre>
-   * Agent channel ID to filter by.
+   * Channel ID to filter by.
    * </pre>
    *
    * <code>string channel_id = 1 [json_name = "channelId", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface ListSessionsByChannelRequestOrBuilder extends
   java.lang.String getChannelId();
   /**
    * <pre>
-   * Agent channel ID to filter by.
+   * Channel ID to filter by.
    * </pre>
    *
    * <code>string channel_id = 1 [json_name = "channelId", (.buf.validate.field) = { ... }</code>

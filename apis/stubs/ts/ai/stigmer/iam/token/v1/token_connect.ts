@@ -9,7 +9,7 @@ import { MethodKind } from "@bufbuild/protobuf";
 /**
  * TokenService mints the short-lived tokens a browser uses to talk to
  * Stigmer on someone's behalf: a person signed in to an organization's own
- * product, or an anonymous visitor of a shared agent's chat link.
+ * product, or an anonymous visitor of an agent's chat link.
  *
  * It manages no resource. Each token is signed by the server's own
  * platform-token key and verified on every request; minting requires a
@@ -66,11 +66,11 @@ export const TokenService = {
       kind: MethodKind.Unary,
     },
     /**
-     * Mint a guest token for an anonymous visitor of a shared agent's chat link.
+     * Mint a guest token for an anonymous visitor of an agent's chat link.
      *
-     * Resolves the share id from the hosted chat link to an AgentShare and
-     * returns a short-lived token scoped to that share's organization. Editions
-     * that do not host shared-agent pages answer it UNIMPLEMENTED.
+     * Resolves the channel id from the hosted chat link to a web channel and
+     * returns a short-lived token scoped to that channel's organization.
+     * Editions that do not host chat-link pages answer it UNIMPLEMENTED.
      *
      * @generated from rpc ai.stigmer.iam.token.v1.TokenService.mintGuestToken
      */

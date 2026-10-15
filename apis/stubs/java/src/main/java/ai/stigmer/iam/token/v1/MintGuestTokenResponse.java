@@ -60,7 +60,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object accessToken_ = "";
   /**
    * <pre>
-   * Stigmer-signed JWT for authenticating shared-agent chat API calls.
+   * Stigmer-signed JWT for authenticating a chat link visitor's API calls.
    * </pre>
    *
    * <code>string access_token = 1 [json_name = "accessToken"];</code>
@@ -81,7 +81,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Stigmer-signed JWT for authenticating shared-agent chat API calls.
+   * Stigmer-signed JWT for authenticating a chat link visitor's API calls.
    * </pre>
    *
    * <code>string access_token = 1 [json_name = "accessToken"];</code>
@@ -589,7 +589,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object accessToken_ = "";
     /**
      * <pre>
-     * Stigmer-signed JWT for authenticating shared-agent chat API calls.
+     * Stigmer-signed JWT for authenticating a chat link visitor's API calls.
      * </pre>
      *
      * <code>string access_token = 1 [json_name = "accessToken"];</code>
@@ -609,7 +609,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stigmer-signed JWT for authenticating shared-agent chat API calls.
+     * Stigmer-signed JWT for authenticating a chat link visitor's API calls.
      * </pre>
      *
      * <code>string access_token = 1 [json_name = "accessToken"];</code>
@@ -630,7 +630,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stigmer-signed JWT for authenticating shared-agent chat API calls.
+     * Stigmer-signed JWT for authenticating a chat link visitor's API calls.
      * </pre>
      *
      * <code>string access_token = 1 [json_name = "accessToken"];</code>
@@ -647,7 +647,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stigmer-signed JWT for authenticating shared-agent chat API calls.
+     * Stigmer-signed JWT for authenticating a chat link visitor's API calls.
      * </pre>
      *
      * <code>string access_token = 1 [json_name = "accessToken"];</code>
@@ -661,7 +661,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stigmer-signed JWT for authenticating shared-agent chat API calls.
+     * Stigmer-signed JWT for authenticating a chat link visitor's API calls.
      * </pre>
      *
      * <code>string access_token = 1 [json_name = "accessToken"];</code>

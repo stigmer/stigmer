@@ -102,12 +102,15 @@ type AgentCommandControllerClient interface {
 	Rename(ctx context.Context, in *apiresource.RenameInput, opts ...grpc.CallOption) (*Agent, error)
 	// Delete an agent.
 	//
-	// Deletion also removes the agent's version history and every
-	// AgentShare in the agent's own organization referencing it, so a later
-	// agent created at the same org/slug starts clean. Sessions on the agent
-	// are not deleted: their next message fails, naming the agent. Nor is a
-	// share written in another organization before sharing across
-	// organizations was retired; such a share stops resolving instead.
+	// Deletion also removes the agent's version history and every channel in
+	// the agent's own organization that serves it (its chat links and its
+	// Slack and WhatsApp connections, whose installs are torn down first), so
+	// a later agent created at the same org/slug starts clean. A teardown
+	// that fails refuses the delete and keeps the agent and that channel, so
+	// a retry finishes it. Sessions on the agent are not deleted: their next
+	// message fails, naming the agent. Nor is a chat link written in another
+	// organization before sharing across organizations was retired; such a
+	// link stops resolving instead.
 	Delete(ctx context.Context, in *AgentId, opts ...grpc.CallOption) (*Agent, error)
 	// Assign or move a tag to a specific agent version.
 	//
@@ -268,12 +271,15 @@ type AgentCommandControllerServer interface {
 	Rename(context.Context, *apiresource.RenameInput) (*Agent, error)
 	// Delete an agent.
 	//
-	// Deletion also removes the agent's version history and every
-	// AgentShare in the agent's own organization referencing it, so a later
-	// agent created at the same org/slug starts clean. Sessions on the agent
-	// are not deleted: their next message fails, naming the agent. Nor is a
-	// share written in another organization before sharing across
-	// organizations was retired; such a share stops resolving instead.
+	// Deletion also removes the agent's version history and every channel in
+	// the agent's own organization that serves it (its chat links and its
+	// Slack and WhatsApp connections, whose installs are torn down first), so
+	// a later agent created at the same org/slug starts clean. A teardown
+	// that fails refuses the delete and keeps the agent and that channel, so
+	// a retry finishes it. Sessions on the agent are not deleted: their next
+	// message fails, naming the agent. Nor is a chat link written in another
+	// organization before sharing across organizations was retired; such a
+	// link stops resolving instead.
 	Delete(context.Context, *AgentId) (*Agent, error)
 	// Assign or move a tag to a specific agent version.
 	//

@@ -7,7 +7,7 @@ package ai.stigmer.agentic.session.v1;
 
 /**
  * <pre>
- * ListSessionsByChannelRequest lists the conversations an agent channel created.
+ * ListSessionsByChannelRequest lists the conversations a channel served.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest}
@@ -71,7 +71,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object channelId_ = "";
   /**
    * <pre>
-   * Agent channel ID to filter by.
+   * Channel ID to filter by.
    * </pre>
    *
    * <code>string channel_id = 1 [json_name = "channelId", (.buf.validate.field) = { ... }</code>
@@ -92,7 +92,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Agent channel ID to filter by.
+   * Channel ID to filter by.
    * </pre>
    *
    * <code>string channel_id = 1 [json_name = "channelId", (.buf.validate.field) = { ... }</code>
@@ -482,7 +482,7 @@ java.lang.String defaultValue) {
   }
   /**
    * <pre>
-   * ListSessionsByChannelRequest lists the conversations an agent channel created.
+   * ListSessionsByChannelRequest lists the conversations a channel served.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest}
@@ -690,7 +690,7 @@ java.lang.String defaultValue) {
     private java.lang.Object channelId_ = "";
     /**
      * <pre>
-     * Agent channel ID to filter by.
+     * Channel ID to filter by.
      * </pre>
      *
      * <code>string channel_id = 1 [json_name = "channelId", (.buf.validate.field) = { ... }</code>
@@ -710,7 +710,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Agent channel ID to filter by.
+     * Channel ID to filter by.
      * </pre>
      *
      * <code>string channel_id = 1 [json_name = "channelId", (.buf.validate.field) = { ... }</code>
@@ -731,7 +731,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Agent channel ID to filter by.
+     * Channel ID to filter by.
      * </pre>
      *
      * <code>string channel_id = 1 [json_name = "channelId", (.buf.validate.field) = { ... }</code>
@@ -748,7 +748,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Agent channel ID to filter by.
+     * Channel ID to filter by.
      * </pre>
      *
      * <code>string channel_id = 1 [json_name = "channelId", (.buf.validate.field) = { ... }</code>
@@ -762,7 +762,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Agent channel ID to filter by.
+     * Channel ID to filter by.
      * </pre>
      *
      * <code>string channel_id = 1 [json_name = "channelId", (.buf.validate.field) = { ... }</code>

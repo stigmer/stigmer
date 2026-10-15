@@ -68,12 +68,10 @@ const (
 	// Platform-level permission to execute internal billing operations
 	// (recording a metered LLM call). Gated to operator (machine account).
 	IamPermission_can_execute_billing_ops IamPermission = 29
-	// Organization-level permission to create agent shares whose runs the
-	// organization pays for.
-	IamPermission_can_create_agent_share IamPermission = 30
-	// Organization-level permission to connect an agent to a messaging
-	// channel (Slack, WhatsApp).
-	IamPermission_can_create_agent_channel IamPermission = 54
+	// Organization-level permission to create channels: a chat link, a Slack
+	// workspace connection or a WhatsApp number for one of the organization's
+	// agents.
+	IamPermission_can_create_channel IamPermission = 54
 	// Organization-level permission to register channel apps (customer-owned
 	// messaging-platform apps holding webhook and OAuth credentials).
 	// Admin-gated like can_create_oauth_app.
@@ -84,7 +82,7 @@ const (
 	// can_execute_billing_ops (the machine account's internal billing
 	// pipeline).
 	IamPermission_can_manage_model_pricing IamPermission = 32
-	// Resource-level permission to participate in an agent channel's
+	// Resource-level permission to participate in a channel's
 	// conversations: reply to customers as the business, take over and
 	// hand back the control token, and clear the attention flag.
 	IamPermission_can_participate IamPermission = 36
@@ -169,8 +167,7 @@ var (
 		27: "can_view_billing",
 		28: "can_manage_billing",
 		29: "can_execute_billing_ops",
-		30: "can_create_agent_share",
-		54: "can_create_agent_channel",
+		54: "can_create_channel",
 		31: "can_create_channel_app",
 		32: "can_manage_model_pricing",
 		36: "can_participate",
@@ -210,8 +207,7 @@ var (
 		"can_view_billing":             27,
 		"can_manage_billing":           28,
 		"can_execute_billing_ops":      29,
-		"can_create_agent_share":       30,
-		"can_create_agent_channel":     54,
+		"can_create_channel":           54,
 		"can_create_channel_app":       31,
 		"can_manage_model_pricing":     32,
 		"can_participate":              36,
@@ -294,8 +290,8 @@ const (
 	// A person who takes part in a conversation: reads it and sends messages.
 	// On a conversation (session), a participant's messages run in the
 	// conversation's own workspace, as its creator, using only the vaults the
-	// conversation names; stopping and approving stay with its owners. On an
-	// agent channel, a participant reads the channel's conversations and
+	// conversation names; stopping and approving stay with its owners. On a
+	// channel, a participant reads the channel's conversations and
 	// speaks to its customers as the business (reply, take over, hand back,
 	// clear attention), and is not a channel configurator.
 	IamRole_participant IamRole = 5
@@ -440,7 +436,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1\x1a google/protobuf/descriptor.proto\"R\n" +
 	"\vIamRoleMeta\x12!\n" +
 	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription*\xc3\v\n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription*\xbf\v\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -462,9 +458,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x11can_bootstrap_iam\x10\x11\x12\x14\n" +
 	"\x10can_view_billing\x10\x1b\x12\x16\n" +
 	"\x12can_manage_billing\x10\x1c\x12\x1b\n" +
-	"\x17can_execute_billing_ops\x10\x1d\x12\x1a\n" +
-	"\x16can_create_agent_share\x10\x1e\x12\x1c\n" +
-	"\x18can_create_agent_channel\x106\x12\x1a\n" +
+	"\x17can_execute_billing_ops\x10\x1d\x12\x16\n" +
+	"\x12can_create_channel\x106\x12\x1a\n" +
 	"\x16can_create_channel_app\x10\x1f\x12\x1c\n" +
 	"\x18can_manage_model_pricing\x10 \x12\x13\n" +
 	"\x0fcan_participate\x10$\x12\x1d\n" +
@@ -481,9 +476,9 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x0fcan_manage_keys\x107\x12\x1b\n" +
 	"\x17can_view_access_history\x108\x12\x18\n" +
 	"\x14can_mint_user_tokens\x109\x12\x13\n" +
-	"\x0fcan_create_eval\x10:\"\x04\b\x18\x10\x18\"\x04\b\x0e\x10\x0e\"\x04\b\a\x10\a\"\x04\b\f\x10\f\"\x04\b\x10\x10\x10\"\x04\b\x16\x10\x16\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
+	"\x0fcan_create_eval\x10:\"\x04\b\x18\x10\x18\"\x04\b\x0e\x10\x0e\"\x04\b\a\x10\a\"\x04\b\f\x10\f\"\x04\b\x10\x10\x10\"\x04\b\x16\x10\x16\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b\x1e\x10\x1e\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
 	"\x10\n" +
-	"\"\x04\b#\x10#\"\x04\b&\x10&\"\x04\b'\x10'\"\x04\b+\x10+\"\x04\b,\x10,\"\x04\b.\x10.*\x1acan_create_platform_client*\x13can_create_instance*\x13can_create_workflow*\x16can_create_environment*\x10can_read_secrets*\vcan_connect*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x1acan_manage_cursor_accounts*\x1acan_view_provider_standing*\x19can_set_public_visibility*\x15can_create_mcp_server*\x19can_create_agent_instance*\x12can_manage_credits*\xb7\x04\n" +
+	"\"\x04\b#\x10#\"\x04\b&\x10&\"\x04\b'\x10'\"\x04\b+\x10+\"\x04\b,\x10,\"\x04\b.\x10.*\x1acan_create_platform_client*\x13can_create_instance*\x13can_create_workflow*\x16can_create_environment*\x10can_read_secrets*\vcan_connect*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x16can_create_agent_share*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x1acan_manage_cursor_accounts*\x1acan_view_provider_standing*\x19can_set_public_visibility*\x15can_create_mcp_server*\x19can_create_agent_instance*\x12can_manage_credits*\xb7\x04\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12U\n" +
 	"\x05owner\x10\x01\x1aJ\x8a\xc4,F\n" +

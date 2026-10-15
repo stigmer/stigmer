@@ -7,7 +7,7 @@ package ai.stigmer.iam.token.v1;
 
 /**
  * <pre>
- * MintGuestTokenRequest identifies a shared agent and optional visitor cookie id.
+ * MintGuestTokenRequest identifies a chat link and optional visitor cookie id.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.token.v1.MintGuestTokenRequest}
@@ -32,7 +32,7 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private MintGuestTokenRequest() {
-    shareId_ = "";
+    channelId_ = "";
     guestCookieId_ = "";
     embedOrigin_ = "";
     linkToken_ = "";
@@ -56,47 +56,47 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.iam.token.v1.MintGuestTokenRequest.class, ai.stigmer.iam.token.v1.MintGuestTokenRequest.Builder.class);
   }
 
-  public static final int SHARE_ID_FIELD_NUMBER = 1;
+  public static final int CHANNEL_ID_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object shareId_ = "";
+  private volatile java.lang.Object channelId_ = "";
   /**
    * <pre>
-   * Id of the share, from the hosted chat link (required).
+   * Id of the web channel, from the hosted chat link (required).
    * </pre>
    *
-   * <code>string share_id = 1 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
-   * @return The shareId.
+   * <code>string channel_id = 1 [json_name = "channelId", (.buf.validate.field) = { ... }</code>
+   * @return The channelId.
    */
   @java.lang.Override
-  public java.lang.String getShareId() {
-    java.lang.Object ref = shareId_;
+  public java.lang.String getChannelId() {
+    java.lang.Object ref = channelId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      shareId_ = s;
+      channelId_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * Id of the share, from the hosted chat link (required).
+   * Id of the web channel, from the hosted chat link (required).
    * </pre>
    *
-   * <code>string share_id = 1 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for shareId.
+   * <code>string channel_id = 1 [json_name = "channelId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for channelId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getShareIdBytes() {
-    java.lang.Object ref = shareId_;
+      getChannelIdBytes() {
+    java.lang.Object ref = channelId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      shareId_ = b;
+      channelId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -163,7 +163,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object embedOrigin_ = "";
   /**
    * <pre>
-   * Web origin of the page embedding the shared agent (optional).
+   * Web origin of the page embedding the chat (optional).
    *
    * Set by the hosted chat page when it runs inside an iframe (the embedding
    * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
@@ -190,7 +190,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Web origin of the page embedding the shared agent (optional).
+   * Web origin of the page embedding the chat (optional).
    *
    * Set by the hosted chat page when it runs inside an iframe (the embedding
    * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
@@ -222,10 +222,10 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object linkToken_ = "";
   /**
    * <pre>
-   * Link token from the share link's `?k=` parameter (optional).
+   * Link token from the chat link's `?k=` parameter (optional).
    *
-   * Required when the share link has been locked with rotateShareLink;
-   * ignored for plain share links.
+   * Required when the chat link has been locked with rotateLink; ignored
+   * for plain chat links.
    * </pre>
    *
    * <code>string link_token = 4 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
@@ -246,10 +246,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Link token from the share link's `?k=` parameter (optional).
+   * Link token from the chat link's `?k=` parameter (optional).
    *
-   * Required when the share link has been locked with rotateShareLink;
-   * ignored for plain share links.
+   * Required when the chat link has been locked with rotateLink; ignored
+   * for plain chat links.
    * </pre>
    *
    * <code>string link_token = 4 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
@@ -284,8 +284,8 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(shareId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, shareId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(channelId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 1, channelId_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(guestCookieId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, guestCookieId_);
@@ -305,8 +305,8 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(shareId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, shareId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(channelId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, channelId_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(guestCookieId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, guestCookieId_);
@@ -332,8 +332,8 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.iam.token.v1.MintGuestTokenRequest other = (ai.stigmer.iam.token.v1.MintGuestTokenRequest) obj;
 
-    if (!getShareId()
-        .equals(other.getShareId())) return false;
+    if (!getChannelId()
+        .equals(other.getChannelId())) return false;
     if (!getGuestCookieId()
         .equals(other.getGuestCookieId())) return false;
     if (!getEmbedOrigin()
@@ -351,8 +351,8 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + SHARE_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getShareId().hashCode();
+    hash = (37 * hash) + CHANNEL_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getChannelId().hashCode();
     hash = (37 * hash) + GUEST_COOKIE_ID_FIELD_NUMBER;
     hash = (53 * hash) + getGuestCookieId().hashCode();
     hash = (37 * hash) + EMBED_ORIGIN_FIELD_NUMBER;
@@ -458,7 +458,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * MintGuestTokenRequest identifies a shared agent and optional visitor cookie id.
+   * MintGuestTokenRequest identifies a chat link and optional visitor cookie id.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.token.v1.MintGuestTokenRequest}
@@ -494,7 +494,7 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      shareId_ = "";
+      channelId_ = "";
       guestCookieId_ = "";
       embedOrigin_ = "";
       linkToken_ = "";
@@ -532,7 +532,7 @@ private static final long serialVersionUID = 0L;
     private void buildPartial0(ai.stigmer.iam.token.v1.MintGuestTokenRequest result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.shareId_ = shareId_;
+        result.channelId_ = channelId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.guestCookieId_ = guestCookieId_;
@@ -557,8 +557,8 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.iam.token.v1.MintGuestTokenRequest other) {
       if (other == ai.stigmer.iam.token.v1.MintGuestTokenRequest.getDefaultInstance()) return this;
-      if (!other.getShareId().isEmpty()) {
-        shareId_ = other.shareId_;
+      if (!other.getChannelId().isEmpty()) {
+        channelId_ = other.channelId_;
         bitField0_ |= 0x00000001;
         onChanged();
       }
@@ -604,7 +604,7 @@ private static final long serialVersionUID = 0L;
               done = true;
               break;
             case 10: {
-              shareId_ = input.readStringRequireUtf8();
+              channelId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000001;
               break;
             } // case 10
@@ -640,22 +640,22 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.lang.Object shareId_ = "";
+    private java.lang.Object channelId_ = "";
     /**
      * <pre>
-     * Id of the share, from the hosted chat link (required).
+     * Id of the web channel, from the hosted chat link (required).
      * </pre>
      *
-     * <code>string share_id = 1 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
-     * @return The shareId.
+     * <code>string channel_id = 1 [json_name = "channelId", (.buf.validate.field) = { ... }</code>
+     * @return The channelId.
      */
-    public java.lang.String getShareId() {
-      java.lang.Object ref = shareId_;
+    public java.lang.String getChannelId() {
+      java.lang.Object ref = channelId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        shareId_ = s;
+        channelId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -663,20 +663,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Id of the share, from the hosted chat link (required).
+     * Id of the web channel, from the hosted chat link (required).
      * </pre>
      *
-     * <code>string share_id = 1 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
-     * @return The bytes for shareId.
+     * <code>string channel_id = 1 [json_name = "channelId", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for channelId.
      */
     public com.google.protobuf.ByteString
-        getShareIdBytes() {
-      java.lang.Object ref = shareId_;
+        getChannelIdBytes() {
+      java.lang.Object ref = channelId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        shareId_ = b;
+        channelId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -684,49 +684,49 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Id of the share, from the hosted chat link (required).
+     * Id of the web channel, from the hosted chat link (required).
      * </pre>
      *
-     * <code>string share_id = 1 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
-     * @param value The shareId to set.
+     * <code>string channel_id = 1 [json_name = "channelId", (.buf.validate.field) = { ... }</code>
+     * @param value The channelId to set.
      * @return This builder for chaining.
      */
-    public Builder setShareId(
+    public Builder setChannelId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      shareId_ = value;
+      channelId_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Id of the share, from the hosted chat link (required).
+     * Id of the web channel, from the hosted chat link (required).
      * </pre>
      *
-     * <code>string share_id = 1 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
+     * <code>string channel_id = 1 [json_name = "channelId", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearShareId() {
-      shareId_ = getDefaultInstance().getShareId();
+    public Builder clearChannelId() {
+      channelId_ = getDefaultInstance().getChannelId();
       bitField0_ = (bitField0_ & ~0x00000001);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Id of the share, from the hosted chat link (required).
+     * Id of the web channel, from the hosted chat link (required).
      * </pre>
      *
-     * <code>string share_id = 1 [json_name = "shareId", (.buf.validate.field) = { ... }</code>
-     * @param value The bytes for shareId to set.
+     * <code>string channel_id = 1 [json_name = "channelId", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for channelId to set.
      * @return This builder for chaining.
      */
-    public Builder setShareIdBytes(
+    public Builder setChannelIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      shareId_ = value;
+      channelId_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
@@ -847,7 +847,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object embedOrigin_ = "";
     /**
      * <pre>
-     * Web origin of the page embedding the shared agent (optional).
+     * Web origin of the page embedding the chat (optional).
      *
      * Set by the hosted chat page when it runs inside an iframe (the embedding
      * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
@@ -873,7 +873,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Web origin of the page embedding the shared agent (optional).
+     * Web origin of the page embedding the chat (optional).
      *
      * Set by the hosted chat page when it runs inside an iframe (the embedding
      * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
@@ -900,7 +900,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Web origin of the page embedding the shared agent (optional).
+     * Web origin of the page embedding the chat (optional).
      *
      * Set by the hosted chat page when it runs inside an iframe (the embedding
      * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
@@ -923,7 +923,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Web origin of the page embedding the shared agent (optional).
+     * Web origin of the page embedding the chat (optional).
      *
      * Set by the hosted chat page when it runs inside an iframe (the embedding
      * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
@@ -943,7 +943,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Web origin of the page embedding the shared agent (optional).
+     * Web origin of the page embedding the chat (optional).
      *
      * Set by the hosted chat page when it runs inside an iframe (the embedding
      * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
@@ -969,10 +969,10 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object linkToken_ = "";
     /**
      * <pre>
-     * Link token from the share link's `?k=` parameter (optional).
+     * Link token from the chat link's `?k=` parameter (optional).
      *
-     * Required when the share link has been locked with rotateShareLink;
-     * ignored for plain share links.
+     * Required when the chat link has been locked with rotateLink; ignored
+     * for plain chat links.
      * </pre>
      *
      * <code>string link_token = 4 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
@@ -992,10 +992,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Link token from the share link's `?k=` parameter (optional).
+     * Link token from the chat link's `?k=` parameter (optional).
      *
-     * Required when the share link has been locked with rotateShareLink;
-     * ignored for plain share links.
+     * Required when the chat link has been locked with rotateLink; ignored
+     * for plain chat links.
      * </pre>
      *
      * <code>string link_token = 4 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
@@ -1016,10 +1016,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Link token from the share link's `?k=` parameter (optional).
+     * Link token from the chat link's `?k=` parameter (optional).
      *
-     * Required when the share link has been locked with rotateShareLink;
-     * ignored for plain share links.
+     * Required when the chat link has been locked with rotateLink; ignored
+     * for plain chat links.
      * </pre>
      *
      * <code>string link_token = 4 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
@@ -1036,10 +1036,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Link token from the share link's `?k=` parameter (optional).
+     * Link token from the chat link's `?k=` parameter (optional).
      *
-     * Required when the share link has been locked with rotateShareLink;
-     * ignored for plain share links.
+     * Required when the chat link has been locked with rotateLink; ignored
+     * for plain chat links.
      * </pre>
      *
      * <code>string link_token = 4 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
@@ -1053,10 +1053,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Link token from the share link's `?k=` parameter (optional).
+     * Link token from the chat link's `?k=` parameter (optional).
      *
-     * Required when the share link has been locked with rotateShareLink;
-     * ignored for plain share links.
+     * Required when the chat link has been locked with rotateLink; ignored
+     * for plain chat links.
      * </pre>
      *
      * <code>string link_token = 4 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>

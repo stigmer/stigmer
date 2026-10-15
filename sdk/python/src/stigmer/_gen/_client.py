@@ -5,9 +5,8 @@ from __future__ import annotations
 import grpc
 
 from ._agent import AgentClient
-from ._agentchannel import AgentChannelClient
-from ._agentshare import AgentShareClient
 from ._apikey import ApiKeyClient
+from ._channel import ChannelClient
 from ._channelapp import ChannelAppClient
 from ._eval import EvalClient
 from ._evalrun import EvalRunClient
@@ -38,9 +37,8 @@ class GeneratedClient:
 
     def __init__(self, channel: grpc.Channel) -> None:
         self.agents = AgentClient(channel)
-        self.agent_channels = AgentChannelClient(channel)
-        self.agent_shares = AgentShareClient(channel)
         self.api_keys = ApiKeyClient(channel)
+        self.channels = ChannelClient(channel)
         self.channelapps = ChannelAppClient(channel)
         self.evals = EvalClient(channel)
         self.evalruns = EvalRunClient(channel)

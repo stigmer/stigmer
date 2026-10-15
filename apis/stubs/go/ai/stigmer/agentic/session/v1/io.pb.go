@@ -330,10 +330,10 @@ func (x *ListSessionsByAgentRequest) GetLabels() map[string]string {
 	return nil
 }
 
-// ListSessionsByChannelRequest lists the conversations an agent channel created.
+// ListSessionsByChannelRequest lists the conversations a channel served.
 type ListSessionsByChannelRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Agent channel ID to filter by.
+	// Channel ID to filter by.
 	ChannelId string `protobuf:"bytes,1,opt,name=channel_id,json=channelId,proto3" json:"channel_id,omitempty"`
 	// The most entries to return: 0 asks for the default page of 50, and a
 	// size above 100 is read as 100.

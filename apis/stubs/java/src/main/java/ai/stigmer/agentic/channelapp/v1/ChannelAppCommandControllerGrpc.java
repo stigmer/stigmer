@@ -323,8 +323,9 @@ public final class ChannelAppCommandControllerGrpc {
     /**
      * <pre>
      * Delete a channel app.
-     * Deletion is blocked while any AgentChannel references this app via
-     * spec.app_ref — disconnect or delete those channels first.
+     * Deletion is blocked while any channel references this app through its
+     * Slack or WhatsApp settings (spec.slack.app_ref, spec.whatsapp.app_ref):
+     * disconnect or delete those channels first.
      * </pre>
      */
     default void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -457,8 +458,9 @@ public final class ChannelAppCommandControllerGrpc {
     /**
      * <pre>
      * Delete a channel app.
-     * Deletion is blocked while any AgentChannel references this app via
-     * spec.app_ref — disconnect or delete those channels first.
+     * Deletion is blocked while any channel references this app through its
+     * Slack or WhatsApp settings (spec.slack.app_ref, spec.whatsapp.app_ref):
+     * disconnect or delete those channels first.
      * </pre>
      */
     public void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -574,8 +576,9 @@ public final class ChannelAppCommandControllerGrpc {
     /**
      * <pre>
      * Delete a channel app.
-     * Deletion is blocked while any AgentChannel references this app via
-     * spec.app_ref — disconnect or delete those channels first.
+     * Deletion is blocked while any channel references this app through its
+     * Slack or WhatsApp settings (spec.slack.app_ref, spec.whatsapp.app_ref):
+     * disconnect or delete those channels first.
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) throws io.grpc.StatusException {
@@ -690,8 +693,9 @@ public final class ChannelAppCommandControllerGrpc {
     /**
      * <pre>
      * Delete a channel app.
-     * Deletion is blocked while any AgentChannel references this app via
-     * spec.app_ref — disconnect or delete those channels first.
+     * Deletion is blocked while any channel references this app through its
+     * Slack or WhatsApp settings (spec.slack.app_ref, spec.whatsapp.app_ref):
+     * disconnect or delete those channels first.
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) {
@@ -810,8 +814,9 @@ public final class ChannelAppCommandControllerGrpc {
     /**
      * <pre>
      * Delete a channel app.
-     * Deletion is blocked while any AgentChannel references this app via
-     * spec.app_ref — disconnect or delete those channels first.
+     * Deletion is blocked while any channel references this app through its
+     * Slack or WhatsApp settings (spec.slack.app_ref, spec.whatsapp.app_ref):
+     * disconnect or delete those channels first.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.channelapp.v1.ChannelApp> delete(

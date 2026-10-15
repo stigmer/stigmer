@@ -8,7 +8,7 @@ from ai.stigmer.iam.token.v1 import token_pb2 as ai_dot_stigmer_dot_iam_dot_toke
 class TokenServiceStub(object):
     """TokenService mints the short-lived tokens a browser uses to talk to
     Stigmer on someone's behalf: a person signed in to an organization's own
-    product, or an anonymous visitor of a shared agent's chat link.
+    product, or an anonymous visitor of an agent's chat link.
 
     It manages no resource. Each token is signed by the server's own
     platform-token key and verified on every request; minting requires a
@@ -38,7 +38,7 @@ class TokenServiceStub(object):
 class TokenServiceServicer(object):
     """TokenService mints the short-lived tokens a browser uses to talk to
     Stigmer on someone's behalf: a person signed in to an organization's own
-    product, or an anonymous visitor of a shared agent's chat link.
+    product, or an anonymous visitor of an agent's chat link.
 
     It manages no resource. Each token is signed by the server's own
     platform-token key and verified on every request; minting requires a
@@ -87,11 +87,11 @@ class TokenServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def mintGuestToken(self, request, context):
-        """Mint a guest token for an anonymous visitor of a shared agent's chat link.
+        """Mint a guest token for an anonymous visitor of an agent's chat link.
 
-        Resolves the share id from the hosted chat link to an AgentShare and
-        returns a short-lived token scoped to that share's organization. Editions
-        that do not host shared-agent pages answer it UNIMPLEMENTED.
+        Resolves the channel id from the hosted chat link to a web channel and
+        returns a short-lived token scoped to that channel's organization.
+        Editions that do not host chat-link pages answer it UNIMPLEMENTED.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -121,7 +121,7 @@ def add_TokenServiceServicer_to_server(servicer, server):
 class TokenService(object):
     """TokenService mints the short-lived tokens a browser uses to talk to
     Stigmer on someone's behalf: a person signed in to an organization's own
-    product, or an anonymous visitor of a shared agent's chat link.
+    product, or an anonymous visitor of an agent's chat link.
 
     It manages no resource. Each token is signed by the server's own
     platform-token key and verified on every request; minting requires a

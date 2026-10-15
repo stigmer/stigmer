@@ -7,9 +7,8 @@ import io.grpc.Channel;
 /** Aggregate client with all resource-specific sub-clients. */
 public class GeneratedClient {
     public final AgentClient agent;
-    public final AgentChannelClient agentChannel;
-    public final AgentShareClient agentShare;
     public final ApiKeyClient apiKey;
+    public final ChannelClient channel;
     public final ChannelAppClient channelapp;
     public final EvalClient eval;
     public final EvalRunClient evalrun;
@@ -36,9 +35,8 @@ public class GeneratedClient {
 
     public GeneratedClient(Channel channel) {
         this.agent = new AgentClient(channel);
-        this.agentChannel = new AgentChannelClient(channel);
-        this.agentShare = new AgentShareClient(channel);
         this.apiKey = new ApiKeyClient(channel);
+        this.channel = new ChannelClient(channel);
         this.channelapp = new ChannelAppClient(channel);
         this.eval = new EvalClient(channel);
         this.evalrun = new EvalRunClient(channel);

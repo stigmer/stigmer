@@ -6,9 +6,8 @@ import "github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
 
 // Resource clients -- one per API resource.
 type AgentClient = gen.AgentClient
-type AgentChannelClient = gen.AgentChannelClient
-type AgentShareClient = gen.AgentShareClient
 type ApiKeyClient = gen.ApiKeyClient
+type ChannelClient = gen.ChannelClient
 type ChannelAppClient = gen.ChannelAppClient
 type EvalClient = gen.EvalClient
 type EvalRunClient = gen.EvalRunClient
@@ -45,12 +44,12 @@ type HookGroupInput = gen.HookGroupInput
 type HookHandlerInput = gen.HookHandlerInput
 type RunConfigInput = gen.RunConfigInput
 type AgentMcpServerInput = gen.AgentMcpServerInput
-type AgentChannelInput = gen.AgentChannelInput
+type ApiKeyInput = gen.ApiKeyInput
+type ChannelInput = gen.ChannelInput
+type WebChannelConfigInput = gen.WebChannelConfigInput
+type WebChannelMessagesInput = gen.WebChannelMessagesInput
 type SlackChannelConfigInput = gen.SlackChannelConfigInput
 type WhatsAppChannelConfigInput = gen.WhatsAppChannelConfigInput
-type AgentShareInput = gen.AgentShareInput
-type AgentShareMessagesInput = gen.AgentShareMessagesInput
-type ApiKeyInput = gen.ApiKeyInput
 type ChannelAppInput = gen.ChannelAppInput
 type SlackChannelAppConfigInput = gen.SlackChannelAppConfigInput
 type WhatsAppChannelAppConfigInput = gen.WhatsAppChannelAppConfigInput

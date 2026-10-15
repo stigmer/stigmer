@@ -184,7 +184,7 @@ const (
 	// in the cloud edition — org admins can access.
 	// This is the default for personal and run-scoped resources.
 	//
-	// Org admins count as owners of blueprint kinds (agent, agent_share,
+	// Org admins count as owners of blueprint kinds (agent, channel,
 	// skill, plugin), so a private blueprint stays
 	// manageable — and visible — to its org's admins. Personal kinds
 	// (sessions) stay creator-only.

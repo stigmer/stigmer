@@ -75,8 +75,8 @@ public enum IamRole
    * A person who takes part in a conversation: reads it and sends messages.
    * On a conversation (session), a participant's messages run in the
    * conversation's own workspace, as its creator, using only the vaults the
-   * conversation names; stopping and approving stay with its owners. On an
-   * agent channel, a participant reads the channel's conversations and
+   * conversation names; stopping and approving stay with its owners. On a
+   * channel, a participant reads the channel's conversations and
    * speaks to its customers as the business (reply, take over, hand back,
    * clear attention), and is not a channel configurator.
    * </pre>
@@ -166,8 +166,8 @@ public enum IamRole
    * A person who takes part in a conversation: reads it and sends messages.
    * On a conversation (session), a participant's messages run in the
    * conversation's own workspace, as its creator, using only the vaults the
-   * conversation names; stopping and approving stay with its owners. On an
-   * agent channel, a participant reads the channel's conversations and
+   * conversation names; stopping and approving stay with its owners. On a
+   * channel, a participant reads the channel's conversations and
    * speaks to its customers as the business (reply, take over, hand back,
    * clear attention), and is not a channel configurator.
    * </pre>

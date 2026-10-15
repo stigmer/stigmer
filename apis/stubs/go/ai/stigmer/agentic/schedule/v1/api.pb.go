@@ -25,7 +25,7 @@ const (
 
 // Schedule runs an agent on a recurring cron schedule.
 //
-// A schedule is operational configuration, like AgentChannel: it names a
+// A schedule is operational configuration, like Channel: it names a
 // target (an agent and the prompt each run starts from), a cron expression
 // with an IANA time zone, and an enablement switch. The platform-observed
 // firing state (next fire time, failure streak, auto-pause) lives in

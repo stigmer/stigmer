@@ -21,8 +21,7 @@ export const GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> =
   [ApiResourceKind.agent, [IamRole.owner, IamRole.editor, IamRole.viewer]],
   [ApiResourceKind.session, [IamRole.owner, IamRole.participant, IamRole.viewer]],
   [ApiResourceKind.skill, [IamRole.owner, IamRole.viewer]],
-  [ApiResourceKind.agent_share, [IamRole.owner, IamRole.viewer]],
-  [ApiResourceKind.agent_channel, [IamRole.owner, IamRole.viewer, IamRole.participant]],
+  [ApiResourceKind.channel, [IamRole.owner, IamRole.viewer, IamRole.participant]],
   [ApiResourceKind.channel_app, [IamRole.viewer]],
   [ApiResourceKind.schedule, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.plugin, [IamRole.owner, IamRole.viewer]],
@@ -43,7 +42,7 @@ export const GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> =
 export const TEAM_GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> = new Map([
   [ApiResourceKind.agent, [IamRole.editor, IamRole.viewer]],
   [ApiResourceKind.skill, [IamRole.viewer]],
-  [ApiResourceKind.agent_channel, [IamRole.viewer, IamRole.participant]],
+  [ApiResourceKind.channel, [IamRole.viewer, IamRole.participant]],
   [ApiResourceKind.schedule, [IamRole.viewer]],
   [ApiResourceKind.plugin, [IamRole.viewer]],
   [ApiResourceKind.vault, [IamRole.user]],
@@ -87,14 +86,10 @@ export const ROLE_DESCRIPTIONS: ReadonlyMap<ApiResourceKind, ReadonlyMap<IamRole
     [IamRole.owner, "Everything, including deleting it and deciding who has access"],
     [IamRole.viewer, "Use it and see what it contains; cannot change it"],
   ])],
-  [ApiResourceKind.agent_share, new Map<IamRole, string>([
-    [IamRole.owner, "Everything, including deleting it and deciding who has access"],
-    [IamRole.viewer, "See the chat link's settings; cannot change it"],
-  ])],
-  [ApiResourceKind.agent_channel, new Map<IamRole, string>([
-    [IamRole.owner, "Everything, including the channel's connection and who has access"],
-    [IamRole.viewer, "Read the channel's conversations; cannot reply"],
-    [IamRole.participant, "Read the channel's conversations and reply to customers as the business"],
+  [ApiResourceKind.channel, new Map<IamRole, string>([
+    [IamRole.owner, "Everything, including the channel's settings and who has access"],
+    [IamRole.viewer, "See the channel and read its conversations; cannot change it or reply"],
+    [IamRole.participant, "Read the channel's Slack and WhatsApp conversations and reply to customers as the business"],
   ])],
   [ApiResourceKind.channel_app, new Map<IamRole, string>([
     [IamRole.viewer, "See its settings; cannot change them"],
