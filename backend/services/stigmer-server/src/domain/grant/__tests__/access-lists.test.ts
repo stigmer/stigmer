@@ -475,6 +475,33 @@ describe("buildPrincipalAccessList: only the organization's people", () => {
     expect(unrelated).toEqual([]);
   });
 
+  it("reads no organization row for a resource only teams hold", async () => {
+    const store = fakeGrantStore();
+    await store.save(
+      row(
+        scopeLink(
+          { kind: "agent", id: "a3" },
+          { kind: "organization", id: "acme_cust" },
+        ),
+      ),
+    );
+    await store.save(
+      row(
+        triple({ kind: "team", id: "tm_2", relation: "member" }, "viewer", {
+          kind: "agent",
+          id: "a3",
+        }),
+      ),
+    );
+    const unread = {
+      getResource: () => Promise.reject(new Error("no organization row is read")),
+    };
+    const entries = await buildPrincipalAccessList(store, unread, nobody, undefined, [
+      { kind: "agent", id: "a3" },
+    ]);
+    expect(entries.map((e) => e.principal?.id)).toEqual(["tm_2"]);
+  });
+
   it("a resource no organization holds is listed as its rows say", async () => {
     const store = fakeGrantStore();
     await store.save(

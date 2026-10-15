@@ -718,13 +718,13 @@ describe("credential binding — a credential that names an organization works t
     );
   });
 
-  it("[rpc:RunCommandController.create] a run filed in a parent cannot use a child's agent: a run's credential stays its run's organization", async (ctx) => {
+  it("[rpc:SessionCommandController.create] a conversation filed in a parent cannot name a child's agent, so no run there executes one", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     const parent = await tenancy(on);
     const child = await childTenancy(on, parent);
     // A person in both, who may read and run the child's agent and file
-    // runs in the parent.
+    // conversations in the parent.
     const person = await personIn(on, parent, "member");
     await on.clients.grantCommand.create(
       organizationRole(await on.accountIdOf(person), "member", child.org),
@@ -734,31 +734,18 @@ describe("credential binding — a credential that names an organization works t
     );
     const agentId = agent.metadata?.id ?? "";
     fixtures.defer(() => person.agentCommand.delete({ value: agentId }));
-    const session = await person.sessionCommand.create(
-      makeSession({
-        org: parent.org,
-        name: uniqueName("parent-session"),
-        agentRef: agentRefOf(agent),
-      }),
-    );
-    const sessionId = session.metadata?.id ?? "";
-    fixtures.defer(() => person.sessionCommand.delete({ value: sessionId }));
 
-    const refused = await expectGrpcCode(
+    await expectGrpcCode(
       () =>
-        person.agentExecutionCommand.create(
-          makeAgentExecution({
+        person.sessionCommand.create(
+          makeSession({
             org: parent.org,
-            name: uniqueName("parent-run-child-agent"),
-            sessionId,
-            message: "Say hello.",
+            name: uniqueName("parent-session"),
+            agentRef: agentRefOf(agent),
           }),
         ),
       Code.FailedPrecondition,
-      "file a run in a parent on a child's agent",
-    );
-    expect(refused.rawMessage).toBe(
-      `a run uses only what its own organization can read: Agent ${agentId} belongs to another organization and is not one its parent shares with child organizations`,
+      "file a conversation in a parent on a child's agent",
     );
   });
 
