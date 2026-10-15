@@ -12,9 +12,6 @@
 # `stigmer-website` alone, from the GitHub environment `website`, which only
 # main may use.
 #
-# GitHub Pages receives the same export until stigmer.ai is served by the
-# Worker; its two jobs leave with the Pages site.
-#
 # Pull requests get their own review sites (preview.website.yaml builds,
 # publish.website-preview.yaml uploads).
 # =============================================================================
@@ -106,38 +103,3 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: ./node_modules/.bin/wrangler deploy --config ../wrangler.jsonc --env="" --message "main ${GITHUB_SHA::12}"
-
-  pages-build:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Download the export
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: site-out
-          path: site/out
-
-      - name: Configure Pages
-        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
-        with:
-          path: site/out
-
-  pages-deploy:
-    needs: pages-build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    # Deploying to Pages needs the Pages write and an OIDC token.
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
