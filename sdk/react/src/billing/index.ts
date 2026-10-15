@@ -34,9 +34,6 @@ export type { UseCreatePaymentMethodSetupSessionReturn } from "./useCreatePaymen
 export type { BillingRedirect } from "./redirect.js";
 export { planStanding, planMove } from "./plan-state.js";
 export type { PlanStanding, PlanMove } from "./plan-state.js";
-export { ENTERPRISE_CLOUD_PLAN } from "./plan-features.js";
-export { FEATURE_COPY } from "../internal/features.js";
-export type { NamedFeature } from "../internal/features.js";
 
 // Styled components
 export { ProviderKeysSection } from "./ProviderKeysSection.js";

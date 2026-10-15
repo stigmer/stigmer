@@ -71,7 +71,7 @@ definitions, API names, and examples follow below.
 | **Organization**       | Organization     | Organization                           | Organization           | Organization, `kind: organization`                  | Organization       |
 | **Agent hour**         | agent hours      | ---                                    | agent hours            | `included_agent_hours`, `per_agent_hour_micros`     | agent hours        |
 | **Working time**       | ---              | working time                           | working time           | `working_seconds`                                   | working time       |
-| **Edition**            | Stigmer, Stigmer Enterprise, Stigmer Cloud | ---                  | edition                | `ServerEdition`, `DeploymentMode`                   | edition            |
+| **Edition**            | the three names  | ---                                    | edition                | `ServerEdition`, `DeploymentMode`                   | edition            |
 | **Team**               | teams            | ---                                    | Team                   | Team, `kind: team`                                  | Team               |
 | **Grant**              | ---              | ---                                    | Grant                  | Grant, `kind: Grant`                                | Grant              |
 | **Vault**              | vault            | vault ("your keys and logins")         | Vault                  | Vault, `kind: Vault`                                | vault              |
@@ -842,8 +842,8 @@ customer's own model provider key; Stigmer runs no model of its own.
 - **Capitalize**: Yes. The three are names: "Stigmer Enterprise", "Stigmer
   Cloud". Say "Stigmer open source" where the first must be told apart from the
   other two. "Edition" itself is lowercase.
-- **API surface**: `ServerEdition` (`oss`, `enterprise`, `cloud`; wire names kept); the
-  SDK's `DeploymentMode` (`"local"`, `"enterprise"`, `"cloud"`).
+- **API surface**: `ServerEdition` (`oss`, `enterprise`, `cloud`; wire names
+  kept); the SDK's `DeploymentMode` (`"local"`, `"enterprise"`, `"cloud"`).
 - **Note**: "Enterprise Cloud" is Stigmer Cloud's quoted top plan, never an
   edition: Stigmer Enterprise is self-hosted, and Enterprise Cloud is run by
   Stigmer. The pricing page and the console name the plan "Enterprise Cloud",
