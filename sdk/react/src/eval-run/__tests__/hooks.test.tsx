@@ -7,7 +7,9 @@
  * and no more once it has finished, nor once a read answers NotFound or
  * PermissionDenied, while a transient failure keeps the polling; start and
  * cancel call the client and keep a refusal as their error, which
- * clearError or the next call resets.
+ * clearError or the next call resets; an organization's Evals are listed
+ * through `eval.list`, page by page, and an empty organization asks
+ * nothing.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
@@ -20,6 +22,7 @@ import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useCancelEvalRun } from "../useCancelEvalRun";
 import { EVAL_RUN_POLL_MS, useEvalRun } from "../useEvalRun";
 import { useEvalRuns } from "../useEvalRuns";
+import { useEvals } from "../useEvals";
 import { useStartEvalRun } from "../useStartEvalRun";
 import { evalWith } from "./eval-fixture";
 import { agentEvalRunWith } from "./eval-fixture.agent";
@@ -116,6 +119,29 @@ describe("useEvalRuns", () => {
       await vi.advanceTimersByTimeAsync(EVAL_RUN_POLL_MS * 3);
     });
     expect(listByPlugin.mock.calls.length, "a poll would not refresh the older page").toBe(calls);
+  });
+});
+
+describe("useEvals", () => {
+  it("lists an organization's Evals through eval.list, page by page, and asks nothing for an empty organization", async () => {
+    const list = vi.fn(async (input: { pageToken: string }) =>
+      input.pageToken === ""
+        ? { entries: [{ metadata: { id: "evs_1", slug: "support-evals" } }], nextPageToken: "p2" }
+        : { entries: [{ metadata: { id: "evs_2", slug: "refunds" } }], nextPageToken: "" },
+    );
+    const { result } = renderHook(() => useEvals("org_acme"), {
+      wrapper: wrap({ eval: { list } }),
+    });
+    await waitFor(() => expect(result.current.evals).toHaveLength(1));
+    expect(list).toHaveBeenCalledWith(expect.objectContaining({ org: "org_acme", pageToken: "" }));
+    expect(result.current.hasMore).toBe(true);
+    act(() => result.current.loadMore());
+    await waitFor(() => expect(result.current.evals).toHaveLength(2));
+    expect(result.current.evals.map((row) => row.metadata?.slug)).toEqual(["support-evals", "refunds"]);
+    expect(result.current.hasMore).toBe(false);
+    list.mockClear();
+    renderHook(() => useEvals(""), { wrapper: wrap({ eval: { list } }) });
+    expect(list).not.toHaveBeenCalled();
   });
 });
 

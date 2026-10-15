@@ -7,8 +7,10 @@
 // (`get eval-run`, `delete eval-run`). `--agent` names an agent, `--plugin`
 // alone a plugin evaluated on the built-in assistant, the way `claude
 // plugin eval` evaluates one in Claude Code, and `--plugin` beside
-// `--agent` the plugin each case runs with and without on that agent
-// (resources/eval-run/options.ts holds every flag's rules).
+// `--agent` the plugin each case runs with and without on that agent;
+// `--eval` beside `--agent` runs the cases of an Eval, a folder of cases
+// pushed with `stigmer push eval` (resources/eval-run/options.ts holds
+// every flag's rules).
 //
 // Thin handler: read the options, resolve credentials and the
 // organization, delegate to resources/eval-run. Heavy modules load lazily
@@ -30,6 +32,8 @@ Examples:
       the plugin's own cases on the built-in assistant, with and without it
   stigmer eval run --agent support-agent
       the cases of every plugin the agent attaches, on the agent
+  stigmer eval run --agent support-agent --eval support-agent-evals
+      the cases of an Eval pushed with stigmer push eval, on the agent
   stigmer eval run --agent support-agent --plugin refund-policy
       the plugin's cases on the agent, with and without the plugin
 
@@ -72,6 +76,11 @@ export function registerEval(program: Command): void {
     .option(
       "--cases-from <plugin>",
       "with --agent, run this plugin's cases: one the agent attaches or the one --plugin names (repeatable; default: --plugin's, else every attached plugin's)",
+      collect,
+    )
+    .option(
+      "--eval <eval>",
+      "with --agent, run this Eval's cases on the agent: <eval>[@<digest|tag>], its current version without a suffix (repeatable)",
       collect,
     )
     .option("--case <glob>", "run only the cases whose name matches this glob")

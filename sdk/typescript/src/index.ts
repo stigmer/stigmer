@@ -303,6 +303,7 @@ export {
 export {
   toResultDocument,
   evalRunTargetLabel,
+  type EvalRunEvalResult,
   type EvalRunPluginResult,
   type EvalRunResultDocument,
   type ResultAggregates,

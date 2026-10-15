@@ -97,6 +97,7 @@ describe("the Run evals form", () => {
       concurrency: 1,
       comparedPluginId: "",
       caseSources: [],
+      evalSources: [],
       caseGlob: "",
       caseTags: [],
       allowTools: [],

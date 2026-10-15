@@ -3,9 +3,11 @@
 // and one block per plugin in Claude Code's document shape for that
 // plugin's cases, one arm only when no plugin is compared (no `delta`, no
 // `arms.without`); a plugin whose cases did not run keeps its reason and no
-// cases; a block's cost is its own tries', both arms'.
+// cases; a block's cost is its own tries', both arms'; an Eval whose cases
+// ran on the agent is a block of its own under `evals`, the Eval in place
+// of the plugin, and a document with no Eval carries no `evals` key.
 
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import { describe, expect, it } from "vitest";
 
@@ -18,6 +20,7 @@ import {
   EvalRunCaseTargetSchema,
   EvalRunPartialReason,
   EvalRunPhase,
+  EvalRunEvalSchema,
   EvalRunPluginSchema,
   EvalRunStatusSchema,
   EvalRunTrySchema,
@@ -138,6 +141,29 @@ describe("toResultDocument", () => {
   it("keeps a plugin whose cases did not run, with its reason and no cases", () => {
     const style = toResultDocument(onAgent).plugins[2];
     expect(style).toMatchObject({ notRunReason: "no eval cases at this version", cases: [], targets: [], costUsd: 0 });
+  });
+
+  it("gives each Eval a block of its own after the plugins, and carries no evals key without one", () => {
+    expect(toResultDocument(onAgent)).not.toHaveProperty("evals");
+    const withEval = clone(EvalRunSchema, onAgent);
+    withEval.status!.evals = [
+      create(EvalRunEvalSchema, {
+        evalId: "evs_support",
+        evalSlug: "support-evals",
+        evalDigest: "9".repeat(64),
+        cases: [caseOf("asks-for-order", [graded(1, 0.05)], true)],
+        aggregates: create(EvalRunAggregatesSchema, { overallScore: 1, casesPassed: 1, casesTotal: 1 }),
+      }),
+      create(EvalRunEvalSchema, { evalId: "evs_empty", evalSlug: "empty", notRunReason: "no eval cases at this version" }),
+    ];
+    const doc = toResultDocument(withEval);
+    expect(doc.plugins).toHaveLength(3);
+    expect(doc.evals?.map((block) => [block.eval, block.notRunReason, block.cases.map((c) => c.name)])).toEqual([
+      [{ id: "evs_support", slug: "support-evals", digest: "9".repeat(64) }, null, ["asks-for-order"]],
+      [{ id: "evs_empty", slug: "empty", digest: "" }, "no eval cases at this version", []],
+    ]);
+    expect(doc.evals?.[0]).toMatchObject({ schemaVersion: 1, partialReason: "cost_ceiling", durationSeconds: 30 });
+    expect(doc.evals?.[0]?.costUsd).toBeCloseTo(0.05);
   });
 
   it("reads an eval still running as not partial, and the spec's version before the status has one", () => {

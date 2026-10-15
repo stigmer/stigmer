@@ -1,7 +1,8 @@
 // Eval runs — test cases run on an agent, or a plugin's own cases on the
 // built-in assistant, optionally with and without a plugin: the Evals tab
 // of an agent and of a plugin, the results view, the data and behavior
-// hooks, the pure view rules, and a run made into a test case.
+// hooks (an organization's Evals among them), the pure view rules, and a
+// run made into a test case.
 
 export { EvalRunsTab, type EvalRunsTabProps } from "./EvalRunsTab.js";
 export {
@@ -13,6 +14,7 @@ export {
   type EvalRunsOf,
   type UseEvalRunsReturn,
 } from "./useEvalRuns.js";
+export { useEvals, type UseEvalsReturn } from "./useEvals.js";
 export {
   useEvalRun,
   EVAL_RUN_POLL_MS,

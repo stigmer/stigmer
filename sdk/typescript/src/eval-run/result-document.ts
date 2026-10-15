@@ -25,7 +25,10 @@
 // (every engine and model with its own cases), `passK` per case, `notRun`
 // (the cases listed but not run, with the feature named), and per run its
 // id and why it was not graded. `arms.without` and `delta` appear only on
-// an eval run that compares a plugin.
+// an eval run that compares a plugin. An eval run that ran Evals' cases on
+// its agent also carries `evals`, one block per Eval in the same shape,
+// with the Eval in place of the plugin; an eval run with none carries no
+// `evals` key, so its document is what it was before Evals ran.
 //
 // Two readings differ from Claude Code on purpose. A try the platform could
 // not grade (platform busy) has `score: null`, never 0, and is left out of
@@ -148,6 +151,16 @@ export interface EvalRunPluginResult {
   readonly durationSeconds: number;
 }
 
+/** One Eval's block: the Eval, and Claude Code's result fields for its cases. */
+export interface EvalRunEvalResult extends Omit<EvalRunPluginResult, "plugin"> {
+  readonly eval: {
+    readonly id: string;
+    readonly slug: string;
+    /** The Eval version every try ran. */
+    readonly digest: string;
+  };
+}
+
 /** What an eval run was about. */
 export type ResultSubject =
   | {
@@ -169,6 +182,8 @@ export interface EvalRunResultDocument {
   readonly partialReason: ResultPartialReason | null;
   readonly aggregates: ResultAggregates;
   readonly plugins: readonly EvalRunPluginResult[];
+  /** The Evals whose cases ran on the agent; absent when none did. */
+  readonly evals?: readonly EvalRunEvalResult[];
   readonly costUsd: number;
   readonly durationSeconds: number;
 }
@@ -197,6 +212,13 @@ export function toResultDocument(evalRun: EvalRun, opts: ResultDocumentOptions =
   const durationSeconds = opts.durationSeconds ?? durationOf(status, opts.nowMs ?? Date.now());
   const specTargets = spec?.targets ?? [];
   const plugins = (status?.plugins ?? []).map((plugin) => pluginResultOf(plugin, specTargets, partialReason, durationSeconds));
+  const evals = (status?.evals ?? []).map(
+    (evalBlock): EvalRunEvalResult => ({
+      schemaVersion: 1,
+      eval: { id: evalBlock.evalId, slug: evalBlock.evalSlug, digest: evalBlock.evalDigest },
+      ...sourceResultOf(evalBlock, specTargets, partialReason, durationSeconds),
+    }),
+  );
   return {
     schemaVersion: 1,
     evalRunId: evalRun.metadata?.id ?? "",
@@ -205,6 +227,7 @@ export function toResultDocument(evalRun: EvalRun, opts: ResultDocumentOptions =
     partialReason,
     aggregates: aggregatesOf(status?.aggregates),
     plugins,
+    ...(evals.length > 0 && { evals }),
     costUsd: status?.costUsd ?? 0,
     durationSeconds,
   };
@@ -230,7 +253,6 @@ function pluginResultOf(
   partialReason: ResultPartialReason | null,
   durationSeconds: number,
 ): EvalRunPluginResult {
-  const block = resultBlockOf(plugin.cases, specTargets, plugin.aggregates);
   return {
     schemaVersion: 1,
     plugin: {
@@ -240,11 +262,23 @@ function pluginResultOf(
       attached: plugin.attached,
       compared: plugin.compared,
     },
-    notRunReason: plugin.notRunReason === "" ? null : plugin.notRunReason,
+    ...sourceResultOf(plugin, specTargets, partialReason, durationSeconds),
+  };
+}
+
+/** The fields every source's block carries for its cases: a plugin's or an Eval's. */
+function sourceResultOf(
+  source: Pick<EvalRunPlugin, "cases" | "aggregates" | "notRunReason">,
+  specTargets: readonly EvalRunTarget[],
+  partialReason: ResultPartialReason | null,
+  durationSeconds: number,
+): Omit<EvalRunPluginResult, "schemaVersion" | "plugin"> {
+  return {
+    notRunReason: source.notRunReason === "" ? null : source.notRunReason,
     partial: partialReason !== null,
     partialReason,
-    ...block,
-    costUsd: plugin.cases.reduce(
+    ...resultBlockOf(source.cases, specTargets, source.aggregates),
+    costUsd: source.cases.reduce(
       (sum, evalCase) =>
         sum +
         evalCase.targets.reduce(

@@ -158,6 +158,7 @@ describe("runEvalRun about an agent", () => {
       {
         agent: "support-desk@v3",
         casesFrom: ["refund-policy", "acme/tracker", "plg_01notes"],
+        eval: ["support-evals@stable", "evs_01kept"],
         runs: "2",
         tag: ["smoke"],
         allowTools: ["Skill", "Agent"],
@@ -177,6 +178,8 @@ describe("runEvalRun about an agent", () => {
         { plugin: { org: "org_acme", slug: "refund-policy" } },
         { plugin: { org: "acme", slug: "tracker" } },
         { plugin: { org: "", slug: "", id: "plg_01notes" } },
+        { eval: { org: "org_acme", slug: "support-evals", version: "stable" } },
+        { eval: { org: "", slug: "", id: "evs_01kept" } },
       ],
       targets: [],
       runs: 2,

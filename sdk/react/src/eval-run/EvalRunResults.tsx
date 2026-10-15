@@ -9,7 +9,9 @@
  * two-arm form when the eval run compares a plugin (`WITH`, `W/OUT`, `Δ`,
  * pass^k per target) and its one-arm form when it compares none (the score
  * and pass^k), each try a link to its run where the viewer can open it; a
- * plugin whose cases did not run shows why.
+ * plugin whose cases did not run shows why. On an agent, a section per
+ * Eval whose cases ran follows the plugins, named by its slug and version
+ * and marked as an Eval, its cases shown the same way.
  *
  * The view reads the eval run again while it is pending or running
  * ({@link useEvalRun}), so tries fill in as they finish; the editors of
@@ -205,7 +207,7 @@ export function EvalRunResults({
         ) : null}
         {sections.map((section) => (
           <PluginSectionView
-            key={section.pluginId || section.slug}
+            key={`${section.kind}:${section.pluginId || section.slug}`}
             section={section}
             arms={comparing ? "both" : "with"}
             aboutAgent={isAboutAgent(evalRun)}
@@ -236,7 +238,7 @@ function PluginSectionView({
 }) {
   return (
     <section
-      aria-label={`Plugin ${section.slug}`}
+      aria-label={`${section.kind === "eval" ? "Eval" : "Plugin"} ${section.slug}`}
       className="stg:flex stg:flex-col stg:gap-2"
     >
       <h4 className="stg:flex stg:flex-wrap stg:items-baseline stg:gap-x-2 stg:text-xs">
@@ -246,6 +248,9 @@ function PluginSectionView({
         <span className="stg:font-mono stg:text-muted-foreground">
           {shortDigest(section.digest)}
         </span>
+        {section.kind === "eval" && (
+          <span className="stg:text-muted-foreground">eval</span>
+        )}
         {aboutAgent && section.compared && (
           <span className="stg:text-muted-foreground">
             {section.attached ? "compared" : "compared, not attached"}
