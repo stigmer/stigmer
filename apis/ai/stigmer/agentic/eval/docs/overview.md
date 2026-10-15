@@ -7,7 +7,15 @@ Every push of a changed folder is a new version, reachable by its digest or by a
 tag; pushing the same folder again changes nothing. An eval is visible to its
 whole organization by default, or kept private to its owner. Push one with
 `stigmer push eval`, and get a version back with `stigmer download eval`.
-Running an eval on an agent is coming. The shape below is what `get` returns.
+
+Run an eval on an agent with `stigmer eval run --agent <agent> --eval <eval>`,
+or pick it on the agent's Evals tab. Its cases run on the agent with its own
+instructions and the plugins it attaches; a mock folder stands in for the
+agent's server of that name, or a plugin's server by the name the turn gives it
+(`plugin_<plugin>_<server>`), and a mock that names no server of the agent is
+listed as not used. The eval run is stamped with the eval's version, so its
+results stay tied to the cases that produced them. Whoever may view an eval may
+run it on an agent they may edit. The shape below is what `get` returns.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1

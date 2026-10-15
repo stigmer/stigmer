@@ -20,9 +20,9 @@ export const glossary: Record<string, string> = {
   Evaluator:
     "AI grading switched on for one Agent: how many of its runs an AI judge grades, the monthly spending limit, and the judge's model.",
   Eval:
-    "A set of test cases for an Agent: an evals/ folder in Claude Code's plugin-eval format, pushed whole and kept with every version. Pushing the same folder again changes nothing; a changed folder is a new version, reachable by its digest or by a tag. Running an eval on an Agent is coming; until then an eval is stored, versioned, read and downloaded.",
+    "A set of test cases for an Agent: an evals/ folder in Claude Code's plugin-eval format, pushed whole and kept with every version. Pushing the same folder again changes nothing; a changed folder is a new version, reachable by its digest or by a tag. An eval run on an Agent runs an eval's cases, its mocks standing in for the Agent's own servers and its plugins'.",
   "Eval Run":
-    "One run of test cases: on an Agent, the cases of the plugins it uses, tried several times on the Agent itself; or on a plugin, the plugin's own cases, tried on the built-in assistant. Comparing a plugin tries each case with the plugin and without it and records the difference it makes. An eval run on an Agent is stamped with the Agent's version, so two versions compare side by side.",
+    "One run of test cases: on an Agent, the cases of the plugins it uses or of the evals it names, tried several times on the Agent itself; or on a plugin, the plugin's own cases, tried on the built-in assistant. Comparing a plugin tries each case with the plugin and without it and records the difference it makes. An eval run on an Agent is stamped with the Agent's version, so two versions compare side by side.",
   Session:
     "An ongoing conversation with an Agent across multiple messages. A session remembers what was said earlier so the Agent can follow along.",
   Skill:

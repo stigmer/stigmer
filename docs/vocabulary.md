@@ -1510,8 +1510,8 @@ the monthly spending limit, and the judge's model.
 A set of test cases for an Agent: an evals/ folder in Claude Code's plugin-eval
 format, pushed whole and kept with every version. Pushing the same folder again
 changes nothing; a changed folder is a new version, reachable by its digest or
-by a tag. Running an eval on an Agent is coming; until then an eval is stored,
-versioned, read and downloaded.
+by a tag. An eval run on an Agent runs an eval's cases, its mocks standing in
+for the Agent's own servers and its plugins'.
 
 - **User-facing alternative**: "eval" in prose ("push the eval", "the support
   agent's evals"); its contents are "test cases". Never "eval suite" for the
@@ -1539,15 +1539,15 @@ versioned, read and downloaded.
 
 #### Eval Run
 
-One run of test cases: on an Agent, the cases of the plugins it uses, tried
-several times on the Agent itself; or on a plugin, the plugin's own cases, tried
+One run of test cases: on an Agent, the cases of the plugins it uses or of the
+evals it names, tried several times on the Agent itself; or on a plugin, the plugin's own cases, tried
 on the built-in assistant. Comparing a plugin tries each case with the plugin
 and without it and records the difference it makes. An eval run on an Agent is
 stamped with the Agent's version, so two versions compare side by side.
 
 - **User-facing alternative**: "eval run" in prose ("start an eval run", "the
   Agent's eval runs"); "evals" for the feature and the tab. The cases are a
-  plugin's "test cases" or its "suite".
+  plugin's or an eval's "test cases".
 - **Capitalize**: As the resource name in labels and reference pages
   (`kind: EvalRun`, display name "Eval Run"). In prose say "eval run" in lower
   case.
@@ -1557,7 +1557,7 @@ stamped with the Agent's version, so two versions compare side by side.
   update and no manifest. CLI:
 
   ```bash
-  stigmer eval run --agent <agent>[@version] [--plugin <plugin>] [--cases-from <plugin>]...
+  stigmer eval run --agent <agent>[@version] [--plugin <plugin>] [--cases-from <plugin>]... [--eval <eval>[@<digest|tag>]]...
   stigmer eval run --plugin <plugin>[@digest]
   stigmer eval cancel <id>
   stigmer get eval-run <id>
@@ -1571,6 +1571,7 @@ stamped with the Agent's version, so two versions compare side by side.
   (`with_without` or `none`), `threshold`, `allow_tools`, `max_cost_usd`, and
   the status's `phase`, `agent_version_hash`, one block per plugin a try loads
   (whether the Agent attaches it, whether it is compared, the version its tries
+  ran, its cases' results), one block per eval it runs (the version its tries
   ran, its cases' results), `aggregates` and `cost_usd`.
 - **Boundaries**: an eval run measures an Agent or a plugin on test cases; an
   Evaluator grades an Agent's live runs. The criteria live in the plugins'
