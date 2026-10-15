@@ -16,13 +16,15 @@
  * destructive act, so it is left to fail closed through its dangling
  * reference.
  *
- * A channel created while its agent is being deleted meets an agent
- * already gone at its own re-read and removes itself
- * (EnsureChannelAgentStillExists), so one rule holds without a race: no
- * channel outlives its agent.
+ * A channel created while its agent is being deleted removes itself when
+ * its re-read after the write finds the agent gone
+ * (EnsureChannelAgentStillExists). The re-read narrows the race, it does
+ * not close it: a create that persists after this cascade has listed and
+ * re-reads before the agent's row is deleted finds the agent and outlives
+ * it, holding a dangling reference that fails closed.
  *
  * Proven by domain/agent/__tests__/agent.test.ts (the agent's delete) and
- * __tests__/cascade.test.ts (the race with a create).
+ * __tests__/cascade.test.ts (a create whose re-read finds the agent gone).
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 

@@ -285,6 +285,21 @@ describe("convertToChannel", () => {
     expect(empty.dropped.sharePin).toBe(false);
   });
 
+  it("keeps a share enabled when its pin names the agent its reference names", () => {
+    const converted = share({ id: "ash_8", slug: "a", agentRef: { org: MERGE_ORG, id: "agt_1" }, enabled: true, audience: ChannelAudience.public, agentPin: "agt_1" });
+    expect(converted.channel.spec?.enabled).toBe(true);
+    expect(converted.disabledForStalePin).toBe(false);
+  });
+
+  it("converts a share whose pin names another agent disabled, as the link answered nothing before", () => {
+    const rebound = share({ id: "ash_9", slug: "a", agentRef: { org: MERGE_ORG, id: "agt_2" }, enabled: true, audience: ChannelAudience.public, agentPin: "agt_1" });
+    expect(rebound.channel.spec?.enabled).toBe(false);
+    expect(rebound.disabledForStalePin).toBe(true);
+    const unresolved = share({ id: "ash_10", slug: "b", agentRef: reference("helper"), enabled: true, audience: ChannelAudience.public, agentPin: "agt_1" });
+    expect(unresolved.channel.spec?.enabled, "a reference that never resolved to the pinned id").toBe(false);
+    expect(unresolved.disabledForStalePin).toBe(true);
+  });
+
   it("refuses a field number the merge does not know, naming it", () => {
     expect(() => share({ id: "ash_7", slug: "a", agentRef: reference("helper"), unknownSpecField: 40 })).toThrow(
       "the share's spec holds field 40, which the merge does not know",
@@ -458,6 +473,35 @@ describe("assignChannelSlugs", () => {
     ];
     expect(assignChannelSlugs(rows)).toEqual(new Map([["ach_1", "support-slack-2"]]));
   });
+
+  it("fits a suffixed slug to the 63 characters a slug may hold, numbered ones too", () => {
+    const long = `a${"b".repeat(58)}-c`;
+    expect(long).toHaveLength(61);
+    const rows = [
+      share({ id: "ash_1", slug: long, audience: ChannelAudience.public, createdAt: at("2026-01-01T00:00:00Z") }),
+      agentChannel({ id: "ach_1", slug: long, provider: "slack", createdAt: at("2026-02-01T00:00:00Z") }),
+      agentChannel({ id: "ach_2", slug: long, provider: "slack", createdAt: at("2026-03-01T00:00:00Z") }),
+    ];
+    const changed = assignChannelSlugs(rows);
+    expect(changed).toEqual(
+      new Map([
+        ["ach_1", `a${"b".repeat(56)}-slack`],
+        ["ach_2", `a${"b".repeat(54)}-slack-2`],
+      ]),
+    );
+    for (const slug of changed.values()) {
+      expect(slug.length, slug).toBeLessThanOrEqual(63);
+    }
+  });
+
+  it("fits a slug whose cut ends at a hyphen without a doubled hyphen", () => {
+    const long = `${"a".repeat(56)}-${"b".repeat(6)}`;
+    const rows = [
+      share({ id: "ash_1", slug: long, audience: ChannelAudience.public, createdAt: at("2026-01-01T00:00:00Z") }),
+      agentChannel({ id: "ach_1", slug: long, provider: "slack", createdAt: at("2026-02-01T00:00:00Z") }),
+    ];
+    expect(assignChannelSlugs(rows)).toEqual(new Map([["ach_1", `${"a".repeat(56)}-slack`]]));
+  });
 });
 
 describe("encodeChannel", () => {
@@ -560,7 +604,7 @@ describe("logChannelMerge", () => {
   }
 
   it("warns once with the count and a capped sample when slugs changed", () => {
-    const winner = share({ id: "ash_0", slug: "support", audience: ChannelAudience.public, agentPin: "agt_1", createdAt: new Date("2026-01-01T00:00:00Z") });
+    const winner = share({ id: "ash_0", slug: "support", agentRef: { org: MERGE_ORG, id: "agt_1" }, audience: ChannelAudience.public, agentPin: "agt_1", createdAt: new Date("2026-01-01T00:00:00Z") });
     const losers = Array.from({ length: CHANNEL_MERGE_SLUG_SAMPLE + 2 }, (_, i) =>
       agentChannel({ id: `ach_${String(i).padStart(2, "0")}`, slug: "support", provider: "slack", proactive: true, createdAt: new Date("2026-02-01T00:00:00Z") }),
     );
@@ -575,6 +619,20 @@ describe("logChannelMerge", () => {
     expect((sample as ReadonlyArray<string>)[0]).toBe(`${MERGE_ORG}/support -> support-slack (ach_00)`);
     expect((sample as ReadonlyArray<string>)[1]).toBe(`${MERGE_ORG}/support -> support-slack-2 (ach_01)`);
     expect(info).toEqual([{ channels: rows.length, slackProactiveFlagsDropped: losers.length, sharePinsDropped: 1, retiredFieldsDropped: 0 }]);
+  });
+
+  it("warns once with the count and a capped sample when shares were converted disabled for a stale pin", () => {
+    const stale = Array.from({ length: CHANNEL_MERGE_SLUG_SAMPLE + 1 }, (_, i) =>
+      share({ id: `ash_${String(i).padStart(2, "0")}`, slug: `link-${i}`, agentRef: { org: MERGE_ORG, id: "agt_2" }, enabled: true, audience: ChannelAudience.public, agentPin: "agt_1" }),
+    );
+    const { warned, logger } = recording();
+    logChannelMerge(logger, stale, assignChannelSlugs(stale));
+    expect(warned).toHaveLength(1);
+    expect(warned[0]!.message).toContain("converted disabled");
+    expect(warned[0]!.fields?.count).toBe(stale.length);
+    const sample = warned[0]!.fields?.sample as ReadonlyArray<string>;
+    expect(sample).toHaveLength(CHANNEL_MERGE_SLUG_SAMPLE);
+    expect(sample[0]).toBe(`${MERGE_ORG}/link-0 (ash_00)`);
   });
 
   it("logs nothing at warn when no slug changed", () => {

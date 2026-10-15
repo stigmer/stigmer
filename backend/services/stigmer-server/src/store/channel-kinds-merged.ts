@@ -27,8 +27,7 @@
  * channel's provider arm, app reference and proactive flag to its Slack or
  * WhatsApp type, its install state and facts to status. Dropped
  * deliberately, each counted: a Slack channel's proactive flag (no sender
- * ever read it), a share's agent pin (`status.agent_id`: the reference
- * holds the agent's id, so it never names another agent), and the bytes of
+ * ever read it), a share's agent pin (`status.agent_id`, below), and the bytes of
  * fields the contract had already retired (a share's and a channel's
  * `environment_refs`, a channel's `credentials_environment_id`), which
  * environment-retired.ts left as unknown fields no reader decodes. Any
@@ -36,11 +35,21 @@
  * silently. The row's `kind` string becomes `Channel` and its etag is
  * stamped again, as a write would stamp it.
  *
+ * A share's pin. The share's profile read refused a share whose pin named
+ * another agent than its reference (the rebind guard): the older reference
+ * rewrite (references-by-id.ts) resolved a slug-only `agent_ref` to the
+ * slug's holder at its time, which is another agent when the first was
+ * deleted and its slug taken. A channel has no pin, so such a share is
+ * converted disabled: its link answered nothing before the step and answers
+ * nothing after it, until its owner checks which agent it serves and
+ * enables it. The driver warns once with a count and a capped sample.
+ *
  * One namespace (`assignChannelSlugs`). Names were kept per kind, so a
  * share and a channel of one organization may hold the same slug. The
  * older row keeps it, by creation time, then by id (the rule the name
  * backfill keeps, resource-names-backfill.ts); every other row takes
- * `<slug>-<type>`, then `-2`, `-3` on that, the first one free. A row
+ * `<slug>-<type>`, then `-2`, `-3` on that, the first one free, its slug
+ * part cut so the whole fits the 63 characters a slug may hold. A row
  * whose slug no other row of its organization held keeps it. The driver
  * logs every changed slug at warn, once, as a count and a capped sample.
  * Neither kind could be renamed, so neither held a `previous` name: the
@@ -140,6 +149,9 @@ export const CHANNEL_MERGE_PAGE_SIZE = 500;
 /** How many changed slugs the step's warning names. */
 export const CHANNEL_MERGE_SLUG_SAMPLE = 10;
 
+/** The longest slug a resource may hold (metadata.proto), frozen. */
+const CHANNEL_SLUG_MAX_AT_MERGE = 63;
+
 /** The share's half of the merge, as the grant re-key reads it (kind-rename.ts). */
 export const SHARE_MERGE_V37: KindRename = {
   kind: [SHARE_KIND_AT_MERGE, CHANNEL_KIND_AT_MERGE],
@@ -181,6 +193,8 @@ export interface ConvertedChannel {
   readonly createdAt: string;
   readonly type: MergedChannelType;
   readonly dropped: DroppedAtMerge;
+  /** A share whose pin named another agent than its reference, converted disabled (the module header). */
+  readonly disabledForStalePin: boolean;
   /** The converted resource, its slug the one it held (`encodeChannel` sets the final one). */
   readonly channel: Channel;
 }
@@ -240,6 +254,7 @@ export function convertToChannel(fromKind: string, id: string, data: Uint8Array)
     createdAt: createdAt === undefined ? "" : timestampDate(createdAt).toISOString(),
     type: converted.type,
     dropped: converted.dropped,
+    disabledForStalePin: converted.disabledForStalePin,
     channel,
   };
 }
@@ -269,10 +284,11 @@ export function assignChannelSlugs(rows: ReadonlyArray<ConvertedChannel>): Map<s
       }
     }
     for (const row of losers) {
-      const base = `${row.slug}-${row.type}`;
-      let slug = base;
+      const fitted = (suffix: string): string =>
+        `${row.slug.slice(0, CHANNEL_SLUG_MAX_AT_MERGE - suffix.length - 1).replace(/-+$/, "")}-${suffix}`;
+      let slug = fitted(row.type);
       for (let n = 2; taken.has(slug); n++) {
-        slug = `${base}-${n}`;
+        slug = fitted(`${row.type}-${n}`);
       }
       taken.add(slug);
       changed.set(row.id, slug);
@@ -332,8 +348,10 @@ export function rekeyedChannelGrant(data: Uint8Array): RekeyedGrant | undefined 
 
 /**
  * The step's log: every changed slug at warn, once, as a count and a
- * capped sample (each `org/old -> new` and the row's id), and what the
- * merge dropped deliberately at info, as counts.
+ * capped sample (each `org/old -> new` and the row's id); every share
+ * converted disabled for a stale pin at warn, once, the same way (each
+ * `org/slug` and the row's id); and what the merge dropped deliberately at
+ * info, as counts.
  */
 export function logChannelMerge(
   logger: StoreLogger,
@@ -348,6 +366,16 @@ export function logChannelMerge(
     logger.warn(
       "A chat link and a Slack or WhatsApp channel of one organization held the same slug; the older kept it and the other took its type as a suffix. Each keeps its id, so every link and install keeps working; rename a channel to choose another slug",
       { count: changedSlugs.size, sample },
+    );
+  }
+  const disabled = rows.filter((row) => row.disabledForStalePin);
+  if (disabled.length > 0) {
+    logger.warn(
+      "A chat link's agent pin named another agent than the agent it references, so its link answered nothing; it is converted disabled. Check which agent it should serve, then enable it",
+      {
+        count: disabled.length,
+        sample: disabled.slice(0, CHANNEL_MERGE_SLUG_SAMPLE).map((row) => `${row.org}/${row.slug} (${row.id})`),
+      },
     );
   }
   if (rows.length > 0) {
@@ -413,12 +441,14 @@ interface ConvertedParts {
   readonly status: MessageShape<typeof ChannelStatusSchema>;
   readonly type: MergedChannelType;
   readonly dropped: DroppedAtMerge;
+  readonly disabledForStalePin: boolean;
 }
 
 /**
  * AgentShareSpec: agent_ref 1, enabled 2, audience 3, allowed_origins 4,
  * messages 5, environment_refs 6 (retired), run_config 7, vaults 8.
- * AgentShareStatus: share_link_token 1, agent_id 2 (dropped),
+ * AgentShareStatus: share_link_token 1, agent_id 2 (dropped; a pin naming
+ * another agent than agent_ref converts the channel disabled),
  * vault_attachers 3, audit 99.
  */
 function convertShare(specBytes: Uint8Array, statusBytes: Uint8Array): ConvertedParts {
@@ -460,14 +490,14 @@ function convertShare(specBytes: Uint8Array, statusBytes: Uint8Array): Converted
 
   const status = create(ChannelStatusSchema);
   let linkToken = "";
-  let sharePin = false;
+  let pin = "";
   eachField(statusBytes, "the share's status", (no, wireType, reader) => {
     switch (no) {
       case 1:
         linkToken = expectString(reader, wireType, "share_link_token");
         return true;
       case 2:
-        sharePin = expectString(reader, wireType, "agent_id") !== "" || sharePin;
+        pin = expectString(reader, wireType, "agent_id");
         return true;
       case 3:
         readMapEntry(reader, wireType, "vault_attachers", status.vaultAttachers);
@@ -482,7 +512,17 @@ function convertShare(specBytes: Uint8Array, statusBytes: Uint8Array): Converted
   if (linkToken !== "") {
     status.typeStatus = { case: "web", value: create(WebChannelStatusSchema, { linkToken }) };
   }
-  return { spec, status, type: "web", dropped: { slackProactiveFlag: false, sharePin, retiredFields } };
+  const disabledForStalePin = pin !== "" && pin !== (spec.agentRef?.id ?? "");
+  if (disabledForStalePin) {
+    spec.enabled = false;
+  }
+  return {
+    spec,
+    status,
+    type: "web",
+    dropped: { slackProactiveFlag: false, sharePin: pin !== "", retiredFields },
+    disabledForStalePin,
+  };
 }
 
 /**
@@ -596,6 +636,7 @@ function convertAgentChannel(specBytes: Uint8Array, statusBytes: Uint8Array): Co
     status,
     type: arm,
     dropped: { slackProactiveFlag: arm === "slack" && proactive, sharePin: false, retiredFields },
+    disabledForStalePin: false,
   };
 }
 

@@ -143,8 +143,8 @@ service AgentCommandController {
   // another org's channel would make delete a cross-principal destructive
   // action, and such a channel fails closed through the dangling-ref check
   // instead. A channel created while the agent is being deleted removes
-  // itself after its write. Cloud additionally cleans each cascaded
-  // child's FGA tuples.
+  // itself when its re-read after the write finds the agent gone. Cloud
+  // additionally cleans each cascaded child's FGA tuples.
   rpc delete(AgentId) returns (Agent) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent;
     option (ai.stigmer.commons.rpc.config).permission = can_delete;

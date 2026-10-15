@@ -124,7 +124,13 @@ export function ConversationsWorkbench({
     ChannelConversationListFilter.channel_conversation_list_filter_unspecified,
   );
 
-  const { channels } = useOrgChannelList(org || null);
+  // A chat link's guests are not inbox conversations: the inbox and its
+  // filter list the Slack and WhatsApp channels only.
+  const { channels: orgChannels } = useOrgChannelList(org || null);
+  const channels = useMemo(
+    () => orgChannels.filter((c) => c.spec?.type?.case !== "web"),
+    [orgChannels],
+  );
   const list = useConversationList({
     org: org || null,
     channelId: channelFilter,

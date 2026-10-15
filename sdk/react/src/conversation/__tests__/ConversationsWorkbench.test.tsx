@@ -35,6 +35,13 @@ function whatsappChannel() {
   });
 }
 
+function webChannel() {
+  return create(ChannelSchema, {
+    metadata: { id: "chn_web", org: "acme", name: "chat-link", slug: "chat-link" },
+    spec: { type: { case: "web", value: {} } },
+  });
+}
+
 function slackChannel() {
   return create(ChannelSchema, {
     metadata: { id: "ach_sl", org: "acme", name: "eng-help", slug: "eng-help" },
@@ -127,6 +134,20 @@ describe("ConversationsWorkbench", () => {
 
     await waitFor(() => expect(screen.getByText("Pat")).toBeDefined());
     expect(screen.getByText("Select a conversation")).toBeDefined();
+  });
+
+  it("offers no chat link in the channel filter: a chat link's guests are not inbox conversations", async () => {
+    const client = createMockStigmer({
+      list: vi.fn().mockResolvedValue({ entries: [whatsappChannel(), webChannel()], nextPageToken: "" }),
+    });
+    render(
+      <ConversationsWorkbench org="acme" selected={null} onSelectionChange={vi.fn()} />,
+      { wrapper: wrapper(client) },
+    );
+
+    await waitFor(() => expect(screen.getByText("Pat")).toBeDefined());
+    expect(screen.queryByText("Filter by channel"), "one messaging channel needs no filter").toBeNull();
+    expect(screen.queryByText("chat-link")).toBeNull();
   });
 
   it("hands the clicked inbox row's channel id and conversation key to onSelectionChange", async () => {

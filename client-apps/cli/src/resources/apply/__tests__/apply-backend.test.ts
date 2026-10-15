@@ -386,7 +386,7 @@ describe("file-mode apply — kinds the registry does not know", () => {
     try {
       writeYaml(dir, "share.yaml", ["kind: AgentShare", "metadata:", "  name: Support", ""].join("\n"));
       expect(() => resolveApplyItems(dir)).toThrow(
-        /kind 'AgentShare' in .*share\.yaml is now a channel\. Rewrite the file as `kind: Channel` and move `audience`, `allowed_origins` and `messages` from `spec` under `spec\.web`/,
+        /kind 'AgentShare' in .*share\.yaml is now a channel\. Rewrite the file as `kind: Channel` and move `audience`, `allowed_origins` and `messages` from `spec` under `spec\.web`\. A file with no `metadata\.name` edited the link named after its agent: give it `metadata\.name: <the agent's slug>` so it still edits that link instead of creating another/,
       );
     } finally {
       rmSync(dir, { recursive: true, force: true });

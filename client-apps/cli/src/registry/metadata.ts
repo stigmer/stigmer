@@ -157,7 +157,7 @@ export const RETIRED_KINDS: ReadonlyMap<string, string> = new Map([
   ["McpServer", `is no longer a Stigmer resource. ${MCP_SERVER_WAY_FORWARD}`],
   [
     "AgentShare",
-    "is now a channel. Rewrite the file as `kind: Channel` and move `audience`, `allowed_origins` and `messages` from `spec` under `spec.web`, then apply it with `stigmer apply -f <file>`.",
+    "is now a channel. Rewrite the file as `kind: Channel` and move `audience`, `allowed_origins` and `messages` from `spec` under `spec.web`. A file with no `metadata.name` edited the link named after its agent: give it `metadata.name: <the agent's slug>` so it still edits that link instead of creating another. Then apply it with `stigmer apply -f <file>`.",
   ],
   [
     "AgentChannel",
