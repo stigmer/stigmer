@@ -309,8 +309,8 @@ public enum IamPermission
   /**
    * <pre>
    * Whether the caller may read an organization's access history: its
-   * owners and administrators, and a parent organization's administrators
-   * for a child.
+   * owners and administrators, a parent organization's administrators
+   * included, since they are administrators in every child.
    * </pre>
    *
    * <code>can_view_access_history = 56;</code>
@@ -319,8 +319,9 @@ public enum IamPermission
   /**
    * <pre>
    * Whether the caller may mint a user token for an organization:
-   * TokenService.mintUserToken with org naming it. Its administrators, and
-   * a parent organization's administrators for a child.
+   * TokenService.mintUserToken with org naming it. Its administrators, a
+   * parent organization's administrators included, since they are
+   * administrators in every child.
    * </pre>
    *
    * <code>can_mint_user_tokens = 57;</code>
@@ -623,8 +624,8 @@ public enum IamPermission
   /**
    * <pre>
    * Whether the caller may read an organization's access history: its
-   * owners and administrators, and a parent organization's administrators
-   * for a child.
+   * owners and administrators, a parent organization's administrators
+   * included, since they are administrators in every child.
    * </pre>
    *
    * <code>can_view_access_history = 56;</code>
@@ -633,8 +634,9 @@ public enum IamPermission
   /**
    * <pre>
    * Whether the caller may mint a user token for an organization:
-   * TokenService.mintUserToken with org naming it. Its administrators, and
-   * a parent organization's administrators for a child.
+   * TokenService.mintUserToken with org naming it. Its administrators, a
+   * parent organization's administrators included, since they are
+   * administrators in every child.
    * </pre>
    *
    * <code>can_mint_user_tokens = 57;</code>

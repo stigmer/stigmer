@@ -5,8 +5,9 @@
  * Minting is one call on the ordinary client built with a service
  * account's API key, the way a payments or messaging platform lets a
  * backend act with its server key. The account must be an admin of the
- * organization the token is for, or of its parent organization; a
- * person's key is refused. Pass the returned `accessToken` to the React
+ * organization the token is for, or of its parent organization (a
+ * parent's admins are admins in each of its children); a person's key is
+ * refused. Pass the returned `accessToken` to the React
  * SDK's `StigmerProvider` through `getAccessToken`.
  *
  * The organization's embedding settings decide whether a first sign-in

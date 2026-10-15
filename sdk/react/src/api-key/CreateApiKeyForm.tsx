@@ -22,7 +22,7 @@ export interface CreateApiKeyFormProps {
   /**
    * The active organization's id (a slug is also accepted): the key's
    * `metadata.org`, and the organization **This organization only** limits
-   * the key to (`spec.bound_org`).
+   * the key to (`spec.bound_org`), together with its child organizations.
    */
   readonly org: string;
   /**
@@ -48,7 +48,8 @@ export interface CreateApiKeyFormProps {
  *
  * Collects a **name** (required), an **expiry** choice (30 / 60 /
  * 90 days or never) and **This organization only** (checked by default,
- * which limits the key to `org`: it is refused in every other organization;
+ * which limits the key to `org` and its child organizations, where it works
+ * as its owner would: it is refused in every other organization;
  * unchecked, the key works in every organization the owner's sign-in reaches),
  * then creates the key via {@link useCreateApiKey}.
  * On success it fires `onCreated` with the full {@link ApiKey}
@@ -170,7 +171,7 @@ export function CreateApiKeyForm({
             {limitWithoutOrg
               ? "Open an organization to limit the key to it, or clear the box."
               : thisOrgOnly
-                ? "The key works in this organization and is refused in every other one."
+                ? "The key works in this organization and its child organizations, and is refused in every other one."
                 : "The key works in every organization your sign-in reaches."}
           </p>
         </div>

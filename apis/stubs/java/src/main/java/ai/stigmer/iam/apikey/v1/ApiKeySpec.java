@@ -12,7 +12,8 @@ package ai.stigmer.iam.apikey.v1;
  * API keys provide programmatic access to the Stigmer API. Each key speaks for
  * the account it is for: the person who created it, or the organization's
  * service account an admin created it for. A key can have an optional
- * expiration time and may be limited to one organization (bound_org).
+ * expiration time and may be limited to one organization and its child
+ * organizations (bound_org).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.apikey.v1.ApiKeySpec}
@@ -215,16 +216,20 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object boundOrg_ = "";
   /**
    * <pre>
-   * The organization this key works in, by id or slug; the server stores the
-   * id. Empty means the key speaks for its owner in every organization they
-   * hold a role in.
+   * The organization this key is limited to, by id or slug; the server
+   * stores the id. Empty means the key speaks for its owner in every
+   * organization they hold a role in.
    *
-   * A limited key is refused in every other organization, whatever roles its
-   * owner holds there, and cannot create an organization or a key that is not
-   * limited to the same organization. Creating a key limited to an
-   * organization its owner cannot view is refused. A key created with a
-   * credential that is itself limited to one organization is limited to that
-   * organization: an empty value takes it, and any other value is refused.
+   * A limited key works in that organization and, when it is a parent, in
+   * each of its child organizations, exactly as its account would there
+   * (reads and writes, as the account's role allows); a key limited to a
+   * child reaches neither its parent nor another child. It is refused in
+   * every other organization, whatever roles its owner holds there, and
+   * cannot create an organization. Creating a key limited to an organization
+   * its owner cannot view is refused. A key created with a credential that
+   * is itself limited to one organization is limited to that organization
+   * or one of its child organizations: an empty value takes the
+   * credential's own, and any other value is refused.
    * </pre>
    *
    * <code>string bound_org = 5 [json_name = "boundOrg", (.buf.validate.field) = { ... }</code>
@@ -245,16 +250,20 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The organization this key works in, by id or slug; the server stores the
-   * id. Empty means the key speaks for its owner in every organization they
-   * hold a role in.
+   * The organization this key is limited to, by id or slug; the server
+   * stores the id. Empty means the key speaks for its owner in every
+   * organization they hold a role in.
    *
-   * A limited key is refused in every other organization, whatever roles its
-   * owner holds there, and cannot create an organization or a key that is not
-   * limited to the same organization. Creating a key limited to an
-   * organization its owner cannot view is refused. A key created with a
-   * credential that is itself limited to one organization is limited to that
-   * organization: an empty value takes it, and any other value is refused.
+   * A limited key works in that organization and, when it is a parent, in
+   * each of its child organizations, exactly as its account would there
+   * (reads and writes, as the account's role allows); a key limited to a
+   * child reaches neither its parent nor another child. It is refused in
+   * every other organization, whatever roles its owner holds there, and
+   * cannot create an organization. Creating a key limited to an organization
+   * its owner cannot view is refused. A key created with a credential that
+   * is itself limited to one organization is limited to that organization
+   * or one of its child organizations: an empty value takes the
+   * credential's own, and any other value is refused.
    * </pre>
    *
    * <code>string bound_org = 5 [json_name = "boundOrg", (.buf.validate.field) = { ... }</code>
@@ -486,7 +495,8 @@ private static final long serialVersionUID = 0L;
    * API keys provide programmatic access to the Stigmer API. Each key speaks for
    * the account it is for: the person who created it, or the organization's
    * service account an admin created it for. A key can have an optional
-   * expiration time and may be limited to one organization (bound_org).
+   * expiration time and may be limited to one organization and its child
+   * organizations (bound_org).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.apikey.v1.ApiKeySpec}
@@ -1088,16 +1098,20 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object boundOrg_ = "";
     /**
      * <pre>
-     * The organization this key works in, by id or slug; the server stores the
-     * id. Empty means the key speaks for its owner in every organization they
-     * hold a role in.
+     * The organization this key is limited to, by id or slug; the server
+     * stores the id. Empty means the key speaks for its owner in every
+     * organization they hold a role in.
      *
-     * A limited key is refused in every other organization, whatever roles its
-     * owner holds there, and cannot create an organization or a key that is not
-     * limited to the same organization. Creating a key limited to an
-     * organization its owner cannot view is refused. A key created with a
-     * credential that is itself limited to one organization is limited to that
-     * organization: an empty value takes it, and any other value is refused.
+     * A limited key works in that organization and, when it is a parent, in
+     * each of its child organizations, exactly as its account would there
+     * (reads and writes, as the account's role allows); a key limited to a
+     * child reaches neither its parent nor another child. It is refused in
+     * every other organization, whatever roles its owner holds there, and
+     * cannot create an organization. Creating a key limited to an organization
+     * its owner cannot view is refused. A key created with a credential that
+     * is itself limited to one organization is limited to that organization
+     * or one of its child organizations: an empty value takes the
+     * credential's own, and any other value is refused.
      * </pre>
      *
      * <code>string bound_org = 5 [json_name = "boundOrg", (.buf.validate.field) = { ... }</code>
@@ -1117,16 +1131,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The organization this key works in, by id or slug; the server stores the
-     * id. Empty means the key speaks for its owner in every organization they
-     * hold a role in.
+     * The organization this key is limited to, by id or slug; the server
+     * stores the id. Empty means the key speaks for its owner in every
+     * organization they hold a role in.
      *
-     * A limited key is refused in every other organization, whatever roles its
-     * owner holds there, and cannot create an organization or a key that is not
-     * limited to the same organization. Creating a key limited to an
-     * organization its owner cannot view is refused. A key created with a
-     * credential that is itself limited to one organization is limited to that
-     * organization: an empty value takes it, and any other value is refused.
+     * A limited key works in that organization and, when it is a parent, in
+     * each of its child organizations, exactly as its account would there
+     * (reads and writes, as the account's role allows); a key limited to a
+     * child reaches neither its parent nor another child. It is refused in
+     * every other organization, whatever roles its owner holds there, and
+     * cannot create an organization. Creating a key limited to an organization
+     * its owner cannot view is refused. A key created with a credential that
+     * is itself limited to one organization is limited to that organization
+     * or one of its child organizations: an empty value takes the
+     * credential's own, and any other value is refused.
      * </pre>
      *
      * <code>string bound_org = 5 [json_name = "boundOrg", (.buf.validate.field) = { ... }</code>
@@ -1147,16 +1165,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The organization this key works in, by id or slug; the server stores the
-     * id. Empty means the key speaks for its owner in every organization they
-     * hold a role in.
+     * The organization this key is limited to, by id or slug; the server
+     * stores the id. Empty means the key speaks for its owner in every
+     * organization they hold a role in.
      *
-     * A limited key is refused in every other organization, whatever roles its
-     * owner holds there, and cannot create an organization or a key that is not
-     * limited to the same organization. Creating a key limited to an
-     * organization its owner cannot view is refused. A key created with a
-     * credential that is itself limited to one organization is limited to that
-     * organization: an empty value takes it, and any other value is refused.
+     * A limited key works in that organization and, when it is a parent, in
+     * each of its child organizations, exactly as its account would there
+     * (reads and writes, as the account's role allows); a key limited to a
+     * child reaches neither its parent nor another child. It is refused in
+     * every other organization, whatever roles its owner holds there, and
+     * cannot create an organization. Creating a key limited to an organization
+     * its owner cannot view is refused. A key created with a credential that
+     * is itself limited to one organization is limited to that organization
+     * or one of its child organizations: an empty value takes the
+     * credential's own, and any other value is refused.
      * </pre>
      *
      * <code>string bound_org = 5 [json_name = "boundOrg", (.buf.validate.field) = { ... }</code>
@@ -1173,16 +1195,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The organization this key works in, by id or slug; the server stores the
-     * id. Empty means the key speaks for its owner in every organization they
-     * hold a role in.
+     * The organization this key is limited to, by id or slug; the server
+     * stores the id. Empty means the key speaks for its owner in every
+     * organization they hold a role in.
      *
-     * A limited key is refused in every other organization, whatever roles its
-     * owner holds there, and cannot create an organization or a key that is not
-     * limited to the same organization. Creating a key limited to an
-     * organization its owner cannot view is refused. A key created with a
-     * credential that is itself limited to one organization is limited to that
-     * organization: an empty value takes it, and any other value is refused.
+     * A limited key works in that organization and, when it is a parent, in
+     * each of its child organizations, exactly as its account would there
+     * (reads and writes, as the account's role allows); a key limited to a
+     * child reaches neither its parent nor another child. It is refused in
+     * every other organization, whatever roles its owner holds there, and
+     * cannot create an organization. Creating a key limited to an organization
+     * its owner cannot view is refused. A key created with a credential that
+     * is itself limited to one organization is limited to that organization
+     * or one of its child organizations: an empty value takes the
+     * credential's own, and any other value is refused.
      * </pre>
      *
      * <code>string bound_org = 5 [json_name = "boundOrg", (.buf.validate.field) = { ... }</code>
@@ -1196,16 +1222,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The organization this key works in, by id or slug; the server stores the
-     * id. Empty means the key speaks for its owner in every organization they
-     * hold a role in.
+     * The organization this key is limited to, by id or slug; the server
+     * stores the id. Empty means the key speaks for its owner in every
+     * organization they hold a role in.
      *
-     * A limited key is refused in every other organization, whatever roles its
-     * owner holds there, and cannot create an organization or a key that is not
-     * limited to the same organization. Creating a key limited to an
-     * organization its owner cannot view is refused. A key created with a
-     * credential that is itself limited to one organization is limited to that
-     * organization: an empty value takes it, and any other value is refused.
+     * A limited key works in that organization and, when it is a parent, in
+     * each of its child organizations, exactly as its account would there
+     * (reads and writes, as the account's role allows); a key limited to a
+     * child reaches neither its parent nor another child. It is refused in
+     * every other organization, whatever roles its owner holds there, and
+     * cannot create an organization. Creating a key limited to an organization
+     * its owner cannot view is refused. A key created with a credential that
+     * is itself limited to one organization is limited to that organization
+     * or one of its child organizations: an empty value takes the
+     * credential's own, and any other value is refused.
      * </pre>
      *
      * <code>string bound_org = 5 [json_name = "boundOrg", (.buf.validate.field) = { ... }</code>

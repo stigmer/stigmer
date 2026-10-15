@@ -1,8 +1,8 @@
 ---
 title: Child organizations
 description:
-  Give each of your customers an isolated Organization under yours, manage it
-  from your Organization, and route your customers' sign-ins to it.
+  Give each of your customers an isolated Organization under yours, administer
+  it from your Organization, and route your customers' sign-ins to it.
 ---
 
 If your platform serves several customers, and each customer needs its own
@@ -26,8 +26,8 @@ or a backend that
 - give each of your customers its own Agents, Skills, Plugins and Sessions
 - mirror your platform's customers in Stigmer, one Organization each, and find
   each by your own customer id
-- manage those Organizations from your own (their settings, members and access)
-  and see their billing
+- administer those Organizations from your own, as their admins (their Agents,
+  Skills, settings, members and access), and see their billing
 - share a catalog of Agents, Skills and Plugins with every customer, including
   customers you add later
 
@@ -36,8 +36,8 @@ or a backend that
 - A **Stigmer Organization** of your own, the parent (for example, `acme`)
 - An **API key** of an admin of that Organization. A key
   [limited to the Organization](/docs/guides/authentication/overview) works too:
-  a key limited to the parent creates and manages its children, and reads none
-  of what they hold.
+  a key limited to the parent creates its children and works in each of them as
+  the account behind it would.
 - For sign-in through your own auth provider, a **registered Federation Issuer**
   in the parent (see
   [Register a Federation Issuer](/docs/guides/authentication/federation/register-federation-issuer))
@@ -171,8 +171,8 @@ spec:
   external_id: cust-4411
 ```
 
-Nobody owns a new child organization. Your Organization's admins manage it, and
-grant its people their roles, as the next sections show.
+Nobody owns a new child organization. Your Organization's admins are its admins,
+and grant its people their roles, as the next sections show.
 
 | Error                         | When                                                                                    |
 | ----------------------------- | --------------------------------------------------------------------------------------- |
@@ -186,27 +186,35 @@ grant its people their roles, as the next sections show.
   keeps the stored values whatever the request carries.
 </Callout>
 
-## What your Organization's admins can do in a child
+## What your admins can do in a customer's organization
 
-Your Organization's admins **manage** every child, and read **nothing** a child
-holds:
+Your Organization's admins are **admins in every child**, with no joining step.
+They can do everything a child's own admins can:
 
-| They can                                                  | They cannot                                    |
-| --------------------------------------------------------- | ---------------------------------------------- |
-| See the child's name, slug and settings, and change them  | See the child's Agents, Sessions, Vaults, etc. |
-| Rename the child, or delete it                            | Read the child's usage reports or lists        |
-| See and manage the child's members, roles and invitations | Run anything in the child                      |
-| See the child's billing                                   |                                                |
+- Read and change the child's Agents, Skills, Plugins, shared Vaults, eval runs
+  and teams
+- Change the child's name, settings, Federation Issuers and sign-in settings
+- Grant and remove access: the child's members, roles and invitations
+- See the child's billing and its full
+  [access history](/docs/guides/authentication/access-history)
+
+They also delete the child, and make someone its owner.
+
+A few things stay private from every admin, yours included, because they belong
+to one person rather than to the Organization: a person's conversations
+(Sessions), their My vault and their remembered facts (Memories). To read one
+person's conversation, mint that person's
+[user token](#without-a-federation-issuer-minted-user-tokens) and read it as
+them.
+
+A key limited to your Organization, or its service account's key, works in each
+child exactly as the account behind it would: an admin service account acts as
+an admin in each child, a viewer service account only reads. A key limited to
+one child never reaches your Organization or another child.
 
 A member of your Organization who is not an admin has none of these rights over
-a child.
-
-To look inside a child, for support for example, an admin of your Organization
-**adds themselves as a member** of the child, through the child's ordinary
-members screen or a Grant. The child's member list and access history show who
-joined and when, every act inside is attributed to that person, and the child's
-own admins can remove them. This is how GitHub Enterprise owners reach an
-organization's repositories: by joining it, visibly.
+a child, and the people of one child never see anything another child holds.
+Stripe's connected accounts and Twilio's subaccounts work the same way.
 
 ## Find a child by your customer id
 
@@ -441,7 +449,7 @@ const { accessToken } = await stigmer.tokens.mintUserToken({
 ```
 
 `org` may name the service account's own Organization or one of its children: an
-admin of the parent is an administrator of its children too. Anything else is
+admin of the parent is an admin in each of its children. Anything else is
 refused with `PERMISSION_DENIED`. The token works in that child only. Accounts
 are per child: the same `userId` minted into two children is two accounts, each
 created at its first mint into that child, where it receives the sign-in role in

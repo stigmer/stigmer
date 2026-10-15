@@ -59,7 +59,7 @@ Key points:
 - `parent_org` names the parent by slug or id; the server stores its id. The parent may not itself be a child.
 - `external_id` is the parent's own identifier for the child, unique among the parent's children. The parent finds the child with `getByExternalId`, and a sign-in through the parent's identity provider whose `external_id_claim` carries `cust-4411` lands in this organization.
 - Both are fixed at creation: an update or apply keeps the stored values.
-- Nobody owns the new organization: the parent's admins manage it and grant its first members and owner.
+- Nobody owns the new organization: the parent's admins are its admins and grant its first members and owner.
 
 ## Organization with Labels for Environment Segregation
 

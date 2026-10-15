@@ -23,8 +23,10 @@ Federation supports two provisioning modes:
   that need to control exactly who gets access and when.
 
 Whichever mode you choose, every token a Federation Issuer vouches for is bound
-to one Organization and works there only: the Federation Issuer's own
-Organization, or the child organization an `externalIdClaim` claim names.
+to one Organization: the Federation Issuer's own Organization, where it also
+reaches that Organization's children as the user's role allows, or the child
+organization an `externalIdClaim` claim names, where it works in that child
+only.
 
 ## When you need this
 
@@ -171,8 +173,8 @@ works in that child only.
     href="/docs/guides/authentication/federation/child-organizations"
     title="Child organizations"
   >
-    Create a child organization for each of your customers, manage it from your
-    Organization without reading what it holds, and route your customers'
-    sign-ins to it.
+    Create a child organization for each of your customers, administer it from
+    your Organization as one of its admins, and route your customers' sign-ins
+    to it.
   </Card>
 </Cards>

@@ -26,8 +26,8 @@ An organization may name a parent organization in `spec.parent_org`: it is then 
 
 | Who | What they can do in a child organization |
 |---|---|
-| The parent's admins | Manage it: rename it, edit its settings, manage its members and access, see its bill, delete it. They read none of its agents, sessions or files. To look inside, one adds themselves as a member, which the child's member list and access history show. |
-| The child's own members | Everything their role in the child allows, plus read and run what the parent shares with its child organizations (`visibility_child_orgs`). |
+| The parent's admins | Everything the child's own admins can, with no joining step: read and change its agents, skills, plugins, shared vaults, eval runs, teams and sign-in settings, grant access, see its bill and full access history; also rename it, delete it and make someone its owner. A person's sessions, My vault and memories stay private from every admin, the parent's included. |
+| The child's own members | Everything their role in the child allows, plus read and run what the parent shares with its child organizations (`visibility_child_orgs`). They see nothing a sibling child holds. |
 
 A child has no creator owner: the parent's admins grant its first members and its owner. A parent that still has children cannot be deleted. The parent finds a child by its external id (`getByExternalId`) and lists its children (`listChildOrgs`); a sign-in through the parent's identity provider whose `external_id_claim` carries a child's external id lands in that child.
 

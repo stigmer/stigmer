@@ -12,9 +12,10 @@ Read your Organization's access history, and export it as JSON Lines.
 
 The access history records every time someone was given or lost access to your
 Organization or anything in it: who made the change, why, and when. Only the
-Organization's owners and admins read it, and a parent Organization's admins for
-a child. Stigmer Enterprise and Stigmer Cloud keep it; an open-source server
-keeps none and says so. The commands act in the Organization `--org` names, then
+Organization's owners and admins read it, and each of them reads all of it; a
+parent Organization's admins are admins in each child, so they read a child's
+too. Stigmer Enterprise and Stigmer Cloud keep it; an open-source server keeps
+none and says so. The commands act in the Organization `--org` names, then
 `STIGMER_ORG`, then your context.
 
 ## Usage

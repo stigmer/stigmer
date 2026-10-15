@@ -338,8 +338,8 @@ public final class OrganizationCommandControllerGrpc {
      * needs can_manage_child_orgs on the parent; a parent the caller may not
      * manage is refused as if it did not exist (PERMISSION_DENIED either
      * way). An external_id another child of the same parent holds is refused
-     * with ALREADY_EXISTS. Nobody owns a new child: the parent's admins
-     * manage it, and grant its first members and owner. A parent that is
+     * with ALREADY_EXISTS. Nobody owns a new child: the parent's admins are
+     * its admins, and grant its first members and owner. A parent that is
      * itself a child is refused with FAILED_PRECONDITION carrying a
      * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
      *   - ORGANIZATION_PARENT_IS_CHILD — child organizations are one level
@@ -564,8 +564,8 @@ public final class OrganizationCommandControllerGrpc {
      * needs can_manage_child_orgs on the parent; a parent the caller may not
      * manage is refused as if it did not exist (PERMISSION_DENIED either
      * way). An external_id another child of the same parent holds is refused
-     * with ALREADY_EXISTS. Nobody owns a new child: the parent's admins
-     * manage it, and grant its first members and owner. A parent that is
+     * with ALREADY_EXISTS. Nobody owns a new child: the parent's admins are
+     * its admins, and grant its first members and owner. A parent that is
      * itself a child is refused with FAILED_PRECONDITION carrying a
      * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
      *   - ORGANIZATION_PARENT_IS_CHILD — child organizations are one level
@@ -781,8 +781,8 @@ public final class OrganizationCommandControllerGrpc {
      * needs can_manage_child_orgs on the parent; a parent the caller may not
      * manage is refused as if it did not exist (PERMISSION_DENIED either
      * way). An external_id another child of the same parent holds is refused
-     * with ALREADY_EXISTS. Nobody owns a new child: the parent's admins
-     * manage it, and grant its first members and owner. A parent that is
+     * with ALREADY_EXISTS. Nobody owns a new child: the parent's admins are
+     * its admins, and grant its first members and owner. A parent that is
      * itself a child is refused with FAILED_PRECONDITION carrying a
      * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
      *   - ORGANIZATION_PARENT_IS_CHILD — child organizations are one level
@@ -992,8 +992,8 @@ public final class OrganizationCommandControllerGrpc {
      * needs can_manage_child_orgs on the parent; a parent the caller may not
      * manage is refused as if it did not exist (PERMISSION_DENIED either
      * way). An external_id another child of the same parent holds is refused
-     * with ALREADY_EXISTS. Nobody owns a new child: the parent's admins
-     * manage it, and grant its first members and owner. A parent that is
+     * with ALREADY_EXISTS. Nobody owns a new child: the parent's admins are
+     * its admins, and grant its first members and owner. A parent that is
      * itself a child is refused with FAILED_PRECONDITION carrying a
      * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
      *   - ORGANIZATION_PARENT_IS_CHILD — child organizations are one level
@@ -1204,8 +1204,8 @@ public final class OrganizationCommandControllerGrpc {
      * needs can_manage_child_orgs on the parent; a parent the caller may not
      * manage is refused as if it did not exist (PERMISSION_DENIED either
      * way). An external_id another child of the same parent holds is refused
-     * with ALREADY_EXISTS. Nobody owns a new child: the parent's admins
-     * manage it, and grant its first members and owner. A parent that is
+     * with ALREADY_EXISTS. Nobody owns a new child: the parent's admins are
+     * its admins, and grant its first members and owner. A parent that is
      * itself a child is refused with FAILED_PRECONDITION carrying a
      * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
      *   - ORGANIZATION_PARENT_IS_CHILD — child organizations are one level

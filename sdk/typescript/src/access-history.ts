@@ -17,9 +17,8 @@
  * server keeps the history (`retentionDays`, 0 for good). When a tool asks
  * after N and the oldest kept entry is above N + 1, the entries between
  * were removed, not missed: `onRemoved` hears that once, before the first
- * entry, so a tool can record the run it will never receive. Any other gap
- * in the numbers is a parent organization's administrator not being shown
- * the entries about a child's resources.
+ * entry, so a tool can record the run it will never receive. Whoever may
+ * read the history reads all of it, so the numbers have no other gaps.
  *
  * One format for every surface (the CLI's `access-history export`, the
  * console's download): JSON Lines, one entry per line, each line the

@@ -4,7 +4,8 @@
 // Minting is one call on the ordinary client built with a service account's
 // API key (NewClient with WithAPIKey); there is no separate credential pair.
 // The account must be an admin of the organization the token is for, or of
-// its parent organization; a person's key is refused. Pass the returned
+// its parent organization (a parent's admins are admins in each of its
+// children); a person's key is refused. Pass the returned
 // AccessToken to the React SDK's StigmerProvider through getAccessToken.
 //
 // Org and UserID are checked here before any request, so a missing value

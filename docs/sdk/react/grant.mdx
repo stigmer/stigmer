@@ -14,8 +14,9 @@ Data hook that pages an organization's access history through
 someone was given or lost access, who did it, why and when.
 
 The server answers only the organization's owners and administrators,
-and a parent organization's administrators for a child
-(`can_view_access_history`); gate the hook on that permission and pass
+a parent organization's administrators included, since they are
+administrators in every child (`can_view_access_history`), and each of
+them reads all of it; gate the hook on that permission and pass
 `null` otherwise, which keeps it idle. An open-source server keeps no
 history and answers UNIMPLEMENTED.
 
