@@ -8,8 +8,10 @@
  * parent; organizations are the directory's ids; sessions and runs ride
  * the enumeration; where the directory cannot name the caller's
  * organizations, every kind rides the enumeration; a row that will not
- * decode is skipped and logged; the server itself and a scope-less
- * composition are unscoped; and a scope fault is the sanitized Internal. The scope and the directory are recording fakes and the rows
+ * decode is skipped and logged; a listed organization whose row is gone
+ * adds no parent; the server itself and a scope-less composition are
+ * unscoped; and a scope, directory or row-read fault is the sanitized
+ * Internal, its cause logged. The scope and the directory are recording fakes and the rows
  * are a real store's, so the pins are about the handler's reads, not a
  * driver's answers (authorization/__tests__/ holds those).
  */
@@ -411,6 +413,66 @@ describe("search allowlists by each kind's reach", () => {
       directory: directoryOf([OWN]),
     }).handle(create(SearchRequestSchema, {}), PERSON);
     expect(scopeless.maps).toEqual([undefined]);
+  });
+
+  it("adds no parent for a listed organization whose row is gone", async () => {
+    const store = capturingStore();
+    const recorded = newRecorded();
+    await handlerOver({
+      store,
+      scope: recordingScope(recorded),
+      directory: directoryOf(["org-gone", OWN]),
+    }).handle(create(SearchRequestSchema, { kinds: [ApiResourceKind.agent] }), PERSON);
+
+    expect(recorded.offered.get("agent")).toEqual([[`agent-${OWN}`]]);
+  });
+
+  it.each([
+    [
+      "a directory fault",
+      {
+        directory: {
+          listMyOrganizationIds: () => Promise.reject(new Error("directory down")),
+        } satisfies OrganizationDirectory,
+        rows: undefined,
+      },
+    ],
+    [
+      "a row-read fault",
+      {
+        directory: directoryOf([OWN]),
+        rows: {
+          queryResources: () => Promise.reject(new Error("store down")),
+          getResource: () => Promise.reject(new Error("store down")),
+        },
+      },
+    ],
+  ])("answers %s as the sanitized Internal, logging its cause", async (_case, faults) => {
+    const logged: string[] = [];
+    const store = capturingStore();
+    let caught: unknown;
+    try {
+      await new SearchHandler({
+        store,
+        rows: faults.rows ?? temp.store,
+        organizationDirectory: faults.directory,
+        listReadScope: recordingScope(newRecorded()),
+        logger: createLogger({
+          level: "error",
+          pretty: false,
+          write: (line) => {
+            logged.push(line);
+          },
+        }),
+      }).handle(create(SearchRequestSchema, { kinds: [ApiResourceKind.agent] }), PERSON);
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(ConnectError);
+    expect((caught as ConnectError).code).toBe(Code.Internal);
+    expect(logged.join("\n")).toMatch(/directory down|store down/);
+    expect(store.maps).toEqual([]);
   });
 
   it("answers a scope fault as the sanitized Internal, never an unscoped search", async () => {

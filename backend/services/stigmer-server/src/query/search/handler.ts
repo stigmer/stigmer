@@ -152,6 +152,12 @@ export class SearchHandler {
     try {
       authorizedIdsByKind = await this.authorizedIdsByKind(criteria, identity);
     } catch (error) {
+      // The cause is logged here: the controller logs only the message,
+      // and the wire answer stays the sanitized Internal whatever the
+      // cause's text says.
+      this.deps.logger.error("Search candidates failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
       throw internalError(error, "search candidates failed");
     }
 
