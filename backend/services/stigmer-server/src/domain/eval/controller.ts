@@ -154,6 +154,7 @@ import {
   EVAL_CASE_OTHER_ORGANIZATION,
   EVAL_CASE_RUN_DENIED,
   EVAL_NOUN,
+  EVAL_PUSH_DENIED,
   EVAL_TRANSFER_LANE_NOT_CONFIGURED,
   evalCaseExistsMessage,
   evalCaseReservedNameMessage,
@@ -360,10 +361,18 @@ async function addCaseFromRun(deps: EvalControllerDeps, req: AddEvalCaseFromRunR
   if (ref.org !== "" && ref.org !== runOrg) {
     throw failedPreconditionError(EVAL_CASE_OTHER_ORGANIZATION);
   }
-  const target = await evalOfOrganization(deps, ref, runOrg);
+  const target = await evalOfOrganization(deps, caller, ref, runOrg);
   const built = await buildCaseFromRun(deps.store, deps.logger, { run, caseName: req.caseName, skill: req.skill, callerId: caller.identityId });
   return runGuardedWrite(async () => {
     const head = await evalOrNotFound(deps, target.metadata?.id ?? "");
+    // The push's own question, asked before a byte of the eval is read: a
+    // caller who may not edit it learns nothing of what it holds.
+    await authorizeResolvedResource(
+      deps.authorizer,
+      caller,
+      { permission: IamPermission.can_edit, resourceKind: ApiResourceKind.eval, resourceId: head.metadata?.id ?? "" },
+      EVAL_PUSH_DENIED,
+    );
     const digest = head.status?.digest ?? "";
     const slug = head.metadata?.slug ?? "";
     let bytes: Uint8Array;
@@ -442,19 +451,34 @@ async function viewableEndedRun(deps: EvalControllerDeps, caller: CallerIdentity
 /**
  * The eval the reference names in the run's organization: by slug there,
  * or by id when it is one of that organization's. An eval of another
- * organization named by id reads as one that is not there.
+ * organization named by id reads as one that is not there. One that is not
+ * there is refused as a push naming it would be: a caller who may not
+ * create evals in the organization hears the push's refusal, whether the
+ * eval exists or not; only one who may create them hears it is not there,
+ * which their push would show them by creating it.
  */
-async function evalOfOrganization(deps: EvalControllerDeps, ref: ApiResourceReference, org: string): Promise<Eval> {
+async function evalOfOrganization(
+  deps: EvalControllerDeps,
+  caller: CallerIdentity,
+  ref: ApiResourceReference,
+  org: string,
+): Promise<Eval> {
   const name = ref.slug !== "" ? ref.slug : ref.id;
   try {
     // The ladder's read by id holds the eval to the organization given.
     return await loadByReferenceWithVersion(deps.store, evalVersionBinding, { ...ref, org, version: "" });
   } catch (error) {
-    if (error instanceof ConnectError && error.code === Code.NotFound) {
-      throw notFoundError("eval", name);
+    if (!(error instanceof ConnectError && error.code === Code.NotFound)) {
+      throw error;
     }
-    throw error;
   }
+  await authorizeResolvedResource(
+    deps.authorizer,
+    caller,
+    { permission: IamPermission.can_create_eval, resourceKind: ApiResourceKind.organization, resourceId: org },
+    EVAL_PUSH_DENIED,
+  );
+  throw notFoundError("eval", name);
 }
 
 /** The eval's current row by id; NotFound once it is gone. */

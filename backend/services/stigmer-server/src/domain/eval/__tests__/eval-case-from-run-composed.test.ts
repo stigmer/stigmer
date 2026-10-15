@@ -15,7 +15,11 @@
  *   - a turn that has not ended, a run that is not there, and a case name
  *     an eval's root keeps for itself are refused, building or adding;
  *   - Dave may not build from Carol's private conversation, nor add his own
- *     turn to Carol's eval, whose edit he does not hold;
+ *     turn to Carol's eval, whose edit he does not hold; naming her private
+ *     eval, a case name it holds and one it does not get him the one
+ *     refusal a push gets, before its archive is read; and once members may
+ *     not create evals, a slug nothing holds gets him that refusal too, as
+ *     a push to it would;
  *   - an eval named in another organization is refused before it is read,
  *     one of another organization named by id reads as not there, and so
  *     does a slug nothing holds;
@@ -48,6 +52,7 @@ import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 
@@ -249,6 +254,39 @@ describe("an eval case from a run (built-in posture, composed server)", () => {
     const ontoHers = await failureOf(createClient(EvalCommandController, asDave()).addCaseFromRun({ runId: davesTurn, eval: { slug: "carols-guarded" } }));
     expect(ontoHers.code).toBe(Code.PermissionDenied);
     expect(ontoHers.rawMessage).toBe(EVAL_PUSH_DENIED);
+  });
+
+  it("refuses Dave an eval he may not edit before its archive is read, whatever case name he names", async () => {
+    const davesTurn = await seedConversation("ses_daves_probe", daveId);
+    const hidden = await carolEvals().push({
+      org: ORG,
+      slug: "carols-hidden",
+      artifact: folder("first"),
+      visibility: ApiResourceVisibility.visibility_private,
+    });
+    // With the archive gone, any read of it would answer otherwise.
+    const archive = `${hidden.status?.digest ?? ""}.zip`;
+    const removeArchive = (at: string): void => {
+      for (const entry of readdirSync(at, { withFileTypes: true })) {
+        const full = path.join(at, entry.name);
+        if (entry.isDirectory()) removeArchive(full);
+        else if (entry.name === archive) rmSync(full);
+      }
+    };
+    removeArchive(dir);
+    const dave = createClient(EvalCommandController, asDave());
+    for (const caseName of ["first", "a-new-one"]) {
+      const refused = await failureOf(dave.addCaseFromRun({ runId: davesTurn, eval: { slug: "carols-hidden" }, caseName }));
+      expect([refused.code, refused.rawMessage]).toEqual([Code.PermissionDenied, EVAL_PUSH_DENIED]);
+    }
+
+    await createClient(OrganizationCommandController, asCarol()).updatePolicies({ orgId, policies: { membersCanCreateAgents: false } });
+    try {
+      const nothing = await failureOf(dave.addCaseFromRun({ runId: davesTurn, eval: { slug: "nothing-holds-this" } }));
+      expect([nothing.code, nothing.rawMessage]).toEqual([Code.PermissionDenied, EVAL_PUSH_DENIED]);
+    } finally {
+      await createClient(OrganizationCommandController, asCarol()).updatePolicies({ orgId, policies: { membersCanCreateAgents: true } });
+    }
   });
 
   it("refuses an eval of another organization, and reads one named there by id, or a slug nothing holds, as not there", async () => {
