@@ -58,6 +58,14 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.agentshare.v1.SharedAgentProfile.agent_ref` | stamped reference |
 | `ai.stigmer.agentic.agentshare.v1.SharedAgentProfile.slug` | not a resource: the share's own name, beside its org |
 
+## `ai.stigmer.agentic.eval.v1`
+
+| Field | Class |
+|---|---|
+| `ai.stigmer.agentic.eval.v1.CreateEvalArtifactUploadUrlRequest.slug` | request reference |
+| `ai.stigmer.agentic.eval.v1.ListEvalVersionsInput.slug` | request reference |
+| `ai.stigmer.agentic.eval.v1.PushEvalRequest.slug` | request reference |
+
 ## `ai.stigmer.agentic.evalrun.v1`
 
 | Field | Class |

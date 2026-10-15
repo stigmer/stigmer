@@ -57,6 +57,8 @@ Rows read `| \`package.Service.method\` | class |`.
 | `ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.list` | paged |
 | `ai.stigmer.agentic.agentshare.v1.AgentShareQueryController.listByAgent` | paged |
 | `ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.list` | paged |
+| `ai.stigmer.agentic.eval.v1.EvalQueryController.list` | paged |
+| `ai.stigmer.agentic.eval.v1.EvalQueryController.listVersions` | paged |
 | `ai.stigmer.agentic.evalrun.v1.EvalRunQueryController.listByAgent` | paged |
 | `ai.stigmer.agentic.evalrun.v1.EvalRunQueryController.listByPlugin` | paged |
 | `ai.stigmer.agentic.memory.v1.MemoryQueryController.list` | paged |

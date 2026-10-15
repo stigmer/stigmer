@@ -1498,6 +1498,38 @@ the monthly spending limit, and the judge's model.
 
 ---
 
+#### Eval
+
+A set of test cases for an Agent: an `evals/` folder in Claude Code's
+plugin-eval format, pushed whole and kept with every version. Pushing the same
+folder again changes nothing; a changed folder is a new version, reachable by
+its digest or by a tag. Running an eval on an Agent is coming; until then an
+eval is stored, versioned, read and downloaded.
+
+- **User-facing alternative**: "eval" in prose ("push the eval", "the support
+  agent's evals"); its contents are "test cases". Never "eval suite" for the
+  resource.
+- **Capitalize**: As the resource name in labels and reference pages
+  (`kind: Eval`, display name "Eval"). In prose say "eval" in lower case.
+- **API surface**: `kind: Eval`, prefix `evs`. proto:
+  `agentic/eval/v1/spec.proto`. Pushed as a folder; there is no `apply` and no
+  manifest. Visible to its whole organization by default, or private to its
+  owner. CLI:
+
+  ```bash
+  stigmer push eval <folder> --name <slug> [--tag <tag>] [-m <message>]
+  stigmer get eval <slug>
+  stigmer list evals
+  stigmer download eval <slug>[@<digest|tag>] [-o <dir>]
+  stigmer delete eval <slug>
+  ```
+
+- **Key fields**: `spec.tag` (the tag the current version holds), and the
+  status's `digest`, `case_count`, `cases`, `findings` (cases that do not load)
+  and `mock_servers` (the servers its mocks stand in for).
+
+---
+
 #### Eval Run
 
 One run of test cases: on an Agent, the cases of the plugins it uses, tried

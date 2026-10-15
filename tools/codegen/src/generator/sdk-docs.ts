@@ -1347,14 +1347,48 @@ export function docSlug(protoResType: string): string {
   return docDisplayName(protoResType).replaceAll(" ", "-").toLowerCase();
 }
 
-function docVarName(typeName: string): string {
+/**
+ * Names a JavaScript module may not bind: `eval` and `arguments`, and the
+ * reserved words. A kind's name, lower-cased, can be one (Eval is), and an
+ * example that declares `const eval = ...` is a syntax error in every
+ * module, so such a name takes a suffix.
+ */
+const JS_UNBINDABLE_NAMES: ReadonlySet<string> = new Set([
+  "arguments", "await", "break", "case", "catch", "class", "const", "continue",
+  "debugger", "default", "delete", "do", "else", "enum", "eval", "export",
+  "extends", "false", "finally", "for", "function", "if", "implements",
+  "import", "in", "instanceof", "interface", "let", "new", "null", "package",
+  "private", "protected", "public", "return", "static", "super", "switch",
+  "this", "throw", "true", "try", "typeof", "var", "void", "while", "with",
+  "yield",
+]);
+
+/**
+ * Names a Python example must not bind: the keywords, which it cannot, and
+ * the builtins a reader's later line may still call (`eval`, `type`, `id`,
+ * `list`), which it would shadow.
+ */
+const PY_UNBINDABLE_NAMES: ReadonlySet<string> = new Set([
+  "and", "as", "assert", "async", "await", "break", "class", "continue", "def",
+  "del", "elif", "else", "except", "finally", "for", "from", "global", "if",
+  "import", "in", "is", "lambda", "nonlocal", "not", "or", "pass", "raise",
+  "return", "try", "while", "with", "yield", "dict", "eval", "exec", "filter",
+  "format", "hash", "id", "input", "iter", "list", "map", "next", "object",
+  "open", "print", "range", "set", "slice", "str", "sum", "type", "vars", "zip",
+]);
+
+/** The variable a TypeScript example binds a value of `typeName` to. */
+export function docVarName(typeName: string): string {
   if (typeName === "" || typeName.endsWith("List")) return "result";
-  return typeName.slice(0, 1).toLowerCase() + typeName.slice(1);
+  const name = typeName.slice(0, 1).toLowerCase() + typeName.slice(1);
+  return JS_UNBINDABLE_NAMES.has(name) ? `${name}Resource` : name;
 }
 
-function docPyVarName(typeName: string): string {
+/** The variable a Python example binds a value of `typeName` to. */
+export function docPyVarName(typeName: string): string {
   if (typeName === "" || typeName.endsWith("List")) return "result";
-  return pascalToSnake(typeName);
+  const name = pascalToSnake(typeName);
+  return PY_UNBINDABLE_NAMES.has(name) ? `${name}_resource` : name;
 }
 
 function docExampleID(idPrefix: string): string {

@@ -57,6 +57,7 @@ const PINNED: Readonly<
     revision: 1,
     fingerprint: "evaluator{agent=field:spec.agent_id}",
   },
+  eval: { revision: 1, fingerprint: "eval{}" },
   eval_run: {
     revision: 1,
     fingerprint: "eval_run{agent=field:spec.agent_id,plugin=field:spec.plugin_id}",
