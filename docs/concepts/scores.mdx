@@ -21,8 +21,8 @@ A run carries up to four kinds of score:
   completes. It asks no AI model, so it costs nothing.
 - **AI grading**: an AI judge's verdict on whether the run did its task and made
   nothing up, for Agents whose maintainers switch it on.
-- **Eval**: the checks a plugin author wrote for one test case, on one try of an
-  eval run.
+- **Eval**: the checks written for one test case, in a plugin or an eval, on one
+  try of an eval run.
 
 ## Feedback
 
@@ -117,15 +117,15 @@ look closer, not a final verdict.
 
 ## Eval runs
 
-A plugin can carry its own test cases in an `evals/` folder, in Claude Code's
-plugin-eval format. An [eval run](/docs/guides/plugins/test-a-plugin-with-evals)
-runs each case several times, on the plugin or on an Agent, and each of those
-tries is an ordinary run that records one score: metric `eval`, source `eval`.
-The score has one criterion per grader of the case: each is named after its
-grader and holds the verdict and the reason. A grader that only shows whether
-the plugin was used, such as "the Skill was used", is marked not applicable with
-the reason "indicator only". The run passes when every grader that counts
-passes.
+Test cases live in a plugin's `evals/` folder or in an eval, an `evals/` folder
+pushed on its own, in Claude Code's plugin-eval format. An
+[eval run](/docs/guides/evals/test-with-evals) runs each case several times, on
+an Agent or a plugin, and each of those tries is an ordinary run that records
+one score: metric `eval`, source `eval`. The score has one criterion per grader
+of the case: each is named after its grader and holds the verdict and the
+reason. A grader that only shows whether the plugin was used, such as "the Skill
+was used", is marked not applicable with the reason "indicator only". The run
+passes when every grader that counts passes.
 
 Only Stigmer writes these scores, from the case's graders; nobody rates a try by
 hand. A try Stigmer could not run or grade, for example because the Organization
@@ -163,10 +163,10 @@ and 5 down. Below the totals:
   changed. The line breaks where the judge's rubrics or the run-health checks
   changed, because results from two versions of them are never added together.
 - **A table per Agent version**, with the same numbers and that version's latest
-  finished [eval run](/docs/guides/plugins/test-an-agent-with-its-plugins-evals)
-  beside them (one that compared a plugin the Agent does not use is left out: it
-  did not measure the version as it is), so you can see whether live runs got
-  better after an instruction change.
+  finished [eval run](/docs/guides/evals/test-with-evals) beside them (one that
+  compared a plugin the Agent does not use is left out: it did not measure the
+  version as it is), so you can see whether live runs got better after an
+  instruction change.
 - **Flagged runs**: recent runs with a failed check, a failed judge verdict or a
   thumbs down, each naming what failed and linking to the run.
 
@@ -237,8 +237,8 @@ stigmer get eval-run evr_01abc123
 ## Next steps
 
 - [Sessions](/docs/concepts/sessions): the conversation a run belongs to.
-- [Test a plugin with evals](/docs/guides/plugins/test-a-plugin-with-evals): run
-  a plugin's own test cases and read their scores.
+- [Test agents and plugins with evals](/docs/guides/evals/test-with-evals): run
+  test cases on an Agent or a plugin and read their scores.
 - [`stigmer agent`](/docs/cli/commands/agent): evaluate an Agent and read how
   its runs are going.
 - [`stigmer runs`](/docs/cli/commands/runs): the commands that inspect a run.
