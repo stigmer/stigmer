@@ -101,7 +101,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| EvalRunCommandController.create | `metadata.org`, `spec.cases.plugin.org`, `spec.vaults.org` |
+| EvalRunCommandController.create | `metadata.org`, `spec.cases.plugin.org`, `spec.cases.eval.org`, `spec.vaults.org` |
 
 ## `ai.stigmer.agentic.evaluator.v1`
 
