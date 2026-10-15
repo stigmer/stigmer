@@ -2,7 +2,8 @@
  * useCanonicalOrgSlug answers the slug a URL's org segment should read: none
  * for a current slug, the slug for one of the person's org ids without a
  * request, and the server's answer for anything else (an old slug after a
- * rename), never a previous segment's answer.
+ * rename), never a previous segment's answer. The organization the person
+ * has open outside their list counts as theirs.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor, cleanup } from "@testing-library/react";
@@ -96,5 +97,28 @@ describe("useCanonicalOrgSlug", () => {
     expect(result.current.canonical).toBeNull();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(result.current.canonical).toBeNull();
+  });
+});
+
+describe("useCanonicalOrgSlug in an opened organization outside the person's list", () => {
+  const CHILD_ID = "org_01jccccccccccccccccccccccc";
+  const child = { metadata: { id: CHILD_ID, slug: "acme-customer" } } as Organization;
+
+  beforeEach(() => localStorage.clear());
+
+  it("reads its slug as canonical and maps its id, with no lookup beyond the provider's own read", async () => {
+    localStorage.setItem("stigmer:activeOrg", CHILD_ID);
+    const { render, get } = setup(async () => child);
+
+    const bySlug = render("acme-customer");
+    await waitFor(() => expect(bySlug.result.current.loaded).toBe(true));
+    expect(bySlug.result.current.canonical).toBeNull();
+
+    const byId = render(CHILD_ID);
+    await waitFor(() => expect(byId.result.current.canonical).toBe("acme-customer"));
+
+    // One read per provider mount (two renders, two providers), each the
+    // provider restoring the remembered child; the hook asked for nothing.
+    expect(get.mock.calls).toEqual([[CHILD_ID], [CHILD_ID]]);
   });
 });

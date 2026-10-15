@@ -21,7 +21,7 @@ import {
   MenuSeparator,
   MenuTrigger,
 } from "../internal/menu.js";
-import { useOrg } from "./OrgProvider.js";
+import { findOrgByRef, useOrg } from "./OrgProvider.js";
 import { CreateOrganizationForm } from "./CreateOrganizationForm.js";
 
 // ---------------------------------------------------------------------------
@@ -51,6 +51,13 @@ export interface OrgSwitcherProps {
  * caller belongs to in the order the server returns them, and provides a
  * "Create organization" action that opens an inline dialog with
  * {@link CreateOrganizationForm}.
+ *
+ * When the active organization is one the caller opened without belonging
+ * to it (a child organization its parent's admin opened from the parent's
+ * Child organizations list), the menu lists it first, checked, with
+ * "Child of {parent}" in place of its slug, then the caller's own. Choosing
+ * one of those switches to it, and the opened organization leaves the
+ * menu: the menu never lists children the caller has not opened.
  *
  * Designed for sidebar placement — the trigger uses `sidebar-*` design
  * tokens. The portaled dropdown and dialog use standard `popover-*` /
@@ -112,6 +119,10 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
   }
 
   const hasOrgs = orgs.length > 0 && activeOrg;
+  const opened =
+    hasOrgs && !orgs.some((o) => o.metadata?.id === activeOrg.metadata?.id)
+      ? activeOrg
+      : null;
 
   return (
     <>
@@ -143,6 +154,18 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
               value={activeOrg.metadata?.id ?? ""}
               onValueChange={handleOrgSwitch}
             >
+              {opened && (
+                <>
+                  <MenuRadioItem
+                    value={opened.metadata?.id ?? ""}
+                    className="stg:items-start"
+                  >
+                    <Building2 className="stg:mt-0.5 stg:size-3.5 stg:shrink-0" />
+                    <OrgLabel org={opened} detail={childOfLabel(opened, orgs)} />
+                  </MenuRadioItem>
+                  <MenuSeparator />
+                </>
+              )}
               {orgs.map((org) => (
                 <MenuRadioItem
                   key={org.metadata?.id}
@@ -212,19 +235,37 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
 // ---------------------------------------------------------------------------
 
 /**
- * Two-line org label: name (bold) + slug (muted). Used in the trigger
- * (sidebar context → pass `slugClassName="text-sidebar-muted-foreground"`)
- * and in dropdown radio items (popover context → default `text-muted-foreground`).
+ * The second line of an opened organization's menu item: the parent it is
+ * a child of, named from the caller's own list (a parent's admin holds a
+ * role in the parent, so the list has it); "Child organization" if the
+ * list lacks it. An opened organization with no parent keeps its slug
+ * (`undefined` here).
+ */
+function childOfLabel(org: Organization, orgs: readonly Organization[]): string | undefined {
+  const parentRef = org.spec?.parentOrg ?? "";
+  if (!parentRef) return undefined;
+  const parent = findOrgByRef(orgs, parentRef);
+  const parentName = parent?.metadata?.name || parent?.metadata?.slug;
+  return parentName ? `Child of ${parentName}` : "Child organization";
+}
+
+/**
+ * Two-line org label: name (bold) + slug (muted), or `detail` in place of
+ * the slug. Used in the trigger (sidebar context → pass
+ * `slugClassName="text-sidebar-muted-foreground"`) and in dropdown radio
+ * items (popover context → default `text-muted-foreground`).
  */
 function OrgLabel({
   org,
   slugClassName,
+  detail,
 }: {
   org: Organization;
   slugClassName?: string;
+  detail?: string;
 }) {
   const name = org.metadata?.name || org.metadata?.slug;
-  const slug = org.metadata?.slug;
+  const slug = detail ?? org.metadata?.slug;
 
   return (
     <span className="stg:min-w-0 stg:flex-1">

@@ -4,10 +4,19 @@
  * chosen organization (its slug changes, its id does not), and `refresh`
  * selects the organization a target names by id or by slug. A remembered
  * value that names no organization, or is empty, falls back to the first.
+ *
+ * A remembered (or refresh-named) organization outside the person's list,
+ * a child organization its parent's admin opened, is read once by `get`:
+ * answered, it stays active and remembered while the list stays the
+ * person's own; refused (not found, permission denied), the first listed
+ * organization is selected; any other failure is the provider's error,
+ * which `retry` recovers from.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, renderHook, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { Code } from "@connectrpc/connect";
+import { StigmerError } from "@stigmer/sdk";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { FetchCache } from "../../internal/fetch-cache";
@@ -19,19 +28,35 @@ afterEach(cleanup);
 const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
 const GLOBEX_ID = "org_01jbbbbbbbbbbbbbbbbbbbbbbb";
 
-function org(id: string, slug: string): Organization {
-  return { metadata: { id, slug, name: slug } } as Organization;
+const CHILD_ID = "org_01jccccccccccccccccccccccc";
+
+function org(id: string, slug: string, parentOrg = ""): Organization {
+  return { metadata: { id, slug, name: slug }, spec: { parentOrg } } as Organization;
 }
 
-/** Each fetch answers the next list; the last one repeats. */
-function createMockStigmer(lists: Organization[][]) {
+const notFound = () => new StigmerError("not-found", "organization not found", Code.NotFound);
+
+/**
+ * Each fetch answers the next list; the last one repeats. `get` reads an
+ * organization outside the list; by default the server knows none.
+ */
+function createMockStigmer(
+  lists: Organization[][],
+  get: (ref: string) => Promise<Organization> = async () => {
+    throw notFound();
+  },
+) {
   let calls = 0;
   const listMine = vi.fn(async () => {
     const entries = lists[Math.min(calls, lists.length - 1)];
     calls += 1;
     return { entries, nextPageToken: "" };
   });
-  return { organization: { listMine } } as never;
+  return { organization: { listMine, get: vi.fn(get) } } as never;
+}
+
+function getMock(client: unknown) {
+  return (client as { organization: { get: ReturnType<typeof vi.fn> } }).organization.get;
 }
 
 function renderOrg(client: unknown, cache: FetchCache | null = null) {
@@ -175,5 +200,105 @@ describe("OrgProvider persistence by id", () => {
       createMockStigmer([[org(ACME_ID, "acme"), org("legacy", "legacy")]]),
     );
     await waitFor(() => expect(result.current.id).toBe("legacy"));
+  });
+});
+
+describe("OrgProvider and an organization outside the person's list", () => {
+  const acme = org(ACME_ID, "acme");
+  const child = org(CHILD_ID, "acme-customer", ACME_ID);
+
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("restores a remembered child it can read, keeping the list the person's own", async () => {
+    localStorage.setItem("stigmer:activeOrg", CHILD_ID);
+    const client = createMockStigmer([[acme]], async () => child);
+    const { result } = renderOrg(client);
+
+    await waitFor(() => expect(result.current.id).toBe(CHILD_ID));
+    expect(getMock(client)).toHaveBeenCalledWith(CHILD_ID);
+    expect(result.current.ctx.orgs.map((o) => o.metadata?.id)).toEqual([ACME_ID]);
+    expect(localStorage.getItem("stigmer:activeOrg")).toBe(CHILD_ID);
+  });
+
+  it("keeps an opened child through a refresh that names it, as a profile save does", async () => {
+    const client = createMockStigmer([[acme]], async () => child);
+    const { result } = renderOrg(client);
+    await waitFor(() => expect(result.current.id).toBe(ACME_ID));
+
+    act(() => result.current.ctx.setActiveOrg(child));
+    await act(async () => result.current.ctx.refresh(CHILD_ID));
+
+    await waitFor(() => expect(result.current.ctx.isLoading).toBe(false));
+    expect(result.current.id).toBe(CHILD_ID);
+    expect(localStorage.getItem("stigmer:activeOrg")).toBe(CHILD_ID);
+  });
+
+  it.each([
+    ["not found", notFound],
+    [
+      "permission denied",
+      () => new StigmerError("permission-denied", "not allowed", Code.PermissionDenied),
+    ],
+  ])("falls back to the first org when the read answers %s, and remembers it", async (_label, refusal) => {
+    localStorage.setItem("stigmer:activeOrg", CHILD_ID);
+    const client = createMockStigmer([[acme]], async () => {
+      throw refusal();
+    });
+    const { result } = renderOrg(client);
+
+    await waitFor(() => expect(result.current.id).toBe(ACME_ID));
+    expect(getMock(client)).toHaveBeenCalledWith(CHILD_ID);
+    expect(result.current.ctx.error).toBeNull();
+    expect(localStorage.getItem("stigmer:activeOrg")).toBe(ACME_ID);
+  });
+
+  it("reports any other failure as the provider's error, never moving the person, and retry recovers", async () => {
+    localStorage.setItem("stigmer:activeOrg", CHILD_ID);
+    let reachable = false;
+    const client = createMockStigmer([[acme]], async () => {
+      if (!reachable) throw new StigmerError("unavailable", "server unreachable", Code.Unavailable);
+      return child;
+    });
+    const { result } = renderOrg(client);
+
+    await waitFor(() => expect(result.current.ctx.error).toBe("server unreachable"));
+    expect(result.current.ctx.activeOrg).toBeNull();
+    expect(localStorage.getItem("stigmer:activeOrg")).toBe(CHILD_ID);
+
+    reachable = true;
+    await act(async () => result.current.ctx.retry());
+
+    await waitFor(() => expect(result.current.id).toBe(CHILD_ID));
+    expect(result.current.ctx.error).toBeNull();
+  });
+
+  it("selects the list's own entry when the read resolves a renamed-away slug to one of the person's orgs", async () => {
+    localStorage.setItem("stigmer:activeOrgSlug", "acme-old");
+    const client = createMockStigmer([[org(GLOBEX_ID, "globex"), acme]], async () => org(ACME_ID, "acme"));
+    const { result } = renderOrg(client);
+
+    await waitFor(() => expect(result.current.id).toBe(ACME_ID));
+    expect(result.current.ctx.activeOrg).toBe(result.current.ctx.orgs[1]);
+    expect(localStorage.getItem("stigmer:activeOrg")).toBe(ACME_ID);
+  });
+
+  it("drops a read that a newer load overtook", async () => {
+    localStorage.setItem("stigmer:activeOrg", CHILD_ID);
+    let answer: (o: Organization) => void = () => {};
+    const client = createMockStigmer(
+      [[acme, org(GLOBEX_ID, "globex")]],
+      () => new Promise<Organization>((resolve) => (answer = resolve)),
+    );
+    const { result } = renderOrg(client);
+    await waitFor(() => expect(getMock(client)).toHaveBeenCalledTimes(1));
+
+    await act(async () => result.current.ctx.refresh(GLOBEX_ID));
+    await waitFor(() => expect(result.current.id).toBe(GLOBEX_ID));
+
+    await act(async () => answer(child));
+    expect(result.current.id).toBe(GLOBEX_ID);
+    expect(localStorage.getItem("stigmer:activeOrg")).toBe(GLOBEX_ID);
   });
 });

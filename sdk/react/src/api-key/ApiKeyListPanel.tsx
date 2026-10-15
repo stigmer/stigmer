@@ -6,7 +6,7 @@ import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { findOrgByRef, useOptionalOrg } from "../organization/OrgProvider.js";
+import { findOrgByRef, useKnownOrgs } from "../organization/OrgProvider.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useApiKeyList } from "./useApiKeyList.js";
 import { useDeleteApiKey } from "./useDeleteApiKey.js";
@@ -46,8 +46,9 @@ export interface ApiKeyListPanelProps {
  * API keys belong to the authenticated user: the server returns all of
  * their keys, regardless of organization. A key's scope says where it
  * works: in every organization its owner belongs to, or in the one
- * organization it is limited to, named by its slug when the user's
- * organization list (from an enclosing `OrgProvider`) holds it.
+ * organization it is limited to, named by its slug when it is one of the
+ * user's organizations or the one they have open (from an enclosing
+ * `OrgProvider`).
  *
  * All visual properties flow through `--stgm-*` design tokens.
  *
@@ -129,7 +130,7 @@ export function ApiKeyListView({
   now,
   pager,
 }: ApiKeyListViewProps) {
-  const orgs = useOptionalOrg()?.orgs ?? NO_ORGS;
+  const orgs = useKnownOrgs() ?? NO_ORGS;
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   if (isLoading) {
@@ -362,8 +363,8 @@ const NO_ORGS: readonly Organization[] = [];
 
 /**
  * Where a key works, for its row: every organization when it names none,
- * otherwise the one it names, by slug (or name) when the user's
- * organization list holds it. A stored key names its organization by id,
+ * otherwise the one it names, by slug (or name) when it is one of the
+ * user's organizations or the one they have open. A stored key names its organization by id,
  * which is never shown.
  */
 function describeKeyScope(

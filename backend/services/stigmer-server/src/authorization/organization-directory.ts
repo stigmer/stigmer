@@ -1,17 +1,18 @@
 /**
  * The built-in organization directory — open source's driver for the
  * organization-directory seam (extensions/organization-directory.ts),
- * composed under the built-in posture. The cloud's directory answers
- * `listMine` with OpenFGA's list-objects for
- * `organization#can_view`; this one answers the same question over the
- * derived source: the candidates are the organizations the person's own
- * Grant rows name (on open source a person reaches an organization
- * through a role row and nothing else — the derivation writes no
- * organization tuple), and each candidate is kept when
+ * composed under the built-in posture. Like the cloud's directory, it
+ * answers `listMine` from role rows: the candidates are the organizations
+ * the person's own Grant rows name, and each candidate is kept when
  * `can_view` holds for the person, evaluated by the same evaluator the
  * Authorizer uses. An evaluation rather than a relation filter, so the
  * answer stays right if the grant scope ever widens past the four roles,
  * and stays equal to the cloud's today.
+ *
+ * A parent organization's admin is an admin in each of its children
+ * without a row there (`parent_admin`), so a child is left out of the
+ * list by design: the console opens one from the parent's Child
+ * organizations list instead, and the list stays the person's own.
  *
  * Trusted-local composes no directory and lists every organization (one
  * caller, nothing to hide from).

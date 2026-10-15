@@ -6,22 +6,24 @@
  * slug, which a person reads and which console URLs put in their org
  * segment.
  *
- * Both hooks answer from the organizations the person belongs to (the list
- * {@link OrgProvider} loaded) and hand back their input unchanged for any
- * other organization, or when no provider is mounted: the server accepts a
+ * Both hooks answer from the person's organizations (the list
+ * {@link OrgProvider} loaded) and the one they have open (a child
+ * organization its parent's admin opened, which that list does not hold),
+ * and hand back their input unchanged for any other organization, or when
+ * no provider is mounted: the server accepts a
  * slug or an id wherever an org is named, so an unmapped value still
  * works, it just reads less well. Ids and slugs are opaque, each unique;
  * an older organization's id equals its slug.
  */
 import { useCallback } from "react";
-import { findOrgByRef, useOptionalOrg } from "./OrgProvider.js";
+import { findOrgByRef, useKnownOrgs } from "./OrgProvider.js";
 
 /**
  * Returns a function answering the slug of the organization an id names,
  * for display text and URL segments.
  *
  * The answer is the org's current slug when it is one of the person's
- * organizations, and the id unchanged otherwise.
+ * organizations or the one they have open, and the id unchanged otherwise.
  *
  * @example
  * ```tsx
@@ -30,7 +32,7 @@ import { findOrgByRef, useOptionalOrg } from "./OrgProvider.js";
  * ```
  */
 export function useOrgSlugForId(): (orgId: string) => string {
-  const orgs = useOptionalOrg()?.orgs;
+  const orgs = useKnownOrgs();
   return useCallback(
     (orgId: string) => {
       if (!orgId || !orgs) return orgId;
@@ -48,8 +50,8 @@ export function useOrgSlugForId(): (orgId: string) => string {
  * which is an id.
  *
  * The answer is the org's id when the reference names one of the person's
- * organizations by id or current slug, and the reference unchanged
- * otherwise.
+ * organizations, or the one they have open, by id or current slug, and the
+ * reference unchanged otherwise.
  *
  * @example
  * ```tsx
@@ -58,7 +60,7 @@ export function useOrgSlugForId(): (orgId: string) => string {
  * ```
  */
 export function useOrgIdForRef(): (orgRef: string) => string {
-  const orgs = useOptionalOrg()?.orgs;
+  const orgs = useKnownOrgs();
   return useCallback(
     (orgRef: string) => {
       if (!orgRef || !orgs) return orgRef;

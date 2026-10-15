@@ -8,7 +8,7 @@ import {
   type ManifestDocument,
 } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
-import { findOrgByRef, useOptionalOrg } from "../organization/OrgProvider.js";
+import { findOrgByRef, useKnownOrgs } from "../organization/OrgProvider.js";
 import { toError } from "../internal/toError.js";
 
 /** Per-document apply lifecycle within one manifest. */
@@ -120,9 +120,9 @@ export function useApplyManifest(org: string): UseApplyManifestReturn {
   const orgRef = useRef(org);
   orgRef.current = org;
   // The target's other name (its slug for an id, its id for a slug), when
-  // the person is a member: a document naming it either way applies
-  // quietly, and one naming another organization either way warns.
-  const known = findOrgByRef(useOptionalOrg()?.orgs ?? [], org)?.metadata;
+  // the person is a member or has it open: a document naming it either way
+  // applies quietly, and one naming another organization either way warns.
+  const known = findOrgByRef(useKnownOrgs() ?? [], org)?.metadata;
   const orgNamesRef = useRef<readonly string[]>([]);
   orgNamesRef.current = known === undefined ? [] : [known.id, known.slug].filter((name) => name !== "");
 

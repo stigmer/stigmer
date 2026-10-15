@@ -33,14 +33,15 @@ import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 import { declarationsOf, readAgentServers, signInKeys } from "./runServers.js";
-import { findOrgByRef, useOptionalOrg } from "../organization/OrgProvider.js";
+import { findOrgByRef, useKnownOrgs } from "../organization/OrgProvider.js";
 
 /**
  * The id of the organization `ref` names (an id or a slug), through the
- * caller's organization list when one is mounted; `ref` itself otherwise.
+ * caller's organizations and the one they have open when a provider is
+ * mounted; `ref` itself otherwise.
  */
 export function useOrganizationId(ref: string): string {
-  const orgs = useOptionalOrg()?.orgs;
+  const orgs = useKnownOrgs();
   return useMemo(
     () => (orgs ? findOrgByRef(orgs, ref)?.metadata?.id : undefined) || ref,
     [orgs, ref],
