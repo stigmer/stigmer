@@ -12,8 +12,9 @@
  *     the new one, under the version message the request named or one
  *     naming the run, and the tag it named; adding a case of a name the
  *     eval holds is refused;
- *   - a turn that has not ended, a run that is not there, and a case name
- *     an eval's root keeps for itself are refused, building or adding;
+ *   - a turn that has not ended, a run that is not there, a case name an
+ *     eval's root keeps for itself, and a skill not named as
+ *     `<plugin>:<skill>` on one line are refused, building or adding;
  *   - Dave may not build from Carol's private conversation, nor add his own
  *     turn to Carol's eval, whose edit he does not hold; naming her private
  *     eval, a case name it holds and one it does not get him the one
@@ -72,6 +73,7 @@ import {
   EVAL_PUSH_DENIED,
   evalCaseExistsMessage,
   evalCaseReservedNameMessage,
+  evalCaseSkillMessage,
   evalCaseRunNotEndedMessage,
   evalCaseVersionMessage,
 } from "../constants.js";
@@ -239,6 +241,15 @@ describe("an eval case from a run (built-in posture, composed server)", () => {
     const reserved = await failureOf(carolQuery().buildCaseFromRun({ runId: running, caseName: "mocks" }));
     expect(reserved.code).toBe(Code.InvalidArgument);
     expect(reserved.rawMessage).toBe(evalCaseReservedNameMessage("mocks"));
+    for (const skill of ["refund-policy", "thermos:", ":refund-policy", "thermos:refund\npolicy"]) {
+      for (const call of [
+        () => carolQuery().buildCaseFromRun({ runId: running, skill }),
+        () => carolEvals().addCaseFromRun({ runId: running, eval: { slug: "carols-other" }, skill }),
+      ]) {
+        const refused = await failureOf(call());
+        expect([refused.code, refused.rawMessage]).toEqual([Code.InvalidArgument, evalCaseSkillMessage(skill)]);
+      }
+    }
   });
 
   it("refuses Dave a case from Carol's private conversation, and his own turn added to her eval", async () => {

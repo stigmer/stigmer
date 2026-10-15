@@ -75,14 +75,15 @@ import { evalTraceOf } from "../score/eval/trace.js";
 import { listRunScores } from "../score/queries.js";
 import { toolUsesOf, turnOfTranscript } from "../score/turn.js";
 import { readSessionEvents } from "../session/events/run-events.js";
-import { MAX_CASE_ARCHIVE_BYTES, evalCaseTooLargeMessage } from "./constants.js";
+import { invalidArgumentError } from "../../pipeline/errors.js";
+import { MAX_CASE_ARCHIVE_BYTES, evalCaseSkillMessage, evalCaseTooLargeMessage } from "./constants.js";
 
 /** What a case is built from. */
 export interface CaseFromRunInput {
   readonly run: Run;
   /** The case's directory name; "" suggests one from the request. */
   readonly caseName: string;
-  /** A skill the run should have read, "<plugin>:<skill>" or bare; "" adds no check. */
+  /** A skill the run should have read, "<plugin>:<skill>" as {@link caseSkillOf} reads it; "" adds no check. */
   readonly skill: string;
   /** The caller's identity: whose thumbs-down note seeds the rubric. */
   readonly callerId: string;
@@ -175,6 +176,23 @@ export async function buildCaseFromRun(store: Store, logger: Logger, input: Case
     files: files.map((file) => ({ path: `${caseName}/${file.path}`, bytes: encoder.encode(file.content) })),
     notes,
   };
+}
+
+/**
+ * A request's skill as a case names it: "" for none, else
+ * `<plugin>:<skill>` with both parts written and no control character, as
+ * the CLI's `--skill` takes it; anything else is refused (INVALID_ARGUMENT,
+ * naming it), so no request writes a check for a skill it never named.
+ */
+export function caseSkillOf(raw: string): string {
+  if (raw === "") return "";
+  const colon = raw.indexOf(":");
+  const plugin = colon < 0 ? "" : raw.slice(0, colon).trim();
+  const skill = colon < 0 ? "" : raw.slice(colon + 1).trim();
+  if (plugin === "" || skill === "" || /[\u0000-\u001f\u007f]/.test(raw)) {
+    throw invalidArgumentError(evalCaseSkillMessage(raw));
+  }
+  return `${plugin}:${skill}`;
 }
 
 /**
@@ -403,7 +421,7 @@ function criteriaFile(failure: string): string {
 
 /** A `tool_used: Skill` check matching `skill` by its bare or plugin-qualified name. */
 function skillFiredFile(skill: string): string {
-  const bare = skill.includes(":") ? skill.slice(skill.indexOf(":") + 1) : skill;
+  const bare = skill.slice(skill.indexOf(":") + 1);
   // The pattern sits in a single-quoted YAML scalar, where a quote is
   // written twice; the skill name is escaped as regex text first.
   const pattern = `"skill"\\s*:\\s*"(?:[\\w-]+:)?${escapeRegex(bare)}"`.replaceAll("'", "''");

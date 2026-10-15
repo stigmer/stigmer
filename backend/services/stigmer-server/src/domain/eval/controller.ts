@@ -149,7 +149,7 @@ import {
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { ArchiveStaging, DownloadCapability, StagedUpload } from "../skill/transfer/staging.js";
-import { buildCaseFromRun, caseArchiveOf, RESERVED_CASE_NAMES } from "./case-from-run.js";
+import { buildCaseFromRun, caseArchiveOf, caseSkillOf, RESERVED_CASE_NAMES } from "./case-from-run.js";
 import {
   EVAL_CASE_OTHER_ORGANIZATION,
   EVAL_CASE_RUN_DENIED,
@@ -339,8 +339,9 @@ async function buildCaseFromRunHandler(
 ): Promise<EvalCaseArchive> {
   const caller = await validatedCaller(deps, EvalQueryController.method.buildCaseFromRun, req, ctx);
   refuseReservedName(req.caseName);
+  const skill = caseSkillOf(req.skill);
   const run = await viewableEndedRun(deps, caller, req.runId);
-  return caseArchiveOf(await buildCaseFromRun(deps.store, deps.logger, { run, caseName: req.caseName, skill: req.skill, callerId: caller.identityId }));
+  return caseArchiveOf(await buildCaseFromRun(deps.store, deps.logger, { run, caseName: req.caseName, skill, callerId: caller.identityId }));
 }
 
 /**
@@ -354,6 +355,7 @@ async function buildCaseFromRunHandler(
 async function addCaseFromRun(deps: EvalControllerDeps, req: AddEvalCaseFromRunRequest, ctx: HandlerContext): Promise<Eval> {
   const caller = await validatedCaller(deps, EvalCommandController.method.addCaseFromRun, req, ctx);
   refuseReservedName(req.caseName);
+  const skill = caseSkillOf(req.skill);
   const run = await viewableEndedRun(deps, caller, req.runId);
   const runOrg = run.metadata?.org ?? "";
   // The request's rules require the reference; an organization it names must be the run's.
@@ -362,7 +364,7 @@ async function addCaseFromRun(deps: EvalControllerDeps, req: AddEvalCaseFromRunR
     throw failedPreconditionError(EVAL_CASE_OTHER_ORGANIZATION);
   }
   const target = await evalOfOrganization(deps, caller, ref, runOrg);
-  const built = await buildCaseFromRun(deps.store, deps.logger, { run, caseName: req.caseName, skill: req.skill, callerId: caller.identityId });
+  const built = await buildCaseFromRun(deps.store, deps.logger, { run, caseName: req.caseName, skill, callerId: caller.identityId });
   return runGuardedWrite(async () => {
     const head = await evalOrNotFound(deps, target.metadata?.id ?? "");
     // The push's own question, asked before a byte of the eval is read: a

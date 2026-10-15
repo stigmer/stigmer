@@ -365,7 +365,7 @@ describe("a case's rubric", () => {
       "---\ntype: tool_used\ntool: Skill\ninput_match: '\"skill\"\\s*:\\s*\"(?:[\\w-]+:)?refund-policy\"'\n---\n",
     );
     expectLoads(built);
-    const bare = await buildCaseFromRun(temp.store, logger, { run: runRow("run_3", "Refund it."), caseName: "bare", skill: "refund.policy", callerId: CALLER });
+    const bare = await buildCaseFromRun(temp.store, logger, { run: runRow("run_3", "Refund it."), caseName: "bare", skill: "thermos:refund.policy", callerId: CALLER });
     expect(fileOf(bare, "graders/skill-fired.md")).toContain("refund\\.policy");
   });
 });

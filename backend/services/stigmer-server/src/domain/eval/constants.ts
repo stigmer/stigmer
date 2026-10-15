@@ -55,3 +55,8 @@ export function evalCaseExistsMessage(name: string, slug: string): string {
 export function evalCaseVersionMessage(name: string, runId: string): string {
   return `case ${name} from run ${runId}`;
 }
+
+/** InvalidArgument copy for a skill not named as `<plugin>:<skill>` on one line. */
+export function evalCaseSkillMessage(raw: string): string {
+  return `skill '${raw}' names no skill: write <plugin>:<skill> on one line, as in thermos:review`;
+}
