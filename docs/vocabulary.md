@@ -1507,11 +1507,11 @@ the monthly spending limit, and the judge's model.
 
 #### Eval
 
-A set of test cases for an Agent: an `evals/` folder in Claude Code's
-plugin-eval format, pushed whole and kept with every version. Pushing the same
-folder again changes nothing; a changed folder is a new version, reachable by
-its digest or by a tag. Running an eval on an Agent is coming; until then an
-eval is stored, versioned, read and downloaded.
+A set of test cases for an Agent: an evals/ folder in Claude Code's plugin-eval
+format, pushed whole and kept with every version. Pushing the same folder again
+changes nothing; a changed folder is a new version, reachable by its digest or
+by a tag. Running an eval on an Agent is coming; until then an eval is stored,
+versioned, read and downloaded.
 
 - **User-facing alternative**: "eval" in prose ("push the eval", "the support
   agent's evals"); its contents are "test cases". Never "eval suite" for the

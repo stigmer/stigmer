@@ -115,6 +115,13 @@ describe("stigmer download run", () => {
     expect(download.downloadRunArtifacts).not.toHaveBeenCalled();
   });
 
+  it.each([["--json"], ["--quiet"]])("refuses %s, which only an eval download reads, before any call", async (flag) => {
+    await expect(runDownload("run", "run_1", flag)).rejects.toThrow(
+      new UsageError("--json and --quiet apply to `download eval`; a run's download prints the files it writes"),
+    );
+    expect(download.downloadRunArtifacts).not.toHaveBeenCalled();
+  });
+
   it("refuses an id that is not a run id", async () => {
     await expect(runDownload("run", "ses_1")).rejects.toThrow(
       new UsageError("invalid run ID: ses_1\n\nRuns must be referenced by ID (e.g., run_01abc123)"),

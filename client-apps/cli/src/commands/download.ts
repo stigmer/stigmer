@@ -70,6 +70,11 @@ async function runDownload(type: string, id: string, options: DownloadFlags): Pr
   if (!isDownloadRunType(type)) {
     throw new UsageError(`download not supported for type: ${type}\n\nThe types that download: run, eval`);
   }
+  // The result flags shape an eval download's answer; a run's download
+  // prints its files as it writes them, so a flag it would ignore is refused.
+  if (options.json === true || options.quiet === true) {
+    throw new UsageError("--json and --quiet apply to `download eval`; a run's download prints the files it writes");
+  }
 
   const [{ connectBackend }, { isRunId }, { downloadRunArtifacts }] = await Promise.all([
     import("../backend.js"),
