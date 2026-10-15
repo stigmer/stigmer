@@ -158,6 +158,7 @@ import {
   newGenerateIdIfNeededStep,
   newGuardPushVisibilityStep,
   newPushAuthorizationTuplesStep,
+  newRefuseRenamedSlugStep,
   newResolveConvergenceStep,
   newStorePushedStep,
 } from "../../pipeline/steps/archive-push.js";
@@ -269,6 +270,7 @@ async function push(
       .addStep(newReadPluginPackageStep())
       .addStep(newBuildInitialPluginStep())
       .addStep(newFindExistingBySlugStep(deps.store, pluginPushBinding))
+      .addStep(newRefuseRenamedSlugStep())
       .addStep(newGenerateIdIfNeededStep())
       .addStep(newPlanPluginStatusStep())
       .addStep(newGuardPushVisibilityStep(deps.store, pluginPushBinding, "GuardPluginVisibility"))

@@ -88,6 +88,7 @@ import {
   newGenerateIdIfNeededStep,
   newGuardPushVisibilityStep,
   newPushAuthorizationTuplesStep,
+  newRefuseRenamedSlugStep,
   newResolveConvergenceStep,
   newStorePushedStep,
 } from "../../pipeline/steps/archive-push.js";
@@ -206,6 +207,7 @@ async function push(deps: EvalControllerDeps, req: PushEvalRequest, ctx: Handler
       .addStep(newBuildInitialEvalStep<PushDesc>((input) => input))
       .addStep(newFindExistingBySlugStep(deps.store, evalPushBinding))
       .addStep(newAuthorizeResolvedTargetStep<PushDesc>(deps.authorizer, writeTargetsOf, "AuthorizeEvalWrite"))
+      .addStep(newRefuseRenamedSlugStep())
       .addStep(
         newResolveArtifactSourceStep<PushDesc>(deps.staging, {
           source: (input) => ({ artifact: input.artifact, artifactUploadRef: input.artifactUploadRef }),
@@ -275,6 +277,7 @@ async function createArtifactUploadUrl(
     .addStep(newBuildInitialEvalStep<MintDesc>((input) => input))
     .addStep(newFindExistingBySlugStep<typeof EvalSchema, MintDesc>(deps.store, evalPushBinding))
     .addStep(newAuthorizeResolvedTargetStep<MintDesc>(deps.authorizer, writeTargetsOf, "AuthorizeEvalWrite"))
+    .addStep(newRefuseRenamedSlugStep())
     .build()
     .execute(reqCtx);
 

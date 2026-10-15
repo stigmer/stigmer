@@ -14,7 +14,8 @@
  * refused writing nothing; a renamed-away slug is refused for a push while
  * reads follow it. Downloads return the bytes that were pushed, at the
  * head and at an older digest, inline and over the transfer lane, as does
- * a push staged through an upload URL. The organization's evals list
+ * a push staged through an upload URL; the skill lane, which serves its
+ * archives by storage key, answers an eval's key as not found. The organization's evals list
  * newest first; updateVisibility re-levels; delete removes the eval and
  * its history, and a read then answers NotFound.
  */
@@ -30,6 +31,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { EvalCommandController } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/command_pb";
 import { EvalQueryController } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/query_pb";
+import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
@@ -47,6 +49,7 @@ let ORG_ID: string;
 let server: ComposedServer;
 let evals: Client<typeof EvalCommandController>;
 let evalQuery: Client<typeof EvalQueryController>;
+let skillQuery: Client<typeof SkillQueryController>;
 let dir: string;
 
 beforeAll(async () => {
@@ -68,6 +71,7 @@ beforeAll(async () => {
   ORG_ID = organizationId(await seedOrganizations(transport, [ORG]), ORG);
   evals = createClient(EvalCommandController, transport);
   evalQuery = createClient(EvalQueryController, transport);
+  skillQuery = createClient(SkillQueryController, transport);
 });
 
 afterAll(async () => {
@@ -172,6 +176,8 @@ describe("Eval push", () => {
     const retagged = await evals.push({ org: ORG, slug, artifact: v1, tag: "stable" });
     expect(retagged.spec?.tag).toBe("stable");
     expect(retagged.status?.digest).toBe(digestOf(v1));
+    // The version is the one the head already had, message and chain kept.
+    expect(retagged.metadata?.version).toEqual(first.metadata?.version);
     expect(await versionCount(id)).toBe(1);
 
     const v2 = supportCases(" I paid by card.");
@@ -285,6 +291,18 @@ describe("Eval downloads", () => {
 
     await expectCode(
       evalQuery.download({ org: ORG, slug, kind: ApiResourceKind.eval, version: "0".repeat(64) }),
+      Code.NotFound,
+    );
+  });
+
+  it("are served by no lane that takes a storage key: the skill lane answers an eval's key as not found", async () => {
+    const artifact = supportCases(" Keyed.");
+    await evals.push({ org: ORG, slug: uniqueSlug("keyed"), artifact });
+    const key = `evals/${digestOf(artifact)}.zip`;
+    await expectCode(skillQuery.getArtifact({ artifactStorageKey: key }), Code.NotFound, `skill artifact not found: ${key}`);
+    await expectCode(skillQuery.getArtifactDownloadUrl({ artifactStorageKey: key }), Code.NotFound, `skill artifact not found: ${key}`);
+    await expectCode(
+      skillQuery.getArtifact({ artifactStorageKey: `skills/../${key}` }),
       Code.NotFound,
     );
   });

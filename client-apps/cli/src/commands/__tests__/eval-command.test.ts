@@ -243,7 +243,7 @@ describe("stigmer download eval", () => {
 });
 
 describe("extractArchive", () => {
-  it.each([["../outside.md"], ["a/../../outside.md"], ["/etc/evil.md"]])(
+  it.each([["../outside.md"], ["a/../../outside.md"], ["/etc/evil.md"], ["x/.."]])(
     "refuses an entry %j that would land outside the directory, before writing anything",
     (name) => {
       const out = join(work, "target");

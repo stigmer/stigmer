@@ -29,6 +29,8 @@
  * Proven by skill.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * the co-located __tests__/ suites.
  */
+import { posix } from "node:path";
+
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import type { DescMethod } from "@bufbuild/protobuf";
@@ -139,7 +141,7 @@ import {
   newStoreSkillStep,
 } from "./push.js";
 import { skillSearchExtractor } from "./search-extractor.js";
-import { ArtifactNotFoundError } from "./storage/artifact-storage.js";
+import { ArtifactNotFoundError, SKILL_ARTIFACT_KEY_PREFIX } from "./storage/artifact-storage.js";
 import type { SkillArtifactStorage } from "./storage/artifact-storage.js";
 import type {
   ArchiveStaging,
@@ -760,6 +762,7 @@ async function getArtifact(
     .build()
     .execute(reqCtx);
 
+  refuseForeignKey(req);
   let artifact: Uint8Array;
   try {
     artifact = await deps.artifactStorage.get(req.artifactStorageKey);
@@ -814,6 +817,7 @@ async function getArtifactDownloadUrl(
     .build()
     .execute(reqCtx);
 
+  refuseForeignKey(req);
   let size: number;
   try {
     size = await deps.artifactStorage.size(req.artifactStorageKey);
@@ -958,4 +962,19 @@ async function list(
     .build()
     .execute(reqCtx);
   return reqCtx.get(SKILL_LIST_KEY) as SkillList;
+}
+
+/**
+ * A key outside the skill store's own prefix reads as not found, as a
+ * missing one does: the skill store shares its blob driver with every
+ * archive kind, and another kind's archives are not this lane's to serve.
+ * A plugin's keep their own lane, and an eval's are served only to its
+ * viewers. A key must already be in normal form, so a `..` segment cannot
+ * climb out of `skills/` on a store that resolves keys as paths.
+ */
+function refuseForeignKey(req: GetArtifactRequest): void {
+  const key = req.artifactStorageKey;
+  if (!key.startsWith(SKILL_ARTIFACT_KEY_PREFIX) || posix.normalize(key) !== key || key.split("/").includes("..")) {
+    throw new ConnectError(`skill artifact not found: ${key}`, Code.NotFound);
+  }
 }

@@ -7,7 +7,8 @@
  * same order:
  *
  *   plan:    … → GateAndHashArchive → <read the content> → <build the head>
- *            → FindExistingBySlug → <authorize> → GenerateIDIfNeeded →
+ *            → FindExistingBySlug → <authorize> → RefuseRenamedSlug →
+ *            GenerateIDIfNeeded →
  *            <plan> → Guard<Kind>Visibility → ResolveConvergence
  *   install: … → CheckAndStoreArtifact → <populate the head> → ClaimName →
  *            Store<Kind> → <archive the version> → <Kind>PushAuthorizationTuples
@@ -62,6 +63,8 @@ export const OPENED_ARCHIVE_KEY = "openedArchive";
 export const PUSHED_RESOURCE_KEY = "pushedResource";
 /** The stored row the slug names, or undefined when the push creates. */
 export const EXISTING_PUSHED_RESOURCE_KEY = "existingPushedResource";
+/** The id of the resource the request's slug was renamed away from, or undefined. */
+export const RENAMED_AWAY_ID_KEY = "renamedAwayId";
 /** Whether this push creates the resource. */
 export const SHOULD_CREATE_KEY = "shouldCreatePushedResource";
 /** Whether the stored row already is this push, so the install chain is skipped. */
@@ -121,8 +124,11 @@ export function newGateAndHashArchiveStep<Req extends DescMessage>(
  * FindExistingBySlug — push is upsert by slug: the row the head's slug
  * names lends the head its id, and its exact bytes are what the write
  * swaps on (storeLoadedOrNew). A slug the kind's resource was renamed away
- * from is refused with SLUG_RENAMED, as every write's lookup refuses it: a
- * push that followed it would make a second resource once the hold ends.
+ * from is recorded under RENAMED_AWAY_ID_KEY with the id it leads to, and
+ * RefuseRenamedSlug refuses it after the chain's authorization, so a
+ * caller who may not write that resource learns nothing about its rename;
+ * a push that followed the old slug would make a second resource once the
+ * hold ends.
  */
 export function newFindExistingBySlugStep<
   Res extends DescMessage,
@@ -142,11 +148,9 @@ export function newFindExistingBySlugStep<
       } catch (error) {
         throw internalError(error, failure);
       }
-      if (entry?.state === "previous") {
-        throw slugRenamedError(ctx.apiResourceKind, slug);
-      }
+      ctx.set(RENAMED_AWAY_ID_KEY, entry?.state === "previous" ? entry.id : undefined);
       let found: ResourceReadForWrite<Res> | undefined;
-      if (entry !== undefined) {
+      if (entry !== undefined && entry.state !== "previous") {
         try {
           found = await store.readResourceForWrite(ctx.apiResourceKind, entry.id, binding.schema);
         } catch (error) {
@@ -167,6 +171,25 @@ export function newFindExistingBySlugStep<
         ctx.set(EXISTING_PUSHED_RESOURCE_KEY, undefined);
         ctx.set(SHOULD_CREATE_KEY, true);
       }
+    },
+  };
+}
+
+/**
+ * RefuseRenamedSlug — a push naming a slug its kind's resource was renamed
+ * away from is refused with SLUG_RENAMED, as every write's lookup refuses
+ * it. Runs after the chain's authorization (a kind that authorizes on the
+ * request runs it right after FindExistingBySlug).
+ */
+export function newRefuseRenamedSlugStep<Req extends DescMessage>(): PipelineStep<Req> {
+  return {
+    name: "RefuseRenamedSlug",
+    execute(ctx: RequestContext<Req>): void {
+      if (ctx.get(RENAMED_AWAY_ID_KEY) === undefined) {
+        return;
+      }
+      const head = ctx.get(PUSHED_RESOURCE_KEY) as MessageShape<DescMessage>;
+      throw slugRenamedError(ctx.apiResourceKind, metadataOf(head)?.slug ?? "");
     },
   };
 }

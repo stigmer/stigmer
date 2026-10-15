@@ -1,8 +1,9 @@
 /**
- * Pins the eval push's own pieces apart from a server: the write's two
+ * Pins the eval push's own pieces apart from a server: the write's
  * questions (writeTargetsOf), create on the organization when no eval
- * holds the slug and edit on the eval when one does, each with the one
- * copy, and a broken chain throwing; the refusal of a folder with no case
+ * holds the slug, edit on the eval when one does or when the slug was
+ * renamed away from one, each with the one copy, and a broken chain
+ * throwing; the refusal of a folder with no case
  * that loads, naming each reason; the level a push writes (the request's,
  * else the stored eval's, else the organization); and the status a reading
  * becomes, bounded as a plugin's suite summary is.
@@ -19,7 +20,7 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
-import { EXISTING_PUSHED_RESOURCE_KEY, PUSHED_RESOURCE_KEY } from "../../../pipeline/steps/archive-push.js";
+import { EXISTING_PUSHED_RESOURCE_KEY, PUSHED_RESOURCE_KEY, RENAMED_AWAY_ID_KEY } from "../../../pipeline/steps/archive-push.js";
 import { EVAL_MAX_LISTED_MOCK_SERVERS, EVAL_PUSH_DENIED } from "../constants.js";
 import { initialEval, noCaseRefusal, requestedEvalVisibility, statusOf, writeTargetsOf } from "../push.js";
 
@@ -60,6 +61,19 @@ describe("writeTargetsOf", () => {
         permission: IamPermission.can_edit,
         resourceKind: ApiResourceKind.eval,
         resourceId: "evs_01support",
+        deniedMessage: EVAL_PUSH_DENIED,
+      },
+    ]);
+  });
+
+  it("asks can_edit on the eval a renamed-away slug leads to, so only its editors hear of the rename", () => {
+    const ctx = ctxFor();
+    ctx.set(RENAMED_AWAY_ID_KEY, "evs_01renamed");
+    expect(writeTargetsOf(ctx)).toEqual([
+      {
+        permission: IamPermission.can_edit,
+        resourceKind: ApiResourceKind.eval,
+        resourceId: "evs_01renamed",
         deniedMessage: EVAL_PUSH_DENIED,
       },
     ]);

@@ -4,7 +4,7 @@
  * one request context:
  *
  *   plan:    ValidateProto → BuildInitialEval → FindExistingBySlug →
- *            AuthorizeEvalWrite → ResolveArtifactSource →
+ *            AuthorizeEvalWrite → RefuseRenamedSlug → ResolveArtifactSource →
  *            GateAndHashArchive → ReadEvalFolder → GenerateIDIfNeeded →
  *            GuardEvalVisibility → ResolveConvergence
  *   install: CheckAndStoreArtifact → PopulateEvalFields → ClaimName →
@@ -68,6 +68,7 @@ import {
   EXISTING_PUSHED_RESOURCE_KEY,
   OPENED_ARCHIVE_KEY,
   PUSHED_RESOURCE_KEY,
+  RENAMED_AWAY_ID_KEY,
   SHOULD_CREATE_KEY,
 } from "../../pipeline/steps/archive-push.js";
 import type { ArchivePushBinding } from "../../pipeline/steps/archive-push.js";
@@ -141,7 +142,11 @@ export function writeTargetsOf(ctx: {
     throw new Error("AuthorizeEvalWrite: no eval under the push key; BuildInitialEval must run first");
   }
   const existing = ctx.get(EXISTING_PUSHED_RESOURCE_KEY) as Eval | undefined;
-  if (existing === undefined) {
+  // A slug renamed away from is asked about as the eval it leads to: only
+  // its editors may learn of the rename (RefuseRenamedSlug answers them).
+  const renamedAway = ctx.get(RENAMED_AWAY_ID_KEY) as string | undefined;
+  const editedId = existing?.metadata?.id ?? renamedAway;
+  if (editedId === undefined) {
     return [
       {
         permission: IamPermission.can_create_eval,
@@ -155,7 +160,7 @@ export function writeTargetsOf(ctx: {
     {
       permission: IamPermission.can_edit,
       resourceKind: ApiResourceKind.eval,
-      resourceId: existing.metadata?.id ?? "",
+      resourceId: editedId,
       deniedMessage: EVAL_PUSH_DENIED,
     },
   ];
@@ -250,11 +255,22 @@ export function newPopulateEvalFieldsStep(): PipelineStep<PushDesc> {
         metadata.labels = { ...existing.metadata.labels };
         metadata.tags = [...existing.metadata.tags];
       }
-      metadata.version = create(ApiResourceMetadataVersionSchema, {
-        id: archive.digest,
-        message: ctx.input.message,
-        previousVersionId: existing?.status?.digest ?? "",
-      });
+      // A push of the folder the eval already holds (a retag, a re-level,
+      // a new display name) adds no version, so the head keeps the version
+      // it has: its id, the one before it and its message.
+      const storedVersion = existing?.metadata?.version;
+      metadata.version =
+        existing?.status?.digest === archive.digest && storedVersion !== undefined
+          ? create(ApiResourceMetadataVersionSchema, {
+              id: storedVersion.id,
+              message: storedVersion.message,
+              previousVersionId: storedVersion.previousVersionId,
+            })
+          : create(ApiResourceMetadataVersionSchema, {
+              id: archive.digest,
+              message: ctx.input.message,
+              previousVersionId: existing?.status?.digest ?? "",
+            });
       // The request's tag, which the archive step moves here; none leaves
       // the head untagged, and the archive step shows the tag an already
       // archived version holds.

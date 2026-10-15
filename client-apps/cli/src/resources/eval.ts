@@ -255,7 +255,9 @@ export function extractArchive(archive: Uint8Array, dir: string): number {
       throw new UsageError(`the eval archive holds an absolute path '${name}'; nothing was written`);
     }
     const target = resolve(root, name);
-    if (target !== root && !target.startsWith(root + sep)) {
+    // An entry that resolves to the directory itself (`x/..`) names no
+    // file in it, and one outside it would escape.
+    if (!target.startsWith(root + sep)) {
       throw new UsageError(`the eval archive holds '${name}', which would land outside ${dir}; nothing was written`);
     }
     planned.push([target, bytes]);

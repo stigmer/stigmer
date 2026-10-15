@@ -5,7 +5,8 @@
  *
  *   plan:    Authorize → ValidateProto → ResolveArtifactSource →
  *            GateAndHashArchive → ReadPluginPackage → BuildInitialPlugin →
- *            FindExistingBySlug → GenerateIDIfNeeded → PlanPluginStatus →
+ *            FindExistingBySlug → RefuseRenamedSlug → GenerateIDIfNeeded →
+ *            PlanPluginStatus →
  *            GuardPluginVisibility → ResolveConvergence
  *   install: ProbeServerSignIns → CheckAndStoreArtifact →
  *            PopulatePluginFields → ClaimName → StorePlugin →

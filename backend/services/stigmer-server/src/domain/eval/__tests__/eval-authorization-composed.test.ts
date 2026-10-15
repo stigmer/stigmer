@@ -4,6 +4,9 @@
  * the compiled model), with two people of one organization: Carol, who
  * founded it (an admin), and Dave, a member.
  *
+ *   - a push or a mint naming a slug an eval was renamed away from is
+ *     refused to a member who may not edit that eval as any refused push
+ *     is, and only its editors hear that the slug was renamed;
  *   - while the organization lets members create agents, Dave creates his
  *     own eval and pushes its versions; a push onto Carol's eval is refused,
  *     whatever its level, and so is an upload URL naming its slug, with the
@@ -133,6 +136,27 @@ describe("who may push, mint for and download an eval (built-in posture, compose
     expect(minted.artifactUploadRef).toMatch(/^sau_/);
   });
 
+  it("tells only an eval's editors that a slug was renamed away from it", async () => {
+    const carol = createClient(EvalCommandController, asCarol());
+    const dave = createClient(EvalCommandController, asDave());
+    const pushed = await carol.push({
+      org: ORG,
+      slug: "carols-renamed",
+      artifact: folder("Renamed."),
+      visibility: ApiResourceVisibility.visibility_private,
+    });
+    await carol.rename({ resourceId: pushed.metadata!.id, slug: "carols-renamed-now" });
+
+    const stranger = await failureOf(dave.push({ org: ORG, slug: "carols-renamed", artifact: folder("Mine?") }));
+    expect(stranger.code).toBe(Code.PermissionDenied);
+    expect(stranger.rawMessage).toBe(EVAL_PUSH_DENIED);
+    const strangerMint = await failureOf(dave.createArtifactUploadUrl({ org: ORG, slug: "carols-renamed", sizeBytes: 10n }));
+    expect(strangerMint.code).toBe(Code.PermissionDenied);
+
+    const owner = await failureOf(carol.push({ org: ORG, slug: "carols-renamed", artifact: folder("Again.") }));
+    expect(owner.code).toBe(Code.FailedPrecondition);
+  });
+
   it("refuses a member's new eval once agent creation is closed, and keeps his own eval his to version", async () => {
     const dave = createClient(EvalCommandController, asDave());
     const owned = await dave.push({ org: ORG, slug: "daves-kept", artifact: folder("Kept.") });
@@ -179,14 +203,14 @@ describe("who may push, mint for and download an eval (built-in posture, compose
       visibility: ApiResourceVisibility.visibility_private,
     });
     for (const call of [
-      daveQuery.download(ref),
-      daveQuery.download({ ...ref, version: digestOf(v1) }),
-      daveQuery.getDownloadUrl({ ...ref, version: digestOf(v1) }),
-      daveQuery.getByReference({ ...ref, version: digestOf(v1) }),
-      daveQuery.listVersions({ org: ORG, slug: "carols-shared" }),
-      daveQuery.get({ value: shared.metadata!.id }),
+      () => daveQuery.download(ref),
+      () => daveQuery.download({ ...ref, version: digestOf(v1) }),
+      () => daveQuery.getDownloadUrl({ ...ref, version: digestOf(v1) }),
+      () => daveQuery.getByReference({ ...ref, version: digestOf(v1) }),
+      () => daveQuery.listVersions({ org: ORG, slug: "carols-shared" }),
+      () => daveQuery.get({ value: shared.metadata!.id }),
     ]) {
-      expect((await failureOf(call)).code).toBe(Code.PermissionDenied);
+      expect((await failureOf(call())).code).toBe(Code.PermissionDenied);
     }
     expect((await daveQuery.list({ org: ORG })).entries.map((e) => e.metadata?.slug)).not.toContain("carols-shared");
     const carolsCopy = await createClient(EvalQueryController, asCarol()).download({ ...ref, version: digestOf(v1) });
