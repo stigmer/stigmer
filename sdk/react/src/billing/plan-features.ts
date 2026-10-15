@@ -69,6 +69,38 @@ export function lowestPlanWith(plans: readonly Plan[], feature: Feature): Plan |
   );
 }
 
+/**
+ * Stigmer Cloud's top plan, which is quoted rather than bought, so the
+ * catalog never lists it: what it includes beyond Business and on what
+ * terms. The console's plan comparison and stigmer.ai's pricing page both
+ * render it from here, so the two read alike. Its features are the ones the
+ * contract tiers to it, and nothing it does not yet deliver.
+ */
+export const ENTERPRISE_CLOUD_PLAN: {
+  readonly name: string;
+  readonly includes: string;
+  readonly features: readonly NamedFeature[];
+  readonly terms: string;
+} = {
+  name: "Enterprise Cloud",
+  includes: "Everything in Business",
+  features: [Feature.access_history],
+  terms: "Annual contract, invoiced",
+};
+
+/**
+ * The name of the plan that unlocks `feature`: the cheapest buyable plan
+ * that includes it, else Enterprise Cloud when only that plan does. Empty
+ * when no plan includes it.
+ */
+export function unlockingPlanName(plans: readonly Plan[], feature: Feature): string {
+  const buyable = lowestPlanWith(plans, feature)?.metadata?.name;
+  if (buyable !== undefined && buyable !== "") {
+    return buyable;
+  }
+  return ENTERPRISE_CLOUD_PLAN.features.some((included) => included === feature) ? ENTERPRISE_CLOUD_PLAN.name : "";
+}
+
 /** What `from` offers that `to` does not: what a switch stops the organization creating. */
 export function featuresLost(from: Plan | undefined, to: Plan): readonly OfferedFeature[] {
   const kept = new Set(offeredFeatures(to.spec?.entitlements).map((offered) => offered.feature));

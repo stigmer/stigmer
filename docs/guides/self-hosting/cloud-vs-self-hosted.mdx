@@ -1,57 +1,72 @@
 ---
-title: Cloud vs self-hosted
+title: Open source, Enterprise and Cloud
 description:
-  Stigmer is one platform you can run two ways. Compare what self-hosting
-  includes with what Stigmer Cloud adds, and decide which fits your team.
+  Stigmer comes in three editions. Compare Stigmer open source, Stigmer
+  Enterprise and Stigmer Cloud, and decide which fits your team.
 ---
 
-Stigmer's core is open source under Apache 2.0; Stigmer Enterprise, in the
-repository's `ee/` directory, is public under the Stigmer Enterprise License and
-needs a license key in production. The same platform runs two ways.
-**Self-hosting** gives your team everything it needs to run Stigmer for itself,
-on infrastructure you control. **Stigmer Cloud** is the managed service: it runs
-the same platform for many teams at once and adds the capabilities that only
-make sense when someone operates Stigmer as a service — tenancy, billing, and
-the operations behind them.
+Stigmer is one platform that runs three ways:
 
-The contracts are identical either way. Your Agents, Skills, and the CLI and
-SDKs that drive them work against both — moving between them is a configuration
-change, not a rewrite.
+- **Stigmer open source** is free under Apache 2.0. You run it yourself, on a
+  laptop, one server or Kubernetes, for one Organization.
+- **Stigmer Enterprise** is the same server with a license key, on your own
+  infrastructure: many Organizations, Teams and invitations, federation with
+  other identity providers, and the access history. Its code is public in the
+  repository's `ee/` directory under the Stigmer Enterprise License, and running
+  it in production needs an annual license.
+- **Stigmer Cloud** is the managed service. Stigmer runs the platform for you,
+  with hosted sign-in, channels, plans and billing, and the operations behind
+  them.
+
+The contracts are identical in all three. Your Agents, Skills, and the CLI and
+SDKs that drive them work against each — moving between them is a configuration
+change, not a rewrite. In every edition your Agents run on your own model
+provider key: Stigmer runs no model of its own.
 
 ## The short answer
 
-**Choose self-hosted if:**
+**Choose Stigmer open source if:**
 
 - Your data or compliance posture requires everything on your infrastructure.
 - You already operate Postgres and Docker (or Kubernetes) and want full control.
 - One team uses the server, and your own OIDC provider handles sign-in.
 - You want your model calls never to leave your infrastructure.
 
+**Choose Stigmer Enterprise if:**
+
+- Everything must stay on your infrastructure, and you need more than one
+  Organization.
+- You need Teams, invitations, per-resource sharing or the access history.
+- People sign in through more than one identity provider you trust.
+
 **Choose Stigmer Cloud if:**
 
 - You want to build with Agents today, not operate a platform.
-- You need multiple Organizations or per-resource permissions.
+- You need multiple Organizations or per-resource permissions without running a
+  server.
 - You want Agents reachable in Slack and WhatsApp.
 - You want a managed platform rather than operating infrastructure.
 
 ## Side by side
 
-| Capability                            | Self-hosted                                                                                                       | Stigmer Cloud                                                                       |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Agents, Skills, Sessions, MCP servers | Full — the same contracts                                                                                         | Full — the same contracts                                                           |
-| Storage                               | Your Postgres                                                                                                     | Managed                                                                             |
-| Authentication                        | Your OIDC provider, API keys, service accounts and minted user tokens                                             | Hosted login, identity federation, service accounts, minted user tokens             |
-| Organizations                         | One with open source; with Enterprise, as many as the license allows, and the operator may limit who creates them | As many as you need                                                                 |
-| Permissions                           | Owner, admin, member and viewer roles per Organization; Private stays private                                     | The Organization's roles, plus per-resource roles (Viewer, Editor, Owner) and Teams |
-| Sandbox isolation                     | Pluggable drivers: local process, Docker, Kubernetes (off by default)                                             | Managed Kubernetes isolation                                                        |
-| Channels (Slack, WhatsApp)            | Not available                                                                                                     | Included                                                                            |
-| LLM costs                             | Your provider keys, billed by providers directly                                                                  | Your Organization's provider keys, billed by providers directly                     |
-| Model catalog                         | Bundled, refreshes automatically                                                                                  | Always current                                                                      |
-| Operations, backups, upgrades         | Yours                                                                                                             | Managed                                                                             |
+| Capability | Stigmer open source | Stigmer Enterprise | Stigmer Cloud |
+| --- | --- | --- | --- |
+| Price | Free, Apache 2.0 | Annual license, quoted | Free, then flat monthly plans |
+| Agents, Skills, Sessions, MCP servers | Full — the same contracts | Full — the same contracts | Full — the same contracts |
+| Storage | SQLite on a laptop, or your Postgres | Your Postgres | Managed |
+| Authentication | Your OIDC provider, API keys, service accounts and minted user tokens | The same, plus federation with other identity providers | Hosted login, identity federation, service accounts, minted user tokens |
+| Organizations | One | As many as the license allows; the operator may limit who creates them | As many as you need |
+| Permissions | Owner, admin, member and viewer roles per Organization; Private stays private | The Organization's roles, plus per-resource roles (Viewer, Editor, Owner), Teams and invitations | The Organization's roles, plus per-resource roles (Viewer, Editor, Owner), Teams and invitations |
+| Access history | Not kept | Kept, for as long as the operator sets | Kept; read on the Enterprise Cloud plan |
+| Sandbox isolation | Pluggable drivers: local process, Docker, Kubernetes (off by default) | Pluggable drivers: local process, Docker, Kubernetes (off by default) | Managed Kubernetes isolation |
+| Channels (Slack, WhatsApp) | Not yet | Not yet | Included |
+| LLM | Your key, held by the runner (Anthropic, or Cursor for the Cursor harness), billed by your provider | Your key, held by the runner (Anthropic, or Cursor for the Cursor harness), billed by your provider | Your Organization's keys (Anthropic, OpenAI, compatible endpoints, Cursor), billed by your provider |
+| Model catalog | Bundled, refreshes automatically | Bundled, refreshes automatically | Always current |
+| Operations, backups, upgrades | Yours | Yours | Managed |
 
-## What self-hosting includes
+## What Stigmer open source includes
 
-Self-hosting is not a trial edition. The
+Open source is not a trial edition. The
 [Docker Compose stack](/docs/guides/self-hosting/docker-compose) runs the
 complete platform — the server, a real Temporal server, Postgres, and the runner
 that executes your Agents — with durable state in volumes you own and back up.
@@ -81,33 +96,58 @@ that executes your Agents — with durable state in volumes you own and back up.
   own. Roles are per Organization; there is no per-resource sharing, so a shared
   vault is shared with every member or with none. The server does not stop a
   signed-in person from creating a second Organization, but one is the shape
-  self-hosting is built for.
+  open source is built for.
+
+## What Stigmer Enterprise adds
+
+Stigmer Enterprise is the open-source server with a license key, run from the
+same [Helm chart](/docs/guides/self-hosting/kubernetes) or the Enterprise image,
+on Postgres. A verified key turns on:
+
+- **Many Organizations.** As many as the license allows, and the operator may
+  list who may create one.
+- **Teams and invitations.** Share an Agent, a Skill or another resource with a
+  person or a Team, and invite people into an Organization.
+- **Identity federation.** Trust the tokens of the platforms and identity
+  providers you name, so their people reach Stigmer without separate accounts.
+- **The [access history](/docs/guides/authentication/access-history).** Who gave
+  whom access to what, and when, kept for as long as the operator sets.
+- **Control over outbound addresses.** Which addresses the server may dial when
+  it reaches a URL a person wrote.
+
+Without a key, the Enterprise server is the open-source server exactly. When a
+license ends, the server keeps every person, Organization and record and refuses
+only growth until a renewed key is pasted. The chart's
+[Enterprise settings](https://github.com/stigmer/stigmer/blob/main/deploy/helm/stigmer/README.md#stigmer-enterprise)
+list each switch; a license key comes through
+[Contact Sales](https://stigmer.ai/contact-sales).
 
 ## What Stigmer Cloud adds
 
-Stigmer Cloud runs the same platform and layers on what a managed, multi-tenant
-service requires:
+Stigmer Cloud runs the same platform as Stigmer Enterprise, with its many
+Organizations, Teams, sharing and
+[identity federation](/docs/guides/authentication/federation/overview), and
+layers on what only a managed, multi-tenant service has:
 
-- **Tenancy and governance.** Multiple Organizations, invitations, and
-  fine-grained per-resource permissions and sharing.
-- **Identity federation.** Bring users from many identity providers with
-  [identity federation](/docs/guides/authentication/federation/overview) — trust
-  relationships that let your platform's users reach Stigmer without managing
-  credentials themselves.
+- **Hosted sign-in.** People sign in at app.stigmer.ai, with no identity
+  provider of your own to run.
 - **Channels.** Agents that talk to your users
   [in Slack and WhatsApp](/docs/guides/channels/connect-slack) — webhook
   delivery, provider apps, and outbound messaging are cloud infrastructure.
-- **Model calls on your own keys, metered.** LLM calls route through the managed
-  proxy on your Organization's own provider keys (or your own compatible
-  endpoint), with per-call metering and cost caps; the provider bills you
-  directly. See
+- **Model calls on your own keys, counted.** LLM calls route through the
+  managed proxy on your Organization's own provider keys (or your own compatible
+  endpoint), with every call's tokens counted and never priced; the provider
+  bills you directly. See
   [Model provider keys](/docs/guides/integrations/model-provider-keys).
+- **Plans and billing.** Free to start, then flat monthly plans; see
+  [Billing](/docs/concepts/billing).
 - **Someone else on call.** Upgrades, backups, scaling, and sandbox isolation
   are operated for you.
 
 The boundary is deliberate: capabilities land in open source when a team
-self-hosting Stigmer for itself needs them, and in Stigmer Cloud when they only
-exist because Stigmer runs the platform as a service for many teams.
+self-hosting Stigmer for itself needs them, in Stigmer Enterprise when a company
+runs it for many teams of its own, and in Stigmer Cloud when they only exist
+because Stigmer runs the platform as a service.
 
 ## Know the limitations
 
@@ -121,12 +161,17 @@ One honest caveat before you commit to self-hosting today:
 
 ## Next step
 
-Self-hosting starts with choosing the shape that fits your team.
+Self-hosting starts with choosing the shape that fits your team; Stigmer
+Enterprise runs in the same shapes with a license key.
 
 <Cards>
   <Card title="Self-host Stigmer" href="/docs/guides/self-hosting/overview">
     Pick a shape — your laptop, one server with Docker Compose, or Kubernetes
     with the Helm chart — and run your first Agent on it.
+  </Card>
+  <Card title="Talk to us about Stigmer Enterprise" href="https://stigmer.ai/contact-sales">
+    Many Organizations, Teams and federation on your own infrastructure, on an
+    annual license.
   </Card>
   <Card title="Start on Stigmer Cloud" href="https://app.stigmer.ai">
     Skip the infrastructure. Sign in and run your first Agent in minutes.

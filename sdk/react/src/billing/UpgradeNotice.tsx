@@ -45,7 +45,8 @@ export interface UpgradeNoticeProps {
   readonly error?: Error | null;
   /**
    * The plan that unlocks the feature, named ahead of an attempt, e.g. the
-   * cheapest one that includes it (`lowestPlanWith`). With a refusal,
+   * cheapest one that includes it, or Enterprise Cloud when only that quoted
+   * plan does. With a refusal,
    * the server's copy names it instead.
    */
   readonly unlockingPlanName?: string;

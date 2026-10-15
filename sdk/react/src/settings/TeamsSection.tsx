@@ -24,7 +24,7 @@ import { useCallback, useId, useState } from "react";
 import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import { UpgradeNotice } from "../billing/UpgradeNotice.js";
-import { lowestPlanWith } from "../billing/plan-features.js";
+import { unlockingPlanName } from "../billing/plan-features.js";
 import { useEntitlements } from "../billing/useEntitlements.js";
 import { usePlans } from "../billing/usePlans.js";
 import { useDeploymentMode, useResourceAvailable, ApiResourceKind } from "../deployment-mode.js";
@@ -52,7 +52,7 @@ export function TeamsSection() {
   const plan = useEntitlements(orgId || null, { enabled: onCloud && teamsServed });
   const planLacksTeams = plan.allows(Feature.teams) === false;
   const catalog = usePlans({ enabled: planLacksTeams });
-  const unlockingPlanName = lowestPlanWith(catalog.plans ?? [], Feature.teams)?.metadata?.name;
+  const unlockingPlan = unlockingPlanName(catalog.plans ?? [], Feature.teams);
   const list = useTeamList(teamsServed && orgId ? orgId : null);
   const { refetch } = list;
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
@@ -104,7 +104,7 @@ export function TeamsSection() {
         their leaving the organization, takes that access away.
       </p>
 
-      {teamsServed && orgId && planLacksTeams && <UpgradeNotice feature={Feature.teams} unlockingPlanName={unlockingPlanName} className="stg:mb-3" />}
+      {teamsServed && orgId && planLacksTeams && <UpgradeNotice feature={Feature.teams} unlockingPlanName={unlockingPlan} className="stg:mb-3" />}
       {!teamsServed ? (
         <CloudFeatureNotice>
           Teams are available in Stigmer Enterprise and Cloud. This edition

@@ -1,7 +1,7 @@
 // Accessibility audit — the plan surfaces.
 //
 // Covers the plan section on Free (the comparison list, its choices, the
-// Enterprise link and the agent hours meter), an active plan with its estimated invoice (the
+// Enterprise Cloud link and the agent hours meter), an active plan with its estimated invoice (the
 // definition list of lines, the standing badge), the confirm dialog, and
 // the operator's plan catalog — each in light and dark against the shipped
 // stylesheet, at the settings canvas's width.

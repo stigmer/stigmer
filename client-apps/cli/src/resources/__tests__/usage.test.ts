@@ -131,7 +131,7 @@ describe("formatServedBy", () => {
 
   it("names a single known source, noting tokens whose server was not recorded", () => {
     expect(formatServedBy(aggregate([{ source: org, tokens: 5000n }]))).toBe("your keys");
-    expect(formatServedBy(aggregate([{ source: platform, tokens: 5000n }]))).toBe("Stigmer's free model");
+    expect(formatServedBy(aggregate([{ source: platform, tokens: 5000n }]))).toBe("the platform's connection");
     expect(
       formatServedBy(
         aggregate([
@@ -162,7 +162,7 @@ describe("formatServedBy", () => {
           { source: unrecorded, tokens: 1000n },
         ]),
       ),
-    ).toBe("your keys 6.0k (60.0%) · Stigmer's free model 3.0k (30.0%) · not recorded 1.0k (10.0%)");
+    ).toBe("your keys 6.0k (60.0%) · the platform's connection 3.0k (30.0%) · not recorded 1.0k (10.0%)");
   });
 
   it("names a source this build does not know by its number", () => {
@@ -253,7 +253,7 @@ describe("renderOrgUsage", () => {
     expect(out).toContain("Agents:       3");
     expect(out).toContain("Runs:         10");
     expect(out).toContain("Total tokens: 10.0k");
-    expect(out).toContain("Served by:    your keys 8.0k (80.0%) · Stigmer's free model 2.0k (20.0%)");
+    expect(out).toContain("Served by:    your keys 8.0k (80.0%) · the platform's connection 2.0k (20.0%)");
     expect(out).toContain("Working time: 312h 5m"); // never days
     expect(out).toMatch(/AGENT\s+RUNS\s+TOKENS\s+SHARE\s+WORKING/);
     expect(out).toMatch(/Reviewer\s+6\s+6\.0k\s+60\.0%\s+42s/);

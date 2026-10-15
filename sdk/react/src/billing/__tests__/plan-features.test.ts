@@ -2,7 +2,8 @@
 // order (a feature listed ahead of its gate is left out), its monthly fee
 // its child organizations and its agent hours; every period day in UTC; working agent time
 // in tenths of an hour; and which plans are offered, cheapest first, with
-// what a switch gives up.
+// what a switch gives up; and the plan that unlocks a feature, the quoted
+// Enterprise Cloud plan when no buyable plan includes it.
 
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -10,6 +11,7 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { PlanTermsSchema } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
 import { EntitlementsSchema, Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import {
+  ENTERPRISE_CLOUD_PLAN,
   buyablePlans,
   featuresLost,
   formatAgentHours,
@@ -19,6 +21,7 @@ import {
   formatPeriodDay,
   lowestPlanWith,
   offeredFeatures,
+  unlockingPlanName,
 } from "../plan-features";
 import { BUSINESS as BUSINESS_PLAN, RETIRED, TEAM } from "./fixtures";
 
@@ -101,6 +104,18 @@ describe("which plans are offered", () => {
     expect(lowestPlanWith([BUSINESS_PLAN, RETIRED, TEAM], Feature.teams)?.metadata?.name).toBe("Team");
     expect(lowestPlanWith([BUSINESS_PLAN, TEAM], Feature.child_orgs)?.metadata?.name).toBe("Business");
     expect(lowestPlanWith([TEAM], Feature.child_orgs)).toBeUndefined();
+  });
+
+  it("names the plan that unlocks a feature, Enterprise Cloud when no buyable plan includes it", () => {
+    expect(unlockingPlanName([BUSINESS_PLAN, TEAM], Feature.teams)).toBe("Team");
+    expect(unlockingPlanName([BUSINESS_PLAN, TEAM], Feature.access_history)).toBe("Enterprise Cloud");
+    expect(unlockingPlanName([], Feature.access_history)).toBe("Enterprise Cloud");
+    expect(unlockingPlanName([TEAM], Feature.child_orgs)).toBe("");
+  });
+
+  it("lists on Enterprise Cloud only what the contract tiers to it", () => {
+    expect(ENTERPRISE_CLOUD_PLAN.name).toBe("Enterprise Cloud");
+    expect(ENTERPRISE_CLOUD_PLAN.features).toEqual([Feature.access_history]);
   });
 
   it("says what a switch stops the organization creating, and nothing for an upgrade", () => {

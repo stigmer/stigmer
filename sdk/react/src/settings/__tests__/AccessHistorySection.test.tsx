@@ -161,7 +161,7 @@ function renderSection(mode: DeploymentMode, verdict = true, read: ReadMode = "p
           server.reads.push(input);
           if (read === "plan-refusal") {
             throw new ConnectError(
-              "The access history needs the Enterprise plan.",
+              "The access history needs the Enterprise Cloud plan.",
               Code.FailedPrecondition,
               undefined,
               [{ desc: ErrorInfoSchema, value: { reason: "PLAN_UPGRADE_REQUIRED", metadata: { feature: "access_history" } } }],
@@ -211,7 +211,7 @@ afterEach(() => {
 describe("AccessHistorySection", () => {
   it("names the plan when the server refuses the read for it", async () => {
     renderSection("cloud", true, "plan-refusal");
-    await waitFor(() => expect(screen.getByText("The access history needs the Enterprise plan.")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("The access history needs the Enterprise Cloud plan.")).toBeTruthy());
     expect(screen.getByRole("link", { name: "View plans" })).toBeTruthy();
   });
 
@@ -238,7 +238,7 @@ describe("AccessHistorySection", () => {
     stubs.planAllowsHistory = false;
     const server = renderSection("cloud");
     await settle();
-    expect(screen.getByText("Access history is not included in this organization's plan.")).toBeTruthy();
+    expect(screen.getByText("Access history needs the Enterprise Cloud plan or above.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "View plans" })).toBeTruthy();
     expect(server.reads).toEqual([]);
   });

@@ -5,11 +5,11 @@ import { ContactSalesPage } from "@/components/pages/ContactSalesPage";
 export const metadata: Metadata = {
   title: "Contact Sales",
   description:
-    "Talk to the Stigmer team about Enterprise plans — dedicated infrastructure, SLAs, and custom contracts.",
+    "Talk to the Stigmer team about Stigmer Enterprise on your own infrastructure, or Enterprise Cloud run by us, on an annual contract.",
   openGraph: {
     title: `Contact Sales | ${SITE_CONFIG.name}`,
     description:
-      "Talk to the Stigmer team about Enterprise plans.",
+      "Talk to the Stigmer team about Stigmer Enterprise or Enterprise Cloud.",
   },
 };
 

@@ -47,7 +47,7 @@ import {
   isDeletedReference,
 } from "@stigmer/sdk";
 import { UpgradeNotice, planUpgradeFeature } from "../billing/UpgradeNotice.js";
-import { lowestPlanWith } from "../billing/plan-features.js";
+import { unlockingPlanName } from "../billing/plan-features.js";
 import { useEntitlements } from "../billing/useEntitlements.js";
 import { usePlans } from "../billing/usePlans.js";
 import { useDeploymentMode } from "../deployment-mode.js";
@@ -75,7 +75,7 @@ export function AccessHistorySection() {
   const plan = useEntitlements(orgId || null, { enabled: onCloud });
   const planLacksHistory = plan.allows(Feature.access_history) === false;
   const catalog = usePlans({ enabled: planLacksHistory });
-  const unlockingPlanName = lowestPlanWith(catalog.plans ?? [], Feature.access_history)?.metadata?.name;
+  const unlockingPlan = unlockingPlanName(catalog.plans ?? [], Feature.access_history);
 
   return (
     <section aria-labelledby={headingId}>
@@ -100,7 +100,7 @@ export function AccessHistorySection() {
           Select an organization to read its access history.
         </p>
       ) : planLacksHistory ? (
-        <UpgradeNotice feature={Feature.access_history} unlockingPlanName={unlockingPlanName} />
+        <UpgradeNotice feature={Feature.access_history} unlockingPlanName={unlockingPlan} />
       ) : (
         <PermissionGate
           resource={{ kind: "organization", id: orgId }}
