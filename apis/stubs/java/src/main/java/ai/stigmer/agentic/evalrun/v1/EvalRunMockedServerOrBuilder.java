@@ -12,7 +12,8 @@ public interface EvalRunMockedServerOrBuilder extends
 
   /**
    * <pre>
-   * The server's name in the run, as in "plugin_tracker_issues".
+   * The server's name in the run, as in "plugin_tracker_issues" or an
+   * agent's own "billing".
    * </pre>
    *
    * <code>string name = 1 [json_name = "name"];</code>
@@ -21,7 +22,8 @@ public interface EvalRunMockedServerOrBuilder extends
   java.lang.String getName();
   /**
    * <pre>
-   * The server's name in the run, as in "plugin_tracker_issues".
+   * The server's name in the run, as in "plugin_tracker_issues" or an
+   * agent's own "billing".
    * </pre>
    *
    * <code>string name = 1 [json_name = "name"];</code>
@@ -73,7 +75,8 @@ public interface EvalRunMockedServerOrBuilder extends
 
   /**
    * <pre>
-   * Why the server is not started, as in "not started: no mock"; empty
+   * Why the server is not started, as in "not started: no mock", or why
+   * its mocks answer nothing, as in "no such server on the agent"; empty
    * when its mocks answer.
    * </pre>
    *
@@ -83,7 +86,8 @@ public interface EvalRunMockedServerOrBuilder extends
   java.lang.String getNotStartedReason();
   /**
    * <pre>
-   * Why the server is not started, as in "not started: no mock"; empty
+   * Why the server is not started, as in "not started: no mock", or why
+   * its mocks answer nothing, as in "no such server on the agent"; empty
    * when its mocks answer.
    * </pre>
    *

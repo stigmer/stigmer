@@ -175,9 +175,14 @@ class EvalRunCaseSourceInput:
     """SDK input type for EvalRunCaseSource."""
 
     plugin: ResourceRef | None = None
+    eval: ResourceRef | None = None
 
     def _to_proto(self) -> spec_pb2.EvalRunCaseSource:
         msg = spec_pb2.EvalRunCaseSource()
+        if self.eval is not None and (self.eval.org or self.eval.slug):
+            _ref = self.eval._to_proto()
+            _ref.kind = 66
+            msg.eval.CopyFrom(_ref)
         if self.plugin is not None and (self.plugin.org or self.plugin.slug):
             _ref = self.plugin._to_proto()
             _ref.kind = 58

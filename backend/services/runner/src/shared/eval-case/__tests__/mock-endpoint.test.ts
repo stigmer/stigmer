@@ -9,7 +9,9 @@
  * past the shared budget; a call without the token is refused, and so is a
  * path naming no stand-in; a case with no mocks starts no endpoint; an
  * unmocked tool, a call before the turn binds the endpoint and a fixture the
- * archive lacks answer as tool errors.
+ * archive lacks answer as tool errors. An Eval's stand-ins carry the real
+ * server's home (the agent's own, or a plugin's) and read their fixtures
+ * from a suite at the archive's root.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -18,7 +20,9 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import {
   EvalCaseContextSchema,
+  EvalMockAgentHomeSchema,
   EvalMockKind,
+  EvalMockPluginHomeSchema,
   EvalMockServerSchema,
   EvalMockToolSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
@@ -216,3 +220,50 @@ describe("the mock endpoint", () => {
     await client.close();
   });
 });
+
+describe("an Eval's stand-ins", () => {
+  const ROOT_ARCHIVE = caseArchiveOf([
+    { path: "mocks/billing/refund.md", content: encode("{{file:fixtures/ok.json}}") },
+    { path: "mocks/billing/fixtures/ok.json", content: encode('{"refunded":true}') },
+    { path: "mocks/plugin_kit_tracker/create_issue.md", content: encode("Created.") },
+  ]);
+  const evalContext = create(EvalCaseContextSchema, {
+    evalId: "evs_1",
+    evalDigest: "a".repeat(64),
+    suiteDir: "",
+    caseDir: "refund",
+    mocks: [
+      create(EvalMockServerSchema, {
+        server: "billing",
+        segment: "billing",
+        home: { case: "agent", value: create(EvalMockAgentHomeSchema, { agentId: "agt_1", server: "billing" }) },
+        tools: [tool({ tool: "refund", file: "mocks/billing/refund.md", kind: EvalMockKind.fixed })],
+      }),
+      create(EvalMockServerSchema, {
+        server: "plugin_kit_tracker",
+        segment: "plugin_kit_tracker",
+        home: {
+          case: "plugin",
+          value: create(EvalMockPluginHomeSchema, { pluginId: "plg_1", pluginName: "kit", server: "tracker" }),
+        },
+        tools: [tool({ tool: "create_issue", file: "mocks/plugin_kit_tracker/create_issue.md", kind: EvalMockKind.fixed })],
+      }),
+    ],
+  });
+
+  it("carry the real server's home, and read fixtures from a suite at the archive's root", async () => {
+    endpoint = await startMockEndpoint({ context: evalContext, archive: ROOT_ARCHIVE, agentModel: noModel });
+    if (endpoint === undefined) throw new Error("expected an endpoint");
+    endpoint.bind({ onAbort: () => undefined, onCost: () => undefined });
+    expect(endpoint.servers.map((s) => [s.slug, s.home])).toEqual([
+      ["billing", { kind: "agent", agentId: "agt_1", subagent: null, server: "billing" }],
+      ["plugin_kit_tracker", { kind: "plugin", pluginId: "plg_1", plugin: "kit", server: "tracker" }],
+    ]);
+    const billing = endpoint.servers.find((s) => s.slug === "billing");
+    const client = new Client({ name: "test", version: "1.0.0" });
+    await client.connect(new StreamableHTTPClientTransport(new URL(billing?.url ?? ""), { requestInit: { headers: billing?.headers } }));
+    expect(text(await client.callTool({ name: "refund", arguments: {} }))).toBe('{"refunded":true}');
+    await client.close();
+  });
+});
+

@@ -6,7 +6,9 @@
  * scaffold is not run again, while a retry before the marker starts from an
  * empty workspace; a failure and the time limit come back as one line;
  * reference folders land under `inputs/` as the turn's listed inputs; the
- * recorded conversation and the variables are handed on.
+ * recorded conversation and the variables are handed on. An Eval's suite
+ * is its archive's root (`suite_dir` empty), and its scaffold reaches a
+ * fixture there the same way.
  */
 
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -156,6 +158,26 @@ describe("the scaffold", () => {
         primaryDir: absent,
       }),
     ).rejects.toThrow("the archive holds no scaffold at 'evals/fix/setup.sh'");
+  });
+
+  it("runs an Eval's scaffold from a suite at the archive's root, reaching a fixture beside its case", async () => {
+    const root = caseArchiveOf([
+      { path: "fix/setup.sh", content: encode('cp "$(dirname "$0")/../_fixture/app.txt" app.txt') },
+      { path: "_fixture/app.txt", content: encode("root fixture") },
+    ]);
+    const context = create(EvalCaseContextSchema, {
+      evalId: "evs_1",
+      evalDigest: "a".repeat(64),
+      suiteDir: "",
+      caseDir: "fix",
+      scaffoldScript: "setup.sh",
+    });
+    const outcome = await prepareEvalCase({ context, archive: root, sessionId: "s-root", primaryDir: workspace });
+    expect(outcome.kind).toBe("ready");
+    expect(readFileSync(join(workspace, "app.txt"), "utf8")).toBe("root fixture");
+    await expect(
+      prepareEvalCase({ context, archive: caseArchiveOf([]), sessionId: "s-empty", primaryDir: join(workspace, "absent") }),
+    ).rejects.toThrow("the archive holds no files");
   });
 });
 

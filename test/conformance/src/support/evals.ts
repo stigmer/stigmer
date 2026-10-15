@@ -2,12 +2,14 @@
 // Claude Code's plugin-eval format pushed whole, its cases at the archive's
 // root. The working agent's own suite (fixtures/working-agent/evals) is the
 // representative folder; a one-case folder is the cheap row the role cells
-// and the rename table push. One deterministic zipper (skills.ts) turns a
+// and the rename table push; a folder of authored cases is what an eval run
+// on an agent runs. One deterministic zipper (skills.ts) turns a
 // file map into the archive, so the same map is the same digest.
 // Domain: conformance support (agentic / eval).
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { evalCaseFiles, type EvalCaseFixture } from "./eval-runs";
 import { zipFiles } from "./skills";
 import { WORKING_AGENT_FIXTURE_DIR } from "./working-agent";
 
@@ -49,6 +51,15 @@ const JUDGE = "---\ntype: llm\n---\n\nPASS if the reply answers the question.\n"
 /** A folder holding one case that loads, its prompt `prompt`. */
 export function oneCaseEvalArchive(prompt: string): Uint8Array {
   return evalArchive({ "answers/prompt.md": prompt, "answers/graders/judge.md": JUDGE });
+}
+
+/** A folder holding `cases` at its root, as an author writes them, and `files` beside them (its mocks/ among them). */
+export function evalFolderArchive(cases: readonly EvalCaseFixture[], files: Readonly<Record<string, string>> = {}): Uint8Array {
+  const folder: Record<string, string> = {};
+  for (const evalCase of cases) {
+    for (const [path, content] of evalCaseFiles(evalCase, "")) folder[path] = content;
+  }
+  return evalArchive({ ...folder, ...files });
 }
 
 /** Lowercase hex SHA-256 of an archive: the version digest the server records. */

@@ -16,6 +16,19 @@
       "required": false,
       "referenceKind": 58,
       "oneofGroup": "source"
+    },
+    {
+      "name": "Eval",
+      "jsonName": "eval",
+      "protoField": "eval",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceReference"
+      },
+      "description": "An Eval of the agent's organization whose cases run on the agent: its\n current version, or the tag or digest the reference's version names.\n The caller must be able to view it.",
+      "required": false,
+      "referenceKind": 66,
+      "oneofGroup": "source"
     }
   ]
 }

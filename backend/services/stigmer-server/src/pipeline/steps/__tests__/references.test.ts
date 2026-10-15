@@ -25,6 +25,7 @@
  * the escalation door asks the floor alone — a dependency that has left is
  * not its question — and only when the level is being raised.
  */
+import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { create } from "@bufbuild/protobuf";
 import type { DescField, DescMessage } from "@bufbuild/protobuf";
 import { getOption, hasOption } from "@bufbuild/protobuf";
@@ -109,6 +110,7 @@ const SCHEMAS_UNDER_THE_RULE: ReadonlyArray<DescMessage> = [
   SessionSchema,
   RunSchema,
   OrganizationSchema,
+  EvalRunSchema,
 ];
 
 /** Every `reference_kind` declared on a field reachable from `schema`, recursively. */
@@ -170,7 +172,7 @@ describe("REFERENCE_TARGET_KINDS against the contract", () => {
     ).toEqual([K.skill, K.agent, K.plugin]);
     expect(
       REFERENCE_TARGET_KINDS.filter((e) => !e.readByRun).map((e) => e.kind),
-    ).toEqual([K.vault, K.channel_app]);
+    ).toEqual([K.eval, K.vault, K.channel_app]);
   });
 });
 

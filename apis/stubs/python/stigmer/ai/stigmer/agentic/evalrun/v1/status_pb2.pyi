@@ -50,7 +50,7 @@ eval_run_try_state_graded: EvalRunTryState
 eval_run_try_state_not_graded: EvalRunTryState
 
 class EvalRunStatus(_message.Message):
-    __slots__ = ("phase", "partial_reason", "error", "agent_version_hash", "plugins", "aggregates", "cost_usd", "tries_total", "tries_finished", "started_at", "finished_at", "vault_attachers", "audit")
+    __slots__ = ("phase", "partial_reason", "error", "agent_version_hash", "plugins", "aggregates", "cost_usd", "tries_total", "tries_finished", "started_at", "finished_at", "vault_attachers", "evals", "audit")
     class VaultAttachersEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -70,6 +70,7 @@ class EvalRunStatus(_message.Message):
     STARTED_AT_FIELD_NUMBER: _ClassVar[int]
     FINISHED_AT_FIELD_NUMBER: _ClassVar[int]
     VAULT_ATTACHERS_FIELD_NUMBER: _ClassVar[int]
+    EVALS_FIELD_NUMBER: _ClassVar[int]
     AUDIT_FIELD_NUMBER: _ClassVar[int]
     phase: EvalRunPhase
     partial_reason: EvalRunPartialReason
@@ -83,8 +84,9 @@ class EvalRunStatus(_message.Message):
     started_at: _timestamp_pb2.Timestamp
     finished_at: _timestamp_pb2.Timestamp
     vault_attachers: _containers.ScalarMap[str, str]
+    evals: _containers.RepeatedCompositeFieldContainer[EvalRunEval]
     audit: _status_pb2.ApiResourceAudit
-    def __init__(self, phase: _Optional[_Union[EvalRunPhase, str]] = ..., partial_reason: _Optional[_Union[EvalRunPartialReason, str]] = ..., error: _Optional[str] = ..., agent_version_hash: _Optional[str] = ..., plugins: _Optional[_Iterable[_Union[EvalRunPlugin, _Mapping]]] = ..., aggregates: _Optional[_Union[EvalRunAggregates, _Mapping]] = ..., cost_usd: _Optional[float] = ..., tries_total: _Optional[int] = ..., tries_finished: _Optional[int] = ..., started_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., finished_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., vault_attachers: _Optional[_Mapping[str, str]] = ..., audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ...) -> None: ...
+    def __init__(self, phase: _Optional[_Union[EvalRunPhase, str]] = ..., partial_reason: _Optional[_Union[EvalRunPartialReason, str]] = ..., error: _Optional[str] = ..., agent_version_hash: _Optional[str] = ..., plugins: _Optional[_Iterable[_Union[EvalRunPlugin, _Mapping]]] = ..., aggregates: _Optional[_Union[EvalRunAggregates, _Mapping]] = ..., cost_usd: _Optional[float] = ..., tries_total: _Optional[int] = ..., tries_finished: _Optional[int] = ..., started_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., finished_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., vault_attachers: _Optional[_Mapping[str, str]] = ..., evals: _Optional[_Iterable[_Union[EvalRunEval, _Mapping]]] = ..., audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ...) -> None: ...
 
 class EvalRunPlugin(_message.Message):
     __slots__ = ("plugin_id", "plugin_slug", "plugin_digest", "attached", "compared", "not_run_reason", "cases", "aggregates")
@@ -105,6 +107,22 @@ class EvalRunPlugin(_message.Message):
     cases: _containers.RepeatedCompositeFieldContainer[EvalRunCase]
     aggregates: EvalRunAggregates
     def __init__(self, plugin_id: _Optional[str] = ..., plugin_slug: _Optional[str] = ..., plugin_digest: _Optional[str] = ..., attached: bool = ..., compared: bool = ..., not_run_reason: _Optional[str] = ..., cases: _Optional[_Iterable[_Union[EvalRunCase, _Mapping]]] = ..., aggregates: _Optional[_Union[EvalRunAggregates, _Mapping]] = ...) -> None: ...
+
+class EvalRunEval(_message.Message):
+    __slots__ = ("eval_id", "eval_slug", "eval_digest", "not_run_reason", "cases", "aggregates")
+    EVAL_ID_FIELD_NUMBER: _ClassVar[int]
+    EVAL_SLUG_FIELD_NUMBER: _ClassVar[int]
+    EVAL_DIGEST_FIELD_NUMBER: _ClassVar[int]
+    NOT_RUN_REASON_FIELD_NUMBER: _ClassVar[int]
+    CASES_FIELD_NUMBER: _ClassVar[int]
+    AGGREGATES_FIELD_NUMBER: _ClassVar[int]
+    eval_id: str
+    eval_slug: str
+    eval_digest: str
+    not_run_reason: str
+    cases: _containers.RepeatedCompositeFieldContainer[EvalRunCase]
+    aggregates: EvalRunAggregates
+    def __init__(self, eval_id: _Optional[str] = ..., eval_slug: _Optional[str] = ..., eval_digest: _Optional[str] = ..., not_run_reason: _Optional[str] = ..., cases: _Optional[_Iterable[_Union[EvalRunCase, _Mapping]]] = ..., aggregates: _Optional[_Union[EvalRunAggregates, _Mapping]] = ...) -> None: ...
 
 class EvalRunCase(_message.Message):
     __slots__ = ("case_name", "path", "case_tags", "not_run_reason", "targets", "notes", "mocked_servers")

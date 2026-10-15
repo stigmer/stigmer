@@ -137,6 +137,7 @@ import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
@@ -216,6 +217,17 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     readByRun: true,
     label: "plugin(s)",
     listHint: "stigmer list plugins",
+    writerMust: undefined,
+  },
+  {
+    // An eval run names an Eval whose cases run on its agent; the server
+    // reads the Eval for its tries, after create asked can_view of the
+    // writer (domain/eval-run/steps.ts), so no floor applies.
+    kind: ApiResourceKind.eval,
+    schema: EvalSchema,
+    readByRun: false,
+    label: "eval(s)",
+    listHint: "stigmer list evals",
     writerMust: undefined,
   },
   {

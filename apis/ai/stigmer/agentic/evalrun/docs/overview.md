@@ -1,26 +1,29 @@
 An EvalRun runs test cases on an agent, optionally with and without a plugin.
-Test cases live in a plugin's `evals/` folder in Claude Code's plugin-eval
-format: each case is a request a user might type, plus checks such as "the reply
-mentions the renamed function", "the skill was used" or a pass-or-fail rubric
-for an AI judge.
+Test cases live in a plugin's `evals/` folder, or in an Eval, the same folder
+pushed on its own, in Claude Code's plugin-eval format: each case is a request a
+user might type, plus checks such as "the reply mentions the renamed function",
+"the skill was used" or a pass-or-fail rubric for an AI judge.
 
 An eval run is about an agent or about a plugin:
 
 - On an agent, it runs the cases of the plugins the agent attaches, at the
   versions the agent attaches, on the agent with its own instructions. It is
   stamped with the agent's version, so after a change to the agent a second eval
-  run compares with the first, case by case. Name a compared plugin and each
-  case also runs without it, whether the agent attaches it or not: the
-  difference says whether the plugin earns its place in the agent.
+  run compares with the first, case by case. It also runs the cases of each Eval
+  it names, at the version it names (the current one by default), their mocks
+  standing in for the agent's own servers and its plugins'; an agent with no
+  plugin runs Evals alone. Name a compared plugin and each case also runs
+  without it, whether the agent attaches it or not: the difference says whether
+  the plugin earns its place in the agent.
 - On a plugin, it runs the plugin's own cases on the built-in assistant, with
   the plugin and without it, as Claude Code's `claude plugin eval` does.
 
 Each case runs several times, on the subject's own model or on the models the
-eval run names, and the result records per plugin and per case the score with
-and without the compared plugin, the difference, and whether every try passed.
-Every try is a conversation, linked from the eval run: in Stigmer Cloud the eval
-run's viewers open it, read-only; in open source the eval run's creator owns it,
-and the other viewers read its scores on the eval run.
+eval run names, and the result records per plugin, per Eval and per case the
+score with and without the compared plugin, the difference, and whether every
+try passed. Every try is a conversation, linked from the eval run: in Stigmer
+Cloud the eval run's viewers open it, read-only; in open source the eval run's
+creator owns it, and the other viewers read its scores on the eval run.
 
 The subject's editors start, cancel and delete eval runs; its viewers in its own
 organization read them. The subject's organization pays for every try. Start one

@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/evalrun/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_evalrun_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvZXZhbHJ1bi92MS9zdGF0dXMucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5ldmFscnVuLnYxIrsFCg1FdmFsUnVuU3RhdHVzEjoKBXBoYXNlGAEgASgOMisuYWkuc3RpZ21lci5hZ2VudGljLmV2YWxydW4udjEuRXZhbFJ1blBoYXNlEksKDnBhcnRpYWxfcmVhc29uGAIgASgOMjMuYWkuc3RpZ21lci5hZ2VudGljLmV2YWxydW4udjEuRXZhbFJ1blBhcnRpYWxSZWFzb24SDQoFZXJyb3IYAyABKAkSGgoSYWdlbnRfdmVyc2lvbl9oYXNoGAQgASgJEj0KB3BsdWdpbnMYBSADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuZXZhbHJ1bi52MS5FdmFsUnVuUGx1Z2luEkQKCmFnZ3JlZ2F0ZXMYBiABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuZXZhbHJ1bi52MS5FdmFsUnVuQWdncmVnYXRlcxIQCghjb3N0X3VzZBgHIAEoARITCgt0cmllc190b3RhbBgIIAEoBRIWCg50cmllc19maW5pc2hlZBgJIAEoBRIuCgpzdGFydGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtmaW5pc2hlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASWQoPdmF1bHRfYXR0YWNoZXJzGAwgAygLMkAuYWkuc3RpZ21lci5hZ2VudGljLmV2YWxydW4udjEuRXZhbFJ1blN0YXR1cy5WYXVsdEF0dGFjaGVyc0VudHJ5Ej8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQaNQoTVmF1bHRBdHRhY2hlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIosCCg1FdmFsUnVuUGx1Z2luEhEKCXBsdWdpbl9pZBgBIAEoCRITCgtwbHVnaW5fc2x1ZxgCIAEoCRIVCg1wbHVnaW5fZGlnZXN0GAMgASgJEhAKCGF0dGFjaGVkGAQgASgIEhAKCGNvbXBhcmVkGAUgASgIEhYKDm5vdF9ydW5fcmVhc29uGAYgASgJEjkKBWNhc2VzGAcgAygLMiouYWkuc3RpZ21lci5hZ2VudGljLmV2YWxydW4udjEuRXZhbFJ1bkNhc2USRAoKYWdncmVnYXRlcxgIIAEoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5ldmFscnVuLnYxLkV2YWxSdW5BZ2dyZWdhdGVzIvcBCgtFdmFsUnVuQ2FzZRIRCgljYXNlX25hbWUYASABKAkSDAoEcGF0aBgCIAEoCRIRCgljYXNlX3RhZ3MYAyADKAkSFgoObm90X3J1bl9yZWFzb24YBCABKAkSQQoHdGFyZ2V0cxgFIAMoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5ldmFscnVuLnYxLkV2YWxSdW5DYXNlVGFyZ2V0Eg0KBW5vdGVzGAYgAygJEkoKDm1vY2tlZF9zZXJ2ZXJzGAcgAygLMjIuYWkuc3RpZ21lci5hZ2VudGljLmV2YWxydW4udjEuRXZhbFJ1bk1vY2tlZFNlcnZlciJOChNFdmFsUnVuTW9ja2VkU2VydmVyEgwKBG5hbWUYASABKAkSDQoFdG9vbHMYAiADKAkSGgoSbm90X3N0YXJ0ZWRfcmVhc29uGAMgASgJIqoCChFFdmFsUnVuQ2FzZVRhcmdldBI8CgZ0YXJnZXQYASABKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuZXZhbHJ1bi52MS5FdmFsUnVuVGFyZ2V0EhYKDm5vdF9ydW5fcmVhc29uGAIgASgJEj4KC3dpdGhfcGx1Z2luGAMgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLmV2YWxydW4udjEuRXZhbFJ1bkFybRJBCg53aXRob3V0X3BsdWdpbhgEIAEoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5ldmFscnVuLnYxLkV2YWxSdW5Bcm0SEgoFZGVsdGEYBSABKAFIAIgBARIOCgZwYXNzZWQYBiABKAgSDgoGcGFzc19rGAcgASgIQggKBl9kZWx0YSKQAQoKRXZhbFJ1bkFybRISCgVzY29yZRgBIAEoAUgAiAEBEhQKDHBlcmZlY3RfcnVucxgCIAEoBRIUCgxncmFkZWRfdHJpZXMYAyABKAUSOAoFdHJpZXMYBCADKAsyKS5haS5zdGlnbWVyLmFnZW50aWMuZXZhbHJ1bi52MS5FdmFsUnVuVHJ5QggKBl9zY29yZSKhAgoKRXZhbFJ1blRyeRINCgVpbmRleBgBIAEoBRISCgpzZXNzaW9uX2lkGAIgASgJEg4KBnJ1bl9pZBgDIAEoCRI9CgVzdGF0ZRgEIAEoDjIuLmFpLnN0aWdtZXIuYWdlbnRpYy5ldmFscnVuLnYxLkV2YWxSdW5UcnlTdGF0ZRINCgVzY29yZRgFIAEoARIZChFub3RfZ3JhZGVkX3JlYXNvbhgGIAEoCRINCgVlcnJvchgHIAEoCRIQCghjb3N0X3VzZBgIIAEoARIYChBkdXJhdGlvbl9zZWNvbmRzGAkgASgBEjwKB2Fib3J0ZWQYCiABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuZXZhbHJ1bi52MS5FdmFsUnVuQWJvcnQiPAoMRXZhbFJ1bkFib3J0Eg4KBnNlcnZlchgBIAEoCRIMCgR0b29sGAIgASgJEg4KBnJlYXNvbhgDIAEoCSKUAQoRRXZhbFJ1bkFnZ3JlZ2F0ZXMSFQoNb3ZlcmFsbF9zY29yZRgBIAEoARIUCgxjYXNlc19wYXNzZWQYAiABKAUSEwoLY2FzZXNfdG90YWwYAyABKAUSFwoKbWVhbl9kZWx0YRgEIAEoAUgAiAEBEhUKDWNhc2VzX25vdF9ydW4YBSABKAVCDQoLX21lYW5fZGVsdGEquwEKDEV2YWxSdW5QaGFzZRIeChpldmFsX3J1bl9waGFzZV91bnNwZWNpZmllZBAAEhoKFmV2YWxfcnVuX3BoYXNlX3BlbmRpbmcQARIaChZldmFsX3J1bl9waGFzZV9ydW5uaW5nEAISHAoYZXZhbF9ydW5fcGhhc2VfY29tcGxldGVkEAMSGgoWZXZhbF9ydW5fcGhhc2VfcGFydGlhbBAEEhkKFWV2YWxfcnVuX3BoYXNlX2ZhaWxlZBAFKpABChRFdmFsUnVuUGFydGlhbFJlYXNvbhInCiNldmFsX3J1bl9wYXJ0aWFsX3JlYXNvbl91bnNwZWNpZmllZBAAEigKJGV2YWxfcnVuX3BhcnRpYWxfcmVhc29uX2Nvc3RfY2VpbGluZxABEiUKIWV2YWxfcnVuX3BhcnRpYWxfcmVhc29uX2NhbmNlbGxlZBACKrcBCg9FdmFsUnVuVHJ5U3RhdGUSIgoeZXZhbF9ydW5fdHJ5X3N0YXRlX3Vuc3BlY2lmaWVkEAASHgoaZXZhbF9ydW5fdHJ5X3N0YXRlX3BlbmRpbmcQARIeChpldmFsX3J1bl90cnlfc3RhdGVfcnVubmluZxACEh0KGWV2YWxfcnVuX3RyeV9zdGF0ZV9ncmFkZWQQAxIhCh1ldmFsX3J1bl90cnlfc3RhdGVfbm90X2dyYWRlZBAEYgZwcm90bzM", [file_ai_stigmer_agentic_evalrun_v1_spec, file_ai_stigmer_commons_apiresource_status, file_google_protobuf_timestamp]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvZXZhbHJ1bi92MS9zdGF0dXMucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5ldmFscnVuLnYxIvYFCg1FdmFsUnVuU3RhdHVzEjoKBXBoYXNlGAEgASgOMisuYWkuc3RpZ21lci5hZ2VudGljLmV2YWxydW4udjEuRXZhbFJ1blBoYXNlEksKDnBhcnRpYWxfcmVhc29uGAIgASgOMjMuYWkuc3RpZ21lci5hZ2VudGljLmV2YWxydW4udjEuRXZhbFJ1blBhcnRpYWxSZWFzb24SDQoFZXJyb3IYAyABKAkSGgoSYWdlbnRfdmVyc2lvbl9oYXNoGAQgASgJEj0KB3BsdWdpbnMYBSADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuZXZhbHJ1bi52MS5FdmFsUnVuUGx1Z2luEkQKCmFnZ3JlZ2F0ZXMYBiABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuZXZhbHJ1bi52MS5FdmFsUnVuQWdncmVnYXRlcxIQCghjb3N0X3VzZBgHIAEoARITCgt0cmllc190b3RhbBgIIAEoBRIWCg50cmllc19maW5pc2hlZBgJIAEoBRIuCgpzdGFydGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtmaW5pc2hlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASWQoPdmF1bHRfYXR0YWNoZXJzGAwgAygLMkAuYWkuc3RpZ21lci5hZ2VudGljLmV2YWxydW4udjEuRXZhbFJ1blN0YXR1cy5WYXVsdEF0dGFjaGVyc0VudHJ5EjkKBWV2YWxzGA0gAygLMiouYWkuc3RpZ21lci5hZ2VudGljLmV2YWxydW4udjEuRXZhbFJ1bkV2YWwSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdBo1ChNWYXVsdEF0dGFjaGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiiwIKDUV2YWxSdW5QbHVnaW4SEQoJcGx1Z2luX2lkGAEgASgJEhMKC3BsdWdpbl9zbHVnGAIgASgJEhUKDXBsdWdpbl9kaWdlc3QYAyABKAkSEAoIYXR0YWNoZWQYBCABKAgSEAoIY29tcGFyZWQYBSABKAgSFgoObm90X3J1bl9yZWFzb24YBiABKAkSOQoFY2FzZXMYByADKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuZXZhbHJ1bi52MS5FdmFsUnVuQ2FzZRJECgphZ2dyZWdhdGVzGAggASgLMjAuYWkuc3RpZ21lci5hZ2VudGljLmV2YWxydW4udjEuRXZhbFJ1bkFnZ3JlZ2F0ZXMi3wEKC0V2YWxSdW5FdmFsEg8KB2V2YWxfaWQYASABKAkSEQoJZXZhbF9zbHVnGAIgASgJEhMKC2V2YWxfZGlnZXN0GAMgASgJEhYKDm5vdF9ydW5fcmVhc29uGAQgASgJEjkKBWNhc2VzGAUgAygLMiouYWkuc3RpZ21lci5hZ2VudGljLmV2YWxydW4udjEuRXZhbFJ1bkNhc2USRAoKYWdncmVnYXRlcxgGIAEoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5ldmFscnVuLnYxLkV2YWxSdW5BZ2dyZWdhdGVzIvcBCgtFdmFsUnVuQ2FzZRIRCgljYXNlX25hbWUYASABKAkSDAoEcGF0aBgCIAEoCRIRCgljYXNlX3RhZ3MYAyADKAkSFgoObm90X3J1bl9yZWFzb24YBCABKAkSQQoHdGFyZ2V0cxgFIAMoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5ldmFscnVuLnYxLkV2YWxSdW5DYXNlVGFyZ2V0Eg0KBW5vdGVzGAYgAygJEkoKDm1vY2tlZF9zZXJ2ZXJzGAcgAygLMjIuYWkuc3RpZ21lci5hZ2VudGljLmV2YWxydW4udjEuRXZhbFJ1bk1vY2tlZFNlcnZlciJOChNFdmFsUnVuTW9ja2VkU2VydmVyEgwKBG5hbWUYASABKAkSDQoFdG9vbHMYAiADKAkSGgoSbm90X3N0YXJ0ZWRfcmVhc29uGAMgASgJIqoCChFFdmFsUnVuQ2FzZVRhcmdldBI8CgZ0YXJnZXQYASABKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuZXZhbHJ1bi52MS5FdmFsUnVuVGFyZ2V0EhYKDm5vdF9ydW5fcmVhc29uGAIgASgJEj4KC3dpdGhfcGx1Z2luGAMgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLmV2YWxydW4udjEuRXZhbFJ1bkFybRJBCg53aXRob3V0X3BsdWdpbhgEIAEoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5ldmFscnVuLnYxLkV2YWxSdW5Bcm0SEgoFZGVsdGEYBSABKAFIAIgBARIOCgZwYXNzZWQYBiABKAgSDgoGcGFzc19rGAcgASgIQggKBl9kZWx0YSKQAQoKRXZhbFJ1bkFybRISCgVzY29yZRgBIAEoAUgAiAEBEhQKDHBlcmZlY3RfcnVucxgCIAEoBRIUCgxncmFkZWRfdHJpZXMYAyABKAUSOAoFdHJpZXMYBCADKAsyKS5haS5zdGlnbWVyLmFnZW50aWMuZXZhbHJ1bi52MS5FdmFsUnVuVHJ5QggKBl9zY29yZSKhAgoKRXZhbFJ1blRyeRINCgVpbmRleBgBIAEoBRISCgpzZXNzaW9uX2lkGAIgASgJEg4KBnJ1bl9pZBgDIAEoCRI9CgVzdGF0ZRgEIAEoDjIuLmFpLnN0aWdtZXIuYWdlbnRpYy5ldmFscnVuLnYxLkV2YWxSdW5UcnlTdGF0ZRINCgVzY29yZRgFIAEoARIZChFub3RfZ3JhZGVkX3JlYXNvbhgGIAEoCRINCgVlcnJvchgHIAEoCRIQCghjb3N0X3VzZBgIIAEoARIYChBkdXJhdGlvbl9zZWNvbmRzGAkgASgBEjwKB2Fib3J0ZWQYCiABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuZXZhbHJ1bi52MS5FdmFsUnVuQWJvcnQiPAoMRXZhbFJ1bkFib3J0Eg4KBnNlcnZlchgBIAEoCRIMCgR0b29sGAIgASgJEg4KBnJlYXNvbhgDIAEoCSKUAQoRRXZhbFJ1bkFnZ3JlZ2F0ZXMSFQoNb3ZlcmFsbF9zY29yZRgBIAEoARIUCgxjYXNlc19wYXNzZWQYAiABKAUSEwoLY2FzZXNfdG90YWwYAyABKAUSFwoKbWVhbl9kZWx0YRgEIAEoAUgAiAEBEhUKDWNhc2VzX25vdF9ydW4YBSABKAVCDQoLX21lYW5fZGVsdGEquwEKDEV2YWxSdW5QaGFzZRIeChpldmFsX3J1bl9waGFzZV91bnNwZWNpZmllZBAAEhoKFmV2YWxfcnVuX3BoYXNlX3BlbmRpbmcQARIaChZldmFsX3J1bl9waGFzZV9ydW5uaW5nEAISHAoYZXZhbF9ydW5fcGhhc2VfY29tcGxldGVkEAMSGgoWZXZhbF9ydW5fcGhhc2VfcGFydGlhbBAEEhkKFWV2YWxfcnVuX3BoYXNlX2ZhaWxlZBAFKpABChRFdmFsUnVuUGFydGlhbFJlYXNvbhInCiNldmFsX3J1bl9wYXJ0aWFsX3JlYXNvbl91bnNwZWNpZmllZBAAEigKJGV2YWxfcnVuX3BhcnRpYWxfcmVhc29uX2Nvc3RfY2VpbGluZxABEiUKIWV2YWxfcnVuX3BhcnRpYWxfcmVhc29uX2NhbmNlbGxlZBACKrcBCg9FdmFsUnVuVHJ5U3RhdGUSIgoeZXZhbF9ydW5fdHJ5X3N0YXRlX3Vuc3BlY2lmaWVkEAASHgoaZXZhbF9ydW5fdHJ5X3N0YXRlX3BlbmRpbmcQARIeChpldmFsX3J1bl90cnlfc3RhdGVfcnVubmluZxACEh0KGWV2YWxfcnVuX3RyeV9zdGF0ZV9ncmFkZWQQAxIhCh1ldmFsX3J1bl90cnlfc3RhdGVfbm90X2dyYWRlZBAEYgZwcm90bzM", [file_ai_stigmer_agentic_evalrun_v1_spec, file_ai_stigmer_commons_apiresource_status, file_google_protobuf_timestamp]);
 
 /**
  * EvalRunStatus holds an eval run's progress and results: per plugin, per
@@ -67,7 +67,7 @@ export type EvalRunStatus = Message<"ai.stigmer.agentic.evalrun.v1.EvalRunStatus
   plugins: EvalRunPlugin[];
 
   /**
-   * The totals over every plugin's cases.
+   * The totals over every case that ran, a plugin's or an Eval's.
    *
    * @generated from field: ai.stigmer.agentic.evalrun.v1.EvalRunAggregates aggregates = 6;
    */
@@ -113,6 +113,15 @@ export type EvalRunStatus = Message<"ai.stigmer.agentic.evalrun.v1.EvalRunStatus
    * @generated from field: map<string, string> vault_attachers = 12;
    */
   vaultAttachers: { [key: string]: string };
+
+  /**
+   * Every Eval whose cases run, in the order the spec names them: the
+   * version every try runs and its cases' results. A try loads no Eval;
+   * it runs the Eval's cases on the agent.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13;
+   */
+  evals: EvalRunEval[];
 
   /**
    * Standard audit information (created_at, updated_at, created_by, etc.)
@@ -203,6 +212,62 @@ export const EvalRunPluginSchema: GenMessage<EvalRunPlugin> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_evalrun_v1_status, 1);
 
 /**
+ * EvalRunEval is one Eval whose cases an eval run runs, as it ran them.
+ *
+ * @generated from message ai.stigmer.agentic.evalrun.v1.EvalRunEval
+ */
+export type EvalRunEval = Message<"ai.stigmer.agentic.evalrun.v1.EvalRunEval"> & {
+  /**
+   * The Eval's ID and slug.
+   *
+   * @generated from field: string eval_id = 1;
+   */
+  evalId: string;
+
+  /**
+   * @generated from field: string eval_slug = 2;
+   */
+  evalSlug: string;
+
+  /**
+   * The Eval version (archive digest) every try runs: the one the case
+   * source named, or the current one when the eval run was created.
+   *
+   * @generated from field: string eval_digest = 3;
+   */
+  evalDigest: string;
+
+  /**
+   * Why none of the Eval's cases run, as in "no eval cases at this
+   * version"; empty when its cases run.
+   *
+   * @generated from field: string not_run_reason = 4;
+   */
+  notRunReason: string;
+
+  /**
+   * The Eval's cases, in directory order, each with its results.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.evalrun.v1.EvalRunCase cases = 5;
+   */
+  cases: EvalRunCase[];
+
+  /**
+   * This Eval's totals.
+   *
+   * @generated from field: ai.stigmer.agentic.evalrun.v1.EvalRunAggregates aggregates = 6;
+   */
+  aggregates?: EvalRunAggregates;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.evalrun.v1.EvalRunEval.
+ * Use `create(EvalRunEvalSchema)` to create a new message.
+ */
+export const EvalRunEvalSchema: GenMessage<EvalRunEval> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_evalrun_v1_status, 2);
+
+/**
  * EvalRunCase is one case of the suite and its results.
  *
  * @generated from message ai.stigmer.agentic.evalrun.v1.EvalRunCase
@@ -217,7 +282,7 @@ export type EvalRunCase = Message<"ai.stigmer.agentic.evalrun.v1.EvalRunCase"> &
 
   /**
    * The case's directory, relative to the plugin's root, as in
-   * "evals/review-fires".
+   * "evals/review-fires", or to the Eval's, as in "review-fires".
    *
    * @generated from field: string path = 2;
    */
@@ -255,8 +320,9 @@ export type EvalRunCase = Message<"ai.stigmer.agentic.evalrun.v1.EvalRunCase"> &
   notes: string[];
 
   /**
-   * The plugin's MCP servers the case answers with mocks, and those it
-   * leaves unstarted, as Claude Code's mocked: line.
+   * The MCP servers the case answers with mocks, and those it leaves
+   * unstarted, as Claude Code's mocked: line: a plugin's servers for a
+   * plugin's case; the agent's and its plugins' servers for an Eval's.
    *
    * @generated from field: repeated ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer mocked_servers = 7;
    */
@@ -268,17 +334,17 @@ export type EvalRunCase = Message<"ai.stigmer.agentic.evalrun.v1.EvalRunCase"> &
  * Use `create(EvalRunCaseSchema)` to create a new message.
  */
 export const EvalRunCaseSchema: GenMessage<EvalRunCase> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_evalrun_v1_status, 2);
+  messageDesc(file_ai_stigmer_agentic_evalrun_v1_status, 3);
 
 /**
- * EvalRunMockedServer is one plugin MCP server as a case's tries see
- * it.
+ * EvalRunMockedServer is one MCP server as a case's tries see it.
  *
  * @generated from message ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer
  */
 export type EvalRunMockedServer = Message<"ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer"> & {
   /**
-   * The server's name in the run, as in "plugin_tracker_issues".
+   * The server's name in the run, as in "plugin_tracker_issues" or an
+   * agent's own "billing".
    *
    * @generated from field: string name = 1;
    */
@@ -292,7 +358,8 @@ export type EvalRunMockedServer = Message<"ai.stigmer.agentic.evalrun.v1.EvalRun
   tools: string[];
 
   /**
-   * Why the server is not started, as in "not started: no mock"; empty
+   * Why the server is not started, as in "not started: no mock", or why
+   * its mocks answer nothing, as in "no such server on the agent"; empty
    * when its mocks answer.
    *
    * @generated from field: string not_started_reason = 3;
@@ -305,7 +372,7 @@ export type EvalRunMockedServer = Message<"ai.stigmer.agentic.evalrun.v1.EvalRun
  * Use `create(EvalRunMockedServerSchema)` to create a new message.
  */
 export const EvalRunMockedServerSchema: GenMessage<EvalRunMockedServer> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_evalrun_v1_status, 3);
+  messageDesc(file_ai_stigmer_agentic_evalrun_v1_status, 4);
 
 /**
  * EvalRunCaseTarget is one case's results on one target.
@@ -373,7 +440,7 @@ export type EvalRunCaseTarget = Message<"ai.stigmer.agentic.evalrun.v1.EvalRunCa
  * Use `create(EvalRunCaseTargetSchema)` to create a new message.
  */
 export const EvalRunCaseTargetSchema: GenMessage<EvalRunCaseTarget> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_evalrun_v1_status, 4);
+  messageDesc(file_ai_stigmer_agentic_evalrun_v1_status, 5);
 
 /**
  * EvalRunArm is one arm's tries and their summary.
@@ -415,7 +482,7 @@ export type EvalRunArm = Message<"ai.stigmer.agentic.evalrun.v1.EvalRunArm"> & {
  * Use `create(EvalRunArmSchema)` to create a new message.
  */
 export const EvalRunArmSchema: GenMessage<EvalRunArm> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_evalrun_v1_status, 5);
+  messageDesc(file_ai_stigmer_agentic_evalrun_v1_status, 6);
 
 /**
  * EvalRunTry is one try: one run in a fresh conversation.
@@ -502,7 +569,7 @@ export type EvalRunTry = Message<"ai.stigmer.agentic.evalrun.v1.EvalRunTry"> & {
  * Use `create(EvalRunTrySchema)` to create a new message.
  */
 export const EvalRunTrySchema: GenMessage<EvalRunTry> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_evalrun_v1_status, 6);
+  messageDesc(file_ai_stigmer_agentic_evalrun_v1_status, 7);
 
 /**
  * EvalRunAbort says which mock stopped a try, and why.
@@ -537,7 +604,7 @@ export type EvalRunAbort = Message<"ai.stigmer.agentic.evalrun.v1.EvalRunAbort">
  * Use `create(EvalRunAbortSchema)` to create a new message.
  */
 export const EvalRunAbortSchema: GenMessage<EvalRunAbort> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_evalrun_v1_status, 7);
+  messageDesc(file_ai_stigmer_agentic_evalrun_v1_status, 8);
 
 /**
  * EvalRunAggregates are the suite's totals, in Claude Code's names.
@@ -587,7 +654,7 @@ export type EvalRunAggregates = Message<"ai.stigmer.agentic.evalrun.v1.EvalRunAg
  * Use `create(EvalRunAggregatesSchema)` to create a new message.
  */
 export const EvalRunAggregatesSchema: GenMessage<EvalRunAggregates> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_evalrun_v1_status, 8);
+  messageDesc(file_ai_stigmer_agentic_evalrun_v1_status, 9);
 
 /**
  * EvalRunPhase is where an eval run is.

@@ -66,7 +66,9 @@
  * mock directory whose name could be an MCP server's
  * (`isToolNameSegment`), and its `servers` are those directories' names:
  * which agent server each stands in for is decided when the eval runs on
- * an agent, not here. A manifest in the folder is a file like any other.
+ * an agent, not here. A manifest in the folder is a file like any other,
+ * and a case naming `plugins` is unsupported: the agent's plugins load,
+ * never a folder.
  */
 
 import { isJsonObject, type JsonObject } from "../documents.js";
@@ -218,7 +220,7 @@ export function readEvalSuite(files: PluginFiles): EvalSuite {
   if (held) return { dir, cases: [], findings, servers };
   const rule: MockServerRule = (server) =>
     declared.has(server) ? undefined : `the plugin declares no MCP server ${quote(server)}, so these mocks are ignored`;
-  const cases = readCases({ index, dir, rule, findings, reportedMocks: new Set(), mocked: new Set() });
+  const cases = readCases({ index, dir, rule, findings, reportedMocks: new Set(), mocked: new Set(), loadsPlugins: true });
   return { dir, cases, findings, servers };
 }
 
@@ -234,7 +236,7 @@ export function readEvalFolder(files: PluginFiles): EvalSuite {
     isToolNameSegment(server)
       ? undefined
       : `${quote(server)} cannot name an MCP server (letters, digits, '-' and '_', with no '__' and no trailing '_'), so these mocks are ignored`;
-  const suite: SuiteContext = { index, dir: "", rule, findings, reportedMocks: new Set(), mocked: new Set() };
+  const suite: SuiteContext = { index, dir: "", rule, findings, reportedMocks: new Set(), mocked: new Set(), loadsPlugins: false };
   const cases = readCases(suite);
   return { dir: "", cases, findings, servers: [...suite.mocked].sort(comparePaths) };
 }
@@ -274,6 +276,13 @@ interface SuiteContext {
   readonly reportedMocks: Set<string>;
   /** The servers some case's mocks stand in for, the rule's kept ones. */
   readonly mocked: Set<string>;
+  /**
+   * Whether a case's `plugins` may name the suite's own plugin: a plugin's
+   * suite runs with its plugin, so naming it is no feature Stigmer lacks.
+   * A pushed folder runs on an agent with the agent's plugins and loads no
+   * folder as a plugin, so any `plugins` entry is unsupported there.
+   */
+  readonly loadsPlugins: boolean;
 }
 
 /** The suite's directory, and whether declared skills hold it, so no case is read; findings for both. */
@@ -582,7 +591,7 @@ function readCase(suite: SuiteContext, caseDir: string, findings: CaseFindings):
 
   const env = fields.env ?? {};
   const plugins = fields.plugins ?? [];
-  const unsupported = unsupportedOf(caseDir, plugins, graders);
+  const unsupported = unsupportedOf(caseDir, plugins, graders, suite.loadsPlugins);
   return {
     name,
     dir: caseDir,
@@ -695,7 +704,9 @@ function unsupportedOf(
   caseDir: string,
   plugins: readonly string[],
   graders: readonly EvalGrader[],
+  loadsPlugins: boolean,
 ): EvalUnsupportedFeature | undefined {
+  if (plugins.length > 0 && !loadsPlugins) return "plugins";
   if (!plugins.every((entry) => namesPluginRoot(caseDir, entry))) return "plugins";
   if (graders.length > EVAL_MAX_GRADERS) return "more than 32 graders";
   return undefined;

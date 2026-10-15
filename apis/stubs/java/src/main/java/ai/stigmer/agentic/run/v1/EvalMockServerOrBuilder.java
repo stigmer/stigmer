@@ -12,7 +12,9 @@ public interface EvalMockServerOrBuilder extends
 
   /**
    * <pre>
-   * The server's key in the plugin's MCP configuration.
+   * The directory under mocks/ the stand-in answers from: a plugin's
+   * server key for a plugin's case, the server's name in the turn for an
+   * Eval's.
    * </pre>
    *
    * <code>string server = 1 [json_name = "server", (.buf.validate.field) = { ... }</code>
@@ -21,7 +23,9 @@ public interface EvalMockServerOrBuilder extends
   java.lang.String getServer();
   /**
    * <pre>
-   * The server's key in the plugin's MCP configuration.
+   * The directory under mocks/ the stand-in answers from: a plugin's
+   * server key for a plugin's case, the server's name in the turn for an
+   * Eval's.
    * </pre>
    *
    * <code>string server = 1 [json_name = "server", (.buf.validate.field) = { ... }</code>
@@ -32,7 +36,7 @@ public interface EvalMockServerOrBuilder extends
 
   /**
    * <pre>
-   * The name the stand-in is registered under in the turn, the plugin
+   * The name the stand-in is registered under in the turn, the real
    * server's own.
    * </pre>
    *
@@ -42,7 +46,7 @@ public interface EvalMockServerOrBuilder extends
   java.lang.String getSegment();
   /**
    * <pre>
-   * The name the stand-in is registered under in the turn, the plugin
+   * The name the stand-in is registered under in the turn, the real
    * server's own.
    * </pre>
    *
@@ -117,4 +121,60 @@ public interface EvalMockServerOrBuilder extends
    */
   com.google.protobuf.ByteString
       getToolsFileBytes();
+
+  /**
+   * <pre>
+   * A server of a plugin the turn loads.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.EvalMockPluginHome plugin = 5 [json_name = "plugin"];</code>
+   * @return Whether the plugin field is set.
+   */
+  boolean hasPlugin();
+  /**
+   * <pre>
+   * A server of a plugin the turn loads.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.EvalMockPluginHome plugin = 5 [json_name = "plugin"];</code>
+   * @return The plugin.
+   */
+  ai.stigmer.agentic.run.v1.EvalMockPluginHome getPlugin();
+  /**
+   * <pre>
+   * A server of a plugin the turn loads.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.EvalMockPluginHome plugin = 5 [json_name = "plugin"];</code>
+   */
+  ai.stigmer.agentic.run.v1.EvalMockPluginHomeOrBuilder getPluginOrBuilder();
+
+  /**
+   * <pre>
+   * One of the evaluated agent's own servers.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.EvalMockAgentHome agent = 6 [json_name = "agent"];</code>
+   * @return Whether the agent field is set.
+   */
+  boolean hasAgent();
+  /**
+   * <pre>
+   * One of the evaluated agent's own servers.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.EvalMockAgentHome agent = 6 [json_name = "agent"];</code>
+   * @return The agent.
+   */
+  ai.stigmer.agentic.run.v1.EvalMockAgentHome getAgent();
+  /**
+   * <pre>
+   * One of the evaluated agent's own servers.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.EvalMockAgentHome agent = 6 [json_name = "agent"];</code>
+   */
+  ai.stigmer.agentic.run.v1.EvalMockAgentHomeOrBuilder getAgentOrBuilder();
+
+  ai.stigmer.agentic.run.v1.EvalMockServer.HomeCase getHomeCase();
 }

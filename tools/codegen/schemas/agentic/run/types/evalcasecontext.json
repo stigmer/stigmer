@@ -11,11 +11,8 @@
       "type": {
         "kind": "string"
       },
-      "description": "ID of the plugin whose case this is.",
-      "required": false,
-      "validation": {
-        "minLength": 1
-      }
+      "description": "ID of the plugin whose case this is; empty for an Eval's case.",
+      "required": false
     },
     {
       "name": "PluginDigest",
@@ -25,10 +22,7 @@
         "kind": "string"
       },
       "description": "The plugin version (archive digest) the eval run stamped.",
-      "required": false,
-      "validation": {
-        "pattern": "^[a-f0-9]{64}$"
-      }
+      "required": false
     },
     {
       "name": "SuiteDir",
@@ -37,11 +31,8 @@
       "type": {
         "kind": "string"
       },
-      "description": "The suite's directory, as in \"evals\".",
-      "required": false,
-      "validation": {
-        "minLength": 1
-      }
+      "description": "The suite's directory, as in \"evals\"; empty for an Eval's case, whose\n suite is its archive's root.",
+      "required": false
     },
     {
       "name": "CaseDir",
@@ -182,6 +173,29 @@
       "validation": {
         "maxLength": 256
       }
+    },
+    {
+      "name": "EvalId",
+      "jsonName": "evalId",
+      "protoField": "eval_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the Eval whose case this is; empty for a plugin's case.",
+      "required": false,
+      "validation": {
+        "maxLength": 128
+      }
+    },
+    {
+      "name": "EvalDigest",
+      "jsonName": "evalDigest",
+      "protoField": "eval_digest",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The Eval version (archive digest) the eval run stamped.",
+      "required": false
     }
   ]
 }

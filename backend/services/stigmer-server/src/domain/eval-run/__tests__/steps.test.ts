@@ -174,6 +174,7 @@ function planCtx(row: EvalRun, digest = "a".repeat(64)) {
       },
     ],
     selected: new Set(["plg_1"]),
+    evals: [],
   } satisfies EvaluatedLoad);
   return ctx;
 }

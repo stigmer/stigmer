@@ -39,6 +39,7 @@ private static final long serialVersionUID = 0L;
     error_ = "";
     agentVersionHash_ = "";
     plugins_ = java.util.Collections.emptyList();
+    evals_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -302,7 +303,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.evalrun.v1.EvalRunAggregates aggregates_;
   /**
    * <pre>
-   * The totals over every plugin's cases.
+   * The totals over every case that ran, a plugin's or an Eval's.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunAggregates aggregates = 6 [json_name = "aggregates"];</code>
@@ -314,7 +315,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The totals over every plugin's cases.
+   * The totals over every case that ran, a plugin's or an Eval's.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunAggregates aggregates = 6 [json_name = "aggregates"];</code>
@@ -326,7 +327,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The totals over every plugin's cases.
+   * The totals over every case that ran, a plugin's or an Eval's.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunAggregates aggregates = 6 [json_name = "aggregates"];</code>
@@ -545,6 +546,77 @@ java.lang.String defaultValue) {
     return map.get(key);
   }
 
+  public static final int EVALS_FIELD_NUMBER = 13;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.evalrun.v1.EvalRunEval> evals_;
+  /**
+   * <pre>
+   * Every Eval whose cases run, in the order the spec names them: the
+   * version every try runs and its cases' results. A try loads no Eval;
+   * it runs the Eval's cases on the agent.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.evalrun.v1.EvalRunEval> getEvalsList() {
+    return evals_;
+  }
+  /**
+   * <pre>
+   * Every Eval whose cases run, in the order the spec names them: the
+   * version every try runs and its cases' results. A try loads no Eval;
+   * it runs the Eval's cases on the agent.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.evalrun.v1.EvalRunEvalOrBuilder> 
+      getEvalsOrBuilderList() {
+    return evals_;
+  }
+  /**
+   * <pre>
+   * Every Eval whose cases run, in the order the spec names them: the
+   * version every try runs and its cases' results. A try loads no Eval;
+   * it runs the Eval's cases on the agent.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+   */
+  @java.lang.Override
+  public int getEvalsCount() {
+    return evals_.size();
+  }
+  /**
+   * <pre>
+   * Every Eval whose cases run, in the order the spec names them: the
+   * version every try runs and its cases' results. A try loads no Eval;
+   * it runs the Eval's cases on the agent.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.evalrun.v1.EvalRunEval getEvals(int index) {
+    return evals_.get(index);
+  }
+  /**
+   * <pre>
+   * Every Eval whose cases run, in the order the spec names them: the
+   * version every try runs and its cases' results. A try loads no Eval;
+   * it runs the Eval's cases on the agent.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.evalrun.v1.EvalRunEvalOrBuilder getEvalsOrBuilder(
+      int index) {
+    return evals_.get(index);
+  }
+
   public static final int AUDIT_FIELD_NUMBER = 99;
   private ai.stigmer.commons.apiresource.ApiResourceAudit audit_;
   /**
@@ -636,6 +708,9 @@ java.lang.String defaultValue) {
         internalGetVaultAttachers(),
         VaultAttachersDefaultEntryHolder.defaultEntry,
         12);
+    for (int i = 0; i < evals_.size(); i++) {
+      output.writeMessage(13, evals_.get(i));
+    }
     if (((bitField0_ & 0x00000008) != 0)) {
       output.writeMessage(99, getAudit());
     }
@@ -705,6 +780,15 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(12, vaultAttachers__);
     }
+
+        {
+          final int count = evals_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(evals_.get(i));
+          }
+          size += 1 * count;
+        }
     if (((bitField0_ & 0x00000008) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -756,6 +840,8 @@ java.lang.String defaultValue) {
     }
     if (!internalGetVaultAttachers().equals(
         other.internalGetVaultAttachers())) return false;
+    if (!getEvalsList()
+        .equals(other.getEvalsList())) return false;
     if (hasAudit() != other.hasAudit()) return false;
     if (hasAudit()) {
       if (!getAudit()
@@ -806,6 +892,10 @@ java.lang.String defaultValue) {
     if (!internalGetVaultAttachers().getMap().isEmpty()) {
       hash = (37 * hash) + VAULT_ATTACHERS_FIELD_NUMBER;
       hash = (53 * hash) + internalGetVaultAttachers().hashCode();
+    }
+    if (getEvalsCount() > 0) {
+      hash = (37 * hash) + EVALS_FIELD_NUMBER;
+      hash = (53 * hash) + getEvalsList().hashCode();
     }
     if (hasAudit()) {
       hash = (37 * hash) + AUDIT_FIELD_NUMBER;
@@ -973,6 +1063,7 @@ java.lang.String defaultValue) {
         internalGetAggregatesFieldBuilder();
         internalGetStartedAtFieldBuilder();
         internalGetFinishedAtFieldBuilder();
+        internalGetEvalsFieldBuilder();
         internalGetAuditFieldBuilder();
       }
     }
@@ -1010,6 +1101,13 @@ java.lang.String defaultValue) {
         finishedAtBuilder_ = null;
       }
       internalGetMutableVaultAttachers().clear();
+      if (evalsBuilder_ == null) {
+        evals_ = java.util.Collections.emptyList();
+      } else {
+        evals_ = null;
+        evalsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00001000);
       audit_ = null;
       if (auditBuilder_ != null) {
         auditBuilder_.dispose();
@@ -1056,6 +1154,15 @@ java.lang.String defaultValue) {
         result.plugins_ = plugins_;
       } else {
         result.plugins_ = pluginsBuilder_.build();
+      }
+      if (evalsBuilder_ == null) {
+        if (((bitField0_ & 0x00001000) != 0)) {
+          evals_ = java.util.Collections.unmodifiableList(evals_);
+          bitField0_ = (bitField0_ & ~0x00001000);
+        }
+        result.evals_ = evals_;
+      } else {
+        result.evals_ = evalsBuilder_.build();
       }
     }
 
@@ -1105,7 +1212,7 @@ java.lang.String defaultValue) {
         result.vaultAttachers_ = internalGetVaultAttachers();
         result.vaultAttachers_.makeImmutable();
       }
-      if (((from_bitField0_ & 0x00001000) != 0)) {
+      if (((from_bitField0_ & 0x00002000) != 0)) {
         result.audit_ = auditBuilder_ == null
             ? audit_
             : auditBuilder_.build();
@@ -1189,6 +1296,32 @@ java.lang.String defaultValue) {
       internalGetMutableVaultAttachers().mergeFrom(
           other.internalGetVaultAttachers());
       bitField0_ |= 0x00000800;
+      if (evalsBuilder_ == null) {
+        if (!other.evals_.isEmpty()) {
+          if (evals_.isEmpty()) {
+            evals_ = other.evals_;
+            bitField0_ = (bitField0_ & ~0x00001000);
+          } else {
+            ensureEvalsIsMutable();
+            evals_.addAll(other.evals_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.evals_.isEmpty()) {
+          if (evalsBuilder_.isEmpty()) {
+            evalsBuilder_.dispose();
+            evalsBuilder_ = null;
+            evals_ = other.evals_;
+            bitField0_ = (bitField0_ & ~0x00001000);
+            evalsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetEvalsFieldBuilder() : null;
+          } else {
+            evalsBuilder_.addAllMessages(other.evals_);
+          }
+        }
+      }
       if (other.hasAudit()) {
         mergeAudit(other.getAudit());
       }
@@ -1296,11 +1429,24 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000800;
               break;
             } // case 98
+            case 106: {
+              ai.stigmer.agentic.evalrun.v1.EvalRunEval m =
+                  input.readMessage(
+                      ai.stigmer.agentic.evalrun.v1.EvalRunEval.parser(),
+                      extensionRegistry);
+              if (evalsBuilder_ == null) {
+                ensureEvalsIsMutable();
+                evals_.add(m);
+              } else {
+                evalsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 106
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00001000;
+              bitField0_ |= 0x00002000;
               break;
             } // case 794
             default: {
@@ -2029,7 +2175,7 @@ java.lang.String defaultValue) {
         ai.stigmer.agentic.evalrun.v1.EvalRunAggregates, ai.stigmer.agentic.evalrun.v1.EvalRunAggregates.Builder, ai.stigmer.agentic.evalrun.v1.EvalRunAggregatesOrBuilder> aggregatesBuilder_;
     /**
      * <pre>
-     * The totals over every plugin's cases.
+     * The totals over every case that ran, a plugin's or an Eval's.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunAggregates aggregates = 6 [json_name = "aggregates"];</code>
@@ -2040,7 +2186,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The totals over every plugin's cases.
+     * The totals over every case that ran, a plugin's or an Eval's.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunAggregates aggregates = 6 [json_name = "aggregates"];</code>
@@ -2055,7 +2201,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The totals over every plugin's cases.
+     * The totals over every case that ran, a plugin's or an Eval's.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunAggregates aggregates = 6 [json_name = "aggregates"];</code>
@@ -2075,7 +2221,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The totals over every plugin's cases.
+     * The totals over every case that ran, a plugin's or an Eval's.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunAggregates aggregates = 6 [json_name = "aggregates"];</code>
@@ -2093,7 +2239,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The totals over every plugin's cases.
+     * The totals over every case that ran, a plugin's or an Eval's.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunAggregates aggregates = 6 [json_name = "aggregates"];</code>
@@ -2118,7 +2264,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The totals over every plugin's cases.
+     * The totals over every case that ran, a plugin's or an Eval's.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunAggregates aggregates = 6 [json_name = "aggregates"];</code>
@@ -2135,7 +2281,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The totals over every plugin's cases.
+     * The totals over every case that ran, a plugin's or an Eval's.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunAggregates aggregates = 6 [json_name = "aggregates"];</code>
@@ -2147,7 +2293,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The totals over every plugin's cases.
+     * The totals over every case that ran, a plugin's or an Eval's.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunAggregates aggregates = 6 [json_name = "aggregates"];</code>
@@ -2162,7 +2308,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The totals over every plugin's cases.
+     * The totals over every case that ran, a plugin's or an Eval's.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunAggregates aggregates = 6 [json_name = "aggregates"];</code>
@@ -2751,6 +2897,354 @@ java.lang.String defaultValue) {
       return this;
     }
 
+    private java.util.List<ai.stigmer.agentic.evalrun.v1.EvalRunEval> evals_ =
+      java.util.Collections.emptyList();
+    private void ensureEvalsIsMutable() {
+      if (!((bitField0_ & 0x00001000) != 0)) {
+        evals_ = new java.util.ArrayList<ai.stigmer.agentic.evalrun.v1.EvalRunEval>(evals_);
+        bitField0_ |= 0x00001000;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.evalrun.v1.EvalRunEval, ai.stigmer.agentic.evalrun.v1.EvalRunEval.Builder, ai.stigmer.agentic.evalrun.v1.EvalRunEvalOrBuilder> evalsBuilder_;
+
+    /**
+     * <pre>
+     * Every Eval whose cases run, in the order the spec names them: the
+     * version every try runs and its cases' results. A try loads no Eval;
+     * it runs the Eval's cases on the agent.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.evalrun.v1.EvalRunEval> getEvalsList() {
+      if (evalsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(evals_);
+      } else {
+        return evalsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Every Eval whose cases run, in the order the spec names them: the
+     * version every try runs and its cases' results. A try loads no Eval;
+     * it runs the Eval's cases on the agent.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+     */
+    public int getEvalsCount() {
+      if (evalsBuilder_ == null) {
+        return evals_.size();
+      } else {
+        return evalsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Every Eval whose cases run, in the order the spec names them: the
+     * version every try runs and its cases' results. A try loads no Eval;
+     * it runs the Eval's cases on the agent.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+     */
+    public ai.stigmer.agentic.evalrun.v1.EvalRunEval getEvals(int index) {
+      if (evalsBuilder_ == null) {
+        return evals_.get(index);
+      } else {
+        return evalsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Every Eval whose cases run, in the order the spec names them: the
+     * version every try runs and its cases' results. A try loads no Eval;
+     * it runs the Eval's cases on the agent.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+     */
+    public Builder setEvals(
+        int index, ai.stigmer.agentic.evalrun.v1.EvalRunEval value) {
+      if (evalsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureEvalsIsMutable();
+        evals_.set(index, value);
+        onChanged();
+      } else {
+        evalsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Every Eval whose cases run, in the order the spec names them: the
+     * version every try runs and its cases' results. A try loads no Eval;
+     * it runs the Eval's cases on the agent.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+     */
+    public Builder setEvals(
+        int index, ai.stigmer.agentic.evalrun.v1.EvalRunEval.Builder builderForValue) {
+      if (evalsBuilder_ == null) {
+        ensureEvalsIsMutable();
+        evals_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        evalsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Every Eval whose cases run, in the order the spec names them: the
+     * version every try runs and its cases' results. A try loads no Eval;
+     * it runs the Eval's cases on the agent.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+     */
+    public Builder addEvals(ai.stigmer.agentic.evalrun.v1.EvalRunEval value) {
+      if (evalsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureEvalsIsMutable();
+        evals_.add(value);
+        onChanged();
+      } else {
+        evalsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Every Eval whose cases run, in the order the spec names them: the
+     * version every try runs and its cases' results. A try loads no Eval;
+     * it runs the Eval's cases on the agent.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+     */
+    public Builder addEvals(
+        int index, ai.stigmer.agentic.evalrun.v1.EvalRunEval value) {
+      if (evalsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureEvalsIsMutable();
+        evals_.add(index, value);
+        onChanged();
+      } else {
+        evalsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Every Eval whose cases run, in the order the spec names them: the
+     * version every try runs and its cases' results. A try loads no Eval;
+     * it runs the Eval's cases on the agent.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+     */
+    public Builder addEvals(
+        ai.stigmer.agentic.evalrun.v1.EvalRunEval.Builder builderForValue) {
+      if (evalsBuilder_ == null) {
+        ensureEvalsIsMutable();
+        evals_.add(builderForValue.build());
+        onChanged();
+      } else {
+        evalsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Every Eval whose cases run, in the order the spec names them: the
+     * version every try runs and its cases' results. A try loads no Eval;
+     * it runs the Eval's cases on the agent.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+     */
+    public Builder addEvals(
+        int index, ai.stigmer.agentic.evalrun.v1.EvalRunEval.Builder builderForValue) {
+      if (evalsBuilder_ == null) {
+        ensureEvalsIsMutable();
+        evals_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        evalsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Every Eval whose cases run, in the order the spec names them: the
+     * version every try runs and its cases' results. A try loads no Eval;
+     * it runs the Eval's cases on the agent.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+     */
+    public Builder addAllEvals(
+        java.lang.Iterable<? extends ai.stigmer.agentic.evalrun.v1.EvalRunEval> values) {
+      if (evalsBuilder_ == null) {
+        ensureEvalsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, evals_);
+        onChanged();
+      } else {
+        evalsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Every Eval whose cases run, in the order the spec names them: the
+     * version every try runs and its cases' results. A try loads no Eval;
+     * it runs the Eval's cases on the agent.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+     */
+    public Builder clearEvals() {
+      if (evalsBuilder_ == null) {
+        evals_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00001000);
+        onChanged();
+      } else {
+        evalsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Every Eval whose cases run, in the order the spec names them: the
+     * version every try runs and its cases' results. A try loads no Eval;
+     * it runs the Eval's cases on the agent.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+     */
+    public Builder removeEvals(int index) {
+      if (evalsBuilder_ == null) {
+        ensureEvalsIsMutable();
+        evals_.remove(index);
+        onChanged();
+      } else {
+        evalsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Every Eval whose cases run, in the order the spec names them: the
+     * version every try runs and its cases' results. A try loads no Eval;
+     * it runs the Eval's cases on the agent.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+     */
+    public ai.stigmer.agentic.evalrun.v1.EvalRunEval.Builder getEvalsBuilder(
+        int index) {
+      return internalGetEvalsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Every Eval whose cases run, in the order the spec names them: the
+     * version every try runs and its cases' results. A try loads no Eval;
+     * it runs the Eval's cases on the agent.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+     */
+    public ai.stigmer.agentic.evalrun.v1.EvalRunEvalOrBuilder getEvalsOrBuilder(
+        int index) {
+      if (evalsBuilder_ == null) {
+        return evals_.get(index);  } else {
+        return evalsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Every Eval whose cases run, in the order the spec names them: the
+     * version every try runs and its cases' results. A try loads no Eval;
+     * it runs the Eval's cases on the agent.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.evalrun.v1.EvalRunEvalOrBuilder> 
+         getEvalsOrBuilderList() {
+      if (evalsBuilder_ != null) {
+        return evalsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(evals_);
+      }
+    }
+    /**
+     * <pre>
+     * Every Eval whose cases run, in the order the spec names them: the
+     * version every try runs and its cases' results. A try loads no Eval;
+     * it runs the Eval's cases on the agent.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+     */
+    public ai.stigmer.agentic.evalrun.v1.EvalRunEval.Builder addEvalsBuilder() {
+      return internalGetEvalsFieldBuilder().addBuilder(
+          ai.stigmer.agentic.evalrun.v1.EvalRunEval.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Every Eval whose cases run, in the order the spec names them: the
+     * version every try runs and its cases' results. A try loads no Eval;
+     * it runs the Eval's cases on the agent.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+     */
+    public ai.stigmer.agentic.evalrun.v1.EvalRunEval.Builder addEvalsBuilder(
+        int index) {
+      return internalGetEvalsFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.evalrun.v1.EvalRunEval.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Every Eval whose cases run, in the order the spec names them: the
+     * version every try runs and its cases' results. A try loads no Eval;
+     * it runs the Eval's cases on the agent.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.evalrun.v1.EvalRunEval.Builder> 
+         getEvalsBuilderList() {
+      return internalGetEvalsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.evalrun.v1.EvalRunEval, ai.stigmer.agentic.evalrun.v1.EvalRunEval.Builder, ai.stigmer.agentic.evalrun.v1.EvalRunEvalOrBuilder> 
+        internalGetEvalsFieldBuilder() {
+      if (evalsBuilder_ == null) {
+        evalsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.evalrun.v1.EvalRunEval, ai.stigmer.agentic.evalrun.v1.EvalRunEval.Builder, ai.stigmer.agentic.evalrun.v1.EvalRunEvalOrBuilder>(
+                evals_,
+                ((bitField0_ & 0x00001000) != 0),
+                getParentForChildren(),
+                isClean());
+        evals_ = null;
+      }
+      return evalsBuilder_;
+    }
+
     private ai.stigmer.commons.apiresource.ApiResourceAudit audit_;
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.commons.apiresource.ApiResourceAudit, ai.stigmer.commons.apiresource.ApiResourceAudit.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditOrBuilder> auditBuilder_;
@@ -2763,7 +3257,7 @@ java.lang.String defaultValue) {
      * @return Whether the audit field is set.
      */
     public boolean hasAudit() {
-      return ((bitField0_ & 0x00001000) != 0);
+      return ((bitField0_ & 0x00002000) != 0);
     }
     /**
      * <pre>
@@ -2796,7 +3290,7 @@ java.lang.String defaultValue) {
       } else {
         auditBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -2814,7 +3308,7 @@ java.lang.String defaultValue) {
       } else {
         auditBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -2827,7 +3321,7 @@ java.lang.String defaultValue) {
      */
     public Builder mergeAudit(ai.stigmer.commons.apiresource.ApiResourceAudit value) {
       if (auditBuilder_ == null) {
-        if (((bitField0_ & 0x00001000) != 0) &&
+        if (((bitField0_ & 0x00002000) != 0) &&
           audit_ != null &&
           audit_ != ai.stigmer.commons.apiresource.ApiResourceAudit.getDefaultInstance()) {
           getAuditBuilder().mergeFrom(value);
@@ -2838,7 +3332,7 @@ java.lang.String defaultValue) {
         auditBuilder_.mergeFrom(value);
       }
       if (audit_ != null) {
-        bitField0_ |= 0x00001000;
+        bitField0_ |= 0x00002000;
         onChanged();
       }
       return this;
@@ -2851,7 +3345,7 @@ java.lang.String defaultValue) {
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
      */
     public Builder clearAudit() {
-      bitField0_ = (bitField0_ & ~0x00001000);
+      bitField0_ = (bitField0_ & ~0x00002000);
       audit_ = null;
       if (auditBuilder_ != null) {
         auditBuilder_.dispose();
@@ -2868,7 +3362,7 @@ java.lang.String defaultValue) {
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceAudit.Builder getAuditBuilder() {
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return internalGetAuditFieldBuilder().getBuilder();
     }

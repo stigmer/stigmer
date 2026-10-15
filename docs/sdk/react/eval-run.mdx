@@ -117,6 +117,46 @@ const { evalRuns } = useEvalRuns({ agentId: agent?.metadata?.id ?? "" });
 ```
 
 
+### useEvals
+
+Data hook that lists the `Eval`s of an organization through
+`eval.list()`, newest first, each one the caller may view.
+
+Pass an empty organization to skip fetching, while the agent is loading
+or where no Eval applies.
+
+**Signature**
+
+```tsx
+function useEvals(org: string): UseEvalsReturn
+```
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseEvalsReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    evals: { type: "readonly Eval[]", description: "The organization's Evals the caller may view, newest first; empty while loading." },
+    hasMore: { type: "boolean", description: "`true` while the server holds entries beyond those loaded." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isLoadingMore: { type: "boolean", description: "`true` while a `loadMore` read is in flight." },
+    loadMore: { type: "() => void", description: "Load the next page. No-op while one is loading or when nothing follows." },
+    loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`." },
+    refetch: { type: "() => void", description: "Re-fetch the list (after a push)." },
+  }}
+/>
+
+```tsx
+const { evals } = useEvals(agent?.metadata?.org ?? "");
+```
+
+
 ### useStartEvalRun
 
 Behavior hook that starts an `EvalRun` through `evalrun.create()`.
@@ -244,7 +284,8 @@ function comparedPluginOf(evalRun: EvalRun): EvalRunPlugin | undefined
 Two eval runs, plugin by plugin and case by case, `before` first: how a
 new version (of the agent, or of the plugin) is judged against the last.
 Plugins follow `after`'s order, then the ones only `before` had; a
-plugin is matched by its slug.
+plugin is matched by its slug. Evals follow the plugins the same way,
+matched by their slug.
 
 ```tsx
 function compareEvalRuns(before: EvalRun, after: EvalRun): readonly EvalRunCompareSection[]
@@ -314,10 +355,10 @@ names and its phase (which says what a try not finished is).
 
 ### evalCaseSourceOf
 
-One plugin's cases in an eval run as a case list the results table reads.
+One plugin's or Eval's cases in an eval run as a case list the results table reads.
 
 ```tsx
-function evalCaseSourceOf(evalRun: EvalRun, plugin: EvalRunPlugin): EvalCaseSource
+function evalCaseSourceOf(evalRun: EvalRun, source: Pick<EvalRunPlugin, "cases">): EvalCaseSource
 ```
 
 
@@ -375,11 +416,12 @@ The Run evals form's settings.
     allowTools: { type: "readonly string[]", description: "Tools every try may use beyond each case's own list, in Claude Code's names.", required: true },
     caseGlob: { type: "string", description: "Runs only the cases whose name matches this glob, as in \"review-*\"; empty runs every case.", required: true },
     caseModels: { type: "boolean", description: "Send no targets; `targets` is kept for when this is off. On a plugin each case then runs on its own `model`; on an agent, the agent runs as it runs (its own engine and model).", required: true },
-    caseSources: { type: "readonly string[]", description: "On an agent: the slugs of the plugins whose cases run; at least one.", required: true },
+    caseSources: { type: "readonly string[]", description: "On an agent: the slugs of the plugins whose cases run.", required: true },
     caseTags: { type: "readonly string[]", description: "Runs only the cases carrying one of these tags; empty runs every case.", required: true },
     compare: { type: "boolean", description: "Also run every case without the plugin compared (on a plugin, the plugin itself), for the difference it makes.", required: true },
     comparedPluginId: { type: "string", description: "On an agent: the id of the plugin each case runs with and without; empty compares none.", required: true },
     concurrency: { type: "number", description: "", required: true },
+    evalSources: { type: "readonly string[]", description: "On an agent: the slugs of the organization's Evals whose cases run on it.", required: true },
     maxCostUsd: { type: "number", description: "", required: true },
     runs: { type: "number", description: "Tries per case, arm and target; 0 is each case's own `runs`.", required: true },
     targets: { type: "readonly EvalFormTarget[]", description: "", required: true },
@@ -413,7 +455,7 @@ The parts of an eval run the list's polling reads.
 
 ### EvalRunCompareSection
 
-One plugin in two eval runs.
+One plugin, or one Eval, in two eval runs.
 
 <TypeTable
   type={{
@@ -422,6 +464,7 @@ One plugin in two eval runs.
     beforeDigest: { type: "string | null", description: "The plugin version in each eval run; `null` when that eval run did not have the plugin.", required: true },
     beforeNotRun: { type: "string", description: "Why the plugin's cases did not run in each eval run; empty when they ran.", required: true },
     digestChanged: { type: "boolean", description: "Both eval runs ran the plugin, at different versions: its cases may have changed with it.", required: true },
+    kind: { type: "\"plugin\" | \"eval\"", description: "", required: true },
     rows: { type: "readonly EvalCompareRow[]", description: "Its cases, compared by compareCaseSources.", required: true },
     slug: { type: "string", description: "", required: true },
   }}
@@ -434,9 +477,10 @@ The create input the form's settings become: unnamed, so the server
 names it by its id; on a plugin, its current version; on an agent, its
 current version, with the plugin compared when one is picked. Whose
 cases run is sent as none when it is `defaultCaseSources` (the compared
-plugin's, else every attached one's), which the server reads the same
-way against the agent version it stamps; else each by its slug in the
-agent's organization.
+plugin's, else every attached one's) and no Eval is picked, which the
+server reads the same way against the agent version it stamps; else each
+plugin, then each Eval, by its slug in the agent's organization (an
+Eval at its current version).
 
 ```tsx
 function evalRunInputOf(subject: EvalSubjectRef, settings: EvalFormSettings, defaultCaseSources: readonly string[]): EvalRunInput
@@ -459,7 +503,7 @@ function evalRunLabelOf(evalRun: EvalRun, pluginName: string, formatTime: (at: D
 
 ### EvalRunPluginSection
 
-One plugin a try loaded, as an eval run ran it.
+One plugin a try loaded, or one Eval whose cases ran on the agent, as an eval run ran it.
 
 <TypeTable
   type={{
@@ -468,6 +512,7 @@ One plugin a try loaded, as an eval run ran it.
     casesTotal: { type: "number", description: "", required: true },
     compared: { type: "boolean", description: "Whether each case ran with and without it.", required: true },
     digest: { type: "string", description: "The plugin version every try ran.", required: true },
+    kind: { type: "\"plugin\" | \"eval\"", description: "Where the cases come from: a plugin, or an Eval (whose id, slug and version fill the plugin's fields).", required: true },
     labels: { type: "readonly string[]", description: "The target columns of this plugin's table.", required: true },
     meanDelta: { type: "number | undefined", description: "", required: true },
     notRun: { type: "string", description: "Why none of the plugin's cases ran; empty when they ran.", required: true },
@@ -481,7 +526,7 @@ One plugin a try loaded, as an eval run ran it.
 
 ### evalRunSectionsOf
 
-An eval run's results, one section per plugin a try loaded, in the eval run's order.
+An eval run's results, one section per plugin a try loaded in the eval run's order, then one per Eval.
 
 ```tsx
 function evalRunSectionsOf(evalRun: EvalRun): readonly EvalRunPluginSection[]

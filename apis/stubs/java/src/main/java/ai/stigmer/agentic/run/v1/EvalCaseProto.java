@@ -52,6 +52,16 @@ public final class EvalCaseProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_run_v1_EvalMockServer_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_run_v1_EvalMockPluginHome_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_run_v1_EvalMockPluginHome_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_run_v1_EvalMockAgentHome_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_run_v1_EvalMockAgentHome_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_run_v1_EvalMockTool_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -67,50 +77,74 @@ public final class EvalCaseProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n)ai/stigmer/agentic/run/v1/eval_case.pr" +
       "oto\022\031ai.stigmer.agentic.run.v1\032\033buf/vali" +
-      "date/validate.proto\"\362\005\n\017EvalCaseContext\022" +
-      "$\n\tplugin_id\030\001 \001(\tB\007\272H\004r\002\020\001R\010pluginId\022:\n" +
-      "\rplugin_digest\030\002 \001(\tB\025\272H\022r\0202\016^[a-f0-9]{6" +
-      "4}$R\014pluginDigest\022$\n\tsuite_dir\030\003 \001(\tB\007\272H" +
-      "\004r\002\020\001R\010suiteDir\022\"\n\010case_dir\030\004 \001(\tB\007\272H\004r\002" +
-      "\020\001R\007caseDir\022\'\n\017scaffold_script\030\005 \001(\tR\016sc" +
-      "affoldScript\022#\n\010add_dirs\030\006 \003(\tB\010\272H\005\222\001\002\020 " +
-      "R\007addDirs\022!\n\014history_file\030\007 \001(\tR\013history" +
-      "File\022m\n\003env\030\010 \003(\01323.ai.stigmer.agentic.r" +
-      "un.v1.EvalCaseContext.EnvEntryB&\272H#\232\001 \020@" +
-      "\"\025r\0232\021^EVAL_[A-Z0-9_]*$*\005r\003\030\200 R\003env\022I\n\005m" +
-      "ocks\030\t \003(\0132).ai.stigmer.agentic.run.v1.E" +
-      "valMockServerB\010\272H\005\222\001\002\020 R\005mocks\0222\n\020agent_" +
-      "mock_model\030\n \001(\tB\010\272H\005r\003\030\200\001R\016agentMockMod" +
-      "el\022?\n\026agent_mock_call_budget\030\013 \001(\005B\n\272H\007\032" +
-      "\005\030\240\006(\000R\023agentMockCallBudget\0220\n\nread_file" +
-      "s\030\014 \003(\tB\021\272H\016\222\001\013\020@\"\007r\005\020\001\030\200\010R\treadFiles\022)\n" +
-      "\013plugin_name\030\r \001(\tB\010\272H\005r\003\030\200\002R\npluginName" +
-      "\0326\n\010EnvEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030" +
-      "\002 \001(\tR\005value:\0028\001\"P\n\tEvalFiles\022C\n\005files\030\001" +
-      " \003(\0132#.ai.stigmer.agentic.run.v1.EvalFil" +
-      "eB\010\272H\005\222\001\002\020@R\005files\"\236\001\n\010EvalFile\022\033\n\004path\030" +
-      "\001 \001(\tB\007\272H\004r\002\020\001R\004path\022\024\n\004text\030\002 \001(\tH\000R\004te" +
-      "xt\022\030\n\006binary\030\003 \001(\010H\000R\006binary\022\030\n\006absent\030\004" +
-      " \001(\010H\000R\006absent\022 \n\nunreadable\030\005 \001(\tH\000R\nun" +
-      "readableB\t\n\007content\"\277\001\n\016EvalMockServer\022\037" +
-      "\n\006server\030\001 \001(\tB\007\272H\004r\002\020\001R\006server\022!\n\007segme" +
-      "nt\030\002 \001(\tB\007\272H\004r\002\020\001R\007segment\022J\n\005tools\030\003 \003(" +
-      "\0132\'.ai.stigmer.agentic.run.v1.EvalMockTo" +
-      "olB\013\272H\010\222\001\005\010\001\020\200\001R\005tools\022\035\n\ntools_file\030\004 \001" +
-      "(\tR\ttoolsFile\"\374\001\n\014EvalMockTool\022\033\n\004tool\030\001" +
-      " \001(\tB\007\272H\004r\002\020\001R\004tool\022\033\n\004file\030\002 \001(\tB\007\272H\004r\002" +
-      "\020\001R\004file\022G\n\004kind\030\003 \001(\0162\'.ai.stigmer.agen" +
-      "tic.run.v1.EvalMockKindB\n\272H\007\202\001\004\020\001 \000R\004kin" +
-      "d\022\024\n\005error\030\004 \001(\010R\005error\022*\n\013expect_json\030\005" +
-      " \001(\tB\t\272H\006r\004\030\200\200\001R\nexpectJson\022\'\n\nabort_whe" +
-      "n\030\006 \001(\tB\010\272H\005r\003\030\200 R\tabortWhen*b\n\014EvalMock" +
-      "Kind\022\036\n\032eval_mock_kind_unspecified\020\000\022\030\n\024" +
-      "eval_mock_kind_fixed\020\001\022\030\n\024eval_mock_kind" +
-      "_agent\020\002B\230\001B\rEvalCaseProtoP\001\242\002\004ASAR\252\002\031Ai" +
-      ".Stigmer.Agentic.Run.V1\312\002\031Ai\\Stigmer\\Age" +
-      "ntic\\Run\\V1\342\002%Ai\\Stigmer\\Agentic\\Run\\V1\\" +
-      "GPBMetadata\352\002\035Ai::Stigmer::Agentic::Run:" +
-      ":V1b\006proto3"
+      "date/validate.proto\"\264\n\n\017EvalCaseContext\022" +
+      "\033\n\tplugin_id\030\001 \001(\tR\010pluginId\022#\n\rplugin_d" +
+      "igest\030\002 \001(\tR\014pluginDigest\022\033\n\tsuite_dir\030\003" +
+      " \001(\tR\010suiteDir\022\"\n\010case_dir\030\004 \001(\tB\007\272H\004r\002\020" +
+      "\001R\007caseDir\022\'\n\017scaffold_script\030\005 \001(\tR\016sca" +
+      "ffoldScript\022#\n\010add_dirs\030\006 \003(\tB\010\272H\005\222\001\002\020 R" +
+      "\007addDirs\022!\n\014history_file\030\007 \001(\tR\013historyF" +
+      "ile\022m\n\003env\030\010 \003(\01323.ai.stigmer.agentic.ru" +
+      "n.v1.EvalCaseContext.EnvEntryB&\272H#\232\001 \020@\"" +
+      "\025r\0232\021^EVAL_[A-Z0-9_]*$*\005r\003\030\200 R\003env\022I\n\005mo" +
+      "cks\030\t \003(\0132).ai.stigmer.agentic.run.v1.Ev" +
+      "alMockServerB\010\272H\005\222\001\002\020 R\005mocks\0222\n\020agent_m" +
+      "ock_model\030\n \001(\tB\010\272H\005r\003\030\200\001R\016agentMockMode" +
+      "l\022?\n\026agent_mock_call_budget\030\013 \001(\005B\n\272H\007\032\005" +
+      "\030\240\006(\000R\023agentMockCallBudget\0220\n\nread_files" +
+      "\030\014 \003(\tB\021\272H\016\222\001\013\020@\"\007r\005\020\001\030\200\010R\treadFiles\022)\n\013" +
+      "plugin_name\030\r \001(\tB\010\272H\005r\003\030\200\002R\npluginName\022" +
+      "!\n\007eval_id\030\016 \001(\tB\010\272H\005r\003\030\200\001R\006evalId\022\037\n\013ev" +
+      "al_digest\030\017 \001(\tR\nevalDigest\0326\n\010EnvEntry\022" +
+      "\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:" +
+      "\0028\001:\244\004\272H\240\004\032\205\001\n\024eval_case.one_source\022=exa" +
+      "ctly one of plugin_id and eval_id names " +
+      "the case\'s archive\032.(this.plugin_id != \'" +
+      "\') != (this.eval_id != \'\')\032\221\001\n\027eval_case" +
+      ".plugin_digest\0220a plugin\'s case names th" +
+      "e plugin version it runs\032Dthis.plugin_id" +
+      " == \'\' || this.plugin_digest.matches(\'^[" +
+      "a-f0-9]{64}$\')\032\210\001\n\025eval_case.eval_digest" +
+      "\022-an Eval\'s case names the Eval version " +
+      "it runs\032@this.eval_id == \'\' || this.eval" +
+      "_digest.matches(\'^[a-f0-9]{64}$\')\032w\n\032eva" +
+      "l_case.plugin_suite_dir\022+a plugin\'s case" +
+      " names its suite\'s directory\032,this.plugi" +
+      "n_id == \'\' || this.suite_dir != \'\'\"P\n\tEv" +
+      "alFiles\022C\n\005files\030\001 \003(\0132#.ai.stigmer.agen" +
+      "tic.run.v1.EvalFileB\010\272H\005\222\001\002\020@R\005files\"\236\001\n" +
+      "\010EvalFile\022\033\n\004path\030\001 \001(\tB\007\272H\004r\002\020\001R\004path\022\024" +
+      "\n\004text\030\002 \001(\tH\000R\004text\022\030\n\006binary\030\003 \001(\010H\000R\006" +
+      "binary\022\030\n\006absent\030\004 \001(\010H\000R\006absent\022 \n\nunre" +
+      "adable\030\005 \001(\tH\000R\nunreadableB\t\n\007content\"\326\002" +
+      "\n\016EvalMockServer\022\037\n\006server\030\001 \001(\tB\007\272H\004r\002\020" +
+      "\001R\006server\022!\n\007segment\030\002 \001(\tB\007\272H\004r\002\020\001R\007seg" +
+      "ment\022J\n\005tools\030\003 \003(\0132\'.ai.stigmer.agentic" +
+      ".run.v1.EvalMockToolB\013\272H\010\222\001\005\010\001\020\200\001R\005tools" +
+      "\022\035\n\ntools_file\030\004 \001(\tR\ttoolsFile\022G\n\006plugi" +
+      "n\030\005 \001(\0132-.ai.stigmer.agentic.run.v1.Eval" +
+      "MockPluginHomeH\000R\006plugin\022D\n\005agent\030\006 \001(\0132" +
+      ",.ai.stigmer.agentic.run.v1.EvalMockAgen" +
+      "tHomeH\000R\005agentB\006\n\004home\"\206\001\n\022EvalMockPlugi" +
+      "nHome\022$\n\tplugin_id\030\001 \001(\tB\007\272H\004r\002\020\001R\010plugi" +
+      "nId\022)\n\013plugin_name\030\002 \001(\tB\010\272H\005r\003\030\200\002R\nplug" +
+      "inName\022\037\n\006server\030\003 \001(\tB\007\272H\004r\002\020\001R\006server\"" +
+      "X\n\021EvalMockAgentHome\022\"\n\010agent_id\030\001 \001(\tB\007" +
+      "\272H\004r\002\020\001R\007agentId\022\037\n\006server\030\002 \001(\tB\007\272H\004r\002\020" +
+      "\001R\006server\"\374\001\n\014EvalMockTool\022\033\n\004tool\030\001 \001(\t" +
+      "B\007\272H\004r\002\020\001R\004tool\022\033\n\004file\030\002 \001(\tB\007\272H\004r\002\020\001R\004" +
+      "file\022G\n\004kind\030\003 \001(\0162\'.ai.stigmer.agentic." +
+      "run.v1.EvalMockKindB\n\272H\007\202\001\004\020\001 \000R\004kind\022\024\n" +
+      "\005error\030\004 \001(\010R\005error\022*\n\013expect_json\030\005 \001(\t" +
+      "B\t\272H\006r\004\030\200\200\001R\nexpectJson\022\'\n\nabort_when\030\006 " +
+      "\001(\tB\010\272H\005r\003\030\200 R\tabortWhen*b\n\014EvalMockKind" +
+      "\022\036\n\032eval_mock_kind_unspecified\020\000\022\030\n\024eval" +
+      "_mock_kind_fixed\020\001\022\030\n\024eval_mock_kind_age" +
+      "nt\020\002B\230\001B\rEvalCaseProtoP\001\242\002\004ASAR\252\002\031Ai.Sti" +
+      "gmer.Agentic.Run.V1\312\002\031Ai\\Stigmer\\Agentic" +
+      "\\Run\\V1\342\002%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBM" +
+      "etadata\352\002\035Ai::Stigmer::Agentic::Run::V1b" +
+      "\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -122,7 +156,7 @@ public final class EvalCaseProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_run_v1_EvalCaseContext_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_EvalCaseContext_descriptor,
-        new java.lang.String[] { "PluginId", "PluginDigest", "SuiteDir", "CaseDir", "ScaffoldScript", "AddDirs", "HistoryFile", "Env", "Mocks", "AgentMockModel", "AgentMockCallBudget", "ReadFiles", "PluginName", });
+        new java.lang.String[] { "PluginId", "PluginDigest", "SuiteDir", "CaseDir", "ScaffoldScript", "AddDirs", "HistoryFile", "Env", "Mocks", "AgentMockModel", "AgentMockCallBudget", "ReadFiles", "PluginName", "EvalId", "EvalDigest", });
     internal_static_ai_stigmer_agentic_run_v1_EvalCaseContext_EnvEntry_descriptor =
       internal_static_ai_stigmer_agentic_run_v1_EvalCaseContext_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_run_v1_EvalCaseContext_EnvEntry_fieldAccessorTable = new
@@ -146,9 +180,21 @@ public final class EvalCaseProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_run_v1_EvalMockServer_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_EvalMockServer_descriptor,
-        new java.lang.String[] { "Server", "Segment", "Tools", "ToolsFile", });
-    internal_static_ai_stigmer_agentic_run_v1_EvalMockTool_descriptor =
+        new java.lang.String[] { "Server", "Segment", "Tools", "ToolsFile", "Plugin", "Agent", "Home", });
+    internal_static_ai_stigmer_agentic_run_v1_EvalMockPluginHome_descriptor =
       getDescriptor().getMessageType(4);
+    internal_static_ai_stigmer_agentic_run_v1_EvalMockPluginHome_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_run_v1_EvalMockPluginHome_descriptor,
+        new java.lang.String[] { "PluginId", "PluginName", "Server", });
+    internal_static_ai_stigmer_agentic_run_v1_EvalMockAgentHome_descriptor =
+      getDescriptor().getMessageType(5);
+    internal_static_ai_stigmer_agentic_run_v1_EvalMockAgentHome_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_run_v1_EvalMockAgentHome_descriptor,
+        new java.lang.String[] { "AgentId", "Server", });
+    internal_static_ai_stigmer_agentic_run_v1_EvalMockTool_descriptor =
+      getDescriptor().getMessageType(6);
     internal_static_ai_stigmer_agentic_run_v1_EvalMockTool_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_EvalMockTool_descriptor,
@@ -158,6 +204,7 @@ public final class EvalCaseProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(build.buf.validate.ValidateProto.field);
+    registry.add(build.buf.validate.ValidateProto.message);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

@@ -65,10 +65,12 @@ class EvalRunSpec(_message.Message):
     def __init__(self, agent_id: _Optional[str] = ..., plugin_id: _Optional[str] = ..., agent_version: _Optional[str] = ..., plugin_digest: _Optional[str] = ..., compared_plugin_id: _Optional[str] = ..., cases: _Optional[_Iterable[_Union[EvalRunCaseSource, _Mapping]]] = ..., targets: _Optional[_Iterable[_Union[EvalRunTarget, _Mapping]]] = ..., runs: _Optional[int] = ..., ablation: _Optional[_Union[EvalRunAblation, str]] = ..., threshold: _Optional[float] = ..., case_glob: _Optional[str] = ..., case_tags: _Optional[_Iterable[str]] = ..., judge_model: _Optional[str] = ..., max_cost_usd: _Optional[float] = ..., concurrency: _Optional[int] = ..., allow_tools: _Optional[_Iterable[str]] = ..., real_mcp_servers: bool = ..., vaults: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., skip_scaffold: bool = ..., allow_real_servers: bool = ...) -> None: ...
 
 class EvalRunCaseSource(_message.Message):
-    __slots__ = ("plugin",)
+    __slots__ = ("plugin", "eval")
     PLUGIN_FIELD_NUMBER: _ClassVar[int]
+    EVAL_FIELD_NUMBER: _ClassVar[int]
     plugin: _io_pb2.ApiResourceReference
-    def __init__(self, plugin: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ...) -> None: ...
+    eval: _io_pb2.ApiResourceReference
+    def __init__(self, plugin: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., eval: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ...) -> None: ...
 
 class EvalRunTarget(_message.Message):
     __slots__ = ("harness", "model_name")

@@ -220,7 +220,7 @@ type EvalRunStatus struct {
 	// attach it; on an eval run of a plugin, that plugin alone. Each holds
 	// the version every try runs and its cases' results.
 	Plugins []*EvalRunPlugin `protobuf:"bytes,5,rep,name=plugins,proto3" json:"plugins,omitempty"`
-	// The totals over every plugin's cases.
+	// The totals over every case that ran, a plugin's or an Eval's.
 	Aggregates *EvalRunAggregates `protobuf:"bytes,6,opt,name=aggregates,proto3" json:"aggregates,omitempty"`
 	// Estimated model cost so far of every try and every AI-graded check,
 	// in US dollars.
@@ -235,6 +235,10 @@ type EvalRunStatus struct {
 	// whose permission to use the vault each try checks, since a try has no
 	// person.
 	VaultAttachers map[string]string `protobuf:"bytes,12,rep,name=vault_attachers,json=vaultAttachers,proto3" json:"vault_attachers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Every Eval whose cases run, in the order the spec names them: the
+	// version every try runs and its cases' results. A try loads no Eval;
+	// it runs the Eval's cases on the agent.
+	Evals []*EvalRunEval `protobuf:"bytes,13,rep,name=evals,proto3" json:"evals,omitempty"`
 	// Standard audit information (created_at, updated_at, created_by, etc.)
 	Audit         *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -351,6 +355,13 @@ func (x *EvalRunStatus) GetFinishedAt() *timestamppb.Timestamp {
 func (x *EvalRunStatus) GetVaultAttachers() map[string]string {
 	if x != nil {
 		return x.VaultAttachers
+	}
+	return nil
+}
+
+func (x *EvalRunStatus) GetEvals() []*EvalRunEval {
+	if x != nil {
+		return x.Evals
 	}
 	return nil
 }
@@ -475,13 +486,105 @@ func (x *EvalRunPlugin) GetAggregates() *EvalRunAggregates {
 	return nil
 }
 
+// EvalRunEval is one Eval whose cases an eval run runs, as it ran them.
+type EvalRunEval struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The Eval's ID and slug.
+	EvalId   string `protobuf:"bytes,1,opt,name=eval_id,json=evalId,proto3" json:"eval_id,omitempty"`
+	EvalSlug string `protobuf:"bytes,2,opt,name=eval_slug,json=evalSlug,proto3" json:"eval_slug,omitempty"`
+	// The Eval version (archive digest) every try runs: the one the case
+	// source named, or the current one when the eval run was created.
+	EvalDigest string `protobuf:"bytes,3,opt,name=eval_digest,json=evalDigest,proto3" json:"eval_digest,omitempty"`
+	// Why none of the Eval's cases run, as in "no eval cases at this
+	// version"; empty when its cases run.
+	NotRunReason string `protobuf:"bytes,4,opt,name=not_run_reason,json=notRunReason,proto3" json:"not_run_reason,omitempty"`
+	// The Eval's cases, in directory order, each with its results.
+	Cases []*EvalRunCase `protobuf:"bytes,5,rep,name=cases,proto3" json:"cases,omitempty"`
+	// This Eval's totals.
+	Aggregates    *EvalRunAggregates `protobuf:"bytes,6,opt,name=aggregates,proto3" json:"aggregates,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EvalRunEval) Reset() {
+	*x = EvalRunEval{}
+	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EvalRunEval) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EvalRunEval) ProtoMessage() {}
+
+func (x *EvalRunEval) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EvalRunEval.ProtoReflect.Descriptor instead.
+func (*EvalRunEval) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *EvalRunEval) GetEvalId() string {
+	if x != nil {
+		return x.EvalId
+	}
+	return ""
+}
+
+func (x *EvalRunEval) GetEvalSlug() string {
+	if x != nil {
+		return x.EvalSlug
+	}
+	return ""
+}
+
+func (x *EvalRunEval) GetEvalDigest() string {
+	if x != nil {
+		return x.EvalDigest
+	}
+	return ""
+}
+
+func (x *EvalRunEval) GetNotRunReason() string {
+	if x != nil {
+		return x.NotRunReason
+	}
+	return ""
+}
+
+func (x *EvalRunEval) GetCases() []*EvalRunCase {
+	if x != nil {
+		return x.Cases
+	}
+	return nil
+}
+
+func (x *EvalRunEval) GetAggregates() *EvalRunAggregates {
+	if x != nil {
+		return x.Aggregates
+	}
+	return nil
+}
+
 // EvalRunCase is one case of the suite and its results.
 type EvalRunCase struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The case's name, from its case.yaml or its directory.
 	CaseName string `protobuf:"bytes,1,opt,name=case_name,json=caseName,proto3" json:"case_name,omitempty"`
 	// The case's directory, relative to the plugin's root, as in
-	// "evals/review-fires".
+	// "evals/review-fires", or to the Eval's, as in "review-fires".
 	Path string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
 	// The case's tags.
 	CaseTags []string `protobuf:"bytes,3,rep,name=case_tags,json=caseTags,proto3" json:"case_tags,omitempty"`
@@ -494,8 +597,9 @@ type EvalRunCase struct {
 	// Notes about how the case was run, as in "max_turns 4 raised to the
 	// run's minimum of 10 tool rounds".
 	Notes []string `protobuf:"bytes,6,rep,name=notes,proto3" json:"notes,omitempty"`
-	// The plugin's MCP servers the case answers with mocks, and those it
-	// leaves unstarted, as Claude Code's mocked: line.
+	// The MCP servers the case answers with mocks, and those it leaves
+	// unstarted, as Claude Code's mocked: line: a plugin's servers for a
+	// plugin's case; the agent's and its plugins' servers for an Eval's.
 	MockedServers []*EvalRunMockedServer `protobuf:"bytes,7,rep,name=mocked_servers,json=mockedServers,proto3" json:"mocked_servers,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -503,7 +607,7 @@ type EvalRunCase struct {
 
 func (x *EvalRunCase) Reset() {
 	*x = EvalRunCase{}
-	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -515,7 +619,7 @@ func (x *EvalRunCase) String() string {
 func (*EvalRunCase) ProtoMessage() {}
 
 func (x *EvalRunCase) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -528,7 +632,7 @@ func (x *EvalRunCase) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvalRunCase.ProtoReflect.Descriptor instead.
 func (*EvalRunCase) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *EvalRunCase) GetCaseName() string {
@@ -580,15 +684,16 @@ func (x *EvalRunCase) GetMockedServers() []*EvalRunMockedServer {
 	return nil
 }
 
-// EvalRunMockedServer is one plugin MCP server as a case's tries see
-// it.
+// EvalRunMockedServer is one MCP server as a case's tries see it.
 type EvalRunMockedServer struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The server's name in the run, as in "plugin_tracker_issues".
+	// The server's name in the run, as in "plugin_tracker_issues" or an
+	// agent's own "billing".
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// The tools its mocks answer.
 	Tools []string `protobuf:"bytes,2,rep,name=tools,proto3" json:"tools,omitempty"`
-	// Why the server is not started, as in "not started: no mock"; empty
+	// Why the server is not started, as in "not started: no mock", or why
+	// its mocks answer nothing, as in "no such server on the agent"; empty
 	// when its mocks answer.
 	NotStartedReason string `protobuf:"bytes,3,opt,name=not_started_reason,json=notStartedReason,proto3" json:"not_started_reason,omitempty"`
 	unknownFields    protoimpl.UnknownFields
@@ -597,7 +702,7 @@ type EvalRunMockedServer struct {
 
 func (x *EvalRunMockedServer) Reset() {
 	*x = EvalRunMockedServer{}
-	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -609,7 +714,7 @@ func (x *EvalRunMockedServer) String() string {
 func (*EvalRunMockedServer) ProtoMessage() {}
 
 func (x *EvalRunMockedServer) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -622,7 +727,7 @@ func (x *EvalRunMockedServer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvalRunMockedServer.ProtoReflect.Descriptor instead.
 func (*EvalRunMockedServer) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *EvalRunMockedServer) GetName() string {
@@ -674,7 +779,7 @@ type EvalRunCaseTarget struct {
 
 func (x *EvalRunCaseTarget) Reset() {
 	*x = EvalRunCaseTarget{}
-	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -686,7 +791,7 @@ func (x *EvalRunCaseTarget) String() string {
 func (*EvalRunCaseTarget) ProtoMessage() {}
 
 func (x *EvalRunCaseTarget) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -699,7 +804,7 @@ func (x *EvalRunCaseTarget) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvalRunCaseTarget.ProtoReflect.Descriptor instead.
 func (*EvalRunCaseTarget) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *EvalRunCaseTarget) GetTarget() *EvalRunTarget {
@@ -768,7 +873,7 @@ type EvalRunArm struct {
 
 func (x *EvalRunArm) Reset() {
 	*x = EvalRunArm{}
-	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -780,7 +885,7 @@ func (x *EvalRunArm) String() string {
 func (*EvalRunArm) ProtoMessage() {}
 
 func (x *EvalRunArm) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -793,7 +898,7 @@ func (x *EvalRunArm) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvalRunArm.ProtoReflect.Descriptor instead.
 func (*EvalRunArm) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *EvalRunArm) GetScore() float64 {
@@ -857,7 +962,7 @@ type EvalRunTry struct {
 
 func (x *EvalRunTry) Reset() {
 	*x = EvalRunTry{}
-	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -869,7 +974,7 @@ func (x *EvalRunTry) String() string {
 func (*EvalRunTry) ProtoMessage() {}
 
 func (x *EvalRunTry) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -882,7 +987,7 @@ func (x *EvalRunTry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvalRunTry.ProtoReflect.Descriptor instead.
 func (*EvalRunTry) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDescGZIP(), []int{6}
+	return file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *EvalRunTry) GetIndex() int32 {
@@ -970,7 +1075,7 @@ type EvalRunAbort struct {
 
 func (x *EvalRunAbort) Reset() {
 	*x = EvalRunAbort{}
-	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -982,7 +1087,7 @@ func (x *EvalRunAbort) String() string {
 func (*EvalRunAbort) ProtoMessage() {}
 
 func (x *EvalRunAbort) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -995,7 +1100,7 @@ func (x *EvalRunAbort) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvalRunAbort.ProtoReflect.Descriptor instead.
 func (*EvalRunAbort) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *EvalRunAbort) GetServer() string {
@@ -1039,7 +1144,7 @@ type EvalRunAggregates struct {
 
 func (x *EvalRunAggregates) Reset() {
 	*x = EvalRunAggregates{}
-	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1051,7 +1156,7 @@ func (x *EvalRunAggregates) String() string {
 func (*EvalRunAggregates) ProtoMessage() {}
 
 func (x *EvalRunAggregates) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1064,7 +1169,7 @@ func (x *EvalRunAggregates) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EvalRunAggregates.ProtoReflect.Descriptor instead.
 func (*EvalRunAggregates) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDescGZIP(), []int{8}
+	return file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *EvalRunAggregates) GetOverallScore() float64 {
@@ -1106,7 +1211,7 @@ var File_ai_stigmer_agentic_evalrun_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/evalrun/v1/status.proto\x12\x1dai.stigmer.agentic.evalrun.v1\x1a(ai/stigmer/agentic/evalrun/v1/spec.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdd\x06\n" +
+	"*ai/stigmer/agentic/evalrun/v1/status.proto\x12\x1dai.stigmer.agentic.evalrun.v1\x1a(ai/stigmer/agentic/evalrun/v1/spec.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9f\a\n" +
 	"\rEvalRunStatus\x12A\n" +
 	"\x05phase\x18\x01 \x01(\x0e2+.ai.stigmer.agentic.evalrun.v1.EvalRunPhaseR\x05phase\x12Z\n" +
 	"\x0epartial_reason\x18\x02 \x01(\x0e23.ai.stigmer.agentic.evalrun.v1.EvalRunPartialReasonR\rpartialReason\x12\x14\n" +
@@ -1125,7 +1230,8 @@ const file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDesc = "" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12;\n" +
 	"\vfinished_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"finishedAt\x12i\n" +
-	"\x0fvault_attachers\x18\f \x03(\v2@.ai.stigmer.agentic.evalrun.v1.EvalRunStatus.VaultAttachersEntryR\x0evaultAttachers\x12F\n" +
+	"\x0fvault_attachers\x18\f \x03(\v2@.ai.stigmer.agentic.evalrun.v1.EvalRunStatus.VaultAttachersEntryR\x0evaultAttachers\x12@\n" +
+	"\x05evals\x18\r \x03(\v2*.ai.stigmer.agentic.evalrun.v1.EvalRunEvalR\x05evals\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x1aA\n" +
 	"\x13VaultAttachersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
@@ -1141,6 +1247,16 @@ const file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDesc = "" +
 	"\x05cases\x18\a \x03(\v2*.ai.stigmer.agentic.evalrun.v1.EvalRunCaseR\x05cases\x12P\n" +
 	"\n" +
 	"aggregates\x18\b \x01(\v20.ai.stigmer.agentic.evalrun.v1.EvalRunAggregatesR\n" +
+	"aggregates\"\x9e\x02\n" +
+	"\vEvalRunEval\x12\x17\n" +
+	"\aeval_id\x18\x01 \x01(\tR\x06evalId\x12\x1b\n" +
+	"\teval_slug\x18\x02 \x01(\tR\bevalSlug\x12\x1f\n" +
+	"\veval_digest\x18\x03 \x01(\tR\n" +
+	"evalDigest\x12$\n" +
+	"\x0enot_run_reason\x18\x04 \x01(\tR\fnotRunReason\x12@\n" +
+	"\x05cases\x18\x05 \x03(\v2*.ai.stigmer.agentic.evalrun.v1.EvalRunCaseR\x05cases\x12P\n" +
+	"\n" +
+	"aggregates\x18\x06 \x01(\v20.ai.stigmer.agentic.evalrun.v1.EvalRunAggregatesR\n" +
 	"aggregates\"\xbe\x02\n" +
 	"\vEvalRunCase\x12\x1b\n" +
 	"\tcase_name\x18\x01 \x01(\tR\bcaseName\x12\x12\n" +
@@ -1230,49 +1346,53 @@ func file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_agentic_evalrun_v1_status_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_ai_stigmer_agentic_evalrun_v1_status_proto_goTypes = []any{
 	(EvalRunPhase)(0),                    // 0: ai.stigmer.agentic.evalrun.v1.EvalRunPhase
 	(EvalRunPartialReason)(0),            // 1: ai.stigmer.agentic.evalrun.v1.EvalRunPartialReason
 	(EvalRunTryState)(0),                 // 2: ai.stigmer.agentic.evalrun.v1.EvalRunTryState
 	(*EvalRunStatus)(nil),                // 3: ai.stigmer.agentic.evalrun.v1.EvalRunStatus
 	(*EvalRunPlugin)(nil),                // 4: ai.stigmer.agentic.evalrun.v1.EvalRunPlugin
-	(*EvalRunCase)(nil),                  // 5: ai.stigmer.agentic.evalrun.v1.EvalRunCase
-	(*EvalRunMockedServer)(nil),          // 6: ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer
-	(*EvalRunCaseTarget)(nil),            // 7: ai.stigmer.agentic.evalrun.v1.EvalRunCaseTarget
-	(*EvalRunArm)(nil),                   // 8: ai.stigmer.agentic.evalrun.v1.EvalRunArm
-	(*EvalRunTry)(nil),                   // 9: ai.stigmer.agentic.evalrun.v1.EvalRunTry
-	(*EvalRunAbort)(nil),                 // 10: ai.stigmer.agentic.evalrun.v1.EvalRunAbort
-	(*EvalRunAggregates)(nil),            // 11: ai.stigmer.agentic.evalrun.v1.EvalRunAggregates
-	nil,                                  // 12: ai.stigmer.agentic.evalrun.v1.EvalRunStatus.VaultAttachersEntry
-	(*timestamppb.Timestamp)(nil),        // 13: google.protobuf.Timestamp
-	(*apiresource.ApiResourceAudit)(nil), // 14: ai.stigmer.commons.apiresource.ApiResourceAudit
-	(*EvalRunTarget)(nil),                // 15: ai.stigmer.agentic.evalrun.v1.EvalRunTarget
+	(*EvalRunEval)(nil),                  // 5: ai.stigmer.agentic.evalrun.v1.EvalRunEval
+	(*EvalRunCase)(nil),                  // 6: ai.stigmer.agentic.evalrun.v1.EvalRunCase
+	(*EvalRunMockedServer)(nil),          // 7: ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer
+	(*EvalRunCaseTarget)(nil),            // 8: ai.stigmer.agentic.evalrun.v1.EvalRunCaseTarget
+	(*EvalRunArm)(nil),                   // 9: ai.stigmer.agentic.evalrun.v1.EvalRunArm
+	(*EvalRunTry)(nil),                   // 10: ai.stigmer.agentic.evalrun.v1.EvalRunTry
+	(*EvalRunAbort)(nil),                 // 11: ai.stigmer.agentic.evalrun.v1.EvalRunAbort
+	(*EvalRunAggregates)(nil),            // 12: ai.stigmer.agentic.evalrun.v1.EvalRunAggregates
+	nil,                                  // 13: ai.stigmer.agentic.evalrun.v1.EvalRunStatus.VaultAttachersEntry
+	(*timestamppb.Timestamp)(nil),        // 14: google.protobuf.Timestamp
+	(*apiresource.ApiResourceAudit)(nil), // 15: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(*EvalRunTarget)(nil),                // 16: ai.stigmer.agentic.evalrun.v1.EvalRunTarget
 }
 var file_ai_stigmer_agentic_evalrun_v1_status_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.agentic.evalrun.v1.EvalRunStatus.phase:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunPhase
 	1,  // 1: ai.stigmer.agentic.evalrun.v1.EvalRunStatus.partial_reason:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunPartialReason
 	4,  // 2: ai.stigmer.agentic.evalrun.v1.EvalRunStatus.plugins:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunPlugin
-	11, // 3: ai.stigmer.agentic.evalrun.v1.EvalRunStatus.aggregates:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunAggregates
-	13, // 4: ai.stigmer.agentic.evalrun.v1.EvalRunStatus.started_at:type_name -> google.protobuf.Timestamp
-	13, // 5: ai.stigmer.agentic.evalrun.v1.EvalRunStatus.finished_at:type_name -> google.protobuf.Timestamp
-	12, // 6: ai.stigmer.agentic.evalrun.v1.EvalRunStatus.vault_attachers:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunStatus.VaultAttachersEntry
-	14, // 7: ai.stigmer.agentic.evalrun.v1.EvalRunStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
-	5,  // 8: ai.stigmer.agentic.evalrun.v1.EvalRunPlugin.cases:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunCase
-	11, // 9: ai.stigmer.agentic.evalrun.v1.EvalRunPlugin.aggregates:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunAggregates
-	7,  // 10: ai.stigmer.agentic.evalrun.v1.EvalRunCase.targets:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunCaseTarget
-	6,  // 11: ai.stigmer.agentic.evalrun.v1.EvalRunCase.mocked_servers:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer
-	15, // 12: ai.stigmer.agentic.evalrun.v1.EvalRunCaseTarget.target:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunTarget
-	8,  // 13: ai.stigmer.agentic.evalrun.v1.EvalRunCaseTarget.with_plugin:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunArm
-	8,  // 14: ai.stigmer.agentic.evalrun.v1.EvalRunCaseTarget.without_plugin:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunArm
-	9,  // 15: ai.stigmer.agentic.evalrun.v1.EvalRunArm.tries:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunTry
-	2,  // 16: ai.stigmer.agentic.evalrun.v1.EvalRunTry.state:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunTryState
-	10, // 17: ai.stigmer.agentic.evalrun.v1.EvalRunTry.aborted:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunAbort
-	18, // [18:18] is the sub-list for method output_type
-	18, // [18:18] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	12, // 3: ai.stigmer.agentic.evalrun.v1.EvalRunStatus.aggregates:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunAggregates
+	14, // 4: ai.stigmer.agentic.evalrun.v1.EvalRunStatus.started_at:type_name -> google.protobuf.Timestamp
+	14, // 5: ai.stigmer.agentic.evalrun.v1.EvalRunStatus.finished_at:type_name -> google.protobuf.Timestamp
+	13, // 6: ai.stigmer.agentic.evalrun.v1.EvalRunStatus.vault_attachers:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunStatus.VaultAttachersEntry
+	5,  // 7: ai.stigmer.agentic.evalrun.v1.EvalRunStatus.evals:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunEval
+	15, // 8: ai.stigmer.agentic.evalrun.v1.EvalRunStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	6,  // 9: ai.stigmer.agentic.evalrun.v1.EvalRunPlugin.cases:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunCase
+	12, // 10: ai.stigmer.agentic.evalrun.v1.EvalRunPlugin.aggregates:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunAggregates
+	6,  // 11: ai.stigmer.agentic.evalrun.v1.EvalRunEval.cases:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunCase
+	12, // 12: ai.stigmer.agentic.evalrun.v1.EvalRunEval.aggregates:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunAggregates
+	8,  // 13: ai.stigmer.agentic.evalrun.v1.EvalRunCase.targets:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunCaseTarget
+	7,  // 14: ai.stigmer.agentic.evalrun.v1.EvalRunCase.mocked_servers:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer
+	16, // 15: ai.stigmer.agentic.evalrun.v1.EvalRunCaseTarget.target:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunTarget
+	9,  // 16: ai.stigmer.agentic.evalrun.v1.EvalRunCaseTarget.with_plugin:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunArm
+	9,  // 17: ai.stigmer.agentic.evalrun.v1.EvalRunCaseTarget.without_plugin:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunArm
+	10, // 18: ai.stigmer.agentic.evalrun.v1.EvalRunArm.tries:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunTry
+	2,  // 19: ai.stigmer.agentic.evalrun.v1.EvalRunTry.state:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunTryState
+	11, // 20: ai.stigmer.agentic.evalrun.v1.EvalRunTry.aborted:type_name -> ai.stigmer.agentic.evalrun.v1.EvalRunAbort
+	21, // [21:21] is the sub-list for method output_type
+	21, // [21:21] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_evalrun_v1_status_proto_init() }
@@ -1281,16 +1401,16 @@ func file_ai_stigmer_agentic_evalrun_v1_status_proto_init() {
 		return
 	}
 	file_ai_stigmer_agentic_evalrun_v1_spec_proto_init()
-	file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[4].OneofWrappers = []any{}
 	file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[5].OneofWrappers = []any{}
-	file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[8].OneofWrappers = []any{}
+	file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[6].OneofWrappers = []any{}
+	file_ai_stigmer_agentic_evalrun_v1_status_proto_msgTypes[9].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDesc), len(file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   10,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -7,11 +7,14 @@
  * that names no case source when they are the default (every attached
  * plugin, or the compared plugin alone) and the picked ones otherwise,
  * with the compared plugin and the comparison's ablation when one is
- * compared; an eval run's label is the agent version it ran, short, the
+ * compared; an Eval picked runs too, named after the plugins as an
+ * `eval` source in the agent's organization, and an Eval alone is enough
+ * to run; an eval run's label is the agent version it ran, short, the
  * plugin it compared, and when it started; its results are one section
- * per plugin with that plugin's rows, the compared one marked; and two
- * eval runs compare plugin by plugin, case by case, marking a plugin whose
- * digest differs and keeping a plugin only one of them had.
+ * per plugin with that plugin's rows, the compared one marked, then one
+ * per Eval; and two eval runs compare plugin by plugin, then Eval by Eval,
+ * case by case, marking a source whose digest differs and keeping one only
+ * one of them had, an Eval never matched with a plugin of its slug.
  */
 import { describe, expect, it } from "vitest";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -57,9 +60,12 @@ describe("the Run evals form on an agent", () => {
   it("refuses what the API refuses, in a sentence", () => {
     const form = evalFormForAgent(ATTACHED);
     expect(evalRunFormProblem({ ...form, runs: 51 })).toMatch(/1 to 50/);
-    expect(evalRunFormProblem({ ...form, caseSources: [] })).toMatch(
-      /at least one plugin/,
+    expect(evalRunFormProblem({ ...form, caseSources: [] })).toBe(
+      "Pick at least one plugin or eval whose cases run.",
     );
+    expect(
+      evalRunFormProblem({ ...form, caseSources: [], evalSources: ["support-evals"] }),
+    ).toBeNull();
     expect(evalRunFormProblem({ ...form, allowTools: ["skill"] })).toMatch(
       /'skill' is not a tool name/,
     );
@@ -120,6 +126,31 @@ describe("the Run evals form on an agent", () => {
       caseGlob: "review-*",
       caseTags: ["smoke", "fast"],
     });
+  });
+});
+
+describe("an Eval's cases on an agent", () => {
+  it("names every plugin picked, then each Eval picked, once an Eval is picked", () => {
+    const input = evalRunInputOf(
+      AGENT,
+      { ...evalFormForAgent(ATTACHED), evalSources: ["support-evals", "refunds"] },
+      ATTACHED,
+    );
+    expect(input.cases).toEqual([
+      { plugin: { org: "org_acme", slug: "thermos" } },
+      { plugin: { org: "org_acme", slug: "linter" } },
+      { eval: { org: "org_acme", slug: "support-evals" } },
+      { eval: { org: "org_acme", slug: "refunds" } },
+    ]);
+  });
+
+  it("runs an Eval alone when no plugin is picked", () => {
+    const input = evalRunInputOf(
+      AGENT,
+      { ...evalFormForAgent([]), evalSources: ["support-evals"] },
+      [],
+    );
+    expect(input.cases).toEqual([{ eval: { org: "org_acme", slug: "support-evals" } }]);
   });
 });
 
@@ -192,6 +223,59 @@ describe("an eval run about an agent: its label and sections", () => {
       "not graded: platform busy",
     ]);
     expect(sections[1]!.rows).toEqual([]);
+  });
+});
+
+describe("an eval run with Evals about an agent", () => {
+  it("reads a section per Eval after the plugins, marked as an Eval and never compared", () => {
+    const sections = evalRunSectionsOf(
+      agentEvalRunWith([{ slug: "thermos", cases: [{ name: "a", score: 1 }] }], {
+        evals: [
+          { slug: "support-evals", digest: digestOf("5e"), cases: [{ name: "refund-window", score: 0 }] },
+          { slug: "retired-evals", notRun: "the Eval was deleted" },
+        ],
+      }),
+    );
+    expect(
+      sections.map((section) => [section.kind, section.pluginId, section.slug, section.notRun]),
+    ).toEqual([
+      ["plugin", "plg_1", "thermos", ""],
+      ["eval", "evs_1", "support-evals", ""],
+      ["eval", "evs_2", "retired-evals", "the Eval was deleted"],
+    ]);
+    expect(sections[1]).toMatchObject({
+      digest: digestOf("5e"),
+      attached: false,
+      compared: false,
+      casesPassed: 0,
+      casesTotal: 1,
+      labels: ["native/claude-sonnet-4-6"],
+    });
+    expect(sections[1]!.rows.map((row) => row.name)).toEqual(["refund-window"]);
+  });
+
+  it("compares Evals after the plugins, never matching an Eval with a plugin of its slug", () => {
+    const before = agentEvalRunWith([{ slug: "support", cases: [{ name: "a", score: 1 }] }], {
+      id: "evr_1",
+      evals: [
+        { slug: "support", digest: digestOf("aa"), cases: [{ name: "e", score: 1 }] },
+        { slug: "gone", cases: [{ name: "g", score: 1 }] },
+      ],
+    });
+    const after = agentEvalRunWith([{ slug: "support", cases: [{ name: "a", score: 1 }] }], {
+      id: "evr_2",
+      evals: [{ slug: "support", digest: digestOf("bb"), cases: [{ name: "e", score: 0 }] }],
+    });
+    const sections = compareEvalRuns(before, after);
+    expect(
+      sections.map((section) => [section.kind, section.slug, section.digestChanged]),
+    ).toEqual([
+      ["plugin", "support", false],
+      ["eval", "support", true],
+      ["eval", "gone", false],
+    ]);
+    expect(sections[1]!.rows.map((row) => [row.name, row.changed])).toEqual([["e", true]]);
+    expect(sections[2]).toMatchObject({ afterDigest: null, beforeNotRun: "", afterNotRun: "" });
   });
 });
 

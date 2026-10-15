@@ -1,0 +1,34 @@
+{
+  "name": "EvalMockAgentHome",
+  "description": "EvalMockAgentHome is one of the evaluated agent's own servers a stand-in\n replaces.",
+  "protoType": "ai.stigmer.agentic.run.v1.EvalMockAgentHome",
+  "protoFile": "apis/ai/stigmer/agentic/run/v1/eval_case.proto",
+  "fields": [
+    {
+      "name": "AgentId",
+      "jsonName": "agentId",
+      "protoField": "agent_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The agent's ID.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "Server",
+      "jsonName": "server",
+      "protoField": "server",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The server's name as the agent writes it.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    }
+  ]
+}

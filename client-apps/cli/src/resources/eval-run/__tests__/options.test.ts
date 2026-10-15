@@ -154,6 +154,7 @@ describe("what an eval run is about", () => {
       agent: { ref: "support-desk", version: "v3" },
       compared: "",
       casesFrom: [],
+      evals: [],
     });
     expect(options.targets).toEqual([]);
   });
@@ -170,13 +171,30 @@ describe("what an eval run is about", () => {
     ).toMatchObject({ casesFrom: ["refund-policy", "acme/tracker"] });
   });
 
+  it("collects --eval at a version or its current one, once each", () => {
+    expect(
+      readEvalRunOptions({ agent: "support-desk", eval: ["support-evals@stable", " evs_01x ", "support-evals@stable", "support-evals"] })
+        .subject,
+    ).toMatchObject({
+      evals: [
+        { ref: "support-evals", version: "stable" },
+        { ref: "evs_01x", version: "" },
+        { ref: "support-evals", version: "" },
+      ],
+    });
+  });
+
   it.each([
     ["nothing to evaluate", {}, "name what to evaluate: --agent <agent>, --plugin <plugin>, or both"],
+    ["--eval on a plugin", { plugin: "thermos", eval: ["support-evals"] }, "--eval runs an Eval's cases on an agent"],
+    ["an empty --eval", { agent: "a", eval: ["@stable"] }, "--eval names an Eval of the agent's organization"],
+    ["an --eval version that is no version", { agent: "a", eval: ["support-evals@"] }, "is not an Eval version"],
+    ["more than 64 case sources together", { agent: "a", casesFrom: ["p"], eval: Array.from({ length: 64 }, (_, i) => `e${i}`) }, "at most 64 times together"],
     ["--cases-from on a plugin", { plugin: "thermos", casesFrom: ["thermos"] }, "--cases-from chooses whose cases run on an agent"],
     ["a compared plugin at a digest", { agent: "a", plugin: `thermos@${digest}` }, "drop the @<digest>"],
     ["--ablation with nothing compared", { agent: "a", ablation: "none" }, "--ablation compares each case with and without"],
     ["an empty --cases-from", { agent: "a", casesFrom: [" "] }, "--cases-from names a plugin the agent attaches"],
-    ["more than 64 case sources", { agent: "a", casesFrom: Array.from({ length: 65 }, (_, i) => `p${i}`) }, "at most 64 times"],
+    ["more than 64 case sources", { agent: "a", casesFrom: Array.from({ length: 65 }, (_, i) => `p${i}`) }, "at most 64 times together"],
   ])("refuses %s with exit 1", (_name, flags: EvalRunFlags, message) => {
     const error = refusal(() => readEvalRunOptions(flags));
     expect(error.exitCode).toBe(1);

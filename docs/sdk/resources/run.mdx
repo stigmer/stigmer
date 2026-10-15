@@ -1195,9 +1195,9 @@ EvalCaseContext is what one eval case gives its try beyond the prompt: a startin
 
 <TypeTable
   type={{
-    pluginId: { type: "string", description: "ID of the plugin whose case this is." },
+    pluginId: { type: "string", description: "ID of the plugin whose case this is; empty for an Eval's case." },
     pluginDigest: { type: "string", description: "The plugin version (archive digest) the eval run stamped." },
-    suiteDir: { type: "string", description: "The suite's directory, as in \"evals\"." },
+    suiteDir: { type: "string", description: "The suite's directory, as in \"evals\"; empty for an Eval's case, whose suite is its archive's root." },
     caseDir: { type: "string", description: "The case's directory, as in \"evals/fix-the-test\"." },
     scaffoldScript: { type: "string", description: "The Bash script that builds the starting folder; empty for none." },
     addDirs: { type: "string[]", description: "Directories the agent may read during the run." },
@@ -1208,19 +1208,23 @@ EvalCaseContext is what one eval case gives its try beyond the prompt: a startin
     agentMockCallBudget: { type: "number", description: "Calls the agent stand-ins may answer in this try, together." },
     readFiles: { type: "string[]", description: "The files the case's graders read, relative to the workspace." },
     pluginName: { type: "string", description: "The plugin's name, as a turn names its MCP servers (`plugin_<plugin>_<server>`) and a hook reads a stand-in's origin." },
+    evalId: { type: "string", description: "ID of the Eval whose case this is; empty for a plugin's case." },
+    evalDigest: { type: "string", description: "The Eval version (archive digest) the eval run stamped." },
   }}
 />
 
 ### EvalMockServerInput
 
-EvalMockServer is one plugin MCP server answered by a stand-in.
+EvalMockServer is one MCP server answered by a stand-in.
 
 <TypeTable
   type={{
-    server: { type: "string", description: "The server's key in the plugin's MCP configuration." },
-    segment: { type: "string", description: "The name the stand-in is registered under in the turn, the plugin server's own." },
+    server: { type: "string", description: "The directory under mocks/ the stand-in answers from: a plugin's server key for a plugin's case, the server's name in the turn for an Eval's." },
+    segment: { type: "string", description: "The name the stand-in is registered under in the turn, the real server's own." },
     tools: { type: "EvalMockToolInput[]", description: "The mocked tools; a tool not listed is not offered.", typeDescriptionLink: "#evalmocktoolinput" },
     toolsFile: { type: "string", description: "The server's saved tools/list response, for real descriptions and input schemas; empty for none." },
+    plugin: { type: "EvalMockPluginHomeInput", description: "A server of a plugin the turn loads.", typeDescriptionLink: "#evalmockpluginhomeinput" },
+    agent: { type: "EvalMockAgentHomeInput", description: "One of the evaluated agent's own servers.", typeDescriptionLink: "#evalmockagenthomeinput" },
   }}
 />
 
@@ -1236,6 +1240,29 @@ EvalMockTool is one mocked tool and how it answers.
     error: { type: "boolean", description: "Whether a fixed answer is returned as a tool error." },
     expectJson: { type: "string", description: "The input guard, as the mock's expect block in JSON; empty for none." },
     abortWhen: { type: "string", description: "The only conditions under which an agent stand-in may end the run." },
+  }}
+/>
+
+### EvalMockPluginHomeInput
+
+EvalMockPluginHome is a plugin server a stand-in replaces.
+
+<TypeTable
+  type={{
+    pluginId: { type: "string", description: "The plugin's ID and name." },
+    pluginName: { type: "string", description: "" },
+    server: { type: "string", description: "The server's key in the plugin's MCP configuration." },
+  }}
+/>
+
+### EvalMockAgentHomeInput
+
+EvalMockAgentHome is one of the evaluated agent's own servers a stand-in replaces.
+
+<TypeTable
+  type={{
+    agentId: { type: "string", description: "The agent's ID." },
+    server: { type: "string", description: "The server's name as the agent writes it." },
   }}
 />
 

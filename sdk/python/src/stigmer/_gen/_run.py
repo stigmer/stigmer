@@ -426,6 +426,8 @@ class EvalCaseContextInput:
     agent_mock_call_budget: int = 0
     read_files: list[str] = field(default_factory=list)
     plugin_name: str = ""
+    eval_id: str = ""
+    eval_digest: str = ""
 
     def _to_proto(self) -> spec_pb2.EvalCaseContext:
         msg = spec_pb2.EvalCaseContext(
@@ -438,6 +440,8 @@ class EvalCaseContextInput:
             agent_mock_model=self.agent_mock_model,
             agent_mock_call_budget=self.agent_mock_call_budget,
             plugin_name=self.plugin_name,
+            eval_id=self.eval_id,
+            eval_digest=self.eval_digest,
         )
         if self.add_dirs:
             msg.add_dirs.extend(self.add_dirs)
@@ -458,6 +462,8 @@ class EvalMockServerInput:
     segment: str = ""
     tools: list[EvalMockToolInput] = field(default_factory=list)
     tools_file: str = ""
+    plugin: EvalMockPluginHomeInput | None = None
+    agent: EvalMockAgentHomeInput | None = None
 
     def _to_proto(self) -> spec_pb2.EvalMockServer:
         msg = spec_pb2.EvalMockServer(
@@ -467,6 +473,10 @@ class EvalMockServerInput:
         )
         for item in self.tools:
             msg.tools.append(item._to_proto())
+        if self.agent is not None:
+            msg.agent.CopyFrom(self.agent._to_proto())
+        if self.plugin is not None:
+            msg.plugin.CopyFrom(self.plugin._to_proto())
         return msg
 
 
@@ -489,6 +499,38 @@ class EvalMockToolInput:
             error=self.error,
             expect_json=self.expect_json,
             abort_when=self.abort_when,
+        )
+        return msg
+
+
+@dataclass
+class EvalMockPluginHomeInput:
+    """SDK input type for EvalMockPluginHome."""
+
+    plugin_id: str = ""
+    plugin_name: str = ""
+    server: str = ""
+
+    def _to_proto(self) -> spec_pb2.EvalMockPluginHome:
+        msg = spec_pb2.EvalMockPluginHome(
+            plugin_id=self.plugin_id,
+            plugin_name=self.plugin_name,
+            server=self.server,
+        )
+        return msg
+
+
+@dataclass
+class EvalMockAgentHomeInput:
+    """SDK input type for EvalMockAgentHome."""
+
+    agent_id: str = ""
+    server: str = ""
+
+    def _to_proto(self) -> spec_pb2.EvalMockAgentHome:
+        msg = spec_pb2.EvalMockAgentHome(
+            agent_id=self.agent_id,
+            server=self.server,
         )
         return msg
 

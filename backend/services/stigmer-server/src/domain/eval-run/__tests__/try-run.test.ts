@@ -41,6 +41,7 @@ import {
   REPLAYS_NOT_READ_NOTE,
   caseNotesOf,
   mockedServersOf,
+  pluginSuiteServersOf,
   tryCaseContextOf,
   toolRoundsOf,
   tryRunRequest,
@@ -77,7 +78,7 @@ const evalCase = (overrides: Partial<EvalCase> = {}): EvalCase => ({
 const SEGMENT = "plugin_thermos_github";
 const GITHUB = { slug: SEGMENT, key: "github" };
 const JIRA = { slug: "plugin_thermos_jira", key: "jira" };
-const SOURCE = { pluginId: "plg_1", pluginName: "thermos", digest: "d".repeat(64), suiteDir: "evals" };
+const SOURCE = { kind: "plugin" as const, pluginId: "plg_1", pluginName: "thermos", digest: "d".repeat(64), suiteDir: "evals" };
 
 const facts = { org: "acme", id: "plg_1", slug: "thermos", digest: "sha256:0123abcd" };
 
@@ -433,14 +434,14 @@ describe("a case's mocks and context", () => {
   });
 
   it("lists the plugin's servers as the format's mocked: line names them", () => {
-    expect(mockedServersOf(mocked, spec(), "acme-kit", ["github", "tracker"]).map((m) => [m.name, m.tools, m.notStartedReason])).toEqual([
+    expect(mockedServersOf(mocked, spec(), pluginSuiteServersOf("acme-kit", ["github", "tracker"])).map((m) => [m.name, m.tools, m.notStartedReason])).toEqual([
       ["plugin_acme-kit_github", [], NOT_STARTED_NO_MOCK],
       ["plugin_acme-kit_tracker", ["close_issue", "create_issue"], ""],
     ]);
-    expect(mockedServersOf(mocked, spec({ allowRealServers: true }), "acme-kit", ["github", "tracker"]).map((m) => m.name)).toEqual([
+    expect(mockedServersOf(mocked, spec({ allowRealServers: true }), pluginSuiteServersOf("acme-kit", ["github", "tracker"])).map((m) => m.name)).toEqual([
       "plugin_acme-kit_tracker",
     ]);
-    expect(mockedServersOf(mocked, spec({ realMcpServers: true }), "acme-kit", ["github"])).toEqual([]);
+    expect(mockedServersOf(mocked, spec({ realMcpServers: true }), pluginSuiteServersOf("acme-kit", ["github"]))).toEqual([]);
   });
 
   it("notes a resumed conversation and adopted replays", () => {

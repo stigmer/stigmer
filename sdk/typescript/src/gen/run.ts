@@ -9,7 +9,7 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { EvalMockKind, EvalMockToolSchema, EvalMockServerSchema, EvalCaseContextSchema, type EvalMockTool, type EvalMockServer, type EvalCaseContext } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
+import { EvalMockKind, EvalMockToolSchema, EvalMockPluginHomeSchema, EvalMockAgentHomeSchema, EvalMockServerSchema, EvalCaseContextSchema, type EvalMockTool, type EvalMockPluginHome, type EvalMockAgentHome, type EvalMockServer, type EvalCaseContext } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
 import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import { RunIdSchema, UpdateRunInputSchema, RunUpdateStatusInputSchema, UpdateStatusResponseSchema, TerminateRunInputSchema, RecoverRunInputSchema, PauseRunInputSchema, ResumeRunInputSchema, UploadAttachmentRequestSchema, UploadAttachmentResponseSchema, ListRunsRequestSchema, RunListSchema, ListRunsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetRunUsageReportInputSchema, GetRunUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetRunSummaryRequestSchema, RunSummarySchema, type RunUpdateStatusInput, type UpdateStatusResponse, type TerminateRunInput, type RecoverRunInput, type PauseRunInput, type ResumeRunInput, type UploadAttachmentRequest, type UploadAttachmentResponse, type ListRunsRequest, type RunList, type ListRunsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetRunUsageReportInput, type GetRunUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetRunSummaryRequest, type RunSummary } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
@@ -292,6 +292,8 @@ export interface EvalCaseContextInput {
   agentMockCallBudget?: number;
   readFiles?: string[];
   pluginName?: string;
+  evalId?: string;
+  evalDigest?: string;
 }
 
 /** SDK input type for EvalMockServer. */
@@ -300,6 +302,8 @@ export interface EvalMockServerInput {
   segment?: string;
   tools?: EvalMockToolInput[];
   toolsFile?: string;
+  plugin?: EvalMockPluginHomeInput;
+  agent?: EvalMockAgentHomeInput;
 }
 
 /** SDK input type for EvalMockTool. */
@@ -310,6 +314,19 @@ export interface EvalMockToolInput {
   error?: boolean;
   expectJson?: string;
   abortWhen?: string;
+}
+
+/** SDK input type for EvalMockPluginHome. */
+export interface EvalMockPluginHomeInput {
+  pluginId?: string;
+  pluginName?: string;
+  server?: string;
+}
+
+/** SDK input type for EvalMockAgentHome. */
+export interface EvalMockAgentHomeInput {
+  agentId?: string;
+  server?: string;
 }
 
 function buildGitRepoSourceProto(input: GitRepoSourceInput) {
@@ -403,12 +420,32 @@ function buildEvalMockToolProto(input: EvalMockToolInput) {
   }));
 }
 
+function buildEvalMockPluginHomeProto(input: EvalMockPluginHomeInput) {
+  return Object.assign(create(EvalMockPluginHomeSchema), stripUndefined({
+    pluginId: input.pluginId,
+    pluginName: input.pluginName,
+    server: input.server,
+  }));
+}
+
+function buildEvalMockAgentHomeProto(input: EvalMockAgentHomeInput) {
+  return Object.assign(create(EvalMockAgentHomeSchema), stripUndefined({
+    agentId: input.agentId,
+    server: input.server,
+  }));
+}
+
 function buildEvalMockServerProto(input: EvalMockServerInput) {
   const msg = create(EvalMockServerSchema);
   if (input.server !== undefined) msg.server = input.server;
   if (input.segment !== undefined) msg.segment = input.segment;
   if (input.tools) msg.tools = input.tools.map(buildEvalMockToolProto);
   if (input.toolsFile !== undefined) msg.toolsFile = input.toolsFile;
+  if (input.plugin) {
+    msg.home = { case: "plugin", value: buildEvalMockPluginHomeProto(input.plugin) };
+  } else if (input.agent) {
+    msg.home = { case: "agent", value: buildEvalMockAgentHomeProto(input.agent) };
+  }
   return msg;
 }
 
@@ -427,6 +464,8 @@ function buildEvalCaseContextProto(input: EvalCaseContextInput) {
   if (input.agentMockCallBudget !== undefined) msg.agentMockCallBudget = input.agentMockCallBudget;
   if (input.readFiles) msg.readFiles = input.readFiles;
   if (input.pluginName !== undefined) msg.pluginName = input.pluginName;
+  if (input.evalId !== undefined) msg.evalId = input.evalId;
+  if (input.evalDigest !== undefined) msg.evalDigest = input.evalDigest;
   return msg;
 }
 
@@ -561,12 +600,29 @@ function toEvalMockToolInput(msg: EvalMockTool): EvalMockToolInput {
   };
 }
 
+function toEvalMockPluginHomeInput(msg: EvalMockPluginHome): EvalMockPluginHomeInput {
+  return {
+    pluginId: msg.pluginId || undefined,
+    pluginName: msg.pluginName || undefined,
+    server: msg.server || undefined,
+  };
+}
+
+function toEvalMockAgentHomeInput(msg: EvalMockAgentHome): EvalMockAgentHomeInput {
+  return {
+    agentId: msg.agentId || undefined,
+    server: msg.server || undefined,
+  };
+}
+
 function toEvalMockServerInput(msg: EvalMockServer): EvalMockServerInput {
   return {
     server: msg.server || undefined,
     segment: msg.segment || undefined,
     tools: msg.tools?.length ? msg.tools.map(toEvalMockToolInput) : undefined,
     toolsFile: msg.toolsFile || undefined,
+    plugin: msg.home?.case === "plugin" ? toEvalMockPluginHomeInput(msg.home.value) : undefined,
+    agent: msg.home?.case === "agent" ? toEvalMockAgentHomeInput(msg.home.value) : undefined,
   };
 }
 
@@ -585,6 +641,8 @@ function toEvalCaseContextInput(msg: EvalCaseContext): EvalCaseContextInput {
     agentMockCallBudget: msg.agentMockCallBudget || undefined,
     readFiles: msg.readFiles?.length ? [...msg.readFiles] : undefined,
     pluginName: msg.pluginName || undefined,
+    evalId: msg.evalId || undefined,
+    evalDigest: msg.evalDigest || undefined,
   };
 }
 

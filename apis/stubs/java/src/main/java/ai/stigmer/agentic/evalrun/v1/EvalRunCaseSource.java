@@ -59,6 +59,7 @@ private static final long serialVersionUID = 0L;
       implements com.google.protobuf.Internal.EnumLite,
           com.google.protobuf.AbstractMessage.InternalOneOfEnum {
     PLUGIN(1),
+    EVAL(2),
     SOURCE_NOT_SET(0);
     private final int value;
     private SourceCase(int value) {
@@ -77,6 +78,7 @@ private static final long serialVersionUID = 0L;
     public static SourceCase forNumber(int value) {
       switch (value) {
         case 1: return PLUGIN;
+        case 2: return EVAL;
         case 0: return SOURCE_NOT_SET;
         default: return null;
       }
@@ -138,6 +140,55 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance();
   }
 
+  public static final int EVAL_FIELD_NUMBER = 2;
+  /**
+   * <pre>
+   * An Eval of the agent's organization whose cases run on the agent: its
+   * current version, or the tag or digest the reference's version names.
+   * The caller must be able to view it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference eval = 2 [json_name = "eval", (.ai.stigmer.commons.apiresource.reference_kind) = eval];</code>
+   * @return Whether the eval field is set.
+   */
+  @java.lang.Override
+  public boolean hasEval() {
+    return sourceCase_ == 2;
+  }
+  /**
+   * <pre>
+   * An Eval of the agent's organization whose cases run on the agent: its
+   * current version, or the tag or digest the reference's version names.
+   * The caller must be able to view it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference eval = 2 [json_name = "eval", (.ai.stigmer.commons.apiresource.reference_kind) = eval];</code>
+   * @return The eval.
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReference getEval() {
+    if (sourceCase_ == 2) {
+       return (ai.stigmer.commons.apiresource.ApiResourceReference) source_;
+    }
+    return ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * An Eval of the agent's organization whose cases run on the agent: its
+   * current version, or the tag or digest the reference's version names.
+   * The caller must be able to view it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference eval = 2 [json_name = "eval", (.ai.stigmer.commons.apiresource.reference_kind) = eval];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEvalOrBuilder() {
+    if (sourceCase_ == 2) {
+       return (ai.stigmer.commons.apiresource.ApiResourceReference) source_;
+    }
+    return ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -155,6 +206,9 @@ private static final long serialVersionUID = 0L;
     if (sourceCase_ == 1) {
       output.writeMessage(1, (ai.stigmer.commons.apiresource.ApiResourceReference) source_);
     }
+    if (sourceCase_ == 2) {
+      output.writeMessage(2, (ai.stigmer.commons.apiresource.ApiResourceReference) source_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -167,6 +221,10 @@ private static final long serialVersionUID = 0L;
     if (sourceCase_ == 1) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(1, (ai.stigmer.commons.apiresource.ApiResourceReference) source_);
+    }
+    if (sourceCase_ == 2) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(2, (ai.stigmer.commons.apiresource.ApiResourceReference) source_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -189,6 +247,10 @@ private static final long serialVersionUID = 0L;
         if (!getPlugin()
             .equals(other.getPlugin())) return false;
         break;
+      case 2:
+        if (!getEval()
+            .equals(other.getEval())) return false;
+        break;
       case 0:
       default:
     }
@@ -207,6 +269,10 @@ private static final long serialVersionUID = 0L;
       case 1:
         hash = (37 * hash) + PLUGIN_FIELD_NUMBER;
         hash = (53 * hash) + getPlugin().hashCode();
+        break;
+      case 2:
+        hash = (37 * hash) + EVAL_FIELD_NUMBER;
+        hash = (53 * hash) + getEval().hashCode();
         break;
       case 0:
       default:
@@ -349,6 +415,9 @@ private static final long serialVersionUID = 0L;
       if (pluginBuilder_ != null) {
         pluginBuilder_.clear();
       }
+      if (evalBuilder_ != null) {
+        evalBuilder_.clear();
+      }
       sourceCase_ = 0;
       source_ = null;
       return this;
@@ -394,6 +463,10 @@ private static final long serialVersionUID = 0L;
           pluginBuilder_ != null) {
         result.source_ = pluginBuilder_.build();
       }
+      if (sourceCase_ == 2 &&
+          evalBuilder_ != null) {
+        result.source_ = evalBuilder_.build();
+      }
     }
 
     @java.lang.Override
@@ -411,6 +484,10 @@ private static final long serialVersionUID = 0L;
       switch (other.getSourceCase()) {
         case PLUGIN: {
           mergePlugin(other.getPlugin());
+          break;
+        }
+        case EVAL: {
+          mergeEval(other.getEval());
           break;
         }
         case SOURCE_NOT_SET: {
@@ -450,6 +527,13 @@ private static final long serialVersionUID = 0L;
               sourceCase_ = 1;
               break;
             } // case 10
+            case 18: {
+              input.readMessage(
+                  internalGetEvalFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              sourceCase_ = 2;
+              break;
+            } // case 18
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -667,6 +751,202 @@ private static final long serialVersionUID = 0L;
       sourceCase_ = 1;
       onChanged();
       return pluginBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> evalBuilder_;
+    /**
+     * <pre>
+     * An Eval of the agent's organization whose cases run on the agent: its
+     * current version, or the tag or digest the reference's version names.
+     * The caller must be able to view it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference eval = 2 [json_name = "eval", (.ai.stigmer.commons.apiresource.reference_kind) = eval];</code>
+     * @return Whether the eval field is set.
+     */
+    @java.lang.Override
+    public boolean hasEval() {
+      return sourceCase_ == 2;
+    }
+    /**
+     * <pre>
+     * An Eval of the agent's organization whose cases run on the agent: its
+     * current version, or the tag or digest the reference's version names.
+     * The caller must be able to view it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference eval = 2 [json_name = "eval", (.ai.stigmer.commons.apiresource.reference_kind) = eval];</code>
+     * @return The eval.
+     */
+    @java.lang.Override
+    public ai.stigmer.commons.apiresource.ApiResourceReference getEval() {
+      if (evalBuilder_ == null) {
+        if (sourceCase_ == 2) {
+          return (ai.stigmer.commons.apiresource.ApiResourceReference) source_;
+        }
+        return ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance();
+      } else {
+        if (sourceCase_ == 2) {
+          return evalBuilder_.getMessage();
+        }
+        return ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * An Eval of the agent's organization whose cases run on the agent: its
+     * current version, or the tag or digest the reference's version names.
+     * The caller must be able to view it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference eval = 2 [json_name = "eval", (.ai.stigmer.commons.apiresource.reference_kind) = eval];</code>
+     */
+    public Builder setEval(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (evalBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        source_ = value;
+        onChanged();
+      } else {
+        evalBuilder_.setMessage(value);
+      }
+      sourceCase_ = 2;
+      return this;
+    }
+    /**
+     * <pre>
+     * An Eval of the agent's organization whose cases run on the agent: its
+     * current version, or the tag or digest the reference's version names.
+     * The caller must be able to view it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference eval = 2 [json_name = "eval", (.ai.stigmer.commons.apiresource.reference_kind) = eval];</code>
+     */
+    public Builder setEval(
+        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (evalBuilder_ == null) {
+        source_ = builderForValue.build();
+        onChanged();
+      } else {
+        evalBuilder_.setMessage(builderForValue.build());
+      }
+      sourceCase_ = 2;
+      return this;
+    }
+    /**
+     * <pre>
+     * An Eval of the agent's organization whose cases run on the agent: its
+     * current version, or the tag or digest the reference's version names.
+     * The caller must be able to view it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference eval = 2 [json_name = "eval", (.ai.stigmer.commons.apiresource.reference_kind) = eval];</code>
+     */
+    public Builder mergeEval(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (evalBuilder_ == null) {
+        if (sourceCase_ == 2 &&
+            source_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
+          source_ = ai.stigmer.commons.apiresource.ApiResourceReference.newBuilder((ai.stigmer.commons.apiresource.ApiResourceReference) source_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          source_ = value;
+        }
+        onChanged();
+      } else {
+        if (sourceCase_ == 2) {
+          evalBuilder_.mergeFrom(value);
+        } else {
+          evalBuilder_.setMessage(value);
+        }
+      }
+      sourceCase_ = 2;
+      return this;
+    }
+    /**
+     * <pre>
+     * An Eval of the agent's organization whose cases run on the agent: its
+     * current version, or the tag or digest the reference's version names.
+     * The caller must be able to view it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference eval = 2 [json_name = "eval", (.ai.stigmer.commons.apiresource.reference_kind) = eval];</code>
+     */
+    public Builder clearEval() {
+      if (evalBuilder_ == null) {
+        if (sourceCase_ == 2) {
+          sourceCase_ = 0;
+          source_ = null;
+          onChanged();
+        }
+      } else {
+        if (sourceCase_ == 2) {
+          sourceCase_ = 0;
+          source_ = null;
+        }
+        evalBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * An Eval of the agent's organization whose cases run on the agent: its
+     * current version, or the tag or digest the reference's version names.
+     * The caller must be able to view it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference eval = 2 [json_name = "eval", (.ai.stigmer.commons.apiresource.reference_kind) = eval];</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getEvalBuilder() {
+      return internalGetEvalFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * An Eval of the agent's organization whose cases run on the agent: its
+     * current version, or the tag or digest the reference's version names.
+     * The caller must be able to view it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference eval = 2 [json_name = "eval", (.ai.stigmer.commons.apiresource.reference_kind) = eval];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEvalOrBuilder() {
+      if ((sourceCase_ == 2) && (evalBuilder_ != null)) {
+        return evalBuilder_.getMessageOrBuilder();
+      } else {
+        if (sourceCase_ == 2) {
+          return (ai.stigmer.commons.apiresource.ApiResourceReference) source_;
+        }
+        return ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * An Eval of the agent's organization whose cases run on the agent: its
+     * current version, or the tag or digest the reference's version names.
+     * The caller must be able to view it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference eval = 2 [json_name = "eval", (.ai.stigmer.commons.apiresource.reference_kind) = eval];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+        internalGetEvalFieldBuilder() {
+      if (evalBuilder_ == null) {
+        if (!(sourceCase_ == 2)) {
+          source_ = ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance();
+        }
+        evalBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
+                (ai.stigmer.commons.apiresource.ApiResourceReference) source_,
+                getParentForChildren(),
+                isClean());
+        source_ = null;
+      }
+      sourceCase_ = 2;
+      onChanged();
+      return evalBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource)

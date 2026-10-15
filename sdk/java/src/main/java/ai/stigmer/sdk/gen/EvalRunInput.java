@@ -222,13 +222,19 @@ public final class EvalRunInput {
     /** SDK input type for EvalRunCaseSource. */
     public static final class EvalRunCaseSourceInput {
         private final ResourceRef plugin;
+        private final ResourceRef eval;
 
         private EvalRunCaseSourceInput(Builder builder) {
             this.plugin = builder.plugin;
+            this.eval = builder.eval;
         }
 
         EvalRunCaseSource toProto() {
             EvalRunCaseSource.Builder builder = EvalRunCaseSource.newBuilder();
+            if (this.eval != null && this.eval.hasIdentifier()) {
+                builder.setEval(this.eval.toProto().toBuilder()
+                    .setKind(ApiResourceKind.eval).build());
+            }
             if (this.plugin != null && this.plugin.hasIdentifier()) {
                 builder.setPlugin(this.plugin.toProto().toBuilder()
                     .setKind(ApiResourceKind.plugin).build());
@@ -240,10 +246,12 @@ public final class EvalRunInput {
 
         public static final class Builder {
             private ResourceRef plugin;
+            private ResourceRef eval;
 
             private Builder() {}
 
             public Builder plugin(ResourceRef plugin) { this.plugin = plugin; return this; }
+            public Builder eval(ResourceRef eval) { this.eval = eval; return this; }
 
             public EvalRunCaseSourceInput build() { return new EvalRunCaseSourceInput(this); }
         }

@@ -11,7 +11,8 @@
  * - {@link downloadArchive}: mint a download URL first and fetch over HTTP,
  *   so the archive's full size is deliverable; fall back to the unary RPC,
  *   capped by the gRPC message limit, only when the server predates the
- *   lane (`Unimplemented`).
+ *   lane (`Unimplemented`), or runs without one where the transport says
+ *   its mint answers so (an Eval's, `FailedPrecondition`).
  * - {@link resetDirectory} then {@link writeArchiveEntries}: a mount is
  *   rebuilt from scratch, so a file the new content no longer carries never
  *   lingers, and every entry must resolve inside the mount.
@@ -36,6 +37,13 @@ export interface ArchiveTransport {
   readonly mintDownloadUrl: (artifactStorageKey: string) => Promise<{ readonly url: string; readonly sizeBytes: bigint }>;
   /** The unary fallback, capped by the server's gRPC message limit. */
   readonly fetchUnary: (artifactStorageKey: string) => Promise<{ readonly artifact: Uint8Array }>;
+  /**
+   * The answers to the mint that mean "no transfer lane here, read
+   * inline"; absent, `Unimplemented` alone (a server that predates the
+   * lane). The Eval lane also answers `FailedPrecondition` when the server
+   * runs without one.
+   */
+  readonly inlineOn?: readonly Code[];
 }
 
 /**
@@ -50,7 +58,7 @@ export async function downloadArchive(
   try {
     minted = await transport.mintDownloadUrl(artifactStorageKey);
   } catch (err) {
-    if (err instanceof ConnectError && err.code === Code.Unimplemented) {
+    if (err instanceof ConnectError && (transport.inlineOn ?? [Code.Unimplemented]).includes(err.code)) {
       const resp = await transport.fetchUnary(artifactStorageKey);
       return resp.artifact && resp.artifact.length > 0 ? resp.artifact : undefined;
     }

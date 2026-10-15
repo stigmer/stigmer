@@ -153,7 +153,7 @@ public interface EvalRunStatusOrBuilder extends
 
   /**
    * <pre>
-   * The totals over every plugin's cases.
+   * The totals over every case that ran, a plugin's or an Eval's.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunAggregates aggregates = 6 [json_name = "aggregates"];</code>
@@ -162,7 +162,7 @@ public interface EvalRunStatusOrBuilder extends
   boolean hasAggregates();
   /**
    * <pre>
-   * The totals over every plugin's cases.
+   * The totals over every case that ran, a plugin's or an Eval's.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunAggregates aggregates = 6 [json_name = "aggregates"];</code>
@@ -171,7 +171,7 @@ public interface EvalRunStatusOrBuilder extends
   ai.stigmer.agentic.evalrun.v1.EvalRunAggregates getAggregates();
   /**
    * <pre>
-   * The totals over every plugin's cases.
+   * The totals over every case that ran, a plugin's or an Eval's.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunAggregates aggregates = 6 [json_name = "aggregates"];</code>
@@ -310,6 +310,60 @@ java.lang.String defaultValue);
    */
   java.lang.String getVaultAttachersOrThrow(
       java.lang.String key);
+
+  /**
+   * <pre>
+   * Every Eval whose cases run, in the order the spec names them: the
+   * version every try runs and its cases' results. A try loads no Eval;
+   * it runs the Eval's cases on the agent.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.evalrun.v1.EvalRunEval> 
+      getEvalsList();
+  /**
+   * <pre>
+   * Every Eval whose cases run, in the order the spec names them: the
+   * version every try runs and its cases' results. A try loads no Eval;
+   * it runs the Eval's cases on the agent.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+   */
+  ai.stigmer.agentic.evalrun.v1.EvalRunEval getEvals(int index);
+  /**
+   * <pre>
+   * Every Eval whose cases run, in the order the spec names them: the
+   * version every try runs and its cases' results. A try loads no Eval;
+   * it runs the Eval's cases on the agent.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+   */
+  int getEvalsCount();
+  /**
+   * <pre>
+   * Every Eval whose cases run, in the order the spec names them: the
+   * version every try runs and its cases' results. A try loads no Eval;
+   * it runs the Eval's cases on the agent.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.evalrun.v1.EvalRunEvalOrBuilder> 
+      getEvalsOrBuilderList();
+  /**
+   * <pre>
+   * Every Eval whose cases run, in the order the spec names them: the
+   * version every try runs and its cases' results. A try loads no Eval;
+   * it runs the Eval's cases on the agent.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunEval evals = 13 [json_name = "evals"];</code>
+   */
+  ai.stigmer.agentic.evalrun.v1.EvalRunEvalOrBuilder getEvalsOrBuilder(
+      int index);
 
   /**
    * <pre>

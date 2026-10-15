@@ -20,8 +20,10 @@
 // each case ran with and without), and the target, so two versions'
 // outputs read side by side. A plugin none of whose cases ran (not
 // selected, or no cases at the version a try loads) is a block of its own
-// heading and its reason. On an eval run about an agent a progress line
-// names its case as `<plugin>/<case>`, since two plugins may each have a
+// heading and its reason. An Eval whose cases ran on the agent follows the
+// plugins, one block of its own per target, headed `eval <slug>@<digest>`.
+// On an eval run about an agent a progress line names its case as
+// `<plugin>/<case>` or `<eval>/<case>`, since two sources may each have a
 // case of one name; about a plugin, by its name alone, as the format does.
 //
 // The exit code is the format's: 0 when every case that ran reached the
@@ -51,7 +53,6 @@ import {
   type EvalRunArm,
   type EvalRunCase,
   type EvalRunCaseTarget,
-  type EvalRunPlugin,
   type EvalRunTry,
 } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
 import { renderTable } from "../../output/index.js";
@@ -94,9 +95,9 @@ interface CaseScope {
   readonly name: string;
 }
 
-/** Every finished try of every plugin, with its progress line, in the eval run's order. */
+/** Every finished try of every plugin and Eval, with its progress line, in the eval run's order. */
 export function finishedTries(evalRun: EvalRun): FinishedTry[] {
-  return pluginsOf(evalRun).flatMap((plugin) => finishedTriesOf(plugin.cases, scopeOf(evalRun, plugin)));
+  return groupsOf(evalRun).flatMap((group) => finishedTriesOf(group.cases, group.scope));
 }
 
 /** Every finished try of `cases`, with its progress line, in their order. */
@@ -134,14 +135,13 @@ export function renderEvalTables(evalRun: EvalRun, subjectSlug: string): string 
   const agent = isAboutAgent(evalRun) ? headingOf(oneLine(subjectSlug), versionHashOf(evalRun)) : "";
   const oneArm = !isComparing(evalRun);
   const blocks: string[] = [];
-  for (const plugin of pluginsOf(evalRun)) {
-    const pluginHeading = `${headingOf(oneLine(plugin.pluginSlug), plugin.pluginDigest)}${plugin.compared && isAboutAgent(evalRun) ? " (compared)" : ""}`;
-    const head = agent === "" ? pluginHeading : `${agent} · ${pluginHeading}`;
-    if (plugin.notRunReason !== "") {
-      blocks.push(`${head}\n  not run: ${oneLine(plugin.notRunReason)}\n`);
+  for (const group of groupsOf(evalRun)) {
+    const head = agent === "" ? group.heading : `${agent} · ${group.heading}`;
+    if (group.notRunReason !== "") {
+      blocks.push(`${head}\n  not run: ${oneLine(group.notRunReason)}\n`);
       continue;
     }
-    blocks.push(...renderCaseBlocks(plugin.cases, evalRun.spec?.targets ?? [], oneArm, (target) => `${head} · ${target}`));
+    blocks.push(...renderCaseBlocks(group.cases, evalRun.spec?.targets ?? [], oneArm, (target) => `${head} · ${target}`));
   }
   return blocks.join("\n");
 }
@@ -211,7 +211,7 @@ export function renderEvalReport(
 
 /** The cases, or cases on one target, the eval run listed and did not run, one line each. */
 export function renderNotRun(evalRun: EvalRun): string {
-  return notRunSection(pluginsOf(evalRun).flatMap((plugin) => notRunLinesOf(plugin.cases, scopeOf(evalRun, plugin))));
+  return notRunSection(groupsOf(evalRun).flatMap((group) => notRunLinesOf(group.cases, group.scope)));
 }
 
 /** The `Not run:` section for `lines`; empty when there are none. */
@@ -263,7 +263,7 @@ export function evalExitCode(
   opts: { readonly interrupted: boolean; readonly loadFindings: number },
 ): EvalExit {
   const status = evalRun.status;
-  const cases = pluginsOf(evalRun).flatMap((plugin) => plugin.cases);
+  const cases = groupsOf(evalRun).flatMap((group) => group.cases);
   const reason = status?.partialReason ?? EvalRunPartialReason.unspecified;
   if (opts.interrupted || reason === EvalRunPartialReason.cancelled) {
     return EvalExit.Interrupted;
@@ -341,9 +341,35 @@ export function isSettled(evaluation: { readonly status?: Pick<EvalProgress, "ph
   }
 }
 
-/** The plugins of the eval run, in its order. */
-function pluginsOf(evalRun: EvalRun): readonly EvalRunPlugin[] {
-  return evalRun.status?.plugins ?? [];
+/** One source of an eval run's cases as the report shows it: a plugin, or an Eval. */
+interface CaseGroup {
+  readonly heading: string;
+  readonly notRunReason: string;
+  readonly cases: readonly EvalRunCase[];
+  readonly scope: CaseScope;
+}
+
+/**
+ * The plugins of the eval run, in its order, then its Evals: each headed
+ * by its slug and short version (a plugin marked `compared` on an eval run
+ * about an agent, an Eval as `eval <slug>`), its cases named
+ * `<source>/<case>` on an eval run about an agent and keyed by its id.
+ */
+function groupsOf(evalRun: EvalRun): CaseGroup[] {
+  const onAgent = isAboutAgent(evalRun);
+  const plugins = (evalRun.status?.plugins ?? []).map((plugin) => ({
+    heading: `${headingOf(oneLine(plugin.pluginSlug), plugin.pluginDigest)}${plugin.compared && onAgent ? " (compared)" : ""}`,
+    notRunReason: plugin.notRunReason,
+    cases: plugin.cases,
+    scope: { key: `${plugin.pluginId}|`, name: onAgent ? `${oneLine(plugin.pluginSlug)}/` : "" },
+  }));
+  const evals = (evalRun.status?.evals ?? []).map((evalBlock) => ({
+    heading: `eval ${headingOf(oneLine(evalBlock.evalSlug), evalBlock.evalDigest)}`,
+    notRunReason: evalBlock.notRunReason,
+    cases: evalBlock.cases,
+    scope: { key: `${evalBlock.evalId}|`, name: `${oneLine(evalBlock.evalSlug)}/` },
+  }));
+  return [...plugins, ...evals];
 }
 
 /** Whether the eval run is about an agent. */
@@ -356,11 +382,6 @@ function isComparing(evalRun: EvalRun): boolean {
   const spec = evalRun.spec;
   const compared = spec?.subject.case === "pluginId" || (spec?.comparedPluginId ?? "") !== "";
   return compared && spec?.ablation !== EvalRunAblation.none;
-}
-
-/** A plugin's cases: named `<plugin>/<case>` on an eval run about an agent, and keyed by the plugin's id. */
-function scopeOf(evalRun: EvalRun, plugin: EvalRunPlugin): CaseScope {
-  return { key: `${plugin.pluginId}|`, name: isAboutAgent(evalRun) ? `${oneLine(plugin.pluginSlug)}/` : "" };
 }
 
 /** `<name>@<short hash>`, or the name alone when there is no hash yet. */

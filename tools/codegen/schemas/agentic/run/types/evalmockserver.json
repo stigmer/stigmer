@@ -1,6 +1,6 @@
 {
   "name": "EvalMockServer",
-  "description": "EvalMockServer is one plugin MCP server answered by a stand-in.",
+  "description": "EvalMockServer is one MCP server answered by a stand-in.",
   "protoType": "ai.stigmer.agentic.run.v1.EvalMockServer",
   "protoFile": "apis/ai/stigmer/agentic/run/v1/eval_case.proto",
   "fields": [
@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "The server's key in the plugin's MCP configuration.",
+      "description": "The directory under mocks/ the stand-in answers from: a plugin's\n server key for a plugin's case, the server's name in the turn for an\n Eval's.",
       "required": false,
       "validation": {
         "minLength": 1
@@ -24,7 +24,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "The name the stand-in is registered under in the turn, the plugin\n server's own.",
+      "description": "The name the stand-in is registered under in the turn, the real\n server's own.",
       "required": false,
       "validation": {
         "minLength": 1
@@ -57,6 +57,30 @@
       },
       "description": "The server's saved tools/list response, for real descriptions and\n input schemas; empty for none.",
       "required": false
+    },
+    {
+      "name": "Plugin",
+      "jsonName": "plugin",
+      "protoField": "plugin",
+      "type": {
+        "kind": "message",
+        "messageType": "EvalMockPluginHome"
+      },
+      "description": "A server of a plugin the turn loads.",
+      "required": false,
+      "oneofGroup": "home"
+    },
+    {
+      "name": "Agent",
+      "jsonName": "agent",
+      "protoField": "agent",
+      "type": {
+        "kind": "message",
+        "messageType": "EvalMockAgentHome"
+      },
+      "description": "One of the evaluated agent's own servers.",
+      "required": false,
+      "oneofGroup": "home"
     }
   ]
 }

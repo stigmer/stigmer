@@ -45,7 +45,11 @@
  *   - try-spend: no run found is no spend; the try's run found by label
  *     and name, its cost and its stored votes' added;
  *   - record-score: an eval gone; a grader the grade has no outcome for;
- *     a run that has not ended keeps its score on the eval only.
+ *     a run that has not ended keeps its score on the eval only;
+ *   - an Eval's case on its agent: the try's case context names the
+ *     Eval's archive and mocks the agent's own server; its grade reads the
+ *     plugins the run loaded by digest, once each, one of them gone and
+ *     one stamped with no version.
  *
  * The suite here is one case with the two AI-graded types: a `baseline`
  * check over a reference transcript and an `llm` check over one file.
@@ -58,6 +62,8 @@ import { MockActivityEnvironment } from "@temporalio/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { inMemoryPluginFiles } from "@stigmer/plugin-package";
+import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
+import { EvalRunSchema as EvalRunRowSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginSkillSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import {
@@ -123,6 +129,8 @@ import {
 import type { CaseInput, TryGrade } from "../names.js";
 import type { EvalRunTryLane } from "../ports.js";
 import {
+  AGENT_HASH,
+  AGENT_ID,
   DIGEST,
   EVAL_ID,
   ORG,
@@ -131,6 +139,7 @@ import {
   catalog,
   lane,
   scoreChain,
+  seedAgent,
   seedEval,
   seedPlugin,
   suiteFiles,
@@ -1599,3 +1608,69 @@ describe("record-score beside a graded try", () => {
     ]);
   });
 });
+
+describe("an Eval's case on its agent", () => {
+  const EVAL_RUN = "evr_on_eval";
+
+  /** The judged case at the archive's root, with a mock for the agent's own server. */
+  const EVAL_FOLDER: Readonly<Record<string, string>> = {
+    ...Object.fromEntries(Object.entries(JUDGED_SUITE).map(([path, content]) => [path.slice("evals/".length), content])),
+    "mocks/billing/charge.md": "Charged.",
+  };
+
+  async function seedEvalSource(): Promise<void> {
+    await seedAgent(temp.store, { mcpServers: [{ name: "billing", url: "https://billing.example.com/mcp" }] });
+    await seedPlugin(temp.store);
+    await temp.store.saveResource(
+      ApiResourceKind.eval,
+      "evs_1",
+      EvalSchema,
+      create(EvalSchema, { metadata: { id: "evs_1", org: ORG, slug: "support", name: "support" }, status: { digest: DIGEST } }),
+    );
+    await temp.store.saveResource(
+      ApiResourceKind.eval_run,
+      EVAL_RUN,
+      EvalRunRowSchema,
+      create(EvalRunRowSchema, {
+        metadata: { id: EVAL_RUN, org: ORG, name: EVAL_RUN },
+        spec: { subject: { case: "agentId", value: AGENT_ID }, agentVersion: AGENT_HASH, runs: 1, maxCostUsd: 5 },
+        status: {
+          plugins: [{ pluginId: PLUGIN_ID, pluginSlug: "thermos", pluginDigest: DIGEST, attached: true, notRunReason: "not selected" }],
+          evals: [{ evalId: "evs_1", evalSlug: "support", evalDigest: DIGEST }],
+        },
+      }),
+    );
+  }
+
+  it("starts a try naming the Eval's archive, and grades it naming each skill read by the plugin the try loaded", async () => {
+    await seedEvalSource();
+    const { cases, record } = build({ suite: EVAL_FOLDER });
+    const cell = { ...CELL, evalId: EVAL_RUN };
+    const start = await cases[START_TRY_ACTIVITY_NAME](cell);
+    if (start.kind !== "started") {
+      throw new Error(`the try did not start: ${JSON.stringify(start)}`);
+    }
+    const run = record.runs[0]?.run;
+    const caseContext = run?.spec?.evalCase;
+    expect([caseContext?.evalId, caseContext?.evalDigest, caseContext?.pluginId, caseContext?.suiteDir]).toEqual(["evs_1", DIGEST, "", ""]);
+    expect(caseContext?.mocks.map((mock) => [mock.server, mock.home.case])).toEqual([["billing", "agent"]]);
+
+    await completeTry(start.runId);
+    await temp.store.updateResource(ApiResourceKind.run, start.runId, RunSchema, (live) => {
+      live.status!.loadedVersions = {
+        $typeName: "ai.stigmer.agentic.run.v1.LoadedVersions",
+        skills: [],
+        plugins: [
+          { $typeName: "ai.stigmer.commons.apiresource.ApiResourceReference", org: ORG, kind: ApiResourceKind.plugin, id: PLUGIN_ID, slug: "", version: DIGEST },
+          { $typeName: "ai.stigmer.commons.apiresource.ApiResourceReference", org: ORG, kind: ApiResourceKind.plugin, id: "plg_gone", slug: "", version: "c".repeat(64) },
+          // The same version again, and one stamped with no version: each read once, or not at all.
+          { $typeName: "ai.stigmer.commons.apiresource.ApiResourceReference", org: ORG, kind: ApiResourceKind.plugin, id: PLUGIN_ID, slug: "", version: DIGEST },
+          { $typeName: "ai.stigmer.commons.apiresource.ApiResourceReference", org: ORG, kind: ApiResourceKind.plugin, id: PLUGIN_ID, slug: "", version: "" },
+        ],
+      };
+    });
+    const grade = await cases[GRADE_TRY_ACTIVITY_NAME](cell, start.runId, false);
+    expect(grade.error).toBe("");
+  });
+});
+

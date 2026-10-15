@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/run/v1/eval_case.proto\x12\x19\x61i.stigmer.agentic.run.v1\x1a\x1b\x62uf/validate/validate.proto\"\xf2\x05\n\x0f\x45valCaseContext\x12$\n\tplugin_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08pluginId\x12:\n\rplugin_digest\x18\x02 \x01(\tB\x15\xbaH\x12r\x10\x32\x0e^[a-f0-9]{64}$R\x0cpluginDigest\x12$\n\tsuite_dir\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08suiteDir\x12\"\n\x08\x63\x61se_dir\x18\x04 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07\x63\x61seDir\x12\'\n\x0fscaffold_script\x18\x05 \x01(\tR\x0escaffoldScript\x12#\n\x08\x61\x64\x64_dirs\x18\x06 \x03(\tB\x08\xbaH\x05\x92\x01\x02\x10 R\x07\x61\x64\x64\x44irs\x12!\n\x0chistory_file\x18\x07 \x01(\tR\x0bhistoryFile\x12m\n\x03\x65nv\x18\x08 \x03(\x0b\x32\x33.ai.stigmer.agentic.run.v1.EvalCaseContext.EnvEntryB&\xbaH#\x9a\x01 \x10@\"\x15r\x13\x32\x11^EVAL_[A-Z0-9_]*$*\x05r\x03\x18\x80 R\x03\x65nv\x12I\n\x05mocks\x18\t \x03(\x0b\x32).ai.stigmer.agentic.run.v1.EvalMockServerB\x08\xbaH\x05\x92\x01\x02\x10 R\x05mocks\x12\x32\n\x10\x61gent_mock_model\x18\n \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x01R\x0e\x61gentMockModel\x12?\n\x16\x61gent_mock_call_budget\x18\x0b \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\xa0\x06(\x00R\x13\x61gentMockCallBudget\x12\x30\n\nread_files\x18\x0c \x03(\tB\x11\xbaH\x0e\x92\x01\x0b\x10@\"\x07r\x05\x10\x01\x18\x80\x08R\treadFiles\x12)\n\x0bplugin_name\x18\r \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x02R\npluginName\x1a\x36\n\x08\x45nvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"P\n\tEvalFiles\x12\x43\n\x05\x66iles\x18\x01 \x03(\x0b\x32#.ai.stigmer.agentic.run.v1.EvalFileB\x08\xbaH\x05\x92\x01\x02\x10@R\x05\x66iles\"\x9e\x01\n\x08\x45valFile\x12\x1b\n\x04path\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04path\x12\x14\n\x04text\x18\x02 \x01(\tH\x00R\x04text\x12\x18\n\x06\x62inary\x18\x03 \x01(\x08H\x00R\x06\x62inary\x12\x18\n\x06\x61\x62sent\x18\x04 \x01(\x08H\x00R\x06\x61\x62sent\x12 \n\nunreadable\x18\x05 \x01(\tH\x00R\nunreadableB\t\n\x07\x63ontent\"\xbf\x01\n\x0e\x45valMockServer\x12\x1f\n\x06server\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x06server\x12!\n\x07segment\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07segment\x12J\n\x05tools\x18\x03 \x03(\x0b\x32\'.ai.stigmer.agentic.run.v1.EvalMockToolB\x0b\xbaH\x08\x92\x01\x05\x08\x01\x10\x80\x01R\x05tools\x12\x1d\n\ntools_file\x18\x04 \x01(\tR\ttoolsFile\"\xfc\x01\n\x0c\x45valMockTool\x12\x1b\n\x04tool\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04tool\x12\x1b\n\x04\x66ile\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04\x66ile\x12G\n\x04kind\x18\x03 \x01(\x0e\x32\'.ai.stigmer.agentic.run.v1.EvalMockKindB\n\xbaH\x07\x82\x01\x04\x10\x01 \x00R\x04kind\x12\x14\n\x05\x65rror\x18\x04 \x01(\x08R\x05\x65rror\x12*\n\x0b\x65xpect_json\x18\x05 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x01R\nexpectJson\x12\'\n\nabort_when\x18\x06 \x01(\tB\x08\xbaH\x05r\x03\x18\x80 R\tabortWhen*b\n\x0c\x45valMockKind\x12\x1e\n\x1a\x65val_mock_kind_unspecified\x10\x00\x12\x18\n\x14\x65val_mock_kind_fixed\x10\x01\x12\x18\n\x14\x65val_mock_kind_agent\x10\x02\x42\xb7\x01\n\x1d\x63om.ai.stigmer.agentic.run.v1B\rEvalCaseProtoP\x01\xa2\x02\x04\x41SAR\xaa\x02\x19\x41i.Stigmer.Agentic.Run.V1\xca\x02\x19\x41i\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1d\x41i::Stigmer::Agentic::Run::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/run/v1/eval_case.proto\x12\x19\x61i.stigmer.agentic.run.v1\x1a\x1b\x62uf/validate/validate.proto\"\xb4\n\n\x0f\x45valCaseContext\x12\x1b\n\tplugin_id\x18\x01 \x01(\tR\x08pluginId\x12#\n\rplugin_digest\x18\x02 \x01(\tR\x0cpluginDigest\x12\x1b\n\tsuite_dir\x18\x03 \x01(\tR\x08suiteDir\x12\"\n\x08\x63\x61se_dir\x18\x04 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07\x63\x61seDir\x12\'\n\x0fscaffold_script\x18\x05 \x01(\tR\x0escaffoldScript\x12#\n\x08\x61\x64\x64_dirs\x18\x06 \x03(\tB\x08\xbaH\x05\x92\x01\x02\x10 R\x07\x61\x64\x64\x44irs\x12!\n\x0chistory_file\x18\x07 \x01(\tR\x0bhistoryFile\x12m\n\x03\x65nv\x18\x08 \x03(\x0b\x32\x33.ai.stigmer.agentic.run.v1.EvalCaseContext.EnvEntryB&\xbaH#\x9a\x01 \x10@\"\x15r\x13\x32\x11^EVAL_[A-Z0-9_]*$*\x05r\x03\x18\x80 R\x03\x65nv\x12I\n\x05mocks\x18\t \x03(\x0b\x32).ai.stigmer.agentic.run.v1.EvalMockServerB\x08\xbaH\x05\x92\x01\x02\x10 R\x05mocks\x12\x32\n\x10\x61gent_mock_model\x18\n \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x01R\x0e\x61gentMockModel\x12?\n\x16\x61gent_mock_call_budget\x18\x0b \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\xa0\x06(\x00R\x13\x61gentMockCallBudget\x12\x30\n\nread_files\x18\x0c \x03(\tB\x11\xbaH\x0e\x92\x01\x0b\x10@\"\x07r\x05\x10\x01\x18\x80\x08R\treadFiles\x12)\n\x0bplugin_name\x18\r \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x02R\npluginName\x12!\n\x07\x65val_id\x18\x0e \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x01R\x06\x65valId\x12\x1f\n\x0b\x65val_digest\x18\x0f \x01(\tR\nevalDigest\x1a\x36\n\x08\x45nvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01:\xa4\x04\xbaH\xa0\x04\x1a\x85\x01\n\x14\x65val_case.one_source\x12=exactly one of plugin_id and eval_id names the case\'s archive\x1a.(this.plugin_id != \'\') != (this.eval_id != \'\')\x1a\x91\x01\n\x17\x65val_case.plugin_digest\x12\x30\x61 plugin\'s case names the plugin version it runs\x1a\x44this.plugin_id == \'\' || this.plugin_digest.matches(\'^[a-f0-9]{64}$\')\x1a\x88\x01\n\x15\x65val_case.eval_digest\x12-an Eval\'s case names the Eval version it runs\x1a@this.eval_id == \'\' || this.eval_digest.matches(\'^[a-f0-9]{64}$\')\x1aw\n\x1a\x65val_case.plugin_suite_dir\x12+a plugin\'s case names its suite\'s directory\x1a,this.plugin_id == \'\' || this.suite_dir != \'\'\"P\n\tEvalFiles\x12\x43\n\x05\x66iles\x18\x01 \x03(\x0b\x32#.ai.stigmer.agentic.run.v1.EvalFileB\x08\xbaH\x05\x92\x01\x02\x10@R\x05\x66iles\"\x9e\x01\n\x08\x45valFile\x12\x1b\n\x04path\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04path\x12\x14\n\x04text\x18\x02 \x01(\tH\x00R\x04text\x12\x18\n\x06\x62inary\x18\x03 \x01(\x08H\x00R\x06\x62inary\x12\x18\n\x06\x61\x62sent\x18\x04 \x01(\x08H\x00R\x06\x61\x62sent\x12 \n\nunreadable\x18\x05 \x01(\tH\x00R\nunreadableB\t\n\x07\x63ontent\"\xd6\x02\n\x0e\x45valMockServer\x12\x1f\n\x06server\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x06server\x12!\n\x07segment\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07segment\x12J\n\x05tools\x18\x03 \x03(\x0b\x32\'.ai.stigmer.agentic.run.v1.EvalMockToolB\x0b\xbaH\x08\x92\x01\x05\x08\x01\x10\x80\x01R\x05tools\x12\x1d\n\ntools_file\x18\x04 \x01(\tR\ttoolsFile\x12G\n\x06plugin\x18\x05 \x01(\x0b\x32-.ai.stigmer.agentic.run.v1.EvalMockPluginHomeH\x00R\x06plugin\x12\x44\n\x05\x61gent\x18\x06 \x01(\x0b\x32,.ai.stigmer.agentic.run.v1.EvalMockAgentHomeH\x00R\x05\x61gentB\x06\n\x04home\"\x86\x01\n\x12\x45valMockPluginHome\x12$\n\tplugin_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08pluginId\x12)\n\x0bplugin_name\x18\x02 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x02R\npluginName\x12\x1f\n\x06server\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x06server\"X\n\x11\x45valMockAgentHome\x12\"\n\x08\x61gent_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07\x61gentId\x12\x1f\n\x06server\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x06server\"\xfc\x01\n\x0c\x45valMockTool\x12\x1b\n\x04tool\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04tool\x12\x1b\n\x04\x66ile\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04\x66ile\x12G\n\x04kind\x18\x03 \x01(\x0e\x32\'.ai.stigmer.agentic.run.v1.EvalMockKindB\n\xbaH\x07\x82\x01\x04\x10\x01 \x00R\x04kind\x12\x14\n\x05\x65rror\x18\x04 \x01(\x08R\x05\x65rror\x12*\n\x0b\x65xpect_json\x18\x05 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x01R\nexpectJson\x12\'\n\nabort_when\x18\x06 \x01(\tB\x08\xbaH\x05r\x03\x18\x80 R\tabortWhen*b\n\x0c\x45valMockKind\x12\x1e\n\x1a\x65val_mock_kind_unspecified\x10\x00\x12\x18\n\x14\x65val_mock_kind_fixed\x10\x01\x12\x18\n\x14\x65val_mock_kind_agent\x10\x02\x42\xb7\x01\n\x1d\x63om.ai.stigmer.agentic.run.v1B\rEvalCaseProtoP\x01\xa2\x02\x04\x41SAR\xaa\x02\x19\x41i.Stigmer.Agentic.Run.V1\xca\x02\x19\x41i\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1d\x41i::Stigmer::Agentic::Run::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,12 +35,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n\035com.ai.stigmer.agentic.run.v1B\rEvalCaseProtoP\001\242\002\004ASAR\252\002\031Ai.Stigmer.Agentic.Run.V1\312\002\031Ai\\Stigmer\\Agentic\\Run\\V1\342\002%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\352\002\035Ai::Stigmer::Agentic::Run::V1'
   _globals['_EVALCASECONTEXT_ENVENTRY']._loaded_options = None
   _globals['_EVALCASECONTEXT_ENVENTRY']._serialized_options = b'8\001'
-  _globals['_EVALCASECONTEXT'].fields_by_name['plugin_id']._loaded_options = None
-  _globals['_EVALCASECONTEXT'].fields_by_name['plugin_id']._serialized_options = b'\272H\004r\002\020\001'
-  _globals['_EVALCASECONTEXT'].fields_by_name['plugin_digest']._loaded_options = None
-  _globals['_EVALCASECONTEXT'].fields_by_name['plugin_digest']._serialized_options = b'\272H\022r\0202\016^[a-f0-9]{64}$'
-  _globals['_EVALCASECONTEXT'].fields_by_name['suite_dir']._loaded_options = None
-  _globals['_EVALCASECONTEXT'].fields_by_name['suite_dir']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_EVALCASECONTEXT'].fields_by_name['case_dir']._loaded_options = None
   _globals['_EVALCASECONTEXT'].fields_by_name['case_dir']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_EVALCASECONTEXT'].fields_by_name['add_dirs']._loaded_options = None
@@ -57,6 +51,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_EVALCASECONTEXT'].fields_by_name['read_files']._serialized_options = b'\272H\016\222\001\013\020@\"\007r\005\020\001\030\200\010'
   _globals['_EVALCASECONTEXT'].fields_by_name['plugin_name']._loaded_options = None
   _globals['_EVALCASECONTEXT'].fields_by_name['plugin_name']._serialized_options = b'\272H\005r\003\030\200\002'
+  _globals['_EVALCASECONTEXT'].fields_by_name['eval_id']._loaded_options = None
+  _globals['_EVALCASECONTEXT'].fields_by_name['eval_id']._serialized_options = b'\272H\005r\003\030\200\001'
+  _globals['_EVALCASECONTEXT']._loaded_options = None
+  _globals['_EVALCASECONTEXT']._serialized_options = b'\272H\240\004\032\205\001\n\024eval_case.one_source\022=exactly one of plugin_id and eval_id names the case\'s archive\032.(this.plugin_id != \'\') != (this.eval_id != \'\')\032\221\001\n\027eval_case.plugin_digest\0220a plugin\'s case names the plugin version it runs\032Dthis.plugin_id == \'\' || this.plugin_digest.matches(\'^[a-f0-9]{64}$\')\032\210\001\n\025eval_case.eval_digest\022-an Eval\'s case names the Eval version it runs\032@this.eval_id == \'\' || this.eval_digest.matches(\'^[a-f0-9]{64}$\')\032w\n\032eval_case.plugin_suite_dir\022+a plugin\'s case names its suite\'s directory\032,this.plugin_id == \'\' || this.suite_dir != \'\''
   _globals['_EVALFILES'].fields_by_name['files']._loaded_options = None
   _globals['_EVALFILES'].fields_by_name['files']._serialized_options = b'\272H\005\222\001\002\020@'
   _globals['_EVALFILE'].fields_by_name['path']._loaded_options = None
@@ -67,6 +65,16 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_EVALMOCKSERVER'].fields_by_name['segment']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_EVALMOCKSERVER'].fields_by_name['tools']._loaded_options = None
   _globals['_EVALMOCKSERVER'].fields_by_name['tools']._serialized_options = b'\272H\010\222\001\005\010\001\020\200\001'
+  _globals['_EVALMOCKPLUGINHOME'].fields_by_name['plugin_id']._loaded_options = None
+  _globals['_EVALMOCKPLUGINHOME'].fields_by_name['plugin_id']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_EVALMOCKPLUGINHOME'].fields_by_name['plugin_name']._loaded_options = None
+  _globals['_EVALMOCKPLUGINHOME'].fields_by_name['plugin_name']._serialized_options = b'\272H\005r\003\030\200\002'
+  _globals['_EVALMOCKPLUGINHOME'].fields_by_name['server']._loaded_options = None
+  _globals['_EVALMOCKPLUGINHOME'].fields_by_name['server']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_EVALMOCKAGENTHOME'].fields_by_name['agent_id']._loaded_options = None
+  _globals['_EVALMOCKAGENTHOME'].fields_by_name['agent_id']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_EVALMOCKAGENTHOME'].fields_by_name['server']._loaded_options = None
+  _globals['_EVALMOCKAGENTHOME'].fields_by_name['server']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_EVALMOCKTOOL'].fields_by_name['tool']._loaded_options = None
   _globals['_EVALMOCKTOOL'].fields_by_name['tool']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_EVALMOCKTOOL'].fields_by_name['file']._loaded_options = None
@@ -77,18 +85,22 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_EVALMOCKTOOL'].fields_by_name['expect_json']._serialized_options = b'\272H\006r\004\030\200\200\001'
   _globals['_EVALMOCKTOOL'].fields_by_name['abort_when']._loaded_options = None
   _globals['_EVALMOCKTOOL'].fields_by_name['abort_when']._serialized_options = b'\272H\005r\003\030\200 '
-  _globals['_EVALMOCKKIND']._serialized_start=1550
-  _globals['_EVALMOCKKIND']._serialized_end=1648
+  _globals['_EVALMOCKKIND']._serialized_start=2506
+  _globals['_EVALMOCKKIND']._serialized_end=2604
   _globals['_EVALCASECONTEXT']._serialized_start=102
-  _globals['_EVALCASECONTEXT']._serialized_end=856
-  _globals['_EVALCASECONTEXT_ENVENTRY']._serialized_start=802
-  _globals['_EVALCASECONTEXT_ENVENTRY']._serialized_end=856
-  _globals['_EVALFILES']._serialized_start=858
-  _globals['_EVALFILES']._serialized_end=938
-  _globals['_EVALFILE']._serialized_start=941
-  _globals['_EVALFILE']._serialized_end=1099
-  _globals['_EVALMOCKSERVER']._serialized_start=1102
-  _globals['_EVALMOCKSERVER']._serialized_end=1293
-  _globals['_EVALMOCKTOOL']._serialized_start=1296
-  _globals['_EVALMOCKTOOL']._serialized_end=1548
+  _globals['_EVALCASECONTEXT']._serialized_end=1434
+  _globals['_EVALCASECONTEXT_ENVENTRY']._serialized_start=829
+  _globals['_EVALCASECONTEXT_ENVENTRY']._serialized_end=883
+  _globals['_EVALFILES']._serialized_start=1436
+  _globals['_EVALFILES']._serialized_end=1516
+  _globals['_EVALFILE']._serialized_start=1519
+  _globals['_EVALFILE']._serialized_end=1677
+  _globals['_EVALMOCKSERVER']._serialized_start=1680
+  _globals['_EVALMOCKSERVER']._serialized_end=2022
+  _globals['_EVALMOCKPLUGINHOME']._serialized_start=2025
+  _globals['_EVALMOCKPLUGINHOME']._serialized_end=2159
+  _globals['_EVALMOCKAGENTHOME']._serialized_start=2161
+  _globals['_EVALMOCKAGENTHOME']._serialized_end=2249
+  _globals['_EVALMOCKTOOL']._serialized_start=2252
+  _globals['_EVALMOCKTOOL']._serialized_end=2504
 # @@protoc_insertion_point(module_scope)

@@ -11,24 +11,48 @@ import "buf/validate/validate.proto";
 // @internal
 // Composed only by the server's eval case workflow; run create
 // refuses it on any request that is not server-composed. Every path is
-// relative to the plugin's root and names a file in the plugin's archive
-// at plugin_digest, which the runner downloads and verifies itself, so no
+// relative to the case source's root and names a file in its archive: the
+// plugin's at plugin_digest, or the Eval's at eval_digest (exactly one of
+// plugin_id and eval_id is set). The runner downloads and verifies the
+// archive itself, an Eval's through the reads that ask can_view, so no
 // suite byte travels in this message. The server decides what the try runs
 // (the reader's checks, the per-target plan, which servers are mocked);
 // the runner executes it and never re-reads the suite.
 message EvalCaseContext {
-  // ID of the plugin whose case this is.
-  string plugin_id = 1 [(buf.validate.field).string.min_len = 1];
+  option (buf.validate.message).cel = {
+    id: "eval_case.one_source"
+    message: "exactly one of plugin_id and eval_id names the case's archive"
+    expression: "(this.plugin_id != '') != (this.eval_id != '')"
+  };
+  option (buf.validate.message).cel = {
+    id: "eval_case.plugin_digest"
+    message: "a plugin's case names the plugin version it runs"
+    expression: "this.plugin_id == '' || this.plugin_digest.matches('^[a-f0-9]{64}$')"
+  };
+  option (buf.validate.message).cel = {
+    id: "eval_case.eval_digest"
+    message: "an Eval's case names the Eval version it runs"
+    expression: "this.eval_id == '' || this.eval_digest.matches('^[a-f0-9]{64}$')"
+  };
+  option (buf.validate.message).cel = {
+    id: "eval_case.plugin_suite_dir"
+    message: "a plugin's case names its suite's directory"
+    expression: "this.plugin_id == '' || this.suite_dir != ''"
+  };
+
+  // ID of the plugin whose case this is; empty for an Eval's case.
+  string plugin_id = 1;
 
   // The plugin version (archive digest) the eval run stamped.
-  string plugin_digest = 2 [(buf.validate.field).string.pattern = "^[a-f0-9]{64}$"];
+  string plugin_digest = 2;
 
-  // The suite's directory, as in "evals".
+  // The suite's directory, as in "evals"; empty for an Eval's case, whose
+  // suite is its archive's root.
   //
   // @internal
   // A scaffold may reach files beside its case (a shared fixture), as it
   // does in Claude Code, so the whole suite is extracted for it.
-  string suite_dir = 3 [(buf.validate.field).string.min_len = 1];
+  string suite_dir = 3;
 
   // The case's directory, as in "evals/fix-the-test".
   string case_dir = 4 [(buf.validate.field).string.min_len = 1];
@@ -82,6 +106,12 @@ message EvalCaseContext {
   // The plugin's name, as a turn names its MCP servers
   // (`plugin_<plugin>_<server>`) and a hook reads a stand-in's origin.
   string plugin_name = 13 [(buf.validate.field).string.max_len = 256];
+
+  // ID of the Eval whose case this is; empty for a plugin's case.
+  string eval_id = 14 [(buf.validate.field).string.max_len = 128];
+
+  // The Eval version (archive digest) the eval run stamped.
+  string eval_digest = 15;
 }
 
 // EvalFiles is the content, after an eval try's turn, of each
@@ -117,12 +147,14 @@ message EvalFile {
   }
 }
 
-// EvalMockServer is one plugin MCP server answered by a stand-in.
+// EvalMockServer is one MCP server answered by a stand-in.
 message EvalMockServer {
-  // The server's key in the plugin's MCP configuration.
+  // The directory under mocks/ the stand-in answers from: a plugin's
+  // server key for a plugin's case, the server's name in the turn for an
+  // Eval's.
   string server = 1 [(buf.validate.field).string.min_len = 1];
 
-  // The name the stand-in is registered under in the turn, the plugin
+  // The name the stand-in is registered under in the turn, the real
   // server's own.
   string segment = 2 [(buf.validate.field).string.min_len = 1];
 
@@ -135,6 +167,36 @@ message EvalMockServer {
   // The server's saved tools/list response, for real descriptions and
   // input schemas; empty for none.
   string tools_file = 4;
+
+  // Where the real server lives in the turn, which a hook reads as the
+  // stand-in's origin. Unset means the case's own plugin.
+  oneof home {
+    // A server of a plugin the turn loads.
+    EvalMockPluginHome plugin = 5;
+
+    // One of the evaluated agent's own servers.
+    EvalMockAgentHome agent = 6;
+  }
+}
+
+// EvalMockPluginHome is a plugin server a stand-in replaces.
+message EvalMockPluginHome {
+  // The plugin's ID and name.
+  string plugin_id = 1 [(buf.validate.field).string.min_len = 1];
+  string plugin_name = 2 [(buf.validate.field).string.max_len = 256];
+
+  // The server's key in the plugin's MCP configuration.
+  string server = 3 [(buf.validate.field).string.min_len = 1];
+}
+
+// EvalMockAgentHome is one of the evaluated agent's own servers a stand-in
+// replaces.
+message EvalMockAgentHome {
+  // The agent's ID.
+  string agent_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The server's name as the agent writes it.
+  string server = 2 [(buf.validate.field).string.min_len = 1];
 }
 
 // EvalMockTool is one mocked tool and how it answers.

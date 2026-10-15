@@ -386,10 +386,11 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource> cases_;
   /**
    * <pre>
-   * Whose cases run, on an agent: each a plugin the agent attaches or the
-   * compared plugin. Empty runs the compared plugin's cases when one is
-   * named, else the cases of every plugin the agent attaches. Only with
-   * agent_id; an eval run of a plugin runs that plugin's own cases.
+   * Whose cases run, on an agent: Evals of the agent's organization, and
+   * plugins the agent attaches or the compared plugin. Empty runs the
+   * compared plugin's cases when one is named, else the cases of every
+   * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+   * runs that plugin's own cases.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -400,10 +401,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Whose cases run, on an agent: each a plugin the agent attaches or the
-   * compared plugin. Empty runs the compared plugin's cases when one is
-   * named, else the cases of every plugin the agent attaches. Only with
-   * agent_id; an eval run of a plugin runs that plugin's own cases.
+   * Whose cases run, on an agent: Evals of the agent's organization, and
+   * plugins the agent attaches or the compared plugin. Empty runs the
+   * compared plugin's cases when one is named, else the cases of every
+   * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+   * runs that plugin's own cases.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -415,10 +417,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Whose cases run, on an agent: each a plugin the agent attaches or the
-   * compared plugin. Empty runs the compared plugin's cases when one is
-   * named, else the cases of every plugin the agent attaches. Only with
-   * agent_id; an eval run of a plugin runs that plugin's own cases.
+   * Whose cases run, on an agent: Evals of the agent's organization, and
+   * plugins the agent attaches or the compared plugin. Empty runs the
+   * compared plugin's cases when one is named, else the cases of every
+   * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+   * runs that plugin's own cases.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -429,10 +432,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Whose cases run, on an agent: each a plugin the agent attaches or the
-   * compared plugin. Empty runs the compared plugin's cases when one is
-   * named, else the cases of every plugin the agent attaches. Only with
-   * agent_id; an eval run of a plugin runs that plugin's own cases.
+   * Whose cases run, on an agent: Evals of the agent's organization, and
+   * plugins the agent attaches or the compared plugin. Empty runs the
+   * compared plugin's cases when one is named, else the cases of every
+   * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+   * runs that plugin's own cases.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -443,10 +447,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Whose cases run, on an agent: each a plugin the agent attaches or the
-   * compared plugin. Empty runs the compared plugin's cases when one is
-   * named, else the cases of every plugin the agent attaches. Only with
-   * agent_id; an eval run of a plugin runs that plugin's own cases.
+   * Whose cases run, on an agent: Evals of the agent's organization, and
+   * plugins the agent attaches or the compared plugin. Empty runs the
+   * compared plugin's cases when one is named, else the cases of every
+   * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+   * runs that plugin's own cases.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -2552,10 +2557,11 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * Whose cases run, on an agent: each a plugin the agent attaches or the
-     * compared plugin. Empty runs the compared plugin's cases when one is
-     * named, else the cases of every plugin the agent attaches. Only with
-     * agent_id; an eval run of a plugin runs that plugin's own cases.
+     * Whose cases run, on an agent: Evals of the agent's organization, and
+     * plugins the agent attaches or the compared plugin. Empty runs the
+     * compared plugin's cases when one is named, else the cases of every
+     * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+     * runs that plugin's own cases.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -2569,10 +2575,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whose cases run, on an agent: each a plugin the agent attaches or the
-     * compared plugin. Empty runs the compared plugin's cases when one is
-     * named, else the cases of every plugin the agent attaches. Only with
-     * agent_id; an eval run of a plugin runs that plugin's own cases.
+     * Whose cases run, on an agent: Evals of the agent's organization, and
+     * plugins the agent attaches or the compared plugin. Empty runs the
+     * compared plugin's cases when one is named, else the cases of every
+     * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+     * runs that plugin's own cases.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -2586,10 +2593,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whose cases run, on an agent: each a plugin the agent attaches or the
-     * compared plugin. Empty runs the compared plugin's cases when one is
-     * named, else the cases of every plugin the agent attaches. Only with
-     * agent_id; an eval run of a plugin runs that plugin's own cases.
+     * Whose cases run, on an agent: Evals of the agent's organization, and
+     * plugins the agent attaches or the compared plugin. Empty runs the
+     * compared plugin's cases when one is named, else the cases of every
+     * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+     * runs that plugin's own cases.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -2603,10 +2611,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whose cases run, on an agent: each a plugin the agent attaches or the
-     * compared plugin. Empty runs the compared plugin's cases when one is
-     * named, else the cases of every plugin the agent attaches. Only with
-     * agent_id; an eval run of a plugin runs that plugin's own cases.
+     * Whose cases run, on an agent: Evals of the agent's organization, and
+     * plugins the agent attaches or the compared plugin. Empty runs the
+     * compared plugin's cases when one is named, else the cases of every
+     * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+     * runs that plugin's own cases.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -2627,10 +2636,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whose cases run, on an agent: each a plugin the agent attaches or the
-     * compared plugin. Empty runs the compared plugin's cases when one is
-     * named, else the cases of every plugin the agent attaches. Only with
-     * agent_id; an eval run of a plugin runs that plugin's own cases.
+     * Whose cases run, on an agent: Evals of the agent's organization, and
+     * plugins the agent attaches or the compared plugin. Empty runs the
+     * compared plugin's cases when one is named, else the cases of every
+     * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+     * runs that plugin's own cases.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -2648,10 +2658,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whose cases run, on an agent: each a plugin the agent attaches or the
-     * compared plugin. Empty runs the compared plugin's cases when one is
-     * named, else the cases of every plugin the agent attaches. Only with
-     * agent_id; an eval run of a plugin runs that plugin's own cases.
+     * Whose cases run, on an agent: Evals of the agent's organization, and
+     * plugins the agent attaches or the compared plugin. Empty runs the
+     * compared plugin's cases when one is named, else the cases of every
+     * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+     * runs that plugin's own cases.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -2671,10 +2682,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whose cases run, on an agent: each a plugin the agent attaches or the
-     * compared plugin. Empty runs the compared plugin's cases when one is
-     * named, else the cases of every plugin the agent attaches. Only with
-     * agent_id; an eval run of a plugin runs that plugin's own cases.
+     * Whose cases run, on an agent: Evals of the agent's organization, and
+     * plugins the agent attaches or the compared plugin. Empty runs the
+     * compared plugin's cases when one is named, else the cases of every
+     * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+     * runs that plugin's own cases.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -2695,10 +2707,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whose cases run, on an agent: each a plugin the agent attaches or the
-     * compared plugin. Empty runs the compared plugin's cases when one is
-     * named, else the cases of every plugin the agent attaches. Only with
-     * agent_id; an eval run of a plugin runs that plugin's own cases.
+     * Whose cases run, on an agent: Evals of the agent's organization, and
+     * plugins the agent attaches or the compared plugin. Empty runs the
+     * compared plugin's cases when one is named, else the cases of every
+     * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+     * runs that plugin's own cases.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -2716,10 +2729,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whose cases run, on an agent: each a plugin the agent attaches or the
-     * compared plugin. Empty runs the compared plugin's cases when one is
-     * named, else the cases of every plugin the agent attaches. Only with
-     * agent_id; an eval run of a plugin runs that plugin's own cases.
+     * Whose cases run, on an agent: Evals of the agent's organization, and
+     * plugins the agent attaches or the compared plugin. Empty runs the
+     * compared plugin's cases when one is named, else the cases of every
+     * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+     * runs that plugin's own cases.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -2737,10 +2751,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whose cases run, on an agent: each a plugin the agent attaches or the
-     * compared plugin. Empty runs the compared plugin's cases when one is
-     * named, else the cases of every plugin the agent attaches. Only with
-     * agent_id; an eval run of a plugin runs that plugin's own cases.
+     * Whose cases run, on an agent: Evals of the agent's organization, and
+     * plugins the agent attaches or the compared plugin. Empty runs the
+     * compared plugin's cases when one is named, else the cases of every
+     * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+     * runs that plugin's own cases.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -2759,10 +2774,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whose cases run, on an agent: each a plugin the agent attaches or the
-     * compared plugin. Empty runs the compared plugin's cases when one is
-     * named, else the cases of every plugin the agent attaches. Only with
-     * agent_id; an eval run of a plugin runs that plugin's own cases.
+     * Whose cases run, on an agent: Evals of the agent's organization, and
+     * plugins the agent attaches or the compared plugin. Empty runs the
+     * compared plugin's cases when one is named, else the cases of every
+     * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+     * runs that plugin's own cases.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -2779,10 +2795,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whose cases run, on an agent: each a plugin the agent attaches or the
-     * compared plugin. Empty runs the compared plugin's cases when one is
-     * named, else the cases of every plugin the agent attaches. Only with
-     * agent_id; an eval run of a plugin runs that plugin's own cases.
+     * Whose cases run, on an agent: Evals of the agent's organization, and
+     * plugins the agent attaches or the compared plugin. Empty runs the
+     * compared plugin's cases when one is named, else the cases of every
+     * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+     * runs that plugin's own cases.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -2799,10 +2816,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whose cases run, on an agent: each a plugin the agent attaches or the
-     * compared plugin. Empty runs the compared plugin's cases when one is
-     * named, else the cases of every plugin the agent attaches. Only with
-     * agent_id; an eval run of a plugin runs that plugin's own cases.
+     * Whose cases run, on an agent: Evals of the agent's organization, and
+     * plugins the agent attaches or the compared plugin. Empty runs the
+     * compared plugin's cases when one is named, else the cases of every
+     * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+     * runs that plugin's own cases.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -2813,10 +2831,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whose cases run, on an agent: each a plugin the agent attaches or the
-     * compared plugin. Empty runs the compared plugin's cases when one is
-     * named, else the cases of every plugin the agent attaches. Only with
-     * agent_id; an eval run of a plugin runs that plugin's own cases.
+     * Whose cases run, on an agent: Evals of the agent's organization, and
+     * plugins the agent attaches or the compared plugin. Empty runs the
+     * compared plugin's cases when one is named, else the cases of every
+     * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+     * runs that plugin's own cases.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -2830,10 +2849,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whose cases run, on an agent: each a plugin the agent attaches or the
-     * compared plugin. Empty runs the compared plugin's cases when one is
-     * named, else the cases of every plugin the agent attaches. Only with
-     * agent_id; an eval run of a plugin runs that plugin's own cases.
+     * Whose cases run, on an agent: Evals of the agent's organization, and
+     * plugins the agent attaches or the compared plugin. Empty runs the
+     * compared plugin's cases when one is named, else the cases of every
+     * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+     * runs that plugin's own cases.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -2848,10 +2868,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whose cases run, on an agent: each a plugin the agent attaches or the
-     * compared plugin. Empty runs the compared plugin's cases when one is
-     * named, else the cases of every plugin the agent attaches. Only with
-     * agent_id; an eval run of a plugin runs that plugin's own cases.
+     * Whose cases run, on an agent: Evals of the agent's organization, and
+     * plugins the agent attaches or the compared plugin. Empty runs the
+     * compared plugin's cases when one is named, else the cases of every
+     * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+     * runs that plugin's own cases.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -2862,10 +2883,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whose cases run, on an agent: each a plugin the agent attaches or the
-     * compared plugin. Empty runs the compared plugin's cases when one is
-     * named, else the cases of every plugin the agent attaches. Only with
-     * agent_id; an eval run of a plugin runs that plugin's own cases.
+     * Whose cases run, on an agent: Evals of the agent's organization, and
+     * plugins the agent attaches or the compared plugin. Empty runs the
+     * compared plugin's cases when one is named, else the cases of every
+     * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+     * runs that plugin's own cases.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>
@@ -2877,10 +2899,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whose cases run, on an agent: each a plugin the agent attaches or the
-     * compared plugin. Empty runs the compared plugin's cases when one is
-     * named, else the cases of every plugin the agent attaches. Only with
-     * agent_id; an eval run of a plugin runs that plugin's own cases.
+     * Whose cases run, on an agent: Evals of the agent's organization, and
+     * plugins the agent attaches or the compared plugin. Empty runs the
+     * compared plugin's cases when one is named, else the cases of every
+     * plugin the agent attaches. Only with agent_id; an eval run of a plugin
+     * runs that plugin's own cases.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.evalrun.v1.EvalRunCaseSource cases = 6 [json_name = "cases", (.buf.validate.field) = { ... }</code>

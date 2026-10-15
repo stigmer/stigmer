@@ -1,0 +1,47 @@
+{
+  "name": "EvalMockPluginHome",
+  "description": "EvalMockPluginHome is a plugin server a stand-in replaces.",
+  "protoType": "ai.stigmer.agentic.run.v1.EvalMockPluginHome",
+  "protoFile": "apis/ai/stigmer/agentic/run/v1/eval_case.proto",
+  "fields": [
+    {
+      "name": "PluginId",
+      "jsonName": "pluginId",
+      "protoField": "plugin_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The plugin's ID and name.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "PluginName",
+      "jsonName": "pluginName",
+      "protoField": "plugin_name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "",
+      "required": false,
+      "validation": {
+        "maxLength": 256
+      }
+    },
+    {
+      "name": "Server",
+      "jsonName": "server",
+      "protoField": "server",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The server's key in the plugin's MCP configuration.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    }
+  ]
+}

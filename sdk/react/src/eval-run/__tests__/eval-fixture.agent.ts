@@ -6,7 +6,9 @@
  * `notRun` reason has no cases. Named by its id, as the server names an
  * eval run the client sent unnamed, stamped with `version` and started at
  * eval-fixture.ts's {@link evalStartOf} its id, so two eval runs read
- * apart. `compared` names the slug of a plugin compared.
+ * apart. `compared` names the slug of a plugin compared. `evals` are the
+ * Evals whose cases ran on the agent, each a block of its own after the
+ * plugins, built the same way.
  */
 import { create } from "@bufbuild/protobuf";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
@@ -52,6 +54,8 @@ export function agentEvalRunWith(
     readonly phase?: EvalRunPhase;
     /** The slug of the plugin compared, with and without; none when omitted. */
     readonly compared?: string;
+    /** The Evals whose cases ran, after the plugins; none when omitted. */
+    readonly evals?: readonly FixturePlugin[];
   } = {},
 ): EvalRun {
   const id = opts.id ?? "evr_1";
@@ -60,17 +64,12 @@ export function agentEvalRunWith(
     opts.caseTargets ?? (specTargets.length > 0 ? specTargets : [{ modelName: "claude-sonnet-4-6" }]);
   let casesPassed = 0;
   let casesTotal = 0;
-  const blocks = plugins.map((plugin, index) => {
+  const sourceOf = (plugin: FixturePlugin) => {
     const cases = plugin.notRun ? [] : (plugin.cases ?? []);
     const passed = cases.filter((entry) => (entry.score ?? 0) >= 1).length;
     casesPassed += passed;
     casesTotal += cases.length;
     return {
-      pluginId: `plg_${index + 1}`,
-      pluginSlug: plugin.slug,
-      pluginDigest: plugin.digest ?? digestOf(`${index + 1}abc`),
-      attached: plugin.attached ?? true,
-      compared: plugin.slug === opts.compared,
       notRunReason: plugin.notRun ?? "",
       aggregates: { casesPassed: passed, casesTotal: cases.length, overallScore: 0.5 },
       cases: cases.map((entry) => ({
@@ -100,7 +99,21 @@ export function agentEvalRunWith(
         })),
       })),
     };
-  });
+  };
+  const blocks = plugins.map((plugin, index) => ({
+    ...sourceOf(plugin),
+    pluginId: `plg_${index + 1}`,
+    pluginSlug: plugin.slug,
+    pluginDigest: plugin.digest ?? digestOf(`${index + 1}abc`),
+    attached: plugin.attached ?? true,
+    compared: plugin.slug === opts.compared,
+  }));
+  const evalBlocks = (opts.evals ?? []).map((source, index) => ({
+    ...sourceOf(source),
+    evalId: `evs_${index + 1}`,
+    evalSlug: source.slug,
+    evalDigest: source.digest ?? digestOf(`${index + 1}e5`),
+  }));
   const comparedIndex = plugins.findIndex((plugin) => plugin.slug === opts.compared);
   return create(EvalRunSchema, {
     metadata: { id, org: "org_acme", name: id },
@@ -118,6 +131,7 @@ export function agentEvalRunWith(
       agentVersionHash: opts.version ?? "1a2b3c4d5e6f7a8b",
       audit: { specAudit: { createdAt: timestampFromMs(evalStartOf(id).getTime()) } },
       plugins: blocks,
+      evals: evalBlocks,
       aggregates: { casesPassed, casesTotal, overallScore: 0.75 },
       costUsd: 1.5,
       triesTotal: 4,

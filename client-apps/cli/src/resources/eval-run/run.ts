@@ -45,7 +45,7 @@ import { requireOrganization } from "../../client/single-org.js";
 import { resolveAgent } from "../agent/resolve.js";
 import { idPrefixesFor, parseReference } from "../reference.js";
 import { asStartRefusal, runEval, type EvalIo } from "./follow.js";
-import type { EvalRunOptions } from "./options.js";
+import type { EvalRunOptions, EvalTarget } from "./options.js";
 import { evalExitCode, oneLine, renderEvalReport, type EvalExit } from "./report.js";
 
 export { CALL_DEADLINE_MS, POLL_INTERVAL_MS, POLL_RETRY_BUDGET_MS } from "./follow.js";
@@ -157,7 +157,10 @@ async function resolveSubject(client: Stigmer, org: string, options: EvalRunOpti
       agentId: agent.metadata?.id ?? "",
       agentVersion: subject.agent.version,
       comparedPluginId: compared?.metadata?.id ?? "",
-      cases: subject.casesFrom.map((ref) => caseSourceOf(ref, agentOrg)),
+      cases: [
+        ...subject.casesFrom.map((ref) => caseSourceOf(ref, agentOrg)),
+        ...subject.evals.map((target) => evalSourceOf(target, agentOrg)),
+      ],
     },
   };
 }
@@ -177,6 +180,14 @@ function caseSourceOf(ref: string, agentOrg: string): EvalRunCaseSourceInput {
   return parsed.kind === "id"
     ? { plugin: { org: "", slug: "", id: parsed.id } }
     : { plugin: { org: parsed.org, slug: parsed.slug } };
+}
+
+/** An `--eval` reference as the create's case source: by id, or by slug in its organization, at its version. */
+function evalSourceOf(target: EvalTarget, agentOrg: string): EvalRunCaseSourceInput {
+  const parsed = parseReference(target.ref, agentOrg, idPrefixesFor(ApiResourceKind.eval));
+  const ref =
+    parsed.kind === "id" ? { org: "", slug: "", id: parsed.id } : { org: parsed.org, slug: parsed.slug };
+  return { eval: { ...ref, ...(target.version !== "" && { version: target.version }) } };
 }
 
 async function startEvalRun(client: Stigmer, subject: ResolvedSubject, options: EvalRunOptions): Promise<EvalRun> {

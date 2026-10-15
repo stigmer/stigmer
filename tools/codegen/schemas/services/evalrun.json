@@ -590,7 +590,7 @@
           "kind": "message",
           "messageType": "EvalRunAggregates"
         },
-        "description": "The totals over every plugin's cases.",
+        "description": "The totals over every case that ran, a plugin's or an Eval's.",
         "required": false
       },
       {
@@ -657,6 +657,20 @@
           }
         },
         "description": "Who attached each of this eval run's vaults, by vault id: the account\n whose permission to use the vault each try checks, since a try has no\n person.",
+        "required": false
+      },
+      {
+        "name": "Evals",
+        "jsonName": "evals",
+        "protoField": "evals",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "EvalRunEval"
+          }
+        },
+        "description": "Every Eval whose cases run, in the order the spec names them: the\n version every try runs and its cases' results. A try loads no Eval;\n it runs the Eval's cases on the agent.",
         "required": false
       },
       {
@@ -994,7 +1008,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The case's directory, relative to the plugin's root, as in\n \"evals/review-fires\".",
+          "description": "The case's directory, relative to the plugin's root, as in\n \"evals/review-fires\", or to the Eval's, as in \"review-fires\".",
           "required": false
         },
         {
@@ -1058,7 +1072,7 @@
               "messageType": "EvalRunMockedServer"
             }
           },
-          "description": "The plugin's MCP servers the case answers with mocks, and those it\n leaves unstarted, as Claude Code's mocked: line.",
+          "description": "The MCP servers the case answers with mocks, and those it leaves\n unstarted, as Claude Code's mocked: line: a plugin's servers for a\n plugin's case; the agent's and its plugins' servers for an Eval's.",
           "required": false
         }
       ]
@@ -1146,8 +1160,81 @@
       ]
     },
     {
+      "name": "EvalRunEval",
+      "description": "EvalRunEval is one Eval whose cases an eval run runs, as it ran them.",
+      "protoType": "ai.stigmer.agentic.evalrun.v1.EvalRunEval",
+      "protoFile": "apis/ai/stigmer/agentic/evalrun/v1/status.proto",
+      "fields": [
+        {
+          "name": "EvalId",
+          "jsonName": "evalId",
+          "protoField": "eval_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The Eval's ID and slug.",
+          "required": false
+        },
+        {
+          "name": "EvalSlug",
+          "jsonName": "evalSlug",
+          "protoField": "eval_slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "EvalDigest",
+          "jsonName": "evalDigest",
+          "protoField": "eval_digest",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The Eval version (archive digest) every try runs: the one the case\n source named, or the current one when the eval run was created.",
+          "required": false
+        },
+        {
+          "name": "NotRunReason",
+          "jsonName": "notRunReason",
+          "protoField": "not_run_reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Why none of the Eval's cases run, as in \"no eval cases at this\n version\"; empty when its cases run.",
+          "required": false
+        },
+        {
+          "name": "Cases",
+          "jsonName": "cases",
+          "protoField": "cases",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "EvalRunCase"
+            }
+          },
+          "description": "The Eval's cases, in directory order, each with its results.",
+          "required": false
+        },
+        {
+          "name": "Aggregates",
+          "jsonName": "aggregates",
+          "protoField": "aggregates",
+          "type": {
+            "kind": "message",
+            "messageType": "EvalRunAggregates"
+          },
+          "description": "This Eval's totals.",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "EvalRunMockedServer",
-      "description": "EvalRunMockedServer is one plugin MCP server as a case's tries see\n it.",
+      "description": "EvalRunMockedServer is one MCP server as a case's tries see it.",
       "protoType": "ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer",
       "protoFile": "apis/ai/stigmer/agentic/evalrun/v1/status.proto",
       "fields": [
@@ -1158,7 +1245,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The server's name in the run, as in \"plugin_tracker_issues\".",
+          "description": "The server's name in the run, as in \"plugin_tracker_issues\" or an\n agent's own \"billing\".",
           "required": false
         },
         {
@@ -1181,7 +1268,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Why the server is not started, as in \"not started: no mock\"; empty\n when its mocks answer.",
+          "description": "Why the server is not started, as in \"not started: no mock\", or why\n its mocks answer nothing, as in \"no such server on the agent\"; empty\n when its mocks answer.",
           "required": false
         }
       ]

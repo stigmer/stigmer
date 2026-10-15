@@ -7,10 +7,20 @@
 // plugin not run as its heading and reason; the cases a plugin did not run
 // under `Not run:`; the summary with no mean Δ; and the exit code over
 // every plugin's cases (0, 1 for a case below the threshold or none run,
-// 130 when cancelled).
+// 130 when cancelled); an Eval's cases after the plugins, in a block headed
+// `eval <slug>@<digest>` and progress lines named `<eval>/<case>`, an Eval
+// not run as its heading and reason, and its cases counted in the exit code.
 
 import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import { EvalRunPartialReason, EvalRunPhase, EvalRunTryState } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { clone, create } from "@bufbuild/protobuf";
+import {
+  EvalRunCaseSchema,
+  EvalRunEvalSchema,
+  EvalRunPartialReason,
+  EvalRunPhase,
+  EvalRunTrySchema,
+  EvalRunTryState,
+} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
 import { describe, expect, it } from "vitest";
 import { EvalExit, evalExitCode, finishedTries, renderEvalReport, renderEvalTables, renderNotRun } from "../report.js";
 import { finishedEvalRunOnAgent } from "./fixtures.js";
@@ -52,6 +62,46 @@ describe("renderEvalTables about an agent", () => {
     const evalRun = finishedEvalRunOnAgent();
     evalRun.status!.plugins[2]!.notRunReason = "no eval cases\n\u001b[2Jat this version";
     expect(renderEvalTables(evalRun, "support-desk")).toContain("  not run: no eval cases [2Jat this version");
+  });
+});
+
+describe("an Eval's cases about an agent", () => {
+  function withEvals() {
+    const evalRun = finishedEvalRunOnAgent();
+    const [refund] = evalRun.status!.plugins;
+    evalRun.status!.evals = [
+      create(EvalRunEvalSchema, {
+        evalId: "evs_support",
+        evalSlug: "support-evals",
+        evalDigest: "5e".padEnd(64, "4"),
+        cases: refund!.cases.map((evalCase) => clone(EvalRunCaseSchema, evalCase)),
+      }),
+      create(EvalRunEvalSchema, { evalId: "evs_empty", evalSlug: "empty-evals", notRunReason: "no eval cases at this version" }),
+    ];
+    return evalRun;
+  }
+
+  it("prints each Eval after the plugins, headed by its slug and short digest, and one not run with its reason", () => {
+    const tables = renderEvalTables(withEvals(), "support-desk");
+    expect(tables).toContain("support-desk@0123456789ab · eval support-evals@5e4444444444 · native/claude-sonnet-4-6");
+    expect(tables.indexOf("eval support-evals@")).toBeGreaterThan(tables.indexOf("notes@"));
+    expect(tables).toContain("support-desk@0123456789ab · eval empty-evals\n  not run: no eval cases at this version");
+  });
+
+  it("names an Eval's tries by the Eval, keyed apart from a plugin's same-named case", () => {
+    const tries = finishedTries(withEvals());
+    expect(tries.map((attempt) => attempt.line)).toContain(
+      "support-evals/refund-window · native/claude-sonnet-4-6 · with · try 1/1 · 1.00",
+    );
+    expect(new Set(tries.map((attempt) => attempt.key)).size).toBe(tries.length);
+  });
+
+  it("counts an Eval's cases in the exit code", () => {
+    const evalRun = withEvals();
+    expect(evalExitCode(evalRun, { interrupted: false, loadFindings: 0 })).toBe(EvalExit.Passed);
+    const target = evalRun.status!.evals[0]!.cases[0]!.targets[0]!;
+    target.withPlugin!.tries = [create(EvalRunTrySchema, { index: 1, state: EvalRunTryState.not_graded })];
+    expect(evalExitCode(evalRun, { interrupted: false, loadFindings: 0 })).toBe(EvalExit.Failed);
   });
 });
 

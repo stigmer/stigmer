@@ -100,8 +100,10 @@ export interface EvalFormSettings extends EvalRunSettings {
   readonly compare: boolean;
   /** On an agent: the id of the plugin each case runs with and without; empty compares none. */
   readonly comparedPluginId: string;
-  /** On an agent: the slugs of the plugins whose cases run; at least one. */
+  /** On an agent: the slugs of the plugins whose cases run. */
   readonly caseSources: readonly string[];
+  /** On an agent: the slugs of the organization's Evals whose cases run on it. */
+  readonly evalSources: readonly string[];
   /** Runs only the cases whose name matches this glob, as in "review-*"; empty runs every case. */
   readonly caseGlob: string;
   /** Runs only the cases carrying one of these tags; empty runs every case. */
@@ -125,6 +127,7 @@ export const DEFAULT_EVAL_FORM: EvalFormSettings = {
   concurrency: 1,
   comparedPluginId: "",
   caseSources: [],
+  evalSources: [],
   caseGlob: "",
   caseTags: [],
   allowTools: [],
@@ -163,8 +166,8 @@ export function evalFormProblem(
   if (!isWhole(settings.concurrency, 1, MAX_EVAL_CONCURRENCY)) {
     return `Tries at once must be a whole number from 1 to ${MAX_EVAL_CONCURRENCY}.`;
   }
-  if (subject === "agent" && settings.caseSources.length === 0) {
-    return "Pick at least one plugin whose cases run.";
+  if (subject === "agent" && settings.caseSources.length === 0 && settings.evalSources.length === 0) {
+    return "Pick at least one plugin or eval whose cases run.";
   }
   if (settings.caseGlob.length > 256) {
     return "The case name pattern is longer than 256 characters.";
@@ -193,9 +196,10 @@ export interface EvalSubjectRef {
  * names it by its id; on a plugin, its current version; on an agent, its
  * current version, with the plugin compared when one is picked. Whose
  * cases run is sent as none when it is `defaultCaseSources` (the compared
- * plugin's, else every attached one's), which the server reads the same
- * way against the agent version it stamps; else each by its slug in the
- * agent's organization.
+ * plugin's, else every attached one's) and no Eval is picked, which the
+ * server reads the same way against the agent version it stamps; else each
+ * plugin, then each Eval, by its slug in the agent's organization (an
+ * Eval at its current version).
  */
 export function evalRunInputOf(
   subject: EvalSubjectRef,
@@ -220,6 +224,7 @@ export function evalRunInputOf(
     return { ...shared, pluginId: subject.id, ablation };
   }
   const sameSources =
+    settings.evalSources.length === 0 &&
     settings.caseSources.length === defaultCaseSources.length &&
     defaultCaseSources.every((slug) => settings.caseSources.includes(slug));
   return {
@@ -227,9 +232,10 @@ export function evalRunInputOf(
     agentId: subject.id,
     cases: sameSources
       ? []
-      : settings.caseSources.map((slug) => ({
-          plugin: { org: subject.org, slug },
-        })),
+      : [
+          ...settings.caseSources.map((slug) => ({ plugin: { org: subject.org, slug } })),
+          ...settings.evalSources.map((slug) => ({ eval: { org: subject.org, slug } })),
+        ],
     ...(settings.comparedPluginId !== "" && {
       comparedPluginId: settings.comparedPluginId,
       ablation,
@@ -458,14 +464,14 @@ export interface EvalCaseSource {
   readonly phase: EvalRunPhase;
 }
 
-/** One plugin's cases in an eval run as a case list the results table reads. */
+/** One plugin's or Eval's cases in an eval run as a case list the results table reads. */
 export function evalCaseSourceOf(
   evalRun: EvalRun,
-  plugin: EvalRunPlugin,
+  source: Pick<EvalRunPlugin, "cases">,
 ): EvalCaseSource {
   return {
     targets: evalRun.spec?.targets ?? [],
-    cases: plugin.cases,
+    cases: source.cases,
     phase: evalRun.status?.phase ?? EvalRunPhase.unspecified,
   };
 }
@@ -486,8 +492,10 @@ export function caseSourceTargetLabelsOf(
   return labels;
 }
 
-/** One plugin a try loaded, as an eval run ran it. */
+/** One plugin a try loaded, or one Eval whose cases ran on the agent, as an eval run ran it. */
 export interface EvalRunPluginSection {
+  /** Where the cases come from: a plugin, or an Eval (whose id, slug and version fill the plugin's fields). */
+  readonly kind: "plugin" | "eval";
   readonly pluginId: string;
   readonly slug: string;
   /** The plugin version every try ran. */
@@ -507,13 +515,14 @@ export interface EvalRunPluginSection {
   readonly meanDelta: number | undefined;
 }
 
-/** An eval run's results, one section per plugin a try loaded, in the eval run's order. */
+/** An eval run's results, one section per plugin a try loaded in the eval run's order, then one per Eval. */
 export function evalRunSectionsOf(
   evalRun: EvalRun,
 ): readonly EvalRunPluginSection[] {
-  return (evalRun.status?.plugins ?? []).map((plugin) => {
+  const plugins = (evalRun.status?.plugins ?? []).map((plugin): EvalRunPluginSection => {
     const source = evalCaseSourceOf(evalRun, plugin);
     return {
+      kind: "plugin",
       pluginId: plugin.pluginId,
       slug: plugin.pluginSlug,
       digest: plugin.pluginDigest,
@@ -528,6 +537,25 @@ export function evalRunSectionsOf(
       meanDelta: plugin.aggregates?.meanDelta,
     };
   });
+  const evals = (evalRun.status?.evals ?? []).map((evalBlock): EvalRunPluginSection => {
+    const source = evalCaseSourceOf(evalRun, evalBlock);
+    return {
+      kind: "eval",
+      pluginId: evalBlock.evalId,
+      slug: evalBlock.evalSlug,
+      digest: evalBlock.evalDigest,
+      attached: false,
+      compared: false,
+      notRun: evalBlock.notRunReason,
+      labels: caseSourceTargetLabelsOf(source),
+      rows: caseSourceRowsOf(source),
+      casesPassed: evalBlock.aggregates?.casesPassed ?? 0,
+      casesTotal: evalBlock.aggregates?.casesTotal ?? 0,
+      score: evalBlock.aggregates?.overallScore,
+      meanDelta: evalBlock.aggregates?.meanDelta,
+    };
+  });
+  return [...plugins, ...evals];
 }
 
 /** Whether each case of an eval run ran with and without a plugin. */
@@ -660,8 +688,9 @@ export interface EvalCompareRow {
   readonly changed: boolean;
 }
 
-/** One plugin in two eval runs. */
+/** One plugin, or one Eval, in two eval runs. */
 export interface EvalRunCompareSection {
+  readonly kind: "plugin" | "eval";
   readonly slug: string;
   /** The plugin version in each eval run; `null` when that eval run did not have the plugin. */
   readonly beforeDigest: string | null;
@@ -679,46 +708,68 @@ export interface EvalRunCompareSection {
  * Two eval runs, plugin by plugin and case by case, `before` first: how a
  * new version (of the agent, or of the plugin) is judged against the last.
  * Plugins follow `after`'s order, then the ones only `before` had; a
- * plugin is matched by its slug.
+ * plugin is matched by its slug. Evals follow the plugins the same way,
+ * matched by their slug.
  */
 export function compareEvalRuns(
   before: EvalRun,
   after: EvalRun,
 ): readonly EvalRunCompareSection[] {
-  const was = new Map(
-    (before.status?.plugins ?? []).map((plugin) => [plugin.pluginSlug, plugin]),
-  );
-  const now = new Map(
-    (after.status?.plugins ?? []).map((plugin) => [plugin.pluginSlug, plugin]),
-  );
+  const sourcesOf = (evalRun: EvalRun): Map<string, CompareSource> =>
+    new Map([
+      ...(evalRun.status?.plugins ?? []).map(
+        (plugin): [string, CompareSource] => [
+          `plugin:${plugin.pluginSlug}`,
+          { kind: "plugin", slug: plugin.pluginSlug, digest: plugin.pluginDigest, notRun: plugin.notRunReason, cases: plugin.cases },
+        ],
+      ),
+      ...(evalRun.status?.evals ?? []).map(
+        (evalBlock): [string, CompareSource] => [
+          `eval:${evalBlock.evalSlug}`,
+          { kind: "eval", slug: evalBlock.evalSlug, digest: evalBlock.evalDigest, notRun: evalBlock.notRunReason, cases: evalBlock.cases },
+        ],
+      ),
+    ]);
+  const was = sourcesOf(before);
+  const now = sourcesOf(after);
   const empty = (evalRun: EvalRun): EvalCaseSource => ({
     targets: evalRun.spec?.targets ?? [],
     cases: [],
     phase: evalRun.status?.phase ?? EvalRunPhase.unspecified,
   });
   const section = (
-    slug: string,
-    a: EvalRunPlugin | undefined,
-    b: EvalRunPlugin | undefined,
+    a: CompareSource | undefined,
+    b: CompareSource | undefined,
   ): EvalRunCompareSection => ({
-    slug,
-    beforeDigest: a?.pluginDigest ?? null,
-    afterDigest: b?.pluginDigest ?? null,
-    digestChanged:
-      a !== undefined && b !== undefined && a.pluginDigest !== b.pluginDigest,
-    beforeNotRun: a?.notRunReason ?? "",
-    afterNotRun: b?.notRunReason ?? "",
+    kind: (b ?? a)?.kind ?? "plugin",
+    slug: (b ?? a)?.slug ?? "",
+    beforeDigest: a?.digest ?? null,
+    afterDigest: b?.digest ?? null,
+    digestChanged: a !== undefined && b !== undefined && a.digest !== b.digest,
+    beforeNotRun: a?.notRun ?? "",
+    afterNotRun: b?.notRun ?? "",
     rows: compareCaseSources(
       a === undefined ? empty(before) : evalCaseSourceOf(before, a),
       b === undefined ? empty(after) : evalCaseSourceOf(after, b),
     ),
   });
-  return [
-    ...[...now].map(([slug, b]) => section(slug, was.get(slug), b)),
-    ...[...was]
-      .filter(([slug]) => !now.has(slug))
-      .map(([slug, a]) => section(slug, a, undefined)),
+  const ordered = (sections: EvalRunCompareSection[]): EvalRunCompareSection[] => [
+    ...sections.filter((entry) => entry.kind === "plugin"),
+    ...sections.filter((entry) => entry.kind === "eval"),
   ];
+  return ordered([
+    ...[...now].map(([key, b]) => section(was.get(key), b)),
+    ...[...was].filter(([key]) => !now.has(key)).map(([, a]) => section(a, undefined)),
+  ]);
+}
+
+/** One plugin's or Eval's cases in an eval run, as a comparison reads them. */
+interface CompareSource {
+  readonly kind: "plugin" | "eval";
+  readonly slug: string;
+  readonly digest: string;
+  readonly notRun: string;
+  readonly cases: EvalRunPlugin["cases"];
 }
 
 /**

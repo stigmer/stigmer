@@ -7,8 +7,7 @@ package ai.stigmer.agentic.evalrun.v1;
 
 /**
  * <pre>
- * EvalRunMockedServer is one plugin MCP server as a case's tries see
- * it.
+ * EvalRunMockedServer is one MCP server as a case's tries see it.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer}
@@ -62,7 +61,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object name_ = "";
   /**
    * <pre>
-   * The server's name in the run, as in "plugin_tracker_issues".
+   * The server's name in the run, as in "plugin_tracker_issues" or an
+   * agent's own "billing".
    * </pre>
    *
    * <code>string name = 1 [json_name = "name"];</code>
@@ -83,7 +83,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The server's name in the run, as in "plugin_tracker_issues".
+   * The server's name in the run, as in "plugin_tracker_issues" or an
+   * agent's own "billing".
    * </pre>
    *
    * <code>string name = 1 [json_name = "name"];</code>
@@ -162,7 +163,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object notStartedReason_ = "";
   /**
    * <pre>
-   * Why the server is not started, as in "not started: no mock"; empty
+   * Why the server is not started, as in "not started: no mock", or why
+   * its mocks answer nothing, as in "no such server on the agent"; empty
    * when its mocks answer.
    * </pre>
    *
@@ -184,7 +186,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Why the server is not started, as in "not started: no mock"; empty
+   * Why the server is not started, as in "not started: no mock", or why
+   * its mocks answer nothing, as in "no such server on the agent"; empty
    * when its mocks answer.
    * </pre>
    *
@@ -391,8 +394,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * EvalRunMockedServer is one plugin MCP server as a case's tries see
-   * it.
+   * EvalRunMockedServer is one MCP server as a case's tries see it.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.evalrun.v1.EvalRunMockedServer}
@@ -570,7 +572,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object name_ = "";
     /**
      * <pre>
-     * The server's name in the run, as in "plugin_tracker_issues".
+     * The server's name in the run, as in "plugin_tracker_issues" or an
+     * agent's own "billing".
      * </pre>
      *
      * <code>string name = 1 [json_name = "name"];</code>
@@ -590,7 +593,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The server's name in the run, as in "plugin_tracker_issues".
+     * The server's name in the run, as in "plugin_tracker_issues" or an
+     * agent's own "billing".
      * </pre>
      *
      * <code>string name = 1 [json_name = "name"];</code>
@@ -611,7 +615,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The server's name in the run, as in "plugin_tracker_issues".
+     * The server's name in the run, as in "plugin_tracker_issues" or an
+     * agent's own "billing".
      * </pre>
      *
      * <code>string name = 1 [json_name = "name"];</code>
@@ -628,7 +633,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The server's name in the run, as in "plugin_tracker_issues".
+     * The server's name in the run, as in "plugin_tracker_issues" or an
+     * agent's own "billing".
      * </pre>
      *
      * <code>string name = 1 [json_name = "name"];</code>
@@ -642,7 +648,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The server's name in the run, as in "plugin_tracker_issues".
+     * The server's name in the run, as in "plugin_tracker_issues" or an
+     * agent's own "billing".
      * </pre>
      *
      * <code>string name = 1 [json_name = "name"];</code>
@@ -809,7 +816,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object notStartedReason_ = "";
     /**
      * <pre>
-     * Why the server is not started, as in "not started: no mock"; empty
+     * Why the server is not started, as in "not started: no mock", or why
+     * its mocks answer nothing, as in "no such server on the agent"; empty
      * when its mocks answer.
      * </pre>
      *
@@ -830,7 +838,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Why the server is not started, as in "not started: no mock"; empty
+     * Why the server is not started, as in "not started: no mock", or why
+     * its mocks answer nothing, as in "no such server on the agent"; empty
      * when its mocks answer.
      * </pre>
      *
@@ -852,7 +861,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Why the server is not started, as in "not started: no mock"; empty
+     * Why the server is not started, as in "not started: no mock", or why
+     * its mocks answer nothing, as in "no such server on the agent"; empty
      * when its mocks answer.
      * </pre>
      *
@@ -870,7 +880,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Why the server is not started, as in "not started: no mock"; empty
+     * Why the server is not started, as in "not started: no mock", or why
+     * its mocks answer nothing, as in "no such server on the agent"; empty
      * when its mocks answer.
      * </pre>
      *
@@ -885,7 +896,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Why the server is not started, as in "not started: no mock"; empty
+     * Why the server is not started, as in "not started: no mock", or why
+     * its mocks answer nothing, as in "no such server on the agent"; empty
      * when its mocks answer.
      * </pre>
      *

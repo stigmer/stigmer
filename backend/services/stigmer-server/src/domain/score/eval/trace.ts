@@ -130,10 +130,11 @@ export const SKILL_READ_PATH =
 
 /**
  * A read of a plugin skill's file inside the plugin's mounted tree (the
- * module header): the skill's path in the plugin captured.
+ * module header): the mount's name, the plugin's digest, and the skill's
+ * path in the plugin captured.
  */
 export const PLUGIN_SKILL_READ_PATH =
-  /(?:^|\/)(?:\.stigmer|platform)\/plugins\/[^/]+\/(.+)\/SKILL\.md$/;
+  /(?:^|\/)(?:\.stigmer|platform)\/plugins\/([^/]+)\/(.+)\/SKILL\.md$/;
 
 /** The argument names a file tool carries its path in, on either engine. */
 const PATH_ARGUMENTS = [
@@ -152,6 +153,15 @@ export interface EvalTraceDeps {
   readonly harness: Harness;
   /** The plugin's skills' names by their path in the plugin (`PluginSkill.path`); none when absent. */
   readonly skillNames?: ReadonlyMap<string, string>;
+  /**
+   * For a case that is no plugin's own (an Eval's, run on an agent): each
+   * plugin the try loads, by the digest its mount is named after, with its
+   * name and its skills' names. A skill read in one's mount is
+   * `<plugin>:<skill>`, and an organization's own skill is named bare, as a
+   * turn on the agent names them. Absent, every skill read is the case's
+   * plugin's (`pluginName`).
+   */
+  readonly pluginsByDigest?: ReadonlyMap<string, { readonly name: string; readonly skillNames: ReadonlyMap<string, string> }>;
   /** The workspace-relative paths whose content the graders read. */
   readonly wantedFiles: ReadonlyArray<string>;
   /** The run's artifact store, for content the runner offloaded. */
@@ -279,7 +289,6 @@ function namedCall(
   deps: EvalTraceDeps,
   created: ReadonlySet<string>,
 ): EvalToolCall {
-  const { pluginName } = deps;
   const args: JsonObject = use.input;
   const input = JSON.stringify(args);
   if (use.mcpServerName !== "") {
@@ -294,19 +303,30 @@ function namedCall(
         : "modify";
   const name = claudeNameOf(engine, use.name, fileChange);
   if (name === "Read" && path !== undefined) {
-    const pluginSkill = PLUGIN_SKILL_READ_PATH.exec(path)?.[1];
-    const skill =
-      pluginSkill === undefined
-        ? SKILL_READ_PATH.exec(path)?.[1]
-        : (deps.skillNames?.get(pluginSkill) ?? pluginSkill.split("/").pop());
+    const skill = skillReadOf(path, deps);
     if (skill !== undefined) {
-      return {
-        name: "Skill",
-        input: JSON.stringify({ skill: `${pluginName}:${skill}` }),
-      };
+      return { name: "Skill", input: JSON.stringify({ skill }) };
     }
   }
   return { name, input };
+}
+
+/** The skill a read of `path` loads, as the format names it; undefined when the path is no skill's. */
+function skillReadOf(path: string, deps: EvalTraceDeps): string | undefined {
+  const pluginRead = PLUGIN_SKILL_READ_PATH.exec(path);
+  const byDigest = deps.pluginsByDigest;
+  if (pluginRead !== null) {
+    const [, digest = "", skillPath = ""] = pluginRead;
+    const plugin = byDigest?.get(digest);
+    const names = byDigest === undefined ? deps.skillNames : plugin?.skillNames;
+    const skill = names?.get(skillPath) ?? skillPath.split("/").pop() ?? skillPath;
+    if (byDigest === undefined) return `${deps.pluginName}:${skill}`;
+    // A mount whose plugin version is gone since names its skill by path alone.
+    return plugin === undefined ? skill : `${plugin.name}:${skill}`;
+  }
+  const own = SKILL_READ_PATH.exec(path)?.[1];
+  if (own === undefined) return undefined;
+  return byDigest === undefined ? `${deps.pluginName}:${own}` : own;
 }
 
 function pathArgumentOf(args: JsonObject): string | undefined {

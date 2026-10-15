@@ -82,10 +82,11 @@ message EvalRunSpec {
   // server-composed excluded_plugin_ids.
   string compared_plugin_id = 5 [(buf.validate.field).string.max_len = 128];
 
-  // Whose cases run, on an agent: each a plugin the agent attaches or the
-  // compared plugin. Empty runs the compared plugin's cases when one is
-  // named, else the cases of every plugin the agent attaches. Only with
-  // agent_id; an eval run of a plugin runs that plugin's own cases.
+  // Whose cases run, on an agent: Evals of the agent's organization, and
+  // plugins the agent attaches or the compared plugin. Empty runs the
+  // compared plugin's cases when one is named, else the cases of every
+  // plugin the agent attaches. Only with agent_id; an eval run of a plugin
+  // runs that plugin's own cases.
   repeated EvalRunCaseSource cases = 6 [(buf.validate.field).repeated.max_items = 64];
 
   // The engines and models each case runs on, at most six. Empty runs each
@@ -227,6 +228,17 @@ message EvalRunCaseSource {
     // A plugin whose evals/ folder holds the cases: one the agent attaches,
     // or the compared plugin.
     ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1 [(ai.stigmer.commons.apiresource.reference_kind) = plugin];
+
+    // An Eval of the agent's organization whose cases run on the agent: its
+    // current version, or the tag or digest the reference's version names.
+    // The caller must be able to view it.
+    //
+    // @internal
+    // Create resolves the version and stamps its digest in status.evals;
+    // every try reads that version, whatever is pushed since. Its mocks
+    // stand in for the agent's own servers and its plugins' servers, named
+    // as the agent's tools name them.
+    ai.stigmer.commons.apiresource.ApiResourceReference eval = 2 [(ai.stigmer.commons.apiresource.reference_kind) = eval];
   }
 }
 

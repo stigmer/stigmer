@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/run/v1/eval_case.proto.
  */
 export const file_ai_stigmer_agentic_run_v1_eval_case: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2V2YWxfY2FzZS5wcm90bxIZYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MSLNBAoPRXZhbENhc2VDb250ZXh0EhoKCXBsdWdpbl9pZBgBIAEoCUIHukgEcgIQARIsCg1wbHVnaW5fZGlnZXN0GAIgASgJQhW6SBJyEDIOXlthLWYwLTldezY0fSQSGgoJc3VpdGVfZGlyGAMgASgJQge6SARyAhABEhkKCGNhc2VfZGlyGAQgASgJQge6SARyAhABEhcKD3NjYWZmb2xkX3NjcmlwdBgFIAEoCRIaCghhZGRfZGlycxgGIAMoCUIIukgFkgECECASFAoMaGlzdG9yeV9maWxlGAcgASgJEmgKA2VudhgIIAMoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRXZhbENhc2VDb250ZXh0LkVudkVudHJ5Qia6SCOaASAQQCIVchMyEV5FVkFMX1tBLVowLTlfXSokKgVyAxiAIBJCCgVtb2NrcxgJIAMoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRXZhbE1vY2tTZXJ2ZXJCCLpIBZIBAhAgEiIKEGFnZW50X21vY2tfbW9kZWwYCiABKAlCCLpIBXIDGIABEioKFmFnZW50X21vY2tfY2FsbF9idWRnZXQYCyABKAVCCrpIBxoFGKAGKAASJQoKcmVhZF9maWxlcxgMIAMoCUIRukgOkgELEEAiB3IFEAEYgAgSHQoLcGx1Z2luX25hbWUYDSABKAlCCLpIBXIDGIACGioKCEVudkVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiSQoJRXZhbEZpbGVzEjwKBWZpbGVzGAEgAygLMiMuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5FdmFsRmlsZUIIukgFkgECEEAidgoIRXZhbEZpbGUSFQoEcGF0aBgBIAEoCUIHukgEcgIQARIOCgR0ZXh0GAIgASgJSAASEAoGYmluYXJ5GAMgASgISAASEAoGYWJzZW50GAQgASgISAASFAoKdW5yZWFkYWJsZRgFIAEoCUgAQgkKB2NvbnRlbnQinAEKDkV2YWxNb2NrU2VydmVyEhcKBnNlcnZlchgBIAEoCUIHukgEcgIQARIYCgdzZWdtZW50GAIgASgJQge6SARyAhABEkMKBXRvb2xzGAMgAygLMicuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5FdmFsTW9ja1Rvb2xCC7pICJIBBQgBEIABEhIKCnRvb2xzX2ZpbGUYBCABKAkizAEKDEV2YWxNb2NrVG9vbBIVCgR0b29sGAEgASgJQge6SARyAhABEhUKBGZpbGUYAiABKAlCB7pIBHICEAESQQoEa2luZBgDIAEoDjInLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRXZhbE1vY2tLaW5kQgq6SAeCAQQQASAAEg0KBWVycm9yGAQgASgIEh4KC2V4cGVjdF9qc29uGAUgASgJQgm6SAZyBBiAgAESHAoKYWJvcnRfd2hlbhgGIAEoCUIIukgFcgMYgCAqYgoMRXZhbE1vY2tLaW5kEh4KGmV2YWxfbW9ja19raW5kX3Vuc3BlY2lmaWVkEAASGAoUZXZhbF9tb2NrX2tpbmRfZml4ZWQQARIYChRldmFsX21vY2tfa2luZF9hZ2VudBACYgZwcm90bzM", [file_buf_validate_validate]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2V2YWxfY2FzZS5wcm90bxIZYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MSL7CAoPRXZhbENhc2VDb250ZXh0EhEKCXBsdWdpbl9pZBgBIAEoCRIVCg1wbHVnaW5fZGlnZXN0GAIgASgJEhEKCXN1aXRlX2RpchgDIAEoCRIZCghjYXNlX2RpchgEIAEoCUIHukgEcgIQARIXCg9zY2FmZm9sZF9zY3JpcHQYBSABKAkSGgoIYWRkX2RpcnMYBiADKAlCCLpIBZIBAhAgEhQKDGhpc3RvcnlfZmlsZRgHIAEoCRJoCgNlbnYYCCADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkV2YWxDYXNlQ29udGV4dC5FbnZFbnRyeUImukgjmgEgEEAiFXITMhFeRVZBTF9bQS1aMC05X10qJCoFcgMYgCASQgoFbW9ja3MYCSADKAsyKS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkV2YWxNb2NrU2VydmVyQgi6SAWSAQIQIBIiChBhZ2VudF9tb2NrX21vZGVsGAogASgJQgi6SAVyAxiAARIqChZhZ2VudF9tb2NrX2NhbGxfYnVkZ2V0GAsgASgFQgq6SAcaBRigBigAEiUKCnJlYWRfZmlsZXMYDCADKAlCEbpIDpIBCxBAIgdyBRABGIAIEh0KC3BsdWdpbl9uYW1lGA0gASgJQgi6SAVyAxiAAhIZCgdldmFsX2lkGA4gASgJQgi6SAVyAxiAARITCgtldmFsX2RpZ2VzdBgPIAEoCRoqCghFbnZFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBOqQEukigBBqFAQoUZXZhbF9jYXNlLm9uZV9zb3VyY2USPWV4YWN0bHkgb25lIG9mIHBsdWdpbl9pZCBhbmQgZXZhbF9pZCBuYW1lcyB0aGUgY2FzZSdzIGFyY2hpdmUaLih0aGlzLnBsdWdpbl9pZCAhPSAnJykgIT0gKHRoaXMuZXZhbF9pZCAhPSAnJykakQEKF2V2YWxfY2FzZS5wbHVnaW5fZGlnZXN0EjBhIHBsdWdpbidzIGNhc2UgbmFtZXMgdGhlIHBsdWdpbiB2ZXJzaW9uIGl0IHJ1bnMaRHRoaXMucGx1Z2luX2lkID09ICcnIHx8IHRoaXMucGx1Z2luX2RpZ2VzdC5tYXRjaGVzKCdeW2EtZjAtOV17NjR9JCcpGogBChVldmFsX2Nhc2UuZXZhbF9kaWdlc3QSLWFuIEV2YWwncyBjYXNlIG5hbWVzIHRoZSBFdmFsIHZlcnNpb24gaXQgcnVucxpAdGhpcy5ldmFsX2lkID09ICcnIHx8IHRoaXMuZXZhbF9kaWdlc3QubWF0Y2hlcygnXlthLWYwLTldezY0fSQnKRp3ChpldmFsX2Nhc2UucGx1Z2luX3N1aXRlX2RpchIrYSBwbHVnaW4ncyBjYXNlIG5hbWVzIGl0cyBzdWl0ZSdzIGRpcmVjdG9yeRosdGhpcy5wbHVnaW5faWQgPT0gJycgfHwgdGhpcy5zdWl0ZV9kaXIgIT0gJyciSQoJRXZhbEZpbGVzEjwKBWZpbGVzGAEgAygLMiMuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5FdmFsRmlsZUIIukgFkgECEEAidgoIRXZhbEZpbGUSFQoEcGF0aBgBIAEoCUIHukgEcgIQARIOCgR0ZXh0GAIgASgJSAASEAoGYmluYXJ5GAMgASgISAASEAoGYWJzZW50GAQgASgISAASFAoKdW5yZWFkYWJsZRgFIAEoCUgAQgkKB2NvbnRlbnQipAIKDkV2YWxNb2NrU2VydmVyEhcKBnNlcnZlchgBIAEoCUIHukgEcgIQARIYCgdzZWdtZW50GAIgASgJQge6SARyAhABEkMKBXRvb2xzGAMgAygLMicuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5FdmFsTW9ja1Rvb2xCC7pICJIBBQgBEIABEhIKCnRvb2xzX2ZpbGUYBCABKAkSPwoGcGx1Z2luGAUgASgLMi0uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5FdmFsTW9ja1BsdWdpbkhvbWVIABI9CgVhZ2VudBgGIAEoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRXZhbE1vY2tBZ2VudEhvbWVIAEIGCgRob21lImgKEkV2YWxNb2NrUGx1Z2luSG9tZRIaCglwbHVnaW5faWQYASABKAlCB7pIBHICEAESHQoLcGx1Z2luX25hbWUYAiABKAlCCLpIBXIDGIACEhcKBnNlcnZlchgDIAEoCUIHukgEcgIQASJHChFFdmFsTW9ja0FnZW50SG9tZRIZCghhZ2VudF9pZBgBIAEoCUIHukgEcgIQARIXCgZzZXJ2ZXIYAiABKAlCB7pIBHICEAEizAEKDEV2YWxNb2NrVG9vbBIVCgR0b29sGAEgASgJQge6SARyAhABEhUKBGZpbGUYAiABKAlCB7pIBHICEAESQQoEa2luZBgDIAEoDjInLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRXZhbE1vY2tLaW5kQgq6SAeCAQQQASAAEg0KBWVycm9yGAQgASgIEh4KC2V4cGVjdF9qc29uGAUgASgJQgm6SAZyBBiAgAESHAoKYWJvcnRfd2hlbhgGIAEoCUIIukgFcgMYgCAqYgoMRXZhbE1vY2tLaW5kEh4KGmV2YWxfbW9ja19raW5kX3Vuc3BlY2lmaWVkEAASGAoUZXZhbF9tb2NrX2tpbmRfZml4ZWQQARIYChRldmFsX21vY2tfa2luZF9hZ2VudBACYgZwcm90bzM", [file_buf_validate_validate]);
 
 /**
  * EvalCaseContext is what one eval case gives its try beyond
@@ -22,7 +22,7 @@ export const file_ai_stigmer_agentic_run_v1_eval_case: GenFile = /*@__PURE__*/
  */
 export type EvalCaseContext = Message<"ai.stigmer.agentic.run.v1.EvalCaseContext"> & {
   /**
-   * ID of the plugin whose case this is.
+   * ID of the plugin whose case this is; empty for an Eval's case.
    *
    * @generated from field: string plugin_id = 1;
    */
@@ -36,7 +36,8 @@ export type EvalCaseContext = Message<"ai.stigmer.agentic.run.v1.EvalCaseContext
   pluginDigest: string;
 
   /**
-   * The suite's directory, as in "evals".
+   * The suite's directory, as in "evals"; empty for an Eval's case, whose
+   * suite is its archive's root.
    *
    * @generated from field: string suite_dir = 3;
    */
@@ -115,6 +116,20 @@ export type EvalCaseContext = Message<"ai.stigmer.agentic.run.v1.EvalCaseContext
    * @generated from field: string plugin_name = 13;
    */
   pluginName: string;
+
+  /**
+   * ID of the Eval whose case this is; empty for a plugin's case.
+   *
+   * @generated from field: string eval_id = 14;
+   */
+  evalId: string;
+
+  /**
+   * The Eval version (archive digest) the eval run stamped.
+   *
+   * @generated from field: string eval_digest = 15;
+   */
+  evalDigest: string;
 };
 
 /**
@@ -208,20 +223,22 @@ export const EvalFileSchema: GenMessage<EvalFile> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_run_v1_eval_case, 2);
 
 /**
- * EvalMockServer is one plugin MCP server answered by a stand-in.
+ * EvalMockServer is one MCP server answered by a stand-in.
  *
  * @generated from message ai.stigmer.agentic.run.v1.EvalMockServer
  */
 export type EvalMockServer = Message<"ai.stigmer.agentic.run.v1.EvalMockServer"> & {
   /**
-   * The server's key in the plugin's MCP configuration.
+   * The directory under mocks/ the stand-in answers from: a plugin's
+   * server key for a plugin's case, the server's name in the turn for an
+   * Eval's.
    *
    * @generated from field: string server = 1;
    */
   server: string;
 
   /**
-   * The name the stand-in is registered under in the turn, the plugin
+   * The name the stand-in is registered under in the turn, the real
    * server's own.
    *
    * @generated from field: string segment = 2;
@@ -242,6 +259,30 @@ export type EvalMockServer = Message<"ai.stigmer.agentic.run.v1.EvalMockServer">
    * @generated from field: string tools_file = 4;
    */
   toolsFile: string;
+
+  /**
+   * Where the real server lives in the turn, which a hook reads as the
+   * stand-in's origin. Unset means the case's own plugin.
+   *
+   * @generated from oneof ai.stigmer.agentic.run.v1.EvalMockServer.home
+   */
+  home: {
+    /**
+     * A server of a plugin the turn loads.
+     *
+     * @generated from field: ai.stigmer.agentic.run.v1.EvalMockPluginHome plugin = 5;
+     */
+    value: EvalMockPluginHome;
+    case: "plugin";
+  } | {
+    /**
+     * One of the evaluated agent's own servers.
+     *
+     * @generated from field: ai.stigmer.agentic.run.v1.EvalMockAgentHome agent = 6;
+     */
+    value: EvalMockAgentHome;
+    case: "agent";
+  } | { case: undefined; value?: undefined };
 };
 
 /**
@@ -250,6 +291,68 @@ export type EvalMockServer = Message<"ai.stigmer.agentic.run.v1.EvalMockServer">
  */
 export const EvalMockServerSchema: GenMessage<EvalMockServer> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_run_v1_eval_case, 3);
+
+/**
+ * EvalMockPluginHome is a plugin server a stand-in replaces.
+ *
+ * @generated from message ai.stigmer.agentic.run.v1.EvalMockPluginHome
+ */
+export type EvalMockPluginHome = Message<"ai.stigmer.agentic.run.v1.EvalMockPluginHome"> & {
+  /**
+   * The plugin's ID and name.
+   *
+   * @generated from field: string plugin_id = 1;
+   */
+  pluginId: string;
+
+  /**
+   * @generated from field: string plugin_name = 2;
+   */
+  pluginName: string;
+
+  /**
+   * The server's key in the plugin's MCP configuration.
+   *
+   * @generated from field: string server = 3;
+   */
+  server: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.run.v1.EvalMockPluginHome.
+ * Use `create(EvalMockPluginHomeSchema)` to create a new message.
+ */
+export const EvalMockPluginHomeSchema: GenMessage<EvalMockPluginHome> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_run_v1_eval_case, 4);
+
+/**
+ * EvalMockAgentHome is one of the evaluated agent's own servers a stand-in
+ * replaces.
+ *
+ * @generated from message ai.stigmer.agentic.run.v1.EvalMockAgentHome
+ */
+export type EvalMockAgentHome = Message<"ai.stigmer.agentic.run.v1.EvalMockAgentHome"> & {
+  /**
+   * The agent's ID.
+   *
+   * @generated from field: string agent_id = 1;
+   */
+  agentId: string;
+
+  /**
+   * The server's name as the agent writes it.
+   *
+   * @generated from field: string server = 2;
+   */
+  server: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.run.v1.EvalMockAgentHome.
+ * Use `create(EvalMockAgentHomeSchema)` to create a new message.
+ */
+export const EvalMockAgentHomeSchema: GenMessage<EvalMockAgentHome> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_run_v1_eval_case, 5);
 
 /**
  * EvalMockTool is one mocked tool and how it answers.
@@ -305,7 +408,7 @@ export type EvalMockTool = Message<"ai.stigmer.agentic.run.v1.EvalMockTool"> & {
  * Use `create(EvalMockToolSchema)` to create a new message.
  */
 export const EvalMockToolSchema: GenMessage<EvalMockTool> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_eval_case, 4);
+  messageDesc(file_ai_stigmer_agentic_run_v1_eval_case, 6);
 
 /**
  * EvalMockKind is how a mocked tool answers.

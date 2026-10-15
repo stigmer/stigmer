@@ -4,7 +4,8 @@
  * as the suite's directory and no manifest read; every mock directory
  * whose name could be an MCP server's kept, and its name a finding when it
  * could not (`isToolNameSegment`); the suite's `servers` the mock
- * directories its cases read; a deep directory named against the folder's
+ * directories its cases read; a case naming `plugins` unsupported, since
+ * an agent loads its own; a deep directory named against the folder's
  * root. The plugin reader's own results are pinned unchanged by
  * `eval-suite.test.ts`.
  */
@@ -100,6 +101,17 @@ describe("a pushed folder", () => {
       });
     },
   );
+
+  it("does not run a case naming plugins: an agent loads its own, never the folder", () => {
+    const suite = folderOf({
+      "p/prompt.md": "---\nplugins: [\"..\"]\n---\nWith a plugin.",
+      "p/graders/judge.md": LLM_GRADER,
+    });
+    expect(suite.cases.map((evalCase) => [evalCase.dir, evalCase.unsupported])).toEqual([
+      ["c", undefined],
+      ["p", "plugins"],
+    ]);
+  });
 
   it("holds no case when none loads, every reason a finding", () => {
     const suite = readEvalFolder(inMemoryPluginFiles(new Map([["c/prompt.md", "Hi."]])));

@@ -47,6 +47,8 @@ private static final long serialVersionUID = 0L;
     readFiles_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
     pluginName_ = "";
+    evalId_ = "";
+    evalDigest_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -84,10 +86,10 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object pluginId_ = "";
   /**
    * <pre>
-   * ID of the plugin whose case this is.
+   * ID of the plugin whose case this is; empty for an Eval's case.
    * </pre>
    *
-   * <code>string plugin_id = 1 [json_name = "pluginId", (.buf.validate.field) = { ... }</code>
+   * <code>string plugin_id = 1 [json_name = "pluginId"];</code>
    * @return The pluginId.
    */
   @java.lang.Override
@@ -105,10 +107,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ID of the plugin whose case this is.
+   * ID of the plugin whose case this is; empty for an Eval's case.
    * </pre>
    *
-   * <code>string plugin_id = 1 [json_name = "pluginId", (.buf.validate.field) = { ... }</code>
+   * <code>string plugin_id = 1 [json_name = "pluginId"];</code>
    * @return The bytes for pluginId.
    */
   @java.lang.Override
@@ -134,7 +136,7 @@ private static final long serialVersionUID = 0L;
    * The plugin version (archive digest) the eval run stamped.
    * </pre>
    *
-   * <code>string plugin_digest = 2 [json_name = "pluginDigest", (.buf.validate.field) = { ... }</code>
+   * <code>string plugin_digest = 2 [json_name = "pluginDigest"];</code>
    * @return The pluginDigest.
    */
   @java.lang.Override
@@ -155,7 +157,7 @@ private static final long serialVersionUID = 0L;
    * The plugin version (archive digest) the eval run stamped.
    * </pre>
    *
-   * <code>string plugin_digest = 2 [json_name = "pluginDigest", (.buf.validate.field) = { ... }</code>
+   * <code>string plugin_digest = 2 [json_name = "pluginDigest"];</code>
    * @return The bytes for pluginDigest.
    */
   @java.lang.Override
@@ -178,10 +180,11 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object suiteDir_ = "";
   /**
    * <pre>
-   * The suite's directory, as in "evals".
+   * The suite's directory, as in "evals"; empty for an Eval's case, whose
+   * suite is its archive's root.
    * </pre>
    *
-   * <code>string suite_dir = 3 [json_name = "suiteDir", (.buf.validate.field) = { ... }</code>
+   * <code>string suite_dir = 3 [json_name = "suiteDir"];</code>
    * @return The suiteDir.
    */
   @java.lang.Override
@@ -199,10 +202,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The suite's directory, as in "evals".
+   * The suite's directory, as in "evals"; empty for an Eval's case, whose
+   * suite is its archive's root.
    * </pre>
    *
-   * <code>string suite_dir = 3 [json_name = "suiteDir", (.buf.validate.field) = { ... }</code>
+   * <code>string suite_dir = 3 [json_name = "suiteDir"];</code>
    * @return The bytes for suiteDir.
    */
   @java.lang.Override
@@ -746,6 +750,100 @@ java.lang.String defaultValue) {
     }
   }
 
+  public static final int EVAL_ID_FIELD_NUMBER = 14;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object evalId_ = "";
+  /**
+   * <pre>
+   * ID of the Eval whose case this is; empty for a plugin's case.
+   * </pre>
+   *
+   * <code>string eval_id = 14 [json_name = "evalId", (.buf.validate.field) = { ... }</code>
+   * @return The evalId.
+   */
+  @java.lang.Override
+  public java.lang.String getEvalId() {
+    java.lang.Object ref = evalId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      evalId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * ID of the Eval whose case this is; empty for a plugin's case.
+   * </pre>
+   *
+   * <code>string eval_id = 14 [json_name = "evalId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for evalId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getEvalIdBytes() {
+    java.lang.Object ref = evalId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      evalId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int EVAL_DIGEST_FIELD_NUMBER = 15;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object evalDigest_ = "";
+  /**
+   * <pre>
+   * The Eval version (archive digest) the eval run stamped.
+   * </pre>
+   *
+   * <code>string eval_digest = 15 [json_name = "evalDigest"];</code>
+   * @return The evalDigest.
+   */
+  @java.lang.Override
+  public java.lang.String getEvalDigest() {
+    java.lang.Object ref = evalDigest_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      evalDigest_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The Eval version (archive digest) the eval run stamped.
+   * </pre>
+   *
+   * <code>string eval_digest = 15 [json_name = "evalDigest"];</code>
+   * @return The bytes for evalDigest.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getEvalDigestBytes() {
+    java.lang.Object ref = evalDigest_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      evalDigest_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -801,6 +899,12 @@ java.lang.String defaultValue) {
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pluginName_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 13, pluginName_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(evalId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 14, evalId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(evalDigest_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 15, evalDigest_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -874,6 +978,12 @@ java.lang.String defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pluginName_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(13, pluginName_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(evalId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(14, evalId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(evalDigest_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(15, evalDigest_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -915,6 +1025,10 @@ java.lang.String defaultValue) {
         .equals(other.getReadFilesList())) return false;
     if (!getPluginName()
         .equals(other.getPluginName())) return false;
+    if (!getEvalId()
+        .equals(other.getEvalId())) return false;
+    if (!getEvalDigest()
+        .equals(other.getEvalDigest())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -960,6 +1074,10 @@ java.lang.String defaultValue) {
     }
     hash = (37 * hash) + PLUGIN_NAME_FIELD_NUMBER;
     hash = (53 * hash) + getPluginName().hashCode();
+    hash = (37 * hash) + EVAL_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getEvalId().hashCode();
+    hash = (37 * hash) + EVAL_DIGEST_FIELD_NUMBER;
+    hash = (53 * hash) + getEvalDigest().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1140,6 +1258,8 @@ java.lang.String defaultValue) {
       readFiles_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       pluginName_ = "";
+      evalId_ = "";
+      evalDigest_ = "";
       return this;
     }
 
@@ -1224,6 +1344,12 @@ java.lang.String defaultValue) {
       }
       if (((from_bitField0_ & 0x00001000) != 0)) {
         result.pluginName_ = pluginName_;
+      }
+      if (((from_bitField0_ & 0x00002000) != 0)) {
+        result.evalId_ = evalId_;
+      }
+      if (((from_bitField0_ & 0x00004000) != 0)) {
+        result.evalDigest_ = evalDigest_;
       }
     }
 
@@ -1331,6 +1457,16 @@ java.lang.String defaultValue) {
         bitField0_ |= 0x00001000;
         onChanged();
       }
+      if (!other.getEvalId().isEmpty()) {
+        evalId_ = other.evalId_;
+        bitField0_ |= 0x00002000;
+        onChanged();
+      }
+      if (!other.getEvalDigest().isEmpty()) {
+        evalDigest_ = other.evalDigest_;
+        bitField0_ |= 0x00004000;
+        onChanged();
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1434,6 +1570,16 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00001000;
               break;
             } // case 106
+            case 114: {
+              evalId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00002000;
+              break;
+            } // case 114
+            case 122: {
+              evalDigest_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00004000;
+              break;
+            } // case 122
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1454,10 +1600,10 @@ java.lang.String defaultValue) {
     private java.lang.Object pluginId_ = "";
     /**
      * <pre>
-     * ID of the plugin whose case this is.
+     * ID of the plugin whose case this is; empty for an Eval's case.
      * </pre>
      *
-     * <code>string plugin_id = 1 [json_name = "pluginId", (.buf.validate.field) = { ... }</code>
+     * <code>string plugin_id = 1 [json_name = "pluginId"];</code>
      * @return The pluginId.
      */
     public java.lang.String getPluginId() {
@@ -1474,10 +1620,10 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * ID of the plugin whose case this is.
+     * ID of the plugin whose case this is; empty for an Eval's case.
      * </pre>
      *
-     * <code>string plugin_id = 1 [json_name = "pluginId", (.buf.validate.field) = { ... }</code>
+     * <code>string plugin_id = 1 [json_name = "pluginId"];</code>
      * @return The bytes for pluginId.
      */
     public com.google.protobuf.ByteString
@@ -1495,10 +1641,10 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * ID of the plugin whose case this is.
+     * ID of the plugin whose case this is; empty for an Eval's case.
      * </pre>
      *
-     * <code>string plugin_id = 1 [json_name = "pluginId", (.buf.validate.field) = { ... }</code>
+     * <code>string plugin_id = 1 [json_name = "pluginId"];</code>
      * @param value The pluginId to set.
      * @return This builder for chaining.
      */
@@ -1512,10 +1658,10 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * ID of the plugin whose case this is.
+     * ID of the plugin whose case this is; empty for an Eval's case.
      * </pre>
      *
-     * <code>string plugin_id = 1 [json_name = "pluginId", (.buf.validate.field) = { ... }</code>
+     * <code>string plugin_id = 1 [json_name = "pluginId"];</code>
      * @return This builder for chaining.
      */
     public Builder clearPluginId() {
@@ -1526,10 +1672,10 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * ID of the plugin whose case this is.
+     * ID of the plugin whose case this is; empty for an Eval's case.
      * </pre>
      *
-     * <code>string plugin_id = 1 [json_name = "pluginId", (.buf.validate.field) = { ... }</code>
+     * <code>string plugin_id = 1 [json_name = "pluginId"];</code>
      * @param value The bytes for pluginId to set.
      * @return This builder for chaining.
      */
@@ -1549,7 +1695,7 @@ java.lang.String defaultValue) {
      * The plugin version (archive digest) the eval run stamped.
      * </pre>
      *
-     * <code>string plugin_digest = 2 [json_name = "pluginDigest", (.buf.validate.field) = { ... }</code>
+     * <code>string plugin_digest = 2 [json_name = "pluginDigest"];</code>
      * @return The pluginDigest.
      */
     public java.lang.String getPluginDigest() {
@@ -1569,7 +1715,7 @@ java.lang.String defaultValue) {
      * The plugin version (archive digest) the eval run stamped.
      * </pre>
      *
-     * <code>string plugin_digest = 2 [json_name = "pluginDigest", (.buf.validate.field) = { ... }</code>
+     * <code>string plugin_digest = 2 [json_name = "pluginDigest"];</code>
      * @return The bytes for pluginDigest.
      */
     public com.google.protobuf.ByteString
@@ -1590,7 +1736,7 @@ java.lang.String defaultValue) {
      * The plugin version (archive digest) the eval run stamped.
      * </pre>
      *
-     * <code>string plugin_digest = 2 [json_name = "pluginDigest", (.buf.validate.field) = { ... }</code>
+     * <code>string plugin_digest = 2 [json_name = "pluginDigest"];</code>
      * @param value The pluginDigest to set.
      * @return This builder for chaining.
      */
@@ -1607,7 +1753,7 @@ java.lang.String defaultValue) {
      * The plugin version (archive digest) the eval run stamped.
      * </pre>
      *
-     * <code>string plugin_digest = 2 [json_name = "pluginDigest", (.buf.validate.field) = { ... }</code>
+     * <code>string plugin_digest = 2 [json_name = "pluginDigest"];</code>
      * @return This builder for chaining.
      */
     public Builder clearPluginDigest() {
@@ -1621,7 +1767,7 @@ java.lang.String defaultValue) {
      * The plugin version (archive digest) the eval run stamped.
      * </pre>
      *
-     * <code>string plugin_digest = 2 [json_name = "pluginDigest", (.buf.validate.field) = { ... }</code>
+     * <code>string plugin_digest = 2 [json_name = "pluginDigest"];</code>
      * @param value The bytes for pluginDigest to set.
      * @return This builder for chaining.
      */
@@ -1638,10 +1784,11 @@ java.lang.String defaultValue) {
     private java.lang.Object suiteDir_ = "";
     /**
      * <pre>
-     * The suite's directory, as in "evals".
+     * The suite's directory, as in "evals"; empty for an Eval's case, whose
+     * suite is its archive's root.
      * </pre>
      *
-     * <code>string suite_dir = 3 [json_name = "suiteDir", (.buf.validate.field) = { ... }</code>
+     * <code>string suite_dir = 3 [json_name = "suiteDir"];</code>
      * @return The suiteDir.
      */
     public java.lang.String getSuiteDir() {
@@ -1658,10 +1805,11 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The suite's directory, as in "evals".
+     * The suite's directory, as in "evals"; empty for an Eval's case, whose
+     * suite is its archive's root.
      * </pre>
      *
-     * <code>string suite_dir = 3 [json_name = "suiteDir", (.buf.validate.field) = { ... }</code>
+     * <code>string suite_dir = 3 [json_name = "suiteDir"];</code>
      * @return The bytes for suiteDir.
      */
     public com.google.protobuf.ByteString
@@ -1679,10 +1827,11 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The suite's directory, as in "evals".
+     * The suite's directory, as in "evals"; empty for an Eval's case, whose
+     * suite is its archive's root.
      * </pre>
      *
-     * <code>string suite_dir = 3 [json_name = "suiteDir", (.buf.validate.field) = { ... }</code>
+     * <code>string suite_dir = 3 [json_name = "suiteDir"];</code>
      * @param value The suiteDir to set.
      * @return This builder for chaining.
      */
@@ -1696,10 +1845,11 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The suite's directory, as in "evals".
+     * The suite's directory, as in "evals"; empty for an Eval's case, whose
+     * suite is its archive's root.
      * </pre>
      *
-     * <code>string suite_dir = 3 [json_name = "suiteDir", (.buf.validate.field) = { ... }</code>
+     * <code>string suite_dir = 3 [json_name = "suiteDir"];</code>
      * @return This builder for chaining.
      */
     public Builder clearSuiteDir() {
@@ -1710,10 +1860,11 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The suite's directory, as in "evals".
+     * The suite's directory, as in "evals"; empty for an Eval's case, whose
+     * suite is its archive's root.
      * </pre>
      *
-     * <code>string suite_dir = 3 [json_name = "suiteDir", (.buf.validate.field) = { ... }</code>
+     * <code>string suite_dir = 3 [json_name = "suiteDir"];</code>
      * @param value The bytes for suiteDir to set.
      * @return This builder for chaining.
      */
@@ -3020,6 +3171,190 @@ java.lang.String defaultValue) {
       checkByteStringIsUtf8(value);
       pluginName_ = value;
       bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object evalId_ = "";
+    /**
+     * <pre>
+     * ID of the Eval whose case this is; empty for a plugin's case.
+     * </pre>
+     *
+     * <code>string eval_id = 14 [json_name = "evalId", (.buf.validate.field) = { ... }</code>
+     * @return The evalId.
+     */
+    public java.lang.String getEvalId() {
+      java.lang.Object ref = evalId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        evalId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * ID of the Eval whose case this is; empty for a plugin's case.
+     * </pre>
+     *
+     * <code>string eval_id = 14 [json_name = "evalId", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for evalId.
+     */
+    public com.google.protobuf.ByteString
+        getEvalIdBytes() {
+      java.lang.Object ref = evalId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        evalId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * ID of the Eval whose case this is; empty for a plugin's case.
+     * </pre>
+     *
+     * <code>string eval_id = 14 [json_name = "evalId", (.buf.validate.field) = { ... }</code>
+     * @param value The evalId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setEvalId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      evalId_ = value;
+      bitField0_ |= 0x00002000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * ID of the Eval whose case this is; empty for a plugin's case.
+     * </pre>
+     *
+     * <code>string eval_id = 14 [json_name = "evalId", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearEvalId() {
+      evalId_ = getDefaultInstance().getEvalId();
+      bitField0_ = (bitField0_ & ~0x00002000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * ID of the Eval whose case this is; empty for a plugin's case.
+     * </pre>
+     *
+     * <code>string eval_id = 14 [json_name = "evalId", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for evalId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setEvalIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      evalId_ = value;
+      bitField0_ |= 0x00002000;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object evalDigest_ = "";
+    /**
+     * <pre>
+     * The Eval version (archive digest) the eval run stamped.
+     * </pre>
+     *
+     * <code>string eval_digest = 15 [json_name = "evalDigest"];</code>
+     * @return The evalDigest.
+     */
+    public java.lang.String getEvalDigest() {
+      java.lang.Object ref = evalDigest_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        evalDigest_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The Eval version (archive digest) the eval run stamped.
+     * </pre>
+     *
+     * <code>string eval_digest = 15 [json_name = "evalDigest"];</code>
+     * @return The bytes for evalDigest.
+     */
+    public com.google.protobuf.ByteString
+        getEvalDigestBytes() {
+      java.lang.Object ref = evalDigest_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        evalDigest_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The Eval version (archive digest) the eval run stamped.
+     * </pre>
+     *
+     * <code>string eval_digest = 15 [json_name = "evalDigest"];</code>
+     * @param value The evalDigest to set.
+     * @return This builder for chaining.
+     */
+    public Builder setEvalDigest(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      evalDigest_ = value;
+      bitField0_ |= 0x00004000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The Eval version (archive digest) the eval run stamped.
+     * </pre>
+     *
+     * <code>string eval_digest = 15 [json_name = "evalDigest"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearEvalDigest() {
+      evalDigest_ = getDefaultInstance().getEvalDigest();
+      bitField0_ = (bitField0_ & ~0x00004000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The Eval version (archive digest) the eval run stamped.
+     * </pre>
+     *
+     * <code>string eval_digest = 15 [json_name = "evalDigest"];</code>
+     * @param value The bytes for evalDigest to set.
+     * @return This builder for chaining.
+     */
+    public Builder setEvalDigestBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      evalDigest_ = value;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }

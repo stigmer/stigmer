@@ -11,14 +11,17 @@
  * On an agent: what an eval run on the agent is, and that a plugin's cases
  * were written for the plugin, so a case can fail because the agent was
  * told to do something else and the case filters leave such a case out;
- * for an agent that attaches no plugins, that its cases live in plugins,
- * and a way to its plugins. Then the Run evals form, for editors only:
+ * that cases also live in Evals, folders of cases pushed with
+ * `stigmer push eval`; for an agent that attaches no plugins in an
+ * organization with no Evals, where cases live and a way to its plugins.
+ * Then the Run evals form, for editors only:
  * each case's own model (on an agent, the agent as it runs) or the models
  * picked, tries per case, the cost limit, tries at once, and the
  * comparison: on a plugin, whether each case also runs without it; on an
  * agent, a plugin to compare (attached or not, among the organization's
  * plugins), whether each case also runs without it, whose cases run (the
- * compared plugin's when one is picked, else every attached one's), the
+ * compared plugin's when one is picked, else every attached one's, and any
+ * of the organization's Evals the caller may view, picked beside them), the
  * case filters and the tools every try may use beyond its case's own,
  * since a try gets only those. Then the past eval runs, newest first, each
  * labelled by the plugin, or by the agent version and the plugin it
@@ -26,8 +29,9 @@
  * read again that fails keeps the last list with a small notice; only a
  * first read that fails shows the error alone); the eval run opened
  * ({@link EvalRunResults}); and Compare, which puts two eval runs side by
- * side plugin by plugin and case by case, how a new version is judged
- * against the last, marks a plugin whose version differs between them, and
+ * side plugin by plugin, then Eval by Eval, and case by case, how a new
+ * version is judged against the last, marks a source whose version differs
+ * between them, and
  * shows a read that failed rather than loading forever.
  *
  * The form and an eval run's Cancel are gated on `can_edit` on the agent
@@ -53,6 +57,7 @@ import { LoadMoreFooter } from "../internal/LoadMoreFooter.js";
 import { usePluginList } from "../plugin/usePluginList.js";
 import { Section } from "../resource-detail/Section.js";
 import { Switch } from "../switch/Switch.js";
+import { useEvals } from "./useEvals.js";
 import {
   INPUT_CLASS,
   PRIMARY_BUTTON_CLASS,
@@ -155,6 +160,12 @@ export function EvalRunsTab(props: EvalRunsTabProps) {
           .map((ref) => ref.slug)
           .filter((each) => each !== "");
   const suite = props.plugin?.status?.evals;
+  // On an agent: the organization's Evals the caller may view, each a
+  // source of cases beside the plugins.
+  const { evals: orgEvals } = useEvals(kind === "agent" ? subject.org : "");
+  const evalSlugs = orgEvals
+    .map((each) => each.metadata?.slug ?? "")
+    .filter((each) => each !== "");
   const { allowed: canEdit } = useCheckPermission(
     id ? { kind, id } : null,
     "can_edit",
@@ -188,10 +199,19 @@ export function EvalRunsTab(props: EvalRunsTabProps) {
       {kind === "plugin" ? (
         <SuiteSummary suite={suite} />
       ) : (
-        <AboutEvalRunsOnAgent attached={attached} onOpenPlugins={onOpenPlugins} />
+        <AboutEvalRunsOnAgent
+          attached={attached}
+          evalSlugs={evalSlugs}
+          onOpenPlugins={onOpenPlugins}
+        />
       )}
       {canRun && (
-        <RunEvalsForm subject={subject} attached={attached} onStarted={onStarted} />
+        <RunEvalsForm
+          subject={subject}
+          attached={attached}
+          evalSlugs={evalSlugs}
+          onStarted={onStarted}
+        />
       )}
       <Section
         title="Past eval runs"
@@ -253,9 +273,12 @@ export function EvalRunsTab(props: EvalRunsTabProps) {
 
 function AboutEvalRunsOnAgent({
   attached,
+  evalSlugs,
   onOpenPlugins,
 }: {
   readonly attached: readonly string[];
+  /** The organization's Evals the caller may view. */
+  readonly evalSlugs: readonly string[];
   readonly onOpenPlugins?: () => void;
 }) {
   return (
@@ -270,16 +293,22 @@ function AboutEvalRunsOnAgent({
           versions compare side by side.
         </p>
         <p>
+          Cases live in plugins, or in Evals: an evals/ folder of cases
+          pushed to the organization with stigmer push eval, picked below
+          to run on the agent.
+        </p>
+        <p>
           A plugin&apos;s cases were written for the plugin, not for this
           agent, so a case can fail because the agent was told to do
           something else. The case filters leave such a case out.
         </p>
-        {attached.length === 0 && (
+        {attached.length === 0 && evalSlugs.length === 0 && (
           <>
             <p className="stg:text-sm">
-              This agent attaches no plugins. A case lives in a plugin&apos;s
-              evals/ folder: attach a plugin that has eval cases, or compare
-              one below.
+              This agent attaches no plugins, and its organization has no
+              Evals. A case lives in a plugin&apos;s evals/ folder or in an
+              Eval: attach a plugin that has eval cases, compare one below,
+              or push an Eval with stigmer push eval.
             </p>
             {onOpenPlugins !== undefined && (
               <div>
@@ -372,11 +401,14 @@ function SuiteSummary({
 function RunEvalsForm({
   subject,
   attached,
+  evalSlugs,
   onStarted,
 }: {
   readonly subject: EvalSubjectRef;
   /** On an agent, the slugs of the plugins it attaches. */
   readonly attached: readonly string[];
+  /** On an agent, the slugs of the organization's Evals the caller may view. */
+  readonly evalSlugs: readonly string[];
   readonly onStarted: (started: EvalRun) => void;
 }) {
   const baseId = useId();
@@ -430,6 +462,17 @@ function RunEvalsForm({
             (each) => each === slug || settings.caseSources.includes(each),
           )
         : settings.caseSources.filter((each) => each !== slug),
+    });
+  };
+
+  const toggleEval = (slug: string, on: boolean): void => {
+    setSettings({
+      ...settings,
+      evalSources: on
+        ? evalSlugs.filter(
+            (each) => each === slug || settings.evalSources.includes(each),
+          )
+        : settings.evalSources.filter((each) => each !== slug),
     });
   };
 
@@ -511,15 +554,16 @@ function RunEvalsForm({
         {onAgent && (
           <fieldset className="stg:flex stg:flex-col stg:gap-1">
             <legend className={LABEL_CLASS}>Whose cases run</legend>
-            {sourceChoices.length === 0 ? (
+            {sourceChoices.length === 0 && evalSlugs.length === 0 ? (
               <p className={HINT_CLASS}>
-                Attach a plugin, or compare one, to run its cases.
+                Attach a plugin, compare one, or push an Eval, to run its
+                cases.
               </p>
             ) : (
               <div className="stg:flex stg:flex-wrap stg:gap-x-4 stg:gap-y-1">
                 {sourceChoices.map((slug) => (
                   <label
-                    key={slug}
+                    key={`plugin:${slug}`}
                     className="stg:inline-flex stg:cursor-pointer stg:items-center stg:gap-2 stg:text-xs stg:text-foreground"
                   >
                     <input
@@ -533,11 +577,30 @@ function RunEvalsForm({
                     {slug}
                   </label>
                 ))}
+                {evalSlugs.map((slug) => (
+                  <label
+                    key={`eval:${slug}`}
+                    className="stg:inline-flex stg:cursor-pointer stg:items-center stg:gap-2 stg:text-xs stg:text-foreground"
+                  >
+                    <input
+                      type="checkbox"
+                      aria-label={`Eval ${slug}`}
+                      checked={settings.evalSources.includes(slug)}
+                      disabled={isStarting}
+                      onChange={(event) =>
+                        toggleEval(slug, event.target.checked)
+                      }
+                    />
+                    {slug}
+                    <span className="stg:text-muted-foreground">(eval)</span>
+                  </label>
+                ))}
               </div>
             )}
             <p className={HINT_CLASS}>
               The compared plugin&apos;s cases when you compare one, else
-              every plugin the agent attaches, unless you clear some.
+              every plugin the agent attaches, unless you clear some; an
+              Eval&apos;s cases run at its current version once you pick it.
             </p>
           </fieldset>
         )}
@@ -819,12 +882,12 @@ function CompareEvalRuns({
           </p>
         ) : sections.length === 0 ? (
           <p className="stg:text-xs stg:text-muted-foreground">
-            Neither eval run ran a plugin&apos;s cases.
+            Neither eval run ran a plugin&apos;s or an Eval&apos;s cases.
           </p>
         ) : (
           sections.map((section) => (
             <CompareSectionView
-              key={section.slug}
+              key={`${section.kind}:${section.slug}`}
               section={section}
               beforeHeading={heading("Before", before.evalRun)}
               afterHeading={heading("After", after.evalRun)}
@@ -851,7 +914,7 @@ function CompareSectionView({
 }) {
   return (
     <section
-      aria-label={`Compare plugin ${section.slug}`}
+      aria-label={`Compare ${section.kind} ${section.slug}`}
       data-digest-changed={section.digestChanged ? "true" : undefined}
       className="stg:flex stg:flex-col stg:gap-1.5"
     >
@@ -870,7 +933,7 @@ function CompareSectionView({
         </span>
         {section.digestChanged && (
           <span className="stg:font-normal stg:text-warning">
-            plugin version changed: its cases may differ
+            {section.kind} version changed: its cases may differ
           </span>
         )}
       </h4>

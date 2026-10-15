@@ -24,12 +24,18 @@
  * the list opens; one whose read fails shows the error; Compare asks for
  * two different eval runs when both pickers name one, shows a side whose
  * read failed, and says why a plugin's cases did not run on a side.
+ * Evals: the organization's Evals the caller may view are offered after
+ * the plugins, a picked one sent as an `eval` source; an agent with no
+ * plugins in an organization with Evals is not told its cases live in
+ * plugins and runs an Eval alone; an eval run's Evals show a section each
+ * after the plugins, marked as an Eval.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
 import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import { EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
@@ -81,6 +87,8 @@ function client(
     canEdit?: boolean;
     started?: EvalRun;
     check?: "pending" | "fails";
+    /** The slugs of the organization's Evals the caller may view. */
+    evals?: readonly string[];
   } = {},
 ) {
   const byId = new Map(evals.map((evalRun) => [evalRun.metadata?.id ?? "", evalRun]));
@@ -91,6 +99,14 @@ function client(
       get: vi.fn(async (id: string) => byId.get(id)),
       create: vi.fn(async () => opts.started),
       cancel: vi.fn(async (id: string) => byId.get(id)),
+    },
+    eval: {
+      list: vi.fn(async () => ({
+        entries: (opts.evals ?? []).map((slug, index) =>
+          create(EvalSchema, { metadata: { id: `evs_${index + 1}`, org: "org_acme", slug } }),
+        ),
+        nextPageToken: "",
+      })),
     },
     grant: {
       checkMyPermission: vi.fn(() =>
@@ -157,7 +173,7 @@ describe("EvalRunsTab on an agent", () => {
     expect(onOpenPlugins).toHaveBeenCalled();
     const run = (await screen.findByRole("button", { name: "Run evals" })) as HTMLButtonElement;
     expect(run.disabled).toBe(true);
-    expect(screen.getByText("Pick at least one plugin whose cases run.")).toBeDefined();
+    expect(screen.getByText("Pick at least one plugin or eval whose cases run.")).toBeDefined();
     fireEvent.change(screen.getByLabelText("Compare with a plugin"), { target: { value: "plg_refund" } });
     expect(run.disabled).toBe(false);
     fireEvent.click(run);
@@ -165,6 +181,61 @@ describe("EvalRunsTab on an agent", () => {
     expect(mock.evalrun.create).toHaveBeenCalledWith(
       expect.objectContaining({ comparedPluginId: "plg_refund", cases: [], ablation: EvalRunAblation.with_without }),
     );
+  });
+
+  it("offers the organization's Evals after the plugins and sends a picked one as an eval source", async () => {
+    const started = agentEvalRunWith([], { id: "evr_9" });
+    const mock = client([], { started, evals: ["support-evals", "refunds"] });
+    render(<EvalRunsTab agent={agentWith(["thermos"])} />, { wrapper: wrap(mock) });
+    expect(screen.getByText(/pushed to the organization with stigmer push eval/)).toBeDefined();
+    const support = await screen.findByRole("checkbox", { name: "Eval support-evals" });
+    const boxes = screen.getAllByRole("checkbox").map((box) => box.getAttribute("aria-label") ?? box.parentElement?.textContent);
+    expect(boxes).toEqual(["thermos", "Eval support-evals", "Eval refunds"]);
+    expect(mock.eval.list).toHaveBeenCalledWith(expect.objectContaining({ org: "org_acme" }));
+    fireEvent.click(support);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Eval refunds" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Eval refunds" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run evals" }));
+    await vi.waitFor(() => expect(mock.evalrun.create).toHaveBeenCalled());
+    expect(mock.evalrun.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cases: [
+          { plugin: { org: "org_acme", slug: "thermos" } },
+          { eval: { org: "org_acme", slug: "support-evals" } },
+        ],
+      }),
+    );
+  });
+
+  it("runs an Eval alone on an agent with no plugins, never saying its cases live only in plugins", async () => {
+    const started = agentEvalRunWith([], { id: "evr_9" });
+    const mock = client([], { started, evals: ["support-evals"] });
+    render(<EvalRunsTab agent={agentWith([])} />, { wrapper: wrap(mock) });
+    const support = await screen.findByRole("checkbox", { name: "Eval support-evals" });
+    expect(screen.queryByText(/This agent attaches no plugins/)).toBeNull();
+    const run = screen.getByRole("button", { name: "Run evals" }) as HTMLButtonElement;
+    expect(run.disabled).toBe(true);
+    fireEvent.click(support);
+    expect(run.disabled).toBe(false);
+    fireEvent.click(run);
+    await vi.waitFor(() => expect(mock.evalrun.create).toHaveBeenCalled());
+    expect(mock.evalrun.create).toHaveBeenCalledWith(
+      expect.objectContaining({ cases: [{ eval: { org: "org_acme", slug: "support-evals" } }] }),
+    );
+  });
+
+  it("shows an Eval's cases in a section of its own after the plugins, marked as an Eval", async () => {
+    const withEval = agentEvalRunWith([{ slug: "thermos", cases: [{ name: "review-fires", score: 1 }] }], {
+      id: "evr_4",
+      evals: [{ slug: "support-evals", digest: digestOf("5e4444"), cases: [{ name: "refund-window", score: 0 }] }],
+    });
+    render(<EvalRunsTab agent={agentWith(["thermos"])} />, { wrapper: wrap(client([withEval])) });
+    const section = await screen.findByRole("region", { name: "Eval support-evals" });
+    expect(within(section).getByText("5e4444000000")).toBeDefined();
+    expect(within(section).getByText("eval")).toBeDefined();
+    expect(within(section).getByRole("button", { name: "refund-window" })).toBeDefined();
+    const regions = screen.getAllByRole("region").map((region) => region.getAttribute("aria-label"));
+    expect(regions.indexOf("Plugin thermos")).toBeLessThan(regions.indexOf("Eval support-evals"));
   });
 
   it("compares a plugin the agent attaches: its cases by default, the comparison switch as the ablation", async () => {

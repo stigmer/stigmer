@@ -54,6 +54,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/io_pb";
 import type { EvalRunList } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/io_pb";
 import { EvalRunPluginSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { EvalRunCaseSourceSchema, EvalRunTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
@@ -93,6 +94,7 @@ import {
   EVAL_RUN_WORKFLOW_ENDED_ERROR,
   evalRunCaseGlobMessage,
   evalRunTooLargeMessage,
+  evalRunUnreadableEvalMessage,
 } from "../constants.js";
 import type { EvalSuiteSource } from "../suite.js";
 import { EvalRunEngineUnavailableError } from "../workflows.js";
@@ -523,6 +525,92 @@ describe("ResolveEvalRunDefaults' case sources and store faults", () => {
     expect(fault.code).toBe(Code.Internal);
   });
 
+  /** A create naming Eval evs_support by id, its row saved. */
+  async function namingAnEval() {
+    await temp.store.saveResource(
+      ApiResourceKind.eval,
+      "evs_support",
+      EvalSchema,
+      create(EvalSchema, { metadata: { id: "evs_support", org: ORG, slug: "support", name: "support" }, status: { digest: OTHER_DIGEST } }),
+    );
+    const ctx = withSources([]);
+    ctx.newState.spec!.cases = [create(EvalRunCaseSourceSchema, { source: { case: "eval", value: { kind: ApiResourceKind.eval, id: "evs_support" } } })];
+    return ctx;
+  }
+
+  it("refuses an Eval the creator may not view as unreadable, and is INTERNAL when the authorizer cannot answer", async () => {
+    const asked: string[] = [];
+    const deny: Authorizer = {
+      authorize: (_caller, check) => {
+        asked.push(`${IamPermission[check.permission]} ${ApiResourceKind[check.resourceKind]}:${check.resourceId}`);
+        return Promise.resolve({ kind: "deny", reason: "" });
+      },
+    };
+    const hidden = await failure(async () => newResolveEvalRunDefaultsStep(temp.store, deny).execute(await namingAnEval()));
+    expect(hidden.code).toBe(Code.InvalidArgument);
+    expect(hidden.rawMessage).toBe(evalRunUnreadableEvalMessage("evs_support"));
+    expect(asked).toEqual(["can_view eval:evs_support"]);
+    const down: Authorizer = { authorize: () => Promise.resolve({ kind: "unavailable", cause: new Error("engine down") }) };
+    const fault = await failure(async () => newResolveEvalRunDefaultsStep(temp.store, down).execute(await namingAnEval()));
+    expect(fault.code).toBe(Code.Internal);
+    expect(fault.rawMessage).toBe("failed to authorize an eval case source");
+  });
+
+  it("names a source the caller sent by slug by that slug, never the id it resolved to, whether hidden or missing", async () => {
+    await temp.store.saveResource(ApiResourceKind.plugin, "plg_candidate", PluginSchema, CANDIDATE);
+    await temp.store.saveResource(
+      ApiResourceKind.eval,
+      "evs_private",
+      EvalSchema,
+      create(EvalSchema, { metadata: { id: "evs_private", org: ORG, slug: "private-tests", name: "private-tests" }, status: { digest: OTHER_DIGEST } }),
+    );
+    // As sent: by slug. As NormalizeReferences leaves it: the id, the slug
+    // cleared, when the slug resolves; as sent when it does not.
+    const sentBySlug = (kind: "plugin" | "eval", slug: string, resolvedId: string) => {
+      const row = evalRow("", EvalRunPhase.unspecified);
+      const value = { kind: kind === "plugin" ? ApiResourceKind.plugin : ApiResourceKind.eval, org: ORG, slug };
+      row.spec!.cases = [create(EvalRunCaseSourceSchema, { source: { case: kind, value } })];
+      const ctx = createCtx(row);
+      if (resolvedId !== "") {
+        ctx.newState.spec!.cases = [
+          create(EvalRunCaseSourceSchema, { source: { case: kind, value: { ...value, slug: "", id: resolvedId } } }),
+        ];
+      }
+      ctx.set(EVAL_RUN_SUBJECT_KEY, { kind: "agent", org: ORG, row: AGENT } satisfies LoadedSubject);
+      return ctx;
+    };
+    const deny: Authorizer = { authorize: () => Promise.resolve({ kind: "deny", reason: "" }) };
+
+    const hiddenEval = await failure(() => newResolveEvalRunDefaultsStep(temp.store, deny).execute(sentBySlug("eval", "private-tests", "evs_private")));
+    const missingEval = await failure(() => newResolveEvalRunDefaultsStep(temp.store, deny).execute(sentBySlug("eval", "no-such-tests", "")));
+    expect([hiddenEval.rawMessage, missingEval.rawMessage]).toEqual([
+      evalRunUnreadableEvalMessage("private-tests"),
+      evalRunUnreadableEvalMessage("no-such-tests"),
+    ]);
+
+    const hiddenPlugin = await failure(() => newResolveEvalRunDefaultsStep(temp.store, deny).execute(sentBySlug("plugin", "candidate", "plg_candidate")));
+    expect(hiddenPlugin.rawMessage).toBe(evalRunUnloadedCaseSourceMessage("candidate"));
+  });
+
+  it("passes a store fault reading an Eval's head through, never as a missing Eval", async () => {
+    const ctx = await namingAnEval();
+    const broken = new Proxy(temp.store, {
+      get(target, property, receiver) {
+        const value: unknown = Reflect.get(target, property, receiver);
+        if (typeof value !== "function") {
+          return value;
+        }
+        return (...args: unknown[]) =>
+          args[0] === ApiResourceKind.eval
+            ? Promise.reject(new Error("disk unavailable"))
+            : (value as (...a: unknown[]) => unknown).apply(target, args);
+      },
+    });
+    const fault = await failure(() => newResolveEvalRunDefaultsStep(broken, ALLOW_ALL).execute(ctx));
+    expect(fault.code).toBe(Code.Internal);
+    expect(fault.rawMessage).toBe("failed to read a referenced resource");
+  });
+
   it("is INTERNAL when the store cannot read a refused case source, or the compared plugin", async () => {
     const source = await failure(() =>
       newResolveEvalRunDefaultsStep(failingRead("plg_broken"), ALLOW_ALL).execute(withSources(["plg_broken"])),
@@ -572,7 +660,7 @@ describe("PlanEvalRun on an agent", () => {
     const reads: string[] = [];
     return {
       reads,
-      readArchive: (_pluginId, digest) => {
+      readArchive: ({ digest }) => {
         reads.push(digest);
         const files = byDigest[digest];
         return files === undefined ? Promise.reject(new Error(`no archive ${digest}`)) : Promise.resolve(files);
@@ -584,14 +672,24 @@ describe("PlanEvalRun on an agent", () => {
     return create(PluginSchema, { metadata: { id, slug, name: slug, org: ORG }, status: { digest } });
   }
 
-  function planCtx(row: EvalRun, plugins: ReadonlyArray<Plugin>, selected?: ReadonlyArray<string>) {
+  function planCtx(
+    row: EvalRun,
+    plugins: ReadonlyArray<Plugin>,
+    selected?: ReadonlyArray<string>,
+    evals: EvaluatedLoad["evals"] = [],
+  ) {
     const ctx = createCtx(row);
     ctx.set(EVAL_RUN_LOAD_KEY, {
       agentSpec: AGENT.spec,
       plugins: plugins.map((entry) => ({ plugin: entry, digest: entry.status?.digest ?? "", attached: true, compared: false })),
       selected: new Set(selected ?? plugins.map((entry) => entry.metadata?.id ?? "")),
+      evals,
     } satisfies EvaluatedLoad);
     return ctx;
+  }
+
+  function anEval(id: string, slug: string, digest: string): EvaluatedLoad["evals"][number] {
+    return { eval: create(EvalSchema, { metadata: { id, slug, name: slug, org: ORG }, status: { digest } }), digest };
   }
 
   function planRow(spec: Partial<{ caseGlob: string; runs: number }> = {}): EvalRun {
@@ -666,6 +764,49 @@ describe("PlanEvalRun on an agent", () => {
     );
     expect(tooLarge.code).toBe(Code.FailedPrecondition);
     expect(tooLarge.rawMessage).toBe(evalRunTooLargeMessage(240, 240));
+  });
+
+  it("stamps each Eval after the plugins, reads its suite by its kind, and counts its cases with theirs", async () => {
+    const files = source({ [DIGEST]: suiteOf(2), [OTHER_DIGEST]: suiteOf(3, "e") });
+    const reads: string[] = [];
+    const kinds = { readArchive: (ref: Parameters<EvalSuiteSource["readArchive"]>[0]) => (reads.push(ref.kind), files.readArchive(ref)) };
+    const ctx = planCtx(planRow(), [plugin("plg_1", "thermos", DIGEST)], undefined, [anEval("evs_1", "support", OTHER_DIGEST)]);
+    await newPlanEvalRunStep(kinds, catalog).execute(ctx);
+    expect(reads).toEqual(["plugin", "eval"]);
+    const status = ctx.newState.status;
+    expect(status?.evals.map((entry) => [entry.evalId, entry.evalSlug, entry.evalDigest, entry.notRunReason])).toEqual([
+      ["evs_1", "support", OTHER_DIGEST, ""],
+    ]);
+    expect(status?.triesTotal).toBe(5);
+  });
+
+  it("stamps an Eval with no version or no case to read as not run, and runs on with the plugins", async () => {
+    const files = source({ [DIGEST]: suiteOf(1), [OTHER_DIGEST]: suiteOf(0) });
+    const ctx = planCtx(planRow(), [plugin("plg_1", "thermos", DIGEST)], undefined, [
+      anEval("evs_0", "unbuilt", ""),
+      anEval("evs_1", "empty", OTHER_DIGEST),
+    ]);
+    await newPlanEvalRunStep(files, catalog).execute(ctx);
+    expect(ctx.newState.status?.evals.map((entry) => entry.notRunReason)).toEqual([PLUGIN_NO_CASES_REASON, PLUGIN_NO_CASES_REASON]);
+    expect(ctx.newState.status?.triesTotal).toBe(1);
+  });
+
+  it("passes an Eval suite source's own refusal through, and makes any other fault INTERNAL", async () => {
+    const support = [anEval("evs_1", "support", OTHER_DIGEST)];
+    const failing = (error: Error): EvalSuiteSource => ({
+      readArchive: (ref) => (ref.kind === "eval" ? Promise.reject(error) : Promise.resolve(suiteOf(1))),
+    });
+    const notFound = await failure(() =>
+      newPlanEvalRunStep(failing(new ConnectError("eval version not found", Code.NotFound)), catalog).execute(
+        planCtx(planRow(), [], undefined, support),
+      ),
+    );
+    expect(notFound.code).toBe(Code.NotFound);
+    const broken = await failure(() =>
+      newPlanEvalRunStep(failing(new Error("disk")), catalog).execute(planCtx(planRow(), [], undefined, support)),
+    );
+    expect(broken.code).toBe(Code.Internal);
+    expect(broken.rawMessage).toBe("failed to read the evals' cases");
   });
 
   it("refuses filters that keep no case of any plugin", async () => {

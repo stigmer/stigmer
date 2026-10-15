@@ -38,7 +38,7 @@ message EvalRunStatus {
   // the version every try runs and its cases' results.
   repeated EvalRunPlugin plugins = 5;
 
-  // The totals over every plugin's cases.
+  // The totals over every case that ran, a plugin's or an Eval's.
   EvalRunAggregates aggregates = 6;
 
   // Estimated model cost so far of every try and every AI-graded check,
@@ -60,6 +60,11 @@ message EvalRunStatus {
   // @internal
   // Server-owned, written at create (the schedule's reference rule).
   map<string, string> vault_attachers = 12;
+
+  // Every Eval whose cases run, in the order the spec names them: the
+  // version every try runs and its cases' results. A try loads no Eval;
+  // it runs the Eval's cases on the agent.
+  repeated EvalRunEval evals = 13;
 
   // Standard audit information (created_at, updated_at, created_by, etc.)
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
@@ -93,6 +98,27 @@ message EvalRunPlugin {
 
   // This plugin's totals.
   EvalRunAggregates aggregates = 8;
+}
+
+// EvalRunEval is one Eval whose cases an eval run runs, as it ran them.
+message EvalRunEval {
+  // The Eval's ID and slug.
+  string eval_id = 1;
+  string eval_slug = 2;
+
+  // The Eval version (archive digest) every try runs: the one the case
+  // source named, or the current one when the eval run was created.
+  string eval_digest = 3;
+
+  // Why none of the Eval's cases run, as in "no eval cases at this
+  // version"; empty when its cases run.
+  string not_run_reason = 4;
+
+  // The Eval's cases, in directory order, each with its results.
+  repeated EvalRunCase cases = 5;
+
+  // This Eval's totals.
+  EvalRunAggregates aggregates = 6;
 }
 
 // EvalRunPhase is where an eval run is.
@@ -133,7 +159,7 @@ message EvalRunCase {
   string case_name = 1;
 
   // The case's directory, relative to the plugin's root, as in
-  // "evals/review-fires".
+  // "evals/review-fires", or to the Eval's, as in "review-fires".
   string path = 2;
 
   // The case's tags.
@@ -155,21 +181,23 @@ message EvalRunCase {
   // run's minimum of 10 tool rounds".
   repeated string notes = 6;
 
-  // The plugin's MCP servers the case answers with mocks, and those it
-  // leaves unstarted, as Claude Code's mocked: line.
+  // The MCP servers the case answers with mocks, and those it leaves
+  // unstarted, as Claude Code's mocked: line: a plugin's servers for a
+  // plugin's case; the agent's and its plugins' servers for an Eval's.
   repeated EvalRunMockedServer mocked_servers = 7;
 }
 
-// EvalRunMockedServer is one plugin MCP server as a case's tries see
-// it.
+// EvalRunMockedServer is one MCP server as a case's tries see it.
 message EvalRunMockedServer {
-  // The server's name in the run, as in "plugin_tracker_issues".
+  // The server's name in the run, as in "plugin_tracker_issues" or an
+  // agent's own "billing".
   string name = 1;
 
   // The tools its mocks answer.
   repeated string tools = 2;
 
-  // Why the server is not started, as in "not started: no mock"; empty
+  // Why the server is not started, as in "not started: no mock", or why
+  // its mocks answer nothing, as in "no such server on the agent"; empty
   // when its mocks answer.
   string not_started_reason = 3;
 }

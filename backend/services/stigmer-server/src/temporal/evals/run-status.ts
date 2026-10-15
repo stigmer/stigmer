@@ -25,7 +25,9 @@ import type { EvalCase } from "@stigmer/plugin-package";
 import { DEFAULT_THRESHOLD, casesOf, recomputeStatus } from "../../domain/eval-run/scoring.js";
 import { bumpStatusAudit } from "../../pipeline/steps/defaults.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
+import { pluginSuiteServersOf } from "../../domain/eval-run/try-run.js";
 import type { EvalContext } from "./context.js";
+import { caseServersOf } from "./context.js";
 import { SKIP_WRITE } from "./status-book.js";
 import type { EvalStatusBook } from "./status-book.js";
 import { skeletonCaseOf } from "./suite-activities.js";
@@ -83,21 +85,28 @@ class SkippedWrite extends Error {}
 export function writeSkeleton(status: EvalRunStatus, context: EvalContext): void {
   const spec = context.evalRun.spec;
   const runsAgentModel = context.agent !== undefined && spec !== undefined && spec.targets.length === 0;
-  for (const plugin of status.plugins) {
-    plugin.cases = [];
+  for (const block of [...status.plugins, ...status.evals]) {
+    block.cases = [];
   }
   context.matrix.cases.forEach((planned, caseIndex) => {
     const source = context.sources[context.caseSources[caseIndex] ?? -1];
-    const block = source === undefined ? undefined : status.plugins[source.pluginIndex];
-    if (source === undefined || block === undefined) {
+    if (source === undefined) {
       return;
     }
+    const block = source.kind === "plugin" ? status.plugins[source.pluginIndex] : status.evals[source.evalIndex];
+    if (block === undefined) {
+      return;
+    }
+    const servers =
+      source.kind === "plugin"
+        ? pluginSuiteServersOf(source.plugin.metadata?.name ?? "", source.suite.servers)
+        : (caseServersOf(context, caseIndex, "with") ?? []);
     block.cases.push(
       skeletonCaseOf(
         planned,
         spec,
-        source.plugin.metadata?.name ?? "",
-        source.suite.servers,
+        servers,
+        source.kind === "eval",
         context.twoArms,
         runsAgentModel ? caseModelNotes(planned.evalCase) : [],
       ),
