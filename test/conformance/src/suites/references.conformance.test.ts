@@ -9,8 +9,9 @@
 //   - delete and remake: when the agent a reference names is deleted and
 //     another agent takes its name, the reference keeps naming the deleted
 //     one (its id, and no slug): a session's agent, a schedule's fire, and
-//     the list filters keyed on an agent id (channels, schedules, shares)
-//     never move to the newcomer.
+//     the list filters keyed on an agent id (channels, schedules)
+//     never move to the newcomer (a channel goes with its agent, so the
+//     newcomer lists none and neither does the deleted agent).
 // Edition-unconditional: no Temporal, no runner.
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -19,7 +20,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { makeSlackAgentChannel } from "../support/agentchannels";
+import { makeSlackChannel } from "../support/channels";
 import { makeAgent } from "../support/agents";
 import { uniqueName } from "../support/naming";
 import { makeSchedule, targetMissingReason } from "../support/schedules";
@@ -133,28 +134,28 @@ describe("delete and remake: a reference never moves to a newcomer that takes a 
     expect(fired.runId).toBe("");
   });
 
-  it("[rpc:AgentChannelQueryController.listByAgent] [rpc:ScheduleQueryController.listByAgent] [rpc:AgentShareQueryController.listByAgent] the lists keyed on an agent id answer the agent they were written for, never the newcomer", async () => {
+  it("[rpc:ChannelQueryController.listByAgent] [rpc:ScheduleQueryController.listByAgent] the lists keyed on an agent id answer the agent they were written for, never the newcomer", async () => {
     const { org } = await target.provisionTenancy();
     const slug = uniqueName("remade-lists");
     const before = await createAgent(org, slug);
-    const channel = await clients.agentChannelCommand.create(makeSlackAgentChannel(org, uniqueName("chan"), slug));
-    fixtures.defer(() => clients.agentChannelCommand.delete({ value: channel.metadata!.id }));
+    const channel = await clients.channelCommand.create(makeSlackChannel(org, uniqueName("chan"), slug));
+    fixtures.defer(() => clients.channelCommand.delete({ value: channel.metadata!.id }));
     const schedule = await clients.scheduleCommand.create(makeSchedule(org, uniqueName("sched"), slug));
     fixtures.defer(() => clients.scheduleCommand.delete({ value: schedule.metadata!.id }));
 
     await clients.agentCommand.delete({ value: before.id });
     const after = await createAgent(org, slug);
 
-    const newcomerChannels = await clients.agentChannelQuery.listByAgent({ agentId: after.id, org });
+    const newcomerChannels = await clients.channelQuery.listByAgent({ agentId: after.id, org });
     const newcomerSchedules = await clients.scheduleQuery.listByAgent({ agentId: after.id, org });
-    const newcomerShares = await clients.agentShareQuery.listByAgent({ agentId: after.id, org });
     expect(newcomerChannels.entries.map((c) => c.metadata?.id)).toEqual([]);
     expect(newcomerSchedules.entries.map((s) => s.metadata?.id)).toEqual([]);
-    expect(newcomerShares.entries.map((s) => s.metadata?.id)).toEqual([]);
 
-    const keptChannels = await clients.agentChannelQuery.listByAgent({ agentId: before.id, org });
+    const keptChannels = await clients.channelQuery.listByAgent({ agentId: before.id, org });
     const keptSchedules = await clients.scheduleQuery.listByAgent({ agentId: before.id, org });
-    expect(keptChannels.entries.map((c) => c.metadata?.id)).toEqual([channel.metadata!.id]);
+    // A channel goes with its agent (channel.conformance.test.ts), so the
+    // deleted agent's list is empty too: neither id lists the old channel.
+    expect(keptChannels.entries.map((c) => c.metadata?.id)).toEqual([]);
     expect(keptSchedules.entries.map((s) => s.metadata?.id)).toEqual([schedule.metadata!.id]);
   });
 });

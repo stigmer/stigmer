@@ -18,7 +18,7 @@
 // redactions (each kind's own suite), and the create-side bars
 // (parent-gated-create-authorization). A vault is read as a shared vault,
 // the organization's; a person's own My vault is pinned by the vault suite.
-// Kinds that carry no visibility (shares, channels, schedules, apps) are read by
+// Kinds that carry no visibility (channels, schedules, apps) are read by
 // their owner and by a member only when the model admits members.
 import { Code } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -28,8 +28,7 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
-import { makeSlackAgentChannel } from "../support/agentchannels";
-import { makeAgentShare } from "../support/agentshares";
+import { makeSlackChannel, makeWebChannel } from "../support/channels";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { makeSharedVault } from "../support/vaults";
 import { openPlugin, pluginArchive } from "../support/plugins";
@@ -191,30 +190,31 @@ const KINDS: ReadonlyArray<ReferenceKind> = [
     deniedCopy: "unauthorized to get vault",
   },
   {
-    name: "agent_share",
+    // The channel kind's web type, beside its Slack row below.
+    name: "web_channel",
     visible: false,
     memberReads: false,
     async seed(using, org) {
       const agent = await seedAgent(using, org);
-      const created = await using.agentShareCommand.create(
-        makeAgentShare(org, agent.metadata!.slug),
+      const created = await using.channelCommand.create(
+        makeWebChannel(org, agent.metadata!.slug),
       );
       return { id: created.metadata!.id, slug: created.metadata!.slug };
     },
-    getById: (using, id) => using.agentShareQuery.get({ value: id }),
+    getById: (using, id) => using.channelQuery.get({ value: id }),
     getByReference: (using, org, slug) =>
-      using.agentShareQuery.getByReference({ org, slug }),
-    cleanup: (using, id) => using.agentShareCommand.delete({ value: id }),
-    deniedCopy: "unauthorized to get agent share",
+      using.channelQuery.getByReference({ org, slug }),
+    cleanup: (using, id) => using.channelCommand.delete({ value: id }),
+    deniedCopy: "unauthorized to get channel",
   },
   {
-    name: "agent_channel",
+    name: "channel",
     visible: false,
     memberReads: false,
     async seed(using, org) {
       const agent = await seedAgent(using, org);
-      const created = await using.agentChannelCommand.create(
-        makeSlackAgentChannel(
+      const created = await using.channelCommand.create(
+        makeSlackChannel(
           org,
           uniqueName("ref-chan"),
           agent.metadata!.slug,
@@ -222,11 +222,11 @@ const KINDS: ReadonlyArray<ReferenceKind> = [
       );
       return { id: created.metadata!.id, slug: created.metadata!.slug };
     },
-    getById: (using, id) => using.agentChannelQuery.get({ value: id }),
+    getById: (using, id) => using.channelQuery.get({ value: id }),
     getByReference: (using, org, slug) =>
-      using.agentChannelQuery.getByReference({ org, slug }),
-    cleanup: (using, id) => using.agentChannelCommand.delete({ value: id }),
-    deniedCopy: "unauthorized to get agent channel",
+      using.channelQuery.getByReference({ org, slug }),
+    cleanup: (using, id) => using.channelCommand.delete({ value: id }),
+    deniedCopy: "unauthorized to get channel",
   },
   {
     name: "channel_app",
@@ -284,7 +284,7 @@ const KINDS: ReadonlyArray<ReferenceKind> = [
 describe.each(KINDS)(
   "$name — a read by reference answers as the read by id",
   (kind) => {
-    // The table speaks the ApiResourceKind vocabulary (`agent_share`), the
+    // The table speaks the ApiResourceKind vocabulary (`channel_app`), the
     // reference lane speaks slugs (`^[a-z][a-z0-9-]*[a-z0-9]$`, the
     // ApiResourceReference rule in commons/apiresource/io.proto). A literal
     // that fails the slug rule is refused INVALID_ARGUMENT by protovalidate

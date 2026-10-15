@@ -118,7 +118,7 @@ import { myVaultTarget, setSecretsInput } from "../support/vaults";
 import { organizationRole, ref } from "../support/grants";
 import { openPlugin, pluginArchive } from "../support/plugins";
 import { uniqueName } from "../support/naming";
-import { makeSlackAgentChannel } from "../support/agentchannels";
+import { makeSlackChannel } from "../support/channels";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { makeOAuthApp } from "../support/oauthapps";
 import { makeSession } from "../support/sessions";
@@ -536,7 +536,7 @@ describe("role enforcement — agent creation: a member's by the organization's 
     await c.admin.agentCommand.updateVisibility({ resourceId: id, visibility: CHILD_ORGS });
   });
 
-  it("[rpc:AgentChannelCommandController.create] a member may not connect their own agent to a channel; an admin may", async (ctx) => {
+  it("[rpc:ChannelCommandController.create] a member may not connect their own agent to a channel; an admin may", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const c = await castOf(lane);
 
@@ -546,19 +546,19 @@ describe("role enforcement — agent creation: a member's by the organization's 
     fixtures.defer(() => c.owner.agentCommand.delete({ value: id }).catch(() => undefined));
 
     // Owning the agent is not enough: a channel lets outside traffic run on
-    // the organization's own provider keys, the agent share's admin-level bar.
+    // the organization's own provider keys, an admin-level bar.
     await expectGrpcCode(
-      () => c.member.agentChannelCommand.create(makeSlackAgentChannel(c.org, uniqueName("member-channel"), slug)),
+      () => c.member.channelCommand.create(makeSlackChannel(c.org, uniqueName("member-channel"), slug)),
       Code.PermissionDenied,
       "a member connecting the agent they own to a channel",
     );
 
     // An admin, who manages every agent of the organization, may.
-    const channel = await c.admin.agentChannelCommand.create(
-      makeSlackAgentChannel(c.org, uniqueName("admin-channel"), slug),
+    const channel = await c.admin.channelCommand.create(
+      makeSlackChannel(c.org, uniqueName("admin-channel"), slug),
     );
     fixtures.defer(() =>
-      c.owner.agentChannelCommand.delete({ value: channel.metadata!.id }).catch(() => undefined),
+      c.owner.channelCommand.delete({ value: channel.metadata!.id }).catch(() => undefined),
     );
   });
 

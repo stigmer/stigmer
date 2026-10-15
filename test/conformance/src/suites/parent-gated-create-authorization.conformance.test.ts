@@ -1,6 +1,6 @@
 // Parent-gated create authorization: the create lanes whose target is
 // not a request field — a parent loaded from a reference (an agent to
-// schedule, share or channel-bind), or the organization a blueprint or
+// schedule or make a channel for), or the organization a blueprint or
 // memory lands in. Each RPC is
 // `is_skip_authorization` on the wire where the target is loaded, and the
 // handler asks the bar its proto states once its resolve step has loaded
@@ -9,9 +9,10 @@
 //   - Plugin.push: the admin bar on the organization the plugin installs in
 //     (`can_create_plugin`), so a member is refused and an outsider naming
 //     the organization is refused, and neither refusal installs anything;
-//   - Schedule, AgentShare, AgentChannel: `can_edit` on the referenced agent,
-//     so a member who may run an org-visible agent may not schedule, share or
-//     channel-bind it, and an outsider is refused; the admin may;
+//   - Schedule (`can_edit`) and Channel (`can_manage_audience`, every type)
+//     on the referenced agent, so a member who may run an org-visible agent
+//     may not schedule it or make a channel for it, and an outsider is
+//     refused; the admin may;
 //   - Memory.create: an outsider naming an organization is refused; a member
 //     remembers there once both the organization and the member have
 //     turned memory on, the memory filed under the member.
@@ -33,8 +34,7 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
-import { makeSlackAgentChannel } from "../support/agentchannels";
-import { makeAgentShare } from "../support/agentshares";
+import { makeSlackChannel, makeWebChannel } from "../support/channels";
 import { openPlugin, pluginArchive } from "../support/plugins";
 import {
   enableMyMemory,
@@ -103,9 +103,8 @@ async function castOf(lane: EnforcingLane): Promise<Cast> {
 const PLUGIN_ORG_DENIED =
   "unauthorized to install plugin in this organization";
 const SCHEDULE_DENIED = "You don't have permission to schedule this agent";
-const SHARE_DENIED = "You don't have permission to share this agent";
 const CHANNEL_DENIED =
-  "You don't have permission to connect this agent to a channel";
+  "You don't have permission to make a channel for this agent";
 const MEMORY_ORG_DENIED = "unauthorized to capture memory in this organization";
 
 async function seedAgent(
@@ -171,8 +170,8 @@ describe("Plugin.push asks the blueprint bar", () => {
   });
 });
 
-describe("Schedule, AgentShare and AgentChannel ask can_edit on the referenced agent", () => {
-  it("[rpc:ScheduleCommandController.create] [rpc:AgentShareCommandController.create] [rpc:AgentChannelCommandController.create] an admin schedules, shares and channel-binds an org-visible agent; a member who may run it may not; an outsider is refused", async (ctx) => {
+describe("Schedule and Channel ask their bar on the referenced agent", () => {
+  it("[rpc:ScheduleCommandController.create] [rpc:ChannelCommandController.create] an admin schedules an org-visible agent and makes a web and a Slack channel for it; a member who may run it may not; an outsider is refused", async (ctx) => {
     const c = await castOf(laneOrSkip(ctx));
     const agent = await seedAgent(c, ORG_VISIBLE);
     const slug = agent.metadata!.slug;
@@ -183,17 +182,17 @@ describe("Schedule, AgentShare and AgentChannel ask can_edit on the referenced a
     fixtures.defer(() =>
       c.owner.scheduleCommand.delete({ value: schedule.metadata!.id }),
     );
-    const share = await c.admin.agentShareCommand.create(
-      makeAgentShare(c.org, slug, { name: uniqueName("gate-share") }),
+    const web = await c.admin.channelCommand.create(
+      makeWebChannel(c.org, slug, { name: uniqueName("gate-web") }),
     );
     fixtures.defer(() =>
-      c.owner.agentShareCommand.delete({ value: share.metadata!.id }),
+      c.owner.channelCommand.delete({ value: web.metadata!.id }),
     );
-    const channel = await c.admin.agentChannelCommand.create(
-      makeSlackAgentChannel(c.org, uniqueName("gate-chan"), slug),
+    const channel = await c.admin.channelCommand.create(
+      makeSlackChannel(c.org, uniqueName("gate-chan"), slug),
     );
     fixtures.defer(() =>
-      c.owner.agentChannelCommand.delete({ value: channel.metadata!.id }),
+      c.owner.channelCommand.delete({ value: channel.metadata!.id }),
     );
 
     for (const [who, using] of [
@@ -212,19 +211,19 @@ describe("Schedule, AgentShare and AgentChannel ask can_edit on the referenced a
       );
       await expectDenied(
         () =>
-          using.agentShareCommand.create(
-            makeAgentShare(c.org, slug, { name: uniqueName("gate-share") }),
+          using.channelCommand.create(
+            makeWebChannel(c.org, slug, { name: uniqueName("gate-web") }),
           ),
-        SHARE_DENIED,
-        `${who} shares the agent`,
+        CHANNEL_DENIED,
+        `${who} makes a web channel for the agent`,
       );
       await expectDenied(
         () =>
-          using.agentChannelCommand.create(
-            makeSlackAgentChannel(c.org, uniqueName("gate-chan"), slug),
+          using.channelCommand.create(
+            makeSlackChannel(c.org, uniqueName("gate-chan"), slug),
           ),
         CHANNEL_DENIED,
-        `${who} channel-binds the agent`,
+        `${who} makes a Slack channel for the agent`,
       );
     }
   });

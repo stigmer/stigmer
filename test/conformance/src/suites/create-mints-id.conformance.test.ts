@@ -55,10 +55,9 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { declaredMethods } from "../inventory/rpc-contract";
-import { makeSlackAgentChannel } from "../support/agentchannels";
+import { makeSlackChannel } from "../support/channels";
 import { makeAgentExecution } from "../support/runs";
 import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
-import { makeAgentShare } from "../support/agentshares";
 import { makeApiKey } from "../support/apikeys";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { makeSharedVault } from "../support/vaults";
@@ -199,39 +198,39 @@ const ROWS: readonly Row[] = [
     },
   },
   {
-    title: "[rpc:AgentChannelCommandController.create] AgentChannel",
-    key: "AgentChannelCommandController.create",
-    kind: ApiResourceKind.agent_channel,
+    title: "[rpc:ChannelCommandController.create] Channel",
+    key: "ChannelCommandController.create",
+    kind: ApiResourceKind.channel,
     async send({ org }, chosenId) {
       const agent = await agentIn(org);
       const name = uniqueName("mint-channel");
-      const created = await clients.agentChannelCommand.create({
-        ...makeSlackAgentChannel(org, name, agent.slug),
+      const created = await clients.channelCommand.create({
+        ...makeSlackChannel(org, name, agent.slug),
         metadata: { id: chosenId, name, org },
       });
-      fixtures.defer(() => clients.agentChannelCommand.delete({ value: created.metadata!.id }));
+      fixtures.defer(() => clients.channelCommand.delete({ value: created.metadata!.id }));
       return answerOf(this.key, created.metadata);
     },
     async read(id) {
-      return (await clients.agentChannelQuery.get({ value: id })).metadata?.id;
+      return (await clients.channelQuery.get({ value: id })).metadata?.id;
     },
   },
   {
-    title: "[rpc:AgentChannelCommandController.apply] AgentChannel (apply as a create)",
-    key: "AgentChannelCommandController.apply",
-    kind: ApiResourceKind.agent_channel,
+    title: "[rpc:ChannelCommandController.apply] Channel (apply as a create)",
+    key: "ChannelCommandController.apply",
+    kind: ApiResourceKind.channel,
     async send({ org }, chosenId) {
       const agent = await agentIn(org);
       const name = uniqueName("mint-channel");
-      const applied = await clients.agentChannelCommand.apply({
-        ...makeSlackAgentChannel(org, name, agent.slug),
+      const applied = await clients.channelCommand.apply({
+        ...makeSlackChannel(org, name, agent.slug),
         metadata: { id: chosenId, name, org },
       });
-      fixtures.defer(() => clients.agentChannelCommand.delete({ value: applied.metadata!.id }));
+      fixtures.defer(() => clients.channelCommand.delete({ value: applied.metadata!.id }));
       return answerOf(this.key, applied.metadata);
     },
     async read(id) {
-      return (await clients.agentChannelQuery.get({ value: id })).metadata?.id;
+      return (await clients.channelQuery.get({ value: id })).metadata?.id;
     },
   },
   {
@@ -254,42 +253,6 @@ const ROWS: readonly Row[] = [
     },
     async read(id) {
       return (await clients.agentExecutionQuery.get({ value: id })).metadata?.id;
-    },
-  },
-  {
-    title: "[rpc:AgentShareCommandController.create] AgentShare",
-    key: "AgentShareCommandController.create",
-    kind: ApiResourceKind.agent_share,
-    async send({ org }, chosenId) {
-      const agent = await agentIn(org);
-      const name = uniqueName("mint-share");
-      const created = await clients.agentShareCommand.create({
-        ...makeAgentShare(org, agent.slug, { name }),
-        metadata: { id: chosenId, name, org },
-      });
-      fixtures.defer(() => clients.agentShareCommand.delete({ value: created.metadata!.id }));
-      return answerOf(this.key, created.metadata);
-    },
-    async read(id) {
-      return (await clients.agentShareQuery.get({ value: id })).metadata?.id;
-    },
-  },
-  {
-    title: "[rpc:AgentShareCommandController.apply] AgentShare (apply as a create)",
-    key: "AgentShareCommandController.apply",
-    kind: ApiResourceKind.agent_share,
-    async send({ org }, chosenId) {
-      const agent = await agentIn(org);
-      const name = uniqueName("mint-share");
-      const applied = await clients.agentShareCommand.apply({
-        ...makeAgentShare(org, agent.slug, { name }),
-        metadata: { id: chosenId, name, org },
-      });
-      fixtures.defer(() => clients.agentShareCommand.delete({ value: applied.metadata!.id }));
-      return answerOf(this.key, applied.metadata);
-    },
-    async read(id) {
-      return (await clients.agentShareQuery.get({ value: id })).metadata?.id;
     },
   },
   {

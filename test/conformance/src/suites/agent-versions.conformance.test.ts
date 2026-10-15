@@ -20,9 +20,9 @@
 //   versionTagging capability);
 // - a deleted agent's history is gone with it;
 // - every surface that starts a conversation honours the version its agent
-//   reference names: a schedule and a channel store it, and a share hands
-//   it to the hosted page on its profile; a session started on that
-//   reference (what a channel or a share does for each conversation) pins
+//   reference names: a schedule and a channel store it, and a web channel
+//   hands it to the hosted page on its profile; a session started on that
+//   reference (what a channel does for each conversation) pins
 //   the version it names, not the current one. A schedule's fire on it is
 //   the execution suite's (schedule-firing);
 // - a version whose tag moved reports the tag it holds now, for an agent and
@@ -35,8 +35,7 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { AGENT_API_VERSION, AGENT_KIND, agentRefOf, makeAgent, makeAgentSpec } from "../support/agents";
-import { makeSlackAgentChannel } from "../support/agentchannels";
-import { makeAgentShare } from "../support/agentshares";
+import { makeSlackChannel, makeWebChannel } from "../support/channels";
 import { uniqueName } from "../support/naming";
 import { makeSchedule } from "../support/schedules";
 import { makeSession } from "../support/sessions";
@@ -277,14 +276,14 @@ describe("Agent versions — run surfaces", () => {
     expect(invoked?.case === "agent" ? invoked.value.agentRef?.version : undefined).toBe(v1.status?.versionHash);
   });
 
-  it("[rpc:AgentChannelCommandController.create] a channel whose agent reference names a version keeps it, and a conversation started on it pins that version", async () => {
+  it("[rpc:ChannelCommandController.create] a channel whose agent reference names a version keeps it, and a conversation started on it pins that version", async () => {
     const { org } = await target.provisionTenancy();
     const { v1 } = await taggedAgent(org);
 
-    const channel = await clients.agentChannelCommand.create(
-      makeSlackAgentChannel(org, uniqueName("channel"), v1.metadata!.slug, { agentRefVersion: "stable" }),
+    const channel = await clients.channelCommand.create(
+      makeSlackChannel(org, uniqueName("channel"), v1.metadata!.slug, { agentRefVersion: "stable" }),
     );
-    fixtures.defer(() => clients.agentChannelCommand.delete({ value: channel.metadata!.id }));
+    fixtures.defer(() => clients.channelCommand.delete({ value: channel.metadata!.id }));
     const stored = channel.spec?.agentRef;
     expect(stored?.version).toBe("stable");
 
@@ -293,17 +292,17 @@ describe("Agent versions — run surfaces", () => {
     );
   });
 
-  it("[rpc:AgentShareCommandController.create] [rpc:AgentShareQueryController.getSharedProfile] a share whose agent reference names a version hands it to the hosted page, and a conversation started on it pins that version", async () => {
+  it("[rpc:ChannelCommandController.create] [rpc:ChannelQueryController.getAgentProfile] a web channel whose agent reference names a version hands it to the hosted page, and a conversation started on it pins that version", async () => {
     const { org } = await target.provisionTenancy();
     const { v1 } = await taggedAgent(org);
 
-    const share = await clients.agentShareCommand.create(
-      makeAgentShare(org, v1.metadata!.slug, { agentRefVersion: "stable" }),
+    const web = await clients.channelCommand.create(
+      makeWebChannel(org, v1.metadata!.slug, { agentRefVersion: "stable" }),
     );
-    fixtures.defer(() => clients.agentShareCommand.delete({ value: share.metadata!.id }));
-    const profile = await clients.agentShareQuery.getSharedProfile({ shareId: share.metadata!.id });
+    fixtures.defer(() => clients.channelCommand.delete({ value: web.metadata!.id }));
+    const profile = await clients.channelQuery.getAgentProfile({ channelId: web.metadata!.id });
     const ref = profile.agentRef;
-    expect(ref?.version, "the profile carries the share's version").toBe("stable");
+    expect(ref?.version, "the profile carries the web channel's version").toBe("stable");
 
     expect(await pinOfSessionOn(org, { org: ref!.org, slug: ref!.slug, version: ref!.version })).toBe(
       v1.status?.versionHash,

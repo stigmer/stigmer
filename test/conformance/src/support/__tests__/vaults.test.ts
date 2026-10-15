@@ -3,7 +3,7 @@
 //   an empty entry set, the external id), the two entry-write targets (the
 //   caller's own My vault by `mine`, a vault by id), and each entry write's
 //   input carrying its target and its names, values or addresses.
-// - The `vaults` option of every surface builder (share, schedule,
+// - The `vaults` option of every surface builder (web channel, schedule,
 //   session) names each vault by slug with the vault kind, and a builder
 //   given none sets no list; a session's includeMyVault is set only when
 //   given.
@@ -15,7 +15,7 @@
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { describe, expect, it } from "vitest";
 
-import { makeAgentShare } from "../agentshares";
+import { makeWebChannel } from "../channels";
 import { makeAgentExecution } from "../runs";
 import { makeSchedule } from "../schedules";
 import { makeSessionSpec } from "../sessions";
@@ -71,8 +71,8 @@ describe("the vaults option of the surface builders", () => {
   const slugs = ["support-tools", "handbook"];
 
   it("names each vault by slug with the vault kind, and sets no list when none is given", () => {
-    expect(makeAgentShare("acme", "bot", { vaults: slugs }).spec?.vaults).toEqual(VAULT_REFS);
-    expect(makeAgentShare("acme", "bot").spec?.vaults).toBeUndefined();
+    expect(makeWebChannel("acme", "bot", { vaults: slugs }).spec?.vaults).toEqual(VAULT_REFS);
+    expect(makeWebChannel("acme", "bot").spec?.vaults).toBeUndefined();
 
     expect(makeSessionSpec({ vaults: slugs, includeMyVault: true })).toMatchObject({
       vaults: VAULT_REFS,

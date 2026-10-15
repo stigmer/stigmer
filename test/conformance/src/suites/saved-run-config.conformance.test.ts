@@ -1,12 +1,12 @@
 // Conformance suite for saved run settings (Class A).
-// Domain: agentic / schedule, agentshare, agentchannel — the save-time rule
+// Domain: agentic / schedule, channel (web and Slack) — the save-time rule
 // every surface that stores a RunConfig shares.
 //
 // The contract under test (RunConfig in run/v1/invocation.proto):
-// saved settings are self-contained. A schedule's, a share's or a channel's
-// run_config that asks for the fast tier or for thinking names the model it
-// is for; only a live message may set either alone, to adjust the model a
-// less specific layer chose. Each surface refuses the unnamed choice at save
+// saved settings are self-contained. A schedule's or a channel's (web or
+// Slack) run_config that asks for the fast tier or for thinking names the
+// model it is for; only a live message may set either alone, to adjust the
+// model a less specific layer chose. Each surface refuses the unnamed choice at save
 // with INVALID_ARGUMENT naming the field, and accepts it with a model.
 //
 // Out of scope here: the same rule at execution create for a row saved
@@ -14,18 +14,16 @@
 // own run defaults (agent.conformance.test.ts, "run defaults").
 import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
-import { makeSlackAgentChannel } from "../support/agentchannels";
-import { makeAgentShare } from "../support/agentshares";
+import { makeSlackChannel, makeWebChannel } from "../support/channels";
 import { uniqueName } from "../support/naming";
 import { makeSchedule } from "../support/schedules";
 import { createTarget, type TargetProfile } from "../targets";
@@ -76,32 +74,32 @@ describe("Saved run settings name the model their tier or thinking is for", () =
     }
   });
 
-  it("[rpc:AgentShareCommandController.create] a share refuses fast or thinking with no model (InvalidArgument)", async () => {
+  it("[rpc:ChannelCommandController.create] a web channel refuses fast or thinking with no model (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const slug = await agentIn(org);
     for (const runConfig of [FAST_ALONE, THINKING_ALONE]) {
-      const input = create(AgentShareSchema, makeAgentShare(org, slug, { name: uniqueName("share-saved") }));
+      const input = create(ChannelSchema, makeWebChannel(org, slug, { name: uniqueName("web-saved") }));
       input.spec!.runConfig = runConfig;
       const err = await expectGrpcCode(
-        () => clients.agentShareCommand.create(input),
+        () => clients.channelCommand.create(input),
         Code.InvalidArgument,
-        "share saving a tier or thinking with no model",
+        "web channel saving a tier or thinking with no model",
       );
       expect(err.rawMessage).toContain("spec.run_config.model_name");
     }
   });
 
-  it("[rpc:AgentChannelCommandController.create] a channel refuses fast or thinking with no model (InvalidArgument)", async () => {
+  it("[rpc:ChannelCommandController.create] a Slack channel refuses fast or thinking with no model (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const slug = await agentIn(org);
     for (const runConfig of [FAST_ALONE, THINKING_ALONE]) {
       const input = create(
-        AgentChannelSchema,
-        makeSlackAgentChannel(org, uniqueName("channel-saved"), slug, { modelName: null }),
+        ChannelSchema,
+        makeSlackChannel(org, uniqueName("channel-saved"), slug, { modelName: null }),
       );
       input.spec!.runConfig = runConfig;
       const err = await expectGrpcCode(
-        () => clients.agentChannelCommand.create(input),
+        () => clients.channelCommand.create(input),
         Code.InvalidArgument,
         "channel saving a tier or thinking with no model",
       );
@@ -113,8 +111,9 @@ describe("Saved run settings name the model their tier or thinking is for", () =
     const { org } = await target.provisionTenancy();
     const slug = await agentIn(org);
 
-    // A schedule and a share read an unset engine as native; a channel is
-    // judged against every engine's list, so it names the Cursor id.
+    // A schedule reads an unset engine as native; a channel is judged
+    // against every engine's list, so the web channel names the native id
+    // and the Slack channel the Cursor id, and both are known.
     const onNative = create(RunConfigSchema, { modelName: "claude-haiku-4.5", thinkingMode: ThinkingMode.ENABLED });
     const onCursor = create(RunConfigSchema, { modelName: "claude-haiku-4-5", thinkingMode: ThinkingMode.ENABLED });
 
@@ -129,19 +128,19 @@ describe("Saved run settings name the model their tier or thinking is for", () =
       savedSchedule.spec?.target.case === "agent" ? savedSchedule.spec.target.value.runConfig?.thinkingMode : undefined,
     ).toBe(ThinkingMode.ENABLED);
 
-    const share = create(AgentShareSchema, makeAgentShare(org, slug, { name: uniqueName("share-saved-ok") }));
-    share.spec!.runConfig = onNative;
-    const savedShare = await clients.agentShareCommand.create(share);
-    fixtures.defer(() => clients.agentShareCommand.delete({ value: savedShare.metadata!.id }));
-    expect(savedShare.spec?.runConfig?.thinkingMode).toBe(ThinkingMode.ENABLED);
+    const web = create(ChannelSchema, makeWebChannel(org, slug, { name: uniqueName("web-saved-ok") }));
+    web.spec!.runConfig = onNative;
+    const savedWeb = await clients.channelCommand.create(web);
+    fixtures.defer(() => clients.channelCommand.delete({ value: savedWeb.metadata!.id }));
+    expect(savedWeb.spec?.runConfig?.thinkingMode).toBe(ThinkingMode.ENABLED);
 
     const channel = create(
-      AgentChannelSchema,
-      makeSlackAgentChannel(org, uniqueName("channel-saved-ok"), slug, { modelName: null }),
+      ChannelSchema,
+      makeSlackChannel(org, uniqueName("channel-saved-ok"), slug, { modelName: null }),
     );
     channel.spec!.runConfig = onCursor;
-    const savedChannel = await clients.agentChannelCommand.create(channel);
-    fixtures.defer(() => clients.agentChannelCommand.delete({ value: savedChannel.metadata!.id }));
+    const savedChannel = await clients.channelCommand.create(channel);
+    fixtures.defer(() => clients.channelCommand.delete({ value: savedChannel.metadata!.id }));
     expect(savedChannel.spec?.runConfig?.thinkingMode).toBe(ThinkingMode.ENABLED);
   });
 });

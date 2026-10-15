@@ -5,10 +5,10 @@
 // The contract under test, as a caller sees it on the wire: from the delete's
 // answer on, the organization answers NOT_FOUND to every request that names
 // it, by id or by slug, a second delete included; a row it owned answers
-// NOT_FOUND by id; nothing new can be made inside it; its share links resolve
-// nowhere, with the copy a missing share answers; a key limited to it reaches
-// nothing, and the purge removes it; once the purge has run its slug can be
-// taken, and the new holder
+// NOT_FOUND by id; nothing new can be made inside it; its web channels'
+// links resolve nowhere, with the copy a missing channel answers; a key
+// limited to it reaches nothing, and the purge removes it; once the purge
+// has run its slug can be taken, and the new holder
 // sees none of the old organization's rows. A parent may be deleted once
 // every child is being deleted, and every slug comes free.
 //
@@ -22,7 +22,7 @@ import { expectGrpcCode, grpcCodeOf } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
-import { makeAgentShare } from "../support/agentshares";
+import { makeWebChannel } from "../support/channels";
 import { API_KEY_API_VERSION, API_KEY_KIND, plaintextKeyOf } from "../support/apikeys";
 import { makeSharedVault, setSecretsInput, vaultTarget } from "../support/vaults";
 import { uniqueName } from "../support/naming";
@@ -50,15 +50,15 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-/** An organization under `slug` holding an agent, a share of it and a shared vault with a secret. */
+/** An organization under `slug` holding an agent, a web channel of it and a shared vault with a secret. */
 async function populated(slug: string, using: ConformanceClients = clients) {
   const org = await using.organizationCommand.create({ apiVersion: API_VERSION, kind: KIND, metadata: { name: slug, slug } });
   const id = org.metadata!.id;
   const agent = await using.agentCommand.create(makeAgent({ org: id, name: uniqueName("purge-agent") }));
-  const share = await using.agentShareCommand.create(makeAgentShare(id, agent.metadata!.slug));
+  const web = await using.channelCommand.create(makeWebChannel(id, agent.metadata!.slug));
   const created = await using.vaultCommand.create(makeSharedVault({ org: id, name: uniqueName("purge-vault") }));
   const vault = await using.vaultCommand.setSecrets(setSecretsInput(vaultTarget(id, created.metadata!.id), { TOKEN: "purged" }));
-  return { id, slug, agent, share, vault };
+  return { id, slug, agent, web, vault };
 }
 
 /** The slug's next organization, once the purge released it; deleted at the end of the arm. */
@@ -111,17 +111,17 @@ describe("Organization purge conformance", () => {
     await nextHolder(doomed.slug);
   });
 
-  it("[rpc:AgentShareQueryController.getSharedProfile] its share links resolve nowhere, with the copy a missing share answers", async () => {
+  it("[rpc:ChannelQueryController.getAgentProfile] its web channels' links resolve nowhere, with the copy a missing channel answers", async () => {
     const doomed = await populated(uniqueName("purge"));
-    await clients.agentShareQuery.getSharedProfile({ shareId: doomed.share.metadata!.id });
+    await clients.channelQuery.getAgentProfile({ channelId: doomed.web.metadata!.id });
     await clients.organizationCommand.delete({ value: doomed.id });
 
     const link = await expectGrpcCode(
-      () => clients.agentShareQuery.getSharedProfile({ shareId: doomed.share.metadata!.id }),
+      () => clients.channelQuery.getAgentProfile({ channelId: doomed.web.metadata!.id }),
       Code.NotFound,
-      "the deleted organization's share link",
+      "the deleted organization's web channel link",
     );
-    expect(link.rawMessage).toBe(`Agent not found: ${doomed.share.metadata!.id}`);
+    expect(link.rawMessage).toBe(`Agent not found: ${doomed.web.metadata!.id}`);
     await nextHolder(doomed.slug);
   });
 

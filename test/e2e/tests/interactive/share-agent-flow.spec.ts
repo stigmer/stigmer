@@ -1,5 +1,5 @@
 import { create } from "@bufbuild/protobuf";
-import { ListAgentSharesByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
+import { ListChannelsByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
 import { test, expect } from "../../fixtures";
 import { ensureDefaultOrg } from "../../fixtures/seed-helpers";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
@@ -69,7 +69,7 @@ async function deleteShare(page: Page, shareName: string) {
 
 /**
  * The chat link the console shows for the agent's share with `shareSlug`:
- * `/chat/<share id>`, the id read back from the server. A link names only
+ * `/chat/<channel id>`, the id read back from the server. A link names only
  * the share, so no rename of its organization moves it.
  */
 async function chatPathOf(
@@ -77,8 +77,8 @@ async function chatPathOf(
   agentId: string,
   shareSlug: string,
 ): Promise<string> {
-  const shares = await client.agentShare.listByAgent(
-    create(ListAgentSharesByAgentRequestSchema, { agentId }),
+  const shares = await client.channel.listByAgent(
+    create(ListChannelsByAgentRequestSchema, { agentId }),
   );
   const share = shares.entries.find((s) => s.metadata?.slug === shareSlug);
   if (share === undefined) {
@@ -210,8 +210,8 @@ test.describe("Share agent flow", () => {
     // its error state rather than the agent; the embed spec's posture).
     // The console's share is for the organization's members, so the
     // member lane reads it (the anonymous lane answers only a public one).
-    const shareId = chatPath.replace("/chat/", "");
-    const profile = await stigmerClient.agentShare.getSharedProfileForMember(shareId);
+    const channelId = chatPath.replace("/chat/", "");
+    const profile = await stigmerClient.channel.getAgentProfileForMember(channelId);
     expect(profile.name).toBe(testAgent.slug);
     await page.goto(chatPath);
     await expect(

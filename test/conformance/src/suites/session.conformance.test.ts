@@ -61,7 +61,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { createChildOrganization } from "../support/organizations";
 import { AGENT_API_VERSION, AGENT_KIND, type AgentRefInit, agentRefOf, makeAgent, makeAgentSpec } from "../support/agents";
-import { makeSlackAgentChannel } from "../support/agentchannels";
+import { makeSlackChannel } from "../support/channels";
 import { uniqueName } from "../support/naming";
 import { SESSION_API_VERSION, SESSION_KIND, makeSession, makeSessionSpec } from "../support/sessions";
 import { makeSkillArtifact } from "../support/skills";
@@ -508,10 +508,10 @@ describe("Session conformance — queries", () => {
     const { org } = await target.provisionTenancy();
     const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-    const channel = await clients.agentChannelCommand.create(
-      makeSlackAgentChannel(org, uniqueName("channel"), agent.metadata!.slug),
+    const channel = await clients.channelCommand.create(
+      makeSlackChannel(org, uniqueName("channel"), agent.metadata!.slug),
     );
-    fixtures.defer(() => clients.agentChannelCommand.delete({ value: channel.metadata!.id }));
+    fixtures.defer(() => clients.channelCommand.delete({ value: channel.metadata!.id }));
     await createSession(org, uniqueName("session"), agentRefOf(agent));
 
     const listed = await clients.sessionQuery.listByChannel({ channelId: channel.metadata!.id });
@@ -538,8 +538,8 @@ describe("Session conformance — queries", () => {
         makeAgent({ org, name: uniqueName("agent") }),
       );
       const agentRef = agentRefOf(agent);
-      const channel = await scope.clients.agentChannelCommand.create(
-        makeSlackAgentChannel(org, uniqueName("channel"), agent.metadata!.slug),
+      const channel = await scope.clients.channelCommand.create(
+        makeSlackChannel(org, uniqueName("channel"), agent.metadata!.slug),
       );
       const channelId = channel.metadata!.id;
 
@@ -562,7 +562,7 @@ describe("Session conformance — queries", () => {
         channelSession.metadata?.id,
       ]);
 
-      await scope.clients.agentChannelCommand.delete({ value: channel.metadata!.id });
+      await scope.clients.channelCommand.delete({ value: channel.metadata!.id });
       await scope.clients.agentCommand.delete({ value: agent.metadata!.id });
     } finally {
       await scope.cleanup();

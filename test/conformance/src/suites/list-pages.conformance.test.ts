@@ -5,12 +5,12 @@
 // entries and next_page_token. Each arm below seeds three rows and walks the
 // list with page_size 1, following tokens to the end:
 //
-//   - a list scoped to one parent (an agent's channels, shares and
-//     schedules, an agent's sessions, a version history) holds only the
+//   - a list scoped to one parent (an agent's Slack and web channels and
+//     its schedules, an agent's sessions, a version history) holds only the
 //     seeded rows, so the walk is exactly three pages of one entry, newest
 //     first, a token on the first two and none after the third;
 //   - a list of an organization or of the caller (agents, skills, plugins,
-//     channels, shares, schedules, vaults, memories, sessions, API keys,
+//     channels of every type, schedules, vaults, memories, sessions, API keys,
 //     OAuth apps, channel apps, the caller's
 //     organizations, search) may also hold rows the edition provisions with
 //     an organization, and a page may be short, even empty, under a read
@@ -51,9 +51,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { makeSlackAgentChannel } from "../support/agentchannels";
+import { makeSlackChannel, makeWebChannel } from "../support/channels";
 import { AGENT_API_VERSION, AGENT_KIND, agentRefOf, makeAgent, makeAgentSpec } from "../support/agents";
-import { makeAgentShare } from "../support/agentshares";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { MEMORY_CAP, makeMemory } from "../support/memories";
 import { uniqueName } from "../support/naming";
@@ -203,19 +202,20 @@ async function createAgent(org: string) {
 }
 
 async function createChannel(org: string, agentSlug: string): Promise<string> {
-  const channel = await clients.agentChannelCommand.create(
-    makeSlackAgentChannel(org, uniqueName("list-channel"), agentSlug),
+  const channel = await clients.channelCommand.create(
+    makeSlackChannel(org, uniqueName("list-channel"), agentSlug),
   );
-  fixtures.defer(() => clients.agentChannelCommand.delete({ value: channel.metadata!.id }));
+  fixtures.defer(() => clients.channelCommand.delete({ value: channel.metadata!.id }));
   return channel.metadata!.id;
 }
 
-async function createShare(org: string, agentSlug: string): Promise<string> {
-  const share = await clients.agentShareCommand.create(
-    makeAgentShare(org, agentSlug, { name: uniqueName("list-share") }),
+// Named, so one agent holds several (a second nameless web channel is a duplicate).
+async function createWebChannel(org: string, agentSlug: string): Promise<string> {
+  const channel = await clients.channelCommand.create(
+    makeWebChannel(org, agentSlug, { name: uniqueName("list-web") }),
   );
-  fixtures.defer(() => clients.agentShareCommand.delete({ value: share.metadata!.id }));
-  return share.metadata!.id;
+  fixtures.defer(() => clients.channelCommand.delete({ value: channel.metadata!.id }));
+  return channel.metadata!.id;
 }
 
 async function createSchedule(org: string, agentSlug: string): Promise<string> {
@@ -237,25 +237,25 @@ async function createSession(org: string, agent: Awaited<ReturnType<typeof creat
 // =============================================================================
 
 describe("List conformance — a parent's lists walk exactly three pages", () => {
-  it("[rpc:AgentChannelQueryController.listByAgent] an agent's channels page one at a time, newest first", async () => {
+  it("[rpc:ChannelQueryController.listByAgent] an agent's Slack channels page one at a time, newest first", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgent(org);
     const seeded = await seedThree(() => createChannel(org, agent.metadata!.slug));
 
     const walked = await walk(
-      (pageToken) => clients.agentChannelQuery.listByAgent({ agentId: agent.metadata!.id, pageSize: 1, pageToken }),
+      (pageToken) => clients.channelQuery.listByAgent({ agentId: agent.metadata!.id, pageSize: 1, pageToken }),
       (entry) => entry.metadata!.id,
     );
     expectExactWalk(walked, seeded);
   });
 
-  it("[rpc:AgentShareQueryController.listByAgent] an agent's shares page one at a time, newest first", async () => {
+  it("[rpc:ChannelQueryController.listByAgent] an agent's web channels page one at a time, newest first", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgent(org);
-    const seeded = await seedThree(() => createShare(org, agent.metadata!.slug));
+    const seeded = await seedThree(() => createWebChannel(org, agent.metadata!.slug));
 
     const walked = await walk(
-      (pageToken) => clients.agentShareQuery.listByAgent({ agentId: agent.metadata!.id, pageSize: 1, pageToken }),
+      (pageToken) => clients.channelQuery.listByAgent({ agentId: agent.metadata!.id, pageSize: 1, pageToken }),
       (entry) => entry.metadata!.id,
     );
     expectExactWalk(walked, seeded);
@@ -374,25 +374,25 @@ describe("List conformance — an organization's lists walk every seeded row onc
     expectSeededWalk(walked, seeded);
   });
 
-  it("[rpc:AgentChannelQueryController.list] agent channels", async () => {
+  it("[rpc:ChannelQueryController.list] Slack channels", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgent(org);
     const seeded = await seedThree(() => createChannel(org, agent.metadata!.slug));
 
     const walked = await walk(
-      (pageToken) => clients.agentChannelQuery.list({ org, pageSize: 1, pageToken }),
+      (pageToken) => clients.channelQuery.list({ org, pageSize: 1, pageToken }),
       (entry) => entry.metadata!.id,
     );
     expectSeededWalk(walked, seeded);
   });
 
-  it("[rpc:AgentShareQueryController.list] agent shares", async () => {
+  it("[rpc:ChannelQueryController.list] web channels", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgent(org);
-    const seeded = await seedThree(() => createShare(org, agent.metadata!.slug));
+    const seeded = await seedThree(() => createWebChannel(org, agent.metadata!.slug));
 
     const walked = await walk(
-      (pageToken) => clients.agentShareQuery.list({ org, pageSize: 1, pageToken }),
+      (pageToken) => clients.channelQuery.list({ org, pageSize: 1, pageToken }),
       (entry) => entry.metadata!.id,
     );
     expectSeededWalk(walked, seeded);
@@ -611,48 +611,48 @@ describe("List conformance — a label filter walks only the rows carrying every
     );
   });
 
-  it("[rpc:AgentChannelQueryController.list] [rpc:AgentChannelQueryController.listByAgent] agent channels, of the organization and of one agent", async () => {
+  it("[rpc:ChannelQueryController.list] [rpc:ChannelQueryController.listByAgent] Slack channels, of the organization and of one agent", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgent(org);
     const seed = async (labels: Record<string, string>) => {
-      const channel = await clients.agentChannelCommand.create(
-        labelled(makeSlackAgentChannel(org, uniqueName("lbl-channel"), agent.metadata!.slug), labels),
+      const channel = await clients.channelCommand.create(
+        labelled(makeSlackChannel(org, uniqueName("lbl-channel"), agent.metadata!.slug), labels),
       );
-      fixtures.defer(() => clients.agentChannelCommand.delete({ value: channel.metadata!.id }));
+      fixtures.defer(() => clients.channelCommand.delete({ value: channel.metadata!.id }));
       return channel.metadata!.id;
     };
     await expectLabelledWalk(
       seed,
-      (labels, pageToken) => clients.agentChannelQuery.list({ org, labels, pageSize: 1, pageToken }),
+      (labels, pageToken) => clients.channelQuery.list({ org, labels, pageSize: 1, pageToken }),
       (entry) => entry.metadata!.id,
     );
     await expectLabelledWalk(
       seed,
       (labels, pageToken) =>
-        clients.agentChannelQuery.listByAgent({ agentId: agent.metadata!.id, labels, pageSize: 1, pageToken }),
+        clients.channelQuery.listByAgent({ agentId: agent.metadata!.id, labels, pageSize: 1, pageToken }),
       (entry) => entry.metadata!.id,
     );
   });
 
-  it("[rpc:AgentShareQueryController.list] [rpc:AgentShareQueryController.listByAgent] agent shares, of the organization and of one agent", async () => {
+  it("[rpc:ChannelQueryController.list] [rpc:ChannelQueryController.listByAgent] web channels, of the organization and of one agent", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgent(org);
     const seed = async (labels: Record<string, string>) => {
-      const share = await clients.agentShareCommand.create(
-        labelled(makeAgentShare(org, agent.metadata!.slug, { name: uniqueName("lbl-share") }), labels),
+      const channel = await clients.channelCommand.create(
+        labelled(makeWebChannel(org, agent.metadata!.slug, { name: uniqueName("lbl-web") }), labels),
       );
-      fixtures.defer(() => clients.agentShareCommand.delete({ value: share.metadata!.id }));
-      return share.metadata!.id;
+      fixtures.defer(() => clients.channelCommand.delete({ value: channel.metadata!.id }));
+      return channel.metadata!.id;
     };
     await expectLabelledWalk(
       seed,
-      (labels, pageToken) => clients.agentShareQuery.list({ org, labels, pageSize: 1, pageToken }),
+      (labels, pageToken) => clients.channelQuery.list({ org, labels, pageSize: 1, pageToken }),
       (entry) => entry.metadata!.id,
     );
     await expectLabelledWalk(
       seed,
       (labels, pageToken) =>
-        clients.agentShareQuery.listByAgent({ agentId: agent.metadata!.id, labels, pageSize: 1, pageToken }),
+        clients.channelQuery.listByAgent({ agentId: agent.metadata!.id, labels, pageSize: 1, pageToken }),
       (entry) => entry.metadata!.id,
     );
   });

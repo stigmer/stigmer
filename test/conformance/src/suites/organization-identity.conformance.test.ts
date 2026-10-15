@@ -9,9 +9,10 @@
 // else) until it is released; a deleted organization's slug is free once its
 // purge finishes, and the organization a later holder makes reaches nothing
 // the deleted one owned.
-// A hosted chat link names a share by its id alone, so a rename never breaks
-// it and a later holder of a released slug can never capture it: the deleted
-// organization's link resolves nowhere, never to the new holder's share.
+// A hosted chat link names a web channel by its id alone, so a rename never
+// breaks it and a later holder of a released slug can never capture it: the
+// deleted organization's link resolves nowhere, never to the new holder's
+// web channel.
 //
 // Vaults carry the org-scoped arms because they hold a secret: an entry
 // saved before a rename is still held after it, untouched. Values are
@@ -29,7 +30,7 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
-import { makeAgentShare } from "../support/agentshares";
+import { makeWebChannel } from "../support/channels";
 import { makeSharedVault, myVaultTarget, setSecretsInput, vaultTarget } from "../support/vaults";
 import { uniqueName } from "../support/naming";
 import { createOrganizationOnceReleased } from "../support/organizations";
@@ -83,13 +84,13 @@ async function createSecretVault(org: string, using: ConformanceClients = client
   return using.vaultCommand.setSecrets(setSecretsInput(vaultTarget(org, vault.metadata!.id), { TOKEN: SECRET }));
 }
 
-/** An agent and an enabled public share of it, in the organization `org` names (by id or slug). */
-async function createSharedAgent(org: string, agentName: string, using: ConformanceClients = clients) {
+/** An agent and an enabled public web channel of it, in the organization `org` names (by id or slug). */
+async function createLinkedAgent(org: string, agentName: string, using: ConformanceClients = clients) {
   const agent = await using.agentCommand.create(makeAgent({ org, name: agentName }));
   fixtures.defer(() => using.agentCommand.delete({ value: agent.metadata!.id }));
-  const share = await using.agentShareCommand.create(makeAgentShare(org, agent.metadata!.slug));
-  fixtures.defer(() => using.agentShareCommand.delete({ value: share.metadata!.id }));
-  return { agent, share };
+  const web = await using.channelCommand.create(makeWebChannel(org, agent.metadata!.slug));
+  fixtures.defer(() => using.channelCommand.delete({ value: web.metadata!.id }));
+  return { agent, web };
 }
 
 describe("Organization identity conformance", () => {
@@ -223,50 +224,50 @@ describe("Organization identity conformance", () => {
     );
   });
 
-  it("[rpc:OrganizationCommandController.rename] [rpc:AgentShareQueryController.getSharedProfile] a share link survives its organization's rename", async () => {
+  it("[rpc:OrganizationCommandController.rename] [rpc:ChannelQueryController.getAgentProfile] a web channel's link survives its organization's rename", async () => {
     const before = uniqueName("ident");
     const created = await createOrg(before);
     const id = created.metadata!.id;
-    const { agent, share } = await createSharedAgent(before, uniqueName("linked-agent"));
+    const { agent, web } = await createLinkedAgent(before, uniqueName("linked-agent"));
 
     await clients.organizationCommand.rename({ resourceId: id, slug: uniqueName("ident") });
 
-    // The link names only the share, so the rename moves nothing it reads.
-    const profile = await clients.agentShareQuery.getSharedProfile({ shareId: share.metadata!.id });
-    expect(profile.org, "the share's organization, by its id").toBe(id);
-    expect(profile.slug).toBe(share.metadata?.slug);
+    // The link names only the channel, so the rename moves nothing it reads.
+    const profile = await clients.channelQuery.getAgentProfile({ channelId: web.metadata!.id });
+    expect(profile.org, "the channel's organization, by its id").toBe(id);
+    expect(profile.slug).toBe(web.metadata?.slug);
     expect(profile.name, "the same agent behind the link").toBe(agent.metadata?.name);
   });
 
-  it("[rpc:OrganizationCommandController.delete] [rpc:AgentShareQueryController.getSharedProfile] a released slug captures no share link: the deleted organization's link resolves nowhere, never to the new holder's share", async () => {
+  it("[rpc:OrganizationCommandController.delete] [rpc:ChannelQueryController.getAgentProfile] a released slug captures no web channel's link: the deleted organization's link resolves nowhere, never to the new holder's web channel", async () => {
     // A deleted organization's slug is free once its purge finishes; a
     // renamed-away one is held for 30 days, too long for a suite, and the
     // capture is the same.
     const slug = uniqueName("ident");
     const agentName = uniqueName("linked-agent");
     const first = await clients.organizationCommand.create({ apiVersion: API_VERSION, kind: KIND, metadata: { name: slug, slug } });
-    const old = await createSharedAgent(slug, agentName);
-    await clients.agentShareQuery.getSharedProfile({ shareId: old.share.metadata!.id });
+    const old = await createLinkedAgent(slug, agentName);
+    await clients.channelQuery.getAgentProfile({ channelId: old.web.metadata!.id });
     await clients.organizationCommand.delete({ value: first.metadata!.id });
 
-    // The slug's next holder publishes a share of a same-named agent: the
-    // same organization slug, agent slug and share slug the old link once
+    // The slug's next holder makes a web channel of a same-named agent: the
+    // same organization slug, agent slug and channel slug the old link once
     // stood for.
     await createOrgOnceReleased(slug);
-    const next = await createSharedAgent(slug, agentName);
-    expect(next.share.metadata?.slug).toBe(old.share.metadata?.slug);
-    expect(next.share.metadata?.id, "the new share has its own id").not.toBe(old.share.metadata?.id);
+    const next = await createLinkedAgent(slug, agentName);
+    expect(next.web.metadata?.slug).toBe(old.web.metadata?.slug);
+    expect(next.web.metadata?.id, "the new channel has its own id").not.toBe(old.web.metadata?.id);
 
     const oldLink = await expectGrpcCode(
-      () => clients.agentShareQuery.getSharedProfile({ shareId: old.share.metadata!.id }),
+      () => clients.channelQuery.getAgentProfile({ channelId: old.web.metadata!.id }),
       Code.NotFound,
-      "the deleted organization's share link",
+      "the deleted organization's web channel link",
     );
-    expect(oldLink.rawMessage, "the uniform refusal a missing share answers").toBe(
-      `Agent not found: ${old.share.metadata!.id}`,
+    expect(oldLink.rawMessage, "the uniform refusal a missing channel answers").toBe(
+      `Agent not found: ${old.web.metadata!.id}`,
     );
-    const nextProfile = await clients.agentShareQuery.getSharedProfile({ shareId: next.share.metadata!.id });
-    expect(nextProfile.org).toBe(next.share.metadata?.org);
+    const nextProfile = await clients.channelQuery.getAgentProfile({ channelId: next.web.metadata!.id });
+    expect(nextProfile.org).toBe(next.web.metadata?.org);
   });
 
   it("[rpc:OrganizationCommandController.rename] a rename keeps every member's grant, and only an owner may rename", async (ctx) => {
