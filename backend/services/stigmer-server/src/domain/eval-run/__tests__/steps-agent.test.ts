@@ -94,6 +94,7 @@ import {
   EVAL_RUN_WORKFLOW_ENDED_ERROR,
   evalRunCaseGlobMessage,
   evalRunTooLargeMessage,
+  evalRunUnreadableEvalMessage,
 } from "../constants.js";
 import type { EvalSuiteSource } from "../suite.js";
 import { EvalRunEngineUnavailableError } from "../workflows.js";
@@ -522,6 +523,56 @@ describe("ResolveEvalRunDefaults' case sources and store faults", () => {
     const down: Authorizer = { authorize: () => Promise.resolve({ kind: "unavailable", cause: new Error("engine down") }) };
     const fault = await failure(() => newResolveEvalRunDefaultsStep(temp.store, down).execute(withSources(["plg_candidate"])));
     expect(fault.code).toBe(Code.Internal);
+  });
+
+  /** A create naming Eval evs_support by id, its row saved. */
+  async function namingAnEval() {
+    await temp.store.saveResource(
+      ApiResourceKind.eval,
+      "evs_support",
+      EvalSchema,
+      create(EvalSchema, { metadata: { id: "evs_support", org: ORG, slug: "support", name: "support" }, status: { digest: OTHER_DIGEST } }),
+    );
+    const ctx = withSources([]);
+    ctx.newState.spec!.cases = [create(EvalRunCaseSourceSchema, { source: { case: "eval", value: { kind: ApiResourceKind.eval, id: "evs_support" } } })];
+    return ctx;
+  }
+
+  it("refuses an Eval the creator may not view as unreadable, and is INTERNAL when the authorizer cannot answer", async () => {
+    const asked: string[] = [];
+    const deny: Authorizer = {
+      authorize: (_caller, check) => {
+        asked.push(`${IamPermission[check.permission]} ${ApiResourceKind[check.resourceKind]}:${check.resourceId}`);
+        return Promise.resolve({ kind: "deny", reason: "" });
+      },
+    };
+    const hidden = await failure(async () => newResolveEvalRunDefaultsStep(temp.store, deny).execute(await namingAnEval()));
+    expect(hidden.code).toBe(Code.InvalidArgument);
+    expect(hidden.rawMessage).toBe(evalRunUnreadableEvalMessage("evs_support"));
+    expect(asked).toEqual(["can_view eval:evs_support"]);
+    const down: Authorizer = { authorize: () => Promise.resolve({ kind: "unavailable", cause: new Error("engine down") }) };
+    const fault = await failure(async () => newResolveEvalRunDefaultsStep(temp.store, down).execute(await namingAnEval()));
+    expect(fault.code).toBe(Code.Internal);
+    expect(fault.rawMessage).toBe("failed to authorize an eval case source");
+  });
+
+  it("passes a store fault reading an Eval's head through, never as a missing Eval", async () => {
+    const ctx = await namingAnEval();
+    const broken = new Proxy(temp.store, {
+      get(target, property, receiver) {
+        const value: unknown = Reflect.get(target, property, receiver);
+        if (typeof value !== "function") {
+          return value;
+        }
+        return (...args: unknown[]) =>
+          args[0] === ApiResourceKind.eval
+            ? Promise.reject(new Error("disk unavailable"))
+            : (value as (...a: unknown[]) => unknown).apply(target, args);
+      },
+    });
+    const fault = await failure(() => newResolveEvalRunDefaultsStep(broken, ALLOW_ALL).execute(ctx));
+    expect(fault.code).toBe(Code.Internal);
+    expect(fault.rawMessage).toBe("failed to read a referenced resource");
   });
 
   it("is INTERNAL when the store cannot read a refused case source, or the compared plugin", async () => {

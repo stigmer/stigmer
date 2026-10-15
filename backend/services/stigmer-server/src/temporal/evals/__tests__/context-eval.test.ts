@@ -13,12 +13,14 @@
  *     the agent lacks rides nowhere;
  *   - the skeleton puts an Eval's case under its Eval, its mocked servers
  *     listed by their names in the turn and each mock that names no server
- *     of the agent "no such server on the agent";
+ *     of the agent "no such server on the agent"; a status without the
+ *     Eval's block gets no case;
  *   - an Eval's case keeps its indicators in both arms: it is no plugin's
  *     own, so no arm leaves its plugin out;
  *   - the loader reads each Eval the eval run stamped, at its version, as
  *     an Eval source after the plugins, through the suite source with the
- *     Eval's kind; an Eval gone since leaves the eval run nothing to run.
+ *     Eval's kind, passing over one stamped not run; an Eval gone since
+ *     leaves the eval run nothing to run.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -169,6 +171,12 @@ describe("an Eval's case on its agent", () => {
     ]);
     expect(NOT_STARTED_NO_MOCK).toBe("not started: no mock");
   });
+
+  it("writes no case for an Eval whose block the status lacks", () => {
+    const status = create(EvalRunStatusSchema, {});
+    writeSkeleton(status, contextOf(false));
+    expect([status.plugins, status.evals]).toEqual([[], []]);
+  });
 });
 
 describe("the loader's Eval sources", () => {
@@ -186,6 +194,12 @@ describe("the loader's Eval sources", () => {
     await seedAgent(temp.store);
     await temp.store.saveResource(
       ApiResourceKind.eval,
+      "evs_0",
+      EvalSchema,
+      create(EvalSchema, { metadata: { id: "evs_0", org: ORG, slug: "unbuilt", name: "unbuilt" } }),
+    );
+    await temp.store.saveResource(
+      ApiResourceKind.eval,
       "evs_1",
       EvalSchema,
       create(EvalSchema, { metadata: { id: "evs_1", org: ORG, slug: "support", name: "support" }, status: { digest: DIGEST } }),
@@ -197,12 +211,17 @@ describe("the loader's Eval sources", () => {
       create(EvalRunSchema, {
         metadata: { id: "evr_eval", org: ORG, name: "evr_eval" },
         spec: { subject: { case: "agentId", value: "agt_1" }, agentVersion: AGENT_HASH, runs: 1, maxCostUsd: 5 },
-        status: { evals: [{ evalId: "evs_1", evalSlug: "support", evalDigest: DIGEST }] },
+        status: {
+          evals: [
+            { evalId: "evs_0", evalSlug: "unbuilt", evalDigest: "", notRunReason: "no version to run" },
+            { evalId: "evs_1", evalSlug: "support", evalDigest: DIGEST },
+          ],
+        },
       }),
     );
   }
 
-  it("reads a stamped Eval as an Eval source, asking the suite source for the Eval's archive", async () => {
+  it("reads a stamped Eval as an Eval source, asking the suite source for the Eval's archive and passing over one stamped not run", async () => {
     await seedEvalRun();
     const reads: Array<{ kind: string; id: string; digest: string }> = [];
     const source = suiteSource();
@@ -212,7 +231,7 @@ describe("the loader's Eval sources", () => {
       catalog,
     })("evr_eval");
     expect(reads).toEqual([{ kind: "eval", id: "evs_1", digest: DIGEST }]);
-    expect(context?.sources.map((entry) => [entry.kind, entry.kind === "eval" ? entry.evalIndex : -1])).toEqual([["eval", 0]]);
+    expect(context?.sources.map((entry) => [entry.kind, entry.kind === "eval" ? entry.evalIndex : -1])).toEqual([["eval", 1]]);
     expect(context?.matrix.cases.length).toBeGreaterThan(0);
   });
 
