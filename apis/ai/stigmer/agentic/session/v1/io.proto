@@ -78,9 +78,9 @@ message ListSessionsByAgentRequest {
   map<string, string> labels = 4;
 }
 
-// ListSessionsByChannelRequest lists the conversations an agent channel created.
+// ListSessionsByChannelRequest lists the conversations a channel served.
 message ListSessionsByChannelRequest {
-  // Agent channel ID to filter by.
+  // Channel ID to filter by.
   string channel_id = 1 [(buf.validate.field).required = true];
 
   // The most entries to return: 0 asks for the default page of 50, and a

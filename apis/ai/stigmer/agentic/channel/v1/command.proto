@@ -1,0 +1,239 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.channel.v1;
+
+import "ai/stigmer/agentic/channel/v1/api.proto";
+import "ai/stigmer/agentic/channel/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// ChannelCommandController handles write operations for channels.
+service ChannelCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = channel;
+
+  // Create or update a channel.
+  //
+  // A request that carries metadata.id of a channel in its organization
+  // updates that channel, and its slug changes only through rename. A slug
+  // the channel was renamed away from, named without the channel's id, is
+  // refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+  // (domain "stigmer.ai"), because a write by a name that stops resolving
+  // after 30 days would later make a second channel:
+  //
+  //   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+  //     channel for reading, but a write names its current slug. Metadata:
+  //     slug (the one the request named).
+  //
+  // @internal
+  // The authorization and state operation are determined by whether the
+  // channel is going to be created or updated, resolved as part of request
+  // execution. status is preserved verbatim (rotateLink and the install
+  // flow are its writers).
+  rpc apply(Channel) returns (Channel);
+
+  // Create a channel.
+  //
+  // Making a channel is a spending decision: conversations arriving over it
+  // call models on the channel's organization's own provider keys, and the
+  // providers bill the organization for them.
+  //
+  // A channel created without a name takes the slug `<agent slug>-<type>`
+  // (for example `support-agent-web`) and the name `<agent name> (<Type>)`.
+  //
+  // A slug another channel of the organization holds is refused with
+  // ALREADY_EXISTS. A slug another channel was renamed away from, which
+  // still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+  // google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+  //
+  //   - SLUG_RESERVED — another channel held the slug until a recent
+  //     rename, and it still leads there. Metadata: slug.
+  //
+  // @internal
+  // Authorization: requires can_manage_audience on the referenced agent
+  // (spec.agent_ref) and can_create_channel on the organization, checked
+  // in-handler, since a channel broadens who can chat with the agent and
+  // spends on the organization's own provider keys. Standard org-scoped
+  // create tuples (owner = creator) for the channel itself; no visibility
+  // tuples (channel admission is app-level). Enforced here: metadata.org
+  // must equal spec.agent_ref.org. A Slack or WhatsApp channel's
+  // status.install_state is initialized to pending_install.
+  rpc create(Channel) returns (Channel) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Update a channel: the fields update_mask names change, every other
+  // field keeps its stored value.
+  //
+  // The referenced agent and the channel's type are immutable; status
+  // (the link token, install facts) is never touched by updates. A mask
+  // naming a web channel's audience or the vaults replaces them whole: an
+  // empty audience makes the link organization-only, and empty vaults
+  // detach them (both fail closed).
+  //
+  // resource.metadata.id names the channel; apply finds one by slug. The
+  // slug changes only through rename, and a mask naming a field another
+  // door owns, or a path the channel does not have, is refused with
+  // INVALID_ARGUMENT naming the path.
+  //
+  // An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+  // (domain "stigmer.ai"):
+  //
+  //   - ETAG_MISMATCH — resource.metadata.etag is set and the channel changed
+  //     since that etag was read: read it again and make the change again.
+  //     No metadata.
+  //   - WRITE_CONFLICT — the channel kept changing while the update was
+  //     being saved: try again. No metadata.
+  //
+  // @internal
+  // Authorization: requires can_edit permission on the channel. Type
+  // immutability (a web channel cannot become a Slack channel) is
+  // enforced in-handler: the link token, install state, credentials and
+  // delivery records are all type-shaped.
+  rpc update(UpdateChannelInput) returns (Channel) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = channel;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource.metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update channel";
+  }
+
+  // Rename a channel: change its slug, the name the CLI and getByReference
+  // address it by.
+  //
+  // The channel keeps its id, so everything that names it keeps working: a
+  // web channel's chat link names its id and does not change, and every
+  // answer names it by the new slug. The old slug keeps leading to the
+  // channel for reading for 30 days, during which no other channel of the
+  // organization can take it and this one can take it back; then it is
+  // released. A write that names the old slug is refused with SLUG_RENAMED
+  // (see apply). A slug another channel holds is refused with
+  // ALREADY_EXISTS, and one another channel was recently renamed away from
+  // with SLUG_RESERVED (see create).
+  //
+  // @internal
+  // Authorization: requires can_delete permission on the channel: whoever
+  // may delete it may rename it.
+  rpc rename(ai.stigmer.commons.apiresource.RenameInput) returns (Channel) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = channel;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to rename channel";
+  }
+
+  // Rotate a web channel's link token.
+  //
+  // Generates a fresh server-side token for the channel's hosted chat link.
+  // The link becomes `/chat/<channel id>?k=<token>` and the previous link
+  // (tokened or plain) stops working immediately, including for visitors
+  // mid-conversation. Use this to kill a leaked or over-shared public link
+  // without disabling or deleting the channel. A Slack or WhatsApp channel
+  // has no link and is refused with FAILED_PRECONDITION.
+  //
+  // The token lives in status.web.link_token, so manifest applies never
+  // reset it. Rotation affects public-audience links only; org-audience
+  // access is governed by live organization membership instead.
+  //
+  // @internal
+  // Authorization: requires can_edit on the channel, the same bar as
+  // update, since both control link access. The handler is the sole writer
+  // of status.web.link_token (server-generated entropy; clients never
+  // supply the token).
+  rpc rotateLink(RotateChannelLinkInput) returns (Channel) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = channel;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to rotate channel link";
+  }
+
+  // Start a Slack or WhatsApp channel's install flow.
+  //
+  // For redirect-installed providers (Slack) the output carries the
+  // provider authorization URL to redirect the installing user to, plus
+  // the single-use state that completeInstall verifies. For
+  // direct-installed providers (WhatsApp) the install runs to completion
+  // inside this RPC and the output carries completed=true instead. A web
+  // channel has nothing to install and is refused with
+  // FAILED_PRECONDITION.
+  //
+  // Refusals a client should branch on carry a google.rpc.ErrorInfo
+  // detail (domain "stigmer.ai") on the standard grpc-status-details-bin
+  // trailer, alongside the human-readable FAILED_PRECONDITION message:
+  //
+  //   - WHATSAPP_NUMBER_ALREADY_CONNECTED — the WhatsApp Business number
+  //     already serves an agent through this channel app (one agent per
+  //     number per app). Metadata: display_phone_number (the occupied
+  //     number), channel_app_id (the serving app).
+  //
+  // @internal
+  // Authorization: requires can_edit on the channel: installing grants a
+  // workspace access to the agent runtime, the same bar as enabling.
+  // Redirect style generates and persists the single-use state; direct
+  // style validates against the provider, persists the status, and maps
+  // the duplicate-number refusal. The OSS edition stores channels but
+  // returns FAILED_PRECONDITION here (documented posture).
+  rpc initiateInstall(InitiateChannelInstallInput) returns (InitiateChannelInstallOutput) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = channel;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to install channel";
+  }
+
+  // Complete a Slack channel's install flow.
+  //
+  // Called by the console after the provider's consent redirect, with the
+  // state from initiateInstall and the provider's authorization code. On
+  // success the channel's status carries the install facts and the
+  // channel begins serving (subject to spec.enabled). A web channel has
+  // nothing to install and is refused with FAILED_PRECONDITION.
+  //
+  // Refusals a client should branch on carry a google.rpc.ErrorInfo
+  // detail (domain "stigmer.ai") on the standard grpc-status-details-bin
+  // trailer, alongside the human-readable FAILED_PRECONDITION message:
+  //
+  //   - SLACK_WORKSPACE_ALREADY_CONNECTED — the workspace already hosts
+  //     an agent through this serving app (one agent per workspace per
+  //     app). Metadata: team_name (the occupied workspace),
+  //     channel_app_id (the serving app; empty = platform app).
+  //   - CHANNEL_INSTALL_STATE_INVALID — the state parameter is missing,
+  //     expired, or replayed; restart the install.
+  //   - SLACK_ENTERPRISE_INSTALL_UNSUPPORTED — an Enterprise Grid
+  //     org-wide install was attempted; install into a single workspace.
+  //
+  // Other refusals (unconfigured deployment, provider-refused code
+  // exchange) carry no reason: their message is the interface.
+  //
+  // @internal
+  // Authorization: requires can_edit on the channel, the same bar as
+  // initiateInstall (the two halves of one flow). The handler consumes the
+  // state atomically, exchanges the code, seals the bot token in the
+  // edition's own channel credential store, and writes the status facts
+  // (sole writer). The OSS edition returns FAILED_PRECONDITION
+  // (documented posture).
+  rpc completeInstall(CompleteChannelInstallInput) returns (Channel) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = channel;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to install channel";
+  }
+
+  // Delete a channel.
+  //
+  // Full teardown: a web channel's link stops resolving and live guest
+  // tokens die on their next message; a Slack or WhatsApp channel's inbound
+  // events stop resolving, pending deliveries are abandoned, and its sealed
+  // provider credentials are deleted. The channel's configuration is gone.
+  // To pause serving while keeping it, update the channel with
+  // enabled=false instead.
+  //
+  // @internal
+  // Authorization: requires can_delete permission on the channel. The
+  // referenced agent is untouched. A Slack or WhatsApp channel's teardown
+  // deletes the sealed channel credentials before the row; a teardown that
+  // fails keeps the row for an idempotent retry.
+  rpc delete(ChannelId) returns (Channel) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = channel;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete channel";
+  }
+}

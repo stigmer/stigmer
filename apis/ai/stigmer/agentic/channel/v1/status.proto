@@ -1,0 +1,169 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.channel.v1;
+
+import "ai/stigmer/commons/apiresource/status.proto";
+import "google/protobuf/timestamp.proto";
+
+// ChannelStatus contains system-managed state for a channel.
+//
+// @internal
+// Server-owned: the link token and the install facts survive every apply
+// and update verbatim, so a routine manifest apply can never clobber an
+// install, reset a locked link or leak a secret. Secrets themselves never
+// appear here: a bot token lives sealed in the edition's own channel
+// credential store, and status is readable by anyone with can_view.
+message ChannelStatus {
+  // Who attached each of this resource's vaults, by vault id: the account
+  // whose permission to use the vault each run checks when it has no
+  // person.
+  //
+  // @internal
+  // Server-owned. The reference rule records the writer for each vault a
+  // write introduces, keeps the entry for each vault a write keeps, and
+  // drops entries for removed vaults, so an editor's unrelated edit never
+  // re-attributes someone else's attachment.
+  map<string, string> vault_attachers = 1;
+
+  // Install lifecycle of a Slack or WhatsApp channel's provider connection.
+  // Unspecified on a web channel, which has nothing to install.
+  ChannelInstallState install_state = 2;
+
+  // The type's own observed state. The arm always matches spec's type.
+  oneof type_status {
+    // A web channel's link token.
+    WebChannelStatus web = 10;
+
+    // Slack workspace install facts.
+    SlackInstallStatus slack = 11;
+
+    // WhatsApp Business number install facts.
+    WhatsAppInstallStatus whatsapp = 12;
+  }
+
+  // Standard audit information (created_at, updated_at, created_by, etc.)
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+}
+
+// WebChannelStatus is a web channel's server-generated state.
+message WebChannelStatus {
+  // Rotatable token protecting the channel's public link.
+  //
+  // Empty means the hosted chat link is the plain `/chat/<channel id>`,
+  // the behavior of every web channel created without a token. When set,
+  // the link only resolves with the matching `?k=<token>` query parameter;
+  // the rotateLink RPC generates a fresh value, killing the old link
+  // immediately. Applies to public-audience channels only (org-audience
+  // access is governed by live membership instead).
+  //
+  // @internal
+  // Server-generated (rotateLink is the sole writer) and deliberately in
+  // status, not spec: status survives every apply and update verbatim, so a
+  // routine manifest apply can never wipe the token and silently fail open
+  // to the plain link. The plain link is not guessable (the channel id
+  // carries 80 random bits), so the token's job is to kill a link that
+  // leaked without deleting the channel. Validated at guest mint, stamped
+  // into the guest JWT, and re-validated against this live value on every
+  // session/run create, so rotation revokes live guest tokens on their
+  // next message. Not a security boundary: rate limits and the channel's
+  // run limits (max_cost_usd, max_tool_rounds) remain the abuse controls.
+  string link_token = 1;
+}
+
+// ChannelInstallState tracks a Slack or WhatsApp channel's install
+// lifecycle.
+//
+// This is deliberately distinct from spec.enabled: enabled is the owner's
+// serving switch; install_state is the observed state of the provider
+// connection. Traffic is served only when installed AND enabled.
+enum ChannelInstallState {
+  // Default value when no state is set, and a web channel's state.
+  channel_install_state_unspecified = 0;
+
+  // The channel exists but the provider install has not completed.
+  // No traffic is served in this state regardless of spec.enabled.
+  pending_install = 1;
+
+  // The provider install completed; credentials are stored and the
+  // channel serves traffic while spec.enabled is true.
+  installed = 2;
+
+  // The provider revoked the installation (e.g. the Slack app was
+  // uninstalled from the workspace or tokens were revoked). The channel
+  // configuration survives; re-installing returns it to installed.
+  revoked = 3;
+}
+
+// SlackInstallStatus holds the facts observed when the Stigmer Slack app
+// was installed into a workspace.
+message SlackInstallStatus {
+  // Slack workspace (team) ID, e.g. "T0123ABCD".
+  //
+  // @internal
+  // The inbound routing key: the webhook receiver resolves the channel
+  // from the event payload's team_id. One installed channel per workspace
+  // and app, enforced by a partial-unique index on installed rows.
+  string team_id = 1;
+
+  // Human-readable workspace name at install time.
+  string team_name = 2;
+
+  // Bot user ID minted by the install, e.g. "U0456EFGH".
+  // The identity the agent posts as; also how @mentions are recognized.
+  string bot_user_id = 3;
+
+  // OAuth scopes granted to the installation.
+  repeated string granted_scopes = 4;
+
+  // Slack user ID of the person who performed the install.
+  string installer_slack_user_id = 5;
+
+  // When the install completed.
+  google.protobuf.Timestamp installed_at = 6;
+
+  // ID of the ChannelApp the install went through; empty for installs
+  // of the platform's shared Stigmer app.
+  //
+  // @internal
+  // Written by the install completion path from the resolved
+  // spec.slack.app_ref (sole writer, like every install fact).
+  // Discriminates routing and workspace uniqueness once several apps can
+  // serve one workspace: lookups key on (team_id, channel_app_id) and the
+  // partial-unique installed index is compound over both. A missing value
+  // means the platform app.
+  string channel_app_id = 7;
+}
+
+// WhatsAppInstallStatus holds the facts observed when a WhatsApp Business
+// number was connected through the Meta Cloud API.
+//
+// @internal
+// Written by the direct-install path (sole writer): the installer
+// validates spec.whatsapp.phone_number_id against the Graph API and echoes
+// it here alongside the observed display facts. Routing and uniqueness
+// read status (the install fact), mirroring status.slack.team_id, so a
+// later spec edit can never silently re-route live traffic; the number
+// binding changes only through a re-install.
+message WhatsAppInstallStatus {
+  // Phone number ID the install validated and bound, e.g. "106540352242922".
+  //
+  // @internal
+  // The inbound routing key: the webhook receiver resolves the channel
+  // from the event payload's metadata.phone_number_id. One installed
+  // channel per (phone_number_id, channel_app_id), enforced by a compound
+  // partial-unique index on installed rows.
+  string phone_number_id = 1;
+
+  // Human-readable phone number at install time, e.g. "+1 555 025 3483".
+  string display_phone_number = 2;
+
+  // WhatsApp Business verified display name of the number at install time.
+  string verified_name = 3;
+
+  // ID of the ChannelApp the install went through. Always set for
+  // WhatsApp: every WhatsApp channel installs through your own Meta app.
+  string channel_app_id = 4;
+
+  // When the install completed.
+  google.protobuf.Timestamp installed_at = 5;
+}

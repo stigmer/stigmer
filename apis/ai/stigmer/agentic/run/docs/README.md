@@ -54,7 +54,7 @@ All types in this package are defined in `ai/stigmer/agentic/run/v1/`:
 |---|---|
 | `api.proto` | `Run`, `RunStatus`, `LoadedVersions`, `RunCredentials`, `RunValueSource`, `RunValueDeclarer`, `SetupProgress` |
 | `spec.proto` | `RunSpec`, `Attachment`, `ConversationCatchup`, `DeclaredPreferences`, `RecalledMemories`, `RecalledMemoryFact` |
-| `invocation.proto` | `RunConfig` (the settings message every run, surface and agent shares), `AgentInvocation` |
+| `invocation.proto` | `RunConfig` (the settings message every run, surface and agent share), `AgentInvocation` |
 | `enum.proto` | `RunPhase`, `RunArtifactKind`, `RunControlSignal`, `InteractionMode`, `ApprovalMode`, `ServiceTier`, `ThinkingMode`, the file-record enums (`FileChangeKind`, `FileCaptureClass`, `DiffCompleteness`, `SnapshotKind`, `FileReviewBlockReason`), `RunValueDeclarerKind`, `RunValueOrigin` |
 | `filereview.proto` | The file record: `FileChangeSet`, `CapturedFileChange`, `SnapshotRef`, `GitTreeRef`, `CasManifestRef`, `TurnCommandProvenance`; the live `FileChangeProgress` |
 | `message.proto` | `ToolCallOutputRef`, `FileContent` — the inline-or-stored content envelope the file record uses |

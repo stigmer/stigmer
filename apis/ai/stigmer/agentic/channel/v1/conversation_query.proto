@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentchannel.v1;
+package ai.stigmer.agentic.channel.v1;
 
-import "ai/stigmer/agentic/agentchannel/v1/conversation_io.proto";
+import "ai/stigmer/agentic/channel/v1/conversation_io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 
@@ -20,7 +20,7 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // edition answers queries with empty results (the listMessagingChannels
 // discovery-read posture) — "none" is the honest answer, not an error.
 service ChannelConversationQueryController {
-  option (ai.stigmer.commons.apiresource.api_resource_kind) = agent_channel;
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = channel;
 
   // List an organization's channel conversations, newest activity first.
   //
@@ -30,7 +30,7 @@ service ChannelConversationQueryController {
   //
   // @internal
   // Org-wide read: no single object to authorize, so authorization is
-  // in-handler — an FGA ListObjects over agent_channel#can_view scopes
+  // in-handler — an FGA ListObjects over channel#can_view scopes
   // the scan (the listByChannel two-stage precedent). A
   // caller who can view no channel receives an empty list, never an
   // error. OSS answers empty (cloud-only runtime).
@@ -76,9 +76,9 @@ service ChannelConversationQueryController {
   // conversations (cloud-only runtime), and a single-row get cannot
   // answer "empty" the way the sibling discovery reads do.
   rpc getConversation(GetChannelConversationInput) returns (ChannelConversation) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_channel;
+    option (ai.stigmer.commons.rpc.config).resource_kind = channel;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
-    option (ai.stigmer.commons.rpc.config).field_path = "agent_channel_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "channel_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view conversations on this channel";
   }
 
@@ -98,9 +98,9 @@ service ChannelConversationQueryController {
   // carry no per-conversation FGA tuples — the channel is
   // the trust boundary.
   rpc listTimeline(ListConversationTimelineInput) returns (ConversationTimeline) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_channel;
+    option (ai.stigmer.commons.rpc.config).resource_kind = channel;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
-    option (ai.stigmer.commons.rpc.config).field_path = "agent_channel_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "channel_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view conversations on this channel";
   }
 
@@ -123,9 +123,9 @@ service ChannelConversationQueryController {
   // OSS answers NOT_FOUND unconditionally (cloud-only runtime, the
   // getConversation posture).
   rpc getMediaDownloadUrl(GetConversationMediaDownloadUrlInput) returns (ConversationMediaDownloadUrl) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_channel;
+    option (ai.stigmer.commons.rpc.config).resource_kind = channel;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
-    option (ai.stigmer.commons.rpc.config).field_path = "agent_channel_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "channel_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view conversations on this channel";
   }
 }

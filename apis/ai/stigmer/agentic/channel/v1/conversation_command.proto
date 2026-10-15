@@ -1,9 +1,9 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentchannel.v1;
+package ai.stigmer.agentic.channel.v1;
 
-import "ai/stigmer/agentic/agentchannel/v1/conversation_io.proto";
-import "ai/stigmer/agentic/agentchannel/v1/message_io.proto";
+import "ai/stigmer/agentic/channel/v1/conversation_io.proto";
+import "ai/stigmer/agentic/channel/v1/message_io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 
@@ -22,7 +22,7 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // runtime: the OSS edition refuses every command FAILED_PRECONDITION (the
 // sendMessage posture). Never hangs, never lies.
 service ChannelConversationCommandController {
-  option (ai.stigmer.commons.apiresource.api_resource_kind) = agent_channel;
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = channel;
 
   // Reply to a conversation as the business, through the same number the
   // agent serves.
@@ -46,9 +46,9 @@ service ChannelConversationCommandController {
   // cold-send reachable below the sendMessage authority bar. The
   // implicit-takeover flip orders before-or-with the send.
   rpc reply(ReplyToConversationInput) returns (SendChannelMessageOutput) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_channel;
+    option (ai.stigmer.commons.rpc.config).resource_kind = channel;
     option (ai.stigmer.commons.rpc.config).permission = can_participate;
-    option (ai.stigmer.commons.rpc.config).field_path = "agent_channel_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "channel_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to participate in conversations on this channel";
   }
 
@@ -62,9 +62,9 @@ service ChannelConversationCommandController {
   // concurrent attempts resolve to one winner, and the loser receives the
   // fresh state. Attention is cleared on takeover.
   rpc takeOver(ConversationControlInput) returns (ChannelConversation) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_channel;
+    option (ai.stigmer.commons.rpc.config).resource_kind = channel;
     option (ai.stigmer.commons.rpc.config).permission = can_participate;
-    option (ai.stigmer.commons.rpc.config).field_path = "agent_channel_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "channel_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to participate in conversations on this channel";
   }
 
@@ -81,9 +81,9 @@ service ChannelConversationCommandController {
   // composed lazily at the
   // next turn from the agent_witnessed_through watermark, not here.
   rpc handBack(ConversationControlInput) returns (ChannelConversation) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_channel;
+    option (ai.stigmer.commons.rpc.config).resource_kind = channel;
     option (ai.stigmer.commons.rpc.config).permission = can_participate;
-    option (ai.stigmer.commons.rpc.config).field_path = "agent_channel_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "channel_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to participate in conversations on this channel";
   }
 
@@ -97,9 +97,9 @@ service ChannelConversationCommandController {
   // recorded on the conversation's event history through the
   // participation writer.
   rpc clearAttention(ConversationControlInput) returns (ChannelConversation) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_channel;
+    option (ai.stigmer.commons.rpc.config).resource_kind = channel;
     option (ai.stigmer.commons.rpc.config).permission = can_participate;
-    option (ai.stigmer.commons.rpc.config).field_path = "agent_channel_id";
+    option (ai.stigmer.commons.rpc.config).field_path = "channel_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to participate in conversations on this channel";
   }
 

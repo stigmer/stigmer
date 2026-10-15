@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentchannel.v1;
+package ai.stigmer.agentic.channel.v1;
 
 import "buf/validate/validate.proto";
 
-// Input for sending a business-initiated message on an agent channel.
+// Input for sending a business-initiated message on a channel.
 //
 // @internal
 // Channel + org are separate
@@ -15,7 +15,7 @@ import "buf/validate/validate.proto";
 // than one proactive-enabled channel and no channel is named — is an
 // INVALID_ARGUMENT whose detail lists the candidates.
 message SendChannelMessageInput {
-  // AgentChannel slug to send through, resolved within `org`. Optional
+  // Channel slug to send through, resolved within `org`. Optional
   // when the caller's agent has exactly one proactive-enabled channel.
   string channel = 1 [(buf.validate.field).string.max_len = 63];
 
@@ -143,9 +143,9 @@ enum ChannelSendOutcome {
   refused = 3;
 }
 
-// Input for listing the message templates available on an agent channel.
+// Input for listing the message templates available on a channel.
 message ListChannelTemplatesInput {
-  // AgentChannel slug whose provider registry to read, resolved within
+  // Channel slug whose provider registry to read, resolved within
   // `org`. Optional when the caller's agent has exactly one
   // proactive-enabled channel.
   string channel = 1 [(buf.validate.field).string.max_len = 63];
@@ -230,7 +230,7 @@ message ChannelTemplate {
   string unsupported_reason = 10;
 }
 
-// Input for listing the agent channels the caller can send
+// Input for listing the channels the caller can send
 // business-initiated messages on.
 //
 // @internal
@@ -242,24 +242,24 @@ message ChannelTemplate {
 // direct-caller `org` arm if one is ever justified.
 message ListMessagingChannelsInput {}
 
-// MessagingChannels contains the agent channels the caller can send
+// MessagingChannels contains the channels the caller can send
 // business-initiated messages on.
 message MessagingChannels {
   // One entry per serving proactive-enabled channel.
   repeated MessagingChannel entries = 1;
 }
 
-// MessagingChannel is one agent channel available for business-initiated
+// MessagingChannel is one channel available for business-initiated
 // messaging, as a slim projection.
 //
 // @internal
-// Deliberately NOT the AgentChannel
+// Deliberately NOT the Channel
 // resource — provider_config and status carry install facts and
 // credential references that must never reach a sandbox-token surface.
 // The runner needs exactly enough to name the channel in a send and
 // label the prompt section.
 message MessagingChannel {
-  // AgentChannel slug, the `channel` value sendMessage and listTemplates
+  // Channel slug, the `channel` value sendMessage and listTemplates
   // accept.
   string channel = 1;
 

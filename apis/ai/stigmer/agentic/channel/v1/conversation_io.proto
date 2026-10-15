@@ -1,15 +1,15 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentchannel.v1;
+package ai.stigmer.agentic.channel.v1;
 
-import "ai/stigmer/agentic/agentchannel/v1/delivery.proto";
-import "ai/stigmer/agentic/agentchannel/v1/message_io.proto";
-import "ai/stigmer/agentic/agentchannel/v1/outbound.proto";
+import "ai/stigmer/agentic/channel/v1/delivery.proto";
+import "ai/stigmer/agentic/channel/v1/message_io.proto";
+import "ai/stigmer/agentic/channel/v1/outbound.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
 
 // ChannelConversation is the durable identity and participation state of
-// one channel conversation: one external customer on one agent channel,
+// one channel conversation: one external customer on one channel,
 // spanning sessions.
 //
 // @internal
@@ -18,15 +18,15 @@ import "google/protobuf/timestamp.proto";
 // posture) — but WITH a public query/command surface, because the console
 // reads conversations and operates the control token (the
 // ChannelMessageQueryController precedent for channel-scoped public RPCs
-// without a kind). Identity is (agent_channel_id, conversation_key), the
+// without a kind). Identity is (channel_id, conversation_key), the
 // same key channel_conversation_binding anchors; the binding stays a
 // separate aggregate (the
 // session pointer) and never carries participation state. Field ownership
 // is single-writer (the participation writer); last_activity_at is the documented
 // commutative-max exception.
 message ChannelConversation {
-  // AgentChannel connection this conversation belongs to.
-  string agent_channel_id = 1;
+  // Channel connection this conversation belongs to.
+  string channel_id = 1;
 
   // Provider-neutral conversation key (WhatsApp: the customer's wa_id).
   string conversation_key = 2;
@@ -305,8 +305,8 @@ message ListChannelConversationsInput {
     (buf.validate.field).string.max_len = 63
   ];
 
-  // Optional filter: only conversations on this agent channel.
-  string agent_channel_id = 2 [(buf.validate.field).string.max_len = 128];
+  // Optional filter: only conversations on this channel.
+  string channel_id = 2 [(buf.validate.field).string.max_len = 128];
 
   reserved 3;
   reserved "page_info";
@@ -367,8 +367,8 @@ message CountChannelConversationsInput {
     (buf.validate.field).string.max_len = 63
   ];
 
-  // Optional filter: only conversations on this agent channel.
-  string agent_channel_id = 2 [(buf.validate.field).string.max_len = 128];
+  // Optional filter: only conversations on this channel.
+  string channel_id = 2 [(buf.validate.field).string.max_len = 128];
 
   // Optional filter: count only the conversations matching this predicate.
   ChannelConversationListFilter filter = 3;
@@ -383,8 +383,8 @@ message ChannelConversationCount {
 
 // Input for reading one conversation's identity and participation state.
 message GetChannelConversationInput {
-  // AgentChannel the conversation belongs to.
-  string agent_channel_id = 1 [
+  // Channel the conversation belongs to.
+  string channel_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).string.max_len = 128
   ];
@@ -398,8 +398,8 @@ message GetChannelConversationInput {
 
 // Input for reading one conversation's timeline.
 message ListConversationTimelineInput {
-  // AgentChannel the conversation belongs to.
-  string agent_channel_id = 1 [
+  // Channel the conversation belongs to.
+  string channel_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).string.max_len = 128
   ];
@@ -438,8 +438,8 @@ message ConversationTimeline {
 // Input for minting a short-lived download URL for one timeline item's
 // media file.
 message GetConversationMediaDownloadUrlInput {
-  // AgentChannel the conversation belongs to.
-  string agent_channel_id = 1 [
+  // Channel the conversation belongs to.
+  string channel_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).string.max_len = 128
   ];
@@ -470,8 +470,8 @@ message ConversationMediaDownloadUrl {
 // Input for the conversation control commands (takeOver, handBack,
 // clearAttention).
 message ConversationControlInput {
-  // AgentChannel the conversation belongs to.
-  string agent_channel_id = 1 [
+  // Channel the conversation belongs to.
+  string channel_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).string.max_len = 128
   ];
@@ -493,8 +493,8 @@ message ConversationControlInput {
 // live: implicit takeover orders the control flip before-or-with the send,
 // and staff replies are exempt from the proactive caps.
 message ReplyToConversationInput {
-  // AgentChannel the conversation belongs to.
-  string agent_channel_id = 1 [
+  // Channel the conversation belongs to.
+  string channel_id = 1 [
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).string.max_len = 128
   ];

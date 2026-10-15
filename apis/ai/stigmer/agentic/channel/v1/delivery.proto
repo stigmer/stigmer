@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentchannel.v1;
+package ai.stigmer.agentic.channel.v1;
 
 import "google/protobuf/timestamp.proto";
 
@@ -19,8 +19,8 @@ message ChannelDelivery {
   // Unique delivery identifier.
   string delivery_id = 1;
 
-  // AgentChannel connection this delivery belongs to.
-  string agent_channel_id = 2;
+  // Channel connection this delivery belongs to.
+  string channel_id = 2;
 
   // Organization that owns the connection (billing org).
   // Denormalized from the channel so sweep/worker paths never join.
@@ -205,7 +205,7 @@ message SlackDeliveryContext {
 // No placeholder field: WhatsApp cannot edit a sent message, so there is
 // no "thinking" message to update (the Slack chat.update UX has no
 // analog). No credentials either — the deliverer loads the channel by
-// agent_channel_id and resolves the access token from its ChannelApp,
+// channel_id and resolves the access token from its ChannelApp,
 // the SlackOutboundDeliverer channel-load pattern.
 message WhatsAppDeliveryContext {
   // Phone number ID the reply sends FROM (the business number).

@@ -126,24 +126,25 @@ service AgentCommandController {
 
   // Delete an agent.
   //
-  // Deletion also removes the agent's version history and every
-  // AgentShare in the agent's own organization referencing it, so a later
-  // agent created at the same org/slug starts clean. Sessions on the agent
-  // are not deleted: their next message fails, naming the agent. Nor is a
-  // share written in another organization before sharing across
-  // organizations was retired; such a share stops resolving instead.
+  // Deletion also removes the agent's version history and every channel in
+  // the agent's own organization that serves it (its chat links and its
+  // Slack and WhatsApp connections, whose installs are torn down first), so
+  // a later agent created at the same org/slug starts clean. A teardown
+  // that fails refuses the delete and keeps the agent and that channel, so
+  // a retry finishes it. Sessions on the agent are not deleted: their next
+  // message fails, naming the agent. Nor is a chat link written in another
+  // organization before sharing across organizations was retired; such a
+  // link stops resolving instead.
   //
   // @internal
   // Cascade order is children-before-parent so a mid-failure retry
-  // converges. Shares are matched by spec.agent_ref (org + agent slug) and
-  // scoped to the agent's own org — leaving same-org shares behind would
-  // silently rebind a stale share (audience, link token, bound
-  // credentials) to whatever agent is later created at that slug, while
-  // cascading ANOTHER org's share would make delete a cross-principal
-  // destructive action. Cross-org shares instead fail
-  // closed via the dangling-ref check and the status.agent_id pin; their
-  // owning orgs clean up their own rows. Cloud additionally cleans each
-  // cascaded child's FGA tuples.
+  // converges. Channels are found by spec.agent_ref's id through the
+  // channel list index and scoped to the agent's own org: cascading
+  // another org's channel would make delete a cross-principal destructive
+  // action, and such a channel fails closed through the dangling-ref check
+  // instead. A channel created while the agent is being deleted removes
+  // itself after its write. Cloud additionally cleans each cascaded
+  // child's FGA tuples.
   rpc delete(AgentId) returns (Agent) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent;
     option (ai.stigmer.commons.rpc.config).permission = can_delete;

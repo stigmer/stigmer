@@ -1,13 +1,13 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentchannel.v1;
+package ai.stigmer.agentic.channel.v1;
 
-import "ai/stigmer/agentic/agentchannel/v1/delivery.proto";
-import "ai/stigmer/agentic/agentchannel/v1/message_io.proto";
+import "ai/stigmer/agentic/channel/v1/delivery.proto";
+import "ai/stigmer/agentic/channel/v1/message_io.proto";
 import "google/protobuf/timestamp.proto";
 
 // ChannelOutboundMessage tracks the delivery of one business-initiated
-// message to one external recipient on an agent channel.
+// message to one external recipient on a channel.
 //
 // @internal
 // Infrastructure-only — no kind, no apiVersion, no CRUD RPCs, no FGA (the
@@ -27,8 +27,8 @@ message ChannelOutboundMessage {
   // Unique outbound message identifier.
   string outbound_message_id = 1;
 
-  // AgentChannel connection this message sends through.
-  string agent_channel_id = 2;
+  // Channel connection this message sends through.
+  string channel_id = 2;
 
   // Organization that owns the connection (billing org).
   // Denormalized from the channel so sweep/cap paths never join.

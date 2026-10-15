@@ -29,7 +29,7 @@ service ScheduleCommandController {
   // The authorization and state-operation are determined depending on
   // whether the schedule is going to be created or updated, resolved as
   // part of request execution. Status is preserved verbatim across
-  // apply-as-update (the AgentChannel posture): status is
+  // apply-as-update (the Channel posture): status is
   // written only by the scheduling runtime and by the explicit resume
   // command, and a routine manifest apply must never reset the failure
   // streak or un-pause a platform-paused schedule.
@@ -89,7 +89,7 @@ service ScheduleCommandController {
   // agent_ref immutability is a consent-bar guarantee, not convenience:
   // create's bar is can_edit on the REFERENCED agent, and
   // a repointing update would let a schedule owner drive an agent they
-  // may not edit — the AgentChannel rule for the AgentChannel reason.
+  // may not edit — the Channel rule for the Channel reason.
   // Target-arm immutability is enforced in-handler: each target kind
   // enters its own execution pipeline. Update deliberately
   // does NOT clear a platform auto-pause: apply routes through this same

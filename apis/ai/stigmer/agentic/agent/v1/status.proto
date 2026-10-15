@@ -14,9 +14,9 @@ message AgentStatus {
   reserved 1;
   reserved "default_instance_id";
 
-  // Field 2 held the rotatable share-link token until sharing was promoted
-  // to the first-class AgentShare resource; the token now
-  // lives in AgentShareStatus.share_link_token.
+  // Field 2 held the rotatable chat-link token until the chat link became a
+  // resource of its own; the token now lives in a web Channel's
+  // status.web.link_token.
   reserved 2;
   reserved "share_link_token";
 
