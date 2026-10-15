@@ -237,10 +237,14 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
 /**
  * The second line of an opened organization's menu item: the parent it is
  * a child of, named from the caller's own list (a parent's admin holds a
- * role in the parent, so the list has it).
+ * role in the parent, so the list has it); "Child organization" if the
+ * list lacks it. An opened organization with no parent keeps its slug
+ * (`undefined` here).
  */
-function childOfLabel(org: Organization, orgs: readonly Organization[]): string {
-  const parent = findOrgByRef(orgs, org.spec?.parentOrg ?? "");
+function childOfLabel(org: Organization, orgs: readonly Organization[]): string | undefined {
+  const parentRef = org.spec?.parentOrg ?? "";
+  if (!parentRef) return undefined;
+  const parent = findOrgByRef(orgs, parentRef);
   const parentName = parent?.metadata?.name || parent?.metadata?.slug;
   return parentName ? `Child of ${parentName}` : "Child organization";
 }

@@ -152,4 +152,20 @@ describe("OrgSwitcher", () => {
       ]),
     );
   });
+
+  it.each([
+    ["a child whose parent the caller's list lacks", "org_01jzzzzzzzzzzzzzzzzzzzzzzz", "Child organization"],
+    ["an organization with no parent", "", "elsewhere"],
+  ])("labels an opened organization that is %s", async (_label, parentOrg, detail) => {
+    const id = "org_01jeeeeeeeeeeeeeeeeeeeeeee";
+    localStorage.setItem("stigmer:activeOrg", id);
+    renderSwitcher(clientFor([[ACME, GLOBEX]], vi.fn(), vi.fn().mockResolvedValue(org(id, "elsewhere", parentOrg))));
+    await waitFor(() => expect(screen.getByLabelText("active org").textContent).toBe(id));
+
+    await openMenu(screen.getByRole("button", { name: "Organization menu" }));
+    const first = screen.getAllByRole("menuitemradio")[0];
+    expect(first.textContent).toBe(`elsewhere${detail}`);
+    expect(first.getAttribute("aria-checked")).toBe("true");
+  });
 });
+
