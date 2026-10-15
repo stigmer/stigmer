@@ -3,7 +3,8 @@
 // these arms pin that a large archive is staged through the eval's own
 // mint, which names the push's slug, and pushed by reference with its
 // envelope kept. downloadEvalArchive prefers the URL lane, reads inline on a
-// server without it, and refuses bytes that do not match the digest.
+// server without it, refuses a URL that answers an HTTP error, and refuses
+// bytes that do not match the digest.
 import { createHash } from "node:crypto";
 
 import { describe, expect, it, vi } from "vitest";
@@ -109,6 +110,30 @@ describe("downloadEvalArchive", () => {
     const got = await downloadEvalArchive(client, REF, fetchImpl);
     expect(got.digest).toBe(DIGEST);
     expect(got.bytes).toEqual(ARCHIVE);
+  });
+
+  it.each([
+    ["Expired link", "eval archive download failed with HTTP 403: Expired link"],
+    ["", "eval archive download failed with HTTP 403"],
+  ])("refuses a URL that answers an HTTP error, quoting its body %j", async (body, message) => {
+    const fetchImpl = vi.fn(async () => new Response(body, { status: 403 })) as unknown as typeof globalThis.fetch;
+    const client = queryClient({
+      getDownloadUrl: () => create(EvalArchiveDownloadUrlSchema, { url: DOWNLOAD_URL, digest: DIGEST, sizeBytes: BigInt(ARCHIVE.length) }),
+    });
+    await expect(downloadEvalArchive(client, REF, fetchImpl)).rejects.toThrow(message);
+  });
+
+  it("refuses a URL whose error body cannot be read, with the status alone", async () => {
+    const broken = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.error(new Error("connection reset"));
+      },
+    });
+    const fetchImpl = vi.fn(async () => new Response(broken, { status: 502 })) as unknown as typeof globalThis.fetch;
+    const client = queryClient({
+      getDownloadUrl: () => create(EvalArchiveDownloadUrlSchema, { url: DOWNLOAD_URL, digest: DIGEST, sizeBytes: BigInt(ARCHIVE.length) }),
+    });
+    await expect(downloadEvalArchive(client, REF, fetchImpl)).rejects.toThrow(/^eval archive download failed with HTTP 502$/);
   });
 
   it("reads inline from a server without the URL lane", async () => {

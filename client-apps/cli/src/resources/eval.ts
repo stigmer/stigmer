@@ -28,7 +28,7 @@ import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/a
 import { downloadEvalArchive, type Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
-import { isPluginDirectory, readPluginDirectory } from "./plugin.js";
+import { readPluginDirectory } from "./plugin.js";
 import type { ParsedReference } from "./reference.js";
 import { formatBytes, shortHash, type IgnoreOptions, type ZipStats } from "./skill.js";
 
@@ -47,9 +47,6 @@ export interface PreparedEvalPush {
  * where no case loads, with the reader's sentences.
  */
 export async function prepareEvalPush(dir: string, ignoreOptions: IgnoreOptions): Promise<PreparedEvalPush> {
-  if (isPluginDirectory(dir)) {
-    throw pluginFolderRefusal(dir);
-  }
   const directory = readPluginDirectory(dir, ignoreOptions);
   const outcome = await prepareEvalArchive(directory);
   if (!outcome.ok) {

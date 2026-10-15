@@ -7,12 +7,14 @@
 // the slug --name gives, into the context organization; --tag is sent only
 // when given, never the flag's `latest` default; --dry-run prints the
 // reading and sends nothing; a missing --name, a `latest` tag, a
-// child-organization level, a skill-only flag and a plugin folder are
-// refused before any call. Download: the version the reference names is
+// child-organization level, a skill-only flag, a plugin folder and a folder
+// where no case loads are refused before any call; the pushed version's
+// message and the server's findings are printed. Download: the version the reference names is
 // resolved, its archive checked against its digest and unzipped into a new
 // directory; a non-empty directory and an archive that does not match its
 // digest are refused, and an archive entry that would climb out of the
-// directory is refused before anything is written.
+// directory is refused before anything is written; a reference with an
+// empty version and an output path that is a file are refused.
 
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -23,7 +25,7 @@ import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
-import { zipSync } from "fflate";
+import { unzipSync, zipSync } from "fflate";
 import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
 import { EvalCommandController } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/command_pb";
 import { EvalArchiveSchema, type PushEvalRequest } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
@@ -72,10 +74,22 @@ async function startEvalBackend(): Promise<Backend> {
     router.service(EvalCommandController, {
       push: (req) => {
         state.pushes.push(req);
+        // A real server keeps the push's message on the version, and lists
+        // the cases that do not load as findings.
         return create(EvalSchema, {
-          metadata: { id: "evs_1", org: "acme", slug: req.slug, visibility: ApiResourceVisibility.visibility_org },
+          metadata: {
+            id: "evs_1",
+            org: "acme",
+            slug: req.slug,
+            visibility: ApiResourceVisibility.visibility_org,
+            version: { id: "b".repeat(64), message: req.message },
+          },
           spec: { tag: req.tag },
-          status: { digest: "b".repeat(64), caseCount: 1 },
+          status: {
+            digest: "b".repeat(64),
+            caseCount: 1,
+            findings: req.slug === "with-findings" ? [{ kind: "eval-case-invalid", path: "broken", message: "broken: the case has no graders" }] : [],
+          },
         });
       },
     });
@@ -200,6 +214,65 @@ describe("stigmer push eval", () => {
     expect(outcome.message).toContain(`push ${join(plugin, "evals")} instead`);
   });
 
+  it.each([
+    [["--archive", "x.zip"], "--archive"],
+    [["--git-ref", "main"], "--git-ref"],
+    [["--subdir", "evals"], "--subdir"],
+  ])("refuses the skill-only flag %j", async (flags, named) => {
+    const outcome = await runCli(["push", "eval", evalsFolder(), "--name", "support", ...flags]);
+    expect(outcome.exitCode).toBe(ExitCode.Usage);
+    expect(outcome.message).toContain(`cannot be combined with: ${named}`);
+    expect(backend.pushes).toEqual([]);
+  });
+
+  it("sends the organization level for --visibility org", async () => {
+    const outcome = await runCli(["push", "eval", evalsFolder(), "--name", "support", "--visibility", "org", "--json"]);
+    expect(outcome.exitCode).toBe(ExitCode.Success);
+    expect(backend.pushes[0]?.visibility).toBe(ApiResourceVisibility.visibility_org);
+  });
+
+  it("prints the version's message and the cases the server could not load", async () => {
+    const outcome = await runCli(["push", "eval", evalsFolder(), "--name", "with-findings", "-m", "9c2e4b7", "--json"]);
+    expect(outcome.exitCode).toBe(ExitCode.Success);
+    const payload = JSON.parse(outcome.stdout);
+    expect(payload.message).toBe("Pushed eval 'with-findings' (1 case) with 1 case finding");
+    expect(payload.data.eval.metadata.version.message).toBe("9c2e4b7");
+    expect(payload.data.eval.status.findings[0].message).toBe("broken: the case has no graders");
+  });
+
+  it("lists the findings of a folder whose other cases load on --dry-run", async () => {
+    const dir = evalsFolder();
+    mkdirSync(join(dir, "broken"));
+    writeFileSync(join(dir, "broken", "prompt.md"), "No grader here.");
+    const outcome = await runCli(["push", "eval", dir, "--name", "support", "--dry-run", "--json"]);
+    expect(outcome.exitCode).toBe(ExitCode.Success);
+    expect(JSON.parse(outcome.stdout).data.findings.map((f: { path: string }) => f.path)).toEqual(["broken"]);
+    expect(backend.pushes).toEqual([]);
+  });
+
+  it("refuses a folder where no case loads, naming why, and one that holds no case", async () => {
+    const broken = join(work, "broken-evals");
+    mkdirSync(join(broken, "c"), { recursive: true });
+    writeFileSync(join(broken, "c", "prompt.md"), "No grader here.");
+    const noLoad = await runCli(["push", "eval", broken, "--name", "support"]);
+    expect(noLoad.exitCode).toBe(ExitCode.Usage);
+    expect(noLoad.message).toContain("no case in the folder loads, 1 problem found:\n  - c: ");
+
+    const empty = join(work, "empty-evals");
+    mkdirSync(empty);
+    writeFileSync(join(empty, "README.md"), "notes");
+    const none = await runCli(["push", "eval", empty, "--name", "support"]);
+    expect(none.exitCode).toBe(ExitCode.Usage);
+    expect(none.message).toContain("the folder holds no case");
+    expect(backend.pushes).toEqual([]);
+  });
+
+  it("names the types that push for an unknown one", async () => {
+    const outcome = await runCli(["push", "widget", work]);
+    expect(outcome.exitCode).toBe(ExitCode.Usage);
+    expect(outcome.message).toContain("Available types: skill, plugin, eval");
+  });
+
   it("refuses --name on another kind", async () => {
     const outcome = await runCli(["push", "skill", work, "--name", "x"]);
     expect(outcome.exitCode).toBe(ExitCode.Usage);
@@ -220,6 +293,22 @@ describe("stigmer download eval", () => {
       expect(readFileSync(join(out, path), "utf8")).toBe(text);
     }
     expect(JSON.parse(outcome.stdout).data).toMatchObject({ slug: "support", digest: STORED_DIGEST, files: 3 });
+  });
+
+  it("refuses a reference that names no version after '@'", async () => {
+    const outcome = await runCli(["download", "eval", "support@", "-o", join(work, "copy")]);
+    expect(outcome.exitCode).toBe(ExitCode.Usage);
+    expect(outcome.message).toContain("names no version after '@'");
+    expect(backend.references).toEqual([]);
+  });
+
+  it("refuses an output path that is a file", async () => {
+    const out = join(work, "a-file");
+    writeFileSync(out, "mine");
+    const outcome = await runCli(["download", "eval", "support", "-o", out]);
+    expect(outcome.exitCode).toBe(ExitCode.Usage);
+    expect(outcome.message).toContain("exists and is not a directory");
+    expect(readFileSync(out, "utf8")).toBe("mine");
   });
 
   it("refuses a directory that is not empty", async () => {
@@ -243,6 +332,14 @@ describe("stigmer download eval", () => {
 });
 
 describe("extractArchive", () => {
+  it("writes the files and passes over the archive's directory entries", () => {
+    const out = join(work, "with-dirs");
+    const archive = zipSync({ "empty-dir": {}, "refund/prompt.md": encoder.encode("Hi.") });
+    expect(Object.keys(unzipSync(archive))).toContain("empty-dir/");
+    expect(extractArchive(archive, out)).toBe(1);
+    expect(readFileSync(join(out, "refund", "prompt.md"), "utf8")).toBe("Hi.");
+  });
+
   it.each([["../outside.md"], ["a/../../outside.md"], ["/etc/evil.md"], ["x/.."]])(
     "refuses an entry %j that would land outside the directory, before writing anything",
     (name) => {
