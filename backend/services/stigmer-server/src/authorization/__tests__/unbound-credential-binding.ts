@@ -32,3 +32,24 @@ export const UNBOUND_CREDENTIAL_BINDING: CredentialBinding = {
       ? Promise.resolve(ids)
       : Promise.reject(new Error(BOUND_CALLER_REFUSAL)),
 };
+
+/**
+ * The binding's one predicate for suites whose bound callers only meet
+ * `admitsOrganization` (the write lanes' refusal): an unbound caller is
+ * admitted everywhere, a bound one in its own organization and in each
+ * organization `parents` names it the parent of. The other verbs answer as
+ * the unbound double does.
+ */
+export function admittingBinding(
+  parents: Readonly<Record<string, string>> = {},
+): CredentialBinding {
+  return {
+    ...UNBOUND_CREDENTIAL_BINDING,
+    admitsOrganization: (caller, org) => {
+      const bound = boundOrgOf(caller);
+      return Promise.resolve(
+        bound === undefined || org === bound || parents[org] === bound,
+      );
+    },
+  };
+}

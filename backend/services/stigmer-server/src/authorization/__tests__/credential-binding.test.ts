@@ -239,8 +239,8 @@ describe("the rule, for a caller bound to one organization", () => {
     expect(f.reads).toEqual([]);
   });
 
-  it("decides the organization itself by its id, with no read", async () => {
-    const f = fixture([]);
+  it("decides its own organization by its id with no read, and another by one read of that organization's parent", async () => {
+    const f = fixture([...ORGANIZATIONS]);
     const binding = newCredentialBinding(f.deps);
     const caller = boundTo(ALPHA);
     expect(
@@ -250,6 +250,8 @@ describe("the rule, for a caller bound to one organization", () => {
         permission: EDIT,
       }),
     ).toBe("inside");
+    expect(f.reads).toEqual([]);
+    // BETA is ALPHA's parent, not its child.
     expect(
       await binding.verdict(caller, {
         kind: ApiResourceKind.organization,
@@ -257,7 +259,7 @@ describe("the rule, for a caller bound to one organization", () => {
         permission: VIEW,
       }),
     ).toBe("outside");
-    expect(f.reads).toEqual([]);
+    expect(f.reads).toEqual([`${ApiResourceKind.organization}:${BETA}`]);
   });
 
   it("decides an organization-scoped row and a parent-scoped execution by the row's organization", async () => {
@@ -633,7 +635,9 @@ describe("the rule, for a caller bound to one organization", () => {
         permission: VIEW,
       }),
     ).toBe("outside");
-    expect(f.reads).toEqual([]);
+    // The store is read for the team's organization (is it a child of the
+    // bound one?), never for the grant or the team.
+    expect(f.reads).toEqual([`${ApiResourceKind.organization}:${BETA}`]);
   });
 });
 
@@ -753,7 +757,7 @@ describe("bindListReadScope", () => {
     expect(inner.offered).toEqual([["agt_a", "agt_b"]]);
   });
 
-  it("drops a bound caller's candidates outside its organization, keeping its parent's shared blueprints for the inner scope, with one read of its organization", async () => {
+  it("drops a bound caller's candidates outside its organizations, keeping its parent's shared blueprints for the inner scope, with one read of each organization the candidates name", async () => {
     const inner = recordingScope();
     const scope = bindListReadScope(inner, newCredentialBinding(f.deps));
     const before = f.reads.length;
@@ -772,9 +776,9 @@ describe("bindListReadScope", () => {
       ],
     );
     expect([...kept]).toEqual(["agt_a", "agt_shared"]);
-    expect(f.reads.slice(before)).toEqual([
-      `${ApiResourceKind.organization}:${ALPHA}`,
-    ]);
+    expect(f.reads.slice(before).sort()).toEqual(
+      [ALPHA, BETA, GAMMA].map((org) => `${ApiResourceKind.organization}:${org}`).sort(),
+    );
   });
 
   it("narrows an enumeration larger than one read batch, keeping every id inside", async () => {

@@ -37,7 +37,7 @@ import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import { LIST_TOOLS_ORG_DENIED, listTools } from "../list-tools.js";
 import type { PluginToolsDeps } from "../list-tools.js";
-import { UNBOUND_CREDENTIAL_BINDING } from "../../../authorization/__tests__/unbound-credential-binding.js";
+import { admittingBinding } from "../../../authorization/__tests__/unbound-credential-binding.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -99,7 +99,7 @@ function deps(authorizer: Authorizer): PluginToolsDeps {
     store,
     logger: silentLogger,
     authorizer,
-    credentialBinding: UNBOUND_CREDENTIAL_BINDING,
+    credentialBinding: admittingBinding(),
     engineState: () => {
       throw new Error("the engine state was read despite the refusal");
     },
