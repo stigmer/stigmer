@@ -24,7 +24,12 @@
  *      API on this host (test/install/lib/fake-model.mjs), which the pods reach
  *      by host.docker.internal where the kind node resolves it (Docker
  *      Desktop) and by the kind network's gateway otherwise (Linux);
- *   3. (bundled profile) the adversarial arms: the bundled Temporal and the
+ *   3. (bundled profile) the release is installed with the outbound fence
+ *      on (egressPolicy.enabled, the host's address in allowedCidrs for the
+ *      fake model), so every probe above runs through it; then the
+ *      adversarial arms: the stigmer pod cannot reach a private address in
+ *      the cluster (CoreDNS's metrics port) that a pod outside the release
+ *      reaches; the bundled Temporal and the
  *      bundled Postgres each admit the stigmer pod and refuse a pod outside
  *      the release (their NetworkPolicies, enforced by kind's network
  *      plugin); the pod is deleted
@@ -32,6 +37,17 @@
  *      values moves no pod; `helm uninstall` leaves every claim; a second
  *      install of the same name adopts them and the execution is still
  *      there.
+ *
+ * The enterprise profile, run only when named (--profiles=enterprise; it
+ * builds the Enterprise image, which the CI gate does not): the release is
+ * installed with a license Secret holding a key signed here on the spot, as
+ * the first install before signing in (the server alone, no runner key).
+ * No released image trusts a production signing key yet, and a fresh key is
+ * one no image ever trusts, so the proof is the refusal: the server
+ * container exits 1 with the server's `boot failed: The Stigmer Enterprise
+ * license key ...` line and the pod never becomes ready. That the image runs
+ * as the chart says (the Enterprise repository at the server's tag) is
+ * checked on the live Deployment.
  *
  * The BYO profile first applies ci/byo-infra.yaml (a Postgres and a
  * Temporal the chart did not install) and proves the externalDatabase and
@@ -48,14 +64,16 @@
  *       stage-compose-runner-cli` and bundle-slim first — make smoke-helm
  *       does all of it), tags them as the chart's repositories at tag
  *       `compose-dev`, loads them into kind and installs with pullPolicy
- *       Never.
+ *       Never. With the enterprise profile, also the Enterprise image,
+ *       through its own smoke's build (`make bundle-ee-slim` first).
  *
  *   node test/install/smoke-helm.mjs --published --version=vX.Y.Z
  *       Installs the chart pointing at the published ghcr.io images at that
  *       tag (the release lane's mode).
  *
  *   --chart=<dir|file.tgz>   the chart to install (default: deploy/helm/stigmer)
- *   --profiles=bundled,byo   which profiles to run (default: both)
+ *   --profiles=bundled,byo   which profiles to run (default: both; `enterprise`
+ *                            only when named)
  *   --cluster=<name>         use an existing kind cluster and leave it
  *   --keep                   leave the cluster running for debugging
  *   --fake-model=error       the fake answers every model call with an error,
@@ -72,7 +90,7 @@
  * Plain node + the helm, kind, kubectl and docker CLIs, no dependencies.
  */
 import { spawnSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { generateKeyPairSync, randomBytes, randomUUID, sign } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
@@ -344,10 +362,47 @@ async function fenceArm(namespace, { component, port }) {
   if (inside !== "CONNECTED") {
     throw new Error(`the stigmer pod could not reach its own ${component}: ${inside}`);
   }
+  const outside = await probeFromOutside(namespace, `${component}-fence-probe`, script);
+  if (!outside.startsWith("BLOCKED")) {
+    throw new Error(
+      `a pod outside the release reached the bundled ${component} (${outside}) — the NetworkPolicy is not enforced`,
+    );
+  }
+  log(`the stigmer pod: CONNECTED; a pod outside the release: ${outside}`);
+}
+
+/**
+ * The outbound fence: the stigmer pod cannot reach a private address inside
+ * the cluster, while a pod outside the release reaches the same address, so
+ * the fence is what refuses it. The address is CoreDNS's metrics port, a
+ * pod address on every kind cluster and not the DNS port the fence opens.
+ * (The API server is no test: traffic to a pod's own node is always allowed,
+ * the NetworkPolicy contract, and kind runs it on the one node.) The boot
+ * and the agent run above already went through the fence: Postgres and
+ * Temporal by its own rules, the fake model by allowedCidrs.
+ */
+async function egressArm(namespace) {
+  const target = { host: "kube-dns.kube-system.svc.cluster.local", port: 9153 };
+  log(`arm: the outbound fence refuses the stigmer pod a private cluster address (${target.host}:${target.port})`);
+  const script = connectProbeScript(target.host, target.port);
+  const inside = kubectl(
+    ["-n", namespace, "exec", `deployment/${RELEASE}`, "-c", "server", "--", "node", "-e", script],
+  ).trim();
+  const outside = await probeFromOutside(namespace, "egress-fence-probe", script);
+  if (!outside.startsWith("CONNECTED")) {
+    throw new Error(`a pod outside the release could not reach ${target.host}:${target.port} (${outside}); the arm proves nothing`);
+  }
+  if (!inside.startsWith("BLOCKED")) {
+    throw new Error(`the fenced stigmer pod reached ${target.host}:${target.port} (${inside}) — the egress NetworkPolicy is not enforced`);
+  }
+  log(`the stigmer pod: ${inside}; a pod outside the release: CONNECTED`);
+}
+
+/** Runs `script` with node in a bare pod of the server image outside the release; answers its output. */
+async function probeFromOutside(namespace, probe, script) {
   const image = kubectlJson(["-n", namespace, "get", "deployment", RELEASE]).spec.template.spec.containers.find(
     (container) => container.name === "server",
   ).image;
-  const probe = `${component}-fence-probe`;
   kubectl([
     "-n",
     namespace,
@@ -364,25 +419,20 @@ async function fenceArm(namespace, { component, port }) {
     script,
   ]);
   const deadline = Date.now() + 120_000;
-  let phase = "";
   while (Date.now() < deadline) {
-    phase = kubectlJson(["-n", namespace, "get", "pod", probe]).status?.phase ?? "";
+    const phase = kubectlJson(["-n", namespace, "get", "pod", probe]).status?.phase ?? "";
     if (phase === "Succeeded" || phase === "Failed") break;
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
-  const outside = kubectl(["-n", namespace, "logs", probe]).trim();
+  const output = kubectl(["-n", namespace, "logs", probe]).trim();
   kubectl(["-n", namespace, "delete", "pod", probe, "--wait=true"]);
-  if (!outside.startsWith("BLOCKED")) {
-    throw new Error(
-      `a pod outside the release reached the bundled ${component} (${phase}: ${outside}) — the NetworkPolicy is not enforced`,
-    );
-  }
-  log(`the stigmer pod: CONNECTED; a pod outside the release: ${outside}`);
+  return output;
 }
 
 /** The bundled profile's adversarial arms. */
 async function adversarialArms(release, args, executionId) {
   const { namespace } = release;
+  await egressArm(namespace);
   await fenceArm(namespace, { component: "temporal", port: 7233 });
   await fenceArm(namespace, { component: "postgres", port: 5432 });
 
@@ -458,14 +508,117 @@ async function adversarialArms(release, args, executionId) {
   );
 }
 
+/** The line the Enterprise server prints when it refuses a key (ee/server/scripts/smoke-image.mjs checks the same). */
+const LICENSE_REFUSAL = "boot failed: The Stigmer Enterprise license key";
+
+/** A key in the license verifier's form, signed by a key pair made here: one no image trusts. */
+function untrustedLicenseKey() {
+  const { privateKey } = generateKeyPairSync("ed25519");
+  const segment = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  const header = segment({ alg: "EdDSA", kid: `helm-smoke-${randomUUID()}`, typ: "JWT" });
+  const payload = segment({ iss: "stigmer helm smoke", sub: "a key no release trusts" });
+  const signature = sign(null, Buffer.from(`${header}.${payload}`, "ascii"), privateKey).toString("base64url");
+  return `${header}.${payload}.${signature}`;
+}
+
+/**
+ * The enterprise profile: the chart runs the Enterprise image with the
+ * license key, and the server refuses a key it cannot verify, stopping the
+ * pod short of ready with its reason.
+ */
+async function runEnterpriseProfile(args, postgresPassword, modelBaseUrl) {
+  const namespace = "smoke-enterprise";
+  log(`=== profile enterprise (namespace ${namespace}) ===`);
+  const release = createStigmerRelease(cluster, {
+    namespace,
+    valuesFile: profileValues("enterprise"),
+    modelBaseUrl,
+    postgresPassword,
+    // The first install, before anyone has signed in to create the
+    // runner's key: the server alone.
+    extraSets: ["runner.stigmerToken.existingSecret="],
+    log,
+  });
+  current = release;
+  release.createSecrets();
+  kubectl([
+    "-n",
+    namespace,
+    "create",
+    "secret",
+    "generic",
+    "stigmer-license",
+    `--from-literal=STIGMER_LICENSE_KEY=${untrustedLicenseKey()}`,
+  ]);
+  log("helm install with a license Secret holding a key no image trusts (no --wait: it must never become ready)");
+  await release.install(chartFor(args.release, { chart: args.chart }), { wait: false });
+
+  const images = await release.images();
+  const tag = chartFor(args.release).imageTag ?? `v${args.version}`;
+  if (images.server !== `ghcr.io/stigmer/stigmer-server-ee:${tag}`) {
+    throw new Error(`the licensed server runs ${images.server}; want the Enterprise image at the server's tag ${tag}`);
+  }
+  if (images.runner !== undefined) {
+    throw new Error("the pod runs a runner before its key is named");
+  }
+  log(`the server container runs ${images.server}`);
+
+  // The init container waits for the bundled Postgres and Temporal first.
+  const deadline = Date.now() + 10 * 60_000;
+  let refusal;
+  let exitCode;
+  while (Date.now() < deadline && refusal === undefined) {
+    const pods = kubectlJson(["-n", namespace, "get", "pods", "-l", "app.kubernetes.io/component=stigmer"]).items;
+    const status = pods[0]?.status?.containerStatuses?.find((container) => container.name === "server");
+    if (status?.ready === true) {
+      throw new Error("the server became ready with a key no image trusts; a licensed boot must verify its key");
+    }
+    const terminated = status?.state?.terminated ?? status?.lastState?.terminated;
+    if (terminated !== undefined) {
+      const previous = status.state?.terminated === undefined;
+      const logs = cluster.kubectlQuiet([
+        "-n",
+        namespace,
+        "logs",
+        pods[0].metadata.name,
+        "-c",
+        "server",
+        ...(previous ? ["--previous"] : []),
+      ]);
+      refusal = `${logs.stdout ?? ""}\n${logs.stderr ?? ""}`.split("\n").find((line) => line.startsWith(LICENSE_REFUSAL));
+      exitCode = terminated.exitCode;
+    }
+    if (refusal === undefined) await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+  if (refusal === undefined) {
+    throw new Error(`no "${LICENSE_REFUSAL} ..." line from the server container within 10 minutes`);
+  }
+  if (exitCode !== 1) throw new Error(`the server container exited ${exitCode}; want 1`);
+  const deployment = kubectlJson(["-n", namespace, "get", "deployment", RELEASE]);
+  if ((deployment.status?.readyReplicas ?? 0) !== 0) throw new Error("the Deployment reports a ready replica");
+  log(`refused, exit 1, never ready: ${refusal}`);
+  log("=== profile enterprise: PASS ===");
+  kubectl(["delete", "namespace", namespace, "--wait=false"]);
+}
+
 async function runProfile(profile, args, postgresPassword, fake, modelBaseUrl) {
+  if (profile === "enterprise") {
+    await runEnterpriseProfile(args, postgresPassword, modelBaseUrl);
+    return;
+  }
   const namespace = `smoke-${profile}`;
   log(`=== profile ${profile} (namespace ${namespace}) ===`);
+  // The bundled profile runs fenced: the whole smoke, agent run included,
+  // goes through the outbound fence, with the host (the fake model) let
+  // through as an operator lets a private model endpoint through.
+  const extraSets =
+    profile === "bundled" ? ["egressPolicy.enabled=true", `egressPolicy.allowedCidrs[0]=${cluster.hostCidr()}`] : [];
   const release = createStigmerRelease(cluster, {
     namespace,
     valuesFile: profileValues(profile),
     modelBaseUrl,
     postgresPassword,
+    extraSets,
     log,
   });
   current = release;
@@ -510,6 +663,7 @@ async function main() {
   try {
     await cluster.start();
     if (args.mode === "build") cluster.loadSourceImages();
+    if (args.mode === "build" && args.profiles.includes("enterprise")) cluster.loadEnterpriseSourceImage();
     const modelBaseUrl = fakeModelEnv(fake, cluster.hostAddress()).ANTHROPIC_BASE_URL;
     log(`the model: the fake at ${modelBaseUrl}, mode ${args.fakeModel}`);
 

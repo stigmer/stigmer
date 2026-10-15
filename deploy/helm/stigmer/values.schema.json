@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$comment": "The shape of values.yaml. additionalProperties is false at every level so a misspelled key fails `helm install` instead of silently doing nothing. Cross-field rules (a Secret is required; OIDC needs an audience; a disabled dependency needs its external address) are template `fail`s in templates/_helpers.tpl, because they need sentences a schema cannot carry. The Enterprise keys are declared here so their refusal names the reason.",
+  "$comment": "The shape of values.yaml. additionalProperties is false at every level so a misspelled key fails `helm install` instead of silently doing nothing. Cross-field rules (a Secret is required; OIDC needs an audience; a disabled dependency needs its external address; an Enterprise setting needs a license) are template `fail`s in templates/_helpers.tpl, because they need sentences a schema cannot carry. The retired keys are declared here so a values file that still carries them installs, and their refusal when turned on names what replaced them.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -10,7 +10,7 @@
       "additionalProperties": false,
       "properties": {
         "registry": { "type": "string", "minLength": 1 },
-        "server": { "$ref": "#/$defs/imageRef" },
+        "server": { "$ref": "#/$defs/serverImageRef" },
         "runner": { "$ref": "#/$defs/imageRef" },
         "pullPolicy": { "type": "string", "enum": ["IfNotPresent", "Always", "Never"] },
         "pullSecrets": { "type": "array", "items": { "type": "string", "minLength": 1 } }
@@ -171,15 +171,61 @@
         "artifacts": { "$ref": "#/$defs/ingressHost" }
       }
     },
-    "openfga": { "$ref": "#/$defs/reservedEnterpriseUnit" },
-    "redis": { "$ref": "#/$defs/reservedEnterpriseUnit" },
-    "openbao": { "$ref": "#/$defs/reservedEnterpriseUnit" },
+    "enterprise": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "license": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "existingSecret": { "type": "string" },
+            "key": { "type": "string", "minLength": 1 }
+          }
+        },
+        "organizationCreators": {
+          "$comment": "Account ids as the server reads them (ee/server/src/editions/organization-creators.ts): ida_ and 26 lowercase Crockford base32 characters.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^ida_[0-9a-hjkmnp-tv-z]{26}$" }
+        },
+        "accessHistoryRetentionDays": { "type": ["integer", "null"], "minimum": 1 },
+        "outboundEgress": { "type": "string", "enum": ["strict", "relaxed"] }
+      }
+    },
+    "egressPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "allowedCidrs": {
+          "type": "array",
+          "items": {
+            "$comment": "An IPv4 or IPv6 CIDR: NetworkPolicy's ipBlock takes addresses, never host names.",
+            "type": "string",
+            "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}$|^[0-9A-Fa-f:]*:[0-9A-Fa-f:]*/[0-9]{1,3}$"
+          }
+        }
+      }
+    },
+    "openfga": { "$ref": "#/$defs/retiredUnit" },
+    "redis": { "$ref": "#/$defs/retiredUnit" },
+    "openbao": { "$ref": "#/$defs/retiredUnit" },
     "licenseKeySecret": {
       "type": "string",
-      "description": "Reserved for Stigmer Enterprise. This version of the chart serves the open-source image and refuses a license Secret."
+      "description": "Retired: the license is enterprise.license.existingSecret. Kept so a values file that carries it empty still installs; set, it is refused naming the new value."
     }
   },
   "$defs": {
+    "serverImageRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": { "type": "string", "minLength": 1 },
+        "enterpriseRepository": { "type": "string", "minLength": 1 },
+        "tag": { "type": "string" }
+      }
+    },
     "imageRef": {
       "type": "object",
       "additionalProperties": false,
@@ -298,10 +344,10 @@
         "tlsSecretName": { "type": "string" }
       }
     },
-    "reservedEnterpriseUnit": {
+    "retiredUnit": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Reserved for Stigmer Enterprise; only enabled: false is accepted in this version.",
+      "description": "Retired: no Stigmer edition runs this beside the server. Kept so a values file that carries it at enabled: false still installs; turned on, it is refused with the reason.",
       "properties": {
         "enabled": { "type": "boolean" }
       }

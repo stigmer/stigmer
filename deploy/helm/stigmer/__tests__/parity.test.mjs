@@ -18,8 +18,11 @@
  *     public URLs follow the Ingress hosts when there are any);
  *   - the chart may add exactly the names listed in CHART_ONLY (none today:
  *     the database password reaches both as PGPASSWORD) and, per profile,
- *     the names the profile's own values introduce beyond compose (none
- *     today: compose carries OIDC and the runner token as optional inputs).
+ *     the names the profile's own values introduce beyond compose (the
+ *     Enterprise profile's license key and settings, and the runner's
+ *     private-address refusal its fence brings; compose runs the
+ *     open-source server and carries OIDC and the runner token as optional
+ *     inputs).
  *
  * The two third-party images the chart bundles, Postgres and Temporal, are
  * compose's two tags exactly: one bump moves both.
@@ -38,6 +41,7 @@ import {
   containerNamed,
   envMap,
   findOne,
+  PROFILES,
   profileValuesPath,
   readCompose,
   readValues,
@@ -118,14 +122,26 @@ const CHART_ONLY = {
 };
 
 /**
- * Names a profile's own values introduce, beyond compose. Empty for every
- * profile today; the shape stays so the next chart-only value has a place
- * to be declared and explained rather than a rule to be bent.
+ * Names a profile's own values introduce, beyond compose, each declared and
+ * explained here rather than a rule bent. The open-source profiles add none.
+ * The Enterprise profile's license Secret runs the Enterprise image, which
+ * reads the key and its three settings (compose runs the open-source server,
+ * which reads none of them); its strict default fences the pod's outbound
+ * network, and the runner's fetch guard refuses private addresses to match.
  */
 const PROFILE_EXTRAS = {
   bundled: { server: new Set(), runner: new Set() },
   byo: { server: new Set(), runner: new Set() },
   "ingress-oidc": { server: new Set(), runner: new Set() },
+  enterprise: {
+    server: new Set([
+      "STIGMER_LICENSE_KEY",
+      "STIGMER_OUTBOUND_EGRESS",
+      "STIGMER_ORGANIZATION_CREATORS",
+      "STIGMER_ACCESS_HISTORY_RETENTION_DAYS",
+    ]),
+    runner: new Set(["STIGMER_WEB_FETCH_ALLOW_PRIVATE"]),
+  },
 };
 
 function translate(table, name, composeValue) {
@@ -201,7 +217,7 @@ function assertParity(profile, composeService, chartContainer, role) {
   }
 }
 
-for (const profile of ["bundled", "byo", "ingress-oidc"]) {
+for (const profile of PROFILES) {
   test(`server env equals docker-compose.yml's stigmer-server env (${profile})`, () => {
     assertParity(profile, "stigmer-server", "server", "server");
   });

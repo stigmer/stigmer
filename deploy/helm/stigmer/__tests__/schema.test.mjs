@@ -8,8 +8,15 @@
  *
  *   - no `secrets.existingSecret`: the .env.example sentence and the
  *     one-liner to create the Secret;
- *   - an Enterprise key turned on: the sentence saying it is reserved for
- *     Stigmer Enterprise and what to leave it at;
+ *   - a retired reserved key turned on: the sentence saying no edition uses
+ *     it, or, for the old license value, where the license goes now;
+ *   - an Enterprise setting with no license, which the server would never
+ *     read; a license with sign-in off, which the server refuses at boot;
+ *     allowedCidrs with no fence to open;
+ *   - under a license, a bundled dependency's fence turned off, or an
+ *     external Temporal that authenticates nothing;
+ *   - an Enterprise setting of the wrong shape: an account id that is not
+ *     one, a retention under a day, an egress posture that is neither;
  *   - an unknown top-level key (a typo): refused, never silently ignored;
  *   - Postgres disabled without an external host, Temporal likewise;
  *   - Temporal authentication against the bundled Temporal, TLS keys without
@@ -20,7 +27,9 @@
  *     off, unless server.allowUnauthenticatedExposure states it on purpose;
  *   - an issuer that is not https;
  *   - a misspelled securityContext field;
- *   - an extraEnv entry that repeats a name the chart sets.
+ *   - an extraEnv entry that repeats a name the chart sets, or sets an
+ *     Enterprise name the chart renders from its enterprise values, on
+ *     every edition.
  */
 
 import assert from "node:assert/strict";
@@ -44,15 +53,81 @@ test("a render without secrets.existingSecret is refused with the .env.example s
   expectRefusal(result, /openssl rand -base64 32/, "missing Secret");
 });
 
-test("the reserved Enterprise keys are refused when turned on", () => {
+test("the retired reserved keys are refused when turned on, each naming what replaced it", () => {
   for (const key of ["openfga", "redis", "openbao"]) {
     const result = helmTemplate("bundled", { sets: [`${key}.enabled=true`] });
-    expectRefusal(result, /reserved for Stigmer Enterprise.*leave openfga\/redis\/openbao at enabled: false/s, `${key}.enabled=true`);
+    expectRefusal(result, new RegExp(`${key}\\.enabled is retired: no Stigmer edition runs`), `${key}.enabled=true`);
+    expectRefusal(result, /remove it from your values/, `${key}.enabled=true`);
   }
-  const license = helmTemplate("bundled", {
-    sets: ["licenseKeySecret=my-license"],
+  const license = helmTemplate("bundled", { sets: ["licenseKeySecret=my-license"] });
+  expectRefusal(license, /licenseKeySecret is retired.*move the name there/s, "licenseKeySecret");
+  assert.ok(!license.stderr.includes("my-license"), "the refusal never repeats the value, which may be the key itself");
+});
+
+test("an Enterprise setting with no license is refused: the open-source server never reads it", () => {
+  for (const set of [
+    "enterprise.organizationCreators={ida_01jq3v8k6m2n4p5r7s9t0v1w2x}",
+    "enterprise.accessHistoryRetentionDays=30",
+    "enterprise.outboundEgress=relaxed",
+  ]) {
+    const result = helmTemplate("bundled", { sets: [set] });
+    expectRefusal(result, /but enterprise\.license\.existingSecret is empty/, set);
+    expectRefusal(result, /never reads/, set);
+  }
+});
+
+test("a license with sign-in off is refused, before the server would refuse it at boot", () => {
+  const result = helmTemplate("bundled", { sets: ["enterprise.license.existingSecret=stigmer-license"] });
+  expectRefusal(result, /Stigmer Enterprise signs every caller in.*server\.oidc\.issuer/s, "license without issuer");
+});
+
+test("allowedCidrs with no fence to open is refused", () => {
+  const result = helmTemplate("bundled", { sets: ["egressPolicy.allowedCidrs={10.0.0.0/8}"] });
+  expectRefusal(result, /egressPolicy\.allowedCidrs is set, but no fence renders/, "allowedCidrs alone");
+  const relaxed = helmTemplate("enterprise", {
+    sets: ["enterprise.outboundEgress=relaxed", "egressPolicy.allowedCidrs={10.0.0.0/8}"],
   });
-  expectRefusal(license, /reserved for Stigmer Enterprise.*licenseKeySecret empty/s, "licenseKeySecret");
+  expectRefusal(relaxed, /egressPolicy\.allowedCidrs is set, but no fence renders/, "a relaxed license");
+  assert.equal(helmTemplate("enterprise", { sets: ["egressPolicy.allowedCidrs={10.0.0.0/8}"] }).ok, true);
+});
+
+const ENTERPRISE_BYO = ["postgres.enabled=false", "externalDatabase.host=db.internal"];
+
+test("under a license the bundled dependencies stay fenced and an external Temporal authenticates", () => {
+  for (const component of ["postgres", "temporal"]) {
+    const result = helmTemplate("enterprise", { sets: [`${component}.networkPolicy.enabled=false`] });
+    expectRefusal(result, new RegExp(`${component}\\.networkPolicy\\.enabled is false under a Stigmer Enterprise license`), component);
+  }
+  const external = [
+    ...ENTERPRISE_BYO,
+    "temporal.enabled=false",
+    "externalTemporal.hostPort=temporal.internal:7233",
+  ];
+  expectRefusal(
+    helmTemplate("enterprise", { sets: external }),
+    /an external Temporal that authenticates nothing/,
+    "plaintext external Temporal",
+  );
+  for (const auth of [["externalTemporal.tls.enabled=true"], ["externalTemporal.apiKey.existingSecret=temporal-api-key"]]) {
+    const result = helmTemplate("enterprise", { sets: [...external, ...auth] });
+    assert.equal(result.ok, true, `${auth}: ${result.stderr}`);
+  }
+  // Open source keeps the operator's choice.
+  assert.equal(helmTemplate("bundled", { sets: ["temporal.networkPolicy.enabled=false"] }).ok, true);
+});
+
+test("an Enterprise setting of the wrong shape is refused by the schema", () => {
+  for (const [set, pattern] of [
+    ["enterprise.organizationCreators={alice@example.com}", /organizationCreators|does not match pattern/i],
+    ["enterprise.organizationCreators={ida_01JQ3V8K6M2N4P5R7S9T0V1W2X}", /organizationCreators|does not match pattern/i],
+    ["enterprise.accessHistoryRetentionDays=0", /accessHistoryRetentionDays|minimum/i],
+    ["enterprise.accessHistoryRetentionDays=1.5", /accessHistoryRetentionDays|integer/i],
+    ["enterprise.outboundEgress=open", /outboundEgress|must be one of/i],
+    ["egressPolicy.allowedCidrs={db.internal}", /allowedCidrs|does not match pattern/i],
+    ["egressPolicy.allowedCidrs={10.0.0.7}", /allowedCidrs|does not match pattern/i],
+  ]) {
+    expectRefusal(helmTemplate("enterprise", { sets: [set] }), pattern, set);
+  }
 });
 
 test("an unknown top-level values key is refused rather than ignored", () => {
@@ -210,6 +285,29 @@ test("an extraEnv entry that repeats a name the chart sets is refused, for the s
     }),
     /runner\.extraEnv sets LOCAL_ARTIFACT_PATH, a name the chart sets itself/,
     "runner repeat",
+  );
+  for (const profile of ["bundled", "enterprise"]) {
+    expectRefusal(
+      helmTemplate(profile, {
+        sets: ["server.extraEnv[0].name=STIGMER_LICENSE_KEY", "server.extraEnv[0].value=key"],
+      }),
+      /server\.extraEnv sets STIGMER_LICENSE_KEY, a Stigmer Enterprise setting.*enterprise\.license\.existingSecret/s,
+      `${profile}: the license key smuggled`,
+    );
+  }
+  expectRefusal(
+    helmTemplate("bundled", {
+      sets: ["server.extraEnv[0].name=STIGMER_ORGANIZATION_CREATORS", "server.extraEnv[0].value=anyone"],
+    }),
+    /server\.extraEnv sets STIGMER_ORGANIZATION_CREATORS, a Stigmer Enterprise setting/,
+    "a setting smuggled",
+  );
+  expectRefusal(
+    helmTemplate("enterprise", {
+      sets: ["runner.extraEnv[0].name=STIGMER_WEB_FETCH_ALLOW_PRIVATE", "runner.extraEnv[0].value=true"],
+    }),
+    /runner\.extraEnv sets STIGMER_WEB_FETCH_ALLOW_PRIVATE, a name the chart sets itself/,
+    "the fence's fetch guard undone",
   );
   const unowned = helmTemplate("bundled", {
     sets: ["server.extraEnv[0].name=LOG_LEVEL", "server.extraEnv[0].value=debug"],

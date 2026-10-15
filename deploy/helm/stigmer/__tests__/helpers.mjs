@@ -37,8 +37,15 @@ export const COMPOSE_FILE = join(REPO_ROOT, "docker-compose.yml");
 /** The release name every test renders under; the fullname follows it. */
 export const RELEASE = "stigmer";
 
-/** The values profiles CI installs; each is `ci/values-<name>.yaml`. */
-export const PROFILES = ["bundled", "byo", "ingress-oidc"];
+/**
+ * The values profiles the render tests, goldens and lint cover; each is
+ * `ci/values-<name>.yaml`. The kind smoke installs `bundled` and `byo` by
+ * default and `enterprise` on request.
+ */
+export const PROFILES = ["bundled", "byo", "ingress-oidc", "enterprise"];
+
+/** The open-source profiles: no license, so no Enterprise name and no fence unless asked. */
+export const OPEN_SOURCE_PROFILES = ["bundled", "byo", "ingress-oidc"];
 
 export function profileValuesPath(profile) {
   return join(CHART_DIR, "ci", `values-${profile}.yaml`);

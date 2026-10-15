@@ -9,7 +9,10 @@ that shows it on). The rendered list is the one source of the names the
 chart owns; nothing keeps a second copy.
 
 Every entry has a compose counterpart, in compose's order, and the parity
-test holds the two equal name for name. Nothing from values is spliced into
+test holds the two equal name for name, except what a profile's own values
+introduce beyond compose, which the test declares by profile: the Enterprise
+names a license brings (stigmer.enterpriseServerEnv) and the runner's
+private-address refusal the outbound fence brings. Nothing from values is spliced into
 a string unquoted, and every Secret name and key is quoted, so a value that
 reads as a YAML number or boolean stays the string it was.
 */ -}}
@@ -91,6 +94,36 @@ becomes %20, the encoding a URL's user and path segments read.
 - name: STIGMER_OIDC_CONSOLE_CLIENT_ID
   value: {{ .Values.server.oidc.consoleClientId | quote }}
 {{- end }}
+{{- if include "stigmer.licenseSecret" . }}
+{{- include "stigmer.enterpriseServerEnv" . }}
+{{- end }}
+{{- end -}}
+
+{{- /*
+The Stigmer Enterprise server's own settings (ee/server/README.md has what
+each means), appended to stigmer.serverEnv under a license. Every name
+renders whichever settings are filled: the server reads an empty value as
+unset, as STIGMER_OPERATOR_EMAIL above, so a licensed pod's names never
+depend on the values. stigmer.validate also renders it with no license, to
+read back the names server.extraEnv may not set in any edition: the
+open-source image never reads them. The retention renders through int,
+because a values file's number reaches a template as a float.
+*/ -}}
+{{- define "stigmer.enterpriseServerEnv" -}}
+{{- $retention := dig "enterprise" "accessHistoryRetentionDays" "" .Values.AsMap }}
+# The license key, from its Secret; not optional: a licensed
+# pod without its key would boot as open source.
+- name: STIGMER_LICENSE_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "stigmer.licenseSecret" . | quote }}
+      key: {{ dig "enterprise" "license" "key" "STIGMER_LICENSE_KEY" .Values.AsMap | quote }}
+- name: STIGMER_OUTBOUND_EGRESS
+  value: {{ include "stigmer.outboundEgress" . | quote }}
+- name: STIGMER_ORGANIZATION_CREATORS
+  value: {{ join "," (dig "enterprise" "organizationCreators" (list) .Values.AsMap) | quote }}
+- name: STIGMER_ACCESS_HISTORY_RETENTION_DAYS
+  value: {{ ternary (toString (int $retention)) "" (not (empty $retention)) | quote }}
 {{- end -}}
 
 {{- define "stigmer.runnerEnv" -}}
@@ -99,6 +132,14 @@ becomes %20, the encoding a URL's user and path segments read.
 # the checkpointer is the durable sqlite saver under HOME.
 - name: MODE
   value: local
+{{- if include "stigmer.egressFenced" . }}
+# The outbound fence refuses the pod private addresses; the fetch
+# tool refuses them too, with a sentence rather than a timeout. It
+# stays strict for egressPolicy.allowedCidrs: those let the
+# install's own infrastructure through, not URLs people write.
+- name: STIGMER_WEB_FETCH_ALLOW_PRIVATE
+  value: "false"
+{{- end }}
 - name: STIGMER_BACKEND_ENDPOINT
   value: http://localhost:7234
 # What a remote MCP server dials back on: the public URL, never

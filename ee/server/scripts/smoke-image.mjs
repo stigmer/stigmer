@@ -30,6 +30,7 @@
  *
  * Usage:
  *   node scripts/smoke-image.mjs [--image=TAG] [--database-url=URL]
+ *   node scripts/smoke-image.mjs --build-only
  *
  *   Without --image: stages dist-slim/ (bundled for THIS machine's linux
  *   arch, `make bundle-ee-slim`) into dist-slim-<arch>/ and builds
@@ -37,6 +38,9 @@
  *   --database-url is handed to the no-key smoke (the shared smoke's flag);
  *   the bad-key boots run on SQLite, because the refusal comes before the
  *   server reads its database.
+ *   --build-only builds that local image, labels checked, prints its tag and
+ *   stops: the Helm chart's kind smoke (test/install/smoke-helm.mjs,
+ *   --profiles=enterprise) installs the image this smoke proves.
  *
  * Plain node + docker CLI, no dependencies, like the shared smoke.
  */
@@ -66,13 +70,16 @@ const REFUSAL_LINE = "boot failed: The Stigmer Enterprise license key";
 function parseArgs() {
   let image = "";
   let databaseUrl = "";
+  let buildOnly = false;
   for (const arg of process.argv.slice(2)) {
     let m;
     if ((m = arg.match(/^--image=(.+)$/)) !== null) image = m[1];
     else if ((m = arg.match(/^--database-url=(.+)$/)) !== null) databaseUrl = m[1];
+    else if (arg === "--build-only") buildOnly = true;
     else fail(`unknown argument: ${arg}`);
   }
-  return { image, databaseUrl };
+  if (buildOnly && image !== "") fail("--build-only builds the local image; it takes no --image");
+  return { image, databaseUrl, buildOnly };
 }
 
 function fail(message) {
@@ -204,10 +211,14 @@ async function assertRefuses(image, label, key) {
 }
 
 async function main() {
-  const { image: imageArg, databaseUrl } = parseArgs();
+  const { image: imageArg, databaseUrl, buildOnly } = parseArgs();
   const image = imageArg !== "" ? imageArg : buildLocalImage();
   try {
     assertLabels(image);
+    if (buildOnly) {
+      log(`built ${image}`);
+      return;
+    }
     assertBootsAsOpenSource(image, databaseUrl);
     await assertRefuses(image, "a malformed key", "not-a-license-key");
     await assertRefuses(image, "a key signed by an untrusted key pair", foreignKey());

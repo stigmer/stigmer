@@ -20,6 +20,13 @@ image:
   registry: ghcr.io/stigmer
   server:
     repository: stigmer-server
+    # The Stigmer Enterprise server image, run in place of `repository`
+    # when enterprise.license.existingSecret is set: the same Dockerfile,
+    # user, ports and health check over the Enterprise package, so only the
+    # image changes. It takes the same `tag` below, so one tag names the
+    # server's release whichever edition runs it. A mirror sets this beside
+    # `repository`.
+    enterpriseRepository: stigmer-server-ee
     # Empty means v<appVersion> — the release train bumps Chart.yaml and the
     # images together (the fourth release pin). Set only to run a different
     # released version, as compose's STIGMER_VERSION does.
@@ -381,15 +388,60 @@ ingress:
     annotations: {}
     tlsSecretName: ""
 
-# Reserved for Stigmer Enterprise. This version of the chart serves the
-# open-source server image, and turning any of them on is refused.
-openfga:
+enterprise:
+  license:
+    # The switch to Stigmer Enterprise: the name of a Secret in the release
+    # namespace holding the license key. Set, the server container runs
+    # image.server.enterpriseRepository and reads the key and the settings
+    # below (STIGMER_LICENSE_KEY and the three named with them); empty, the
+    # chart is the open-source stack and refuses those settings, which the
+    # open-source server never reads. A licensed server signs every caller
+    # in, so server.oidc is required with it. Renew a key in place by
+    # updating the Secret and restarting the pod; a lapsed license keeps
+    # everything working and refuses only growth until it is renewed.
+    #
+    #   kubectl create secret generic stigmer-license \
+    #     --from-literal=STIGMER_LICENSE_KEY=<the key you were sent>
+    existingSecret: ""
+    key: STIGMER_LICENSE_KEY
+  # Who may create an organization (STIGMER_ORGANIZATION_CREATORS): account
+  # ids, as `stigmer auth whoami` prints them (ida_ and 26 characters).
+  # Empty means anyone signed in. An admin of an organization still creates
+  # organizations under it. A change takes a restart.
+  organizationCreators: []
+  # Days the access history is kept (STIGMER_ACCESS_HISTORY_RETENTION_DAYS),
+  # a whole number of at least 1; null keeps every entry.
+  accessHistoryRetentionDays: null
+  # Which addresses the server dials when it reaches a URL a person wrote
+  # (a federation issuer's documents, an MCP install probe, a vault
+  # sign-in), STIGMER_OUTBOUND_EGRESS. strict: public addresses only, and
+  # the chart also turns on the pod's outbound fence (egressPolicy below),
+  # so one promise holds at two layers. relaxed: private and loopback
+  # addresses too (link-local stays refused), for an identity provider or
+  # MCP server on your private network; no fence unless
+  # egressPolicy.enabled.
+  outboundEgress: strict
+
+egressPolicy:
+  # A NetworkPolicy on the stigmer pod's outbound connections: DNS, the
+  # bundled Postgres and Temporal on their ports, every public address, and
+  # allowedCidrs; no other private, shared, link-local or loopback address.
+  # Everything an agent runs (its commands, MCP servers, fetches) leaves
+  # from this pod, so without a fence it reaches whatever the pod can: your
+  # databases, internal dashboards, cloud metadata. Rendered when this is
+  # true, or under a license with enterprise.outboundEgress strict (the
+  # default); wherever it renders, the runner's fetch tool refuses private
+  # addresses too. A cluster whose network plugin ignores NetworkPolicy
+  # gets no fence, and Kubernetes always allows a pod's traffic to its own
+  # node.
   enabled: false
-redis:
-  enabled: false
-openbao:
-  enabled: false
-licenseKeySecret: ""
+  # CIDRs the fence lets through besides the public internet: an external
+  # Postgres or Temporal on a private address, an in-cluster identity
+  # provider, a private model endpoint. NetworkPolicy takes addresses, not
+  # host names. A distribution whose DNS listens on a port other than 53
+  # (OpenShift's 5353) lists its DNS pods' CIDR here. Refused with no fence
+  # to open.
+  allowedCidrs: []
 
 # Deliberately absent, and why:
 #   replicas — the server's skill store and key files live on its claim;
@@ -397,12 +449,19 @@ licenseKeySecret: ""
 #   a sandbox provisioner — the open-source agent-sandbox and docker drivers
 #     hand a per-session runner no artifact path (stigmer#1099); the values
 #     arrive with the artifact backend that fixes it.
-#   a NetworkPolicy for the stigmer pod itself — the pod is one trust
-#     domain (stdio MCP servers run inside the runner container and can
-#     reach its filesystem and network); the README says so in the compose
-#     header's words. The bundled Temporal has its fence
-#     (temporal.networkPolicy), because it authenticates nothing, and the
-#     bundled Postgres its own (postgres.networkPolicy).
+#   a NetworkPolicy admitting connections INTO the stigmer pod — its ports
+#     are the API, which authenticates every caller once sign-in is on. Its
+#     outbound connections have a fence (egressPolicy), and inside it the
+#     pod is still one trust domain (stdio MCP servers run inside the runner
+#     container and can reach its filesystem and network); the README says
+#     so. The bundled Temporal has its fence (temporal.networkPolicy),
+#     because it authenticates nothing, and the bundled Postgres its own
+#     (postgres.networkPolicy).
+#   openfga, redis, openbao, licenseKeySecret — reserved here before
+#     Stigmer Enterprise shipped, now retired: no edition runs OpenFGA,
+#     Redis or OpenBao beside the server, and the license is
+#     enterprise.license.existingSecret. A values file that still carries
+#     them at their off values installs; turned on, they are refused.
 #   an HPA — nothing here scales horizontally yet.
 #   TLS inside the pod — terminate the API's at the Ingress, as behind
 #     Caddy or nginx with compose. (TLS to an external Temporal is

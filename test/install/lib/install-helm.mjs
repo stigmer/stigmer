@@ -34,6 +34,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { connect } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { FAKE_MODEL_API_KEY } from "./fake-model.mjs";
 import { buildSourceImages } from "./install-compose.mjs";
@@ -54,6 +55,8 @@ export const HELM_ARTIFACT_PORT = 7235;
 /** The chart's two repositories; a source build is tagged under them. */
 const IMAGE_REGISTRY = "ghcr.io/stigmer";
 const SOURCE_TAG = "compose-dev";
+/** The tag the Enterprise image smoke builds its local image under (ee/server/scripts/smoke-image.mjs, LOCAL_TAG). */
+const ENTERPRISE_LOCAL_TAG = "stigmer-server-ee:smoke-local";
 /** The Secret each release's namespace carries for runner.llm.existingSecret. */
 const LLM_SECRET = "stigmer-smoke-llm";
 // First install pulls or loads two large images, starts Postgres, lets
@@ -137,6 +140,21 @@ export function createKindCluster({ existing = "", log }) {
       return gateways[0];
     },
     /**
+     * The host address as a CIDR of one address, for a fenced release's
+     * egressPolicy.allowedCidrs: the fake model listens on this host, which a
+     * pod reaches on a private address (Docker Desktop's host.docker.internal,
+     * or the kind network's gateway).
+     */
+    hostCidr() {
+      const host = cluster.hostAddress();
+      let address = host;
+      if (!/^[0-9.]+$/.test(host) && !host.includes(":")) {
+        const resolved = run("docker", ["exec", `${name}-control-plane`, "getent", "ahostsv4", host]).trim();
+        address = resolved.split(/\s+/)[0];
+      }
+      return address.includes(":") ? `${address}/128` : `${address}/32`;
+    },
+    /**
      * Both images built from source (compose's build, install-compose.mjs),
      * tagged as the chart's repositories at `compose-dev`, and loaded into
      * the node.
@@ -152,6 +170,19 @@ export function createKindCluster({ existing = "", log }) {
         log(`kind load docker-image ${tagged}`);
         run("kind", ["load", "docker-image", tagged, "--name", name], { stdio: "inherit" });
       }
+    },
+    /**
+     * The Stigmer Enterprise image built from source by its own smoke's
+     * build (`make bundle-ee-slim` first, for ee/server/dist-slim), tagged
+     * as the chart's enterprise repository at `compose-dev`, and loaded.
+     */
+    loadEnterpriseSourceImage() {
+      log("building stigmer-server-ee through its image smoke (--build-only)");
+      run(process.execPath, [join(repoRoot, "ee", "server", "scripts", "smoke-image.mjs"), "--build-only"], { stdio: "inherit" });
+      const tagged = `${IMAGE_REGISTRY}/stigmer-server-ee:${SOURCE_TAG}`;
+      run("docker", ["tag", ENTERPRISE_LOCAL_TAG, tagged]);
+      log(`kind load docker-image ${tagged}`);
+      run("kind", ["load", "docker-image", tagged, "--name", name], { stdio: "inherit" });
     },
     /** Delete a cluster this module created (unless `keep`); an existing one is left. */
     async stop({ keep = false } = {}) {
@@ -169,22 +200,18 @@ export function createKindCluster({ existing = "", log }) {
  * One release of the chart in `namespace` of `cluster`, configured with
  * `valuesFile` and a model at `modelBaseUrl`. `postgresPassword` is the
  * database password its Secret carries (shared with a bring-your-own
- * Postgres when the profile has one).
+ * Postgres when the profile has one). `extraSets` are `--set` values every
+ * install and upgrade of the release carries (a fenced smoke's).
  */
-export function createStigmerRelease(cluster, { namespace, valuesFile, modelBaseUrl, postgresPassword, log }) {
+export function createStigmerRelease(cluster, { namespace, valuesFile, modelBaseUrl, postgresPassword, extraSets = [], log }) {
   let installedFrom;
 
-  const helmArgs = (verb, spec) => {
+  const helmArgs = (verb, spec, { wait = true } = {}) => {
     const args = [verb, RELEASE, spec.chart];
     if (spec.version !== undefined) args.push("--version", spec.version);
+    args.push("-n", namespace, "-f", valuesFile);
+    if (wait) args.push("--wait", "--timeout", INSTALL_TIMEOUT);
     args.push(
-      "-n",
-      namespace,
-      "-f",
-      valuesFile,
-      "--wait",
-      "--timeout",
-      INSTALL_TIMEOUT,
       // The model, as a user configures it: the key from a Secret, the address
       // as an extra runner env var (the chart has no dedicated value for it).
       "--set",
@@ -198,6 +225,7 @@ export function createStigmerRelease(cluster, { namespace, valuesFile, modelBase
       args.push("--set", `image.server.tag=${spec.imageTag}`, "--set", `image.runner.tag=${spec.imageTag}`);
     }
     if (spec.pullNever === true) args.push("--set", "image.pullPolicy=Never");
+    for (const set of extraSets) args.push("--set", set);
     return args;
   };
 
@@ -231,8 +259,9 @@ export function createStigmerRelease(cluster, { namespace, valuesFile, modelBase
         `--from-literal=ANTHROPIC_API_KEY=${FAKE_MODEL_API_KEY}`,
       ]);
     },
-    async install(spec) {
-      cluster.helm(helmArgs("install", spec), { stdio: "inherit" });
+    /** `helm install`; `wait: false` returns once the objects exist, for a release that is never meant to become ready. */
+    async install(spec, { wait = true } = {}) {
+      cluster.helm(helmArgs("install", spec, { wait }), { stdio: "inherit" });
       installedFrom = spec;
     },
     /** `helm upgrade` to `spec` with the same values and --wait (the guide's upgrade). */
