@@ -29,9 +29,10 @@
  *   - `authorizedResourceIds`: the kind scanned, decoded and evaluated
  *     the same way. There is no tuple index to enumerate from and the
  *     answer is genuinely not "everything" (private blueprints exist), so
- *     the verb costs one scan of the kind — the console library rides
- *     it (blueprints have no list RPC; the library is a search), measured
- *     and recorded rather than assumed. A row that does not decode is
+ *     the verb costs one scan of the kind. Search asks it only for the
+ *     kinds whose reach is the person's own (sessions and runs; query/
+ *     search/reach.ts): the console library's blueprints are read from
+ *     the searched organizations' rows and offered to the restrict verb. A row that does not decode is
  *     skipped with a warning, the `loadAll*` idiom every lane follows: no
  *     lane can show it either.
  *
