@@ -2,11 +2,11 @@
 
 import { create, equals } from "@bufbuild/protobuf";
 import { isNotFound } from "@stigmer/sdk";
-import type { ChannelConversation } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+import type { ChannelConversation } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import {
   ChannelConversationSchema,
   GetChannelConversationInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
@@ -73,7 +73,7 @@ export interface UseConversationReturn {
  * Pass empty strings to skip fetching (the `null`-fetchFn convention).
  */
 export function useConversation(
-  agentChannelId: string,
+  channelId: string,
   conversationKey: string,
   options?: UseConversationOptions,
 ): UseConversationReturn {
@@ -81,7 +81,7 @@ export function useConversation(
   const refetchIntervalMs =
     options?.refetchIntervalMs ?? CONVERSATION_DETAIL_POLL_INTERVAL_MS;
 
-  const enabled = agentChannelId !== "" && conversationKey !== "";
+  const enabled = channelId !== "" && conversationKey !== "";
 
   const [conversation, setConversation] = useState<ChannelConversation | null>(null);
   const [awaitingCustomer, setAwaitingCustomer] = useState(false);
@@ -121,7 +121,7 @@ export function useConversation(
       setIsFetching(false);
       isFetchingRef.current = false;
     }
-  }, [agentChannelId, conversationKey, stigmer, enabled]);
+  }, [channelId, conversationKey, stigmer, enabled]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -136,9 +136,9 @@ export function useConversation(
       isFetchingRef.current = false;
     };
 
-    stigmer.agentChannel
+    stigmer.channel
       .getConversation(
-        create(GetChannelConversationInputSchema, { agentChannelId, conversationKey }),
+        create(GetChannelConversationInputSchema, { channelId, conversationKey }),
       )
       .then(
         (row) => {
@@ -172,7 +172,7 @@ export function useConversation(
           settle();
         },
       );
-  }, [enabled, agentChannelId, conversationKey, stigmer, fetchKey]);
+  }, [enabled, channelId, conversationKey, stigmer, fetchKey]);
 
   useEffect(() => {
     if (!enabled || !refetchIntervalMs || refetchIntervalMs <= 0) return;

@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   ChannelConversationListFilter,
   ChannelConversationSchema,
@@ -12,33 +12,33 @@ import {
   ConversationItemAuthor,
   ConversationLane,
   ConversationTimelineItemSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import {
   ChannelSendOutcome,
   SendChannelMessageOutputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
-import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/outbound_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
+import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/outbound_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { advanceInSlices } from "../../internal/__tests__/fake-timer-slices";
 import { ConversationsWorkbench } from "../ConversationsWorkbench";
 
-const SELECTED = { agentChannelId: "ach_wa", conversationKey: "15550001111" };
+const SELECTED = { channelId: "ach_wa", conversationKey: "15550001111" };
 
 function whatsappChannel() {
-  return create(AgentChannelSchema, {
+  return create(ChannelSchema, {
     metadata: { id: "ach_wa", org: "acme", name: "support-line", slug: "support-line" },
     spec: {
       agentRef: { org: "acme", slug: "support-agent" },
-      providerConfig: { case: "whatsapp", value: {} },
+      type: { case: "whatsapp", value: {} },
     },
   });
 }
 
 function slackChannel() {
-  return create(AgentChannelSchema, {
+  return create(ChannelSchema, {
     metadata: { id: "ach_sl", org: "acme", name: "eng-help", slug: "eng-help" },
-    spec: { providerConfig: { case: "slack", value: {} } },
+    spec: { type: { case: "slack", value: {} } },
   });
 }
 
@@ -80,7 +80,7 @@ function publicItem(
 
 function createMockStigmer(overrides: Record<string, unknown> = {}) {
   return {
-    agentChannel: {
+    channel: {
       list: vi.fn().mockResolvedValue({ entries: [whatsappChannel()], nextPageToken: "" }),
       listConversations: vi.fn().mockResolvedValue({ entries: [row()], nextPageToken: "" }),
       getConversation: vi.fn().mockResolvedValue(row()),
@@ -157,9 +157,9 @@ describe("ConversationsWorkbench", () => {
         (_, el) => el?.tagName === "P" && el.textContent === "15550001111 · support-line",
       ),
     ).toBeDefined();
-    const agentChannel = (client as { agentChannel: Record<string, ReturnType<typeof vi.fn>> })
-      .agentChannel;
-    expect(agentChannel.getConversation).toHaveBeenCalledWith(
+    const channel = (client as { channel: Record<string, ReturnType<typeof vi.fn>> })
+      .channel;
+    expect(channel.getConversation).toHaveBeenCalledWith(
       expect.objectContaining(SELECTED),
     );
   });
@@ -234,11 +234,11 @@ describe("ConversationsWorkbench", () => {
       }),
     );
 
-    const agentChannel = (client as {
-      agentChannel: Record<string, ReturnType<typeof vi.fn>>;
-    }).agentChannel;
+    const channel = (client as {
+      channel: Record<string, ReturnType<typeof vi.fn>>;
+    }).channel;
     await waitFor(() =>
-      expect(agentChannel.listConversations).toHaveBeenLastCalledWith(
+      expect(channel.listConversations).toHaveBeenLastCalledWith(
         expect.objectContaining({
           filter: ChannelConversationListFilter.filter_wants_human,
         }),
@@ -258,15 +258,15 @@ describe("ConversationsWorkbench", () => {
       { wrapper: wrapper(client) },
     );
     const input = await screen.findByLabelText("Reply to the customer");
-    const agentChannel = (client as { agentChannel: Record<string, ReturnType<typeof vi.fn>> })
-      .agentChannel;
-    const timelineCallsBefore = agentChannel.listTimeline.mock.calls.length;
+    const channel = (client as { channel: Record<string, ReturnType<typeof vi.fn>> })
+      .channel;
+    const timelineCallsBefore = channel.listTimeline.mock.calls.length;
 
     await user.type(input, "on my way{Enter}");
 
-    expect(agentChannel.reply).toHaveBeenCalled();
+    expect(channel.reply).toHaveBeenCalled();
     await waitFor(() =>
-      expect(agentChannel.listTimeline.mock.calls.length).toBeGreaterThan(
+      expect(channel.listTimeline.mock.calls.length).toBeGreaterThan(
         timelineCallsBefore,
       ),
     );
@@ -514,10 +514,10 @@ describe("ConversationsWorkbench", () => {
       expect(
         screen.getByText(/The customer's last message has no reply/),
       ).toBeDefined();
-      const agentChannel = (client as {
-        agentChannel: Record<string, ReturnType<typeof vi.fn>>;
-      }).agentChannel;
-      expect(agentChannel.handBack).not.toHaveBeenCalled();
+      const channel = (client as {
+        channel: Record<string, ReturnType<typeof vi.fn>>;
+      }).channel;
+      expect(channel.handBack).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
     }
@@ -574,10 +574,10 @@ describe("ConversationsWorkbench", () => {
     expect(
       screen.getByText(/The customer's last message has no reply/),
     ).toBeDefined();
-    const agentChannel = (client as {
-      agentChannel: Record<string, ReturnType<typeof vi.fn>>;
-    }).agentChannel;
-    expect(agentChannel.handBack).not.toHaveBeenCalled();
+    const channel = (client as {
+      channel: Record<string, ReturnType<typeof vi.fn>>;
+    }).channel;
+    expect(channel.handBack).not.toHaveBeenCalled();
   });
 
   it("keeps the confirm armed when the platform acknowledgment is the newest item", async () => {
@@ -626,10 +626,10 @@ describe("ConversationsWorkbench", () => {
     expect(
       screen.getByText(/The customer's last message has no reply/),
     ).toBeDefined();
-    const agentChannel = (client as {
-      agentChannel: Record<string, ReturnType<typeof vi.fn>>;
-    }).agentChannel;
-    expect(agentChannel.handBack).not.toHaveBeenCalled();
+    const channel = (client as {
+      channel: Record<string, ReturnType<typeof vi.fn>>;
+    }).channel;
+    expect(channel.handBack).not.toHaveBeenCalled();
   });
 
   it("hands back without the confirm once the row says answered — the fact, never the timeline's shape, decides", async () => {
@@ -669,10 +669,10 @@ describe("ConversationsWorkbench", () => {
 
     await user.click(handBackButton);
 
-    const agentChannel = (client as {
-      agentChannel: Record<string, ReturnType<typeof vi.fn>>;
-    }).agentChannel;
-    await waitFor(() => expect(agentChannel.handBack).toHaveBeenCalled());
+    const channel = (client as {
+      channel: Record<string, ReturnType<typeof vi.fn>>;
+    }).channel;
+    await waitFor(() => expect(channel.handBack).toHaveBeenCalled());
     expect(
       screen.queryByText(/The customer's last message has no reply/),
     ).toBeNull();
@@ -685,7 +685,7 @@ describe("ConversationsWorkbench", () => {
     // is the remount's observable contract: remove the key and this
     // fails.
     const user = userEvent.setup();
-    const other = { agentChannelId: "ach_wa", conversationKey: "15550009999" };
+    const other = { channelId: "ach_wa", conversationKey: "15550009999" };
     const client = createMockStigmer({
       listConversations: vi.fn().mockResolvedValue({
         entries: [row(), row({ conversationKey: other.conversationKey, displayName: "Sam" })],
@@ -833,18 +833,18 @@ describe("ConversationsWorkbench", () => {
     const client = createMockStigmer({
       list: vi.fn().mockResolvedValue({ entries: [slackChannel()], nextPageToken: "" }),
       listConversations: vi.fn().mockResolvedValue({
-        entries: [row({ agentChannelId: "ach_sl", conversationKey: "1723012345.678900" })],
+        entries: [row({ channelId: "ach_sl", conversationKey: "1723012345.678900" })],
         nextPageToken: "",
       }),
       getConversation: vi
         .fn()
-        .mockResolvedValue(row({ agentChannelId: "ach_sl", conversationKey: "1723012345.678900" })),
+        .mockResolvedValue(row({ channelId: "ach_sl", conversationKey: "1723012345.678900" })),
       listTimeline: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
     });
     render(
       <ConversationsWorkbench
         org="acme"
-        selected={{ agentChannelId: "ach_sl", conversationKey: "1723012345.678900" }}
+        selected={{ channelId: "ach_sl", conversationKey: "1723012345.678900" }}
         onSelectionChange={vi.fn()}
       />,
       { wrapper: wrapper(client) },

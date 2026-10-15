@@ -1,16 +1,16 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { AgentChannelsPanel, ConnectSlackDialog } from "@stigmer/react";
+import { ChannelsPanel, ConnectSlackDialog } from "@stigmer/react";
 import { connectFixture } from "@scenar/preview/connect";
 import { create } from "@bufbuild/protobuf";
-import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
-import { AgentChannelListSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
+import { ChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/query_pb";
+import { ChannelListSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { ChannelAppsSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
 import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
 import { CheckAuthorizationResultSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   ScenarioPlayer,
   useNarrationManifest,
@@ -90,7 +90,7 @@ function slideDirectionFor(
 /**
  * Schematic agent-detail header and tab strip so the reader sees where
  * the Channels tab lives. Content-layer JSX owned by this scenario; the
- * tab content itself is the real AgentChannelsPanel.
+ * tab content itself is the real ChannelsPanel.
  */
 function AgentDetailFrame({ children }: { children: React.ReactNode }) {
   return (
@@ -224,19 +224,19 @@ export function ConnectSlackChannel() {
 
   // The panel's channel list per playback position; the render callback
   // updates it and the panel remounts (panelKeyFor) to re-fetch.
-  const currentChannelsRef = useRef<readonly AgentChannel[]>([]);
+  const currentChannelsRef = useRef<readonly Channel[]>([]);
 
   const previewFixtures = useMemo(
     () => [
-      connectFixture(AgentChannelQueryController, "listByAgent", () =>
-        create(AgentChannelListSchema, {
+      connectFixture(ChannelQueryController, "listByAgent", () =>
+        create(ChannelListSchema, {
           entries: [...currentChannelsRef.current],
         }),
       ),
       // The dialog's pre-OAuth advisory reads the org-wide list; empty
       // means no "already serves this workspace" note — the happy path.
-      connectFixture(AgentChannelQueryController, "list", () =>
-        create(AgentChannelListSchema, {}),
+      connectFixture(ChannelQueryController, "list", () =>
+        create(ChannelListSchema, {}),
       ),
       // No BYO channel apps: the dialog's "Connect as" states the
       // platform default, matching a first connect.
@@ -309,7 +309,7 @@ export function ConnectSlackChannel() {
                   style={{ zoom: DEMO_CONTENT_ZOOM }}
                 >
                   <AgentDetailFrame>
-                    <AgentChannelsPanel
+                    <ChannelsPanel
                       key={panelKeyFor(step)}
                       agent={demoAgent}
                     />

@@ -1,16 +1,19 @@
+// useChannelList: an agent's channels of every type (chat links, Slack,
+// WhatsApp), scoped to an organization in the request, every page walked.
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { ListAgentChannelsByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
+import type { ListChannelsByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
-import { useAgentChannelList } from "../useAgentChannelList";
+import { useChannelList } from "../useChannelList";
 
 function createMockStigmer(overrides: {
-  listByAgent?: (input: ListAgentChannelsByAgentRequest) => Promise<unknown>;
+  listByAgent?: (input: ListChannelsByAgentRequest) => Promise<unknown>;
 } = {}) {
   return {
-    agentChannel: {
+    channel: {
       listByAgent:
         overrides.listByAgent ??
         vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
@@ -38,7 +41,7 @@ function makeChannel(org: string, slug: string, id = `ach_${org}_${slug}`) {
   };
 }
 
-describe("useAgentChannelList", () => {
+describe("useChannelList", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -50,7 +53,7 @@ describe("useAgentChannelList", () => {
       .mockResolvedValue({ entries: [channel], nextPageToken: "" });
     const client = createMockStigmer({ listByAgent });
 
-    const { result } = renderHook(() => useAgentChannelList("agt_1"), {
+    const { result } = renderHook(() => useChannelList("agt_1"), {
       wrapper: wrapper(client),
     });
 
@@ -73,7 +76,7 @@ describe("useAgentChannelList", () => {
     const client = createMockStigmer({ listByAgent });
 
     const { result } = renderHook(
-      () => useAgentChannelList("agt_1", "acme"),
+      () => useChannelList("agt_1", "acme"),
       { wrapper: wrapper(client) },
     );
 
@@ -90,7 +93,7 @@ describe("useAgentChannelList", () => {
     const client = createMockStigmer({ listByAgent });
 
     const { result, rerender } = renderHook(
-      ({ org }: { org: string }) => useAgentChannelList("agt_1", org),
+      ({ org }: { org: string }) => useChannelList("agt_1", org),
       { wrapper: wrapper(client), initialProps: { org: "acme" } },
     );
 
@@ -104,10 +107,29 @@ describe("useAgentChannelList", () => {
     );
   });
 
+  it("returns every channel of every type — each surface filters by spec.type", async () => {
+    // One list for the one kind: the Shares tab keeps the web channels, the
+    // Channels panel the Slack and WhatsApp ones; the hook never filters.
+    const chatLink = { ...makeChannel("acme", "support-agent-web"), spec: { enabled: true, type: { case: "web", value: {} } } };
+    const slack = { ...makeChannel("acme", "support-agent-slack"), spec: { enabled: true, type: { case: "slack", value: {} } } };
+    const whatsapp = { ...makeChannel("acme", "support-agent-whatsapp"), spec: { enabled: true, type: { case: "whatsapp", value: {} } } };
+    const listByAgent = vi
+      .fn()
+      .mockResolvedValue({ entries: [chatLink, slack, whatsapp], nextPageToken: "" });
+    const client = createMockStigmer({ listByAgent });
+
+    const { result } = renderHook(() => useChannelList("agt_1"), {
+      wrapper: wrapper(client),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.channels).toEqual([chatLink, slack, whatsapp]);
+  });
+
   it("resolves empty (no channels yet) when the agent has no channels", async () => {
     const client = createMockStigmer();
 
-    const { result } = renderHook(() => useAgentChannelList("agt_1"), {
+    const { result } = renderHook(() => useChannelList("agt_1"), {
       wrapper: wrapper(client),
     });
 
@@ -123,7 +145,7 @@ describe("useAgentChannelList", () => {
     const listByAgent = vi.fn();
     const client = createMockStigmer({ listByAgent });
 
-    const { result } = renderHook(() => useAgentChannelList(""), {
+    const { result } = renderHook(() => useChannelList(""), {
       wrapper: wrapper(client),
     });
 
@@ -138,7 +160,7 @@ describe("useAgentChannelList", () => {
       .mockRejectedValue(new Error("backend unavailable"));
     const client = createMockStigmer({ listByAgent });
 
-    const { result } = renderHook(() => useAgentChannelList("agt_1"), {
+    const { result } = renderHook(() => useChannelList("agt_1"), {
       wrapper: wrapper(client),
     });
 
@@ -153,7 +175,7 @@ describe("useAgentChannelList", () => {
       .mockResolvedValue({ entries: [], nextPageToken: "" });
     const client = createMockStigmer({ listByAgent });
 
-    const { result } = renderHook(() => useAgentChannelList("agt_1"), {
+    const { result } = renderHook(() => useChannelList("agt_1"), {
       wrapper: wrapper(client),
     });
 

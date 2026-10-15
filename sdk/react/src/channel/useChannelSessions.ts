@@ -1,9 +1,9 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-// AgentChannel is type-only here so the doc link below resolves (the sibling
+// Channel is type-only here so the doc link below resolves (the sibling
 // channel hooks import it for real use); the strict tsdoc gate guards it.
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ListSessionsByChannelRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { useStigmer } from "../hooks.js";
@@ -42,7 +42,7 @@ export interface UseChannelSessionsReturn {
 }
 
 /**
- * Data hook that loads the conversations an {@link AgentChannel} created —
+ * Data hook that loads the conversations a Slack or WhatsApp {@link Channel} created —
  * the Slack/WhatsApp sessions the channel runtime owns (design decision
  * 012: channel-session read-only observability).
  *

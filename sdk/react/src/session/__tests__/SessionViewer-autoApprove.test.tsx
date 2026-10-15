@@ -227,7 +227,12 @@ describe("SessionViewer — Config facet auto-approve switch (#816 rework)", () 
   it("channel-origin sessions never get the switch (observer by construction)", () => {
     stubConv.session = {
       spec: {},
-      metadata: { labels: { "stigmer.ai/channel-id": "chn_1" } },
+      metadata: {
+        labels: {
+          "stigmer.ai/channel-id": "chn_1",
+          "stigmer.ai/channel-conversation-key": "C0AB12CD3:1712345678.000100",
+        },
+      },
     };
     render(<SessionViewer sessionId="ses_1" org="acme" defaultPanelOpen />);
     openConfigFacet();

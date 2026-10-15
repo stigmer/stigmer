@@ -1,9 +1,13 @@
+// useCanCreateChannel: the two create bars a channel of any type asks
+// (can_manage_audience on the agent, can_create_channel on its
+// organization), mirrored so no create affordance shows a refused create.
+
 import { describe, it, expect, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
-import { useCanCreateAgentShare } from "../useCanCreateAgentShare";
+import { useCanCreateChannel } from "../useCanCreateChannel";
 
 type PermissionInput = {
   resource?: { kind: string; id: string };
@@ -60,10 +64,10 @@ function askedBars(client: unknown): PermissionInput[] {
   );
 }
 
-describe("useCanCreateAgentShare", () => {
+describe("useCanCreateChannel", () => {
   it("is not allowed while the agent is loading — no affordance flash", () => {
     const client = createMockStigmer();
-    const { result } = renderHook(() => useCanCreateAgentShare(null), {
+    const { result } = renderHook(() => useCanCreateChannel(null), {
       wrapper: wrapper(client),
     });
 
@@ -73,7 +77,7 @@ describe("useCanCreateAgentShare", () => {
 
   it("asks both of the server's bars, in the agent's own organization", async () => {
     const client = createMockStigmer();
-    const { result } = renderHook(() => useCanCreateAgentShare(makeAgent()), {
+    const { result } = renderHook(() => useCanCreateChannel(makeAgent()), {
       wrapper: wrapper(client),
     });
 
@@ -91,13 +95,13 @@ describe("useCanCreateAgentShare", () => {
     expect(bars).toContainEqual({
       kind: "organization",
       id: "acme",
-      relation: "can_create_agent_share",
+      relation: "can_create_channel",
     });
   });
 
   it("allows the agent's owner on open source, where the self-check answers can_grant_access false everywhere but organizations (stigmer#1495)", async () => {
     const client = createMockStigmer({ can_grant_access: false });
-    const { result } = renderHook(() => useCanCreateAgentShare(makeAgent()), {
+    const { result } = renderHook(() => useCanCreateChannel(makeAgent()), {
       wrapper: wrapper(client),
     });
 
@@ -107,7 +111,7 @@ describe("useCanCreateAgentShare", () => {
 
   it("refuses an editor of the agent — publishing asks can_manage_audience, the owner's, not can_edit", async () => {
     const client = createMockStigmer({ can_edit: true, can_manage_audience: false });
-    const { result } = renderHook(() => useCanCreateAgentShare(makeAgent()), {
+    const { result } = renderHook(() => useCanCreateChannel(makeAgent()), {
       wrapper: wrapper(client),
     });
 
@@ -115,9 +119,9 @@ describe("useCanCreateAgentShare", () => {
     await waitFor(() => expect(result.current.allowed).toBe(false));
   });
 
-  it("refuses when the viewer lacks can_create_agent_share on the organization — an agent owner who is not an organization admin sees no Create share", async () => {
-    const client = createMockStigmer({ can_create_agent_share: false });
-    const { result } = renderHook(() => useCanCreateAgentShare(makeAgent()), {
+  it("refuses when the viewer lacks can_create_channel on the organization — an agent owner who is not an organization admin sees no Create share", async () => {
+    const client = createMockStigmer({ can_create_channel: false });
+    const { result } = renderHook(() => useCanCreateChannel(makeAgent()), {
       wrapper: wrapper(client),
     });
 

@@ -9,7 +9,7 @@ import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 // 1. `audience="observer"` renders a pure transcript — no composer, no
 //    interaction callbacks on the thread, no decision surfaces — while the
 //    session panel (usage/artifacts inspection) stays available.
-// 2. A channel-originated session (the `stigmer.ai/channel-id` label)
+// 2. A Slack or WhatsApp session (the `stigmer.ai/channel-conversation-key` label)
 //    self-selects observer regardless of the host's audience, so a pasted
 //    /sessions/{id} URL can never render a send surface the server would
 //    refuse (channel viewers hold can_view only).
@@ -166,6 +166,7 @@ const CHANNEL_SESSION = {
     labels: {
       "stigmer.ai/channel-id": "ach_1",
       "stigmer.ai/channel-external-user-key": "U0AB12CD3",
+      "stigmer.ai/channel-conversation-key": "C0AB12CD3:1712345678.000100",
     },
   },
   spec: {},

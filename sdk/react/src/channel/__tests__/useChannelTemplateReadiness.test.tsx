@@ -1,27 +1,30 @@
 import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { useChannelTemplateReadiness } from "../useChannelTemplateReadiness";
 
 function makeChannel(overrides?: {
-  installState?: AgentChannelInstallState;
+  installState?: ChannelInstallState;
   enabled?: boolean;
   proactiveMessagingEnabled?: boolean;
-}): AgentChannel {
+}): Channel {
   return {
     metadata: { id: "ach_1", org: "acme", slug: "wa-main" },
     spec: {
       enabled: overrides?.enabled ?? true,
-      proactiveMessagingEnabled: overrides?.proactiveMessagingEnabled ?? true,
+      type: {
+        case: "whatsapp",
+        value: { proactiveMessagingEnabled: overrides?.proactiveMessagingEnabled ?? true },
+      },
     },
     status: {
       installState:
-        overrides?.installState ?? AgentChannelInstallState.installed,
+        overrides?.installState ?? ChannelInstallState.installed,
     },
-  } as unknown as AgentChannel;
+  } as unknown as Channel;
 }
 
 function wrapper(mode: "cloud" | "local" = "cloud") {
@@ -35,7 +38,7 @@ function wrapper(mode: "cloud" | "local" = "cloud") {
 }
 
 function readinessOf(
-  channel: AgentChannel,
+  channel: Channel,
   mode: "cloud" | "local" = "cloud",
 ) {
   const { result } = renderHook(() => useChannelTemplateReadiness(channel), {
@@ -59,7 +62,7 @@ describe("useChannelTemplateReadiness", () => {
     expect(
       readinessOf(
         makeChannel({
-          installState: AgentChannelInstallState.pending_install,
+          installState: ChannelInstallState.pending_install,
         }),
       ),
     ).toEqual({ status: "not-installed" });
@@ -68,7 +71,7 @@ describe("useChannelTemplateReadiness", () => {
   it("is not-installed for a revoked install — coarse on purpose, describeChannel carries the distinction", () => {
     expect(
       readinessOf(
-        makeChannel({ installState: AgentChannelInstallState.revoked }),
+        makeChannel({ installState: ChannelInstallState.revoked }),
       ),
     ).toEqual({ status: "not-installed" });
   });
@@ -92,7 +95,7 @@ describe("useChannelTemplateReadiness", () => {
     expect(
       readinessOf(
         makeChannel({
-          installState: AgentChannelInstallState.pending_install,
+          installState: ChannelInstallState.pending_install,
           enabled: false,
           proactiveMessagingEnabled: false,
         }),
@@ -103,7 +106,7 @@ describe("useChannelTemplateReadiness", () => {
     expect(
       readinessOf(
         makeChannel({
-          installState: AgentChannelInstallState.pending_install,
+          installState: ChannelInstallState.pending_install,
           enabled: false,
           proactiveMessagingEnabled: false,
         }),
@@ -118,7 +121,7 @@ describe("useChannelTemplateReadiness", () => {
   });
 
   it("treats a channel with no status/spec as not yet installed", () => {
-    const bare = { metadata: { id: "ach_2" } } as unknown as AgentChannel;
+    const bare = { metadata: { id: "ach_2" } } as unknown as Channel;
     expect(readinessOf(bare)).toEqual({ status: "not-installed" });
   });
 });

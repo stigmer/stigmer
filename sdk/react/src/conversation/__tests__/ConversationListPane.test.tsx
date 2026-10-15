@@ -3,33 +3,33 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   ChannelConversationListFilter,
   ChannelConversationSchema,
   ConversationControl,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { ConversationListPane } from "../ConversationListPane";
 
 const NOW = new Date("2026-08-07T12:00:00Z");
 
 function whatsappChannel(id: string, name: string) {
-  return create(AgentChannelSchema, {
+  return create(ChannelSchema, {
     metadata: { id, org: "acme", name, slug: name },
-    spec: { providerConfig: { case: "whatsapp", value: {} } },
+    spec: { type: { case: "whatsapp", value: {} } },
   });
 }
 
 function slackChannel(id: string, name: string) {
-  return create(AgentChannelSchema, {
+  return create(ChannelSchema, {
     metadata: { id, org: "acme", name, slug: name },
-    spec: { providerConfig: { case: "slack", value: {} } },
+    spec: { type: { case: "slack", value: {} } },
   });
 }
 
 function conversation(overrides: Record<string, unknown> = {}) {
   return create(ChannelConversationSchema, {
-    agentChannelId: "ach_wa",
+    channelId: "ach_wa",
     conversationKey: "15550001111",
     org: "acme",
     lastActivityAt: timestampFromDate(new Date("2026-08-07T11:55:00Z")),
@@ -75,7 +75,7 @@ describe("ConversationListPane", () => {
         {...baseProps()}
         channels={[slackChannel("ach_sl", "eng-help")]}
         conversations={[
-          conversation({ agentChannelId: "ach_sl", conversationKey: "1723012345.678900" }),
+          conversation({ channelId: "ach_sl", conversationKey: "1723012345.678900" }),
         ]}
       />,
     );
@@ -114,7 +114,7 @@ describe("ConversationListPane", () => {
         channels={[slackChannel("ach_sl", "eng-help")]}
         conversations={[
           conversation({
-            agentChannelId: "ach_sl",
+            channelId: "ach_sl",
             conversationKey: "1723012345.678900",
             displayName: "deploy question",
           }),
@@ -319,7 +319,7 @@ describe("ConversationListPane", () => {
         {...baseProps()}
         conversations={[open]}
         onSelect={onSelect}
-        selected={{ agentChannelId: "ach_wa", conversationKey: "15550001111" }}
+        selected={{ channelId: "ach_wa", conversationKey: "15550001111" }}
       />,
     );
 

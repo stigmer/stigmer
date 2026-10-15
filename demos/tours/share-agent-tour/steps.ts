@@ -12,9 +12,9 @@
  */
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentShareSchema,
-  type AgentShare,
-} from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
+  ChannelSchema,
+  type Channel,
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { samples } from "@stigmer/react/test";
 import type { ScenarioStep } from "@scenar/react";
 import { DEMO_ORG } from "../_shared/fixtures";
@@ -44,12 +44,12 @@ export function buildDemoAgent() {
 
 /**
  * The settled share the dialog edits — enabled, one allowed embed origin.
- * Sharing lives in its own AgentShare resource: the
- * dialog edits exactly the share it is given. A playback never applies, so
+ * A share is a web Channel (the chat-link type of the Channel kind): the
+ * dialog edits exactly the channel it is given. A playback never applies, so
  * this is a plain settled state, not the legacy demo's mutable echo.
  */
-export function buildDemoShare(): AgentShare {
-  return create(AgentShareSchema, {
+export function buildDemoShare(): Channel {
+  return create(ChannelSchema, {
     metadata: {
       id: "ash_demo",
       org: DEMO_ORG,
@@ -59,7 +59,7 @@ export function buildDemoShare(): AgentShare {
     spec: {
       agentRef: { org: DEMO_ORG, slug: DEMO_SLUG },
       enabled: true,
-      allowedOrigins: ["https://acme.com"],
+      type: { case: "web", value: { allowedOrigins: ["https://acme.com"] } },
     },
   });
 }

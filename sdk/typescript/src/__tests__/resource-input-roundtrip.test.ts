@@ -14,8 +14,11 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentChannelSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/spec_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import {
+  ChannelSpecSchema,
+  ChannelAudience,
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import {
@@ -23,11 +26,6 @@ import {
   ServiceTier,
   ThinkingMode,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import {
-  AgentShareSpecSchema,
-  AgentShareAudience,
-} from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeySpecSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/spec_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
@@ -64,9 +62,8 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import { buildAgentProto, toAgentInput } from "../gen/agent";
-import { buildAgentChannelProto, toAgentChannelInput } from "../gen/agentchannel";
+import { buildChannelProto, toChannelInput } from "../gen/channel";
 import { buildRunProto, toRunInput } from "../gen/run";
-import { buildAgentShareProto, toAgentShareInput } from "../gen/agentshare";
 import { buildApiKeyProto, toApiKeyInput } from "../gen/apikey";
 import { buildChannelAppProto, toChannelAppInput } from "../gen/channelapp";
 import { buildIdentityAccountProto, toIdentityAccountInput } from "../gen/identityaccount";
@@ -262,33 +259,88 @@ describe("toAgentInput", () => {
   });
 });
 
-describe("toAgentChannelInput", () => {
+describe("toChannelInput", () => {
+  // The web arm carries the most fields; the Slack and WhatsApp arms
+  // round-trip in their own cases below.
   const fixture = () =>
-    create(AgentChannelSchema, {
+    create(ChannelSchema, {
       metadata: META,
       spec: {
         agentRef: { org: "acme", slug: "support-bot", kind: ApiResourceKind.agent },
         enabled: true,
-        providerConfig: { case: "slack", value: {} },
         vaults: [
           { org: "acme", slug: "prod", kind: ApiResourceKind.vault },
         ],
-        appRef: { org: "acme", slug: "acme-slack", kind: ApiResourceKind.channel_app },
-        proactiveMessagingEnabled: true,
         runConfig: RUN_CONFIG,
+        type: {
+          case: "web",
+          value: {
+            audience: ChannelAudience.public,
+            allowedOrigins: ["https://acme.example"],
+            messages: {
+              rateLimited: "Slow down.",
+              unavailable: "Back soon.",
+              conversationEnded: "Bye.",
+            },
+          },
+        },
       },
     });
 
-  it("fixture covers every AgentChannelSpec field (schema tripwire)", () => {
-    assertFixtureCoversSpec(AgentChannelSpecSchema, fixture().spec!);
+  it("fixture covers every ChannelSpec field (schema tripwire)", () => {
+    assertFixtureCoversSpec(ChannelSpecSchema, fixture().spec!);
   });
 
   it("round-trips the full spec and metadata through the builder", () => {
     const original = fixture();
     assertSpecRoundTrip(
-      AgentChannelSpecSchema,
+      ChannelSpecSchema,
       original,
-      buildAgentChannelProto(toAgentChannelInput(original)),
+      buildChannelProto(toChannelInput(original)),
+    );
+  });
+
+  it("round-trips the slack arm of the type oneof", () => {
+    const original = create(ChannelSchema, {
+      metadata: META,
+      spec: {
+        agentRef: { org: "acme", slug: "support-bot", kind: ApiResourceKind.agent },
+        enabled: true,
+        type: {
+          case: "slack",
+          value: {
+            appRef: { org: "acme", slug: "acme-slack", kind: ApiResourceKind.channel_app },
+          },
+        },
+      },
+    });
+    assertSpecRoundTrip(
+      ChannelSpecSchema,
+      original,
+      buildChannelProto(toChannelInput(original)),
+    );
+  });
+
+  it("round-trips the whatsapp arm of the type oneof", () => {
+    const original = create(ChannelSchema, {
+      metadata: META,
+      spec: {
+        agentRef: { org: "acme", slug: "support-bot", kind: ApiResourceKind.agent },
+        enabled: true,
+        type: {
+          case: "whatsapp",
+          value: {
+            phoneNumberId: "1234567890",
+            appRef: { org: "acme", slug: "acme-whatsapp", kind: ApiResourceKind.channel_app },
+            proactiveMessagingEnabled: true,
+          },
+        },
+      },
+    });
+    assertSpecRoundTrip(
+      ChannelSpecSchema,
+      original,
+      buildChannelProto(toChannelInput(original)),
     );
   });
 });
@@ -395,41 +447,6 @@ describe("toAgentExecutionInput", () => {
       RunSpecSchema,
       original,
       buildRunProto(toRunInput(original)),
-    );
-  });
-});
-
-describe("toAgentShareInput", () => {
-  const fixture = () =>
-    create(AgentShareSchema, {
-      metadata: META,
-      spec: {
-        agentRef: { org: "acme", slug: "support-bot", kind: ApiResourceKind.agent },
-        enabled: true,
-        audience: AgentShareAudience.org,
-        allowedOrigins: ["https://acme.example"],
-        messages: {
-          rateLimited: "Slow down.",
-          unavailable: "Back soon.",
-          conversationEnded: "Bye.",
-        },
-        vaults: [
-          { org: "acme", slug: "prod", kind: ApiResourceKind.vault },
-        ],
-        runConfig: RUN_CONFIG,
-      },
-    });
-
-  it("fixture covers every AgentShareSpec field (schema tripwire)", () => {
-    assertFixtureCoversSpec(AgentShareSpecSchema, fixture().spec!);
-  });
-
-  it("round-trips the full spec and metadata through the builder", () => {
-    const original = fixture();
-    assertSpecRoundTrip(
-      AgentShareSpecSchema,
-      original,
-      buildAgentShareProto(toAgentShareInput(original)),
     );
   });
 });

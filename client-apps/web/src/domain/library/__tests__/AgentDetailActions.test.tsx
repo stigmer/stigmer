@@ -44,7 +44,7 @@ vi.mock("@stigmer/react", () => {
   return {
     ConfirmDialog: none,
     EditResourceYamlDialog: none,
-    AgentChannelsPanel: none,
+    ChannelsPanel: none,
     AgentDetailView: (props: {
       primaryAction: Action;
       actions: Action[];

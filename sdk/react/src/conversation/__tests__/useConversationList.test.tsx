@@ -13,14 +13,14 @@ import {
   ChannelConversationListFilter,
   ChannelConversationSchema,
   ConversationControl,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useConversationList } from "../useConversationList";
 
 function conversation(channelId: string, key: string, displayName = "") {
   return create(ChannelConversationSchema, {
-    agentChannelId: channelId,
+    channelId,
     conversationKey: key,
     org: "acme",
     displayName,
@@ -34,7 +34,7 @@ function conversationAt(
   overrides?: { control?: ConversationControl; displayName?: string },
 ) {
   return create(ChannelConversationSchema, {
-    agentChannelId: channelId,
+    channelId,
     conversationKey: key,
     org: "acme",
     control: overrides?.control ?? ConversationControl.control_agent,
@@ -52,7 +52,7 @@ function deferred<T>() {
 }
 
 function createMockStigmer(listConversations: (input: unknown) => Promise<unknown>) {
-  return { agentChannel: { listConversations } } as never;
+  return { channel: { listConversations } } as never;
 }
 
 function wrapper(client: unknown) {
@@ -91,7 +91,7 @@ describe("useConversationList", () => {
     expect(listConversations).toHaveBeenCalledWith(
       expect.objectContaining({
         org: "acme",
-        agentChannelId: "",
+        channelId: "",
         pageSize: 50,
       }),
     );
@@ -117,13 +117,13 @@ describe("useConversationList", () => {
   it("passes the channel filter through", async () => {
     const listConversations = vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" });
     renderHook(
-      () => useConversationList({ org: "acme", agentChannelId: "ach_9", ...NO_POLL }),
+      () => useConversationList({ org: "acme", channelId: "ach_9", ...NO_POLL }),
       { wrapper: wrapper(createMockStigmer(listConversations)) },
     );
 
     await waitFor(() =>
       expect(listConversations).toHaveBeenCalledWith(
-        expect.objectContaining({ agentChannelId: "ach_9" }),
+        expect.objectContaining({ channelId: "ach_9" }),
       ),
     );
   });
@@ -213,7 +213,7 @@ describe("useConversationList", () => {
 
     const { result, rerender } = renderHook(
       ({ channel }: { channel: string }) =>
-        useConversationList({ org: "acme", agentChannelId: channel, ...NO_POLL }),
+        useConversationList({ org: "acme", channelId: channel, ...NO_POLL }),
       {
         wrapper: wrapper(createMockStigmer(listConversations)),
         initialProps: { channel: "ach_1" },
@@ -419,7 +419,7 @@ describe("useConversationList.applyServerState (own actions reflect immediately)
 
     const { result } = renderHook(
       () =>
-        useConversationList({ org: "acme", agentChannelId: "ach_1", ...NO_POLL }),
+        useConversationList({ org: "acme", channelId: "ach_1", ...NO_POLL }),
       { wrapper: wrapper(createMockStigmer(listConversations)) },
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));

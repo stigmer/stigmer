@@ -1,33 +1,29 @@
-export { useSharedAgentProfile } from "./useSharedAgentProfile.js";
+export { useChannelAgentProfile } from "./useChannelAgentProfile.js";
 export type {
-  UseSharedAgentProfileOptions,
-  UseSharedAgentProfileReturn,
-} from "./useSharedAgentProfile.js";
+  UseChannelAgentProfileOptions,
+  UseChannelAgentProfileReturn,
+} from "./useChannelAgentProfile.js";
 export { SharedAgentChat } from "./SharedAgentChat.js";
 export type { SharedAgentChatProps } from "./SharedAgentChat.js";
-export { useAgentShares } from "./useAgentShares.js";
-export type { UseAgentSharesReturn } from "./useAgentShares.js";
-export { useCanCreateAgentShare } from "./useCanCreateAgentShare.js";
-export type { UseCanCreateAgentShareReturn } from "./useCanCreateAgentShare.js";
 export {
-  draftFromShare,
+  draftFromWebChannel,
   sharingAudienceFromProto,
-  useSaveAgentShare,
-} from "./useSaveAgentShare.js";
+  webChannelCreateInput,
+  webChannelPatch,
+  webConfigOf,
+  webLinkTokenOf,
+} from "./webChannelDraft.js";
 export type {
-  AgentShareCreateIdentity,
-  AgentShareDraft,
+  WebChannelCreateIdentity,
+  WebChannelDraft,
   SharingAudience,
-  UseSaveAgentShareReturn,
-} from "./useSaveAgentShare.js";
-export { useDeleteAgentShare } from "./useDeleteAgentShare.js";
-export type { UseDeleteAgentShareReturn } from "./useDeleteAgentShare.js";
-export { useRotateShareLink } from "./useRotateShareLink.js";
-export type { UseRotateShareLinkReturn } from "./useRotateShareLink.js";
+} from "./webChannelDraft.js";
+export { useRotateChannelLink } from "./useRotateChannelLink.js";
+export type { UseRotateChannelLinkReturn } from "./useRotateChannelLink.js";
 export { ShareAgentDialog } from "./ShareAgentDialog.js";
 export type { ShareAgentDialogProps } from "./ShareAgentDialog.js";
-export { AgentShareList } from "./AgentShareList.js";
-export type { AgentShareListProps } from "./AgentShareList.js";
+export { WebChannelList } from "./WebChannelList.js";
+export type { WebChannelListProps } from "./WebChannelList.js";
 export { useShareToolReadiness } from "./useShareToolReadiness.js";
 export type { ShareToolReadiness } from "./useShareToolReadiness.js";
 // Origin validation moved to @stigmer/sdk (framework-free, shared with the

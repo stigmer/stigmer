@@ -8,7 +8,7 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { useShareToolReadiness } from "../useShareToolReadiness";
-import type { AgentShareDraft, SharingAudience } from "../useSaveAgentShare";
+import type { WebChannelDraft, SharingAudience } from "../webChannelDraft";
 
 function toolAgent(overrides?: { plugins?: boolean; mcpServers?: boolean }): Agent {
   return create(AgentSchema, {
@@ -30,7 +30,7 @@ function makeDraft(overrides?: {
   enabled?: boolean;
   audience?: SharingAudience;
   vaults?: { org: string; slug: string }[];
-}): AgentShareDraft {
+}): WebChannelDraft {
   return {
     enabled: overrides?.enabled ?? true,
     audience: overrides?.audience ?? "public",
@@ -216,7 +216,7 @@ describe("useShareToolReadiness", () => {
     );
 
     // Org-audience shares reject vaults at the proto boundary
-    // (member sessions carry no share linkage), so there is
+    // (members run on their own keys), so there is
     // no credential state to advise on.
     expect(result.current).toEqual({ status: "na" });
   });

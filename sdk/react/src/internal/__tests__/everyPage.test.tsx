@@ -13,7 +13,7 @@ import { FetchCacheContext } from "../FetchCacheProvider";
 import { readWholeList } from "../everyPage";
 import { useSessionRuns } from "../../session/useSessionRuns";
 import { useSessionScores } from "../../score/useSessionScores";
-import { useOrgAgentChannelList } from "../../channel/useOrgAgentChannelList";
+import { useOrgChannelList } from "../../channel/useOrgChannelList";
 
 const TOTAL = 1001;
 
@@ -51,7 +51,7 @@ describe("the whole-list hooks", () => {
   const client = {
     run: { listBySession: pagedRows("aex") },
     score: { listBySession: pagedRows("scr") },
-    agentChannel: { list: pagedRows("ach") },
+    channel: { list: pagedRows("ach") },
   };
 
   it("loads a session with more runs than the cap", async () => {
@@ -67,7 +67,7 @@ describe("the whole-list hooks", () => {
   });
 
   it("loads an organization with more channels than the cap", async () => {
-    const { result } = renderHook(() => useOrgAgentChannelList("acme"), { wrapper: wrapper(client) });
+    const { result } = renderHook(() => useOrgChannelList("acme"), { wrapper: wrapper(client) });
     await waitFor(() => expect(result.current.channels).toHaveLength(TOTAL));
     expect(result.current.error).toBeNull();
   });

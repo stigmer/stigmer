@@ -5,12 +5,12 @@ import { create } from "@bufbuild/protobuf";
 import {
   ChannelConversationSchema,
   ConversationControl,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useConversationParticipation } from "../useConversationParticipation";
 
-const IDENTITY = { agentChannelId: "ach_1", conversationKey: "15550001111" };
+const IDENTITY = { channelId: "ach_1", conversationKey: "15550001111" };
 
 function row(control: ConversationControl, controlledBy = "") {
   return create(ChannelConversationSchema, {
@@ -23,7 +23,7 @@ function row(control: ConversationControl, controlledBy = "") {
 
 function createMockStigmer(overrides: Record<string, unknown> = {}) {
   return {
-    agentChannel: {
+    channel: {
       reply: vi.fn().mockResolvedValue({ outcome: 1, outboundMessageId: "obm_1" }),
       takeOver: vi.fn().mockResolvedValue(row(ConversationControl.control_human, "idt_me")),
       handBack: vi.fn().mockResolvedValue(row(ConversationControl.control_agent)),
@@ -105,9 +105,9 @@ describe("useConversationParticipation", () => {
     );
 
     expect(output.outboundMessageId).toBe("obm_1");
-    const agentChannel = (client as { agentChannel: Record<string, ReturnType<typeof vi.fn>> })
-      .agentChannel;
-    expect(agentChannel.reply).toHaveBeenCalledWith(
+    const channel = (client as { channel: Record<string, ReturnType<typeof vi.fn>> })
+      .channel;
+    expect(channel.reply).toHaveBeenCalledWith(
       expect.objectContaining({
         ...IDENTITY,
         payload: expect.objectContaining({
@@ -118,7 +118,7 @@ describe("useConversationParticipation", () => {
         }),
       }),
     );
-    expect(agentChannel.getConversation).toHaveBeenCalledWith(
+    expect(channel.getConversation).toHaveBeenCalledWith(
       expect.objectContaining(IDENTITY),
     );
     expect(onConversation).toHaveBeenCalledWith(
@@ -141,9 +141,9 @@ describe("useConversationParticipation", () => {
       }),
     );
 
-    const agentChannel = (client as { agentChannel: Record<string, ReturnType<typeof vi.fn>> })
-      .agentChannel;
-    expect(agentChannel.reply).toHaveBeenCalledWith(
+    const channel = (client as { channel: Record<string, ReturnType<typeof vi.fn>> })
+      .channel;
+    expect(channel.reply).toHaveBeenCalledWith(
       expect.objectContaining({
         ...IDENTITY,
         payload: expect.objectContaining({
@@ -187,9 +187,9 @@ describe("useConversationParticipation", () => {
 
     await act(() => result.current.reply({ kind: "text", body: "on my way" }));
 
-    const agentChannel = (client as { agentChannel: Record<string, ReturnType<typeof vi.fn>> })
-      .agentChannel;
-    expect(agentChannel.getConversation).not.toHaveBeenCalled();
+    const channel = (client as { channel: Record<string, ReturnType<typeof vi.fn>> })
+      .channel;
+    expect(channel.getConversation).not.toHaveBeenCalled();
   });
 
   it("attributes in-flight state and failures to the one command they belong to", async () => {

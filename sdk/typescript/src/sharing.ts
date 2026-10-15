@@ -5,10 +5,10 @@
  * desktop app (via `@stigmer/react`), the `stigmer` CLI, and any platform
  * builder that wants to construct share links or embed snippets itself.
  *
- * The canonical URL shape is `<app-origin>/chat/<share id>`, and
+ * The canonical URL shape is `<app-origin>/chat/<channel id>`, and
  * `embed.js` is served from the root of that same
- * app origin. A link names only the share, by its permanent id, so no
- * rename of the share's organization breaks it and no later holder of
+ * app origin. A link names only the web channel, by its permanent id, so no
+ * rename of the channel's organization breaks it and no later holder of
  * that organization's name can take it over. Callers supply the origin — resolving it is a host
  * concern (the console knows its `appUrl`, the CLI resolves it from the
  * backend type) — while the path and snippet shapes live here so every
@@ -21,7 +21,7 @@ export const MAX_ALLOWED_ORIGINS = 32;
 /**
  * Exact web origin: scheme://host[:port] — no path, query, fragment, or
  * trailing slash. Mirrors the CEL expression `allowed_origins.format` on
- * `AgentShareSpec` (`apis/ai/stigmer/agentic/agentshare/v1/spec.proto`).
+ * `WebChannelConfig` (`apis/ai/stigmer/agentic/channel/v1/spec.proto`).
  *
  * The proto is the source of truth — if the CEL expression changes, this
  * pattern must change with it. Mirroring it client-side gives immediate
@@ -46,23 +46,23 @@ export function validateOrigin(value: string): string | null {
 }
 
 /**
- * Query parameter carrying the share-link token on a locked link:
- * `/chat/<share id>?k=<token>`. Short by design — the token rides every
+ * Query parameter carrying the chat-link token on a locked link:
+ * `/chat/<channel id>?k=<token>`. Short by design — the token rides every
  * copied link, and `k` (for "key") is the platform's one-character
  * convention, mirrored by the hosted page and the embed widget.
  */
 export const LINK_TOKEN_PARAM = "k";
 
 /**
- * The hosted chat page path for a shared agent: `/chat/<share id>` (the
- * AgentShare's `metadata.id`), plus `?k=<token>` when the share link is
- * locked with a rotatable token (`AgentShareStatus.share_link_token`).
+ * The hosted chat page path for a shared agent: `/chat/<channel id>` (the
+ * web Channel's `metadata.id`), plus `?k=<token>` when the chat link is
+ * locked with a rotatable token (`WebChannelStatus.link_token`).
  *
  * Useful on its own when the caller renders relative to the current
  * origin (e.g. a host that never configured an absolute app URL).
  */
-export function chatPath(shareId: string, linkToken?: string): string {
-  const path = `/chat/${encodeURIComponent(shareId)}`;
+export function chatPath(channelId: string, linkToken?: string): string {
+  const path = `/chat/${encodeURIComponent(channelId)}`;
   return linkToken
     ? `${path}?${LINK_TOKEN_PARAM}=${encodeURIComponent(linkToken)}`
     : path;
@@ -70,7 +70,7 @@ export function chatPath(shareId: string, linkToken?: string): string {
 
 /**
  * The absolute hosted chat URL for a shared agent:
- * `<appOrigin>/chat/<share id>[?k=<token>]`.
+ * `<appOrigin>/chat/<channel id>[?k=<token>]`.
  *
  * A trailing slash on `appOrigin` is tolerated so callers can pass
  * user-configured values verbatim. An empty `appOrigin` degrades to the
@@ -79,19 +79,19 @@ export function chatPath(shareId: string, linkToken?: string): string {
  */
 export function buildChatUrl(
   appOrigin: string,
-  shareId: string,
+  channelId: string,
   linkToken?: string,
 ): string {
-  return stripTrailingSlash(appOrigin) + chatPath(shareId, linkToken);
+  return stripTrailingSlash(appOrigin) + chatPath(channelId, linkToken);
 }
 
 /**
- * Append the share-link token to an already-built chat URL.
+ * Append the chat-link token to an already-built chat URL.
  *
  * For hosts that construct the base URL through their own callback (the
  * share dialog's `buildShareUrl` prop) rather than {@link buildChatUrl}.
  * A `null`/empty token returns the URL unchanged, so callers can pass
- * `share.status?.shareLinkToken` straight through. Emits the identical
+ * the web arm of `channel.status?.typeStatus` (its `linkToken`) straight through. Emits the identical
  * `?k=` shape as {@link chatPath} — one URL grammar across every surface.
  */
 export function appendLinkToken(url: string, linkToken: string | null | undefined): string {
@@ -113,19 +113,19 @@ export function buildEmbedLoaderUrl(appOrigin: string): string {
 /**
  * The two-line embed snippet an owner pastes into any website: the
  * loader script plus the `<stigmer-agent>` element where the widget
- * renders, naming the share by its id. A locked share link adds the `token` attribute, which the
+ * renders, naming the web channel by its id. A locked chat link adds the `token` attribute, which the
  * widget forwards as `?k=` on its iframe URL. Every surface (share
  * dialog, CLI, docs) emits exactly this.
  */
 export function buildEmbedSnippet(
   appOrigin: string,
-  shareId: string,
+  channelId: string,
   linkToken?: string,
 ): string {
   const tokenAttribute = linkToken ? ` token="${linkToken}"` : "";
   return [
     `<script src="${buildEmbedLoaderUrl(appOrigin)}" async></script>`,
-    `<stigmer-agent share="${shareId}"${tokenAttribute}></stigmer-agent>`,
+    `<stigmer-agent share="${channelId}"${tokenAttribute}></stigmer-agent>`,
   ].join("\n");
 }
 

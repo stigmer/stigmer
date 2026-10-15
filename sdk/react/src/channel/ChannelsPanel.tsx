@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { FileCode2, KeyRound, LayoutTemplate, MessageSquare, MoreHorizontal, Share2, SlidersHorizontal, Trash2 } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import {
@@ -9,9 +9,9 @@ import {
   isDeletedReference,
 } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
+import { ChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { toast } from "../feedback/toast.js";
 import { useManageAccess } from "../access/useManageAccess.js";
@@ -42,14 +42,15 @@ import {
   channelPresentationOf,
   DEFAULT_CHANNEL_PRESENTATION,
 } from "./providerPresentation.js";
-import { useAgentChannelList } from "./useAgentChannelList.js";
+import { useCanCreateChannel } from "./useCanCreateChannel.js";
+import { useChannelList } from "./useChannelList.js";
 import { useChannelToolReadiness } from "./useChannelToolReadiness.js";
-import { useDeleteAgentChannel } from "./useDeleteAgentChannel.js";
-import { useSaveAgentChannel } from "./useSaveAgentChannel.js";
+import { useDeleteChannel } from "./useDeleteChannel.js";
+import { useSaveChannel } from "./useSaveChannel.js";
 import { saveErrorMessage } from "../internal/maskedEdit.js";
 
-/** Props for {@link AgentChannelsPanel}. */
-export interface AgentChannelsPanelProps {
+/** Props for {@link ChannelsPanel}. */
+export interface ChannelsPanelProps {
   /** The agent whose channels are managed. */
   readonly agent: Agent;
   /**
@@ -62,7 +63,7 @@ export interface AgentChannelsPanelProps {
    * connect in-app — their flow is a plain API call with nothing for a
    * popup to do — so they never invoke the delegate.
    */
-  readonly onConnectExternal?: (channel: AgentChannel | null) => void;
+  readonly onConnectExternal?: (channel: Channel | null) => void;
   /**
    * Where the host manages Channel Apps (the console passes
    * `/settings/channel-apps`). Threaded to the connect dialog's
@@ -83,14 +84,14 @@ export interface AgentChannelsPanelProps {
 }
 
 /**
- * Management surface for an agent's {@link AgentChannel} connections —
+ * Management surface for an agent's Slack and WhatsApp {@link Channel}s —
  * rendered in the agent detail view's Channels tab.
  *
  * One card per channel showing the two serving axes side by side: the
  * observed provider install state (`pending_install` / `installed` /
  * `revoked`) and the owner's serving switch (`spec.enabled`). Traffic
  * flows only when installed AND enabled. Channels always live in the
- * agent's own org (no cross-org arm, unlike shares), so no org selector
+ * agent's own org (no cross-org arm), so no org selector
  * is needed.
  *
  * Connecting runs the provider's own dialog — {@link ConnectSlackDialog}
@@ -105,18 +106,25 @@ export interface AgentChannelsPanelProps {
  *
  * This is an SDK component — embeddable by platform builders.
  */
-export function AgentChannelsPanel({
+export function ChannelsPanel({
   agent,
   onConnectExternal,
   channelAppsHref,
   sessionHref,
   className,
-}: AgentChannelsPanelProps) {
+}: ChannelsPanelProps) {
   const agentId = agent.metadata?.id ?? "";
   // Channels are same-org by invariant; scope the list to the agent's org.
-  const { channels, isLoading, error, refetch } = useAgentChannelList(
+  const { channels: agentChannels, isLoading, error, refetch } = useChannelList(
     agentId,
     agent.metadata?.org ?? "",
+  );
+  // This panel manages the Slack and WhatsApp channels; the chat links
+  // (web channels) are the Shares tab's. A type this UI does not know yet
+  // (a newer server) stays here, on the default provider's card.
+  const channels = useMemo(
+    () => agentChannels.filter((c) => c.spec?.type?.case !== "web"),
+    [agentChannels],
   );
 
   // One fetch for all cards: a channel's spec.app_ref carries only the
@@ -127,19 +135,10 @@ export function AgentChannelsPanel({
   // Mirrors the server's two create bars so the connect affordance never
   // appears to someone whose create would be refused: can_manage_audience
   // on the agent (a channel puts it in front of a wider audience, the
-  // owner's decision, not an editor's) and can_create_agent_channel on the
+  // owner's decision, not an editor's) and can_create_channel on the
   // organization (a channel spends its own provider keys, an admin's act, so a
   // member who owns the agent is not enough).
-  const { allowed: canManageAudience } = useCheckPermission(
-    agentId ? { kind: "agent", id: agentId } : null,
-    "can_manage_audience",
-  );
-  const agentOrg = agent.metadata?.org ?? "";
-  const { allowed: canCreateInOrg } = useCheckPermission(
-    agentOrg ? { kind: "organization", id: agentOrg } : null,
-    "can_create_agent_channel",
-  );
-  const canCreate = canManageAudience && canCreateInOrg;
+  const { allowed: canCreate } = useCanCreateChannel(agent);
 
   // Installs need a channel delivery runtime, and only Stigmer Cloud
   // composes one today; CRUD needs none. Outside Cloud the cards render and
@@ -148,7 +147,7 @@ export function AgentChannelsPanel({
   // runtime rather than an edition compare.
   const installsAvailable = useDeploymentMode() === "cloud";
 
-  const { deleteChannel } = useDeleteAgentChannel();
+  const { deleteChannel } = useDeleteChannel();
   const { confirmState, confirm, handleConfirm, handleCancel } =
     useConfirmAction();
 
@@ -157,30 +156,30 @@ export function AgentChannelsPanel({
   // session. The provider picks which dialog renders.
   const [connecting, setConnecting] = useState<
     | { readonly mode: "create"; readonly provider: ChannelProviderDescriptor }
-    | { readonly mode: "reconnect"; readonly channel: AgentChannel }
+    | { readonly mode: "reconnect"; readonly channel: Channel }
     | null
   >(null);
 
   // The channel whose tool-credential bindings are being edited.
   const [editingCredentials, setEditingCredentials] =
-    useState<AgentChannel | null>(null);
+    useState<Channel | null>(null);
 
   // The channel whose conversations are being viewed (read-only
   // channel-session observability for the channel's viewers).
   const [viewingConversations, setViewingConversations] =
-    useState<AgentChannel | null>(null);
+    useState<Channel | null>(null);
 
   // The channel whose provider message templates are being viewed (the
   // business-messaging diagnosis surface).
   const [viewingTemplates, setViewingTemplates] =
-    useState<AgentChannel | null>(null);
+    useState<Channel | null>(null);
 
   // The channel being edited as YAML (the kind-agnostic manifest flow).
-  const [editingYaml, setEditingYaml] = useState<AgentChannel | null>(null);
-  const [editingRunConfig, setEditingRunConfig] = useState<AgentChannel | null>(null);
+  const [editingYaml, setEditingYaml] = useState<Channel | null>(null);
+  const [editingRunConfig, setEditingRunConfig] = useState<Channel | null>(null);
 
   const handleConnect = useCallback(
-    (channel: AgentChannel | null, provider: ChannelProviderDescriptor) => {
+    (channel: Channel | null, provider: ChannelProviderDescriptor) => {
       // Only redirect-style installs need the host hand-off (they open a
       // popup the desktop webview cannot); direct installs are a plain
       // API call and run in-app everywhere.
@@ -196,10 +195,10 @@ export function AgentChannelsPanel({
   );
 
   const handleDelete = useCallback(
-    async (channel: AgentChannel) => {
+    async (channel: Channel) => {
       const name = channel.metadata?.name || channel.metadata?.slug || "this channel";
       const presentation =
-        channelPresentationOf(channel.spec?.providerConfig?.case) ??
+        channelPresentationOf(channel.spec?.type?.case) ??
         DEFAULT_CHANNEL_PRESENTATION;
       const confirmed = await confirm({
         title: "Disconnect channel?",
@@ -235,7 +234,7 @@ export function AgentChannelsPanel({
     !installsAvailable &&
     (channels.length === 0 ||
       channels.some(
-        (c) => installStateOf(c) !== AgentChannelInstallState.installed,
+        (c) => installStateOf(c) !== ChannelInstallState.installed,
       ));
 
   // Whether a provider's connect affordance is actionable here: installs
@@ -256,7 +255,7 @@ export function AgentChannelsPanel({
       ? null
       : connecting.mode === "create"
         ? connecting.provider
-        : channelProviderOf(connecting.channel.spec?.providerConfig?.case) ??
+        : channelProviderOf(connecting.channel.spec?.type?.case) ??
           CHANNEL_PROVIDERS[0];
 
   return (
@@ -304,7 +303,7 @@ export function AgentChannelsPanel({
           <div className="stg:space-y-2">
             {channels.map((channel) => {
               const cardProvider =
-                channelProviderOf(channel.spec?.providerConfig?.case) ??
+                channelProviderOf(channel.spec?.type?.case) ??
                 CHANNEL_PROVIDERS[0];
               return (
                 <ChannelCard
@@ -434,7 +433,7 @@ export function AgentChannelsPanel({
 
 interface ChannelCardProps {
   readonly agent: Agent;
-  readonly channel: AgentChannel;
+  readonly channel: Channel;
   readonly channelApps: readonly ChannelApp[];
   /** Whether the card's Connect/Reconnect affordance is actionable here. */
   readonly connectAvailable: boolean;
@@ -475,12 +474,15 @@ function ChannelCard({
   // An app deleted since comes back with no slug: it still names the
   // channel's serving app, read as "deleted channel app", never as the
   // platform app an absent reference means.
-  const servingAppSlug = channel.spec?.appRef?.slug || null;
+  const type = channel.spec?.type;
+  const servingAppRef =
+    type?.case === "slack" || type?.case === "whatsapp" ? type.value.appRef : undefined;
+  const servingAppSlug = servingAppRef?.slug || null;
   const namedServingApp = servingAppSlug
     ? channelApps.find((app) => app.metadata?.slug === servingAppSlug)
         ?.metadata?.name || servingAppSlug
     : null;
-  const servingAppName = isDeletedReference(channel.spec?.appRef)
+  const servingAppName = isDeletedReference(servingAppRef)
     ? deletedReferenceLabel(ApiResourceKind.channel_app)
     : namedServingApp;
 
@@ -488,22 +490,22 @@ function ChannelCard({
   // server) fall back to the default provider mark rather than no icon,
   // and to the default presentation rather than no copy.
   const provider =
-    channelProviderOf(channel.spec?.providerConfig?.case) ?? CHANNEL_PROVIDERS[0];
+    channelProviderOf(channel.spec?.type?.case) ?? CHANNEL_PROVIDERS[0];
   const presentation =
-    channelPresentationOf(channel.spec?.providerConfig?.case) ??
+    channelPresentationOf(channel.spec?.type?.case) ??
     DEFAULT_CHANNEL_PRESENTATION;
 
-  const { update, isPending } = useSaveAgentChannel();
+  const { update, isPending } = useSaveChannel();
 
   // Decide the card's actions here (not via nested permission wrappers) so
   // affordances are hidden entirely when the viewer can do nothing —
   // permissive in OSS, so local single-user sees all.
   const { allowed: canEdit } = useCheckPermission(
-    { kind: "agent_channel", id },
+    { kind: "channel", id },
     "can_edit",
   );
   const { allowed: canDelete } = useCheckPermission(
-    { kind: "agent_channel", id },
+    { kind: "channel", id },
     "can_delete",
   );
 
@@ -515,8 +517,8 @@ function ChannelCard({
   const access = useManageAccess({
     resource: id
       ? {
-          kind: ApiResourceKind.agent_channel,
-          kindString: "agent_channel",
+          kind: ApiResourceKind.channel,
+          kindString: "channel",
           id,
           org: meta?.org ?? "",
           name: meta?.name || meta?.slug,
@@ -562,7 +564,7 @@ function ChannelCard({
         </div>
 
         <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-2">
-          {canEdit && installState === AgentChannelInstallState.installed && (
+          {canEdit && installState === ChannelInstallState.installed && (
             <Switch
               checked={enabled}
               onCheckedChange={(next) => void handleToggleEnabled(next)}
@@ -572,9 +574,9 @@ function ChannelCard({
           )}
           {canEdit &&
             connectAvailable &&
-            installState !== AgentChannelInstallState.installed && (
+            installState !== ChannelInstallState.installed && (
               <Button variant="outline" size="xs" onClick={onConnectClick}>
-                {installState === AgentChannelInstallState.revoked
+                {installState === ChannelInstallState.revoked
                   ? "Reconnect"
                   : "Connect"}
               </Button>
@@ -685,13 +687,13 @@ function CardReadinessWarning({
   onEditCredentials,
 }: {
   readonly agent: Agent;
-  readonly channel: AgentChannel;
+  readonly channel: Channel;
   readonly canEdit: boolean;
   readonly onEditCredentials: () => void;
 }) {
   const serving =
     (channel.spec?.enabled ?? false) &&
-    installStateOf(channel) === AgentChannelInstallState.installed;
+    installStateOf(channel) === ChannelInstallState.installed;
   const readiness = useChannelToolReadiness(
     agent,
     serving,
@@ -734,19 +736,19 @@ function CardReadinessWarning({
 // Install-state rendering
 // ---------------------------------------------------------------------------
 
-function installStateOf(channel: AgentChannel): AgentChannelInstallState {
+function installStateOf(channel: Channel): ChannelInstallState {
   return (
     channel.status?.installState ??
-    AgentChannelInstallState.agent_channel_install_state_unspecified
+    ChannelInstallState.channel_install_state_unspecified
   );
 }
 
-function InstallStatePill({ state }: { readonly state: AgentChannelInstallState }) {
+function InstallStatePill({ state }: { readonly state: ChannelInstallState }) {
   const { label, tone } = (() => {
     switch (state) {
-      case AgentChannelInstallState.installed:
+      case ChannelInstallState.installed:
         return { label: "Installed", tone: "stg:text-success" };
-      case AgentChannelInstallState.revoked:
+      case ChannelInstallState.revoked:
         return { label: "Revoked", tone: "stg:text-destructive" };
       default:
         return { label: "Pending install", tone: "stg:text-muted-foreground" };

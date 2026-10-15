@@ -496,7 +496,12 @@ describe("useSessionPageFlow — armed responder (#816, the walk-away scenario)"
   it("never fires for a channel-origin session (read-only by construction)", async () => {
     mockConv.session = {
       spec: {},
-      metadata: { labels: { "stigmer.ai/channel-id": "ch_1" } },
+      metadata: {
+        labels: {
+          "stigmer.ai/channel-id": "ch_1",
+          "stigmer.ai/channel-conversation-key": "C0AB12CD3:1712345678.000100",
+        },
+      },
     };
     mockConv.asks = [{ id: "tc1" }];
     renderHook(() => useSessionPageFlow(OPTS), {

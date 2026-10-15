@@ -1,18 +1,22 @@
+// useSaveChannel: apply a channel of any type, or change the fields an edit
+// names on one as loaded (a type's settings named field by field).
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import type { AgentChannelInput } from "@stigmer/sdk";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import type { ChannelInput } from "@stigmer/sdk";
+import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
 import { StigmerContext } from "../../context";
-import { useSaveAgentChannel } from "../useSaveAgentChannel";
+import { useSaveChannel } from "../useSaveChannel";
 import { sentRefs, sentUpdate } from "../../internal/__tests__/sent-update";
 
 function createMockStigmer(overrides: {
-  apply?: (input: AgentChannelInput) => Promise<unknown>;
-  update?: (resource: AgentChannel, paths: string[]) => Promise<unknown>;
+  apply?: (input: ChannelInput) => Promise<unknown>;
+  update?: (resource: Channel, paths: string[]) => Promise<unknown>;
 } = {}) {
   return {
-    agentChannel: {
+    channel: {
       apply: overrides.apply ?? vi.fn().mockResolvedValue({}),
       update: overrides.update ?? vi.fn().mockResolvedValue({}),
     },
@@ -29,7 +33,7 @@ function wrapper(client: unknown) {
   };
 }
 
-function makeChannel(overrides: Record<string, unknown> = {}): AgentChannel {
+function makeChannel(overrides: Record<string, unknown> = {}): Channel {
   return {
     metadata: {
       id: "ach_1",
@@ -41,14 +45,14 @@ function makeChannel(overrides: Record<string, unknown> = {}): AgentChannel {
     spec: {
       agentRef: { org: "acme", slug: "support-agent" },
       enabled: true,
-      providerConfig: { case: "slack", value: {} },
+      type: { case: "slack", value: {} },
     },
     status: { installState: 2 },
     ...overrides,
   } as never;
 }
 
-describe("useSaveAgentChannel", () => {
+describe("useSaveChannel", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -58,11 +62,11 @@ describe("useSaveAgentChannel", () => {
     const apply = vi.fn().mockResolvedValue(persisted);
     const client = createMockStigmer({ apply });
 
-    const { result } = renderHook(() => useSaveAgentChannel(), {
+    const { result } = renderHook(() => useSaveChannel(), {
       wrapper: wrapper(client),
     });
 
-    const input: AgentChannelInput = {
+    const input: ChannelInput = {
       name: "Support Slack",
       org: "acme",
       agentRef: { org: "acme", slug: "support-agent" },
@@ -70,7 +74,7 @@ describe("useSaveAgentChannel", () => {
       slack: {},
     };
 
-    let returned: AgentChannel | undefined;
+    let returned: Channel | undefined;
     await act(async () => {
       returned = await result.current.save(input);
     });
@@ -85,7 +89,7 @@ describe("useSaveAgentChannel", () => {
     const update = vi.fn().mockResolvedValue(makeChannel());
     const client = createMockStigmer({ update });
 
-    const { result } = renderHook(() => useSaveAgentChannel(), {
+    const { result } = renderHook(() => useSaveChannel(), {
       wrapper: wrapper(client),
     });
 
@@ -94,8 +98,7 @@ describe("useSaveAgentChannel", () => {
       spec: {
         agentRef: { org: "acme", slug: "support-agent" },
         enabled: true,
-        providerConfig: { case: "slack", value: {} },
-        appRef: { org: "acme", slug: "acme-support-app" },
+        type: { case: "slack", value: { appRef: { org: "acme", slug: "acme-support-app" } } },
         vaults: [{ org: "acme", slug: "github-credentials" }],
       },
     });
@@ -107,7 +110,7 @@ describe("useSaveAgentChannel", () => {
     // The disable toggle names `spec.enabled` alone: the agent reference,
     // the provider marker, the serving-app binding and the bound
     // credentials keep their stored values without being sent back.
-    const sent = sentUpdate<AgentChannel>(update);
+    const sent = sentUpdate<Channel>(update);
     expect(sent.paths).toEqual(["spec.enabled"]);
     expect(sent.id).toBe("ach_1");
     expect(sent.etag).toBe("etag-at-load");
@@ -117,7 +120,7 @@ describe("useSaveAgentChannel", () => {
   it("names a key set to undefined, which clears that field", async () => {
     const update = vi.fn().mockResolvedValue(makeChannel());
     const client = createMockStigmer({ update });
-    const { result } = renderHook(() => useSaveAgentChannel(), {
+    const { result } = renderHook(() => useSaveChannel(), {
       wrapper: wrapper(client),
     });
 
@@ -128,10 +131,35 @@ describe("useSaveAgentChannel", () => {
       });
     });
 
-    const sent = sentUpdate<AgentChannel>(update);
+    const sent = sentUpdate<Channel>(update);
     expect(sent.paths).toEqual(["spec.run_config", "spec.vaults"]);
     expect(sent.resource.spec?.runConfig).toBeUndefined();
     expect(sentRefs(sent.resource.spec?.vaults)).toEqual([{ org: "acme", slug: "github-credentials" }]);
+  });
+
+  it("names a type's settings field by field, so the arm's other settings keep their stored values", async () => {
+    const update = vi.fn().mockResolvedValue(makeChannel());
+    const client = createMockStigmer({ update });
+    const { result } = renderHook(() => useSaveChannel(), {
+      wrapper: wrapper(client),
+    });
+
+    await act(async () => {
+      await result.current.update(makeChannel(), { whatsapp: { proactiveMessagingEnabled: true } });
+    });
+    await act(async () => {
+      await result.current.update(makeChannel(), {
+        web: { audience: ChannelAudience.org, allowedOrigins: [] },
+      });
+    });
+    await act(async () => {
+      await result.current.update(makeChannel(), { slack: {} });
+    });
+
+    expect(update.mock.calls[0][1]).toEqual(["spec.whatsapp.proactive_messaging_enabled"]);
+    expect(update.mock.calls[1][1]).toEqual(["spec.web.audience", "spec.web.allowed_origins"]);
+    // An empty arm names the arm whole.
+    expect(update.mock.calls[2][1]).toEqual(["spec.slack"]);
   });
 
   it("tracks isPending during the flight", async () => {
@@ -141,7 +169,7 @@ describe("useSaveAgentChannel", () => {
     );
     const client = createMockStigmer({ apply });
 
-    const { result } = renderHook(() => useSaveAgentChannel(), {
+    const { result } = renderHook(() => useSaveChannel(), {
       wrapper: wrapper(client),
     });
 
@@ -168,7 +196,7 @@ describe("useSaveAgentChannel", () => {
     const apply = vi.fn().mockRejectedValue(new Error("quota exceeded"));
     const client = createMockStigmer({ apply });
 
-    const { result } = renderHook(() => useSaveAgentChannel(), {
+    const { result } = renderHook(() => useSaveChannel(), {
       wrapper: wrapper(client),
     });
 

@@ -6,8 +6,8 @@ import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import type { ChannelTemplate } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import type { ChannelTemplate } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
@@ -40,11 +40,11 @@ export interface ChannelTemplatesDialogProps {
   /** Called when the dialog requests an open-state change. */
   readonly onOpenChange: (open: boolean) => void;
   /** The channel whose provider template registry is listed. */
-  readonly channel: AgentChannel;
+  readonly channel: Channel;
   /**
    * Opens the channel's YAML editor — the only place
    * `proactive_messaging_enabled` can be granted today. Wired by
-   * {@link AgentChannelsPanel} to its Edit YAML dialog; when absent,
+   * {@link ChannelsPanel} to its Edit YAML dialog; when absent,
    * the teaching state renders without the affordance.
    */
   readonly onEditYaml?: () => void;
@@ -80,7 +80,7 @@ export interface ChannelTemplatesDialogProps {
  * renders verbatim.
  *
  * Built on the native `<dialog>` element, matching the SDK's modal
- * convention. Most hosts mount it via {@link AgentChannelsPanel}'s
+ * convention. Most hosts mount it via {@link ChannelsPanel}'s
  * channel card action menu, which shows the action only for providers
  * whose descriptor declares `supportsMessageTemplates`.
  */
@@ -128,7 +128,7 @@ function ChannelTemplatesDialogBody({
   onClose,
 }: {
   readonly titleId: string;
-  readonly channel: AgentChannel;
+  readonly channel: Channel;
   readonly onEditYaml?: () => void;
   readonly onClose: () => void;
 }) {
@@ -178,12 +178,12 @@ function ChannelTemplatesContent({
   channel,
   onEditYaml,
 }: {
-  readonly channel: AgentChannel;
+  readonly channel: Channel;
   readonly onEditYaml?: () => void;
 }) {
   const readiness = useChannelTemplateReadiness(channel);
   const presentation =
-    channelPresentationOf(channel.spec?.providerConfig?.case) ??
+    channelPresentationOf(channel.spec?.type?.case) ??
     DEFAULT_CHANNEL_PRESENTATION;
 
   switch (readiness.status) {
@@ -244,7 +244,7 @@ function ChannelTemplatesContent({
 function ChannelTemplatesList({
   channel,
 }: {
-  readonly channel: AgentChannel;
+  readonly channel: Channel;
 }) {
   const { templates, isLoading, error } = useChannelTemplateList(
     channel.metadata?.slug ?? "",

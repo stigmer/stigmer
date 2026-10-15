@@ -1,16 +1,20 @@
+// WebChannelList: the Shares tab — an agent's chat links (its web channels,
+// never its Slack or WhatsApp ones), their link, audience and status, and
+// the per-row copy, edit, pause, reset-link and delete actions.
+
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { render, screen, fireEvent, waitFor, cleanup, within } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
+import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import type { AgentShareInput } from "@stigmer/sdk";
-import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
+import type { ChannelInput } from "@stigmer/sdk";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { openMenu } from "../../__tests__/helpers/open-menu";
-import { AgentShareList } from "../AgentShareList";
+import { WebChannelList } from "../WebChannelList";
 
 // Toasts are visual feedback owned by the feedback module; keep them inert.
 vi.mock("../../feedback/toast", () => ({
@@ -41,10 +45,10 @@ afterEach(cleanup);
 
 interface MockOverrides {
   listByAgent?: (input: unknown) => Promise<unknown>;
-  apply?: (input: AgentShareInput) => Promise<unknown>;
-  update?: (resource: AgentShare, paths: string[]) => Promise<unknown>;
-  deleteShare?: (id: string) => Promise<unknown>;
-  rotateShareLink?: (input: unknown) => Promise<unknown>;
+  apply?: (input: ChannelInput) => Promise<unknown>;
+  update?: (resource: Channel, paths: string[]) => Promise<unknown>;
+  deleteChannel?: (id: string) => Promise<unknown>;
+  rotateLink?: (input: unknown) => Promise<unknown>;
   isAuthorized?: boolean;
   /**
    * Per-relation authorization, for tests that need `can_edit` and
@@ -55,15 +59,15 @@ interface MockOverrides {
 
 function createMockStigmer(overrides: MockOverrides = {}) {
   return {
-    agentShare: {
+    channel: {
       listByAgent:
         overrides.listByAgent ??
         vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
       apply: overrides.apply ?? vi.fn().mockResolvedValue({}),
       update: overrides.update ?? vi.fn().mockResolvedValue({}),
-      delete: overrides.deleteShare ?? vi.fn().mockResolvedValue({}),
-      rotateShareLink:
-        overrides.rotateShareLink ?? vi.fn().mockResolvedValue({}),
+      delete: overrides.deleteChannel ?? vi.fn().mockResolvedValue({}),
+      rotateLink:
+        overrides.rotateLink ?? vi.fn().mockResolvedValue({}),
     },
     grant: {
       checkMyPermission: vi
@@ -121,9 +125,9 @@ function makeShare(overrides?: {
   slug?: string;
   name?: string;
   enabled?: boolean;
-  audience?: AgentShareAudience;
+  audience?: ChannelAudience;
   allowedOrigins?: string[];
-  shareLinkToken?: string;
+  linkToken?: string;
 }) {
   return {
     metadata: {
@@ -135,15 +139,20 @@ function makeShare(overrides?: {
     spec: {
       agentRef: { org: "acme", slug: "support-agent" },
       enabled: overrides?.enabled ?? true,
-      // A public link unless the case says otherwise; `audience: undefined`
-      // leaves it unset, the omitted case.
-      ...(overrides !== undefined && "audience" in overrides
-        ? overrides.audience !== undefined && { audience: overrides.audience }
-        : { audience: AgentShareAudience.public }),
-      ...(overrides?.allowedOrigins && { allowedOrigins: overrides.allowedOrigins }),
+      type: {
+        case: "web",
+        value: {
+          // A public link unless the case says otherwise; `audience: undefined`
+          // leaves it unset, the omitted case.
+          ...(overrides !== undefined && "audience" in overrides
+            ? overrides.audience !== undefined && { audience: overrides.audience }
+            : { audience: ChannelAudience.public }),
+          ...(overrides?.allowedOrigins && { allowedOrigins: overrides.allowedOrigins }),
+        },
+      },
     },
-    ...(overrides?.shareLinkToken !== undefined
-      ? { status: { shareLinkToken: overrides.shareLinkToken } }
+    ...(overrides?.linkToken !== undefined
+      ? { status: { typeStatus: { case: "web", value: { linkToken: overrides.linkToken } } } }
       : {}),
   };
 }
@@ -152,17 +161,17 @@ function withShares(...shares: unknown[]) {
   return vi.fn().mockResolvedValue({ entries: shares, nextPageToken: "" });
 }
 
-// A link names the share by its id alone — never its organization or slug.
-const buildShareUrl = (shareId: string) =>
-  `https://app.example.com/chat/${shareId}`;
+// A link names the channel by its id alone — never its organization or slug.
+const buildShareUrl = (channelId: string) =>
+  `https://app.example.com/chat/${channelId}`;
 
 async function renderList(
   client: unknown,
-  props?: Partial<Parameters<typeof AgentShareList>[0]>,
+  props?: Partial<Parameters<typeof WebChannelList>[0]>,
 ) {
   render(
     <Providers client={client}>
-      <AgentShareList
+      <WebChannelList
         agent={AGENT}
         buildShareUrl={buildShareUrl}
         {...props}
@@ -186,7 +195,7 @@ async function openRowMenu(rowName?: string) {
   await openMenu(scope.getByRole("button", { name: /^Actions for/ }));
 }
 
-describe("AgentShareList", () => {
+describe("WebChannelList", () => {
   it("lists every share with link, audience, and status — no canonical collapse", async () => {
     const client = createMockStigmer({
       listByAgent: withShares(
@@ -196,7 +205,7 @@ describe("AgentShareList", () => {
           slug: "help-desk",
           name: "Help Desk",
           enabled: false,
-          audience: AgentShareAudience.org,
+          audience: ChannelAudience.org,
         }),
       ),
     });
@@ -211,6 +220,19 @@ describe("AgentShareList", () => {
     expect(screen.getByText("Organization members")).toBeTruthy();
     expect(screen.getByText("Active")).toBeTruthy();
     expect(screen.getByText("Paused")).toBeTruthy();
+  });
+
+  it("lists only the agent's chat links — its Slack and WhatsApp channels are the Channels tab's", async () => {
+    const slack = {
+      metadata: { id: "ach_1", org: "acme", slug: "support-agent-slack", name: "Support Slack" },
+      spec: { agentRef: { org: "acme", slug: "support-agent" }, enabled: true, type: { case: "slack", value: {} } },
+    };
+    const client = createMockStigmer({ listByAgent: withShares(makeShare(), slack) });
+    await renderList(client);
+
+    expect(screen.getByText("1 share")).toBeTruthy();
+    expect(screen.getByText("/chat/ash_1")).toBeTruthy();
+    expect(screen.queryByText("Support Slack")).toBeNull();
   });
 
   it("reads a share with no audience as the organization's, never public", async () => {
@@ -288,13 +310,13 @@ describe("AgentShareList", () => {
     });
     const client = createMockStigmer({
       listByAgent: withShares(
-        makeShare({ shareLinkToken: "tok123" }),
+        makeShare({ linkToken: "tok123" }),
         makeShare({
           id: "ash_2",
           slug: "internal",
           name: "Internal",
-          audience: AgentShareAudience.org,
-          shareLinkToken: "tok456",
+          audience: ChannelAudience.org,
+          linkToken: "tok456",
         }),
       ),
     });
@@ -328,7 +350,7 @@ describe("AgentShareList", () => {
       configurable: true,
     });
     const client = createMockStigmer({
-      listByAgent: withShares(makeShare({ shareLinkToken: "tok123" })),
+      listByAgent: withShares(makeShare({ linkToken: "tok123" })),
     });
     await renderList(client, { buildShareUrl: undefined });
 
@@ -355,7 +377,7 @@ describe("AgentShareList", () => {
       fireEvent.click(screen.getByRole("menuitem", { name: "Pause" }));
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-      const sent = sentUpdate<AgentShare>(update);
+      const sent = sentUpdate<Channel>(update);
       expect(sent.resource.spec?.enabled).toBe(false);
       // The flag alone: the origins and every other field keep their
       // stored values without being sent back.
@@ -376,15 +398,15 @@ describe("AgentShareList", () => {
       fireEvent.click(screen.getByRole("menuitem", { name: "Resume" }));
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-      expect(sentUpdate<AgentShare>(update).resource.spec?.enabled).toBe(true);
+      expect(sentUpdate<Channel>(update).resource.spec?.enabled).toBe(true);
     });
   });
 
   describe("reset link", () => {
     it("rotates the row's own share", async () => {
-      const rotateShareLink = vi.fn().mockResolvedValue(makeShare());
+      const rotateLink = vi.fn().mockResolvedValue(makeShare());
       const client = createMockStigmer({
-        rotateShareLink,
+        rotateLink,
         listByAgent: withShares(makeShare()),
       });
       await renderList(client);
@@ -392,16 +414,16 @@ describe("AgentShareList", () => {
       await openRowMenu();
       fireEvent.click(screen.getByRole("menuitem", { name: "Reset link" }));
 
-      await waitFor(() => expect(rotateShareLink).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(rotateLink).toHaveBeenCalledTimes(1));
       expect(
-        (rotateShareLink.mock.calls[0][0] as { resourceId: string }).resourceId,
+        (rotateLink.mock.calls[0][0] as { resourceId: string }).resourceId,
       ).toBe("ash_1");
     });
 
     it("is not offered on org-audience shares (membership gates access, not the token)", async () => {
       const client = createMockStigmer({
         listByAgent: withShares(
-          makeShare({ audience: AgentShareAudience.org }),
+          makeShare({ audience: ChannelAudience.org }),
         ),
       });
       await renderList(client);
@@ -413,9 +435,9 @@ describe("AgentShareList", () => {
 
   describe("delete", () => {
     it("deletes after confirmation and refetches", async () => {
-      const deleteShare = vi.fn().mockResolvedValue({});
+      const deleteChannel = vi.fn().mockResolvedValue({});
       const listByAgent = withShares(makeShare());
-      const client = createMockStigmer({ deleteShare, listByAgent });
+      const client = createMockStigmer({ deleteChannel, listByAgent });
       await renderList(client);
 
       await openRowMenu();
@@ -433,14 +455,14 @@ describe("AgentShareList", () => {
         within(confirmDialog).getByRole("button", { name: "Delete", hidden: true }),
       );
 
-      await waitFor(() => expect(deleteShare).toHaveBeenCalledWith("ash_1"));
+      await waitFor(() => expect(deleteChannel).toHaveBeenCalledWith("ash_1"));
       await waitFor(() => expect(listByAgent).toHaveBeenCalledTimes(2));
     });
 
     it("does nothing when the confirmation is cancelled", async () => {
-      const deleteShare = vi.fn();
+      const deleteChannel = vi.fn();
       const client = createMockStigmer({
-        deleteShare,
+        deleteChannel,
         listByAgent: withShares(makeShare()),
       });
       await renderList(client);
@@ -450,7 +472,7 @@ describe("AgentShareList", () => {
       expect(await screen.findByText("Delete share?")).toBeTruthy();
 
       fireEvent.click(screen.getByRole("button", { name: "Cancel", hidden: true }));
-      expect(deleteShare).not.toHaveBeenCalled();
+      expect(deleteChannel).not.toHaveBeenCalled();
     });
   });
 

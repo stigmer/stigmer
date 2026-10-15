@@ -12,8 +12,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 interface WorkbenchProps {
   org: string;
-  selected: { agentChannelId: string; conversationKey: string } | null;
-  onSelectionChange: (selection: { agentChannelId: string; conversationKey: string } | null) => void;
+  selected: { channelId: string; conversationKey: string } | null;
+  onSelectionChange: (selection: { channelId: string; conversationKey: string } | null) => void;
   headerAccessory?: (args: { channel: unknown }) => ReactNode;
   channelHref: (channel: unknown) => string | null;
 }
@@ -62,12 +62,12 @@ describe("web ConversationsPage", () => {
     page.path = `/conversations/${encodeURIComponent("ach_1")}/${encodeURIComponent("1712.0001")}/`;
     render(<ConversationsPage />);
 
-    expect(page.workbench.at(-1)?.selected).toEqual({ agentChannelId: "ach_1", conversationKey: "1712.0001" });
+    expect(page.workbench.at(-1)?.selected).toEqual({ channelId: "ach_1", conversationKey: "1712.0001" });
     expect(page.access.at(-1)).toMatchObject({
       label: "Channel access",
       resource: {
-        kind: ApiResourceKind.agent_channel,
-        kindString: "agent_channel",
+        kind: ApiResourceKind.channel,
+        kindString: "channel",
         id: "ach_1",
         org: "org_acme",
         name: "support",
@@ -85,7 +85,7 @@ describe("web ConversationsPage", () => {
   it("writes a selection change into the path, encoded", () => {
     render(<ConversationsPage />);
 
-    page.workbench.at(-1)?.onSelectionChange({ agentChannelId: "ach/2", conversationKey: "k 1" });
+    page.workbench.at(-1)?.onSelectionChange({ channelId: "ach/2", conversationKey: "k 1" });
     page.workbench.at(-1)?.onSelectionChange(null);
 
     expect(page.navigated).toEqual(["/conversations/ach%2F2/k%201", "/conversations"]);

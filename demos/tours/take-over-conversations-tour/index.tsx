@@ -44,7 +44,7 @@ export function renderStep(data: TakeOverTourStep, stepIndex: number): ReactNode
               data.conversationKey === null
                 ? null
                 : {
-                    agentChannelId: CHANNEL_ID,
+                    channelId: CHANNEL_ID,
                     conversationKey: data.conversationKey,
                   }
             }

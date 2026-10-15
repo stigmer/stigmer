@@ -1,14 +1,18 @@
+// ChannelsPanel: the Channels tab — an agent's Slack and WhatsApp channels
+// (never its chat links), their install and serving axes, and the connect,
+// pause, disconnect and per-card dialogs.
+
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { render, screen, fireEvent, waitFor, cleanup, within } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { AgentChannelInput } from "@stigmer/sdk";
+import type { ChannelInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { openMenu } from "../../__tests__/helpers/open-menu";
-import { AgentChannelsPanel } from "../AgentChannelsPanel";
+import { ChannelsPanel } from "../ChannelsPanel";
 import { toast } from "../../feedback/toast";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
@@ -42,7 +46,7 @@ afterEach(cleanup);
 
 interface MockOverrides {
   channels?: unknown[];
-  update?: (resource: AgentChannel, paths: string[]) => Promise<unknown>;
+  update?: (resource: Channel, paths: string[]) => Promise<unknown>;
   delete?: (id: string) => Promise<unknown>;
   checkMyPermission?: (input: unknown) => Promise<unknown>;
 }
@@ -66,7 +70,7 @@ function createMockStigmer(overrides: MockOverrides = {}) {
     channelapp: {
       list: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
     },
-    agentChannel: {
+    channel: {
       listByAgent: vi.fn().mockResolvedValue({ entries: overrides.channels ?? [], nextPageToken: "" }),
       apply: vi.fn().mockResolvedValue({}),
       update: overrides.update ?? vi.fn().mockResolvedValue({}),
@@ -139,13 +143,17 @@ function makeChannel(overrides: MakeChannelOverrides = {}) {
     spec: {
       agentRef: { org: "acme", slug: "support-agent" },
       enabled,
-      providerConfig: { case: "slack", value: {} },
-      ...(appRefSlug ? { appRef: { org: "acme", slug: appRefSlug } } : {}),
-      ...(appRefDeletedId ? { appRef: { org: "acme", slug: "", id: appRefDeletedId } } : {}),
+      type: {
+        case: "slack",
+        value: {
+          ...(appRefSlug ? { appRef: { org: "acme", slug: appRefSlug } } : {}),
+          ...(appRefDeletedId ? { appRef: { org: "acme", slug: "", id: appRefDeletedId } } : {}),
+        },
+      },
     },
     status: {
       installState,
-      providerStatus: teamName
+      typeStatus: teamName
         ? { case: "slack", value: { teamName, grantedScopes: [] } }
         : { case: undefined },
     },
@@ -163,15 +171,17 @@ function makeWhatsAppChannel(overrides: {
     spec: {
       agentRef: { org: "acme", slug: "support-agent" },
       enabled: true,
-      providerConfig: {
+      type: {
         case: "whatsapp",
-        value: { phoneNumberId: "106540352242922" },
+        value: {
+          phoneNumberId: "106540352242922",
+          appRef: { org: "acme", slug: "acme-meta-app" },
+        },
       },
-      appRef: { org: "acme", slug: "acme-meta-app" },
     },
     status: {
       installState,
-      providerStatus:
+      typeStatus:
         installState === 2
           ? {
               case: "whatsapp",
@@ -187,12 +197,12 @@ function makeWhatsAppChannel(overrides: {
   };
 }
 
-describe("AgentChannelsPanel", () => {
+describe("ChannelsPanel", () => {
   it("renders the empty state with a connect call to action", async () => {
     const client = createMockStigmer();
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -208,7 +218,7 @@ describe("AgentChannelsPanel", () => {
     });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -217,6 +227,30 @@ describe("AgentChannelsPanel", () => {
     expect(screen.getByText(/Acme HQ/)).toBeTruthy();
     // Installed channels expose the serving switch, not a connect button.
     expect(screen.getByRole("switch")).toBeTruthy();
+  });
+
+  it("lists the Slack and WhatsApp channels and leaves the chat links to the Shares tab", async () => {
+    const chatLink = {
+      metadata: { id: "ash_1", org: "acme", slug: "support-agent", name: "Website chat", labels: {} },
+      spec: {
+        agentRef: { org: "acme", slug: "support-agent" },
+        enabled: true,
+        type: { case: "web", value: {} },
+      },
+      status: { typeStatus: { case: "web", value: { linkToken: "" } } },
+    };
+    const client = createMockStigmer({
+      channels: [chatLink, makeChannel({ teamName: "Acme HQ" })],
+    });
+    render(
+      <Providers client={client}>
+        <ChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
+    expect(screen.queryByText("Website chat")).toBeNull();
+    expect(screen.getByText("1 channel")).toBeTruthy();
   });
 
   it("shows Connect for pending installs and Reconnect for revoked ones", async () => {
@@ -228,7 +262,7 @@ describe("AgentChannelsPanel", () => {
     });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -246,7 +280,7 @@ describe("AgentChannelsPanel", () => {
     });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -256,7 +290,7 @@ describe("AgentChannelsPanel", () => {
     await waitFor(() => expect(update).toHaveBeenCalled());
     // The toggle names `spec.enabled` alone: the agent reference and the
     // provider marker keep their stored values without being sent back.
-    const sent = sentUpdate<AgentChannel>(update);
+    const sent = sentUpdate<Channel>(update);
     expect(sent.paths).toEqual(["spec.enabled"]);
     expect(sent.resource.spec?.enabled).toBe(false);
   });
@@ -273,7 +307,7 @@ describe("AgentChannelsPanel", () => {
     });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -295,7 +329,7 @@ describe("AgentChannelsPanel", () => {
     });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -328,7 +362,7 @@ describe("AgentChannelsPanel", () => {
     });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -352,7 +386,7 @@ describe("AgentChannelsPanel", () => {
     });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
     await waitFor(() => expect(screen.getByText(/Serving app: deleted channel app/)).toBeTruthy());
@@ -363,7 +397,7 @@ describe("AgentChannelsPanel", () => {
     const client = createMockStigmer();
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -383,7 +417,7 @@ describe("AgentChannelsPanel", () => {
     const client = createMockStigmer({ channels: [channel] });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel
+        <ChannelsPanel
           agent={makeAgent()}
           onConnectExternal={onConnectExternal}
         />
@@ -406,7 +440,7 @@ describe("AgentChannelsPanel", () => {
     const client = createMockStigmer();
     render(
       <Providers client={client} mode="local">
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -423,7 +457,7 @@ describe("AgentChannelsPanel", () => {
     });
     render(
       <Providers client={client} mode="local">
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -443,7 +477,7 @@ describe("AgentChannelsPanel", () => {
     });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -481,7 +515,7 @@ describe("AgentChannelsPanel", () => {
       .mockResolvedValue({ entries: [], nextPageToken: "" });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
     await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
@@ -506,7 +540,7 @@ describe("AgentChannelsPanel", () => {
     });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent({ withTools: true })} />
+        <ChannelsPanel agent={makeAgent({ withTools: true })} />
       </Providers>,
     );
 
@@ -525,7 +559,7 @@ describe("AgentChannelsPanel", () => {
     });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -541,7 +575,7 @@ describe("AgentChannelsPanel", () => {
     });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -564,7 +598,7 @@ describe("AgentChannelsPanel", () => {
     const client = createMockStigmer({ checkMyPermission });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -576,17 +610,17 @@ describe("AgentChannelsPanel", () => {
     expect(await screen.findByRole("button", { name: /connect to slack/i })).toBeTruthy();
   });
 
-  it("offers no connect affordance to a member who owns the agent: connecting also asks can_create_agent_channel on the organization", async () => {
+  it("offers no connect affordance to a member who owns the agent: connecting also asks can_create_channel on the organization", async () => {
     // A member owns the agents they create (can_manage_audience), but a
     // channel spends the organization's own provider keys, an admin's act.
     const checkMyPermission = vi.fn((input: unknown) => {
       const { relation } = input as { relation: string };
-      return Promise.resolve({ isAuthorized: relation !== "can_create_agent_channel" });
+      return Promise.resolve({ isAuthorized: relation !== "can_create_channel" });
     });
     const client = createMockStigmer({ checkMyPermission });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -595,7 +629,7 @@ describe("AgentChannelsPanel", () => {
     );
     await waitFor(() =>
       expect(checkMyPermission).toHaveBeenCalledWith(
-        expect.objectContaining({ relation: "can_create_agent_channel" }),
+        expect.objectContaining({ relation: "can_create_channel" }),
       ),
     );
     await waitFor(() =>
@@ -615,7 +649,7 @@ describe("AgentChannelsPanel", () => {
     const client = createMockStigmer({ checkMyPermission });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -637,7 +671,7 @@ describe("AgentChannelsPanel", () => {
     const client = createMockStigmer();
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -653,7 +687,7 @@ describe("AgentChannelsPanel", () => {
     const client = createMockStigmer();
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -672,7 +706,7 @@ describe("AgentChannelsPanel", () => {
     });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -698,7 +732,7 @@ describe("AgentChannelsPanel", () => {
     });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel
+        <ChannelsPanel
           agent={makeAgent()}
           onConnectExternal={onConnectExternal}
         />
@@ -720,7 +754,7 @@ describe("AgentChannelsPanel", () => {
     const client = createMockStigmer();
     render(
       <Providers client={client} mode="local">
-        <AgentChannelsPanel agent={makeAgent()} onConnectExternal={vi.fn()} />
+        <ChannelsPanel agent={makeAgent()} onConnectExternal={vi.fn()} />
       </Providers>,
     );
 
@@ -744,7 +778,7 @@ describe("AgentChannelsPanel", () => {
     });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -767,7 +801,7 @@ describe("AgentChannelsPanel", () => {
     });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -793,7 +827,7 @@ describe("AgentChannelsPanel", () => {
     });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -818,7 +852,7 @@ describe("AgentChannelsPanel", () => {
     });
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
@@ -836,7 +870,7 @@ describe("AgentChannelsPanel", () => {
 
   it("renders an error state when the list fails to load", async () => {
     const client = {
-      agentChannel: {
+      channel: {
         listByAgent: vi.fn().mockRejectedValue(new Error("boom")),
       },
       channelapp: {
@@ -848,7 +882,7 @@ describe("AgentChannelsPanel", () => {
     } as never;
     render(
       <Providers client={client}>
-        <AgentChannelsPanel agent={makeAgent()} />
+        <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 

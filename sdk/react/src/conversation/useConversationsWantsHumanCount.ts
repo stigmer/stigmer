@@ -4,7 +4,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   ChannelConversationListFilter,
   CountChannelConversationsInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { useMemo } from "react";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
@@ -62,7 +62,7 @@ export function useConversationsWantsHumanCount(
 
   const fetchFn = org
     ? async (): Promise<number> => {
-        const result = await stigmer.agentChannel.countConversations(
+        const result = await stigmer.channel.countConversations(
           create(CountChannelConversationsInputSchema, {
             org,
             filter: ChannelConversationListFilter.filter_wants_human,

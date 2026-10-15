@@ -35,8 +35,8 @@
  *   offers what the caller could not do. The session panel stays
  *   available read-only: usage, artifacts, and setup inspection are
  *   the point of observability. `SessionViewer` also self-selects this
- *   audience for channel-originated sessions (the
- *   `stigmer.ai/channel-id` label), so every entry point — a
+ *   audience for Slack and WhatsApp sessions (the
+ *   `stigmer.ai/channel-conversation-key` label), so every entry point — a
  *   conversations list, a pasted URL — renders read-only without host
  *   wiring. A person's own console conversations ask the server too: a
  *   conversation shared with the reader as Viewer (`can_view` without

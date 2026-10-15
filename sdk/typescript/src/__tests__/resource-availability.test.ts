@@ -101,8 +101,8 @@ describe("isResourceAvailable — a tier is a minimum edition", () => {
     expect(isResourceAvailable(ApiResourceKind.identity_account, "local")).toBe(
       true,
     );
-    // agent_share and channel_app: served by OSS; they never moved.
-    expect(isResourceAvailable(ApiResourceKind.agent_share, "local")).toBe(
+    // channel and channel_app: served by OSS; they never moved.
+    expect(isResourceAvailable(ApiResourceKind.channel, "local")).toBe(
       true,
     );
     expect(isResourceAvailable(ApiResourceKind.channel_app, "local")).toBe(

@@ -6,7 +6,7 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
   ChannelConversationSchema,
   ConversationControl,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { advanceInSlices } from "../../internal/__tests__/fake-timer-slices";
@@ -34,7 +34,7 @@ import { useConversationsWantsHumanCount } from "../useConversationsWantsHumanCo
 
 function conversationRow() {
   return create(ChannelConversationSchema, {
-    agentChannelId: "ach_1",
+    channelId: "ach_1",
     conversationKey: "15550001111",
     org: "acme",
     displayName: "Pat",
@@ -45,7 +45,7 @@ function conversationRow() {
 
 function createMockStigmer() {
   return {
-    agentChannel: {
+    channel: {
       getConversation: vi.fn().mockResolvedValue(conversationRow()),
       listTimeline: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
       countConversations: vi.fn().mockResolvedValue({ count: 0 }),
@@ -93,15 +93,15 @@ describe("conversation polling composition", () => {
     await act(async () => {
       await Promise.resolve();
     });
-    expect(client.agentChannel.getConversation).toHaveBeenCalledTimes(1);
-    expect(client.agentChannel.listTimeline).toHaveBeenCalledTimes(1);
+    expect(client.channel.getConversation).toHaveBeenCalledTimes(1);
+    expect(client.channel.listTimeline).toHaveBeenCalledTimes(1);
 
     // 15 seconds: the row poll fires at 3s, 6s, 9s, 12s, 15s — each
     // firing re-renders the component twice (fetch-start and settle).
     // The timeline poll must still fire at 5s, 10s, and 15s.
     await advanceInSlices(15_000);
-    expect(client.agentChannel.getConversation).toHaveBeenCalledTimes(6);
-    expect(client.agentChannel.listTimeline).toHaveBeenCalledTimes(4);
+    expect(client.channel.getConversation).toHaveBeenCalledTimes(6);
+    expect(client.channel.listTimeline).toHaveBeenCalledTimes(4);
   });
 
   it("the wants-human count keeps polling under the row poll's render cadence (the fourth poller)", async () => {
@@ -128,11 +128,11 @@ describe("conversation polling composition", () => {
     await act(async () => {
       await Promise.resolve();
     });
-    expect(client.agentChannel.countConversations).toHaveBeenCalledTimes(1);
+    expect(client.channel.countConversations).toHaveBeenCalledTimes(1);
 
     // 21 seconds: the row poll fires at 3s..21s (7 firings, each a
     // double re-render); the count poll must still fire at 7s, 14s, 21s.
     await advanceInSlices(21_000);
-    expect(client.agentChannel.countConversations).toHaveBeenCalledTimes(4);
+    expect(client.channel.countConversations).toHaveBeenCalledTimes(4);
   });
 });

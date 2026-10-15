@@ -5,8 +5,8 @@ import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
 import { getErrorReason, type ResourceRef } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
 import { Button } from "../button/Button.js";
 import { useChannelAppList } from "../channel-app/useChannelAppList.js";
 import { useDeploymentMode } from "../deployment-mode.js";
@@ -19,10 +19,10 @@ import {
 import { ToolCredentialsSection } from "./connect/ToolCredentialsSection.js";
 import { RefusalBox, VerbatimRefusal } from "./connect/VerbatimRefusal.js";
 import { CheckIcon, CloseIcon, Spinner } from "./connect/icons.js";
-import { useCreateAgentChannel } from "./useCreateAgentChannel.js";
+import { useCreateChannel } from "./useCreateChannel.js";
 import { useInstallChannel } from "./useInstallChannel.js";
-import { useOrgAgentChannelList } from "./useOrgAgentChannelList.js";
-import { useSaveAgentChannel } from "./useSaveAgentChannel.js";
+import { useOrgChannelList } from "./useOrgChannelList.js";
+import { useSaveChannel } from "./useSaveChannel.js";
 import { WhatsAppMarkIcon } from "./WhatsAppMarkIcon.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 
@@ -42,7 +42,7 @@ export interface ConnectWhatsAppDialogProps {
    * while the channel isn't installed. When omitted, the dialog opens in
    * **create mode**.
    */
-  readonly channel?: AgentChannel | null;
+  readonly channel?: Channel | null;
   /**
    * Called after the channel set changes (created, or install completed).
    * Hosts typically pass the channel list's `refetch`.
@@ -68,7 +68,7 @@ export interface ConnectWhatsAppDialogProps {
 
 /**
  * The connect flow for a WhatsApp channel: create the
- * {@link AgentChannel} (create mode), then run the direct install — one
+ * {@link Channel} (create mode), then run the direct install — one
  * server call that verifies the declared phone number against Meta's
  * Graph API through the selected channel app's credentials.
  * No consent popup, no callback route.
@@ -90,7 +90,7 @@ export interface ConnectWhatsAppDialogProps {
  * ({@link ConnectSlackDialog}). All visual properties flow through
  * `--stgm-*` design tokens.
  *
- * Most hosts mount it via {@link AgentChannelsPanel} (the Channels tab).
+ * Most hosts mount it via {@link ChannelsPanel} (the Channels tab).
  * Render it directly only when you own the open-state.
  */
 export function ConnectWhatsAppDialog({
@@ -142,7 +142,7 @@ export function ConnectWhatsAppDialog({
 
 interface ConnectWhatsAppDialogBodyProps {
   readonly agent: Agent;
-  readonly channel: AgentChannel | null;
+  readonly channel: Channel | null;
   readonly onChannelsChanged?: () => void;
   readonly onClose: () => void;
   readonly channelAppsHref?: string;
@@ -164,8 +164,8 @@ function ConnectWhatsAppDialogBody({
   const agentName = agent.metadata?.name || agent.metadata?.slug || "this agent";
   const org = agent.metadata?.org ?? "";
 
-  const { createChannel, isPending: isCreating } = useCreateAgentChannel();
-  const { update, isPending: isSaving } = useSaveAgentChannel();
+  const { createChannel, isPending: isCreating } = useCreateChannel();
+  const { update, isPending: isSaving } = useSaveChannel();
   const installer = useInstallChannel();
 
   const [name, setName] = useState(() =>
@@ -176,8 +176,8 @@ function ConnectWhatsAppDialogBody({
   // the agent serves. Required client-side: the write path defers it to
   // the install probe, where an empty value can only fail.
   const [phoneNumberId, setPhoneNumberId] = useState(() =>
-    channel?.spec?.providerConfig?.case === "whatsapp"
-      ? channel.spec.providerConfig.value.phoneNumberId
+    channel?.spec?.type?.case === "whatsapp"
+      ? channel.spec.type.value.phoneNumberId
       : "",
   );
   // Tool credentials bound at connect time (create mode only — a retry
@@ -187,12 +187,12 @@ function ConnectWhatsAppDialogBody({
   // The serving app — required (no platform Meta app exists).
   // Editable in retry mode too: app_ref is server-mutable while the
   // channel isn't installed, and a wrong app is a likely failure cause.
-  const [appRef, setAppRef] = useState<ResourceRef | null>(() =>
-    channel?.spec?.appRef?.slug
-      ? { org: channel.spec.appRef.org || org, slug: channel.spec.appRef.slug }
-      : null,
-  );
-  const [installed, setInstalled] = useState<AgentChannel | null>(null);
+  const [appRef, setAppRef] = useState<ResourceRef | null>(() => {
+    const stored =
+      channel?.spec?.type?.case === "whatsapp" ? channel.spec.type.value.appRef : undefined;
+    return stored?.slug ? { org: stored.org || org, slug: stored.slug } : null;
+  });
+  const [installed, setInstalled] = useState<Channel | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
   // The org's channel apps, fetched once here so the serving-app picker
@@ -220,7 +220,7 @@ function ConnectWhatsAppDialogBody({
   // Advisory only — the list is permission-bounded; the install stays
   // the arbiter.
   const advisoryActive = deploymentMode === "cloud" && !installed;
-  const { channels: orgChannels } = useOrgAgentChannelList(
+  const { channels: orgChannels } = useOrgChannelList(
     advisoryActive && org ? org : null,
   );
   const trimmedNumber = phoneNumberId.trim();
@@ -230,10 +230,10 @@ function ConnectWhatsAppDialogBody({
     return orgChannels.filter(
       (c) =>
         c.metadata?.id !== channel?.metadata?.id &&
-        c.status?.installState === AgentChannelInstallState.installed &&
-        c.status?.providerStatus?.case === "whatsapp" &&
-        c.status.providerStatus.value.phoneNumberId === trimmedNumber &&
-        c.status.providerStatus.value.channelAppId === selectedAppId,
+        c.status?.installState === ChannelInstallState.installed &&
+        c.status?.typeStatus?.case === "whatsapp" &&
+        c.status.typeStatus.value.phoneNumberId === trimmedNumber &&
+        c.status.typeStatus.value.channelAppId === selectedAppId,
     );
   }, [orgChannels, selectedApp, trimmedNumber, channel]);
 
@@ -253,8 +253,10 @@ function ConnectWhatsAppDialogBody({
             slug: agent.metadata?.slug ?? "",
           },
           enabled: true,
-          whatsapp: { phoneNumberId: trimmedNumber },
-          ...(effectiveAppRef ? { appRef: effectiveAppRef } : {}),
+          whatsapp: {
+            phoneNumberId: trimmedNumber,
+            ...(effectiveAppRef ? { appRef: effectiveAppRef } : {}),
+          },
           ...(vaults.length > 0 ? { vaults } : {}),
         });
         // The channel now exists even if the install below fails —
@@ -264,18 +266,21 @@ function ConnectWhatsAppDialogBody({
         // Retry mode: persist edits to the number or app before
         // re-installing. Skipped when nothing changed so a plain retry
         // is one call, not two.
-        const existingNumber =
-          target.spec?.providerConfig?.case === "whatsapp"
-            ? target.spec.providerConfig.value.phoneNumberId
-            : "";
-        const existingAppSlug = target.spec?.appRef?.slug ?? "";
+        const existing =
+          target.spec?.type?.case === "whatsapp" ? target.spec.type.value : undefined;
+        const existingNumber = existing?.phoneNumberId ?? "";
+        const existingAppSlug = existing?.appRef?.slug ?? "";
         if (
           existingNumber !== trimmedNumber ||
           existingAppSlug !== (effectiveAppRef?.slug ?? "")
         ) {
+          // Names the number and the app alone: the arm's other
+          // settings (proactive messaging) keep their stored values.
           target = await update(target, {
-            whatsapp: { phoneNumberId: trimmedNumber },
-            ...(effectiveAppRef ? { appRef: effectiveAppRef } : {}),
+            whatsapp: {
+              phoneNumberId: trimmedNumber,
+              ...(effectiveAppRef ? { appRef: effectiveAppRef } : {}),
+            },
           });
           onChannelsChanged?.();
         }
@@ -284,7 +289,7 @@ function ConnectWhatsAppDialogBody({
       await installer.install(target.metadata?.id ?? "");
       // The install answer carries no channel — read the recorded facts
       // (display number, verified name) for the success summary.
-      const result = await stigmer.agentChannel.get(target.metadata?.id ?? "");
+      const result = await stigmer.channel.get(target.metadata?.id ?? "");
       setInstalled(result);
       onChannelsChanged?.();
     } catch (err) {
@@ -533,14 +538,14 @@ function InstallRefusal({
 function AlreadyServedNote({
   channels,
 }: {
-  readonly channels: readonly AgentChannel[];
+  readonly channels: readonly Channel[];
 }) {
   return (
     <div role="status" className="stg:space-y-0.5 stg:text-xs stg:text-warning">
       {channels.map((c) => {
         const whatsapp =
-          c.status?.providerStatus?.case === "whatsapp"
-            ? c.status.providerStatus.value
+          c.status?.typeStatus?.case === "whatsapp"
+            ? c.status.typeStatus.value
             : null;
         const number =
           whatsapp?.displayPhoneNumber || whatsapp?.phoneNumberId || "this number";
@@ -584,12 +589,12 @@ function InstalledSummary({
   channel,
   agentName,
 }: {
-  readonly channel: AgentChannel;
+  readonly channel: Channel;
   readonly agentName: string;
 }) {
   const whatsapp =
-    channel.status?.providerStatus?.case === "whatsapp"
-      ? channel.status.providerStatus.value
+    channel.status?.typeStatus?.case === "whatsapp"
+      ? channel.status.typeStatus.value
       : null;
   const number = whatsapp?.displayPhoneNumber || whatsapp?.phoneNumberId || null;
 

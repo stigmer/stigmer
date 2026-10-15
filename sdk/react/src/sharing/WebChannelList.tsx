@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { MoreHorizontal, Pause, Pencil, Play, RotateCcw, Trash2 } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import {
@@ -9,7 +9,7 @@ import {
   getUserMessage,
 } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { toast } from "../feedback/toast.js";
 import { ActionMenu } from "../action-menu/index.js";
 import { Button } from "../button/Button.js";
@@ -21,42 +21,44 @@ import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { useCopyResource } from "../resource-detail/useCopyResource.js";
 import { ShareAgentDialog } from "./ShareAgentDialog.js";
-import { useAgentShares } from "./useAgentShares.js";
-import { useCanCreateAgentShare } from "./useCanCreateAgentShare.js";
-import { useDeleteAgentShare } from "./useDeleteAgentShare.js";
-import { useRotateShareLink } from "./useRotateShareLink.js";
+import { useCanCreateChannel } from "../channel/useCanCreateChannel.js";
+import { useChannelList } from "../channel/useChannelList.js";
+import { useDeleteChannel } from "../channel/useDeleteChannel.js";
+import { useSaveChannel } from "../channel/useSaveChannel.js";
+import { useRotateChannelLink } from "./useRotateChannelLink.js";
 import {
-  draftFromShare,
   sharingAudienceFromProto,
-  useSaveAgentShare,
-} from "./useSaveAgentShare.js";
+  webConfigOf,
+  webLinkTokenOf,
+} from "./webChannelDraft.js";
 
-/** Props for {@link AgentShareList}. */
-export interface AgentShareListProps {
-  /** The agent whose shares are managed. */
+/** Props for {@link WebChannelList}. */
+export interface WebChannelListProps {
+  /** The agent whose chat links (web channels) are managed. */
   readonly agent: Agent;
   /**
-   * Builds the absolute public chat URL for a share. The host
+   * Builds the absolute public chat URL for a web channel. The host
    * application owns URL construction (its configured public origin may
    * differ from the rendering origin — e.g. the desktop app). It receives
-   * the share's id (`metadata.id`), the one identity a link carries. When
-   * omitted, links fall back to the relative `/chat/<share id>`.
+   * the channel's id (`metadata.id`), the one identity a link carries.
+   * When omitted, links fall back to the relative `/chat/<channel id>`.
    */
-  readonly buildShareUrl?: (shareId: string) => string;
+  readonly buildShareUrl?: (channelId: string) => string;
   /** Additional CSS class names. */
   readonly className?: string;
 }
 
 /**
- * Management surface for an agent's {@link AgentShare} channels,
- * rendered in the agent detail view's Shares tab.
+ * Management surface for an agent's chat links — its web
+ * {@link Channel}s — rendered in the agent detail view's Shares tab.
  *
- * Lists the agent's organization's channels of the agent: a share lives
- * in its agent's organization, so that org scopes the `listByAgent` call
- * server-side. Per-row actions: copy link, edit, pause/resume, reset
+ * Lists the agent's web channels in the agent's organization: a channel
+ * lives in its agent's organization, so that org scopes the `listByAgent`
+ * call server-side, and the list keeps the `web` type (the Slack and
+ * WhatsApp channels are the Channels tab's). Per-row actions: copy link, edit, pause/resume, reset
  * link, delete. Creation goes through the same {@link ShareAgentDialog}
  * and lands in the agent's organization; the create bar mirrors the
- * server's via {@link useCanCreateAgentShare}, so the button never
+ * server's via {@link useCanCreateChannel}, so the button never
  * appears to a user whose create would be refused.
  *
  * Self-contained: owns its dialog, its confirmation prompts, and its
@@ -65,19 +67,23 @@ export interface AgentShareListProps {
  *
  * This is an SDK component — embeddable by platform builders.
  */
-export function AgentShareList({
+export function WebChannelList({
   agent,
   buildShareUrl,
   className,
-}: AgentShareListProps) {
+}: WebChannelListProps) {
   const agentId = agent.metadata?.id ?? "";
   const agentOrg = agent.metadata?.org ?? "";
-  const { shares, isLoading, error, refetch } = useAgentShares(
+  const { channels, isLoading, error, refetch } = useChannelList(
     agentId,
     agentOrg,
   );
-  const { allowed: canCreate } = useCanCreateAgentShare(agent);
-  const { deleteShare } = useDeleteAgentShare();
+  const shares = useMemo(
+    () => channels.filter((c) => c.spec?.type?.case === "web"),
+    [channels],
+  );
+  const { allowed: canCreate } = useCanCreateChannel(agent);
+  const { deleteChannel } = useDeleteChannel();
   const { confirmState, confirm, handleConfirm, handleCancel } =
     useConfirmAction();
 
@@ -85,12 +91,12 @@ export function AgentShareList({
   // creating a new one.
   const [editor, setEditor] = useState<
     | { readonly mode: "create" }
-    | { readonly mode: "edit"; readonly share: AgentShare }
+    | { readonly mode: "edit"; readonly share: Channel }
     | null
   >(null);
 
   const handleDelete = useCallback(
-    async (share: AgentShare) => {
+    async (share: Channel) => {
       const confirmed = await confirm({
         title: "Delete share?",
         description:
@@ -103,14 +109,14 @@ export function AgentShareList({
       });
       if (!confirmed) return;
       try {
-        await deleteShare(share.metadata?.id ?? "");
+        await deleteChannel(share.metadata?.id ?? "");
         toast.success("Share deleted");
         refetch();
       } catch (err) {
         toast.error(getUserMessage(err));
       }
     },
-    [confirm, deleteShare, refetch],
+    [confirm, deleteChannel, refetch],
   );
 
   if (isLoading) {
@@ -169,7 +175,6 @@ export function AgentShareList({
                   <ShareRow
                     key={share.metadata?.id}
                     share={share}
-                    agent={agent}
                     buildShareUrl={buildShareUrl}
                     onEditClick={(s) => setEditor({ mode: "edit", share: s })}
                     onDeleteClick={handleDelete}
@@ -205,21 +210,19 @@ export function AgentShareList({
 }
 
 // ---------------------------------------------------------------------------
-// Row — one share channel
+// Row — one chat link (web channel)
 // ---------------------------------------------------------------------------
 
 interface ShareRowProps {
-  readonly share: AgentShare;
-  readonly agent: Agent;
-  readonly buildShareUrl?: (shareId: string) => string;
-  readonly onEditClick: (share: AgentShare) => void;
-  readonly onDeleteClick: (share: AgentShare) => void;
+  readonly share: Channel;
+  readonly buildShareUrl?: (channelId: string) => string;
+  readonly onEditClick: (share: Channel) => void;
+  readonly onDeleteClick: (share: Channel) => void;
   readonly refetch: () => void;
 }
 
 function ShareRow({
   share,
-  agent,
   buildShareUrl,
   onEditClick,
   onDeleteClick,
@@ -229,22 +232,22 @@ function ShareRow({
   const id = meta?.id ?? "";
   const slug = meta?.slug ?? "";
   const enabled = share.spec?.enabled ?? false;
-  const audience = sharingAudienceFromProto(share.spec?.audience);
+  const audience = sharingAudienceFromProto(webConfigOf(share)?.audience);
 
   const { copy } = useCopyResource();
-  const { save, isPending } = useSaveAgentShare(agent);
-  const { rotateShareLink, isPending: isRotating } = useRotateShareLink(id);
+  const { update, isPending } = useSaveChannel();
+  const { rotateLink, isPending: isRotating } = useRotateChannelLink(id);
 
   // Decide the row's actions here (not via nested PermissionGate wrappers) so
   // the kebab is hidden entirely when the viewer can do nothing to this
   // share — an empty overflow menu is worse than no menu. Same self-check
   // RPC as PermissionGate; permissive in OSS, so local single-user sees all.
   const { allowed: canEdit } = useCheckPermission(
-    { kind: "agent_share", id },
+    { kind: "channel", id },
     "can_edit",
   );
   const { allowed: canDelete } = useCheckPermission(
-    { kind: "agent_share", id },
+    { kind: "channel", id },
     "can_delete",
   );
 
@@ -256,35 +259,35 @@ function ShareRow({
     const base = buildShareUrl ? buildShareUrl(id) : displayPath;
     return audience === "org"
       ? base
-      : appendLinkToken(base, share.status?.shareLinkToken ?? "");
+      : appendLinkToken(base, webLinkTokenOf(share));
   })();
 
   const handleCopyLink = useCallback(() => {
     void copy(copyUrl, "Link");
   }, [copy, copyUrl]);
 
-  // Pause/resume is a full-spec save with only `enabled` flipped —
-  // draftFromShare guarantees a toggle can never wipe origins, messages,
-  // or credential bindings (the fails-closed posture the CLI shares).
+  // Pause/resume names `spec.enabled` alone, so a toggle can never wipe
+  // origins, messages, credential bindings or an API-set run override
+  // (the fails-closed posture the CLI shares).
   const handleToggleEnabled = useCallback(async () => {
     try {
-      await save({ ...draftFromShare(share), enabled: !enabled }, share, undefined, ["enabled"]);
+      await update(share, { enabled: !enabled });
       toast.success(enabled ? "Share paused" : "Share resumed");
       refetch();
     } catch (err) {
       toast.error(getUserMessage(err));
     }
-  }, [save, share, enabled, refetch]);
+  }, [update, share, enabled, refetch]);
 
   const handleResetLink = useCallback(async () => {
     try {
-      await rotateShareLink();
+      await rotateLink();
       toast.success("Link reset — the old link no longer works");
       refetch();
     } catch (err) {
       toast.error(getUserMessage(err));
     }
-  }, [rotateShareLink, refetch]);
+  }, [rotateLink, refetch]);
 
   return (
     <tr

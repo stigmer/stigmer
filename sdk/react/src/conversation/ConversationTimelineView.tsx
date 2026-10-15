@@ -6,7 +6,7 @@ import { Ban, Check, CheckCheck, Clock, Info, MessageSquare, TriangleAlert } fro
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
-import type { ConversationTimelineItem } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+import type { ConversationTimelineItem } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { channelProviderOf, type ChannelProviderId } from "../channel/providers.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
@@ -34,7 +34,7 @@ export interface ConversationTimelineViewProps {
   /** Timeline items in chronological order (from `useConversationTimeline`). */
   readonly items: readonly ConversationTimelineItem[];
   /**
-   * AgentChannel the conversation belongs to. Together with
+   * Channel the conversation belongs to. Together with
    * `conversationKey`, this is the opt-in for media rendering: items
    * carrying `media` render an inline thumbnail or document chip whose
    * bytes are fetched via `getMediaDownloadUrl` — which is addressed by
@@ -47,8 +47,8 @@ export interface ConversationTimelineViewProps {
    * that needs a `StigmerProvider` mounts, so the view stays purely
    * presentational exactly as before these props existed.
    */
-  readonly agentChannelId?: string;
-  /** Conversation key within the channel (see `agentChannelId`). */
+  readonly channelId?: string;
+  /** Conversation key within the channel (see `channelId`). */
   readonly conversationKey?: string;
   /** `true` only during the first load. */
   readonly isLoading: boolean;
@@ -105,7 +105,7 @@ export interface ConversationTimelineViewProps {
  */
 export function ConversationTimelineView({
   items,
-  agentChannelId,
+  channelId,
   conversationKey,
   isLoading,
   error,
@@ -187,7 +187,7 @@ export function ConversationTimelineView({
                       <TimelineItemRow
                         key={item.itemId}
                         item={item}
-                        agentChannelId={agentChannelId}
+                        channelId={channelId}
                         conversationKey={conversationKey}
                       />
                     ))}
@@ -213,11 +213,11 @@ const BUSINESS_CAPTION: Record<Exclude<ConversationAuthorKind, "customer">, stri
 
 const TimelineItemRow = memo(function TimelineItemRow({
   item,
-  agentChannelId,
+  channelId,
   conversationKey,
 }: {
   readonly item: ConversationTimelineItem;
-  readonly agentChannelId?: string;
+  readonly channelId?: string;
   readonly conversationKey?: string;
 }) {
   if (isInternalItem(item)) {
@@ -233,8 +233,8 @@ const TimelineItemRow = memo(function TimelineItemRow({
   // Without the address, and on media the platform declined to ingest,
   // the typed placeholder keeps telling staff what arrived.
   const mediaAddress =
-    item.media !== undefined && agentChannelId && conversationKey
-      ? { agentChannelId, conversationKey, itemId: item.itemId }
+    item.media !== undefined && channelId && conversationKey
+      ? { channelId, conversationKey, itemId: item.itemId }
       : null;
   const body = item.text || (mediaAddress !== null ? "" : inboundPlaceholderOf(item));
 

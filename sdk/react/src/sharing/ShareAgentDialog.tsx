@@ -16,7 +16,7 @@ import {
 } from "@stigmer/sdk";
 import { create as createMessage } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { Switch } from "../switch/Switch.js";
 import { Tabs, type TabItem } from "../tabs/Tabs.js";
@@ -28,13 +28,17 @@ import { VaultPicker } from "../vault/VaultPicker.js";
 import { generateSlug } from "../internal/slug.js";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { getFieldError, validateMessage } from "../internal/validate.js";
+import { useCreateChannel } from "../channel/useCreateChannel.js";
+import { useSaveChannel } from "../channel/useSaveChannel.js";
 import {
-  draftFromShare,
-  useSaveAgentShare,
-  type AgentShareDraft,
+  draftFromWebChannel,
+  webChannelCreateInput,
+  webChannelPatch,
+  webLinkTokenOf,
+  type WebChannelDraft,
   type SharingAudience,
-} from "./useSaveAgentShare.js";
-import { useRotateShareLink } from "./useRotateShareLink.js";
+} from "./webChannelDraft.js";
+import { useRotateChannelLink } from "./useRotateChannelLink.js";
 import { useShareToolReadiness } from "./useShareToolReadiness.js";
 import { trimTrailing } from "../internal/trim.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
@@ -68,15 +72,16 @@ export interface ShareAgentDialogProps {
    * identity is immutable once created — edit mode
    * never renames.
    */
-  readonly share?: AgentShare | null;
+  readonly share?: Channel | null;
   /**
    * Builds the absolute public chat URL for the shared agent. The host
    * application owns URL construction (its configured public origin may
    * differ from the rendering origin — e.g. the desktop app). It receives
-   * the share's id (`metadata.id`), the one identity a link carries. When
-   * omitted, falls back to the relative path `/chat/<share id>`.
+   * the web channel's id (`metadata.id`), the one identity a link
+   * carries. When omitted, falls back to the relative path
+   * `/chat/<channel id>`.
    */
-  readonly buildShareUrl?: (shareId: string) => string;
+  readonly buildShareUrl?: (channelId: string) => string;
   /**
    * Called after any sharing change is persisted. Hosts typically pass
    * the share list's `refetch`.
@@ -105,20 +110,20 @@ export interface ShareAgentDialogProps {
  * dialog states who pays before creation and next to the toggle, so
  * sharing never surprises.
  *
- * Sharing lives in its own **AgentShare resource**, and
- * an agent can carry N shares — each its own channel with its own URL,
- * audience, origins, credentials, and link token. The dialog edits
- * exactly the share it is given; it never resolves "the" share of an
- * agent. Every save is an idempotent `apply` of the complete
- * configuration ({@link useSaveAgentShare}), and the local draft is
- * refreshed from every returned share, so the dialog never drifts from
- * the server.
+ * A share is a **web Channel** (the `web` type of the Channel kind), and
+ * an agent can carry N of them — each with its own URL, audience,
+ * origins, credentials, and link token. The dialog edits exactly the
+ * channel it is given; it never resolves "the" share of an agent. A
+ * create is a strict create (`useCreateChannel`); every later save names
+ * the complete draft on the channel as loaded (`useSaveChannel`), and
+ * the local draft is refreshed from every returned channel, so the
+ * dialog never drifts from the server.
  *
  * Built on the native `<dialog>` element for focus trapping and escape
  * handling, matching the SDK's modal convention ({@link ManageAccessDialog}).
  * All visual properties flow through `--stgm-*` design tokens.
  *
- * Most hosts mount it via {@link AgentShareList} (the Shares tab).
+ * Most hosts mount it via {@link WebChannelList} (the Shares tab).
  * Render it directly only when you own the open-state.
  */
 export function ShareAgentDialog({
@@ -185,14 +190,14 @@ function ShareAgentDialogBody({
   titleId,
 }: {
   readonly agent: Agent;
-  readonly share: AgentShare | null;
-  readonly buildShareUrl?: (shareId: string) => string;
+  readonly share: Channel | null;
+  readonly buildShareUrl?: (channelId: string) => string;
   readonly onSharingChanged?: () => void;
   readonly onClose: () => void;
   /** Heading id minted by the outer dialog for its aria-labelledby. */
   readonly titleId: string;
 }) {
-  const [created, setCreated] = useState<AgentShare | null>(null);
+  const [created, setCreated] = useState<Channel | null>(null);
   const activeShare = share ?? created;
   const isCreating = activeShare === null;
 
@@ -286,7 +291,7 @@ function CreateShareForm({
   onCreated,
 }: {
   readonly agent: Agent;
-  readonly onCreated: (share: AgentShare) => void;
+  readonly onCreated: (share: Channel) => void;
 }) {
   const agentName = agent.metadata?.name || (agent.metadata?.slug ?? "");
   const shareOrg = agent.metadata?.org ?? "";
@@ -306,7 +311,7 @@ function CreateShareForm({
   const [collisionError, setCollisionError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const { save, isPending } = useSaveAgentShare(agent);
+  const { createChannel, isPending } = useCreateChannel();
 
   const trimmedName = name.trim();
   const violations =
@@ -348,18 +353,21 @@ function CreateShareForm({
       setSubmitError(null);
 
       try {
-        const persisted = await save(
-          // Live from the start (the user's one intent-click is "share
-          // it"), for the audience chosen above, nothing else configured
-          // yet.
-          { ...draftFromShare(null), enabled: true, audience },
-          null,
-          { name: trimmedName, slug },
+        // A strict create: the agent organization's channels of every
+        // type share one slug namespace, so a slug another channel holds
+        // is refused (ALREADY_EXISTS), never applied over that channel.
+        const persisted = await createChannel(
+          webChannelCreateInput(
+            agent,
+            // Live from the start (the user's one intent-click is "share
+            // it"), for the audience chosen above, nothing else configured
+            // yet.
+            { ...draftFromWebChannel(null), enabled: true, audience },
+            { name: trimmedName, slug },
+          ),
         );
-        if (persisted) {
-          toast.success("Share created — the link is live");
-          onCreated(persisted);
-        }
+        toast.success("Share created — the link is live");
+        onCreated(persisted);
       } catch (err) {
         if (err instanceof StigmerError && err.code === "already-exists") {
           setCollisionError(
@@ -372,7 +380,7 @@ function CreateShareForm({
         }
       }
     },
-    [canSubmit, save, trimmedName, slug, audience, shareOrg, onCreated],
+    [canSubmit, createChannel, agent, trimmedName, slug, audience, shareOrg, onCreated],
   );
 
   return (
@@ -503,8 +511,8 @@ function ShareAgentForm({
   onSharingChanged,
 }: {
   readonly agent: Agent;
-  readonly initialShare: AgentShare;
-  readonly buildShareUrl?: (shareId: string) => string;
+  readonly initialShare: Channel;
+  readonly buildShareUrl?: (channelId: string) => string;
   readonly onSharingChanged?: () => void;
 }) {
   const agentName = agent.metadata?.name || (agent.metadata?.slug ?? "");
@@ -514,36 +522,33 @@ function ShareAgentForm({
 
   // The latest server share is the single baseline: the draft, the link
   // token, and the share id for rotation all derive from it.
-  const [share, setShare] = useState<AgentShare>(initialShare);
-  const [draft, setDraft] = useState<AgentShareDraft>(() =>
-    draftFromShare(initialShare),
+  const [share, setShare] = useState<Channel>(initialShare);
+  const [draft, setDraft] = useState<WebChannelDraft>(() =>
+    draftFromWebChannel(initialShare),
   );
   const [activeTab, setActiveTab] = useState("link");
 
-  const { save, isPending } = useSaveAgentShare(agent);
-  const { rotateShareLink, isPending: isRotating } = useRotateShareLink(
+  const { update, isPending } = useSaveChannel();
+  const { rotateLink, isPending: isRotating } = useRotateChannelLink(
     share.metadata?.id ?? null,
   );
 
-  // The hosted link names the share by its id; org and slug are its
+  // The hosted link names the channel by its id; org and slug are its
   // billing organization and its name there.
-  const shareId = share.metadata?.id ?? "";
+  const channelId = share.metadata?.id ?? "";
   const org = share.metadata?.org ?? "";
   const slug = share.metadata?.slug ?? "";
-  const linkToken = share.status?.shareLinkToken ?? "";
+  const linkToken = webLinkTokenOf(share);
 
-  // Single commit path: apply the complete draft, adopt the server's
-  // returned share as the new baseline, notify the host.
+  // Single commit path: save every draft field on the channel as loaded,
+  // adopt the server's returned channel as the new baseline, notify the
+  // host.
   const commit = useCallback(
-    async (next: AgentShareDraft, successMessage: string): Promise<boolean> => {
+    async (next: WebChannelDraft, successMessage: string): Promise<boolean> => {
       try {
-        const persisted = await save(next, share);
-        if (persisted) {
-          setShare(persisted);
-          setDraft(draftFromShare(persisted));
-        } else {
-          setDraft(next);
-        }
+        const persisted = await update(share, webChannelPatch(next));
+        setShare(persisted);
+        setDraft(draftFromWebChannel(persisted));
         toast.success(successMessage);
         onSharingChanged?.();
         return true;
@@ -552,12 +557,12 @@ function ShareAgentForm({
         return false;
       }
     },
-    [save, share, onSharingChanged],
+    [update, share, onSharingChanged],
   );
 
   const handleRotateLink = useCallback(async () => {
     try {
-      const updated = await rotateShareLink();
+      const updated = await rotateLink();
       if (updated) {
         setShare(updated);
       }
@@ -566,7 +571,7 @@ function ShareAgentForm({
     } catch (err) {
       toast.error(getUserMessage(err));
     }
-  }, [rotateShareLink, onSharingChanged]);
+  }, [rotateLink, onSharingChanged]);
 
   const handleToggle = useCallback(
     (enabled: boolean) => {
@@ -607,8 +612,8 @@ function ShareAgentForm({
   // Hosts build the base URL; the token rides it only on public shares
   // (org-audience access is gated by membership, not the link token).
   const baseShareUrl = buildShareUrl
-    ? buildShareUrl(shareId)
-    : chatPath(shareId);
+    ? buildShareUrl(channelId)
+    : chatPath(channelId);
   const shareUrl = isOrgAudience
     ? baseShareUrl
     : appendLinkToken(baseShareUrl, linkToken);
@@ -671,7 +676,7 @@ function ShareAgentForm({
             {activeTab === "embed" && (
               <EmbedTab
                 shareUrl={shareUrl}
-                shareId={shareId}
+                channelId={channelId}
                 agentName={agentName}
                 linkToken={linkToken}
                 enabled={draft.enabled}
@@ -704,7 +709,7 @@ function ToolReadinessHint({
   draft,
 }: {
   readonly agent: Agent;
-  readonly draft: AgentShareDraft;
+  readonly draft: WebChannelDraft;
 }) {
   const readiness = useShareToolReadiness(agent, draft);
 
@@ -857,10 +862,10 @@ function LinkTab({
   readonly org: string;
   readonly agent: Agent;
   readonly enabled: boolean;
-  readonly draft: AgentShareDraft;
+  readonly draft: WebChannelDraft;
   readonly isPending: boolean;
   readonly commit: (
-    next: AgentShareDraft,
+    next: WebChannelDraft,
     successMessage: string,
   ) => Promise<boolean>;
   readonly hasLinkToken: boolean;
@@ -976,7 +981,7 @@ function ResetLinkControl({
  * a tool-using agent work for visitors (credentials belong to the share,
  * never to the agent itself; a visitor brings none of their own).
  * Public audience only; the section disappears for
- * org shares, whose member sessions carry no share linkage.
+ * org shares, whose members run on their own keys.
  *
  * Expanded by default when the agent dials MCP servers, its own or its plugins' — for those agents
  * this is essential configuration, not an advanced option.
@@ -990,10 +995,10 @@ function ToolCredentialsSection({
 }: {
   readonly org: string;
   readonly agent: Agent;
-  readonly draft: AgentShareDraft;
+  readonly draft: WebChannelDraft;
   readonly isPending: boolean;
   readonly commit: (
-    next: AgentShareDraft,
+    next: WebChannelDraft,
     successMessage: string,
   ) => Promise<boolean>;
 }) {
@@ -1084,7 +1089,7 @@ function buildIframeSnippet(shareUrl: string, agentName: string): string {
 
 function EmbedTab({
   shareUrl,
-  shareId,
+  channelId,
   agentName,
   linkToken,
   enabled,
@@ -1093,21 +1098,21 @@ function EmbedTab({
   commit,
 }: {
   readonly shareUrl: string;
-  readonly shareId: string;
+  readonly channelId: string;
   readonly agentName: string;
   readonly linkToken: string;
   readonly enabled: boolean;
-  readonly draft: AgentShareDraft;
+  readonly draft: WebChannelDraft;
   readonly isPending: boolean;
   readonly commit: (
-    next: AgentShareDraft,
+    next: WebChannelDraft,
     successMessage: string,
   ) => Promise<boolean>;
 }) {
   const scriptSnippet = useMemo(
     () =>
-      buildEmbedSnippet(appOriginFrom(shareUrl), shareId, linkToken || undefined),
-    [shareUrl, shareId, linkToken],
+      buildEmbedSnippet(appOriginFrom(shareUrl), channelId, linkToken || undefined),
+    [shareUrl, channelId, linkToken],
   );
 
   // Embedding serves anonymous visitors via guest tokens, which an
@@ -1218,10 +1223,10 @@ function OriginsEditor({
   isPending,
   commit,
 }: {
-  readonly draft: AgentShareDraft;
+  readonly draft: WebChannelDraft;
   readonly isPending: boolean;
   readonly commit: (
-    next: AgentShareDraft,
+    next: WebChannelDraft,
     successMessage: string,
   ) => Promise<boolean>;
 }) {
@@ -1378,10 +1383,10 @@ function MessagesEditor({
   isPending,
   commit,
 }: {
-  readonly draft: AgentShareDraft;
+  readonly draft: WebChannelDraft;
   readonly isPending: boolean;
   readonly commit: (
-    next: AgentShareDraft,
+    next: WebChannelDraft,
     successMessage: string,
   ) => Promise<boolean>;
 }) {

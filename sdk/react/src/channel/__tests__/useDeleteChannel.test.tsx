@@ -1,14 +1,17 @@
+// useDeleteChannel: deleting a channel of any type by id, with pending and
+// error state.
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { StigmerContext } from "../../context";
-import { useDeleteAgentChannel } from "../useDeleteAgentChannel";
+import { useDeleteChannel } from "../useDeleteChannel";
 
 function createMockStigmer(overrides: {
   delete?: (id: string) => Promise<unknown>;
 } = {}) {
   return {
-    agentChannel: {
+    channel: {
       delete: overrides.delete ?? vi.fn().mockResolvedValue({}),
     },
   } as never;
@@ -24,7 +27,7 @@ function wrapper(client: unknown) {
   };
 }
 
-describe("useDeleteAgentChannel", () => {
+describe("useDeleteChannel", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -34,7 +37,7 @@ describe("useDeleteAgentChannel", () => {
     const del = vi.fn().mockResolvedValue(deleted);
     const client = createMockStigmer({ delete: del });
 
-    const { result } = renderHook(() => useDeleteAgentChannel(), {
+    const { result } = renderHook(() => useDeleteChannel(), {
       wrapper: wrapper(client),
     });
 
@@ -56,7 +59,7 @@ describe("useDeleteAgentChannel", () => {
     );
     const client = createMockStigmer({ delete: del });
 
-    const { result } = renderHook(() => useDeleteAgentChannel(), {
+    const { result } = renderHook(() => useDeleteChannel(), {
       wrapper: wrapper(client),
     });
 
@@ -78,7 +81,7 @@ describe("useDeleteAgentChannel", () => {
     const del = vi.fn().mockRejectedValue(new Error("permission denied"));
     const client = createMockStigmer({ delete: del });
 
-    const { result } = renderHook(() => useDeleteAgentChannel(), {
+    const { result } = renderHook(() => useDeleteChannel(), {
       wrapper: wrapper(client),
     });
 

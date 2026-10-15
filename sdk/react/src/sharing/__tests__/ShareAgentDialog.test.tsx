@@ -1,11 +1,15 @@
+// ShareAgentDialog: create a web channel (name, slug, audience) and edit it
+// (serving switch, link, embed, origins, credentials, messages, link reset),
+// every edit naming the dialog's fields on the channel as loaded.
+
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { sentRefs, sentUpdate } from "../../internal/__tests__/sent-update";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { Code } from "@connectrpc/connect";
-import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
-import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { StigmerError, type AgentShareInput } from "@stigmer/sdk";
+import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { StigmerError, type ChannelInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DeploymentModeContext } from "../../deployment-mode";
@@ -30,9 +34,9 @@ beforeAll(() => {
 afterEach(cleanup);
 
 interface MockOverrides {
-  apply?: (input: AgentShareInput) => Promise<unknown>;
-  update?: (resource: AgentShare, paths: string[]) => Promise<unknown>;
-  rotateShareLink?: (input: unknown) => Promise<unknown>;
+  create?: (input: ChannelInput) => Promise<unknown>;
+  update?: (resource: Channel, paths: string[]) => Promise<unknown>;
+  rotateLink?: (input: unknown) => Promise<unknown>;
   getOrCreateBillingAccount?: (orgId: string) => Promise<unknown>;
   vaults?: unknown[];
   baseUrl?: string;
@@ -40,17 +44,18 @@ interface MockOverrides {
 
 const CLOUD_API_BASE_URL = "https://api.stigmer.ai";
 
-/** The share an edit's update sent: the id it named, its paths, and the dialog's fields. */
+/** The web channel an edit's update sent: the id it named, its paths, and the dialog's fields. */
 function sentShare(update: { mock: { calls: unknown[][] } }) {
-  const sent = sentUpdate<AgentShare>(update);
+  const sent = sentUpdate<Channel>(update);
   const spec = sent.resource.spec;
+  const web = spec?.type.case === "web" ? spec.type.value : undefined;
   return {
     id: sent.id,
     paths: sent.paths,
     enabled: spec?.enabled,
-    audience: spec?.audience,
-    allowedOrigins: spec?.allowedOrigins,
-    messages: spec?.messages,
+    audience: web?.audience,
+    allowedOrigins: web?.allowedOrigins,
+    messages: web?.messages,
     vaults: sentRefs(spec?.vaults),
   };
 }
@@ -58,11 +63,11 @@ function sentShare(update: { mock: { calls: unknown[][] } }) {
 function createMockStigmer(overrides: MockOverrides = {}) {
   return {
     baseUrl: overrides.baseUrl ?? CLOUD_API_BASE_URL,
-    agentShare: {
-      apply: overrides.apply ?? vi.fn().mockResolvedValue({}),
+    channel: {
+      create: overrides.create ?? vi.fn().mockResolvedValue({}),
       update: overrides.update ?? vi.fn().mockResolvedValue({}),
-      rotateShareLink:
-        overrides.rotateShareLink ?? vi.fn().mockResolvedValue({}),
+      rotateLink:
+        overrides.rotateLink ?? vi.fn().mockResolvedValue({}),
     },
     vault: {
       list: vi.fn().mockResolvedValue({
@@ -130,10 +135,27 @@ function makeAgent(overrides?: { plugins?: boolean }) {
   } as never;
 }
 
+/** A web channel's spec from the dialog's fields, the web settings in the web arm. */
+function webSpec(spec?: {
+  enabled?: boolean;
+  audience?: ChannelAudience;
+  allowedOrigins?: string[];
+  messages?: { rateLimited?: string; unavailable?: string; conversationEnded?: string };
+  vaults?: { org: string; slug: string }[];
+}) {
+  const { enabled, vaults, ...web } = { audience: ChannelAudience.public, ...spec };
+  return {
+    agentRef: { org: "acme", slug: "support-agent" },
+    ...(enabled !== undefined && { enabled }),
+    ...(vaults !== undefined && { vaults }),
+    type: { case: "web", value: web },
+  };
+}
+
 function makeShare(
   spec?: {
     enabled?: boolean;
-    audience?: AgentShareAudience;
+    audience?: ChannelAudience;
     allowedOrigins?: string[];
     messages?: {
       rateLimited?: string;
@@ -142,7 +164,7 @@ function makeShare(
     };
     vaults?: { org: string; slug: string }[];
   },
-  shareLinkToken?: string,
+  linkToken?: string,
 ) {
   return {
     metadata: {
@@ -154,12 +176,10 @@ function makeShare(
     // A public link unless the case says otherwise: most cases here exercise
     // the public link's own sections. A case about the default passes
     // `audience: undefined`.
-    spec: {
-      agentRef: { org: "acme", slug: "support-agent" },
-      audience: AgentShareAudience.public,
-      ...spec,
-    },
-    ...(shareLinkToken !== undefined ? { status: { shareLinkToken } } : {}),
+    spec: webSpec(spec),
+    ...(linkToken !== undefined
+      ? { status: { typeStatus: { case: "web", value: { linkToken } } } }
+      : {}),
   } as never;
 }
 
@@ -170,9 +190,9 @@ function sharedVault(slug: string, name?: string) {
   };
 }
 
-// A link names the share by its id alone — never its organization or slug.
-const buildShareUrl = (shareId: string) =>
-  `https://app.example.com/chat/${shareId}`;
+// A link names the channel by its id alone — never its organization or slug.
+const buildShareUrl = (channelId: string) =>
+  `https://app.example.com/chat/${channelId}`;
 
 /** Render the dialog open. Pass `share` for edit mode; omit for create mode. */
 function renderOpenDialog(
@@ -296,13 +316,13 @@ describe("ShareAgentDialog", () => {
     });
 
     it("creates the share live with the chosen identity, then becomes its editor", async () => {
-      const apply = vi.fn().mockResolvedValue(makeShare({ enabled: true }));
-      renderOpenDialog(createMockStigmer({ apply }));
+      const create = vi.fn().mockResolvedValue(makeShare({ enabled: true }));
+      renderOpenDialog(createMockStigmer({ create }));
 
       fireEvent.click(screen.getByRole("button", { name: "Create share", hidden: true }));
 
-      await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
-      const input = apply.mock.calls[0][0] as AgentShareInput;
+      await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+      const input = create.mock.calls[0][0] as ChannelInput;
       expect(input.org).toBe("acme");
       expect(input.slug).toBe("support-agent");
       expect(input.name).toBe("Support Agent");
@@ -310,7 +330,7 @@ describe("ShareAgentDialog", () => {
       // One intent-click yields a live link: created enabled, for the
       // organization's members unless the owner chose otherwise.
       expect(input.enabled).toBe(true);
-      expect(input.audience).toBe(AgentShareAudience.org);
+      expect(input.web?.audience).toBe(ChannelAudience.org);
 
       // The dialog transitions to the editor on the created share.
       await waitFor(() =>
@@ -322,26 +342,26 @@ describe("ShareAgentDialog", () => {
     });
 
     it("asks who can chat, with organization members preselected, and creates a public link only when chosen", async () => {
-      const apply = vi.fn().mockResolvedValue(makeShare({ enabled: true }));
-      renderOpenDialog(createMockStigmer({ apply }));
+      const create = vi.fn().mockResolvedValue(makeShare({ enabled: true }));
+      renderOpenDialog(createMockStigmer({ create }));
 
       const org = screen.getByRole("radio", { name: "Organization members", hidden: true });
       expect(org.getAttribute("aria-checked")).toBe("true");
       fireEvent.click(screen.getByRole("radio", { name: "Anyone with the link", hidden: true }));
       fireEvent.click(screen.getByRole("button", { name: "Create share", hidden: true }));
 
-      await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
-      const input = apply.mock.calls[0][0] as AgentShareInput;
-      expect(input.audience).toBe(AgentShareAudience.public);
+      await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+      const input = create.mock.calls[0][0] as ChannelInput;
+      expect(input.web?.audience).toBe(ChannelAudience.public);
     });
 
     it("pins an (org, slug) collision to the slug field with a pick-another-slug remedy", async () => {
-      const apply = vi
+      const create = vi
         .fn()
         .mockRejectedValue(
           new StigmerError("already-exists", "duplicate slug", Code.AlreadyExists),
         );
-      renderOpenDialog(createMockStigmer({ apply }));
+      renderOpenDialog(createMockStigmer({ create }));
 
       fireEvent.click(screen.getByRole("button", { name: "Create share", hidden: true }));
 
@@ -359,26 +379,26 @@ describe("ShareAgentDialog", () => {
     });
 
     it("surfaces other server refusals verbatim (e.g. a permission the caller lacks)", async () => {
-      const apply = vi
+      const create = vi
         .fn()
         .mockRejectedValue(
           new StigmerError(
             "permission-denied",
-            "creating a share needs can_create_agent_share on organization acme",
+            "creating a share needs can_create_channel on organization acme",
             Code.PermissionDenied,
           ),
         );
-      renderOpenDialog(createMockStigmer({ apply }));
+      renderOpenDialog(createMockStigmer({ create }));
 
       fireEvent.click(screen.getByRole("button", { name: "Create share", hidden: true }));
 
       expect(
-        await screen.findByText(/needs can_create_agent_share/i),
+        await screen.findByText(/needs can_create_channel/i),
       ).toBeTruthy();
     });
 
     it("creates the share in the agent's own organization and names it as the paying org", async () => {
-      const apply = vi.fn().mockResolvedValue({
+      const create = vi.fn().mockResolvedValue({
         metadata: {
           id: "ash_new",
           org: "acme",
@@ -390,15 +410,15 @@ describe("ShareAgentDialog", () => {
           enabled: true,
         },
       });
-      renderOpenDialog(createMockStigmer({ apply }));
+      renderOpenDialog(createMockStigmer({ create }));
 
       // The create copy names the org whose own provider keys serve the channel.
       expect(screen.getByText(/own provider keys/)).toBeTruthy();
 
       fireEvent.click(screen.getByRole("button", { name: "Create share", hidden: true }));
 
-      await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
-      const input = apply.mock.calls[0][0] as AgentShareInput;
+      await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+      const input = create.mock.calls[0][0] as ChannelInput;
       expect(input.org).toBe("acme");
       expect(input.agentRef).toEqual({ org: "acme", slug: "support-agent" });
 
@@ -508,7 +528,7 @@ describe("ShareAgentDialog", () => {
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
       const input = sentShare(update);
-      expect(input.audience).toBe(AgentShareAudience.org);
+      expect(input.audience).toBe(ChannelAudience.org);
       // The dialog's fields travel with the switch, from the edit state.
       expect(input.enabled).toBe(true);
       expect(input.allowedOrigins).toEqual(["https://example.com"]);
@@ -540,13 +560,13 @@ describe("ShareAgentDialog", () => {
       // shares — carrying them would fail the whole apply.
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
       const input = sentShare(update);
-      expect(input.audience).toBe(AgentShareAudience.org);
+      expect(input.audience).toBe(ChannelAudience.org);
       expect(input.vaults).toEqual([]);
     });
 
     it("renders org-audience copy: member link, revocation note, no indexability warning", () => {
       renderOpenDialog(createMockStigmer(), {
-        share: makeShare({ enabled: true, audience: AgentShareAudience.org }),
+        share: makeShare({ enabled: true, audience: ChannelAudience.org }),
       });
 
       expect(screen.getByText("Organization members can chat")).toBeTruthy();
@@ -561,7 +581,7 @@ describe("ShareAgentDialog", () => {
 
     it("replaces the Embed tab with a public-only explanation for the org audience", () => {
       renderOpenDialog(createMockStigmer(), {
-        share: makeShare({ enabled: true, audience: AgentShareAudience.org }),
+        share: makeShare({ enabled: true, audience: ChannelAudience.org }),
       });
 
       fireEvent.click(screen.getByRole("tab", { name: /Embed/, hidden: true }));
@@ -736,7 +756,7 @@ describe("ShareAgentDialog", () => {
     it("hides the section entirely for org-audience shares", () => {
       renderOpenDialog(createMockStigmer(), {
         agent: makeAgent({ plugins: true }),
-        share: makeShare({ enabled: true, audience: AgentShareAudience.org }),
+        share: makeShare({ enabled: true, audience: ChannelAudience.org }),
       });
 
       expect(screen.queryByText("Tool credentials")).toBeNull();
@@ -1022,11 +1042,11 @@ describe("ShareAgentDialog", () => {
     });
 
     it("rotates on Reset link, adopts the fresh token, and notifies the host", async () => {
-      const rotateShareLink = vi
+      const rotateLink = vi
         .fn()
         .mockResolvedValue(makeShare({ enabled: true }, "fresh-token"));
       const onSharingChanged = vi.fn();
-      renderOpenDialog(createMockStigmer({ rotateShareLink }), {
+      renderOpenDialog(createMockStigmer({ rotateLink }), {
         onSharingChanged,
         share: makeShare({ enabled: true }),
       });
@@ -1045,10 +1065,10 @@ describe("ShareAgentDialog", () => {
           ),
         ).toBeTruthy(),
       );
-      expect(rotateShareLink).toHaveBeenCalledTimes(1);
+      expect(rotateLink).toHaveBeenCalledTimes(1);
       // The rotation targets the given share by its own id.
       expect(
-        (rotateShareLink.mock.calls[0][0] as { resourceId: string }).resourceId,
+        (rotateLink.mock.calls[0][0] as { resourceId: string }).resourceId,
       ).toBe("ash_1");
       expect(onSharingChanged).toHaveBeenCalled();
     });
@@ -1056,7 +1076,7 @@ describe("ShareAgentDialog", () => {
     it("hides the Reset control and the token for org-members-only shares", () => {
       renderOpenDialog(createMockStigmer(), {
         share: makeShare(
-          { enabled: true, audience: AgentShareAudience.org },
+          { enabled: true, audience: ChannelAudience.org },
           "tok123",
         ),
       });

@@ -1,6 +1,6 @@
-import { ChannelConversationListFilter } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
-import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_query_pb";
-import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
+import { ChannelConversationListFilter } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_query_pb";
+import { ChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/query_pb";
 import { createStigmerPreview } from "../../_shared/stigmer-preview";
 import {
   ALL_CONVERSATIONS,
@@ -26,7 +26,7 @@ function conversationsFor(filter: ChannelConversationListFilter) {
  * them, and the workbench subtree is inert.
  */
 export const PreviewProviders = createStigmerPreview((router) => {
-  router.service(AgentChannelQueryController, {
+  router.service(ChannelQueryController, {
     list: () => ({ entries: [supportLineChannel()], nextPageToken: "" }),
   });
   router.service(ChannelConversationQueryController, {

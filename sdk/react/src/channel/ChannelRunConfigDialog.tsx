@@ -3,7 +3,7 @@
 import { useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { type RunConfigInput } from "@stigmer/sdk";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Button } from "../button/Button.js";
@@ -20,7 +20,7 @@ import {
   toProtoThinkingMode,
   type ThinkingModeOption,
 } from "../models/thinking-mode.js";
-import { useSaveAgentChannel } from "./useSaveAgentChannel.js";
+import { useSaveChannel } from "./useSaveChannel.js";
 import { saveErrorMessage } from "../internal/maskedEdit.js";
 
 /** Props for {@link ChannelRunConfigDialog}. */
@@ -30,7 +30,7 @@ export interface ChannelRunConfigDialogProps {
   /** Called when the dialog requests an open-state change. */
   readonly onOpenChange: (open: boolean) => void;
   /** The channel whose run settings are edited. */
-  readonly channel: AgentChannel;
+  readonly channel: Channel;
   /** Called after a successful save (hosts typically pass `refetch`). */
   readonly onSaved?: () => void;
   /**
@@ -44,7 +44,7 @@ export interface ChannelRunConfigDialogProps {
 }
 
 /**
- * Edits an installed channel's run settings (`AgentChannelSpec.run_config`)
+ * Edits an installed channel's run settings (`ChannelSpec.run_config`)
  * — the console's first run_config editor (stigmer/stigmer#792), replacing
  * the Edit-YAML detour for the model pin the write-time validation guards
  * (stigmer/stigmer#774).
@@ -70,7 +70,7 @@ export interface ChannelRunConfigDialogProps {
  * load-bearing usage-record distinction (#357).
  *
  * Built on the native `<dialog>` element, matching the SDK's modal
- * convention. Most hosts mount it via {@link AgentChannelsPanel}'s
+ * convention. Most hosts mount it via {@link ChannelsPanel}'s
  * channel card action.
  */
 export function ChannelRunConfigDialog({
@@ -117,7 +117,7 @@ function ChannelRunConfigDialogBody({
   onClose,
   titleId,
 }: {
-  readonly channel: AgentChannel;
+  readonly channel: Channel;
   readonly onSaved?: () => void;
   readonly onClose: () => void;
   /** Heading id minted by the outer dialog for its aria-labelledby. */
@@ -127,7 +127,7 @@ function ChannelRunConfigDialogBody({
     channel.metadata?.name || channel.metadata?.slug || "this channel";
   const stored = channel.spec?.runConfig;
 
-  const { update, isPending, error, clearError } = useSaveAgentChannel();
+  const { update, isPending, error, clearError } = useSaveChannel();
 
   const [modelName, setModelName] = useState(stored?.modelName ?? "");
   const [harness, setHarness] = useState<HarnessOption>("cursor");

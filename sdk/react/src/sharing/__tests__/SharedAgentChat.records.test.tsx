@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, cleanup, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { UseSharedAgentProfileReturn } from "../useSharedAgentProfile";
+import type { UseChannelAgentProfileReturn } from "../useChannelAgentProfile";
 import type { SessionComposerProps } from "../../composer";
 
 // ---------------------------------------------------------------------------
@@ -48,8 +48,8 @@ const PROFILE = {
   agentRef: SHARE_AGENT_REF,
 };
 
-vi.mock("../useSharedAgentProfile", () => ({
-  useSharedAgentProfile: (): UseSharedAgentProfileReturn => ({
+vi.mock("../useChannelAgentProfile", () => ({
+  useChannelAgentProfile: (): UseChannelAgentProfileReturn => ({
     profile: PROFILE as never,
     isLoading: false,
     isRefetching: false,
@@ -88,7 +88,7 @@ describe("SharedAgentChat — the records a visitor's first message writes", () 
     const onSessionCreated = vi.fn();
     render(
       <Providers>
-        <SharedAgentChat shareId="ash_1" onSessionCreated={onSessionCreated} />
+        <SharedAgentChat channelId="ash_1" onSessionCreated={onSessionCreated} />
       </Providers>,
     );
 

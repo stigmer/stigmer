@@ -1,20 +1,20 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { ListAgentChannelsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ListChannelsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { LIST_PAGE_MAX, readWholeList } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";
 
-/** Return value of {@link useOrgAgentChannelList}. */
-export interface UseOrgAgentChannelListReturn {
+/** Return value of {@link useOrgChannelList}. */
+export interface UseOrgChannelListReturn {
   /**
    * The organization's channels visible to the caller, across all its
    * agents, in server order. Empty while loading, on error, or when the
    * org has none.
    */
-  readonly channels: readonly AgentChannel[];
+  readonly channels: readonly Channel[];
   /** `true` while the initial fetch is in flight and no data is shown. */
   readonly isLoading: boolean;
   /** `true` while a background refetch is in flight and stale data is shown. */
@@ -26,9 +26,10 @@ export interface UseOrgAgentChannelListReturn {
 }
 
 /**
- * Data hook that loads an organization's {@link AgentChannel} resources
- * across all its agents — the org-wide view {@link useAgentChannelList}
- * (per-agent) cannot provide.
+ * Data hook that loads an organization's {@link Channel} resources of
+ * every type across all its agents — the org-wide view
+ * {@link useChannelList} (per-agent) cannot provide. Callers filter by
+ * `spec.type.case`.
  *
  * The connect flow uses it to tell the user which workspaces a serving
  * app already occupies before they start the provider OAuth. The view is
@@ -41,16 +42,16 @@ export interface UseOrgAgentChannelListReturn {
  *
  * Pass `null` for `org` to skip fetching (stable no-op).
  */
-export function useOrgAgentChannelList(
+export function useOrgChannelList(
   org: string | null,
-): UseOrgAgentChannelListReturn {
+): UseOrgChannelListReturn {
   const stigmer = useStigmer();
 
   const fetchFn = org
     ? () =>
         readWholeList((pageToken) =>
-          stigmer.agentChannel.list(
-            create(ListAgentChannelsRequestSchema, { org, pageSize: LIST_PAGE_MAX, pageToken }),
+          stigmer.channel.list(
+            create(ListChannelsRequestSchema, { org, pageSize: LIST_PAGE_MAX, pageToken }),
           ),
         )
     : null;
@@ -58,7 +59,7 @@ export function useOrgAgentChannelList(
   const { data: channels, isLoading, isRefetching, error, refetch } = useFetch(
     fetchFn,
     [org, stigmer],
-    [] as AgentChannel[],
+    [] as Channel[],
   );
 
   return { channels, isLoading, isRefetching, error, refetch };

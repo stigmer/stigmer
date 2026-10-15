@@ -6,7 +6,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   ChannelSendOutcome,
   SendChannelMessageOutputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ConversationTemplatePickerDialog } from "../ConversationTemplatePickerDialog";
@@ -46,7 +46,7 @@ function renderPicker(options?: {
     .mockResolvedValue({ entries: options?.templates ?? [makeTemplate()], nextPageToken: "" });
   const onSend =
     options?.onSend ?? vi.fn().mockResolvedValue(output(ChannelSendOutcome.accepted));
-  const client = { agentChannel: { listTemplates } } as never;
+  const client = { channel: { listTemplates } } as never;
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <FetchCacheContext.Provider value={null}>

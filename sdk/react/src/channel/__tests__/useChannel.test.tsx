@@ -1,16 +1,18 @@
+// useChannel: one channel of any type by id, not-found read as no channel.
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { StigmerError } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
-import { useAgentChannel } from "../useAgentChannel";
+import { useChannel } from "../useChannel";
 
 function createMockStigmer(overrides: {
   get?: (id: string) => Promise<unknown>;
 } = {}) {
   return {
-    agentChannel: {
+    channel: {
       get: overrides.get ?? vi.fn().mockResolvedValue(null),
     },
   } as never;
@@ -28,7 +30,7 @@ function wrapper(client: unknown) {
   };
 }
 
-describe("useAgentChannel", () => {
+describe("useChannel", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -41,7 +43,7 @@ describe("useAgentChannel", () => {
     const get = vi.fn().mockResolvedValue(channel);
     const client = createMockStigmer({ get });
 
-    const { result } = renderHook(() => useAgentChannel("ach_1"), {
+    const { result } = renderHook(() => useChannel("ach_1"), {
       wrapper: wrapper(client),
     });
 
@@ -56,10 +58,10 @@ describe("useAgentChannel", () => {
   it("maps not-found to null data, not an error", async () => {
     const get = vi
       .fn()
-      .mockRejectedValue(new StigmerError("not-found", "AgentChannel not found: ach_1", 5));
+      .mockRejectedValue(new StigmerError("not-found", "Channel not found: ach_1", 5));
     const client = createMockStigmer({ get });
 
-    const { result } = renderHook(() => useAgentChannel("ach_1"), {
+    const { result } = renderHook(() => useChannel("ach_1"), {
       wrapper: wrapper(client),
     });
 
@@ -77,7 +79,7 @@ describe("useAgentChannel", () => {
       .mockRejectedValue(new StigmerError("internal", "boom", 13));
     const client = createMockStigmer({ get });
 
-    const { result } = renderHook(() => useAgentChannel("ach_1"), {
+    const { result } = renderHook(() => useChannel("ach_1"), {
       wrapper: wrapper(client),
     });
 
@@ -90,7 +92,7 @@ describe("useAgentChannel", () => {
     const get = vi.fn();
     const client = createMockStigmer({ get });
 
-    const { result } = renderHook(() => useAgentChannel(""), {
+    const { result } = renderHook(() => useChannel(""), {
       wrapper: wrapper(client),
     });
 
@@ -103,7 +105,7 @@ describe("useAgentChannel", () => {
     const get = vi.fn().mockResolvedValue({ metadata: { id: "ach_1" } });
     const client = createMockStigmer({ get });
 
-    const { result } = renderHook(() => useAgentChannel("ach_1"), {
+    const { result } = renderHook(() => useChannel("ach_1"), {
       wrapper: wrapper(client),
     });
 

@@ -4,7 +4,7 @@ import type { ThinkingModeOption } from "../models/thinking-mode.js";
 /**
  * Owner-pinned run config for a session surface
  * (stigmer/stigmer#664) — the client-side subset of the platform
- * `RunConfig` that AgentShare and AgentChannel specs pin server-side
+ * `RunConfig` that Channel specs pin server-side
  * (stigmer/stigmer#360). Budget clamps (`max_cost_usd`,
  * `max_tool_rounds`) are deliberately absent: those are enforcement,
  * which only the server can own.

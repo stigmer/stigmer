@@ -6,7 +6,7 @@ import {
   useToolCredentialsReadiness,
   type ToolCredentialsReadiness,
 } from "../vault/useToolCredentialsReadiness.js";
-import type { AgentShareDraft } from "./useSaveAgentShare.js";
+import type { WebChannelDraft } from "./webChannelDraft.js";
 import { agentUsesTools } from "../agent/runServers.js";
 
 /**
@@ -30,7 +30,7 @@ export type ShareToolReadiness = ToolCredentialsReadiness;
  */
 export function useShareToolReadiness(
   agent: Agent,
-  draft: AgentShareDraft,
+  draft: WebChannelDraft,
 ): ShareToolReadiness {
   const deploymentMode = useDeploymentMode();
   const usesTools = agentUsesTools(agent.spec);

@@ -1,7 +1,7 @@
 "use client";
 
-import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
 import { useDeploymentMode } from "../deployment-mode.js";
 
 /**
@@ -33,7 +33,7 @@ export type ChannelTemplateReadiness =
  * Mirrors the server's own gate order for `listTemplates`
  * (`ChannelMessagingReach.resolveDirect`: installed → enabled →
  * proactive grant), answering from fields already on the fetched
- * {@link AgentChannel}. The server stays authoritative: a `ready`
+ * {@link Channel}. The server stays authoritative: a `ready`
  * verdict here only means the call is worth making, and whatever the
  * server then says wins.
  *
@@ -51,7 +51,7 @@ export type ChannelTemplateReadiness =
  * ```
  */
 export function useChannelTemplateReadiness(
-  channel: AgentChannel,
+  channel: Channel,
 ): ChannelTemplateReadiness {
   const deploymentMode = useDeploymentMode();
 
@@ -59,12 +59,14 @@ export function useChannelTemplateReadiness(
   // cloud-only facility.
   if (deploymentMode !== "cloud") return { status: "cloud-only" };
   if (
-    channel.status?.installState !== AgentChannelInstallState.installed
+    channel.status?.installState !== ChannelInstallState.installed
   ) {
     return { status: "not-installed" };
   }
   if (!channel.spec?.enabled) return { status: "channel-off" };
-  if (!channel.spec.proactiveMessagingEnabled) {
+  const proactive =
+    channel.spec.type?.case === "whatsapp" && channel.spec.type.value.proactiveMessagingEnabled;
+  if (!proactive) {
     return { status: "not-proactive" };
   }
   return { status: "ready" };

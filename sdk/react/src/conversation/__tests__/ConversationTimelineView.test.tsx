@@ -9,12 +9,12 @@ import {
   ConversationItemAuthor,
   ConversationLane,
   ConversationTimelineItemSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import {
   ChannelAttemptFailureKind,
   ChannelDeliveryStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/delivery_pb";
-import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/outbound_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/delivery_pb";
+import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/outbound_pb";
 import { StigmerContext } from "../../context";
 import { ConversationTimelineView } from "../ConversationTimelineView";
 
@@ -537,7 +537,7 @@ describe("ConversationTimelineView inbound media", () => {
   afterEach(() => cleanup());
 
   const identityProps = {
-    agentChannelId: "ach-1",
+    channelId: "ach-1",
     conversationKey: "15551234567",
   };
 
@@ -554,7 +554,7 @@ describe("ConversationTimelineView inbound media", () => {
   };
 
   function renderWithClient(ui: ReactElement, getMediaDownloadUrl: ReturnType<typeof vi.fn>) {
-    const stigmer = { agentChannel: { getMediaDownloadUrl } } as unknown as Stigmer;
+    const stigmer = { channel: { getMediaDownloadUrl } } as unknown as Stigmer;
     return render(
       <StigmerContext.Provider value={stigmer}>{ui}</StigmerContext.Provider>,
     );
@@ -584,7 +584,7 @@ describe("ConversationTimelineView inbound media", () => {
       expect(img?.getAttribute("src")).toBe("https://r2.example/presigned/photo");
     });
     const req = mint.mock.calls[0][0];
-    expect(req.agentChannelId).toBe("ach-1");
+    expect(req.channelId).toBe("ach-1");
     expect(req.conversationKey).toBe("15551234567");
     expect(req.itemId).toBe("wa:1");
 
@@ -653,7 +653,7 @@ describe("ConversationTimelineView inbound media", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open lease-agreement.pdf" }));
     await waitFor(() => expect(anchorClick).toHaveBeenCalled());
     const req = mint.mock.calls[0][0];
-    expect(req.agentChannelId).toBe("ach-1");
+    expect(req.channelId).toBe("ach-1");
     expect(req.conversationKey).toBe("15551234567");
     expect(req.itemId).toBe("wa:2");
     anchorClick.mockRestore();

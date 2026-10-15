@@ -25,7 +25,7 @@ vi.mock("@stigmer/react", () => {
     ResourceCountCard: none,
     ConfirmDialog: none,
     EditResourceYamlDialog: none,
-    AgentChannelsPanel: none,
+    ChannelsPanel: none,
     AgentDetailView: (props: Record<string, unknown>) => {
       page.agentView.push(props);
       return null;

@@ -1,8 +1,8 @@
-export { useAgentChannelList } from "./useAgentChannelList.js";
-export type { UseAgentChannelListReturn } from "./useAgentChannelList.js";
+export { useChannelList } from "./useChannelList.js";
+export type { UseChannelListReturn } from "./useChannelList.js";
 
-export { useOrgAgentChannelList } from "./useOrgAgentChannelList.js";
-export type { UseOrgAgentChannelListReturn } from "./useOrgAgentChannelList.js";
+export { useOrgChannelList } from "./useOrgChannelList.js";
+export type { UseOrgChannelListReturn } from "./useOrgChannelList.js";
 
 export { CHANNEL_PROVIDERS, channelProviderOf } from "./providers.js";
 export type {
@@ -20,17 +20,20 @@ export type { ChannelProviderPresentation } from "./providerPresentation.js";
 export { templateStatusPhase, splitTemplateBody } from "./templatePresentation.js";
 export type { TemplateBodySegment } from "./templatePresentation.js";
 
-export { useAgentChannel } from "./useAgentChannel.js";
-export type { UseAgentChannelReturn } from "./useAgentChannel.js";
+export { useChannel } from "./useChannel.js";
+export type { UseChannelReturn } from "./useChannel.js";
 
-export { useSaveAgentChannel } from "./useSaveAgentChannel.js";
-export type { UseSaveAgentChannelReturn } from "./useSaveAgentChannel.js";
+export { useSaveChannel } from "./useSaveChannel.js";
+export type { UseSaveChannelReturn } from "./useSaveChannel.js";
 
-export { useCreateAgentChannel } from "./useCreateAgentChannel.js";
-export type { UseCreateAgentChannelReturn } from "./useCreateAgentChannel.js";
+export { useCreateChannel } from "./useCreateChannel.js";
+export type { UseCreateChannelReturn } from "./useCreateChannel.js";
 
-export { useDeleteAgentChannel } from "./useDeleteAgentChannel.js";
-export type { UseDeleteAgentChannelReturn } from "./useDeleteAgentChannel.js";
+export { useDeleteChannel } from "./useDeleteChannel.js";
+export type { UseDeleteChannelReturn } from "./useDeleteChannel.js";
+
+export { useCanCreateChannel } from "./useCanCreateChannel.js";
+export type { UseCanCreateChannelReturn } from "./useCanCreateChannel.js";
 
 export { useConnectSlackChannel } from "./useConnectSlackChannel.js";
 export type {
@@ -58,8 +61,8 @@ export type {
   UseChannelTemplateListReturn,
 } from "./useChannelTemplateList.js";
 
-export { AgentChannelsPanel } from "./AgentChannelsPanel.js";
-export type { AgentChannelsPanelProps } from "./AgentChannelsPanel.js";
+export { ChannelsPanel } from "./ChannelsPanel.js";
+export type { ChannelsPanelProps } from "./ChannelsPanel.js";
 
 export { ConnectSlackDialog } from "./ConnectSlackDialog.js";
 export type { ConnectSlackDialogProps } from "./ConnectSlackDialog.js";

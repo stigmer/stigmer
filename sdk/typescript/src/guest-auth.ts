@@ -29,7 +29,7 @@ export interface GuestIdStorage {
  * Unlike a user-token mint (`stigmer.tokens.mintUserToken`, called with
  * a service account's key), this carries **no credentials** —
  * `mintGuestToken` is a public RPC gated server-side on an enabled
- * AgentShare with the given id. It is therefore safe to use directly
+ * web Channel with the given id. It is therefore safe to use directly
  * from a browser.
  *
  * @example
@@ -38,7 +38,7 @@ export interface GuestIdStorage {
  *
  * const guestAuth = createGuestAuth({
  *   baseUrl: "https://api.stigmer.ai",
- *   shareId: "ash_01j9z3k8f2q4m6n7p8r9s0t1v2",
+ *   channelId: "chn_01j9z3k8f2q4m6n7p8r9s0t1v2",
  * });
  * ```
  */
@@ -47,10 +47,11 @@ export interface GuestAuthConfig {
   readonly baseUrl: string;
 
   /**
-   * Id of the share, from the hosted chat link (`/chat/<share id>`) or
-   * the embed's `share` attribute: the AgentShare's `metadata.id`.
+   * Id of the web channel, from the hosted chat link (`/chat/<channel id>`)
+   * or the embed's `share` attribute: the Channel's `metadata.id`. Ids
+   * minted before the Channel kind (`ash_…`) stay valid.
    */
-  readonly shareId: string;
+  readonly channelId: string;
 
   /**
    * Where to persist the visitor's guest id across visits.
@@ -59,7 +60,7 @@ export interface GuestAuthConfig {
    * in-memory storage (guest identity then lasts one page load).
    * The stored value is an opaque server-generated id — not a
    * credential — that keys this browser's session read-isolation. It is
-   * kept per share, the one thing a link names.
+   * kept per channel, the one thing a link names.
    */
   readonly storage?: GuestIdStorage;
 
@@ -70,7 +71,7 @@ export interface GuestAuthConfig {
    * embedding page's origin, discovered via `@stigmer/embed`'s
    * `resolveParentOrigin`) or directly in your own app
    * (`window.location.origin`). Leave unset on the unframed hosted
-   * page. The server validates it against the share's
+   * page. The server validates it against the web channel's
    * `allowed_origins` at mint (an empty list admits any origin) and
    * refuses with `"permission-denied"` when the origin is not allowed.
    *
@@ -83,9 +84,9 @@ export interface GuestAuthConfig {
   readonly embedOrigin?: string;
 
   /**
-   * Share-link token from the URL's `?k=` parameter.
+   * Chat-link token from the URL's `?k=` parameter.
    *
-   * Required when the share link has been locked with a rotatable
+   * Required when the chat link has been locked with a rotatable
    * token; harmless (ignored server-side) on plain links. On a locked
    * link a missing or rotated-away token refuses the mint with
    * `"not-found"` — deliberately indistinguishable from an agent that
@@ -101,7 +102,7 @@ export interface GuestAuthConfig {
  */
 const EXPIRY_SKEW_MS = 60_000;
 
-/** Storage key prefix for the persisted guest id, namespaced per share. */
+/** Storage key prefix for the persisted guest id, namespaced per channel. */
 const GUEST_ID_STORAGE_PREFIX = "stigmer:guest-id:";
 
 /**
@@ -127,7 +128,7 @@ const GUEST_ID_STORAGE_PREFIX = "stigmer:guest-id:";
  * ```typescript
  * const guestAuth = createGuestAuth({
  *   baseUrl: "https://api.stigmer.ai",
- *   shareId: "ash_01j9z3k8f2q4m6n7p8r9s0t1v2",
+ *   channelId: "chn_01j9z3k8f2q4m6n7p8r9s0t1v2",
  * });
  *
  * const client = new Stigmer({
@@ -138,7 +139,7 @@ const GUEST_ID_STORAGE_PREFIX = "stigmer:guest-id:";
  */
 export class GuestAuth {
   private readonly tokenClient: Client<typeof TokenService>;
-  private readonly shareId: string;
+  private readonly channelId: string;
   private readonly storage: GuestIdStorage;
   private readonly storageKey: string;
   private readonly embedOrigin: string;
@@ -149,9 +150,9 @@ export class GuestAuth {
 
   /** @internal Use {@link createGuestAuth} instead. */
   constructor(config: GuestAuthConfig) {
-    this.shareId = config.shareId;
+    this.channelId = config.channelId;
     this.storage = config.storage ?? resolveDefaultStorage();
-    this.storageKey = `${GUEST_ID_STORAGE_PREFIX}${config.shareId}`;
+    this.storageKey = `${GUEST_ID_STORAGE_PREFIX}${config.channelId}`;
     this.embedOrigin = config.embedOrigin ?? "";
     this.linkToken = config.linkToken ?? "";
 
@@ -187,7 +188,7 @@ export class GuestAuth {
    * @throws {StigmerError} with code `"permission-denied"` when
    *   `embedOrigin` is not in the agent's `allowed_origins` — embeds
    *   should hide the widget on this code rather than surface an error
-   * @throws {StigmerError} with code `"invalid-argument"` when the share
+   * @throws {StigmerError} with code `"invalid-argument"` when the channel
    *   id is empty
    */
   readonly getAccessToken = async (): Promise<string | null> => {
@@ -210,7 +211,7 @@ export class GuestAuth {
     try {
       const response = await this.tokenClient.mintGuestToken(
         create(MintGuestTokenRequestSchema, {
-          shareId: this.shareId,
+          channelId: this.channelId,
           guestCookieId: safeGetItem(this.storage, this.storageKey) ?? "",
           embedOrigin: this.embedOrigin,
           linkToken: this.linkToken,
@@ -292,7 +293,7 @@ function safeSetItem(storage: GuestIdStorage, key: string, value: string): void 
  *
  * This is the browser-side counterpart of `stigmer.tokens.mintUserToken`:
  * it involves **no credentials** — the server gates minting on an
- * enabled AgentShare and issues a short-lived guest JWT scoped to the
+ * enabled web Channel and issues a short-lived guest JWT scoped to the
  * sharing org. Pass {@link GuestAuth.getAccessToken} to a `Stigmer`
  * client and every request authenticates as this visitor.
  *
@@ -302,7 +303,7 @@ function safeSetItem(storage: GuestIdStorage, key: string, value: string): void 
  *
  * const guestAuth = createGuestAuth({
  *   baseUrl: "https://api.stigmer.ai",
- *   shareId: "ash_01j9z3k8f2q4m6n7p8r9s0t1v2",
+ *   channelId: "chn_01j9z3k8f2q4m6n7p8r9s0t1v2",
  * });
  *
  * const client = new Stigmer({
@@ -311,7 +312,7 @@ function safeSetItem(storage: GuestIdStorage, key: string, value: string): void 
  * });
  * ```
  *
- * @throws {Error} if `baseUrl` or `shareId` is missing or empty
+ * @throws {Error} if `baseUrl` or `channelId` is missing or empty
  */
 export function createGuestAuth(config: GuestAuthConfig): GuestAuth {
   if (!config.baseUrl) {
@@ -319,9 +320,9 @@ export function createGuestAuth(config: GuestAuthConfig): GuestAuth {
       "createGuestAuth: baseUrl is required (e.g., \"https://api.stigmer.ai\")",
     );
   }
-  if (!config.shareId) {
+  if (!config.channelId) {
     throw new Error(
-      "createGuestAuth: shareId is required — the share's id from the share link",
+      "createGuestAuth: channelId is required — the channel's id from the chat link",
     );
   }
 

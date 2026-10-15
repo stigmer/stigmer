@@ -83,7 +83,7 @@ export default defineConfig({
     // Fetch class — a globalThis.fetch stub cannot intercept it; only these
     // settings block it, before any request is created. Unblocked, the stray
     // DNS lookup resolves after its test has returned and the error lands on
-    // an unrelated test (the AgentShareList flake in issue #334).
+    // an unrelated test (the share-list flake in issue #334).
     environmentOptions: {
       happyDOM: {
         settings: {

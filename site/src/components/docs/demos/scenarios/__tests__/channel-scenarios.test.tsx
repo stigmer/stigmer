@@ -1,7 +1,7 @@
 /**
  * The two channel connect demos (Slack, WhatsApp) answer the channel
  * panel's reads under the list methods the console calls: an agent's
- * channels through AgentChannelQueryController/listByAgent (none before
+ * channels through ChannelQueryController/listByAgent (none before
  * the demo plays) and the organization's channel apps through
  * ChannelAppQueryController/list (none for Slack, the registered Meta app
  * for WhatsApp); and the caller's permission check through
@@ -13,8 +13,8 @@ import { cleanup, render } from "@testing-library/react";
 import type { ComponentProps, ComponentType } from "react";
 import { fromJson, type JsonValue } from "@bufbuild/protobuf";
 import { getResponse, type HttpHandler } from "msw";
-import { AgentChannelListSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
-import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
+import { ChannelListSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
+import { ChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/query_pb";
 import { ChannelAppsSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { CheckAuthorizationResultSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
@@ -63,7 +63,7 @@ describe("the channel connect demos", () => {
     ["WhatsApp", ConnectWhatsAppChannel, 1],
   ] as const)("%s answers an agent's channels and the organization's channel apps", async (_name, Scenario, apps) => {
     const fixtures = fixturesOf(Scenario);
-    const channels = fromJson(AgentChannelListSchema, await ask(fixtures, AgentChannelQueryController, "listByAgent"));
+    const channels = fromJson(ChannelListSchema, await ask(fixtures, ChannelQueryController, "listByAgent"));
     expect(channels.entries).toEqual([]);
     const channelApps = fromJson(ChannelAppsSchema, await ask(fixtures, ChannelAppQueryController, "list"));
     expect(channelApps.entries).toHaveLength(apps);
