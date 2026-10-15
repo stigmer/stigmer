@@ -51,7 +51,7 @@ import {
   MADE_NOTHING_UP,
   awaitJudgeVerdict,
   judgeRunsOf,
-  makeEvaluator,
+  makeScoringRule,
 } from "../support/evaluators";
 import { uniqueName } from "../support/naming";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
@@ -109,8 +109,8 @@ async function gradedRun(
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
   let evaluatorId: string | undefined;
   if (evaluator !== undefined) {
-    const created = await clients.evaluatorCommand.create(
-      makeEvaluator({ org, agentId: agent.metadata!.id, ...evaluator }),
+    const created = await clients.scoringRuleCommand.create(
+      makeScoringRule({ org, agentId: agent.metadata!.id, ...evaluator }),
     );
     evaluatorId = created.metadata!.id;
   }
@@ -162,7 +162,7 @@ describe("AI grading", () => {
     expect((await awaitRunHealth(clients, runId)).status?.state).toBe(ScoreState.graded);
 
     expect(await judgeRunsOf(clients, org, runId), "the judge's run is deleted with its session").toBe(0);
-    const evaluator = await clients.evaluatorQuery.get({ value: evaluatorId! });
+    const evaluator = await clients.scoringRuleQuery.get({ value: evaluatorId! });
     expect(evaluator.status?.graded).toBe(1);
     expect(evaluator.status?.reservedUsd, "the grade's cap is given back").toBe(0);
   });
@@ -189,7 +189,7 @@ describe("AI grading", () => {
     expect(verdict.status?.state).toBe(ScoreState.not_graded);
     expect(verdict.status?.notGradedReason).toBe(JUDGE_LIMIT_REACHED_REASON);
     expect(await judgeRunsOf(clients, org, runId)).toBe(0);
-    const evaluator = await clients.evaluatorQuery.get({ value: evaluatorId! });
+    const evaluator = await clients.scoringRuleQuery.get({ value: evaluatorId! });
     expect(evaluator.status?.notGraded).toBe(1);
     expect(evaluator.status?.lastNotGradedReason).toBe(JUDGE_LIMIT_REACHED_REASON);
     expect(evaluator.status?.spentUsd ?? 0).toBe(0);

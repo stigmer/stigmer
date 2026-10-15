@@ -13,7 +13,7 @@
 import type { DescMessage } from "@bufbuild/protobuf";
 
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import type { ScoringRule } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
@@ -25,10 +25,10 @@ import { cleanUpDeletedResource } from "../../pipeline/steps/authorization-tuple
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
-import { listAgentEvaluators } from "./queries.js";
+import { listAgentScoringRules } from "./queries.js";
 import { releaseNamesOfDeleted } from "../../pipeline/steps/names.js";
 
-export function newCascadeDeleteEvaluatorsStep<Desc extends DescMessage>(
+export function newCascadeDeleteScoringRulesStep<Desc extends DescMessage>(
   store: Store,
   lifecycle: ResourceAuthorizationLifecycle | undefined,
   logger: Logger,
@@ -46,9 +46,9 @@ export function newCascadeDeleteEvaluatorsStep<Desc extends DescMessage>(
         );
       }
       const agentId = agent.metadata?.id ?? "";
-      let evaluators: Evaluator[];
+      let evaluators: ScoringRule[];
       try {
-        evaluators = await listAgentEvaluators(store, logger, agentId);
+        evaluators = await listAgentScoringRules(store, logger, agentId);
       } catch (error) {
         throw internalError(
           error,
@@ -58,7 +58,7 @@ export function newCascadeDeleteEvaluatorsStep<Desc extends DescMessage>(
       for (const evaluator of evaluators) {
         const evaluatorId = evaluator.metadata?.id ?? "";
         try {
-          await store.deleteResource(ApiResourceKind.evaluator, evaluatorId);
+          await store.deleteResource(ApiResourceKind.scoring_rule, evaluatorId);
         } catch (error) {
           if (!(error instanceof ResourceNotFoundError)) {
             throw internalError(
@@ -67,9 +67,9 @@ export function newCascadeDeleteEvaluatorsStep<Desc extends DescMessage>(
             );
           }
         }
-        await releaseNamesOfDeleted(store, logger, ApiResourceKind.evaluator, evaluator.metadata?.org ?? "", evaluatorId);
+        await releaseNamesOfDeleted(store, logger, ApiResourceKind.scoring_rule, evaluator.metadata?.org ?? "", evaluatorId);
         await cleanUpDeletedResource(lifecycle, logger, {
-          kind: ApiResourceKind.evaluator,
+          kind: ApiResourceKind.scoring_rule,
           resourceId: evaluatorId,
           orgId: evaluator.metadata?.org ?? "",
           caller: ctx.callerIdentity,

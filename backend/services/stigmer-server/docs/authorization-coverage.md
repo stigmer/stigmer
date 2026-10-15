@@ -283,13 +283,13 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | ScoreQueryController.getAgentQualityReport | config: can_view on organization (field org), error_msg yes | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_view on the agent named in agent_id, after the organization's bar; the organization's live scores of the agent through the score list index's agent key, eval tries left out, counted on read; counts, names, hashes and dates only, so every run is counted and none is quoted; `src/domain/score/quality.ts`) |
 | ScoreQueryController.listFlaggedByAgent | config: can_view on organization (field org), error_msg yes | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_view on the agent, as the report; the agent's failed grades through the score list index, paged; driver: ListReadScope — each batch narrowed by the scores' sessions, offered as kind session, one read and one decision per session per request; `src/domain/score/quality.ts`) |
 
-## 16b. Evaluator (`src/domain/evaluator/controller.ts`)
+## 16b. Evaluator (`src/domain/scoring-rule/controller.ts`)
 
 | Method | Annotation | Handler |
 |---|---|---|
 | EvaluatorCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_edit on the agent named in spec.agent_id, before the agent is read; metadata.org must then be the agent's organization, which the request names; one evaluator per agent) |
 | EvaluatorCommandController.update | config: can_edit on evaluator (field resource.metadata.id), error_msg yes | chain-with-Authorize (ValidateEvaluatorUpdate keeps spec.agent_id; the write keeps the live row's spend and counts) |
-| EvaluatorCommandController.delete | config: can_delete on evaluator (field value), error_msg yes | chain-with-Authorize (the agent's delete removes its evaluator through `src/domain/evaluator/cascade.ts`) |
+| EvaluatorCommandController.delete | config: can_delete on evaluator (field value), error_msg yes | chain-with-Authorize (the agent's delete removes its evaluator through `src/domain/scoring-rule/cascade.ts`) |
 | EvaluatorQueryController.get | config: can_view on evaluator (field value), error_msg yes | chain-with-Authorize |
 | EvaluatorQueryController.getByAgent | config: can_view on agent (field agent_id), error_msg yes | chain-with-Authorize (the agent's evaluator through the evaluator list index; NOT_FOUND when grading is off) |
 

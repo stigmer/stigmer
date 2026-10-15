@@ -92,7 +92,7 @@ export function currentEvaluatorVersionOf(
 }
 
 /** Whether a metric was graded under more than one evaluator version in the summary. */
-export function evaluatorChangedIn(
+export function scoringRuleChangedIn(
   summary: QualitySummary | undefined,
   metric: string,
 ): boolean {

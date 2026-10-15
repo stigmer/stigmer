@@ -31,9 +31,9 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
-import { EvaluatorStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/status_pb";
-import type { EvaluatorStatus } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/status_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import { ScoringRuleStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/status_pb";
+import type { ScoringRuleStatus } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { bumpStatusAudit } from "../../pipeline/steps/defaults.js";
@@ -72,9 +72,9 @@ export async function reserve(
   let outcome: Reservation = "off";
   try {
     await store.updateResource(
-      ApiResourceKind.evaluator,
+      ApiResourceKind.scoring_rule,
       evaluatorId,
-      EvaluatorSchema,
+      ScoringRuleSchema,
       (live) => {
         if (live.spec?.enabled !== true) {
           throw new GradingOff();
@@ -118,9 +118,9 @@ export async function settle(
 ): Promise<void> {
   try {
     await store.updateResource(
-      ApiResourceKind.evaluator,
+      ApiResourceKind.scoring_rule,
       evaluatorId,
-      EvaluatorSchema,
+      ScoringRuleSchema,
       (live) => {
         const status = rolledOver(live.status, now);
         live.status = status;
@@ -148,14 +148,14 @@ export async function settle(
 
 /** The status for `now`'s period: the live one, or a fresh month keeping the audit. */
 function rolledOver(
-  status: EvaluatorStatus | undefined,
+  status: ScoringRuleStatus | undefined,
   now: Date,
-): EvaluatorStatus {
+): ScoringRuleStatus {
   const period = periodOf(now);
   if (status !== undefined && status.period === period) {
     return status;
   }
-  return create(EvaluatorStatusSchema, {
+  return create(ScoringRuleStatusSchema, {
     period,
     audit: status?.audit,
   });

@@ -10,7 +10,7 @@
  *     organization (grading never reaches across organizations), the run
  *     is not itself a judge, it is in the sample (domain/score/judge/
  *     sampling.ts), and it has no judge verdict yet. The grade's cap is
- *     set aside (domain/evaluator/budget.ts), then the run is recorded as
+ *     set aside (domain/scoring-rule/budget.ts), then the run is recorded as
  *     pending; a refusal of the cap is recorded as "spending limit
  *     reached", and a pending score that cannot be written gives the cap
  *     back, so a planner that fails for good leaves no "grading" behind.
@@ -68,7 +68,7 @@ import {
   renderSubject,
 } from "@stigmer/eval-runtime/judge";
 
-import type { Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import type { ScoringRule } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -77,9 +77,9 @@ import { ScoreState } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb"
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import { periodOf, reserve, settle } from "../../domain/evaluator/budget.js";
-import type { GradeEnd } from "../../domain/evaluator/budget.js";
-import { listAgentEvaluators } from "../../domain/evaluator/queries.js";
+import { periodOf, reserve, settle } from "../../domain/scoring-rule/budget.js";
+import type { GradeEnd } from "../../domain/scoring-rule/budget.js";
+import { listAgentScoringRules } from "../../domain/scoring-rule/queries.js";
 import { agentExecutionListIndex } from "../../domain/run/list-index.js";
 import { isActiveExecutionPhase, isTerminalExecutionPhase } from "../../domain/run/phases.js";
 import { sessionIdOf } from "../../domain/run/target.js";
@@ -193,7 +193,7 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
       // version; it is adopted the same way, and the grade's record removes
       // it (domain/score/record.ts).
       const earlier = existing ?? (await pendingOfOtherVersions(deps, pending))[0];
-      const evaluator = await evaluatorOf(deps, run);
+      const evaluator = await scoringRuleOf(deps, run);
       const evaluatorId = evaluator?.metadata?.id ?? "";
       if (
         evaluator === undefined ||
@@ -353,16 +353,16 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
 }
 
 /** The run's agent's evaluator in the run's own organization, if any. */
-async function evaluatorOf(
+async function scoringRuleOf(
   deps: JudgeActivityDeps,
   run: Run,
-): Promise<Evaluator | undefined> {
+): Promise<ScoringRule | undefined> {
   const agentId = run.status?.agentId ?? "";
   if (agentId === "") {
     return undefined;
   }
   const org = run.metadata?.org ?? "";
-  const evaluators = await listAgentEvaluators(deps.store, deps.logger, agentId);
+  const evaluators = await listAgentScoringRules(deps.store, deps.logger, agentId);
   return evaluators.find((evaluator) => evaluator.metadata?.org === org);
 }
 

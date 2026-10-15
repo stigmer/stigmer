@@ -54,7 +54,7 @@ export const JUDGE_SESSION_SUBJECT = "Grading";
 /**
  * The most one grade may spend, in estimated US dollars: the judge run's
  * `max_cost_usd`, and what the evaluator's budget sets aside before the
- * judge starts (domain/evaluator/budget.ts).
+ * judge starts (domain/scoring-rule/budget.ts).
  */
 export const PER_GRADE_CAP_USD = 0.25;
 

@@ -41,8 +41,8 @@ import { MemoryCommandController } from "@stigmer/protos/ai/stigmer/agentic/memo
 import { MemoryQueryController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/query_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
-import { EvaluatorCommandController } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/command_pb";
-import { EvaluatorQueryController } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/query_pb";
+import { ScoringRuleCommandController } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/command_pb";
+import { ScoringRuleQueryController } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/query_pb";
 import { ScoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/command_pb";
 import { ScoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/query_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
@@ -142,8 +142,8 @@ export interface ConformanceClients {
   scheduleQuery: Client<typeof ScheduleQueryController>;
   scoreCommand: Client<typeof ScoreCommandController>;
   scoreQuery: Client<typeof ScoreQueryController>;
-  evaluatorCommand: Client<typeof EvaluatorCommandController>;
-  evaluatorQuery: Client<typeof EvaluatorQueryController>;
+  scoringRuleCommand: Client<typeof ScoringRuleCommandController>;
+  scoringRuleQuery: Client<typeof ScoringRuleQueryController>;
   sessionCommand: Client<typeof SessionCommandController>;
   sessionQuery: Client<typeof SessionQueryController>;
   skillCommand: Client<typeof SkillCommandController>;
@@ -280,8 +280,8 @@ export function makeClients(transport: Transport): ConformanceClients {
     scheduleQuery: createClient(ScheduleQueryController, transport),
     scoreCommand: createClient(ScoreCommandController, transport),
     scoreQuery: createClient(ScoreQueryController, transport),
-    evaluatorCommand: createClient(EvaluatorCommandController, transport),
-    evaluatorQuery: createClient(EvaluatorQueryController, transport),
+    scoringRuleCommand: createClient(ScoringRuleCommandController, transport),
+    scoringRuleQuery: createClient(ScoringRuleQueryController, transport),
     sessionCommand: createClient(SessionCommandController, transport),
     sessionQuery: createClient(SessionQueryController, transport),
     skillCommand: createClient(SkillCommandController, transport),

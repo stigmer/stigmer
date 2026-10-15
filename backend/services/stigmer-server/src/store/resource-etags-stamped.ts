@@ -40,7 +40,7 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
@@ -78,7 +78,7 @@ export const RESOURCE_SCHEMAS: ReadonlyMap<ApiResourceKind, DescMessage> = new M
   [ApiResourceKind.agent_share, AgentShareSchema],
   [ApiResourceKind.api_key, ApiKeySchema],
   [ApiResourceKind.channel_app, ChannelAppSchema],
-  [ApiResourceKind.evaluator, EvaluatorSchema],
+  [ApiResourceKind.scoring_rule, ScoringRuleSchema],
   [ApiResourceKind.grant, GrantSchema],
   [ApiResourceKind.identity_account, IdentityAccountSchema],
   [ApiResourceKind.federation_issuer, FederationIssuerSchema],

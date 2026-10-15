@@ -17,17 +17,17 @@
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
-import { EvaluatorCommandController } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/command_pb";
-import { EvaluatorQueryController } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/query_pb";
-import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
-import type { Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
-import { EvaluatorIdSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/io_pb";
+import { ScoringRuleCommandController } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/command_pb";
+import { ScoringRuleQueryController } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/query_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import type { ScoringRule } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import { ScoringRuleIdSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/io_pb";
 import type {
-  EvaluatorId,
-  GetEvaluatorByAgentRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/io_pb";
+  ScoringRuleId,
+  GetScoringRuleByAgentRequest,
+} from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { UpdateEvaluatorInput } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/io_pb";
+import type { UpdateScoringRuleInput } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { CredentialBinding } from "../../extensions/credential-binding.js";
@@ -69,17 +69,17 @@ import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
 import { chainResult } from "../score/controller.js";
 import {
-  EVALUATOR_RESULT_KEY,
-  newCheckEvaluatorUniqueStep,
-  newGetEvaluatorByAgentStep,
+  SCORING_RULE_RESULT_KEY,
+  newCheckScoringRuleUniqueStep,
+  newGetScoringRuleByAgentStep,
   newLoadEvaluatedAgentStep,
-  newPersistEvaluatorSettingsStep,
-  newResolveEvaluatorDefaultsStep,
-  newValidateEvaluatorUpdateStep,
-  resolveEvaluatorCreateTargets,
+  newPersistScoringRuleSettingsStep,
+  newResolveScoringRuleDefaultsStep,
+  newValidateScoringRuleUpdateStep,
+  resolveScoringRuleCreateTargets,
 } from "./steps.js";
 
-export interface EvaluatorControllerDeps {
+export interface ScoringRuleControllerDeps {
   readonly store: Store;
   readonly logger: Logger;
   /** The composed authorization seam: the Authorize step at position 1 of every chain calls it. */
@@ -95,17 +95,17 @@ export interface EvaluatorControllerDeps {
 }
 
 /** Registers both evaluator services on the router (routes stage). */
-export function registerEvaluatorServices(
+export function registerScoringRuleServices(
   router: ConnectRouter,
-  deps: EvaluatorControllerDeps,
+  deps: ScoringRuleControllerDeps,
 ): void {
-  router.service(EvaluatorCommandController, {
-    create: (evaluator, ctx) => createEvaluator(deps, evaluator, ctx),
-    update: (input, ctx) => updateEvaluator(deps, input, ctx),
-    delete: (id, ctx) => deleteEvaluator(deps, id, ctx),
+  router.service(ScoringRuleCommandController, {
+    create: (evaluator, ctx) => createScoringRule(deps, evaluator, ctx),
+    update: (input, ctx) => updateScoringRule(deps, input, ctx),
+    delete: (id, ctx) => deleteScoringRule(deps, id, ctx),
   });
-  router.service(EvaluatorQueryController, {
-    get: (id, ctx) => getEvaluator(deps, id, ctx),
+  router.service(ScoringRuleQueryController, {
+    get: (id, ctx) => getScoringRule(deps, id, ctx),
     getByAgent: (req, ctx) => getByAgent(deps, req, ctx),
   });
 }
@@ -120,36 +120,36 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * tuple step writes the evaluator's link to its agent, through which every
  * later question about it is answered.
  */
-async function createEvaluator(
-  deps: EvaluatorControllerDeps,
-  evaluator: Evaluator,
+async function createScoringRule(
+  deps: ScoringRuleControllerDeps,
+  evaluator: ScoringRule,
   ctx: HandlerContext,
-): Promise<Evaluator> {
+): Promise<ScoringRule> {
   const reqCtx = new RequestContext(
-    EvaluatorSchema,
+    ScoringRuleSchema,
     evaluator,
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof EvaluatorSchema>("evaluator-create", deps.logger)
+  await newPipeline<typeof ScoringRuleSchema>("evaluator-create", deps.logger)
     .addStep(
-      newAuthorizeStep(EvaluatorCommandController.method.create, deps.authorizer),
+      newAuthorizeStep(ScoringRuleCommandController.method.create, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
     .addStep(
       newAuthorizeResolvedTargetStep(
         deps.authorizer,
-        resolveEvaluatorCreateTargets,
+        resolveScoringRuleCreateTargets,
       ),
     )
     .addStep(newLoadEvaluatedAgentStep(deps.store))
-    .addStep(newResolveEvaluatorDefaultsStep())
-    .addStep(newCheckEvaluatorUniqueStep(deps.store, deps.logger))
+    .addStep(newResolveScoringRuleDefaultsStep())
+    .addStep(newCheckScoringRuleUniqueStep(deps.store, deps.logger))
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newClaimNameStep(deps.store, ApiResourceKind.evaluator))
+    .addStep(newClaimNameStep(deps.store, ApiResourceKind.scoring_rule))
     .addStep(newPersistStep(deps.store, deps.credentialBinding))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -167,30 +167,30 @@ async function createEvaluator(
  * Update: can_edit on the evaluator (its agent's). The agent is fixed, and
  * the write keeps the live row's spend and counts (steps.ts).
  */
-async function updateEvaluator(
-  deps: EvaluatorControllerDeps,
-  input: UpdateEvaluatorInput,
+async function updateScoringRule(
+  deps: ScoringRuleControllerDeps,
+  input: UpdateScoringRuleInput,
   ctx: HandlerContext,
-): Promise<Evaluator> {
+): Promise<ScoringRule> {
   return runGuardedWrite(async () => {
     const reqCtx = updateContext(
-      EvaluatorSchema,
+      ScoringRuleSchema,
       input,
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
-    await newPipeline<typeof EvaluatorSchema>("evaluator-update", deps.logger)
+    await newPipeline<typeof ScoringRuleSchema>("evaluator-update", deps.logger)
       .addStep(
-        newAuthorizeStep(EvaluatorCommandController.method.update, deps.authorizer,
+        newAuthorizeStep(ScoringRuleCommandController.method.update, deps.authorizer,
         input,
       ),
       )
       .addStep(newLoadExistingStep(deps.store))
       .addStep(newBuildUpdateStateStep())
       .addStep(newValidateProtoStep({ of: "state" }))
-      .addStep(newValidateEvaluatorUpdateStep())
+      .addStep(newValidateScoringRuleUpdateStep())
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
-      .addStep(newPersistEvaluatorSettingsStep(deps.store, deps.credentialBinding))
+      .addStep(newPersistScoringRuleSettingsStep(deps.store, deps.credentialBinding))
       .build()
       .execute(reqCtx);
     return reqCtx.newState;
@@ -198,61 +198,61 @@ async function updateEvaluator(
 }
 
 /** Delete: can_delete on the evaluator (can_edit on its agent). Scores already recorded stay. */
-async function deleteEvaluator(
-  deps: EvaluatorControllerDeps,
-  id: EvaluatorId,
+async function deleteScoringRule(
+  deps: ScoringRuleControllerDeps,
+  id: ScoringRuleId,
   ctx: HandlerContext,
-): Promise<Evaluator> {
+): Promise<ScoringRule> {
   const reqCtx = new RequestContext(
-    EvaluatorIdSchema,
+    ScoringRuleIdSchema,
     id,
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof EvaluatorIdSchema>("evaluator-delete", deps.logger)
+  await newPipeline<typeof ScoringRuleIdSchema>("evaluator-delete", deps.logger)
     .addStep(
-      newAuthorizeStep(EvaluatorCommandController.method.delete, deps.authorizer),
+      newAuthorizeStep(ScoringRuleCommandController.method.delete, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
-    .addStep(newLoadExistingForDeleteStep(deps.store, EvaluatorSchema))
+    .addStep(newLoadExistingForDeleteStep(deps.store, ScoringRuleSchema))
     .addStep(newDeleteResourceStep(deps.store))
-    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.evaluator))
+    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.scoring_rule))
     .addStep(
       newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
     )
     .build()
     .execute(reqCtx);
 
-  return chainResult<Evaluator>(
+  return chainResult<ScoringRule>(
     reqCtx.get(EXISTING_RESOURCE_KEY),
     "deleted evaluator",
   );
 }
 
 /** Get: can_view on the evaluator, which is can_view on its agent. */
-async function getEvaluator(
-  deps: EvaluatorControllerDeps,
-  id: EvaluatorId,
+async function getScoringRule(
+  deps: ScoringRuleControllerDeps,
+  id: ScoringRuleId,
   ctx: HandlerContext,
-): Promise<Evaluator> {
+): Promise<ScoringRule> {
   const reqCtx = new RequestContext(
-    EvaluatorIdSchema,
+    ScoringRuleIdSchema,
     id,
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof EvaluatorIdSchema>("evaluator-get", deps.logger)
+  await newPipeline<typeof ScoringRuleIdSchema>("evaluator-get", deps.logger)
     .addStep(
-      newAuthorizeStep(EvaluatorQueryController.method.get, deps.authorizer),
+      newAuthorizeStep(ScoringRuleQueryController.method.get, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
-    .addStep(newLoadTargetStep(deps.store, EvaluatorSchema))
+    .addStep(newLoadTargetStep(deps.store, ScoringRuleSchema))
     .build()
     .execute(reqCtx);
 
-  return chainResult<Evaluator>(
+  return chainResult<ScoringRule>(
     reqCtx.get(TARGET_RESOURCE_KEY),
     "target evaluator",
   );
@@ -260,11 +260,11 @@ async function getEvaluator(
 
 /** GetByAgent: the agent's evaluator; Authorize asks can_view on the agent. */
 async function getByAgent(
-  deps: EvaluatorControllerDeps,
-  req: GetEvaluatorByAgentRequest,
+  deps: ScoringRuleControllerDeps,
+  req: GetScoringRuleByAgentRequest,
   ctx: HandlerContext,
-): Promise<Evaluator> {
-  const input = EvaluatorQueryController.method.getByAgent.input;
+): Promise<ScoringRule> {
+  const input = ScoringRuleQueryController.method.getByAgent.input;
   const reqCtx = new RequestContext(
     input,
     req,
@@ -274,16 +274,16 @@ async function getByAgent(
   await newPipeline<typeof input>("evaluator-get-by-agent", deps.logger)
     .addStep(
       newAuthorizeStep(
-        EvaluatorQueryController.method.getByAgent,
+        ScoringRuleQueryController.method.getByAgent,
         deps.authorizer,
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newGetEvaluatorByAgentStep(deps.store, deps.logger))
+    .addStep(newGetScoringRuleByAgentStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);
-  return chainResult<Evaluator>(
-    reqCtx.get(EVALUATOR_RESULT_KEY),
+  return chainResult<ScoringRule>(
+    reqCtx.get(SCORING_RULE_RESULT_KEY),
     "evaluator",
   );
 }

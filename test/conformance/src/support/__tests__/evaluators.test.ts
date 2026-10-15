@@ -16,9 +16,9 @@ import {
   GRADES_RUN_LABEL,
   JUDGE,
   awaitJudgeVerdict,
-  evaluatorOrgMismatchMessage,
+  scoringRuleOrgMismatchMessage,
   judgeRunsOf,
-  makeEvaluator,
+  makeScoringRule,
 } from "../evaluators";
 
 function judgeScore(state: ScoreState): Score {
@@ -40,11 +40,11 @@ function listing(pages: Score[][]): ConformanceClients {
 
 describe("evaluator fixtures", () => {
   it("a fresh evaluator is enabled, samples every run and spends ten dollars a month", () => {
-    expect(makeEvaluator({ org: "org_1", agentId: "agt_1" })).toMatchObject({
+    expect(makeScoringRule({ org: "org_1", agentId: "agt_1" })).toMatchObject({
       metadata: { org: "org_1" },
       spec: { agentId: "agt_1", enabled: true, sampleRate: 1, monthlyLimitUsd: 10, modelName: "" },
     });
-    expect(makeEvaluator({ org: "org_1", agentId: "agt_1", sampleRate: 0.5, monthlyLimitUsd: 2 }).spec).toMatchObject({
+    expect(makeScoringRule({ org: "org_1", agentId: "agt_1", sampleRate: 0.5, monthlyLimitUsd: 2 }).spec).toMatchObject({
       sampleRate: 0.5,
       monthlyLimitUsd: 2,
     });
@@ -53,7 +53,7 @@ describe("evaluator fixtures", () => {
 
 describe("evaluator copy", () => {
   it("names the agent's organization in the mismatch refusal, as the server does", () => {
-    expect(evaluatorOrgMismatchMessage("org_1")).toBe("metadata.org must be the agent's organization (org_1)");
+    expect(scoringRuleOrgMismatchMessage("org_1")).toBe("metadata.org must be the agent's organization (org_1)");
   });
 });
 

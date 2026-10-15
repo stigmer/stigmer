@@ -8,26 +8,26 @@
  */
 import { fromBinary } from "@bufbuild/protobuf";
 
-import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
-import type { Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import type { ScoringRule } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Store } from "../../store/interface.js";
-import { evaluatorListIndex } from "./list-index.js";
+import { scoringRuleListIndex } from "./list-index.js";
 
 /** Every evaluator of one agent; the one-per-agent rule makes it at most one. */
-export async function listAgentEvaluators(
+export async function listAgentScoringRules(
   store: Store,
   logger: Logger,
   agentId: string,
-): Promise<Evaluator[]> {
-  const rows = await store.queryResources(evaluatorListIndex, {
+): Promise<ScoringRule[]> {
+  const rows = await store.queryResources(scoringRuleListIndex, {
     anyKey: [{ name: "agent", value: agentId }],
   });
-  const evaluators: Evaluator[] = [];
+  const evaluators: ScoringRule[] = [];
   for (const row of rows) {
     try {
-      evaluators.push(fromBinary(EvaluatorSchema, row.data));
+      evaluators.push(fromBinary(ScoringRuleSchema, row.data));
     } catch (error) {
       logger.warn("skipped an evaluator row that does not decode", {
         evaluatorId: row.id,

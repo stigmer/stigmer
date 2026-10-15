@@ -12,7 +12,7 @@
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
@@ -27,7 +27,7 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import {
   creatorCannotSeeRunMessage,
-  evaluatorHasNoPersonMessage,
+  scoringRuleHasNoPersonMessage,
   newBuiltInGradingCaller,
 } from "../grading-caller.js";
 import { driverFixtures, dropPostgresFixture } from "./drivers.js";
@@ -39,7 +39,7 @@ const PRIYA = accountIdFor(SUBJECT);
 afterAll(dropPostgresFixture);
 
 describe.each(
-  driverFixtures([ApiResourceKind.evaluator, ApiResourceKind.identity_account]),
+  driverFixtures([ApiResourceKind.scoring_rule, ApiResourceKind.identity_account]),
 )("the built-in grading caller on $name", (fixture) => {
   describe.skipIf(fixture.skip)("mintGradingCaller", () => {
     let opened: OpenedStore;
@@ -66,10 +66,10 @@ describe.each(
 
     async function evaluator(id: string, createdBy: string): Promise<void> {
       await opened.store.saveResource(
-        ApiResourceKind.evaluator,
+        ApiResourceKind.scoring_rule,
         id,
-        EvaluatorSchema,
-        create(EvaluatorSchema, {
+        ScoringRuleSchema,
+        create(ScoringRuleSchema, {
           metadata: { id, name: id, org: "acme" },
           spec: { agentId: "agt_1", enabled: true, sampleRate: 1, monthlyLimitUsd: 10 },
           status: { audit: { specAudit: { createdBy: { id: createdBy } } } },
@@ -128,7 +128,7 @@ describe.each(
         .mintGradingCaller("acme", "evl_nobody", "run_1")
         .catch((error: unknown) => error);
       expect(failure).toBeInstanceOf(GradingCallerRefusedError);
-      expect((failure as Error).message).toBe(evaluatorHasNoPersonMessage("evl_nobody"));
+      expect((failure as Error).message).toBe(scoringRuleHasNoPersonMessage("evl_nobody"));
     });
 
     it("an evaluator that no longer exists is an infrastructure throw, never a refusal", async () => {

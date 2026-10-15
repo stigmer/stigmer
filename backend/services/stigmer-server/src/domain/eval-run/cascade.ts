@@ -4,7 +4,7 @@
  * conversations (tries.ts), read through the eval run list index by the
  * subject's key. Each eval run's access goes with its row while the
  * subject still links it to its organization, as the agent's evaluator
- * cascade does (domain/evaluator/cascade.ts). An eval run still pending or
+ * cascade does (domain/scoring-rule/cascade.ts). An eval run still pending or
  * running refuses the delete, naming cancel: its tries may hold an active
  * run, which a conversation's delete refuses. Runs before every other
  * cascade of the subject's delete, so a refusal removes nothing. A plugin

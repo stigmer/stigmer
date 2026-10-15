@@ -138,7 +138,7 @@ import type { OrganizationDepartureHandler } from "../domain/grant/grant-path.js
 import { registerGitHubServices } from "../domain/github/controller.js";
 import { registerMemoryServices } from "../domain/memory/controller.js";
 import { newRunScoreCascade } from "../domain/score/cascade.js";
-import { registerEvaluatorServices } from "../domain/evaluator/controller.js";
+import { registerScoringRuleServices } from "../domain/scoring-rule/controller.js";
 import { registerEvalRunServices } from "../domain/eval-run/controller.js";
 import { newCaseArchiveReader } from "../domain/eval-run/suite.js";
 import { newTemporalEvalRunWorkflows } from "../domain/eval-run/workflows.js";
@@ -1967,7 +1967,7 @@ export async function composeServer(
       authorizationLifecycle,
       listReadScope,
     });
-    registerEvaluatorServices(router, {
+    registerScoringRuleServices(router, {
       store,
       logger,
       authorizer,

@@ -40,7 +40,7 @@ import { newAgentExecutionPurge } from "../domain/run/purge.js";
 import { newAgentSharePurge } from "../domain/agentshare/purge.js";
 import { newApiKeyPurge } from "../domain/apikey/purge.js";
 import { newChannelAppPurge } from "../domain/channelapp/purge.js";
-import { newEvaluatorPurge } from "../domain/evaluator/purge.js";
+import { newScoringRulePurge } from "../domain/scoring-rule/purge.js";
 import { newEvalRunPurge } from "../domain/eval-run/purge.js";
 import type { EvalRunWorkflows } from "../domain/eval-run/workflows.js";
 import { newMemoryPurge } from "../domain/memory/purge.js";
@@ -110,7 +110,7 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
       // a channel before the channel app it references.
       newAgentSharePurge(deps),
       newAgentChannelPurge(deps),
-      newEvaluatorPurge(deps),
+      newScoringRulePurge(deps),
       // Eval runs before the agents and plugins they are about; their tries
       // went with the sessions above.
       newEvalRunPurge(deps),
@@ -146,7 +146,7 @@ export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.session,
   ApiResourceKind.agent_share,
   ApiResourceKind.agent_channel,
-  ApiResourceKind.evaluator,
+  ApiResourceKind.scoring_rule,
   ApiResourceKind.eval_run,
   ApiResourceKind.channel_app,
   ApiResourceKind.memory,

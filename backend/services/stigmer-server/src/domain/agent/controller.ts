@@ -158,7 +158,7 @@ import {
   newValidateMcpServersStep,
   newValidatePluginListStep,
 } from "./steps.js";
-import { newCascadeDeleteEvaluatorsStep } from "../evaluator/cascade.js";
+import { newCascadeDeleteScoringRulesStep } from "../scoring-rule/cascade.js";
 import { newCascadeDeleteEvalRunsStep } from "../eval-run/cascade.js";
 import type { EvalRunCascadeDeps } from "../eval-run/cascade.js";
 import {
@@ -462,7 +462,7 @@ async function deleteAgent(
       ),
     )
     .addStep(
-      newCascadeDeleteEvaluatorsStep(
+      newCascadeDeleteScoringRulesStep(
         deps.store,
         deps.authorizationLifecycle,
         deps.logger,

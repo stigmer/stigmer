@@ -8,8 +8,8 @@
  * whole one in N is kept on save unless N is changed. The monthly limit is
  * US dollars of estimated model spend.
  */
-import type { Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
-import type { EvaluatorInput } from "@stigmer/sdk";
+import type { ScoringRule } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import type { ScoringRuleInput } from "@stigmer/sdk";
 
 /** The largest N in "one in N runs". */
 export const MAX_ONE_IN = 100;
@@ -37,7 +37,7 @@ export const DEFAULT_GRADING_SETTINGS: GradingSettings = {
 };
 
 /** The settings an evaluator holds. */
-export function settingsOf(evaluator: Evaluator): GradingSettings {
+export function settingsOf(evaluator: ScoringRule): GradingSettings {
   const spec = evaluator.spec;
   const rate = spec?.sampleRate ?? 0;
   return {
@@ -49,11 +49,11 @@ export function settingsOf(evaluator: Evaluator): GradingSettings {
 }
 
 /** The create or update input for an agent's evaluator with `settings`. */
-export function evaluatorInputOf(
+export function scoringRuleInputOf(
   agent: { readonly id: string; readonly org: string },
   settings: GradingSettings,
-  existing: Evaluator | null,
-): EvaluatorInput {
+  existing: ScoringRule | null,
+): ScoringRuleInput {
   return {
     ...(existing?.metadata?.id ? { id: existing.metadata.id } : {}),
     name: existing?.metadata?.name ?? "",
@@ -80,7 +80,7 @@ export function isValidLimit(usd: number): boolean {
 }
 
 /** The rate to save: the stored one while N is unchanged, else 1/N. */
-function sampleRateOf(settings: GradingSettings, existing: Evaluator | null): number {
+function sampleRateOf(settings: GradingSettings, existing: ScoringRule | null): number {
   const oneIn = clampOneIn(settings.oneIn);
   if (existing !== null && settingsOf(existing).oneIn === oneIn && (existing.spec?.sampleRate ?? 0) > 0) {
     return existing.spec?.sampleRate ?? 0;

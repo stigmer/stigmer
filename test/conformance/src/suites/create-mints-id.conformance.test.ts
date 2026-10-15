@@ -62,7 +62,7 @@ import { makeAgentShare } from "../support/agentshares";
 import { makeApiKey } from "../support/apikeys";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { makeSharedVault } from "../support/vaults";
-import { makeEvaluator } from "../support/evaluators";
+import { makeScoringRule } from "../support/evaluators";
 import {
   cancelAndDeleteEvalRun,
   installPlugin,
@@ -363,18 +363,18 @@ const ROWS: readonly Row[] = [
   {
     title: "[rpc:EvaluatorCommandController.create] Evaluator",
     key: "EvaluatorCommandController.create",
-    kind: ApiResourceKind.evaluator,
+    kind: ApiResourceKind.scoring_rule,
     async send({ org }, chosenId) {
       const agent = await agentIn(org);
-      const created = await clients.evaluatorCommand.create({
-        ...makeEvaluator({ org, agentId: agent.id }),
+      const created = await clients.scoringRuleCommand.create({
+        ...makeScoringRule({ org, agentId: agent.id }),
         metadata: { id: chosenId, org },
       });
-      fixtures.defer(() => clients.evaluatorCommand.delete({ value: created.metadata!.id }));
+      fixtures.defer(() => clients.scoringRuleCommand.delete({ value: created.metadata!.id }));
       return answerOf(this.key, created.metadata);
     },
     async read(id) {
-      return (await clients.evaluatorQuery.get({ value: id })).metadata?.id;
+      return (await clients.scoringRuleQuery.get({ value: id })).metadata?.id;
     },
   },
   {

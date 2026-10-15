@@ -8,14 +8,14 @@
 // byte-pinned in the server (domain/evaluator/constants.ts and the judge's
 // not-graded reasons in domain/score/constants.ts) and asserted here over the
 // wire.
-import type { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import type { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { ScoreState } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { InitShape } from "./init-shape";
 
-export const EVALUATOR_API_VERSION = "agentic.stigmer.ai/v1";
-export const EVALUATOR_KIND = "Evaluator";
+export const SCORING_RULE_API_VERSION = "agentic.stigmer.ai/v1";
+export const SCORING_RULE_KIND = "Evaluator";
 
 export const JUDGE = "judge";
 
@@ -24,21 +24,21 @@ export { ACTED_ONLY_AS_ASKED, ASKED_WHEN_UNCLEAR, DID_THE_TASK, MADE_NOTHING_UP 
 
 // ─── Contract copy (byte-pinned in the server) ─────────────────────────────
 
-export const EVALUATOR_EXISTS_REASON = "EVALUATOR_EXISTS";
+export const SCORING_RULE_EXISTS_REASON = "EVALUATOR_EXISTS";
 
-export const EVALUATOR_CREATE_DENIED_MESSAGE = "unauthorized to configure grading for agent";
+export const SCORING_RULE_CREATE_DENIED_MESSAGE = "unauthorized to configure grading for agent";
 
-export const EVALUATOR_AGENT_IMMUTABLE_MESSAGE =
+export const SCORING_RULE_AGENT_IMMUTABLE_MESSAGE =
   "spec.agent_id of an evaluator cannot change; delete it and create one for the other agent";
 
-export function evaluatorOrgMismatchMessage(agentOrg: string): string {
+export function scoringRuleOrgMismatchMessage(agentOrg: string): string {
   return `metadata.org must be the agent's organization (${agentOrg})`;
 }
 
 export const JUDGE_LIMIT_REACHED_REASON = "spending limit reached";
 export const JUDGE_UNREADABLE_REASON = "the judge's answer could not be read";
 
-export interface EvaluatorOptions {
+export interface ScoringRuleOptions {
   org: string;
   agentId: string;
   enabled?: boolean;
@@ -49,10 +49,10 @@ export interface EvaluatorOptions {
 
 // A complete, valid Evaluator ready to hand to create or update: enabled,
 // every run sampled, ten dollars a month, the platform's default model.
-export function makeEvaluator(opts: EvaluatorOptions): InitShape<typeof EvaluatorSchema> {
+export function makeScoringRule(opts: ScoringRuleOptions): InitShape<typeof ScoringRuleSchema> {
   return {
-    apiVersion: EVALUATOR_API_VERSION,
-    kind: EVALUATOR_KIND,
+    apiVersion: SCORING_RULE_API_VERSION,
+    kind: SCORING_RULE_KIND,
     metadata: { org: opts.org },
     spec: {
       agentId: opts.agentId,

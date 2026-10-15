@@ -1070,16 +1070,16 @@ export type {
 // Evaluators — AI grading switched on per agent: its sample, its monthly
 // spending limit and its judge model (the agent's Quality tab)
 export {
-  useAgentEvaluator,
-  useSaveEvaluator,
+  useAgentScoringRule,
+  useSaveScoringRule,
   DEFAULT_GRADING_SETTINGS,
   MAX_ONE_IN,
-} from "./evaluator/index.js";
+} from "./scoring-rule/index.js";
 export type {
-  UseAgentEvaluatorReturn,
-  UseSaveEvaluatorReturn,
+  UseAgentScoringRuleReturn,
+  UseSaveScoringRuleReturn,
   GradingSettings,
-} from "./evaluator/index.js";
+} from "./scoring-rule/index.js";
 
 // Eval runs — test cases run on an agent, or a plugin's own cases on the
 // built-in assistant, optionally with and without a plugin (the Evals tab

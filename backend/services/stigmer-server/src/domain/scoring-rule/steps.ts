@@ -24,9 +24,9 @@ import { create } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
-import type { Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
-import type { GetEvaluatorByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/io_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import type { ScoringRule } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import type { GetScoringRuleByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
@@ -50,20 +50,20 @@ import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewher
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
-  EVALUATOR_AGENT_IMMUTABLE_MESSAGE,
-  EVALUATOR_CREATE_DENIED_MESSAGE,
-  EVALUATOR_EXISTS_REASON,
-  evaluatorExistsMessage,
-  evaluatorOrgMismatchMessage,
-  noEvaluatorMessage,
+  SCORING_RULE_AGENT_IMMUTABLE_MESSAGE,
+  SCORING_RULE_CREATE_DENIED_MESSAGE,
+  SCORING_RULE_EXISTS_REASON,
+  scoringRuleExistsMessage,
+  scoringRuleOrgMismatchMessage,
+  noScoringRuleMessage,
 } from "./constants.js";
-import { listAgentEvaluators } from "./queries.js";
+import { listAgentScoringRules } from "./queries.js";
 
 /** Context key for the agent a create configures, stashed by LoadEvaluatedAgent. */
 export const EVALUATED_AGENT_KEY = "evaluatedAgent";
 
 /** Context key for getByAgent's answer. */
-export const EVALUATOR_RESULT_KEY = "evaluatorResult";
+export const SCORING_RULE_RESULT_KEY = "evaluatorResult";
 
 /**
  * The create lane's authorization question, for AuthorizeResolvedTarget
@@ -72,8 +72,8 @@ export const EVALUATOR_RESULT_KEY = "evaluatorResult";
  * the request's own id (command.proto). A server-composed request asks
  * nothing: the entry-point request already passed.
  */
-export function resolveEvaluatorCreateTargets(
-  ctx: RequestContext<typeof EvaluatorSchema>,
+export function resolveScoringRuleCreateTargets(
+  ctx: RequestContext<typeof ScoringRuleSchema>,
 ): ReadonlyArray<AuthorizationTarget> {
   if (isServerComposedRequest(ctx.callerIdentity)) {
     return [];
@@ -83,7 +83,7 @@ export function resolveEvaluatorCreateTargets(
       permission: IamPermission.can_edit,
       resourceKind: ApiResourceKind.agent,
       resourceId: ctx.newState.spec?.agentId ?? "",
-      deniedMessage: EVALUATOR_CREATE_DENIED_MESSAGE,
+      deniedMessage: SCORING_RULE_CREATE_DENIED_MESSAGE,
     },
   ];
 }
@@ -91,10 +91,10 @@ export function resolveEvaluatorCreateTargets(
 /** LoadEvaluatedAgent: reads the agent named in spec.agent_id into EVALUATED_AGENT_KEY. */
 export function newLoadEvaluatedAgentStep(
   store: Store,
-): PipelineStep<typeof EvaluatorSchema> {
+): PipelineStep<typeof ScoringRuleSchema> {
   return {
     name: "LoadEvaluatedAgent",
-    async execute(ctx: RequestContext<typeof EvaluatorSchema>): Promise<void> {
+    async execute(ctx: RequestContext<typeof ScoringRuleSchema>): Promise<void> {
       const agentId = ctx.newState.spec?.agentId ?? "";
       let agent: Agent;
       try {
@@ -116,12 +116,12 @@ export function newLoadEvaluatedAgentStep(
  * interceptor covers the lane, and an evaluator lives where its agent
  * does); the id is minted here so an unnamed evaluator is named by it.
  */
-export function newResolveEvaluatorDefaultsStep(): PipelineStep<
-  typeof EvaluatorSchema
+export function newResolveScoringRuleDefaultsStep(): PipelineStep<
+  typeof ScoringRuleSchema
 > {
   return {
     name: "ResolveEvaluatorDefaults",
-    execute(ctx: RequestContext<typeof EvaluatorSchema>): void {
+    execute(ctx: RequestContext<typeof ScoringRuleSchema>): void {
       const metadata = ctx.newState.metadata;
       if (metadata === undefined || metadata.org === "") {
         throw invalidArgumentError("metadata.org is required for an evaluator");
@@ -135,7 +135,7 @@ export function newResolveEvaluatorDefaultsStep(): PipelineStep<
       }
       const agentOrg = agent.metadata?.org ?? "";
       if (metadata.org !== agentOrg) {
-        throw failedPreconditionError(evaluatorOrgMismatchMessage(agentOrg));
+        throw failedPreconditionError(scoringRuleOrgMismatchMessage(agentOrg));
       }
       assignServerId(ctx, generateId("evl"));
       if (metadata.name === "" && metadata.slug === "") {
@@ -153,25 +153,25 @@ export function newResolveEvaluatorDefaultsStep(): PipelineStep<
  * can race it, which the console prevents by disabling the switch while a
  * write is in flight.
  */
-export function newCheckEvaluatorUniqueStep(
+export function newCheckScoringRuleUniqueStep(
   store: Store,
   logger: Logger,
-): PipelineStep<typeof EvaluatorSchema> {
+): PipelineStep<typeof ScoringRuleSchema> {
   return {
     name: "CheckEvaluatorUnique",
-    async execute(ctx: RequestContext<typeof EvaluatorSchema>): Promise<void> {
+    async execute(ctx: RequestContext<typeof ScoringRuleSchema>): Promise<void> {
       const agentId = ctx.newState.spec?.agentId ?? "";
-      let existing: Evaluator[];
+      let existing: ScoringRule[];
       try {
-        existing = await listAgentEvaluators(store, logger, agentId);
+        existing = await listAgentScoringRules(store, logger, agentId);
       } catch (error) {
         throw internalError(error, "failed to read the agent's evaluator");
       }
       const first = existing[0];
       if (first !== undefined) {
         const id = first.metadata?.id ?? "";
-        throw alreadyExistsWithReasonError(evaluatorExistsMessage(id), {
-          reason: EVALUATOR_EXISTS_REASON,
+        throw alreadyExistsWithReasonError(scoringRuleExistsMessage(id), {
+          reason: SCORING_RULE_EXISTS_REASON,
           metadata: { evaluator_id: id },
         });
       }
@@ -183,13 +183,13 @@ export function newCheckEvaluatorUniqueStep(
  * ValidateEvaluatorUpdate: the agent an evaluator grades is fixed. Runs
  * after LoadExisting and BuildUpdateState, which keep the status.
  */
-export function newValidateEvaluatorUpdateStep(): PipelineStep<
-  typeof EvaluatorSchema
+export function newValidateScoringRuleUpdateStep(): PipelineStep<
+  typeof ScoringRuleSchema
 > {
   return {
     name: "ValidateEvaluatorUpdate",
-    execute(ctx: RequestContext<typeof EvaluatorSchema>): void {
-      const existing = ctx.get(EXISTING_RESOURCE_KEY) as Evaluator | undefined;
+    execute(ctx: RequestContext<typeof ScoringRuleSchema>): void {
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as ScoringRule | undefined;
       if (existing === undefined) {
         throw internalError(
           new Error("existing evaluator not found in context"),
@@ -197,7 +197,7 @@ export function newValidateEvaluatorUpdateStep(): PipelineStep<
         );
       }
       if (ctx.newState.spec?.agentId !== existing.spec?.agentId) {
-        throw failedPreconditionError(EVALUATOR_AGENT_IMMUTABLE_MESSAGE);
+        throw failedPreconditionError(SCORING_RULE_AGENT_IMMUTABLE_MESSAGE);
       }
     },
   };
@@ -210,13 +210,13 @@ export function newValidateEvaluatorUpdateStep(): PipelineStep<
  * row, so a budget write between the read and the write makes the chain
  * run again rather than be undone (module header).
  */
-export function newPersistEvaluatorSettingsStep(
+export function newPersistScoringRuleSettingsStep(
   store: Store,
   binding: OrganizationAdmission,
-): PipelineStep<typeof EvaluatorSchema> {
+): PipelineStep<typeof ScoringRuleSchema> {
   return {
     name: "PersistEvaluatorSettings",
-    async execute(ctx: RequestContext<typeof EvaluatorSchema>): Promise<void> {
+    async execute(ctx: RequestContext<typeof ScoringRuleSchema>): Promise<void> {
       await refuseBoundElsewhere(
         binding,
         ctx.callerIdentity,
@@ -228,27 +228,27 @@ export function newPersistEvaluatorSettingsStep(
 }
 
 /** GetEvaluatorByAgent: the agent's evaluator, or NOT_FOUND when grading is off. */
-export function newGetEvaluatorByAgentStep(
+export function newGetScoringRuleByAgentStep(
   store: Store,
   logger: Logger,
-): PipelineStep<typeof GetEvaluatorByAgentRequestSchema> {
+): PipelineStep<typeof GetScoringRuleByAgentRequestSchema> {
   return {
     name: "GetEvaluatorByAgent",
     async execute(
-      ctx: RequestContext<typeof GetEvaluatorByAgentRequestSchema>,
+      ctx: RequestContext<typeof GetScoringRuleByAgentRequestSchema>,
     ): Promise<void> {
       const agentId = ctx.input.agentId;
-      let evaluators: Evaluator[];
+      let evaluators: ScoringRule[];
       try {
-        evaluators = await listAgentEvaluators(store, logger, agentId);
+        evaluators = await listAgentScoringRules(store, logger, agentId);
       } catch (error) {
         throw internalError(error, "failed to read the agent's evaluator");
       }
       const evaluator = evaluators[0];
       if (evaluator === undefined) {
-        throw new ConnectError(noEvaluatorMessage(agentId), Code.NotFound);
+        throw new ConnectError(noScoringRuleMessage(agentId), Code.NotFound);
       }
-      ctx.set(EVALUATOR_RESULT_KEY, evaluator);
+      ctx.set(SCORING_RULE_RESULT_KEY, evaluator);
     },
   };
 }

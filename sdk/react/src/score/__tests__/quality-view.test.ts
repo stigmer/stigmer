@@ -21,7 +21,7 @@ import {
   dailyRateSeries,
   dailyRunsSeries,
   evalPassRateOf,
-  evaluatorChangedIn,
+  scoringRuleChangedIn,
   flaggedWhatOf,
   formatPassRate,
   latestFinishedEvalByVersion,
@@ -50,8 +50,8 @@ describe("pass rates", () => {
     // Not applicable is left out of both sides.
     expect(criterionRateOf(total, "judge", "judge-v2", "honest")).toEqual({ rate: 1, count: 5 });
     expect(criterionNamesOf(total, "judge", "judge-v2")).toEqual(["task", "honest"]);
-    expect(evaluatorChangedIn(total, "judge")).toBe(true);
-    expect(evaluatorChangedIn(total, "run-health")).toBe(false);
+    expect(scoringRuleChangedIn(total, "judge")).toBe(true);
+    expect(scoringRuleChangedIn(total, "run-health")).toBe(false);
   });
 });
 

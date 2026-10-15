@@ -11,7 +11,7 @@ import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_p
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
 import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
@@ -84,8 +84,8 @@ export const GET_BINDINGS: ReadonlyMap<ApiResourceKind, Getter> = new Map([
     idOnlyGetter(ScoreSchema, (c) => c.score, "Scores"),
   ],
   [
-    ApiResourceKind.evaluator,
-    idOnlyGetter(EvaluatorSchema, (c) => c.evaluator, "Evaluators"),
+    ApiResourceKind.scoring_rule,
+    idOnlyGetter(ScoringRuleSchema, (c) => c.scoringrule, "Scoring rules"),
   ],
   [
     ApiResourceKind.eval_run,

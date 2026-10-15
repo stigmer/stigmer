@@ -2,12 +2,12 @@
 // many runs it samples, its monthly spending limit and its judge model.
 
 export {
-  useAgentEvaluator,
-  type UseAgentEvaluatorReturn,
+  useAgentScoringRule,
+  type UseAgentScoringRuleReturn,
 } from "./useAgentEvaluator.js";
 export {
-  useSaveEvaluator,
-  type UseSaveEvaluatorReturn,
+  useSaveScoringRule,
+  type UseSaveScoringRuleReturn,
 } from "./useSaveEvaluator.js";
 export {
   DEFAULT_GRADING_SETTINGS,

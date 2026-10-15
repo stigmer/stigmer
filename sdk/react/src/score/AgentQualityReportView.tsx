@@ -50,7 +50,7 @@ import {
   dailyRateSeries,
   dailyRunsSeries,
   evalPassRateOf,
-  evaluatorChangedIn,
+  scoringRuleChangedIn,
   flaggedWhatOf,
   formatPassRate,
   formatPercent,
@@ -299,7 +299,7 @@ function ReportBody({
           </Tile>
         )}
       </div>
-      {evaluatorChangedIn(total, JUDGE_METRIC) && (
+      {scoringRuleChangedIn(total, JUDGE_METRIC) && (
         <p className="stg:text-xs stg:text-muted-foreground">
           The AI judge&apos;s rules changed in these days. Its rates count only
           grades under the current rules; a break in its trend is a day graded

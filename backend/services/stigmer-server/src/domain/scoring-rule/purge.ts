@@ -8,8 +8,8 @@
  * its create names the organization, which the deleting-organization
  * interceptor refuses.
  */
-import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
-import { EvaluatorCommandController } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/command_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import { ScoringRuleCommandController } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
@@ -21,21 +21,21 @@ import type {
   KindPurge,
   KindPurgeDeps,
 } from "../organization/purge/kind-purge.js";
-import { evaluatorListIndex } from "./list-index.js";
+import { scoringRuleListIndex } from "./list-index.js";
 
-export interface EvaluatorPurgeDeps extends KindPurgeDeps {
+export interface ScoringRulePurgeDeps extends KindPurgeDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
 }
 
-export function newEvaluatorPurge(deps: EvaluatorPurgeDeps): KindPurge {
+export function newScoringRulePurge(deps: ScoringRulePurgeDeps): KindPurge {
   return newKindPurge(deps, {
-    kind: ApiResourceKind.evaluator,
-    schema: EvaluatorSchema,
-    input: EvaluatorCommandController.method.delete.input,
-    listIndex: evaluatorListIndex,
+    kind: ApiResourceKind.scoring_rule,
+    schema: ScoringRuleSchema,
+    input: ScoringRuleCommandController.method.delete.input,
+    listIndex: scoringRuleListIndex,
     steps: [
       newDeleteResourceStep(deps.store),
-      newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.evaluator),
+      newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.scoring_rule),
       newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
     ],
   });

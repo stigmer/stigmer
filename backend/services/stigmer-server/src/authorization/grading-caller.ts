@@ -23,7 +23,7 @@
  * evaluator, a store fault or an authorizer that cannot answer is an
  * infrastructure throw.
  */
-import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
@@ -45,7 +45,7 @@ export interface BuiltInGradingCallerDeps {
 }
 
 /** The refusal's log copy. */
-export function evaluatorHasNoPersonMessage(evaluatorId: string): string {
+export function scoringRuleHasNoPersonMessage(evaluatorId: string): string {
   return `evaluator ${evaluatorId} was created by nobody this server recognizes as a person`;
 }
 
@@ -60,16 +60,16 @@ export function newBuiltInGradingCaller(
   return {
     async mintGradingCaller(_org, evaluatorId, judgedRunId) {
       const evaluator = await deps.store.getResource(
-        ApiResourceKind.evaluator,
+        ApiResourceKind.scoring_rule,
         evaluatorId,
-        EvaluatorSchema,
+        ScoringRuleSchema,
       );
       const stamp =
-        auditOf(EvaluatorSchema, evaluator)?.specAudit?.createdBy?.id ?? "";
+        auditOf(ScoringRuleSchema, evaluator)?.specAudit?.createdBy?.id ?? "";
       const account = await accountForStamp(deps.accounts, stamp);
       if (account === undefined) {
         throw new GradingCallerRefusedError(
-          evaluatorHasNoPersonMessage(evaluatorId),
+          scoringRuleHasNoPersonMessage(evaluatorId),
         );
       }
       const caller = accountAsCaller(account);

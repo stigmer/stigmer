@@ -50,9 +50,9 @@ import {
   MADE_NOTHING_UP,
 } from "@stigmer/eval-runtime/judge";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
-import { EvaluatorCommandController } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/command_pb";
-import { EvaluatorQueryController } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/query_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import { ScoringRuleCommandController } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/command_pb";
+import { ScoringRuleQueryController } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/query_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -75,12 +75,12 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import { createInProcessClients } from "../../../boot/inprocess.js";
 import type { ComposedServer } from "../../../boot/compose.js";
-import { periodOf, reserve } from "../../../domain/evaluator/budget.js";
+import { periodOf, reserve } from "../../../domain/scoring-rule/budget.js";
 import {
-  EVALUATOR_AGENT_IMMUTABLE_MESSAGE,
-  EVALUATOR_EXISTS_REASON,
-  evaluatorOrgMismatchMessage,
-} from "../../../domain/evaluator/constants.js";
+  SCORING_RULE_AGENT_IMMUTABLE_MESSAGE,
+  SCORING_RULE_EXISTS_REASON,
+  scoringRuleOrgMismatchMessage,
+} from "../../../domain/scoring-rule/constants.js";
 import {
   JUDGE_COST_CAP_REASON,
   JUDGE_LIMIT_REACHED_REASON,
@@ -128,8 +128,8 @@ let server: ComposedServer;
 let wire: Client<typeof ScoreCommandController>;
 let inProcess: Client<typeof ScoreCommandController>;
 let scores: Client<typeof ScoreQueryController>;
-let evaluators: Client<typeof EvaluatorCommandController>;
-let evaluatorQuery: Client<typeof EvaluatorQueryController>;
+let evaluators: Client<typeof ScoringRuleCommandController>;
+let scoringRuleQuery: Client<typeof ScoringRuleQueryController>;
 let agents: Client<typeof AgentCommandController>;
 let org: string;
 let wireBase: string;
@@ -147,8 +147,8 @@ beforeAll(async () => {
   const transport = createGrpcTransport({ baseUrl: wireBase });
   wire = createClient(ScoreCommandController, transport);
   scores = createClient(ScoreQueryController, transport);
-  evaluators = createClient(EvaluatorCommandController, transport);
-  evaluatorQuery = createClient(EvaluatorQueryController, transport);
+  evaluators = createClient(ScoringRuleCommandController, transport);
+  scoringRuleQuery = createClient(ScoringRuleQueryController, transport);
   agents = createClient(AgentCommandController, transport);
   inProcess = createClient(ScoreCommandController, server.inProcessTransport);
   const created = await createClient(OrganizationCommandController, transport).create({
@@ -414,7 +414,7 @@ async function newAgent(): Promise<string> {
   return agent.metadata!.id;
 }
 
-async function newEvaluator(agentId: string, spec: { sampleRate?: number; monthlyLimitUsd?: number; enabled?: boolean } = {}) {
+async function newScoringRule(agentId: string, spec: { sampleRate?: number; monthlyLimitUsd?: number; enabled?: boolean } = {}) {
   return evaluators.create({
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Evaluator",
@@ -447,9 +447,9 @@ describe("evaluators", () => {
       }),
     );
     expect(elsewhere.code).toBe(Code.FailedPrecondition);
-    expect(elsewhere.rawMessage).toBe(evaluatorOrgMismatchMessage(org));
+    expect(elsewhere.rawMessage).toBe(scoringRuleOrgMismatchMessage(org));
 
-    const created = await createClient(EvaluatorCommandController, server.inProcessTransport).create({
+    const created = await createClient(ScoringRuleCommandController, server.inProcessTransport).create({
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Evaluator",
       metadata: { org },
@@ -459,51 +459,51 @@ describe("evaluators", () => {
       evaluators.update({ resource: { ...created, spec: { ...created.spec!, agentId: await newAgent() } }, updateMask: { paths: ["*"] } }),
     );
     expect(moved.code).toBe(Code.FailedPrecondition);
-    expect(moved.rawMessage).toBe(EVALUATOR_AGENT_IMMUTABLE_MESSAGE);
+    expect(moved.rawMessage).toBe(SCORING_RULE_AGENT_IMMUTABLE_MESSAGE);
 
     const deleted = await evaluators.delete({ value: created.metadata!.id });
     expect(deleted.metadata?.id).toBe(created.metadata!.id);
-    expect((await failureOf(evaluatorQuery.get({ value: created.metadata!.id }))).code).toBe(Code.NotFound);
+    expect((await failureOf(scoringRuleQuery.get({ value: created.metadata!.id }))).code).toBe(Code.NotFound);
   });
 
   it("one per agent, read by agent, updated without losing the month's spend, and gone with the agent", async () => {
     const agentId = await newAgent();
-    const created = await newEvaluator(agentId);
+    const created = await newScoringRule(agentId);
     expect(created.metadata?.id).toMatch(/^evl_/);
-    const again = await failureOf(newEvaluator(agentId));
+    const again = await failureOf(newScoringRule(agentId));
     expect(again.code).toBe(Code.AlreadyExists);
-    expect(again.findDetails(ErrorInfoSchema)[0]?.reason).toBe(EVALUATOR_EXISTS_REASON);
-    expect((await evaluatorQuery.getByAgent({ agentId })).metadata?.id).toBe(created.metadata!.id);
+    expect(again.findDetails(ErrorInfoSchema)[0]?.reason).toBe(SCORING_RULE_EXISTS_REASON);
+    expect((await scoringRuleQuery.getByAgent({ agentId })).metadata?.id).toBe(created.metadata!.id);
 
     // A grade's reservation lands between the person's read and their save.
-    const read = await evaluatorQuery.get({ value: created.metadata!.id });
+    const read = await scoringRuleQuery.get({ value: created.metadata!.id });
     expect(await reserve(server.store, created.metadata!.id, new Date(), PER_GRADE_CAP_USD, "limit")).toBe("reserved");
     const saved = await evaluators.update({ resource: { ...read, spec: { ...read.spec!, sampleRate: 0.5 } }, updateMask: { paths: ["*"] } });
     expect(saved.spec?.sampleRate).toBe(0.5);
     expect(saved.status?.reservedUsd, "the reservation written meanwhile is kept").toBe(PER_GRADE_CAP_USD);
 
     await agents.delete({ value: agentId });
-    expect((await failureOf(evaluatorQuery.get({ value: created.metadata!.id }))).code).toBe(Code.NotFound);
-    expect((await failureOf(evaluatorQuery.getByAgent({ agentId }))).code).toBe(Code.NotFound);
+    expect((await failureOf(scoringRuleQuery.get({ value: created.metadata!.id }))).code).toBe(Code.NotFound);
+    expect((await failureOf(scoringRuleQuery.getByAgent({ agentId }))).code).toBe(Code.NotFound);
   });
 
   it("an update keeps a write that lands between its read and its write", async () => {
-    const created = await newEvaluator(await newAgent());
+    const created = await newScoringRule(await newAgent());
     const id = created.metadata!.id;
     expect(created.metadata?.visibility).not.toBe(ApiResourceVisibility.visibility_org);
 
     const { result: updated, writes } = await writeLandsMidUpdate(
       server.store,
-      ApiResourceKind.evaluator,
+      ApiResourceKind.scoring_rule,
       id,
-      visibilityWrite(server.store, ApiResourceKind.evaluator, EvaluatorSchema, id, ApiResourceVisibility.visibility_org),
+      visibilityWrite(server.store, ApiResourceKind.scoring_rule, ScoringRuleSchema, id, ApiResourceVisibility.visibility_org),
       () => evaluators.update({ resource: { ...created, spec: { ...created.spec!, sampleRate: 0.25 } }, updateMask: { paths: ["*"] } }),
     );
     expect(writes, "the lost swap is retried").toBeGreaterThanOrEqual(2);
     expect(updated.spec?.sampleRate).toBe(0.25);
     expect(updated.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
 
-    const stored = await server.store.getResource(ApiResourceKind.evaluator, id, EvaluatorSchema);
+    const stored = await server.store.getResource(ApiResourceKind.scoring_rule, id, ScoringRuleSchema);
     expect(stored.spec?.sampleRate).toBe(0.25);
     expect(stored.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
   });
@@ -556,8 +556,8 @@ const VERDICT: JsonObject = {
   [ASKED_WHEN_UNCLEAR]: { reason: "The request had one plain reading.", result: "not_applicable" },
 };
 
-async function evaluatorStatus(evaluatorId: string) {
-  return (await server.store.getResource(ApiResourceKind.evaluator, evaluatorId, EvaluatorSchema)).status;
+async function scoringRuleStatus(evaluatorId: string) {
+  return (await server.store.getResource(ApiResourceKind.scoring_rule, evaluatorId, ScoringRuleSchema)).status;
 }
 
 describe("the judge's in-process lane", () => {
@@ -584,7 +584,7 @@ describe("the judge's in-process lane", () => {
 describe("the judge's activities", () => {
   it("grade a sampled run: pending, one judge run, the verdict, the session gone and the budget settled", async () => {
     const agentId = await newAgent();
-    const evaluator = await newEvaluator(agentId);
+    const evaluator = await newScoringRule(agentId);
     const judged = await seedRun({ agentId });
     const runId = judged.metadata!.id;
     const lane = judgeLane({ structuredOutput: VERDICT, estimatedCostUsd: 0.012 });
@@ -593,7 +593,7 @@ describe("the judge's activities", () => {
     expect(plan.kind).toBe("grade");
     if (plan.kind !== "grade") return;
     expect((await scoresOf(runId, "judge"))[0]?.status?.state).toBe(ScoreState.pending);
-    expect((await evaluatorStatus(evaluator.metadata!.id))?.reservedUsd).toBe(PER_GRADE_CAP_USD);
+    expect((await scoringRuleStatus(evaluator.metadata!.id))?.reservedUsd).toBe(PER_GRADE_CAP_USD);
 
     const start = await lane.activities[START_JUDGE_ACTIVITY_NAME](runId, plan.ticket);
     const retried = await lane.activities[START_JUDGE_ACTIVITY_NAME](runId, plan.ticket);
@@ -615,7 +615,7 @@ describe("the judge's activities", () => {
       [ASKED_WHEN_UNCLEAR, CriterionResult.not_applicable, "The request had one plain reading."],
     ]);
     expect(lane.deletedSessions).toHaveLength(1);
-    const status = await evaluatorStatus(evaluator.metadata!.id);
+    const status = await scoringRuleStatus(evaluator.metadata!.id);
     expect(status?.reservedUsd).toBe(0);
     expect(status?.spentUsd).toBe(0.012);
     expect(status?.graded).toBe(1);
@@ -627,7 +627,7 @@ describe("the judge's activities", () => {
 
   it("show the judge the turns before the graded one in its session, oldest first", async () => {
     const agentId = await newAgent();
-    await newEvaluator(agentId);
+    await newScoringRule(agentId);
     const sessionId = generateId("ses");
     await seedRun({ agentId, sessionId, message: "Draft the note to the team.", answer: "Here is the draft.", createdAtSeconds: 1_000 });
     const judged = await seedRun({ agentId, sessionId, message: "yes, go ahead", createdAtSeconds: 1_001 });
@@ -653,7 +653,7 @@ describe("the judge's activities", () => {
   ] as const) {
     it(`leave the run not graded, settled and cleaned up, for ${what}`, async () => {
       const agentId = await newAgent();
-      const evaluator = await newEvaluator(agentId);
+      const evaluator = await newScoringRule(agentId);
       const runId = (await seedRun({ agentId })).metadata!.id;
       const lane = judgeLane(outcome);
       const plan = await lane.activities[PLAN_JUDGE_ACTIVITY_NAME](runId);
@@ -666,7 +666,7 @@ describe("the judge's activities", () => {
       expect(score?.status?.notGradedReason).toBe(reason);
       expect(score?.spec?.value.case).toBeUndefined();
       expect(lane.deletedSessions).toHaveLength(1);
-      const status = await evaluatorStatus(evaluator.metadata!.id);
+      const status = await scoringRuleStatus(evaluator.metadata!.id);
       expect(status?.reservedUsd).toBe(0);
       expect(status?.lastNotGradedReason).toBe(reason);
     });
@@ -674,7 +674,7 @@ describe("the judge's activities", () => {
 
   it("answer every refusal, a keyless organization's FAILED_PRECONDITION among them, as not started", async () => {
     const agentId = await newAgent();
-    await newEvaluator(agentId);
+    await newScoringRule(agentId);
     for (const [refusal, reason] of [
       [
         new ConnectError(
@@ -699,7 +699,7 @@ describe("the judge's activities", () => {
 
   it("throw a capacity refusal for the workflow's retries", async () => {
     const agentId = await newAgent();
-    await newEvaluator(agentId);
+    await newScoringRule(agentId);
     const runId = (await seedRun({ agentId })).metadata!.id;
     const lane = judgeLane(new ConnectError("at capacity", Code.ResourceExhausted));
     const plan = await lane.activities[PLAN_JUDGE_ACTIVITY_NAME](runId);
@@ -711,19 +711,19 @@ describe("the judge's activities", () => {
 
   it("record the limit's refusal without a judge, and skip judge runs, runs of no agent and runs outside the sample", async () => {
     const limited = await newAgent();
-    const evaluator = await newEvaluator(limited, { monthlyLimitUsd: 0.1 });
+    const evaluator = await newScoringRule(limited, { monthlyLimitUsd: 0.1 });
     const runId = (await seedRun({ agentId: limited })).metadata!.id;
     const lane = judgeLane({});
     expect(await lane.activities[PLAN_JUDGE_ACTIVITY_NAME](runId)).toEqual({ kind: "recorded" });
     expect((await scoresOf(runId, "judge"))[0]?.status?.notGradedReason).toBe(JUDGE_LIMIT_REACHED_REASON);
-    expect((await evaluatorStatus(evaluator.metadata!.id))?.lastNotGradedReason).toBe(JUDGE_LIMIT_REACHED_REASON);
+    expect((await scoringRuleStatus(evaluator.metadata!.id))?.lastNotGradedReason).toBe(JUDGE_LIMIT_REACHED_REASON);
 
     const sampledOut = await newAgent();
-    await newEvaluator(sampledOut, { sampleRate: 0.0001 });
+    await newScoringRule(sampledOut, { sampleRate: 0.0001 });
     const off = await newAgent();
-    await newEvaluator(off, { enabled: false });
+    await newScoringRule(off, { enabled: false });
     const graded = await newAgent();
-    await newEvaluator(graded);
+    await newScoringRule(graded);
     for (const run of [
       await seedRun({ agentId: sampledOut }),
       await seedRun({ agentId: off }),
@@ -738,7 +738,7 @@ describe("the judge's activities", () => {
 
   it("answer a grading caller that can act as nobody as cannot-act", async () => {
     const agentId = await newAgent();
-    await newEvaluator(agentId);
+    await newScoringRule(agentId);
     const runId = (await seedRun({ agentId })).metadata!.id;
     const activities = createJudgeActivities({
       store: server.store,

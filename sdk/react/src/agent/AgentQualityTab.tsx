@@ -2,11 +2,11 @@
 
 import { useId, useState } from "react";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import type { ScoringRule } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { cn } from "@stigmer/theme";
 import { ErrorMessage } from "../error/ErrorMessage.js";
-import { useAgentEvaluator } from "../evaluator/useAgentEvaluator.js";
-import { useSaveEvaluator } from "../evaluator/useSaveEvaluator.js";
+import { useAgentScoringRule } from "../scoring-rule/useAgentEvaluator.js";
+import { useSaveScoringRule } from "../scoring-rule/useSaveEvaluator.js";
 import {
   DEFAULT_GRADING_SETTINGS,
   MAX_ONE_IN,
@@ -14,7 +14,7 @@ import {
   isValidLimit,
   settingsOf,
   type GradingSettings,
-} from "../evaluator/grading-settings.js";
+} from "../scoring-rule/grading-settings.js";
 import { ModelSelector } from "../models/ModelSelector.js";
 import { AgentQualityReportView } from "../score/AgentQualityReportView.js";
 import { Section } from "../resource-detail/Section.js";
@@ -88,7 +88,7 @@ function GradingSettings({
   readonly editable: boolean;
 }) {
   const agentId = agent.metadata?.id ?? "";
-  const { evaluator, isLoading, error, refetch } = useAgentEvaluator(agentId);
+  const { evaluator, isLoading, error, refetch } = useAgentScoringRule(agentId);
 
   if (isLoading) {
     return (
@@ -127,13 +127,13 @@ function QualityForm({
 }: {
   readonly agentId: string;
   readonly agentOrg: string;
-  readonly evaluator: Evaluator | null;
+  readonly evaluator: ScoringRule | null;
   readonly editable: boolean;
   readonly onSaved: () => void;
   readonly className?: string;
 }) {
   const baseId = useId();
-  const { save, isSaving, error: saveError } = useSaveEvaluator();
+  const { save, isSaving, error: saveError } = useSaveScoringRule();
   const stored =
     evaluator === null
       ? { ...DEFAULT_GRADING_SETTINGS, enabled: false }

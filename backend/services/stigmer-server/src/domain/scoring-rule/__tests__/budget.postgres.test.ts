@@ -19,8 +19,8 @@
 import { create } from "@bufbuild/protobuf";
 import { afterAll, describe, expect, it } from "vitest";
 
-import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
-import type { Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import type { ScoringRule } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { LIST_INDEXES } from "../../../boot/list-indexes.js";
@@ -69,7 +69,7 @@ const fixtures: DriverFixture[] = [
       const store = await PostgresStore.open(postgresDatabase.databaseUrl, undefined, {
         listIndexes: LIST_INDEXES,
       });
-      await store.deleteResourcesByKind(ApiResourceKind.evaluator);
+      await store.deleteResourcesByKind(ApiResourceKind.scoring_rule);
       return { store, close: () => store.close() };
     },
   },
@@ -81,7 +81,7 @@ afterAll(async () => {
 
 let seq = 0;
 
-async function seedEvaluator(
+async function seedScoringRule(
   store: Store,
   monthlyLimitUsd: number,
   enabled = true,
@@ -89,10 +89,10 @@ async function seedEvaluator(
   seq++;
   const id = `evl_budget${seq.toString().padStart(16, "0")}`;
   await store.saveResource(
-    ApiResourceKind.evaluator,
+    ApiResourceKind.scoring_rule,
     id,
-    EvaluatorSchema,
-    create(EvaluatorSchema, {
+    ScoringRuleSchema,
+    create(ScoringRuleSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Evaluator",
       metadata: { id, name: id, org: "org_budget" },
@@ -102,8 +102,8 @@ async function seedEvaluator(
   return id;
 }
 
-async function read(store: Store, id: string): Promise<Evaluator> {
-  return store.getResource(ApiResourceKind.evaluator, id, EvaluatorSchema);
+async function read(store: Store, id: string): Promise<ScoringRule> {
+  return store.getResource(ApiResourceKind.scoring_rule, id, ScoringRuleSchema);
 }
 
 describe.each(fixtures)("the grading budget ($name)", (fixture) => {
@@ -111,7 +111,7 @@ describe.each(fixtures)("the grading budget ($name)", (fixture) => {
   it("reserves a cap per grade and refuses the one that would pass the limit", async () => {
     const { store, close } = await fixture.open();
     try {
-      const id = await seedEvaluator(store, 0.6);
+      const id = await seedScoringRule(store, 0.6);
       expect(await reserve(store, id, OCTOBER, CAP, LIMIT_REASON)).toBe("reserved");
       expect(await reserve(store, id, OCTOBER, CAP, LIMIT_REASON)).toBe("reserved");
       expect(await reserve(store, id, OCTOBER, CAP, LIMIT_REASON)).toBe("limit-reached");
@@ -128,7 +128,7 @@ describe.each(fixtures)("the grading budget ($name)", (fixture) => {
   it("admits the grade that reaches the limit exactly", async () => {
     const { store, close } = await fixture.open();
     try {
-      const id = await seedEvaluator(store, 10);
+      const id = await seedScoringRule(store, 10);
       for (let i = 0; i < 40; i++) {
         expect(await reserve(store, id, OCTOBER, CAP, LIMIT_REASON), `grade ${i + 1}`).toBe("reserved");
       }
@@ -141,7 +141,7 @@ describe.each(fixtures)("the grading budget ($name)", (fixture) => {
   it("never passes the limit under twenty concurrent reservations", async () => {
     const { store, close } = await fixture.open();
     try {
-      const id = await seedEvaluator(store, 5 * CAP);
+      const id = await seedScoringRule(store, 5 * CAP);
       const outcomes = await Promise.all(
         Array.from({ length: 20 }, () => reserve(store, id, OCTOBER, CAP, LIMIT_REASON)),
       );
@@ -157,7 +157,7 @@ describe.each(fixtures)("the grading budget ($name)", (fixture) => {
   it("reserves nothing for a disabled or deleted evaluator", async () => {
     const { store, close } = await fixture.open();
     try {
-      const id = await seedEvaluator(store, 10, false);
+      const id = await seedScoringRule(store, 10, false);
       expect(await reserve(store, id, OCTOBER, CAP, LIMIT_REASON)).toBe("off");
       expect((await read(store, id)).status?.period ?? "").toBe("");
       expect(await reserve(store, "evl_nobody", OCTOBER, CAP, LIMIT_REASON)).toBe("off");
@@ -169,7 +169,7 @@ describe.each(fixtures)("the grading budget ($name)", (fixture) => {
   it("settles the cap and the spend, and counts the grade", async () => {
     const { store, close } = await fixture.open();
     try {
-      const id = await seedEvaluator(store, 10);
+      const id = await seedScoringRule(store, 10);
       await reserve(store, id, OCTOBER, CAP, LIMIT_REASON);
       await reserve(store, id, OCTOBER, CAP, LIMIT_REASON);
       await settle(store, id, OCTOBER, CAP, "2026-10", 0.031, { kind: "graded" });
@@ -189,7 +189,7 @@ describe.each(fixtures)("the grading budget ($name)", (fixture) => {
   it("lands a grade reserved in one month and settled in the next in the new month", async () => {
     const { store, close } = await fixture.open();
     try {
-      const id = await seedEvaluator(store, 10);
+      const id = await seedScoringRule(store, 10);
       await reserve(store, id, OCTOBER, CAP, LIMIT_REASON);
       await reserve(store, id, NOVEMBER, CAP, LIMIT_REASON);
       await settle(store, id, NOVEMBER, CAP, periodOf(OCTOBER), 0.04, { kind: "graded" });

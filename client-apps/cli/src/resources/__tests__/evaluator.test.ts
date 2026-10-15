@@ -4,7 +4,7 @@
 // never applied from a manifest, so no other verb reaches it.
 
 import { create } from "@bufbuild/protobuf";
-import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { describe, expect, it } from "vitest";
@@ -14,7 +14,7 @@ import { verbsForKind } from "../../registry/verb-support.js";
 import { DELETE_HANDLERS } from "../delete.js";
 import { getterFor } from "../get-bindings.js";
 
-const evaluator = create(EvaluatorSchema, {
+const evaluator = create(ScoringRuleSchema, {
   metadata: { id: "evl_1", org: "acme" },
   spec: { agentId: "agt_1", enabled: true, sampleRate: 0.1, monthlyLimitUsd: 10 },
 });
@@ -35,13 +35,13 @@ describe("the evaluator verbs", () => {
       },
     } as unknown as Stigmer;
 
-    const got = await getterFor(ApiResourceKind.evaluator)!(client, { kind: "id", id: "evl_1" });
+    const got = await getterFor(ApiResourceKind.scoring_rule)!(client, { kind: "id", id: "evl_1" });
     expect(got.message).toBe(evaluator);
-    await DELETE_HANDLERS.get(ApiResourceKind.evaluator)!(client, "evl_1", false);
+    await DELETE_HANDLERS.get(ApiResourceKind.scoring_rule)!(client, "evl_1", false);
     expect(asked).toEqual(["get evl_1", "delete evl_1"]);
   });
 
   it("promises get and delete, and no apply", () => {
-    expect([...verbsForKind(ApiResourceKind.evaluator)].sort()).toEqual([Verb.Delete, Verb.Get].sort());
+    expect([...verbsForKind(ApiResourceKind.scoring_rule)].sort()).toEqual([Verb.Delete, Verb.Get].sort());
   });
 });

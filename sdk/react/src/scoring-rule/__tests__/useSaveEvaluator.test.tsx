@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DEFAULT_GRADING_SETTINGS } from "../grading-settings";
-import { useSaveEvaluator } from "../useSaveEvaluator";
+import { useSaveScoringRule } from "../useSaveEvaluator";
 
 afterEach(() => {
   cleanup();
@@ -29,7 +29,7 @@ describe("useSaveEvaluator", () => {
   it("keeps and rethrows a refused save, and clears it", async () => {
     const refusal = new Error("unauthorized to configure grading for agent");
     const mock = { evaluator: { create: vi.fn().mockRejectedValue(refusal), update: vi.fn() } };
-    const { result } = renderHook(() => useSaveEvaluator(), { wrapper: wrap(mock) });
+    const { result } = renderHook(() => useSaveScoringRule(), { wrapper: wrap(mock) });
     await act(async () => {
       await expect(
         result.current.save({ id: "agt_1", org: "org_acme" }, DEFAULT_GRADING_SETTINGS, null),

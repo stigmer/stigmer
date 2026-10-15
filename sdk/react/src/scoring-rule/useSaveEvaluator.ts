@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import type { ScoringRule } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { useStigmer } from "../hooks.js";
-import { buildEvaluatorProto } from "@stigmer/sdk";
+import { buildScoringRuleProto } from "@stigmer/sdk";
 import { toError } from "../internal/toError.js";
-import { evaluatorInputOf, type GradingSettings } from "./grading-settings.js";
+import { scoringRuleInputOf, type GradingSettings } from "./grading-settings.js";
 
 /** The fields a save of the grading settings changes; the agent it grades stays as stored. */
 export const GRADING_SETTING_PATHS: ReadonlyArray<string> = [
@@ -15,8 +15,8 @@ export const GRADING_SETTING_PATHS: ReadonlyArray<string> = [
   "spec.model_name",
 ];
 
-/** Return value of {@link useSaveEvaluator}. */
-export interface UseSaveEvaluatorReturn {
+/** Return value of {@link useSaveScoringRule}. */
+export interface UseSaveScoringRuleReturn {
   /**
    * Save the agent's grading settings: creates the evaluator when the agent
    * has none, otherwise updates it. Resolves with the stored evaluator.
@@ -24,8 +24,8 @@ export interface UseSaveEvaluatorReturn {
   readonly save: (
     agent: { readonly id: string; readonly org: string },
     settings: GradingSettings,
-    existing: Evaluator | null,
-  ) => Promise<Evaluator>;
+    existing: ScoringRule | null,
+  ) => Promise<ScoringRule>;
   /** `true` while a write is in flight. */
   readonly isSaving: boolean;
   /** Error from the last failed write, or `null` when healthy. */
@@ -50,27 +50,27 @@ export interface UseSaveEvaluatorReturn {
  * await save({ id: agentId, org }, { ...settings, enabled: true }, evaluator);
  * ```
  */
-export function useSaveEvaluator(): UseSaveEvaluatorReturn {
+export function useSaveScoringRule(): UseSaveScoringRuleReturn {
   const stigmer = useStigmer();
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
 
-  const save = useCallback<UseSaveEvaluatorReturn["save"]>(
+  const save = useCallback<UseSaveScoringRuleReturn["save"]>(
     async (agent, settings, existing) => {
       setIsSaving(true);
       setError(null);
       try {
-        const input = evaluatorInputOf(agent, settings, existing);
+        const input = scoringRuleInputOf(agent, settings, existing);
         if (existing === null) {
-          return await stigmer.evaluator.create(input);
+          return await stigmer.scoringrule.create(input);
         }
-        const resource = buildEvaluatorProto(input);
+        const resource = buildScoringRuleProto(input);
         if (resource.metadata !== undefined) {
           resource.metadata.etag = existing.metadata?.etag ?? "";
         }
-        return await stigmer.evaluator.update(resource, [...GRADING_SETTING_PATHS]);
+        return await stigmer.scoringrule.update(resource, [...GRADING_SETTING_PATHS]);
       } catch (err) {
         const failure = toError(err);
         setError(failure);
