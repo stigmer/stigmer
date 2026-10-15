@@ -196,11 +196,16 @@ export interface RekeyedGrant {
 
 /**
  * The re-keyed grant of one grant row whose subject or object is the
- * renamed kind, or undefined when it names neither. Its new id carries the
- * prefix grants were minted with before v34. Throws when the bytes do not
- * decode.
+ * renamed kind, or undefined when it names neither. Its new id carries
+ * `idPrefix`: the prefix grants were minted with before v34 for the steps
+ * before it, the one v34 moved them to for a step after it (the channel
+ * merge, channel-kinds-merged.ts). Throws when the bytes do not decode.
  */
-export function rekeyedGrant(rename: KindRename, data: Uint8Array): RekeyedGrant | undefined {
+export function rekeyedGrant(
+  rename: KindRename,
+  data: Uint8Array,
+  idPrefix: string = GRANT_ID_PREFIX_BEFORE_V34,
+): RekeyedGrant | undefined {
   const grant = fromBinary(GrantSchema, data);
   const spec = grant.spec;
   if (spec === undefined) {
@@ -217,7 +222,7 @@ export function rekeyedGrant(rename: KindRename, data: Uint8Array): RekeyedGrant
   if (!changed) {
     return undefined;
   }
-  const id = stepGrantId(GRANT_ID_PREFIX_BEFORE_V34, spec);
+  const id = stepGrantId(idPrefix, spec);
   if (grant.metadata !== undefined) {
     grant.metadata.id = id;
   }

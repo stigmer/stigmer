@@ -17,7 +17,7 @@ import { DatabaseSync } from "node:sqlite";
 import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -78,12 +78,15 @@ describe("the organization census", () => {
       createdAt: 0,
     });
     await store.saveResource(
-      ApiResourceKind.agent_share,
-      "shr_1",
-      AgentShareSchema,
-      create(AgentShareSchema, {
-        metadata: { id: "shr_1", org: "org_b" },
-        spec: { agentRef: { kind: ApiResourceKind.agent, slug: "agt_deep" } },
+      ApiResourceKind.channel,
+      "chn_1",
+      ChannelSchema,
+      create(ChannelSchema, {
+        metadata: { id: "chn_1", org: "org_b" },
+        spec: {
+          agentRef: { kind: ApiResourceKind.agent, slug: "agt_deep" },
+          type: { case: "web", value: {} },
+        },
       }),
     );
     const reader = sqliteCensusReader(db);
@@ -93,7 +96,7 @@ describe("the organization census", () => {
       ["resources", "agt_deep"],
     ]);
     await store.pendingOAuthStates.deleteByOrg("org_a");
-    await store.deleteResource(ApiResourceKind.agent_share, "shr_1");
+    await store.deleteResource(ApiResourceKind.channel, "chn_1");
     expect(await organizationCensus(reader, new Set(["org_a", "agt_deep"]))).toEqual([]);
   });
 

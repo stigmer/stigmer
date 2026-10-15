@@ -13,19 +13,28 @@
  *     envelope per message;
  *   - the platform client envelope is what the slug ledger, the name
  *     backfill and the reference rewrite read a retired client through, and
- *     it reads the organization a retired row names.
+ *     it reads the organization a retired row names;
+ *   - the AgentShare and AgentChannel shapes (the two kinds merged into
+ *     Channel) carry their old full names, declare in their spec exactly
+ *     their reference fields, each with the `reference_kind` the reference
+ *     rewrite reads, and in their status only the audit; a row decoded and
+ *     re-encoded through either keeps every other field's bytes.
  */
-import { create, toBinary } from "@bufbuild/protobuf";
-import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
+import { create, fromBinary, getOption, toBinary } from "@bufbuild/protobuf";
+import type { DescMessage } from "@bufbuild/protobuf";
+import { BinaryReader, BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import { describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceAuditStatusSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 
 import {
+  FrozenAgentChannelSchema,
   FrozenAgentInstanceEnvelopeSchema,
+  FrozenAgentShareSchema,
   FrozenArtifactEnvelopeSchema,
   FrozenPlatformClientEnvelopeSchema,
   FrozenWorkflowEnvelopeSchema,
@@ -41,6 +50,7 @@ import {
   movePublicRowToOrg,
 } from "../public-visibility-retired.js";
 import { REFERRING_KINDS_AT_REWRITE } from "../references-by-id.js";
+import { agentChannelRowBytes, MERGE_ORG, shareRowBytes } from "./channel-merge-rows.js";
 import { retiredInstanceRow } from "./retired-instance-rows.js";
 import { retiredPlatformClientRow } from "./retired-platform-client-rows.js";
 import {
@@ -353,5 +363,154 @@ describe("the frozen platform client envelope", () => {
       vaults: [{ kind: ApiResourceKind.vault, org: "acme", slug: "product-keys" }],
     });
     expect(organizationNamedBy(ledgerEntry!, row)).toBe("acme");
+  });
+});
+
+/** One field of an encoded message: its number and its bytes, tag included. */
+interface WireField {
+  readonly no: number;
+  readonly raw: Uint8Array;
+}
+
+/**
+ * Every field of `data`, ordered by number and, within one number, as
+ * written: a re-encode writes declared fields first and unknown ones
+ * after, so two encodings holding the same fields compare equal here.
+ */
+function wireFields(data: Uint8Array): WireField[] {
+  const reader = new BinaryReader(data);
+  const fields: WireField[] = [];
+  while (reader.pos < reader.len) {
+    const start = reader.pos;
+    const [no, wireType] = reader.tag();
+    reader.skip(wireType);
+    fields.push({ no, raw: data.subarray(start, reader.pos) });
+  }
+  return fields.map((field, index) => ({ field, index }))
+    .sort((a, b) => a.field.no - b.field.no || a.index - b.index)
+    .map(({ field }) => field);
+}
+
+/** The payload of `data`'s length-delimited field `no`, or empty when it holds none. */
+function payloadOf(data: Uint8Array, no: number): Uint8Array {
+  const reader = new BinaryReader(data);
+  while (reader.pos < reader.len) {
+    const [field, wireType] = reader.tag();
+    if (field === no && wireType === WireType.LengthDelimited) {
+      return reader.bytes();
+    }
+    reader.skip(wireType);
+  }
+  return new Uint8Array();
+}
+
+/** A frozen shape's nested message by its field name in the envelope. */
+function nestedOf(schema: DescMessage, name: "spec" | "status"): DescMessage {
+  const field = schema.fields.find((candidate) => candidate.name === name);
+  if (field?.fieldKind !== "message") {
+    throw new Error(`${schema.typeName} declares no ${name} message`);
+  }
+  return field.message;
+}
+
+describe("the frozen AgentShare and AgentChannel shapes", () => {
+  const reference = (slug: string) => ({ org: MERGE_ORG, slug });
+
+  it.each([
+    {
+      schema: FrozenAgentShareSchema,
+      typeName: "ai.stigmer.agentic.agentshare.v1.AgentShare",
+      references: [
+        { name: "agent_ref", number: 1, kind: ApiResourceKind.agent, repeated: false },
+        { name: "vaults", number: 8, kind: ApiResourceKind.vault, repeated: true },
+      ],
+    },
+    {
+      schema: FrozenAgentChannelSchema,
+      typeName: "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
+      references: [
+        { name: "agent_ref", number: 1, kind: ApiResourceKind.agent, repeated: false },
+        { name: "app_ref", number: 5, kind: ApiResourceKind.channel_app, repeated: false },
+        { name: "vaults", number: 9, kind: ApiResourceKind.vault, repeated: true },
+      ],
+    },
+  ])("$typeName carries its old full name, its reference fields and only its audit", ({ schema, typeName, references }) => {
+    expect(schema.typeName).toBe(typeName);
+    expect(schema.fields.map((f) => [f.name, f.number])).toEqual([
+      ["api_version", 1],
+      ["kind", 2],
+      ["metadata", 3],
+      ["spec", 4],
+      ["status", 5],
+    ]);
+    const spec = nestedOf(schema, "spec");
+    expect(
+      spec.fields.map((f) => ({
+        name: f.name,
+        number: f.number,
+        kind: getOption(f, reference_kind),
+        repeated: f.fieldKind === "list",
+      })),
+    ).toEqual(references);
+    for (const field of spec.fields) {
+      expect(field.message?.typeName, field.name).toBe("ai.stigmer.commons.apiresource.ApiResourceReference");
+    }
+    const status = nestedOf(schema, "status");
+    expect(status.fields.map((f) => [f.name, f.number, f.message?.typeName])).toEqual([
+      ["audit", 99, "ai.stigmer.commons.apiresource.ApiResourceAudit"],
+    ]);
+  });
+
+  it.each([
+    {
+      kind: "agent share",
+      schema: FrozenAgentShareSchema,
+      row: shareRowBytes({
+        id: "ash_1",
+        slug: "support",
+        labels: { team: "support" },
+        createdAt: new Date("2026-01-02T03:04:05Z"),
+        agentRef: reference("helper"),
+        enabled: true,
+        vaults: [reference("keys"), reference("more-keys")],
+        runConfig: { modelName: "claude-sonnet", maxCostUsd: 2 },
+        vaultAttachers: { vlt_1: "ida_1" },
+        retiredFieldBytes: true,
+        audience: 1,
+        allowedOrigins: ["https://example.com", "https://docs.example.com"],
+        messages: { rateLimited: "Slow down", unavailable: "Back soon" },
+        linkToken: "tok_1",
+        agentPin: "agt_1",
+      }),
+    },
+    {
+      kind: "agent channel",
+      schema: FrozenAgentChannelSchema,
+      row: agentChannelRowBytes({
+        id: "ach_1",
+        slug: "support",
+        createdAt: new Date("2026-01-02T03:04:05Z"),
+        agentRef: reference("helper"),
+        enabled: true,
+        vaults: [reference("keys")],
+        runConfig: { modelName: "claude-sonnet" },
+        vaultAttachers: { vlt_1: "ida_1" },
+        retiredFieldBytes: true,
+        provider: "whatsapp",
+        phoneNumberId: "15550001",
+        appRef: reference("meta-app"),
+        proactive: true,
+        installState: 2,
+        whatsappInstall: { phoneNumberId: "15550001", displayPhoneNumber: "+1 555 0001" },
+      }),
+    },
+  ])("keeps every other field's bytes of an $kind row it decodes and re-encodes", ({ schema, row }) => {
+    const reencoded = toBinary(schema, fromBinary(schema, row));
+    const envelope = (data: Uint8Array) => wireFields(data).filter((f) => f.no !== 4 && f.no !== 5);
+    expect(envelope(reencoded)).toEqual(envelope(row));
+    expect(wireFields(payloadOf(reencoded, 4))).toEqual(wireFields(payloadOf(row, 4)));
+    expect(wireFields(payloadOf(reencoded, 5))).toEqual(wireFields(payloadOf(row, 5)));
+    expect(wireFields(payloadOf(row, 4)).length).toBeGreaterThan(3);
+    expect(wireFields(payloadOf(row, 5)).length).toBeGreaterThan(2);
   });
 });

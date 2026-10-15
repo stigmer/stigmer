@@ -8,6 +8,9 @@
  *     protovalidate rules a write is refused by;
  *   - stored annotations are found as the unknown field 7 they ride as;
  *   - a kind with no entry is not read, and bytes that do not decode throw;
+ *   - the channel, which two kinds were merged into after the report, is
+ *     read by its predecessors' names (agent_share, agent_channel) through
+ *     their frozen shapes, the table the etag step shares;
  *   - a kind's tally logs one warning with its counts and at most ten ids,
  *     and none when no row held anything.
  */
@@ -19,10 +22,13 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 
 import {
+  LABEL_TAG_REPORT_KIND_NAMES,
   LABEL_TAG_REPORT_SAMPLE,
   LabelTagTally,
   labelTagFindings,
 } from "../label-tag-report.js";
+import { ETAG_STAMPED_KIND_NAMES } from "../resource-etags-stamped.js";
+import { agentChannelRowBytes, shareRowBytes } from "./channel-merge-rows.js";
 
 function agent(metadata: { labels?: Record<string, string>; tags?: string[] } = {}): Agent {
   return create(AgentSchema, {
@@ -98,6 +104,21 @@ describe("labelTagFindings", () => {
   it("reads no row of a kind with no entry, and throws on bytes that do not decode", () => {
     expect(labelTagFindings("retired_kind", new Uint8Array([0x0a, 0x01, 0x61]))).toBeUndefined();
     expect(() => labelTagFindings("agent", new Uint8Array([0xff, 0xff, 0xff]))).toThrow();
+  });
+});
+
+describe("the kinds the report reads", () => {
+  it("reads the channel by its predecessors' names through their frozen shapes, as the etag step does", () => {
+    expect(LABEL_TAG_REPORT_KIND_NAMES).toEqual(ETAG_STAMPED_KIND_NAMES);
+    expect(LABEL_TAG_REPORT_KIND_NAMES).toEqual(expect.arrayContaining(["agent_share", "agent_channel"]));
+    expect(LABEL_TAG_REPORT_KIND_NAMES).not.toContain("channel");
+    const share = (labels: Record<string, string>) => shareRowBytes({ id: "ash_1", slug: "support", labels, audience: 1 });
+    const channel = (labels: Record<string, string>) =>
+      agentChannelRowBytes({ id: "ach_1", slug: "support", labels, provider: "slack", installState: 2 });
+    expect(labelTagFindings("agent_share", share({ team: "support" }))).toEqual(NOTHING);
+    expect(labelTagFindings("agent_share", share({ "-team": "x" }))).toEqual({ ...NOTHING, labels: true });
+    expect(labelTagFindings("agent_channel", channel({ team: "support" }))).toEqual(NOTHING);
+    expect(labelTagFindings("agent_channel", channel({ "-team": "x" }))).toEqual({ ...NOTHING, labels: true });
   });
 });
 

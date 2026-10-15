@@ -73,8 +73,6 @@ import { reflect } from "@bufbuild/protobuf/reflect";
 import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -83,7 +81,9 @@ import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/a
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
 import {
+  FrozenAgentChannelSchema,
   FrozenAgentEvalEnvelopeSchema,
+  FrozenAgentShareSchema,
   FrozenPlatformClientEnvelopeSchema,
   FrozenPluginEvalEnvelopeSchema,
 } from "./frozen-envelopes.js";
@@ -102,9 +102,9 @@ export interface ReferringKindAtRewrite {
 /** The kinds whose rows' references were rewritten at this step, frozen. */
 export const REFERRING_KINDS_AT_REWRITE: ReadonlyArray<ReferringKindAtRewrite> = [
   { kind: "agent", schema: AgentSchema },
-  { kind: "agent_channel", schema: AgentChannelSchema },
+  { kind: "agent_channel", schema: FrozenAgentChannelSchema },
   { kind: "agent_eval", schema: FrozenAgentEvalEnvelopeSchema },
-  { kind: "agent_share", schema: AgentShareSchema },
+  { kind: "agent_share", schema: FrozenAgentShareSchema },
   { kind: "identity_account", schema: IdentityAccountSchema },
   { kind: "platform_client", schema: FrozenPlatformClientEnvelopeSchema },
   { kind: "plugin_eval", schema: FrozenPluginEvalEnvelopeSchema },

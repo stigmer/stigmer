@@ -135,6 +135,24 @@ import {
 } from "../kind-rename.js";
 import type { KindRename, RekeyedGrant } from "../kind-rename.js";
 import {
+  CHANNEL_KIND_AT_MERGE,
+  CHANNEL_MERGE_GRANT_KIND,
+  CHANNEL_MERGE_PAGE_SIZE,
+  CHANNEL_MERGE_SESSION_KINDS,
+  MERGED_CHANNEL_KINDS,
+  assignChannelSlugs,
+  channelMergeAuditRowError,
+  channelMergePreviousNameError,
+  convertToChannel,
+  encodeChannel,
+  logChannelMerge,
+  rekeyedChannelGrant,
+  relabelChannelSessionRow,
+  unreadableChannelMergeRowError,
+} from "../channel-kinds-merged.js";
+import type { ConvertedChannel } from "../channel-kinds-merged.js";
+import { rfc3339Seconds } from "../rfc3339.js";
+import {
   AGENT_RUN_KIND,
   AGENT_RUN_RETIRED_PAGE_SIZE,
   RETIRED_WORKFLOW_KINDS,
@@ -271,8 +289,11 @@ export const SCHEMA_VERSION_38 = 38;
 /** v39: the plugin eval and agent eval rows removed, with every grant naming one, and their tries relabelled. */
 export const SCHEMA_VERSION_39 = 39;
 
+/** v40: the agent share and agent channel kinds merged into the channel kind: rows, names, grants, history, conversations. */
+export const SCHEMA_VERSION_40 = 40;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_39;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_40;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -337,6 +358,7 @@ export function runMigrations(
     [SCHEMA_VERSION_37, migrateToV37],
     [SCHEMA_VERSION_38, migrateToV38],
     [SCHEMA_VERSION_39, migrateToV39],
+    [SCHEMA_VERSION_40, (migrating) => migrateToV40(migrating, logger)],
   ];
 
   for (const [version, migrate] of chain) {
@@ -2202,4 +2224,183 @@ function migrateToV39(db: DatabaseSync): void {
       after = rows[rows.length - 1]!.id;
     }
   }
+}
+
+/**
+ * v40: the agent share and agent channel kinds merge into the channel
+ * kind; the Postgres driver's v36 in this engine's terms
+ * (../channel-kinds-merged.ts says what one row becomes, which row keeps a
+ * slug two held, and why an unreadable row fails the step).
+ *
+ * - An archived version or a previous name of either kind fails the step,
+ *   naming it: neither kind wrote one.
+ * - Every row of both kinds is read in keyset pages and converted, the
+ *   one namespace's slugs assigned, then each row leaves under its old
+ *   kind with its list keys and is written under `channel` with its id,
+ *   unproven (`updated_at` stamped), so its keys derive at open.
+ * - The names of both kinds are claimed again under `channel`, each with
+ *   the slug its row now holds and the time its old claim was made.
+ * - Every grant naming either kind is re-keyed to the channel triple's
+ *   `grt_` id, its old row leaving with its list keys and the new one
+ *   written unproven; its history entries take the kind and the id.
+ * - Every conversation (session and run) a chat link's guest started takes
+ *   the channel id label in place of the share id, written unproven.
+ *
+ * The changed slugs are logged at warn, once, as a count and a capped
+ * sample. Runs inside applyInTransaction's BEGIN, so a throw rolls the
+ * whole step back and the boot stops on the row it names.
+ */
+function migrateToV40(db: DatabaseSync, logger: StoreLogger): void {
+  const [shareKind, agentChannelKind] = MERGED_CHANNEL_KINDS;
+  const audit = db
+    .prepare(`SELECT kind, resource_id FROM resource_audit WHERE kind IN (?, ?) ORDER BY kind, resource_id LIMIT 1`)
+    .get(shareKind!, agentChannelKind!) as { kind: string; resource_id: string } | undefined;
+  if (audit !== undefined) {
+    throw channelMergeAuditRowError(audit.kind, audit.resource_id);
+  }
+  const previous = db
+    .prepare(
+      `SELECT kind, org, name FROM resource_names WHERE kind IN (?, ?) AND state <> 'current' ORDER BY kind, org, name LIMIT 1`,
+    )
+    .get(shareKind!, agentChannelKind!) as { kind: string; org: string; name: string } | undefined;
+  if (previous !== undefined) {
+    throw channelMergePreviousNameError(previous.kind, previous.org, previous.name);
+  }
+  const claimedAt = new Map<string, string>();
+  for (const claim of db
+    .prepare(`SELECT id, claimed_at FROM resource_names WHERE kind IN (?, ?)`)
+    .all(shareKind!, agentChannelKind!) as Array<{ id: string; claimed_at: string }>) {
+    claimedAt.set(claim.id, claim.claimed_at);
+  }
+
+  const page = db.prepare(`SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`);
+  const rowsOf = function* (kind: string): Generator<{ id: string; data: Uint8Array }> {
+    for (let after = ""; ; ) {
+      const rows = page.all(kind, after, CHANNEL_MERGE_PAGE_SIZE) as Array<{ id: string; data: Uint8Array }>;
+      yield* rows;
+      if (rows.length < CHANNEL_MERGE_PAGE_SIZE) {
+        return;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  };
+
+  const converted: ConvertedChannel[] = [];
+  for (const kind of MERGED_CHANNEL_KINDS) {
+    for (const row of rowsOf(kind)) {
+      try {
+        converted.push(convertToChannel(kind, row.id, row.data));
+      } catch (error) {
+        throw unreadableChannelMergeRowError(kind, row.id, error);
+      }
+    }
+  }
+  const changedSlugs = assignChannelSlugs(converted);
+  const now = rfc3339Seconds(new Date());
+  const deleteRow = ["resource_list_keys", "resources"].map((table) =>
+    db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
+  );
+  const insertRow = db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, datetime('now'))`);
+  const insertName = db.prepare(
+    `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES (?, ?, ?, ?, 'current', ?)`,
+  );
+  db.prepare(`DELETE FROM resource_names WHERE kind IN (?, ?)`).run(shareKind!, agentChannelKind!);
+  for (const row of converted) {
+    const slug = changedSlugs.get(row.id) ?? row.slug;
+    for (const statement of deleteRow) {
+      statement.run(row.fromKind, row.id);
+    }
+    insertRow.run(CHANNEL_KIND_AT_MERGE, row.id, encodeChannel(row, slug));
+    if (slug !== "") {
+      insertName.run(CHANNEL_KIND_AT_MERGE, row.org, slug, row.id, claimedAt.get(row.id) ?? now);
+    }
+  }
+  for (const kind of MERGED_CHANNEL_KINDS) {
+    db.prepare(`DELETE FROM resource_list_keys WHERE kind = ?`).run(kind);
+  }
+
+  const rekeyed: Array<{ from: string; grant: RekeyedGrant }> = [];
+  for (const row of rowsOf(CHANNEL_MERGE_GRANT_KIND)) {
+    try {
+      const grant = rekeyedChannelGrant(row.data);
+      if (grant !== undefined) {
+        rekeyed.push({ from: row.id, grant });
+      }
+    } catch (error) {
+      throw unreadableChannelMergeRowError(CHANNEL_MERGE_GRANT_KIND, row.id, error);
+    }
+  }
+  for (const { from, grant } of rekeyed) {
+    for (const statement of deleteRow) {
+      statement.run(CHANNEL_MERGE_GRANT_KIND, from);
+    }
+    insertRow.run(CHANNEL_MERGE_GRANT_KIND, grant.id, grant.data);
+  }
+  const entries = db.prepare(
+    `SELECT org, sequence, data FROM grant_history
+     WHERE (principal_kind IN (?, ?) OR resource_kind IN (?, ?)) AND (org, sequence) > (?, ?)
+     ORDER BY org, sequence
+     LIMIT ?`,
+  );
+  const moveEntry = db.prepare(
+    `UPDATE grant_history
+        SET principal_kind = CASE WHEN principal_kind IN (?, ?) THEN ? ELSE principal_kind END,
+            resource_kind = CASE WHEN resource_kind IN (?, ?) THEN ? ELSE resource_kind END,
+            grant_id = COALESCE(?, grant_id),
+            data = COALESCE(?, data)
+      WHERE org = ? AND sequence = ?`,
+  );
+  for (let afterOrg = "", afterSequence = 0; ; ) {
+    const rows = entries.all(
+      shareKind!,
+      agentChannelKind!,
+      shareKind!,
+      agentChannelKind!,
+      afterOrg,
+      afterSequence,
+      CHANNEL_MERGE_PAGE_SIZE,
+    ) as Array<{ org: string; sequence: number; data: Uint8Array }>;
+    for (const row of rows) {
+      let grant: RekeyedGrant | undefined;
+      try {
+        grant = rekeyedChannelGrant(row.data);
+      } catch (error) {
+        throw unreadableChannelMergeRowError("grant_history", `${row.org}/${row.sequence}`, error);
+      }
+      moveEntry.run(
+        shareKind!,
+        agentChannelKind!,
+        CHANNEL_KIND_AT_MERGE,
+        shareKind!,
+        agentChannelKind!,
+        CHANNEL_KIND_AT_MERGE,
+        grant?.id ?? null,
+        grant?.data ?? null,
+        row.org,
+        row.sequence,
+      );
+    }
+    if (rows.length < CHANNEL_MERGE_PAGE_SIZE) {
+      break;
+    }
+    const last = rows[rows.length - 1]!;
+    afterOrg = last.org;
+    afterSequence = Number(last.sequence);
+  }
+
+  const relabel = db.prepare(`UPDATE resources SET data = ?, updated_at = datetime('now') WHERE kind = ? AND id = ?`);
+  for (const kind of CHANNEL_MERGE_SESSION_KINDS) {
+    for (const row of rowsOf(kind)) {
+      let relabelled: Uint8Array | undefined;
+      try {
+        relabelled = relabelChannelSessionRow(kind, row.data);
+      } catch (error) {
+        throw unreadableChannelMergeRowError(kind, row.id, error);
+      }
+      if (relabelled !== undefined) {
+        relabel.run(relabelled, kind, row.id);
+      }
+    }
+  }
+  logChannelMerge(logger, converted, changedSlugs);
 }

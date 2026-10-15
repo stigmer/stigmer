@@ -145,6 +145,7 @@ import {
   SCHEMA_VERSION_33,
   SCHEMA_VERSION_34,
   SCHEMA_VERSION_35,
+  SCHEMA_VERSION_36,
   runMigrations,
 } from "../migrations.js";
 import { LABEL_TAG_REPORT_PAGE_SIZE } from "../../label-tag-report.js";
@@ -195,6 +196,14 @@ import { grantListIndex } from "../../../domain/grant/list-index.js";
 import { newResourceGrantStore } from "../../../domain/grant/resource-store.js";
 import { DuplicateGrantError } from "../../../domain/grant/store.js";
 import { KIND_TABLES, KIND_RENAME_PAGE_SIZE } from "../../kind-rename.js";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
+import { ChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { CHANNEL_MERGE_PAGE_SIZE } from "../../channel-kinds-merged.js";
+import { MERGE_ORG, agentChannelRowBytes, shareRowBytes } from "../../__tests__/channel-merge-rows.js";
+import { channelListIndex } from "../../../domain/channel/list-index.js";
+import { buildChannelAgentProfile, loadLinkedChannel } from "../../../domain/channel/steps.js";
 import {
   AGENT_RUN_NAMES,
   EXECUTION_NAMES,
@@ -4275,6 +4284,365 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           for (const table of KIND_TABLES) {
             expect(await count(client, table, "plugin_eval"), table).toBe(0);
           }
+        } finally {
+          await client.end();
+        }
+      });
+    });
+    describe("v36: the agent share and agent channel kinds merge into the channel kind", () => {
+      const MERGE_VERSION = SCHEMA_VERSION_36;
+      const seededAt = new Date("2026-10-15T00:00:00Z");
+      const SHARE_LABEL = "stigmer.ai/share-id";
+      const CHANNEL_LABEL = "stigmer.ai/channel-id";
+      const CONVERSATION_KEY = "stigmer.ai/channel-conversation-key";
+      const AGENT = { kind: ApiResourceKind.agent, org: MERGE_ORG, id: "agt_helper" };
+      const VAULT = { kind: ApiResourceKind.vault, org: MERGE_ORG, id: "vlt_tools" };
+      const APP = { kind: ApiResourceKind.channel_app, org: MERGE_ORG, id: "chapp_meta" };
+      const older = new Date("2026-01-01T00:00:00Z");
+      const newer = new Date("2026-02-01T00:00:00Z");
+
+      async function clientAt(target: number): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, target);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        return client;
+      }
+
+      async function insert(client: pg.Client, kind: string, id: string, data: Uint8Array): Promise<void> {
+        await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, $4)`, [
+          kind,
+          id,
+          Buffer.from(data),
+          seededAt,
+        ]);
+      }
+
+      async function seedMerged(
+        client: pg.Client,
+        kind: "agent_share" | "agent_channel",
+        id: string,
+        slug: string,
+        data: Uint8Array,
+      ): Promise<void> {
+        await insert(client, kind, id, data);
+        await client.query(
+          `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ($1, $2, 'agent', $3, '')`,
+          [kind, id, AGENT.id],
+        );
+        await client.query(
+          `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ($1, $2, $3, $4, 'current', '2026-01-01T00:00:00Z')`,
+          [kind, MERGE_ORG, slug, id],
+        );
+      }
+
+      async function data(client: pg.Client, kind: string, id: string): Promise<Uint8Array | undefined> {
+        const result = await client.query<{ data: Buffer }>(`SELECT data FROM resources WHERE kind = $1 AND id = $2`, [kind, id]);
+        const found = result.rows[0];
+        return found === undefined ? undefined : new Uint8Array(found.data);
+      }
+
+      async function count(client: pg.Client, table: string, kind: string): Promise<number> {
+        const result = await client.query<{ n: string }>(`SELECT COUNT(*) AS n FROM ${table} WHERE kind = $1`, [kind]);
+        return Number(result.rows[0]!.n);
+      }
+
+      async function version(client: pg.Client): Promise<number> {
+        const result = await client.query(`SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`);
+        return Number(result.rows[0].version);
+      }
+
+      async function channelOf(client: pg.Client, id: string) {
+        const stored = await data(client, "channel", id);
+        expect(stored, id).toBeDefined();
+        return fromBinary(ChannelSchema, stored!);
+      }
+
+      async function seedEveryShape(client: pg.Client): Promise<void> {
+        await insert(
+          client,
+          "organization",
+          MERGE_ORG,
+          toBinary(OrganizationSchema, create(OrganizationSchema, { metadata: { id: MERGE_ORG, slug: "acme" } })),
+        );
+        await insert(
+          client,
+          "agent",
+          AGENT.id,
+          toBinary(
+            AgentSchema,
+            create(AgentSchema, { metadata: { id: AGENT.id, org: MERGE_ORG, slug: "helper", name: "Helper" }, spec: { description: "Helps." } }),
+          ),
+        );
+        await seedMerged(
+          client,
+          "agent_share",
+          "ash_public",
+          "helper",
+          shareRowBytes({
+            id: "ash_public",
+            slug: "helper",
+            createdAt: newer,
+            agentRef: AGENT,
+            enabled: true,
+            audience: 1,
+            allowedOrigins: ["https://docs.example.com"],
+            messages: { rateLimited: "Slow down." },
+            vaults: [VAULT],
+            runConfig: { maxToolRounds: 5 },
+            vaultAttachers: { [VAULT.id]: "ida_owner" },
+            linkToken: "tok_locked",
+            agentPin: AGENT.id,
+            retiredFieldBytes: true,
+          }),
+        );
+        await seedMerged(
+          client,
+          "agent_share",
+          "ash_members",
+          "helper-team",
+          shareRowBytes({ id: "ash_members", slug: "helper-team", createdAt: older, agentRef: AGENT, enabled: true, audience: 2 }),
+        );
+        await seedMerged(
+          client,
+          "agent_channel",
+          "ach_slack",
+          "helper",
+          agentChannelRowBytes({
+            id: "ach_slack",
+            slug: "helper",
+            createdAt: older,
+            agentRef: AGENT,
+            enabled: true,
+            provider: "slack",
+            proactive: true,
+            installState: ChannelInstallState.installed,
+            slackInstall: { teamId: "TACMESLACK", teamName: "Acme", botUserId: "U01" },
+            retiredFieldBytes: true,
+          }),
+        );
+        await seedMerged(
+          client,
+          "agent_channel",
+          "ach_whatsapp",
+          "helper-whatsapp-line",
+          agentChannelRowBytes({
+            id: "ach_whatsapp",
+            slug: "helper-whatsapp-line",
+            createdAt: older,
+            agentRef: AGENT,
+            enabled: true,
+            provider: "whatsapp",
+            phoneNumberId: "106540352242922",
+            appRef: APP,
+            proactive: true,
+            installState: ChannelInstallState.pending_install,
+            vaults: [VAULT],
+          }),
+        );
+        const onShare = { principal: "identity_account:ida_viewer", relation: "viewer", resource: "agent_share:ash_public" };
+        const onChannel = { principal: "team:tm_support", relation: "participant", resource: "agent_channel:ach_slack" };
+        for (const grant of [onShare, onChannel]) {
+          await insert(client, "grant", grantIdAfterV34(grant), grantRowAfterV34(grant));
+        }
+        const occurred = "2026-10-15T00:00:00.000Z";
+        await client.query(
+          `INSERT INTO grant_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, grant_id,
+             principal_kind, principal_id, relation, resource_kind, resource_id, data)
+           VALUES ($1, 1, $2, 'granted', 'grant', 'ida_owner', 'user', $3, 'identity_account', 'ida_viewer', 'viewer', 'agent_share', 'ash_public', $4)`,
+          [MERGE_ORG, occurred, grantIdAfterV34(onShare), Buffer.from(grantRowAfterV34(onShare))],
+        );
+        await client.query(`INSERT INTO grant_history_heads (org, last_sequence, last_occurred_at) VALUES ($1, 1, $2)`, [
+          MERGE_ORG,
+          occurred,
+        ]);
+        const guest = create(SessionSchema, { metadata: { id: "ses_guest", org: MERGE_ORG, labels: { [SHARE_LABEL]: "ash_public" } } });
+        stampEtag(SessionSchema, guest);
+        await insert(client, "session", "ses_guest", toBinary(SessionSchema, guest));
+        await insert(
+          client,
+          "run",
+          "run_guest",
+          toBinary(RunSchema, create(RunSchema, { metadata: { id: "run_guest", org: MERGE_ORG, labels: { [SHARE_LABEL]: "ash_public" } } })),
+        );
+        await insert(
+          client,
+          "session",
+          "ses_slack",
+          toBinary(
+            SessionSchema,
+            create(SessionSchema, {
+              metadata: { id: "ses_slack", org: MERGE_ORG, labels: { [CHANNEL_LABEL]: "ach_slack", [CONVERSATION_KEY]: "TACMESLACK:C01" } },
+            }),
+          ),
+        );
+      }
+
+      it("converts every share and agent channel to a channel under its old id, keeping every field but the two it drops", async () => {
+        const client = await clientAt(SCHEMA_VERSION_35);
+        try {
+          await seedEveryShape(client);
+          const slackSession = await data(client, "session", "ses_slack");
+          await migrateTo(db.databaseUrl, MERGE_VERSION);
+          expect(await version(client)).toBe(MERGE_VERSION);
+
+          const pub = await channelOf(client, "ash_public");
+          expect(pub.kind).toBe("Channel");
+          expect(pub.spec?.agentRef?.id).toBe(AGENT.id);
+          expect(pub.spec?.vaults.map((v) => v.id)).toEqual([VAULT.id]);
+          expect(pub.spec?.runConfig?.maxToolRounds).toBe(5);
+          const web = pub.spec?.type.case === "web" ? pub.spec.type.value : undefined;
+          expect(web?.audience).toBe(ChannelAudience.public);
+          expect(web?.allowedOrigins).toEqual(["https://docs.example.com"]);
+          expect(web?.messages?.rateLimited).toBe("Slow down.");
+          expect(pub.status?.typeStatus.case === "web" ? pub.status.typeStatus.value.linkToken : "").toBe("tok_locked");
+          expect(pub.status?.vaultAttachers).toEqual({ [VAULT.id]: "ida_owner" });
+          expect(pub.metadata?.etag).toBe(etagOf(ChannelSchema, pub));
+
+          const slack = await channelOf(client, "ach_slack");
+          expect(slack.spec?.type.case).toBe("slack");
+          expect(slack.status?.installState).toBe(ChannelInstallState.installed);
+          expect(slack.status?.typeStatus.case === "slack" ? slack.status.typeStatus.value.teamId : "").toBe("TACMESLACK");
+
+          const whatsapp = await channelOf(client, "ach_whatsapp");
+          const arm = whatsapp.spec?.type.case === "whatsapp" ? whatsapp.spec.type.value : undefined;
+          expect(arm?.phoneNumberId).toBe("106540352242922");
+          expect(arm?.appRef?.id).toBe(APP.id);
+          expect(arm?.proactiveMessagingEnabled).toBe(true);
+
+          for (const table of KIND_TABLES) {
+            expect(await count(client, table, "agent_share"), table).toBe(0);
+            expect(await count(client, table, "agent_channel"), table).toBe(0);
+          }
+          expect(await data(client, "session", "ses_slack"), "a Slack conversation keeps its bytes").toEqual(slackSession);
+          expect((await channelOf(client, "ach_slack")).metadata?.slug, "the older row keeps the slug").toBe("helper");
+          expect(pub.metadata?.slug, "the newer row takes its type").toBe("helper-web");
+          const names = await client.query<{ name: string; id: string }>(
+            `SELECT name, id FROM resource_names WHERE kind = 'channel' ORDER BY name COLLATE "C"`,
+          );
+          expect(names.rows.map((n) => [n.name, n.id])).toEqual([
+            ["helper", "ach_slack"],
+            ["helper-team", "ash_members"],
+            ["helper-web", "ash_public"],
+            ["helper-whatsapp-line", "ach_whatsapp"],
+          ]);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("re-keys every grant on either kind to the channel's triple, moves its history, and relabels a chat link's guest conversation", async () => {
+        const client = await clientAt(SCHEMA_VERSION_35);
+        try {
+          await seedEveryShape(client);
+          await migrateTo(db.databaseUrl, MERGE_VERSION);
+          const onShare = { principal: "identity_account:ida_viewer", relation: "viewer", resource: "channel:ash_public" };
+          const onChannel = { principal: "team:tm_support", relation: "participant", resource: "channel:ach_slack" };
+          for (const grant of [onShare, onChannel]) {
+            const stored = await data(client, "grant", grantIdAfterV34(grant));
+            expect(stored, grant.resource).toBeDefined();
+            expect(fromBinary(GrantSchema, stored!).spec?.resource?.kind).toBe("channel");
+          }
+          expect(await count(client, "resources", "grant")).toBe(2);
+          const entry = await client.query(`SELECT grant_id, resource_kind FROM grant_history WHERE org = $1 AND sequence = 1`, [MERGE_ORG]);
+          expect(entry.rows[0]).toEqual({ grant_id: grantIdAfterV34(onShare), resource_kind: "channel" });
+          const guest = fromBinary(SessionSchema, (await data(client, "session", "ses_guest"))!);
+          expect(guest.metadata?.labels).toEqual({ [CHANNEL_LABEL]: "ash_public" });
+          expect(guest.metadata?.etag).toBe(etagOf(SessionSchema, guest));
+          expect(fromBinary(RunSchema, (await data(client, "run", "run_guest"))!).metadata?.labels).toEqual({
+            [CHANNEL_LABEL]: "ash_public",
+          });
+        } finally {
+          await client.end();
+        }
+        const store = await PostgresStore.open(db.databaseUrl, undefined, { listIndexes: [sessionListIndex, channelListIndex] });
+        try {
+          const conversations = await store.queryResources(sessionListIndex, { anyKey: [{ name: "channel", value: "ash_public" }] });
+          expect(conversations.map((row) => row.id)).toEqual(["ses_guest"]);
+          const channels = await store.queryResources(channelListIndex, { anyKey: [{ name: "agent", value: AGENT.id }] });
+          expect(channels.map((row) => row.id).sort()).toEqual(["ach_slack", "ach_whatsapp", "ash_members", "ash_public"]);
+          const profile = await buildChannelAgentProfile(store, await loadLinkedChannel(store, "ash_public"));
+          expect(profile.slug).toBe("helper-web");
+          expect(profile.name).toBe("Helper");
+        } finally {
+          await store.close();
+        }
+      });
+
+      it("reads rows across keyset pages, converting the share past the first page", async () => {
+        const client = await clientAt(SCHEMA_VERSION_35);
+        try {
+          for (let i = 0; i <= CHANNEL_MERGE_PAGE_SIZE; i++) {
+            const id = `ash_page_${String(i).padStart(4, "0")}`;
+            await insert(client, "agent_share", id, shareRowBytes({ id, slug: id.replace(/_/g, "-"), agentRef: AGENT }));
+          }
+          await migrateTo(db.databaseUrl, MERGE_VERSION);
+          expect(await count(client, "resources", "channel")).toBe(CHANNEL_MERGE_PAGE_SIZE + 1);
+          expect(await count(client, "resources", "agent_share")).toBe(0);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a row holding a field the merge does not know fails the step, names the row, and leaves the database at v35", async () => {
+        const client = await clientAt(SCHEMA_VERSION_35);
+        try {
+          await insert(client, "agent_share", "ash_odd", shareRowBytes({ id: "ash_odd", slug: "odd", agentRef: AGENT, unknownSpecField: 40 }));
+          await expect(migrateTo(db.databaseUrl, MERGE_VERSION)).rejects.toThrow("agent_share 'ash_odd' cannot be read to merge");
+          expect(await version(client)).toBe(SCHEMA_VERSION_35);
+          expect(await count(client, "resources", "agent_share")).toBe(1);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("an archived version of a merged kind fails the step, names it, and leaves the database at v35", async () => {
+        const client = await clientAt(SCHEMA_VERSION_35);
+        try {
+          await insert(client, "agent_channel", "ach_one", agentChannelRowBytes({ id: "ach_one", slug: "one", agentRef: AGENT, provider: "slack" }));
+          await client.query(
+            `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('agent_channel', 'ach_one', $1, '', '')`,
+            [Buffer.from([0x00])],
+          );
+          await expect(migrateTo(db.databaseUrl, MERGE_VERSION)).rejects.toThrow("agent_channel 'ach_one' has an archived version");
+          expect(await version(client)).toBe(SCHEMA_VERSION_35);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a previous name of a merged kind fails the step, names it, and leaves the database at v35", async () => {
+        const client = await clientAt(SCHEMA_VERSION_35);
+        try {
+          await client.query(
+            `INSERT INTO resource_names (kind, org, name, id, state, claimed_at, expires_at) VALUES ('agent_share', $1, 'old', 'ash_gone', 'previous', '2026-01-01T00:00:00Z', '2026-12-01T00:00:00Z')`,
+            [MERGE_ORG],
+          );
+          await expect(migrateTo(db.databaseUrl, MERGE_VERSION)).rejects.toThrow(`agent_share name '${MERGE_ORG}/old' is a previous name`);
+          expect(await version(client)).toBe(SCHEMA_VERSION_35);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("replays every frozen step over a share from before the slug ledger, its slug-only references rewritten to ids, then converts it", async () => {
+        const client = await clientAt(SCHEMA_VERSION_7 - 1);
+        try {
+          await insert(
+            client,
+            "agent",
+            AGENT.id,
+            toBinary(AgentSchema, create(AgentSchema, { metadata: { id: AGENT.id, org: MERGE_ORG, slug: "helper", name: "Helper" } })),
+          );
+          await insert(
+            client,
+            "agent_share",
+            "ash_early",
+            shareRowBytes({ id: "ash_early", slug: "helper", agentRef: { org: MERGE_ORG, slug: "helper" }, createdAt: older }),
+          );
+          await migrateTo(db.databaseUrl, MERGE_VERSION);
+          const early = await channelOf(client, "ash_early");
+          expect(early.spec?.agentRef?.id, "the reference rewrite read the share's agent_ref through its frozen shape").toBe(AGENT.id);
+          expect(await count(client, "resource_names", "channel")).toBe(1);
         } finally {
           await client.end();
         }

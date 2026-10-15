@@ -5,6 +5,11 @@
  *   - the table names the message of every kind that stores a resource,
  *     each the kind's own (its group, name and version), so a kind added
  *     to the enum without an entry fails here;
+ *   - the step reads every kind by its name at the step, and the channel,
+ *     which two kinds were merged into after it, by its predecessors'
+ *     names (agent_share, agent_channel) through their frozen shapes, so
+ *     a store replayed from before the merge stamps their rows and keeps
+ *     every field the shapes leave undeclared;
  *   - an unstamped row, and one carrying a stale etag, gain the etag its
  *     content gives, every other field and unknown field kept;
  *   - a row already carrying its etag, and a row of a kind with no entry,
@@ -24,14 +29,19 @@ import {
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceGroup } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_group_pb";
 
-import { etagOf } from "../etag.js";
+import { convertToChannel } from "../channel-kinds-merged.js";
+import { etagOf, stampEtag, storedEtagOf } from "../etag.js";
+import { FrozenAgentChannelSchema, FrozenAgentShareSchema } from "../frozen-envelopes.js";
 import {
   ETAG_STAMPED_KIND_NAMES,
+  MERGED_KINDS_AT_STEP,
   RESOURCE_SCHEMAS,
+  SCHEMAS_AT_STEP,
   stampEtagRow,
   UNREADABLE_ETAG_ROW_SAMPLE,
   logUnreadableEtagRows,
 } from "../resource-etags-stamped.js";
+import { agentChannelRowBytes, MERGE_ORG, shareRowBytes } from "./channel-merge-rows.js";
 
 /** The kinds that name no stored resource message: the audit record and the platform singleton. */
 const NO_RESOURCE_MESSAGE: ReadonlySet<ApiResourceKind> = new Set([
@@ -60,7 +70,62 @@ describe("RESOURCE_SCHEMAS", () => {
       );
     }
     expect(ETAG_STAMPED_KIND_NAMES).toContain("agent");
-    expect(ETAG_STAMPED_KIND_NAMES).toHaveLength(RESOURCE_SCHEMAS.size);
+    const mergedNames = [...MERGED_KINDS_AT_STEP.values()].reduce((sum, names) => sum + names.size, 0);
+    expect(ETAG_STAMPED_KIND_NAMES).toHaveLength(RESOURCE_SCHEMAS.size - MERGED_KINDS_AT_STEP.size + mergedNames);
+  });
+});
+
+describe("SCHEMAS_AT_STEP", () => {
+  it("reads the channel by the names its two predecessors' rows carried, through their frozen shapes", () => {
+    expect([...(MERGED_KINDS_AT_STEP.get(ApiResourceKind.channel) ?? new Map())]).toEqual([
+      ["agent_share", FrozenAgentShareSchema],
+      ["agent_channel", FrozenAgentChannelSchema],
+    ]);
+    expect(SCHEMAS_AT_STEP.get("agent_share")).toBe(FrozenAgentShareSchema);
+    expect(SCHEMAS_AT_STEP.get("agent_channel")).toBe(FrozenAgentChannelSchema);
+    expect(SCHEMAS_AT_STEP.has("channel")).toBe(false);
+    expect(SCHEMAS_AT_STEP.get("iam_policy")).toBe(RESOURCE_SCHEMAS.get(ApiResourceKind.grant));
+    expect(ETAG_STAMPED_KIND_NAMES).toEqual([...SCHEMAS_AT_STEP.keys()]);
+  });
+
+  it.each([
+    {
+      kind: "agent_share",
+      schema: FrozenAgentShareSchema,
+      row: () =>
+        shareRowBytes({
+          id: "ash_1",
+          slug: "support",
+          agentRef: { org: MERGE_ORG, slug: "helper" },
+          audience: 1,
+          linkToken: "tok_1",
+          createdAt: new Date("2026-01-02T03:04:05Z"),
+        }),
+    },
+    {
+      kind: "agent_channel",
+      schema: FrozenAgentChannelSchema,
+      row: () =>
+        agentChannelRowBytes({
+          id: "ach_1",
+          slug: "support",
+          agentRef: { org: MERGE_ORG, slug: "helper" },
+          provider: "slack",
+          installState: 2,
+        }),
+    },
+  ])("stamps a $kind row through its frozen shape and keeps the fields it leaves undeclared", ({ kind, schema, row }) => {
+    const stamped = stampEtagRow(kind, row());
+    const decoded = fromBinary(schema, stamped!);
+    expect(storedEtagOf(schema, decoded)).toBe(etagOf(schema, fromBinary(schema, row())));
+    expect(stampEtagRow(kind, stamped!)).toBeUndefined();
+    const original = fromBinary(schema, row());
+    stampEtag(schema, original);
+    expect(stamped).toEqual(toBinary(schema, original));
+    const before = convertToChannel(kind, "row_1", row());
+    const after = convertToChannel(kind, "row_1", stamped!);
+    expect(after.channel.spec).toEqual(before.channel.spec);
+    expect(after.channel.status).toEqual(before.channel.status);
   });
 });
 

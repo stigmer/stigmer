@@ -49,8 +49,6 @@ import { fromBinary } from "@bufbuild/protobuf";
 import { reflect } from "@bufbuild/protobuf/reflect";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -65,7 +63,9 @@ import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_p
 import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 
 import {
+  FrozenAgentChannelSchema,
   FrozenAgentInstanceEnvelopeSchema,
+  FrozenAgentShareSchema,
   FrozenArtifactEnvelopeSchema,
   FrozenEnvironmentEnvelopeSchema,
   FrozenMcpServerEnvelopeSchema,
@@ -99,8 +99,8 @@ export const ORGANIZATION_SCOPED_KINDS_AT_LEDGER: ReadonlyArray<OrganizationScop
     { kind: "skill", schema: SkillSchema },
     { kind: "mcp_server", schema: FrozenMcpServerEnvelopeSchema },
     { kind: "agent_instance", schema: FrozenAgentInstanceEnvelopeSchema },
-    { kind: "agent_share", schema: AgentShareSchema },
-    { kind: "agent_channel", schema: AgentChannelSchema },
+    { kind: "agent_share", schema: FrozenAgentShareSchema },
+    { kind: "agent_channel", schema: FrozenAgentChannelSchema },
     { kind: "channel_app", schema: ChannelAppSchema },
     { kind: "workflow", schema: FrozenWorkflowEnvelopeSchema },
     { kind: "workflow_instance", schema: FrozenWorkflowInstanceEnvelopeSchema },
