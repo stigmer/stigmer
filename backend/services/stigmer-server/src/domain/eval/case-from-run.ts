@@ -12,8 +12,9 @@
  *     format's defaults and the agent's own tools, and a request that opens
  *     with a `---` block of its own is still read whole as the prompt;
  *   - `history.jsonl` and `case.yaml` (`context.history_file`), when the
- *     session holds turns before this one: every earlier run, superseded
- *     ones included, because the runner resumes a session as the model saw
+ *     session holds turns before this one (in the log's order; for a turn
+ *     that recorded no events, the runs created before it): every earlier
+ *     run, superseded ones included, because the runner resumes a session as the model saw
  *     it (`RunSpec.supersedes_run_id` is display-only). Each turn is written
  *     by the graders' own transcript writer (../score/eval/trace.ts
  *     `evalTraceOf`), so a history reads as an eval run's trace does; a
@@ -47,6 +48,7 @@
 import { createHash } from "node:crypto";
 
 import { create } from "@bufbuild/protobuf";
+import { timestampMs } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 
 import { isToolNameSegment } from "@stigmer/plugin-package";
@@ -122,7 +124,7 @@ export async function buildCaseFromRun(store: Store, logger: Logger, input: Case
   const events = sessionId === "" ? [] : await readSessionEvents(store, sessionId, {});
   const turns = turnsOf(events);
   const own = turns.find((turn) => turn.runId === runId);
-  const earlier = turns.filter((turn) => turn.runId !== runId && (own === undefined || turn.firstSeq < own.firstSeq));
+  const earlier = await earlierTurnsOf(store, run, turns, own);
   const turn = turnOfTranscript({ run, events: own?.events ?? [] });
   const request = turn?.userMessage?.text || run.spec?.message || "";
   const caseName = input.caseName !== "" ? input.caseName : suggestCaseName(request);
@@ -134,7 +136,7 @@ export async function buildCaseFromRun(store: Store, logger: Logger, input: Case
     const lines: string[] = [];
     let unanswered = 0;
     for (const previous of earlier) {
-      const transcript = { run: await runOrStub(store, previous.runId), events: previous.events };
+      const transcript = { run: previous.row, events: previous.turn.events };
       const trace = await evalTraceOf(transcript, {
         pluginName: "",
         harness,
@@ -238,6 +240,40 @@ function turnsOf(events: ReadonlyArray<SessionEvent>): SessionTurn[] {
     }
   }
   return [...turns.values()];
+}
+
+/**
+ * The session's turns before the run's, each with its run's row (its id
+ * alone when the row is gone): those that start earlier in the log; for a
+ * run that recorded no events of its own, those whose run was created
+ * before it. A run with no creation time, or whose row is gone, cannot be
+ * placed then, and is left out.
+ */
+async function earlierTurnsOf(
+  store: Store,
+  run: Run,
+  turns: ReadonlyArray<SessionTurn>,
+  own: SessionTurn | undefined,
+): Promise<Array<{ readonly turn: SessionTurn; readonly row: Run }>> {
+  const runId = run.metadata?.id ?? "";
+  const others = turns.filter((turn) => turn.runId !== runId);
+  if (own !== undefined) {
+    const before = others.filter((turn) => turn.firstSeq < own.firstSeq);
+    return Promise.all(before.map(async (turn) => ({ turn, row: await runOrStub(store, turn.runId) })));
+  }
+  const createdAt = createdAtMs(run);
+  if (createdAt === undefined) return [];
+  const placed = await Promise.all(others.map(async (turn) => ({ turn, row: await runOrStub(store, turn.runId) })));
+  return placed.filter(({ row }) => {
+    const at = createdAtMs(row);
+    return at !== undefined && at < createdAt;
+  });
+}
+
+/** When a run's row was created; undefined when it carries no stamp. */
+function createdAtMs(run: Run): number | undefined {
+  const at = run.status?.audit?.specAudit?.createdAt;
+  return at === undefined ? undefined : timestampMs(at);
 }
 
 /** The engine the session runs on; native when its row is gone. */

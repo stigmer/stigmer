@@ -7,6 +7,9 @@
  *     that opens with a `---` block of its own (settings a sender wrote, or
  *     a lone rule) is the prompt and never the case's settings; a run with
  *     no session has no history;
+ *   - a turn that recorded no events of its own takes as earlier the runs
+ *     created before it, never a later one, and none when it carries no
+ *     creation time;
  *   - a session's earlier turns, a deleted run's events included, become
  *     `history.jsonl` (every tool use paired, as the format requires) with
  *     a `case.yaml` naming it; a call that never returned is noted; a
@@ -32,6 +35,7 @@
 import { createHash } from "node:crypto";
 
 import { create } from "@bufbuild/protobuf";
+import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -253,6 +257,26 @@ describe("a case from a turn that continues a conversation", () => {
     expect(fileOf(built, "case.yaml")).toBe('schema_version: "1.1"\nname: cite-the-bug\ncontext:\n  history_file: history.jsonl\n');
     expect(built.notes).toEqual(["1 tool call in the conversation before this turn never returned; the history records it with an empty answer"]);
     expectLoads(built);
+  });
+
+  it("takes as earlier the runs created before a turn that recorded no events, never a later one", async () => {
+    await seedSession();
+    const at = (id: string, message: string, ms: number): Run =>
+      create(RunSchema, {
+        metadata: { id, org: ORG },
+        spec: { target: { case: "sessionId", value: SESSION }, message },
+        status: { audit: { specAudit: { createdAt: timestampFromMs(ms) } } },
+      });
+    await seedRun(at("run_1", "Before.", 1_000), new RunEventsBuilder("run_1").user("Before.").turnMessage("Done before."));
+    await seedRun(at("run_4", "After.", 3_000), new RunEventsBuilder("run_4").user("After.").turnMessage("Done after."));
+    const silent = await seedRun(at("run_3", "The silent turn.", 2_000));
+    const built = await buildCaseFromRun(temp.store, logger, { run: silent, caseName: "silent", skill: "", callerId: CALLER });
+    const history = fileOf(built, "history.jsonl") ?? "";
+    expect(history).toContain("Before.");
+    expect(history).not.toContain("After.");
+
+    const unstamped = await seedRun(runRow("run_5", "No stamp."));
+    expect(fileOf(await buildCaseFromRun(temp.store, logger, { run: unstamped, caseName: "unstamped", skill: "", callerId: CALLER }), "history.jsonl")).toBeUndefined();
   });
 
   it("notes that the Cursor engine cannot resume the history", async () => {
