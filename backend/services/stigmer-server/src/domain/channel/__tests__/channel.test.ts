@@ -28,7 +28,11 @@
  *     install RPCs (INSTALL_NOT_APPLICABLE_MESSAGE), a Slack channel's
  *     rotateLink (ROTATE_LINK_NOT_APPLICABLE_MESSAGE) and both profile
  *     reads of a Slack channel (the uniform NotFound);
- *   - rename moves the slug, and the old slug still resolves for reading.
+ *   - rename moves the slug, and the old slug still resolves for reading;
+ *   - an update naming another organization's channel app is refused with
+ *     the shared same-organization copy, as a create is, and the update
+ *     step run by a chain that never loaded the channel throws as a broken
+ *     invariant.
  *
  * Go tests run one store per test function; this file shares ONE server,
  * so count-sensitive assertions use dedicated orgs and every agent /
@@ -78,7 +82,11 @@ import {
   visibilityWrite,
   writeLandsMidUpdate,
 } from "../../../pipeline/__tests__/race-support.js";
-import { linkNotFound, typeFieldName } from "../steps.js";
+import { linkNotFound, newValidateChannelUpdateStep, typeFieldName } from "../steps.js";
+import type { ModelCatalogProvider } from "../../../modelcatalog/model-catalog-provider.js";
+import { testCallerIdentity, untouchable } from "../../../pipeline/__tests__/support.js";
+import { RequestContext } from "../../../pipeline/request-context.js";
+import type { Store } from "../../../store/interface.js";
 import {
   APP_REF_REQUIRED_FOR_WHATSAPP_MESSAGE,
   CONVERSATION_PARTICIPATION_UNAVAILABLE_MESSAGE,
@@ -641,6 +649,16 @@ describe("channel update", () => {
     await channels.update({ resource: relative, updateMask: { paths: ["*"] } });
   });
 
+  it("the update step run by a chain that never loaded the channel is a broken invariant and throws", async () => {
+    const step = newValidateChannelUpdateStep(
+      untouchable<Store>("store"),
+      untouchable<ModelCatalogProvider>("registry"),
+      undefined,
+    );
+    const ctx = new RequestContext(ChannelSchema, create(ChannelSchema), testCallerIdentity(), ApiResourceKind.channel);
+    await expect(step.execute(ctx)).rejects.toThrow("existing channel not found in context");
+  });
+
   it("typeFieldName derives the PROTO field name (Go TestProviderFieldName)", () => {
     // The error copy interpolates this; a camelCase/snake_case mismatch
     // with Go would be a silent cross-edition wire divergence.
@@ -884,6 +902,30 @@ describe("app_ref (BYO channel-app binding)", () => {
     (rebound.metadata as Record<string, string>).slug = created.metadata!.slug;
     const updated = await channels.update({ resource: rebound, updateMask: { paths: ["*"] } });
     expect(appSettingsOf(updated).appRef?.slug).toBe("second-app");
+  });
+
+  it("a cross-org app_ref on update is FAILED_PRECONDITION with the shared copy, and the binding stays", async () => {
+    const agent = await createTestAgent(uniqueName("Cross Org Rebind Agent"));
+    const created = await channels.create(
+      channelFor(agent, uniqueName("Cross Org Rebind Slack"), true, {
+        kind: ApiResourceKind.channel_app,
+        slug: "first-app",
+      }),
+    );
+
+    const rebound = channelFor(agent, created.metadata!.name, true, {
+      kind: ApiResourceKind.channel_app,
+      org: "channel-other-org",
+      slug: "their-app",
+    });
+    (rebound.metadata as Record<string, string>).id = created.metadata!.id;
+    (rebound.metadata as Record<string, string>).slug = created.metadata!.slug;
+    const err = await grpcError(() => channels.update({ resource: rebound, updateMask: { paths: ["*"] } }));
+    expect(err.code).toBe(Code.FailedPrecondition);
+    expect(err.rawMessage).toBe(appRefSameOrgMessage("slack"));
+
+    const stored = await query.get({ value: created.metadata!.id });
+    expect(appSettingsOf(stored).appRef?.slug).toBe("first-app");
   });
 
   it("app_ref is frozen while installed, with the shared copy", async () => {

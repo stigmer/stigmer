@@ -4,7 +4,9 @@
  * `evaluator.getByAgent`, editable on a plugin-managed agent too when the
  * host makes the view editable (grading is not the agent's definition).
  * The report on top hands the view's `onNavigateToRun` to its flagged
- * runs, and a version's eval link opens the Evals tab on that eval.
+ * runs, and a version's eval link opens the Evals tab on that eval. The
+ * Shares tab beside it lists the agent's web channels, read through
+ * `channel.listByAgent` in the agent's own organization.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -107,5 +109,30 @@ describe("AgentDetailView's Quality tab", () => {
       .getAllByRole("button")
       .find((button) => button.getAttribute("aria-current") === "true");
     expect(current?.textContent).toContain(`Version ${VERSION_HASH.slice(0, 8)}`);
+  });
+});
+
+describe("AgentDetailView's Shares tab", () => {
+  it("opens to the agent's web channel list, read by the agent's id in its own org", async () => {
+    const agent = samples.agent({ name: "Support Bot", org: ACME_ID });
+    const listByAgent = vi.fn(async () => ({ entries: [], nextPageToken: "" }));
+    render(<AgentDetailView org="acme" slug="support-bot" />, {
+      wrapper: orgWrapper(
+        {
+          agent: { getByReference: vi.fn(async () => agent), update: vi.fn() },
+          channel: { listByAgent },
+          plugin: { getByReference: vi.fn(async () => undefined) },
+          platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
+          grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
+        },
+        undefined,
+        true,
+      ),
+    });
+    fireEvent.click(await screen.findByRole("tab", { name: "Shares" }));
+    expect(await screen.findByText("No shares yet")).toBeDefined();
+    expect(listByAgent).toHaveBeenCalledWith(
+      expect.objectContaining({ agentId: agent.metadata!.id }),
+    );
   });
 });

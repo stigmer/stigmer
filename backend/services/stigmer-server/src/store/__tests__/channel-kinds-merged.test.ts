@@ -11,13 +11,16 @@
  *     phone number id, app reference and proactive flag, kept;
  *   - the bytes of fields the contract had retired are dropped and
  *     counted, and so is a share's agent pin; any other field number
- *     fails naming it, as does a channel naming no provider, an install
- *     status of the other provider, and a kind the merge does not convert;
+ *     fails naming it, wherever it sits (the envelope, either kind's spec
+ *     and status, a channel's Slack or WhatsApp settings, a vault attacher
+ *     entry), as does a field of the wrong wire type, a channel naming no
+ *     provider, an install status of the other provider, and a kind the
+ *     merge does not convert;
  *   - assignChannelSlugs keeps a shared slug for the older row (by creation
- *     time, a row without one counting as newest, then by id) and gives the
- *     other `<slug>-<type>`, then `-2`; a slug no one else holds is kept,
- *     two organizations never collide, and a suffixed slug never takes a
- *     slug another row holds as its own;
+ *     time, a row without one counting as newest in either order, then by
+ *     id) and gives the other `<slug>-<type>`, then `-2`; a slug no one
+ *     else holds is kept, two organizations never collide, and a suffixed
+ *     slug never takes a slug another row holds as its own;
  *   - encodeChannel writes the final slug and stamps the etag a write
  *     would stamp;
  *   - relabelChannelSessionRow moves a guest conversation's share id to the
@@ -95,6 +98,25 @@ function providerlessChannelRow(): Uint8Array {
     .tag(5, WireType.LengthDelimited)
     .bytes(new Uint8Array())
     .finish();
+}
+
+/** A stored row of either kind holding exactly the given spec and status bytes, and one more envelope field when given. */
+function rawRow(kindString: "AgentShare" | "AgentChannel", spec: Uint8Array, status: Uint8Array, extraEnvelopeField?: number): Uint8Array {
+  const writer = new BinaryWriter()
+    .tag(1, WireType.LengthDelimited)
+    .string("agentic.stigmer.ai/v1")
+    .tag(2, WireType.LengthDelimited)
+    .string(kindString)
+    .tag(3, WireType.LengthDelimited)
+    .bytes(toBinary(ApiResourceMetadataSchema, create(ApiResourceMetadataSchema, { id: "raw", org: MERGE_ORG, slug: "raw" })))
+    .tag(4, WireType.LengthDelimited)
+    .bytes(spec)
+    .tag(5, WireType.LengthDelimited)
+    .bytes(status);
+  if (extraEnvelopeField !== undefined) {
+    writer.tag(extraEnvelopeField, WireType.Varint).int32(1);
+  }
+  return writer.finish();
 }
 
 describe("the step's names are frozen literals", () => {
@@ -272,6 +294,75 @@ describe("convertToChannel", () => {
     );
   });
 
+  it("refuses a field number the merge does not know in the envelope, naming it", () => {
+    expect(() => convertToChannel("agent_share", "ash_raw", rawRow("AgentShare", new Uint8Array(), new Uint8Array(), 6))).toThrow(
+      "the resource holds field 6, which the merge does not know",
+    );
+  });
+
+  it("refuses a field number the merge does not know in a share's status, naming it", () => {
+    const status = new BinaryWriter().tag(7, WireType.Varint).int32(1).finish();
+    expect(() => convertToChannel("agent_share", "ash_raw", rawRow("AgentShare", new Uint8Array(), status))).toThrow(
+      "the share's status holds field 7, which the merge does not know",
+    );
+  });
+
+  it("refuses any field in a channel's Slack settings, which declared none", () => {
+    const slack = new BinaryWriter().tag(1, WireType.Varint).int32(1).finish();
+    const spec = new BinaryWriter().tag(3, WireType.LengthDelimited).bytes(slack).finish();
+    expect(() => convertToChannel("agent_channel", "ach_raw", rawRow("AgentChannel", spec, new Uint8Array()))).toThrow(
+      "the agent channel's Slack settings holds field 1, which the merge does not know",
+    );
+  });
+
+  it("refuses a field number the merge does not know in a channel's WhatsApp settings, naming it", () => {
+    const whatsapp = new BinaryWriter()
+      .tag(1, WireType.LengthDelimited)
+      .string("106540352242922")
+      .tag(2, WireType.Varint)
+      .int32(1)
+      .finish();
+    const spec = new BinaryWriter().tag(6, WireType.LengthDelimited).bytes(whatsapp).finish();
+    expect(() => convertToChannel("agent_channel", "ach_raw", rawRow("AgentChannel", spec, new Uint8Array()))).toThrow(
+      "the agent channel's WhatsApp settings holds field 2, which the merge does not know",
+    );
+  });
+
+  it("refuses a field number the merge does not know in a channel's status, naming it", () => {
+    const spec = new BinaryWriter().tag(3, WireType.LengthDelimited).bytes(new Uint8Array()).finish();
+    const status = new BinaryWriter().tag(6, WireType.Varint).int32(1).finish();
+    expect(() => convertToChannel("agent_channel", "ach_raw", rawRow("AgentChannel", spec, status))).toThrow(
+      "the agent channel's status holds field 6, which the merge does not know",
+    );
+  });
+
+  it("refuses a field number the merge does not know in a vault attacher entry, naming it", () => {
+    const entry = new BinaryWriter()
+      .tag(1, WireType.LengthDelimited)
+      .string("vlt_1")
+      .tag(2, WireType.LengthDelimited)
+      .string("ida_1")
+      .tag(3, WireType.Varint)
+      .int32(1)
+      .finish();
+    const status = new BinaryWriter().tag(3, WireType.LengthDelimited).bytes(entry).finish();
+    expect(() => convertToChannel("agent_share", "ash_raw", rawRow("AgentShare", new Uint8Array(), status))).toThrow(
+      "its vault_attachers entry holds field 3, which the merge does not know",
+    );
+  });
+
+  it("refuses a field of the wrong wire type, naming the field and both types", () => {
+    const spec = new BinaryWriter()
+      .tag(3, WireType.LengthDelimited)
+      .bytes(new Uint8Array())
+      .tag(2, WireType.LengthDelimited)
+      .bytes(new Uint8Array([1]))
+      .finish();
+    expect(() => convertToChannel("agent_channel", "ach_raw", rawRow("AgentChannel", spec, new Uint8Array()))).toThrow(
+      `its enabled has wire type ${WireType.LengthDelimited}, not ${WireType.Varint}`,
+    );
+  });
+
   it("refuses a channel whose spec names no provider", () => {
     expect(() => convertToChannel("agent_channel", "ach_bare", providerlessChannelRow())).toThrow(
       "its spec names no provider (slack or whatsapp)",
@@ -312,6 +403,13 @@ describe("assignChannelSlugs", () => {
       agentChannel({ id: "ach_1", slug: "support", provider: "whatsapp", phoneNumberId: "1", createdAt: at("2026-02-01T00:00:00Z") }),
     ];
     expect(assignChannelSlugs(rows)).toEqual(new Map([["ash_1", "support-web"]]));
+  });
+
+  it("counts a row with no creation time as the newest whichever order the rows come in", () => {
+    const timed = agentChannel({ id: "ach_1", slug: "support", provider: "slack", createdAt: at("2026-02-01T00:00:00Z") });
+    const untimed = share({ id: "ash_1", slug: "support", audience: ChannelAudience.public });
+    expect(assignChannelSlugs([timed, untimed])).toEqual(new Map([["ash_1", "support-web"]]));
+    expect(assignChannelSlugs([untimed, timed])).toEqual(new Map([["ash_1", "support-web"]]));
   });
 
   it("orders two rows created at once by id", () => {

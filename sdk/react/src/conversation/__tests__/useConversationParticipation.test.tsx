@@ -68,6 +68,23 @@ describe("useConversationParticipation", () => {
     );
   });
 
+  it("clearAttention sends the conversation's identity and feeds the fresh row to onConversation", async () => {
+    const client = createMockStigmer();
+    const onConversation = vi.fn();
+    const { result } = renderHook(
+      () => useConversationParticipation({ ...IDENTITY, onConversation }),
+      { wrapper: wrapper(client) },
+    );
+
+    const answer = await act(() => result.current.clearAttention());
+
+    const clearAttention = (client as { channel: { clearAttention: ReturnType<typeof vi.fn> } })
+      .channel.clearAttention;
+    expect(clearAttention).toHaveBeenCalledWith(expect.objectContaining(IDENTITY));
+    expect(onConversation).toHaveBeenCalledWith(answer);
+    expect(answer.control).toBe(ConversationControl.control_agent);
+  });
+
   it("feeds the CAS loser's answer too — the winner's state IS the server truth", async () => {
     // A lost concurrent takeover is success-with-the-winner's-state,
     // never an error. The hook must pass it through unfiltered so the

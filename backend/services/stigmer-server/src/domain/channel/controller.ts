@@ -403,6 +403,7 @@ async function apply(
     .execute(reqCtx);
 
   const shouldCreate = reqCtx.get(SHOULD_CREATE_KEY);
+  /* v8 ignore next -- @preserve: LoadForApply sets the flag or throws, so only a chain built wrong reaches this */
   if (typeof shouldCreate !== "boolean") {
     throw internalError(
       new Error("apply pipeline did not set shouldCreate flag"),
@@ -722,6 +723,7 @@ async function deleteChannel(
     .execute(reqCtx);
 
   const deleted = reqCtx.get(EXISTING_RESOURCE_KEY);
+  /* v8 ignore next -- @preserve: LoadExistingForDelete sets the channel or throws, so only a chain built wrong reaches this */
   if (deleted === undefined) {
     throw internalError(
       new Error("deleted channel not found in context"),
@@ -828,6 +830,7 @@ async function listByAgent(
     .execute(reqCtx);
 
   const result = reqCtx.get(CHANNEL_LIST_KEY);
+  /* v8 ignore next -- @preserve: LoadChannelsByAgent sets the list or throws, so only a chain built wrong reaches this */
   if (result === undefined) {
     throw internalError(
       new Error("channel list not found in context"),
@@ -901,6 +904,7 @@ async function list(
     .execute(reqCtx);
 
   const result = reqCtx.get(LIST_RESULT_KEY);
+  /* v8 ignore next -- @preserve: ListByOrgAndLabels sets the list or throws, so only a chain built wrong reaches this */
   if (result === undefined) {
     throw internalError(
       new Error("channel list not found in context"),

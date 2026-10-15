@@ -81,6 +81,13 @@
  * fails the step, naming it, and leaves the database at v33. A grant a
  * store held before v29 reaches the head carrying its etag, because v29
  * reads the kind by the name it had then.
+ * v36 merges the agent share and agent channel kinds into the channel kind
+ * (../../channel-kinds-merged.ts): every row converted under its old id
+ * across keyset pages, a slug two rows held kept by the older, the names
+ * claimed under channel, every grant re-keyed and its history moved, a
+ * guest conversation relabelled; a row, grant, history entry or
+ * conversation it cannot read, an archived version or a previous name
+ * fails the step, naming it, and leaves the database at v35.
  * A step's starting database is built by running the chain up to the step
  * before it.
  * Newer schemas are refused without writes or reconciliation; refusal
@@ -4590,6 +4597,44 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           await expect(migrateTo(db.databaseUrl, MERGE_VERSION)).rejects.toThrow("agent_share 'ash_odd' cannot be read to merge");
           expect(await version(client)).toBe(SCHEMA_VERSION_35);
           expect(await count(client, "resources", "agent_share")).toBe(1);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a grant that does not decode fails the step, names the row, and leaves the database at v35", async () => {
+        const client = await clientAt(SCHEMA_VERSION_35);
+        try {
+          await insert(client, "grant", "grt_undecodable", new Uint8Array([0x22, 0xff]));
+          await expect(migrateTo(db.databaseUrl, MERGE_VERSION)).rejects.toThrow("grant 'grt_undecodable' cannot be read to merge");
+          expect(await version(client)).toBe(SCHEMA_VERSION_35);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a grant history entry on a merged kind that does not decode fails the step, names the entry, and leaves the database at v35", async () => {
+        const client = await clientAt(SCHEMA_VERSION_35);
+        try {
+          await client.query(
+            `INSERT INTO grant_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, grant_id,
+               principal_kind, principal_id, relation, resource_kind, resource_id, data)
+             VALUES ($1, 7, '2026-10-15T00:00:00.000Z', 'granted', 'grant', 'ida_owner', 'user', 'grt_x', 'identity_account', 'ida_viewer', 'viewer', 'agent_channel', 'ach_slack', $2)`,
+            [MERGE_ORG, Buffer.from([0x22, 0xff])],
+          );
+          await expect(migrateTo(db.databaseUrl, MERGE_VERSION)).rejects.toThrow(`grant_history '${MERGE_ORG}/7' cannot be read to merge`);
+          expect(await version(client)).toBe(SCHEMA_VERSION_35);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a conversation that does not decode fails the step, names the row, and leaves the database at v35", async () => {
+        const client = await clientAt(SCHEMA_VERSION_35);
+        try {
+          await insert(client, "session", "ses_undecodable", new Uint8Array([0x22, 0xff]));
+          await expect(migrateTo(db.databaseUrl, MERGE_VERSION)).rejects.toThrow("session 'ses_undecodable' cannot be read to merge");
+          expect(await version(client)).toBe(SCHEMA_VERSION_35);
         } finally {
           await client.end();
         }

@@ -609,6 +609,7 @@ export function newAuthorizeMemberAudienceStep(
           throw linkNotFound(ctx.input.value);
         case "unavailable":
           throw internalError(decision.cause, AUTHORIZATION_UNAVAILABLE_MESSAGE);
+        /* v8 ignore start -- @preserve: the never arm; the compiler proves no decision reaches it */
         default: {
           const exhaustive: never = decision;
           throw internalError(
@@ -616,6 +617,7 @@ export function newAuthorizeMemberAudienceStep(
             AUTHORIZATION_UNAVAILABLE_MESSAGE,
           );
         }
+        /* v8 ignore stop */
       }
     },
   };

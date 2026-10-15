@@ -19,12 +19,18 @@
  *   - an update keeps a write that lands between its read and its write:
  *     the lost swap is retried from a fresh read, so the row and the
  *     redacted response carry both the landing write and the update.
+ *
+ * The delete block's step on its own, against a store faked to fail as
+ * the real one cannot on demand: a fault listing the channels is a
+ * sanitized Internal, never a delete that reads as unreferenced, and a
+ * channel row that does not decode is skipped with a warning while the
+ * rows after it still guard the app.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { create } from "@bufbuild/protobuf";
+import { create, toBinary } from "@bufbuild/protobuf";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
@@ -52,6 +58,11 @@ import {
   visibilityWrite,
   writeLandsMidUpdate,
 } from "../../../pipeline/__tests__/race-support.js";
+import { errorOf, testCallerIdentity } from "../../../pipeline/__tests__/support.js";
+import { RequestContext } from "../../../pipeline/request-context.js";
+import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
+import type { Store } from "../../../store/interface.js";
+import { newCheckNoReferencingChannelsStep } from "../steps.js";
 import {
   PROVIDER_IMMUTABLE_MESSAGE,
   REDACTED_MARKER,
@@ -780,5 +791,56 @@ describe("delete is blocked while referenced", () => {
       ApiResourceKind.channel,
       channel.metadata!.id,
     );
+  });
+});
+
+describe("the delete block's step against a faulting store", () => {
+  const app = create(ChannelAppSchema, {
+    metadata: { id: "chapp_guarded", org: "org_acme", slug: "guarded-app" },
+  });
+
+  function deleteContext(): RequestContext<typeof ChannelAppCommandController.method.delete.input> {
+    const ctx = new RequestContext(
+      ChannelAppCommandController.method.delete.input,
+      create(ChannelAppCommandController.method.delete.input, { resourceId: "chapp_guarded" }),
+      testCallerIdentity(),
+      ApiResourceKind.channel_app,
+    );
+    ctx.set(EXISTING_RESOURCE_KEY, app);
+    return ctx;
+  }
+
+  it("a fault listing the channels fails the delete with a sanitized Internal", async () => {
+    const store = {
+      listResources: () => Promise.reject(new Error("SQLITE_BUSY: database is locked")),
+    } as unknown as Store;
+    const step = newCheckNoReferencingChannelsStep(store, silentLogger);
+
+    const error = await errorOf(async () => { await step.execute(deleteContext()); });
+
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("failed to list channels for referential integrity check");
+  });
+
+  it("skips a channel row that does not decode, logging it, and still blocks on a referencing row after it", async () => {
+    const lines: string[] = [];
+    const logger = createLogger({ level: "warn", pretty: false, write: (line) => lines.push(line) });
+    const referencing = create(ChannelSchema, {
+      metadata: { id: "chn_referencing", org: "org_acme", name: "referencing" },
+      spec: {
+        type: { case: "slack", value: { appRef: { kind: ApiResourceKind.channel_app, id: "chapp_guarded" } } },
+      },
+    });
+    const store = {
+      listResources: () => Promise.resolve([new Uint8Array([0x22, 0xff]), toBinary(ChannelSchema, referencing)]),
+    } as unknown as Store;
+    const step = newCheckNoReferencingChannelsStep(store, logger);
+
+    const error = await errorOf(async () => { await step.execute(deleteContext()); });
+
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toBe(deleteBlockedByChannelMessage("org_acme", "guarded-app", "referencing"));
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain("Failed to unmarshal channel during referential integrity check, skipping");
   });
 });

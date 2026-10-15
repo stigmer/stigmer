@@ -81,6 +81,13 @@
  * grant whose id is not its triple's fails the step, naming it, and leaves
  * the database at v37. A grant held before v34 reaches the head carrying
  * its etag.
+ * v40 merges the agent share and agent channel kinds into the channel kind
+ * (../../channel-kinds-merged.ts): every row converted under its old id
+ * across keyset pages, a slug two rows held kept by the older, the names
+ * claimed under channel, every grant re-keyed and its history moved across
+ * keyset pages, a guest conversation relabelled; a row, grant, history
+ * entry or conversation it cannot read, an archived version or a previous
+ * name fails the step, naming it, and leaves the database at v39.
  * A schema written by a newer release is refused before any migration or
  * list-index reconciliation, with the failed store's connection closed.
  */
@@ -4266,6 +4273,70 @@ describe("v40: the agent share and agent channel kinds merge into the channel ki
     expect(() => runMigrations(db, MERGE_VERSION)).toThrow("agent_share 'ash_odd' cannot be read to merge");
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_39);
     expect(count(db, "resources", "agent_share")).toBe(1);
+  });
+
+  it("moves grant history entries across keyset pages, re-keying the entry past the first page", () => {
+    const { dbPath, db: setup } = v39Database();
+    const onShare = { principal: "identity_account:ida_viewer", relation: "viewer", resource: "agent_share:ash_public" };
+    const entry = setup.prepare(
+      `INSERT INTO grant_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, grant_id,
+         principal_kind, principal_id, relation, resource_kind, resource_id, data)
+       VALUES (?, ?, '2026-10-15T00:00:00.000Z', 'granted', 'grant', 'ida_owner', 'user', ?, 'identity_account', 'ida_viewer', 'viewer', 'agent_share', 'ash_public', ?)`,
+    );
+    setup.exec("BEGIN");
+    for (let sequence = 1; sequence <= CHANNEL_MERGE_PAGE_SIZE + 1; sequence++) {
+      entry.run(MERGE_ORG, sequence, grantIdAfterV34(onShare), grantRowAfterV34(onShare));
+    }
+    setup.exec("COMMIT");
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, MERGE_VERSION);
+    const moved = { principal: "identity_account:ida_viewer", relation: "viewer", resource: "channel:ash_public" };
+    const kinds = db
+      .prepare(`SELECT resource_kind, grant_id, COUNT(*) AS n FROM grant_history GROUP BY resource_kind, grant_id`)
+      .all() as Array<{ resource_kind: string; grant_id: string; n: number }>;
+    expect(kinds).toEqual([{ resource_kind: "channel", grant_id: grantIdAfterV34(moved), n: CHANNEL_MERGE_PAGE_SIZE + 1 }]);
+  });
+
+  it("a grant that does not decode fails the step, names the row, and leaves the database at v39", () => {
+    const { dbPath, db: setup } = v39Database();
+    insert(setup, "grant", "grt_undecodable", new Uint8Array([0x22, 0xff]));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, MERGE_VERSION)).toThrow("grant 'grt_undecodable' cannot be read to merge");
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_39);
+  });
+
+  it("a grant history entry on a merged kind that does not decode fails the step, names the entry, and leaves the database at v39", () => {
+    const { dbPath, db: setup } = v39Database();
+    setup
+      .prepare(
+        `INSERT INTO grant_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, grant_id,
+           principal_kind, principal_id, relation, resource_kind, resource_id, data)
+         VALUES (?, 7, '2026-10-15T00:00:00.000Z', 'granted', 'grant', 'ida_owner', 'user', 'grt_x', 'identity_account', 'ida_viewer', 'viewer', 'agent_channel', 'ach_slack', ?)`,
+      )
+      .run(MERGE_ORG, new Uint8Array([0x22, 0xff]));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, MERGE_VERSION)).toThrow(`grant_history '${MERGE_ORG}/7' cannot be read to merge`);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_39);
+  });
+
+  it("a conversation that does not decode fails the step, names the row, and leaves the database at v39", () => {
+    const { dbPath, db: setup } = v39Database();
+    insert(setup, "session", "ses_undecodable", new Uint8Array([0x22, 0xff]));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, MERGE_VERSION)).toThrow("session 'ses_undecodable' cannot be read to merge");
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_39);
   });
 
   it("an archived version of a merged kind fails the step, names it, and leaves the database at v39", () => {

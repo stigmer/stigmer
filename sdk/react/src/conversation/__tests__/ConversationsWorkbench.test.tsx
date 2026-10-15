@@ -129,6 +129,20 @@ describe("ConversationsWorkbench", () => {
     expect(screen.getByText("Select a conversation")).toBeDefined();
   });
 
+  it("hands the clicked inbox row's channel id and conversation key to onSelectionChange", async () => {
+    const user = userEvent.setup();
+    const onSelectionChange = vi.fn();
+    render(
+      <ConversationsWorkbench org="acme" selected={null} onSelectionChange={onSelectionChange} />,
+      { wrapper: wrapper(createMockStigmer()) },
+    );
+
+    await waitFor(() => expect(screen.getByText("Pat")).toBeDefined());
+    await user.click(screen.getByText("Pat"));
+
+    expect(onSelectionChange).toHaveBeenCalledWith(SELECTED);
+  });
+
   it("opens a conversation: row, timeline, banners, and composer wire together", async () => {
     const client = createMockStigmer();
     render(

@@ -19,12 +19,16 @@
  *     the new channel with it, row and name, with no runtime teardown (a
  *     new channel has no runtime state), and the create answers NOT_FOUND
  *     naming the agent by the id its resolved reference holds.
+ *   - the cascade step on its own: a chain that never loaded the agent is
+ *     a broken invariant and throws; an agent with no id reads nothing;
+ *     and the shared read (queries.ts) skips a row that does not decode,
+ *     logging it, and keeps every row that does.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { create } from "@bufbuild/protobuf";
+import { create, toBinary } from "@bufbuild/protobuf";
 import type { DescMessage, MessageInitShape, MessageShape } from "@bufbuild/protobuf";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Client, Transport } from "@connectrpc/connect";
@@ -41,6 +45,7 @@ import {
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
+import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
@@ -53,7 +58,13 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import { testCallerIdentity, untouchable } from "../../../pipeline/__tests__/support.js";
+import { RequestContext } from "../../../pipeline/request-context.js";
+import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 import { resolveName } from "../../../pipeline/steps/names.js";
+import type { Store } from "../../../store/interface.js";
+import { newCascadeDeleteChannelsStep } from "../cascade.js";
+import { listChannelsOfAgent } from "../queries.js";
 import { namingSaves } from "../../../store/__tests__/named-saves.js";
 import type { ChannelRuntime } from "../channel-runtime.js";
 import {
@@ -370,5 +381,59 @@ describe("a channel created while its agent is deleted (EnsureChannelAgentStillE
     ).toBeUndefined();
     // A new channel has no runtime state: nothing was torn down.
     expect(tornDown).toEqual([]);
+  });
+});
+
+describe("the cascade step on its own", () => {
+  /** An agent delete's context, holding `agent` as the loaded resource when given. */
+  function agentDeleteContext(agent?: Agent): RequestContext<typeof AgentSchema> {
+    const ctx = new RequestContext(AgentSchema, create(AgentSchema), testCallerIdentity(), ApiResourceKind.agent);
+    if (agent !== undefined) {
+      ctx.set(EXISTING_RESOURCE_KEY, agent);
+    }
+    return ctx;
+  }
+
+  function cascadeStep(store: Store) {
+    return newCascadeDeleteChannelsStep<typeof AgentSchema>({
+      store,
+      logger: silentLogger,
+      authorizationLifecycle: undefined,
+      channelRuntime: undefined,
+    });
+  }
+
+  it("a chain that never loaded the agent is a broken invariant and throws", async () => {
+    await expect(cascadeStep(untouchable<Store>("store")).execute(agentDeleteContext())).rejects.toThrow(
+      "agent not found in context (LoadExistingForDelete must run first)",
+    );
+  });
+
+  it("an agent with no id reads nothing and deletes nothing", async () => {
+    const agent = create(AgentSchema, { metadata: { org: "org_acme", slug: "helper" } });
+    await cascadeStep(untouchable<Store>("store")).execute(agentDeleteContext(agent));
+  });
+
+  it("the shared read skips a row that does not decode, logging it, and keeps the rows that do", async () => {
+    const lines: string[] = [];
+    const logger = createLogger({ level: "warn", pretty: false, write: (line) => lines.push(line) });
+    const kept = create(ChannelSchema, {
+      metadata: { id: "chn_kept", org: "org_acme" },
+      spec: { agentRef: { org: "org_acme", id: "agt_helper" }, type: { case: "slack", value: {} } },
+    });
+    const store = {
+      queryResources: () =>
+        Promise.resolve([
+          { id: "chn_undecodable", data: new Uint8Array([0x22, 0xff]) },
+          { id: "chn_kept", data: toBinary(ChannelSchema, kept) },
+        ]),
+    } as unknown as Store;
+
+    const channels = await listChannelsOfAgent(store, logger, "agt_helper");
+
+    expect(channels.map((channel) => channel.metadata?.id)).toEqual(["chn_kept"]);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain("skipped a channel row that does not decode");
+    expect(lines[0]).toContain("chn_undecodable");
   });
 });

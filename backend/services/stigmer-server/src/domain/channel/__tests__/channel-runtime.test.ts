@@ -18,7 +18,8 @@
  *     is the request's refusal;
  *   - teardownOnDelete runs between the load and the row delete: a
  *     throwing teardown fails the delete AND leaves the row (idempotent
- *     retry heals);
+ *     retry heals); the teardown step run by a chain that never loaded
+ *     the channel throws as a broken invariant, asking the driver nothing;
  *   - the runtime is a Slack or WhatsApp channel's: a web channel's
  *     create, update and delete never reach enforceWriteConstraints or
  *     teardownOnDelete, and its install RPCs refuse with
@@ -44,6 +45,7 @@ import {
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/command_pb";
 import { ChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/query_pb";
@@ -74,6 +76,9 @@ import { createLogger } from "../../../boot/logger.js";
 import { invalidArgumentError } from "../../../pipeline/errors.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { ChannelRuntime } from "../channel-runtime.js";
+import { newTeardownChannelRuntimeStep } from "../steps.js";
+import { testCallerIdentity, untouchable } from "../../../pipeline/__tests__/support.js";
+import { RequestContext } from "../../../pipeline/request-context.js";
 import { INSTALL_NOT_APPLICABLE_MESSAGE } from "../constants.js";
 import {
   organizationId,
@@ -618,6 +623,12 @@ describe("teardownOnDelete — the delete-chain cascade hook", () => {
     const call = lastCall("teardownOnDelete");
     expect(call.channelId).toBe(channel.metadata!.id);
     expect(call.caller.identityId).not.toBe("");
+  });
+
+  it("the teardown step run by a chain that never loaded the channel is a broken invariant and throws, asking the driver nothing", async () => {
+    const step = newTeardownChannelRuntimeStep<typeof ChannelSchema>(untouchable<ChannelRuntime>("channelRuntime"));
+    const ctx = new RequestContext(ChannelSchema, create(ChannelSchema), testCallerIdentity(), ApiResourceKind.channel);
+    await expect(step.execute(ctx)).rejects.toThrow("existing channel not found in context");
   });
 
   it("is never asked for a web channel — its delete goes through untouched", async () => {
