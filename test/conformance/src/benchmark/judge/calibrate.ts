@@ -33,7 +33,7 @@ import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import type { ConformanceClients } from "../../harness/clients";
-import { GRADES_RUN_LABEL } from "../../support/evaluators";
+import { GRADES_RUN_LABEL } from "../../support/scoring-rules";
 import { uniqueName } from "../../support/naming";
 import { createUniqueOrganization } from "../../support/organizations";
 import { awaitTerminal, makeAgentExecution, sessionIdOf } from "../../support/runs";

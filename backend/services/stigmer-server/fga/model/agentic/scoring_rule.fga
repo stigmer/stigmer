@@ -1,7 +1,7 @@
 module agentic
 
 # ========================================
-# EVALUATOR TYPE (Agent-bound)
+# SCORING RULE TYPE (Agent-bound)
 # ========================================
 # AI grading switched on for one agent: its sample rate, monthly spending
 # limit and judge model.
@@ -10,18 +10,18 @@ module agentic
 # - Access is the agent's: whoever may edit the agent configures, pauses
 #   and deletes its grading; whoever may view the agent sees the settings
 #   and this month's spend, members of child organizations included when
-#   the agent is shared with them. Nothing is granted on an evaluator itself (the
+#   the agent is shared with them. Nothing is granted on a scoring rule itself (the
 #   kind has no visibility block and no grantable roles).
 # - No owner of its own (OWNER_ATTRIBUTION_TYPE_NONE). The agent's owner
 #   already includes the organization's admins, who hold the purse the
 #   grading spends.
 
-type evaluator
+type scoring_rule
   relations
     # ========================================
     # PARENT AGENT
     # ========================================
-    # FGA tuple: evaluator:<evaluator_id>#agent@agent:<agent_id>
+    # FGA tuple: scoring_rule:<scoring_rule_id>#agent@agent:<agent_id>
     define agent: [agent]
 
     # ========================================

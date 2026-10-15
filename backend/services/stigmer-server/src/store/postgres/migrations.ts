@@ -144,6 +144,7 @@ import {
   KIND_RENAME_GRANT_KIND,
   FEDERATION_ISSUER_RENAME_V30,
   GRANT_RENAME_V34,
+  SCORING_RULE_RENAME_V36,
   RUN_RENAME_V18,
   RUN_RENAME_V21,
   movedGrant,
@@ -278,8 +279,11 @@ export const SCHEMA_VERSION_34 = 34;
 /** v35: the plugin eval and agent eval rows removed, with every grant naming one, and their tries relabelled. */
 export const SCHEMA_VERSION_35 = 35;
 
+/** v36: the evaluator is a scoring rule: its names. */
+export const SCHEMA_VERSION_36 = 36;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_35;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_36;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -355,6 +359,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_33, migrateToV33],
       [SCHEMA_VERSION_34, migrateToV34],
       [SCHEMA_VERSION_35, migrateToV35],
+      [SCHEMA_VERSION_36, migrateToV36],
     ];
 
     for (const [version, migrate] of chain) {
@@ -2372,4 +2377,16 @@ async function migrateToV35(client: PoolClient): Promise<void> {
       after = rows[rows.length - 1]!.id;
     }
   }
+}
+
+/**
+ * v36: the evaluator is a scoring rule. The kind `evaluator` and its kind
+ * string `Evaluator` become `scoring_rule` and `ScoringRule` by the same
+ * transformation as v13 (`renameKind`), with this step's frozen names
+ * (kind-rename.ts `SCORING_RULE_RENAME_V36`). Its rows keep their `evl_`
+ * ids and their settings and spend. The kind lists no grantable roles, so
+ * no grant and no permission history entry names it.
+ */
+async function migrateToV36(client: PoolClient): Promise<void> {
+  await renameKind(client, SCORING_RULE_RENAME_V36);
 }

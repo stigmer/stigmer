@@ -22,7 +22,7 @@ contents:
   - agentic/channel_app.fga
   - agentic/eval.fga
   - agentic/eval_run.fga
-  - agentic/evaluator.fga
+  - agentic/scoring_rule.fga
   - agentic/memory.fga
   - agentic/plugin.fga
   - agentic/run.fga

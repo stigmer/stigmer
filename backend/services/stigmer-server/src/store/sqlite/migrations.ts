@@ -126,6 +126,7 @@ import {
   KIND_RENAME_PAGE_SIZE,
   KIND_RENAME_GRANT_KIND,
   GRANT_RENAME_V34,
+  SCORING_RULE_RENAME_V36,
   RUN_RENAME_V18,
   RUN_RENAME_V21,
   movedGrant,
@@ -271,8 +272,11 @@ export const SCHEMA_VERSION_38 = 38;
 /** v39: the plugin eval and agent eval rows removed, with every grant naming one, and their tries relabelled. */
 export const SCHEMA_VERSION_39 = 39;
 
+/** v40: the evaluator is a scoring rule: its names. */
+export const SCHEMA_VERSION_40 = 40;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_39;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_40;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -337,6 +341,7 @@ export function runMigrations(
     [SCHEMA_VERSION_37, migrateToV37],
     [SCHEMA_VERSION_38, migrateToV38],
     [SCHEMA_VERSION_39, migrateToV39],
+    [SCHEMA_VERSION_40, migrateToV40],
   ];
 
   for (const [version, migrate] of chain) {
@@ -2202,4 +2207,15 @@ function migrateToV39(db: DatabaseSync): void {
       after = rows[rows.length - 1]!.id;
     }
   }
+}
+
+/**
+ * v40: the evaluator is a scoring rule — the Postgres driver's v36 in this
+ * engine's terms: the v18 transformation (`renameKind`) with this step's
+ * frozen names (`SCORING_RULE_RENAME_V36`). Runs inside
+ * applyInTransaction's BEGIN, so a throw rolls the whole step back and the
+ * boot stops on the row it names.
+ */
+function migrateToV40(db: DatabaseSync): void {
+  renameKind(db, SCORING_RULE_RENAME_V36);
 }

@@ -62,7 +62,7 @@ import { makeAgentShare } from "../support/agentshares";
 import { makeApiKey } from "../support/apikeys";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { makeSharedVault } from "../support/vaults";
-import { makeScoringRule } from "../support/evaluators";
+import { makeScoringRule } from "../support/scoring-rules";
 import {
   cancelAndDeleteEvalRun,
   installPlugin,

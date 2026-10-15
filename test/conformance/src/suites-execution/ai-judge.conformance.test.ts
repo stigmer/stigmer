@@ -52,7 +52,7 @@ import {
   awaitJudgeVerdict,
   judgeRunsOf,
   makeScoringRule,
-} from "../support/evaluators";
+} from "../support/scoring-rules";
 import { uniqueName } from "../support/naming";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import { awaitRunHealth } from "../support/scores";

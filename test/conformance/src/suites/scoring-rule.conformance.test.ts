@@ -31,7 +31,7 @@ import {
   SCORING_RULE_EXISTS_REASON,
   scoringRuleOrgMismatchMessage,
   makeScoringRule,
-} from "../support/evaluators";
+} from "../support/scoring-rules";
 import { uniqueName } from "../support/naming";
 import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
 

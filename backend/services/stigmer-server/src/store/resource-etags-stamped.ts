@@ -104,10 +104,12 @@ export const RESOURCE_SCHEMAS: ReadonlyMap<ApiResourceKind, DescMessage> = new M
 /**
  * The stored name of each kind renamed after this step and the label and
  * tag report (Postgres v29 and v32, SQLite v34 and v36), as their rows
- * spelled it. Postgres v34 and SQLite v38 renamed `iam_policy` to `grant`.
+ * spelled it. Postgres v34 and SQLite v38 renamed `iam_policy` to `grant`;
+ * Postgres v36 and SQLite v40 renamed `evaluator` to `scoring_rule`.
  */
 export const KIND_NAMES_AT_STEP: ReadonlyMap<ApiResourceKind, string> = new Map([
   [ApiResourceKind.grant, "iam_policy"],
+  [ApiResourceKind.scoring_rule, "evaluator"],
 ]);
 
 const SCHEMAS_BY_KIND_NAME: ReadonlyMap<string, DescMessage> = new Map(

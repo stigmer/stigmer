@@ -81,6 +81,12 @@
  * fails the step, naming it, and leaves the database at v33. A grant a
  * store held before v29 reaches the head carrying its etag, because v29
  * reads the kind by the name it had then.
+ * v36 renames the evaluator kind to scoring rule: its row, audit, list key
+ * and name take the kind's new name, its bytes the new kind string with
+ * its id, settings and spend kept; a row it cannot decode fails the step,
+ * naming it, and leaves the database at v35; an evaluator held before v29
+ * reaches the head carrying its etag, because v29 reads the kind by the
+ * name it had then.
  * A step's starting database is built by running the chain up to the step
  * before it.
  * Newer schemas are refused without writes or reconciliation; refusal
@@ -107,6 +113,7 @@ import {
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -145,6 +152,7 @@ import {
   SCHEMA_VERSION_33,
   SCHEMA_VERSION_34,
   SCHEMA_VERSION_35,
+  SCHEMA_VERSION_36,
   runMigrations,
 } from "../migrations.js";
 import { LABEL_TAG_REPORT_PAGE_SIZE } from "../../label-tag-report.js";
@@ -4277,6 +4285,89 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           }
         } finally {
           await client.end();
+        }
+      });
+    });
+    describe("v36: the evaluator is a scoring rule", () => {
+      const ORG = "org_01jz0000000000000000000000";
+      const seededAt = new Date("2026-10-15T00:00:00Z");
+
+      async function clientAt(target: number): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, target);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        return client;
+      }
+
+      /** An evaluator as a release before v36 stored it: its kind string, an evl_ id, its settings and this month's spend. */
+      const stored = () =>
+        create(ScoringRuleSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "Evaluator",
+          metadata: { id: "evl_1", org: ORG, name: "evl_1", slug: "evl_1" },
+          spec: { agentId: "agt_1", enabled: true, sampleRate: 0.25, monthlyLimitUsd: 12, modelName: "claude-sonnet-4-6" },
+          status: { period: "2026-10", spentUsd: 1.5, reservedUsd: 0.25, graded: 7, notGraded: 1, lastNotGradedReason: "spending limit reached" },
+        });
+
+      async function seed(client: pg.Client, id: string, data: Uint8Array): Promise<void> {
+        await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('evaluator', $1, $2, $3)`, [id, Buffer.from(data), seededAt]);
+        await client.query(`INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('evaluator', $1, 'agent', 'agt_1', $2)`, [
+          id,
+          seededAt,
+        ]);
+      }
+
+      async function version(client: pg.Client): Promise<number> {
+        const result = await client.query(`SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`);
+        return Number(result.rows[0].version);
+      }
+
+      it("moves the kind's rows to its new name, its bytes to the new kind string, with its id, settings and spend kept", async () => {
+        const client = await clientAt(SCHEMA_VERSION_35);
+        try {
+          await seed(client, "evl_1", toBinary(ScoringRuleSchema, stored()));
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_36);
+          expect(await version(client)).toBe(SCHEMA_VERSION_36);
+          for (const table of KIND_TABLES) {
+            const kinds = await client.query<{ kind: string }>(`SELECT DISTINCT kind FROM ${table} WHERE kind IN ('evaluator', 'scoring_rule')`);
+            expect(kinds.rows.map((r) => r.kind).filter((k) => k === "evaluator"), table).toEqual([]);
+          }
+          const row = (await client.query<{ data: Buffer }>(`SELECT data FROM resources WHERE kind = 'scoring_rule' AND id = 'evl_1'`)).rows[0];
+          const expected = stored();
+          expected.kind = "ScoringRule";
+          expect(fromBinary(ScoringRuleSchema, new Uint8Array(row!.data))).toEqual(expected);
+          expect((await client.query(`SELECT kind FROM resource_list_keys WHERE id = 'evl_1'`)).rows).toEqual([{ kind: "scoring_rule" }]);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("an evaluator that does not decode fails the step, names the row, and leaves the database at v35", async () => {
+        const client = await clientAt(SCHEMA_VERSION_35);
+        try {
+          await seed(client, "evl_broken", new Uint8Array([0xff, 0xff, 0xff]));
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_36)).rejects.toThrow(/evl_broken/);
+          expect(await version(client)).toBe(SCHEMA_VERSION_35);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("an evaluator held before v29 reaches the head carrying its etag, as a scoring rule", async () => {
+        const client = await clientAt(SCHEMA_VERSION_29 - 1);
+        try {
+          await seed(client, "evl_early", toBinary(ScoringRuleSchema, stored()));
+        } finally {
+          await client.end();
+        }
+        const store = await PostgresStore.open(db.databaseUrl);
+        try {
+          const rule = await store.getResource(ApiResourceKind.scoring_rule, "evl_early", ScoringRuleSchema);
+          expect(rule?.kind).toBe("ScoringRule");
+          expect(storedEtagOf(ScoringRuleSchema, rule!)).toBe(etagOf(ScoringRuleSchema, rule!));
+          expect(storedEtagOf(ScoringRuleSchema, rule!)).not.toBe("");
+        } finally {
+          await store.close();
         }
       });
     });

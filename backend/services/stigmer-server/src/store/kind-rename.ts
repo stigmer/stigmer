@@ -1,6 +1,6 @@
 /**
  * The data migration a store driver runs each time a kind was renamed: the
- * kind's stored name and the rows that spell it. It has run four times,
+ * kind's stored name and the rows that spell it. It has run five times,
  * with the same transformation and different names:
  *
  *   - SQLite v18, Postgres v13: agent executions became agent runs
@@ -21,12 +21,19 @@
  *     row is, one role given to one principal on one resource. Its ids
  *     move too (below), and its driver renames the permission history's
  *     tables and moves their entries.
+ *   - SQLite v40, Postgres v36: the evaluator became a scoring rule
+ *     (`evaluator`, `Evaluator` to `scoring_rule`, `ScoringRule`), so the
+ *     setting that switches an agent's AI grading on is not read as the
+ *     thing that runs evals. Its rows keep their `evl_` ids. It lists no
+ *     grantable roles, so no grant and no history entry names it, and the
+ *     grant arm finds none.
  *
  * The drivers own the SQL (which rows to read, in what pages, how to write
  * them, the transaction), one helper each that takes a rename; this module
  * owns what is driver-neutral: what one row becomes. Each step's names are
  * frozen literals here (`RUN_RENAME_V18`, `RUN_RENAME_V21`,
- * `FEDERATION_ISSUER_RENAME_V30`, `GRANT_RENAME_V34`), never read off the
+ * `FEDERATION_ISSUER_RENAME_V30`, `GRANT_RENAME_V34`,
+ * `SCORING_RULE_RENAME_V36`), never read off the
  * contract, so a later rename cannot change what an earlier step does. The
  * grant id prefix is frozen the same way: v13, v16 and v30 (SQLite v18,
  * v21) re-key a grant to the `iamp_` id their time minted, and v34 moves
@@ -91,6 +98,7 @@ import type { DescMessage } from "@bufbuild/protobuf";
 import { reflect } from "@bufbuild/protobuf/reflect";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
 
@@ -145,6 +153,14 @@ export const GRANT_RENAME_V34: KindRename = {
   kindString: ["IamPolicy", "Grant"],
   schema: GrantSchema,
   label: "the rename of the IAM policy to a grant",
+};
+
+/** SQLite v40, Postgres v36: the evaluator became a scoring rule. */
+export const SCORING_RULE_RENAME_V36: KindRename = {
+  kind: ["evaluator", "scoring_rule"],
+  kindString: ["Evaluator", "ScoringRule"],
+  schema: ScoringRuleSchema,
+  label: "the rename of the evaluator to a scoring rule",
 };
 
 /** The prefix grant ids were minted with until v34, which every earlier step re-keys to. */

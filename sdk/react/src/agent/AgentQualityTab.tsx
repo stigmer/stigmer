@@ -5,8 +5,8 @@ import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { ScoringRule } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { cn } from "@stigmer/theme";
 import { ErrorMessage } from "../error/ErrorMessage.js";
-import { useAgentScoringRule } from "../scoring-rule/useAgentEvaluator.js";
-import { useSaveScoringRule } from "../scoring-rule/useSaveEvaluator.js";
+import { useAgentScoringRule } from "../scoring-rule/useAgentScoringRule.js";
+import { useSaveScoringRule } from "../scoring-rule/useSaveScoringRule.js";
 import {
   DEFAULT_GRADING_SETTINGS,
   MAX_ONE_IN,

@@ -4,11 +4,11 @@
 export {
   useAgentScoringRule,
   type UseAgentScoringRuleReturn,
-} from "./useAgentEvaluator.js";
+} from "./useAgentScoringRule.js";
 export {
   useSaveScoringRule,
   type UseSaveScoringRuleReturn,
-} from "./useSaveEvaluator.js";
+} from "./useSaveScoringRule.js";
 export {
   DEFAULT_GRADING_SETTINGS,
   MAX_ONE_IN,

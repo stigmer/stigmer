@@ -19,7 +19,7 @@ import {
   scoringRuleOrgMismatchMessage,
   judgeRunsOf,
   makeScoringRule,
-} from "../evaluators";
+} from "../scoring-rules";
 
 function judgeScore(state: ScoreState): Score {
   return create(ScoreSchema, { spec: { runId: "run_1", metric: JUDGE }, status: { state } });
