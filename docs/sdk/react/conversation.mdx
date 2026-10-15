@@ -26,12 +26,12 @@ Pass empty strings to skip fetching (the `null`-fetchFn convention).
 **Signature**
 
 ```tsx
-function useConversation(agentChannelId: string, conversationKey: string, options?: UseConversationOptions): UseConversationReturn
+function useConversation(channelId: string, conversationKey: string, options?: UseConversationOptions): UseConversationReturn
 ```
 
 <TypeTable
   type={{
-    agentChannelId: { type: "string", description: "", required: true },
+    channelId: { type: "string", description: "", required: true },
     conversationKey: { type: "string", description: "", required: true },
     options: { type: "UseConversationOptions", description: "" },
   }}
@@ -120,7 +120,7 @@ function useConversationList(options: UseConversationListOptions): UseConversati
 
 Data hook that resolves a **fresh** presigned download URL for one
 timeline item's ingested media (an image or document the customer sent)
-via `stigmer.agentChannel.getMediaDownloadUrl()`.
+via `stigmer.channel.getMediaDownloadUrl()`.
 
 Addressed by `(channel, conversation, item_id)` — never a storage key:
 the server resolves the blob from its own row, so the read path stays
@@ -138,12 +138,12 @@ conversation surface's established skip convention.
 **Signature**
 
 ```tsx
-function useConversationMediaUrl(agentChannelId: string, conversationKey: string, itemId: string, options?: UseConversationMediaUrlOptions): UseConversationMediaUrlReturn
+function useConversationMediaUrl(channelId: string, conversationKey: string, itemId: string, options?: UseConversationMediaUrlOptions): UseConversationMediaUrlReturn
 ```
 
 <TypeTable
   type={{
-    agentChannelId: { type: "string", description: "AgentChannel the conversation belongs to, or `\"\"` to skip.", required: true },
+    channelId: { type: "string", description: "Channel the conversation belongs to, or `\"\"` to skip.", required: true },
     conversationKey: { type: "string", description: "Conversation key within the channel, or `\"\"` to skip.", required: true },
     itemId: { type: "string", description: "The timeline item whose media to fetch (e.g. `\"wa:<wamid>\"`), or `\"\"` to skip.", required: true },
     options: { type: "UseConversationMediaUrlOptions", description: "Optional gating (`enabled`)." },
@@ -277,12 +277,12 @@ Pass empty strings to skip fetching (the `null`-fetchFn convention).
 **Signature**
 
 ```tsx
-function useConversationTimeline(agentChannelId: string, conversationKey: string, options?: UseConversationTimelineOptions): UseConversationTimelineReturn
+function useConversationTimeline(channelId: string, conversationKey: string, options?: UseConversationTimelineOptions): UseConversationTimelineReturn
 ```
 
 <TypeTable
   type={{
-    agentChannelId: { type: "string", description: "", required: true },
+    channelId: { type: "string", description: "", required: true },
     conversationKey: { type: "string", description: "", required: true },
     options: { type: "UseConversationTimelineOptions", description: "" },
   }}
@@ -395,7 +395,7 @@ channels, newest activity first, with control, attention, and
 awaiting-reply indicators.
 
 Presentational — pair with `useConversationList` and
-`useOrgAgentChannelList`, or compose via `ConversationsWorkbench`.
+`useOrgChannelList`, or compose via `ConversationsWorkbench`.
 The wants-human filter is SERVER-evaluated (the list RPC takes the
 predicate): a client-side tab over one fetched page would
 silently lie across pages, so the pane only reports the choice and the
@@ -406,7 +406,7 @@ list hook sends it to the server.
 <TypeTable
   type={{
     channelFilter: { type: "string", description: "Current channel filter; empty string means all channels.", required: true },
-    channels: { type: "readonly AgentChannel[]", description: "The org's channels the caller can view (from `useOrgAgentChannelList`) — the channel filter's options, each row's provider identity, and the honest empty-state distinction (no channel access vs no conversations yet).", required: true },
+    channels: { type: "readonly Channel[]", description: "The org's channels the caller can view (from `useOrgChannelList`) — the channel filter's options, each row's provider identity, and the honest empty-state distinction (no channel access vs no conversations yet).", required: true },
     className: { type: "string", description: "Additional classes for the pane container." },
     conversations: { type: "readonly ChannelConversation[]", description: "Conversations, newest activity first (from `useConversationList`).", required: true },
     error: { type: "Error | null", description: "Error from the list read, or `null`.", required: true },
@@ -416,7 +416,7 @@ list hook sends it to the server.
     isLoadingMore: { type: "boolean", description: "`true` while the next page is in flight.", required: true },
     loadMore: { type: "() => void", description: "Load the next page.", required: true },
     now: { type: "Date", description: "Frozen instant for deterministic hosts (tests, documentation tours)." },
-    onChannelFilterChange: { type: "(agentChannelId: string) => void", description: "Called when the user picks a channel filter.", required: true },
+    onChannelFilterChange: { type: "(channelId: string) => void", description: "Called when the user picks a channel filter.", required: true },
     onFilterChange: { type: "(filter: ChannelConversationListFilter) => void", description: "Called when the user picks a predicate filter. The control renders only when this is wired — a dead toggle over an unfiltered list would lie." },
     onSelect: { type: "(conversation: ChannelConversation) => void", description: "Called when the user opens a conversation.", required: true },
     selected: { type: "ConversationIdentity | null", description: "The open conversation, for row highlighting. `null` when none.", required: true },
@@ -438,7 +438,7 @@ different layout compose `ConversationListPane`,
 
 <TypeTable
   type={{
-    channelHref: { type: "(channel: AgentChannel) => string | null", description: "Maps the open conversation's channel to the host's channel surface — the owning agent's Channels tab (channels have no standalone page). When provided, the header's channel name renders as a link; `null` for a specific channel keeps it plain text. The SDK never assumes a routing scheme." },
+    channelHref: { type: "(channel: Channel) => string | null", description: "Maps the open conversation's channel to the host's channel surface — the owning agent's Channels tab (channels have no standalone page). When provided, the header's channel name renders as a link; `null` for a specific channel keeps it plain text. The SDK never assumes a routing scheme." },
     className: { type: "string", description: "Additional classes for the workbench container." },
     currentIdentityAccountId: { type: "string", description: "The signed-in staff member's identity account id, when the host knows it — used only for \"You have this conversation\" copy." },
     headerAccessory: { type: "ReactNode | (context: ConversationHeaderContext) => ReactNode", description: "Rendered in the open conversation's header (the host's seam for page-level actions — e.g. the channel access panel trigger). The function form receives ConversationHeaderContext so the accessory can name the channel it acts on." },
@@ -516,9 +516,9 @@ Presentational — pair with `useConversationTimeline`, or compose via
 
 <TypeTable
   type={{
-    agentChannelId: { type: "string", description: "AgentChannel the conversation belongs to. Together with `conversationKey`, this is the opt-in for media rendering: items carrying `media` render an inline thumbnail or document chip whose bytes are fetched via `getMediaDownloadUrl` — which is addressed by (channel, conversation, item), so the view cannot fetch media without the address.  When either identity prop is absent, media items keep the typed placeholder (\"Photo\", \"Document\") — and, load-bearing for provider-less hosts (documentation fixtures, visual tests): nothing that needs a `StigmerProvider` mounts, so the view stays purely presentational exactly as before these props existed." },
+    channelId: { type: "string", description: "Channel the conversation belongs to. Together with `conversationKey`, this is the opt-in for media rendering: items carrying `media` render an inline thumbnail or document chip whose bytes are fetched via `getMediaDownloadUrl` — which is addressed by (channel, conversation, item), so the view cannot fetch media without the address.  When either identity prop is absent, media items keep the typed placeholder (\"Photo\", \"Document\") — and, load-bearing for provider-less hosts (documentation fixtures, visual tests): nothing that needs a `StigmerProvider` mounts, so the view stays purely presentational exactly as before these props existed." },
     className: { type: "string", description: "Additional classes for the view container." },
-    conversationKey: { type: "string", description: "Conversation key within the channel (see `agentChannelId`)." },
+    conversationKey: { type: "string", description: "Conversation key within the channel (see `channelId`)." },
     error: { type: "Error | null", description: "Error from the timeline read, or `null`.", required: true },
     hasOlder: { type: "boolean", description: "`true` while older history exists beyond what is loaded.", required: true },
     isLoading: { type: "boolean", description: "`true` only during the first load.", required: true },
@@ -641,7 +641,7 @@ Context handed to a function-form
 
 <TypeTable
   type={{
-    channel: { type: "AgentChannel | null", description: "The open conversation's channel, once the org's channel list answers — `null` while it loads. Carries the channel's name (for scope-explicit accessories like the \"Channel access\" trigger) and `spec.agent_ref` (for navigation), so hosts never re-fetch what the workbench already holds.", required: true },
+    channel: { type: "Channel | null", description: "The open conversation's channel, once the org's channel list answers — `null` while it loads. Carries the channel's name (for scope-explicit accessories like the \"Channel access\" trigger) and `spec.agent_ref` (for navigation), so hosts never re-fetch what the workbench already holds.", required: true },
   }}
 />
 
@@ -652,7 +652,7 @@ The (channel, key) pair identifying one conversation.
 
 <TypeTable
   type={{
-    agentChannelId: { type: "string", description: "", required: true },
+    channelId: { type: "string", description: "", required: true },
     conversationKey: { type: "string", description: "", required: true },
   }}
 />
@@ -800,7 +800,7 @@ Options for [`useConversationList`](#useconversationlist).
 
 <TypeTable
   type={{
-    agentChannelId: { type: "string", description: "Optional filter: only conversations on this agent channel." },
+    channelId: { type: "string", description: "Optional filter: only conversations on this agent channel." },
     filter: { type: "ChannelConversationListFilter", description: "Optional server-evaluated predicate filter. The generated enum is the vocabulary on purpose — the predicate lives in ONE place, the server, and the hook never re-expresses it. Defaults to unspecified (no filter)." },
     org: { type: "string | null", description: "Organization whose conversations to list. `null` skips fetching.", required: true },
     pageSize: { type: "number", description: "Page size for the head page and each loadMore page. Default 50." },
@@ -837,7 +837,7 @@ Options for [`useConversationParticipation`](#useconversationparticipation).
 
 <TypeTable
   type={{
-    agentChannelId: { type: "string", description: "AgentChannel the conversation belongs to.", required: true },
+    channelId: { type: "string", description: "Channel the conversation belongs to.", required: true },
     conversationKey: { type: "string", description: "Conversation key within the channel.", required: true },
     onConversation: { type: "(fresh: ChannelConversation) => void", description: "Receives the fresh conversation row every command answers with — wire it to useConversation's `applyServerState` so banners and controls adopt server truth immediately. Called for reply too (via a follow-up row read): a staff reply implicitly takes over BEFORE the send, unconditionally, so control has moved even when the send itself was refused." },
   }}

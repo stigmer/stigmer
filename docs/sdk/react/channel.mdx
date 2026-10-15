@@ -6,9 +6,63 @@ title: channel
 
 ## Hooks
 
-### useAgentChannel
+### useCanCreateChannel
 
-Data hook that loads a single `AgentChannel` by ID.
+Mirrors the server's Channel create bar so create affordances never
+appear to a user whose create would be refused. One bar for every
+type: the Shares tab and the Channels panel both ask it.
+
+A channel lives in its agent's organization (to share another
+organization's agent, install the plugin that carries it and share the
+installed copy), and creating one asks two questions of that
+organization, both of which the create handler enforces:
+
+- `can_manage_audience` on the agent — a channel puts the agent in front
+  of a wider audience, so it is the owner's decision; an editor, who may
+  change the definition, may not publish it.
+- `can_create_channel` on the organization (admin by default) — a
+  channel spends the organization's own provider keys with people
+  outside it, so it is an admin-level decision. The org check uses the
+  agent's `metadata.org` as the resource id, which is the
+  organization's id.
+
+A viewer from another organization looking at a platform-visible agent
+needs no special case: both checks answer false for them, so the
+affordance hides on permissions alone.
+
+On the open-source edition the answer follows the server's posture. A
+server without sign-in has the permissive single-team authorizer and
+answers allowed. A server with sign-in enforces the
+same organization roles as the cloud, so `can_create_channel` is
+the admin's and a member sees no create affordance.
+
+Pass `null` for `agent` while it loads — `allowed` stays `false` so
+no affordance flashes before the gate can be evaluated.
+
+**Signature**
+
+```tsx
+function useCanCreateChannel(agent: Agent | null): UseCanCreateChannelReturn
+```
+
+<TypeTable
+  type={{
+    agent: { type: "Agent | null", description: "The agent to reach, or `null` while loading.", required: true },
+  }}
+/>
+
+**Returns** — `UseCanCreateChannelReturn`
+
+<TypeTable
+  type={{
+    allowed: { type: "boolean", description: "Whether the viewer may create a channel of this agent (a chat link, a Slack workspace, a WhatsApp number)." },
+  }}
+/>
+
+
+### useChannel
+
+Data hook that loads a single `Channel` (any type) by ID.
 
 Not-found maps to `channel === null` rather than an error, so callers
 can render an absent channel (e.g. deleted in another tab) without
@@ -17,7 +71,7 @@ error styling. Pass an empty `id` to skip fetching (stable no-op).
 **Signature**
 
 ```tsx
-function useAgentChannel(id: string): UseAgentChannelReturn
+function useChannel(id: string): UseChannelReturn
 ```
 
 <TypeTable
@@ -26,11 +80,11 @@ function useAgentChannel(id: string): UseAgentChannelReturn
   }}
 />
 
-**Returns** — `UseAgentChannelReturn`
+**Returns** — `UseChannelReturn`
 
 <TypeTable
   type={{
-    channel: { type: "AgentChannel | null", description: "The channel, or `null` while loading, on error, or when no channel with that ID exists (not-found is data, not an error)." },
+    channel: { type: "Channel | null", description: "The channel, or `null` while loading, on error, or when no channel with that ID exists (not-found is data, not an error)." },
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight and no data is shown." },
     isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
@@ -39,30 +93,34 @@ function useAgentChannel(id: string): UseAgentChannelReturn
 />
 
 ```tsx
-const { channel, isLoading, refetch } = useAgentChannel(channelId);
+const { channel, isLoading, refetch } = useChannel(channelId);
 ```
 
 
-### useAgentChannelList
+### useChannelList
 
-Data hook that loads an agent's `AgentChannel` resources — the
-connections that expose the agent on external messaging platforms
-(Slack in v1, more providers later).
+Data hook that loads an agent's `Channel` resources of every type —
+its chat links (`web`), its Slack workspaces and its WhatsApp numbers.
+One list for the one kind: each surface filters it by `spec.type.case`
+(the Shares tab shows the `web` channels, the Channels panel the `slack`
+and `whatsapp` ones).
 
-A channel serves traffic only when its provider install completed
-(`status.installState === installed`) AND the owner's serving switch is
-on (`spec.enabled`) — the two axes the Channels tab renders.
+A Slack or WhatsApp channel serves traffic only when its provider install
+completed (`status.installState === installed`) AND the owner's serving
+switch is on (`spec.enabled`) — the two axes the Channels tab renders. A
+web channel serves while `spec.enabled` is on.
 
-Pass `org` to scope the list to one organization's channels; the server
-only ever narrows the permission-bounded view. An agent has a handful of
-channels and the tab shows them all, so the hook walks every page. Pass an empty `agentId`
-to skip fetching (stable no-op) — useful while the agent is still
-loading.
+Pass `org` to scope the list to one organization's channels — the
+agent's organization is the one a console tab asks for. The server
+only ever narrows the permission-bounded view; omit `org` for the full
+permission-bounded list. An agent has a handful of channels and the tabs
+show them all, so the hook walks every page. Pass an empty `agentId` to
+skip fetching (stable no-op) — useful while the agent is still loading.
 
 **Signature**
 
 ```tsx
-function useAgentChannelList(agentId: string, org?: string): UseAgentChannelListReturn
+function useChannelList(agentId: string, org?: string): UseChannelListReturn
 ```
 
 <TypeTable
@@ -72,11 +130,11 @@ function useAgentChannelList(agentId: string, org?: string): UseAgentChannelList
   }}
 />
 
-**Returns** — `UseAgentChannelListReturn`
+**Returns** — `UseChannelListReturn`
 
 <TypeTable
   type={{
-    channels: { type: "readonly AgentChannel[]", description: "Every channel of the agent visible to the caller, in server order. Empty while loading, on error, or when the agent has no channels — `channels.length === 0 && !isLoading && !error` means \"no channels exist yet\"." },
+    channels: { type: "readonly Channel[]", description: "Every channel of the agent visible to the caller, in server order. Empty while loading, on error, or when the agent has no channels — `channels.length === 0 && !isLoading && !error` means \"no channels exist yet\"." },
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight and no data is shown." },
     isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
@@ -85,16 +143,17 @@ function useAgentChannelList(agentId: string, org?: string): UseAgentChannelList
 />
 
 ```tsx
-const { channels, isLoading, refetch } = useAgentChannelList(
+const { channels, isLoading, refetch } = useChannelList(
   agent?.metadata?.id ?? "",
   viewerOrg,
 );
+const chatLinks = channels.filter((c) => c.spec?.type?.case === "web");
 ```
 
 
 ### useChannelSessions
 
-Data hook that loads the conversations an `AgentChannel` created —
+Data hook that loads the conversations a Slack or WhatsApp `Channel` created —
 the Slack/WhatsApp sessions the channel runtime owns (design decision
 012: channel-session read-only observability).
 
@@ -207,7 +266,7 @@ network call — the courtesy pre-check for the Templates surface.
 Mirrors the server's own gate order for `listTemplates`
 (`ChannelMessagingReach.resolveDirect`: installed → enabled →
 proactive grant), answering from fields already on the fetched
-`AgentChannel`. The server stays authoritative: a `ready`
+`Channel`. The server stays authoritative: a `ready`
 verdict here only means the call is worth making, and whatever the
 server then says wins.
 
@@ -221,12 +280,12 @@ across pending/revoked, because `providerPresentation`'s
 **Signature**
 
 ```tsx
-function useChannelTemplateReadiness(channel: AgentChannel): ChannelTemplateReadiness
+function useChannelTemplateReadiness(channel: Channel): ChannelTemplateReadiness
 ```
 
 <TypeTable
   type={{
-    channel: { type: "AgentChannel", description: "", required: true },
+    channel: { type: "Channel", description: "", required: true },
   }}
 />
 
@@ -241,7 +300,7 @@ if (readiness.status !== "ready") return <TeachingState ... />;
 Channel-scoped wrapper over [`useToolCredentialsReadiness`](/docs/sdk/react/vault#usetoolcredentialsreadiness):
 checks whether a tool-using agent's credentials will work over a
 channel — i.e. whether the channel names vaults
-(`AgentChannelSpec.vaults`) and each one is a shared vault.
+(`ChannelSpec.vaults`) and each one is a shared vault.
 
 Channel runs have no person, so they use only the channel's own vaults
 — exactly the share contract, without the audience arm (channels have no
@@ -293,7 +352,7 @@ function useConnectSlackChannel(): UseConnectSlackChannelReturn
 <TypeTable
   type={{
     clearError: { type: "() => void", description: "Reset the hook to idle state, cancelling any in-flight flow." },
-    connect: { type: "(channelId: string) => Promise<AgentChannel>", description: "Run the Slack install flow for a channel.  Opens a popup for Slack's \"Add to Slack\" consent screen, waits for the OAuth callback, then exchanges the authorization code via `completeInstall`. Works for first installs and re-installs after revocation alike (the server transitions `revoked → installed`).  **Must be called from a synchronous user-gesture handler** (e.g. an `onClick` callback) so the browser allows the popup. The popup is opened synchronously before any async work to avoid popup blockers.  Failure modes surface as `error` with server-authored copy: a deployment without Slack app credentials or an OSS backend refuses at `initiating` (FAILED_PRECONDITION); duplicate-workspace and Enterprise Grid installs refuse at `completing`." },
+    connect: { type: "(channelId: string) => Promise<Channel>", description: "Run the Slack install flow for a channel.  Opens a popup for Slack's \"Add to Slack\" consent screen, waits for the OAuth callback, then exchanges the authorization code via `completeInstall`. Works for first installs and re-installs after revocation alike (the server transitions `revoked → installed`).  **Must be called from a synchronous user-gesture handler** (e.g. an `onClick` callback) so the browser allows the popup. The popup is opened synchronously before any async work to avoid popup blockers.  Failure modes surface as `error` with server-authored copy: a deployment without Slack app credentials or an OSS backend refuses at `initiating` (FAILED_PRECONDITION); duplicate-workspace and Enterprise Grid installs refuse at `completing`." },
     error: { type: "Error | null", description: "Error from the most recent unsuccessful attempt, or `null`." },
     isInProgress: { type: "boolean", description: "`true` while any phase of the install flow is in progress." },
     phase: { type: "SlackConnectPhase", description: "Current phase of the install flow.", typeDescriptionLink: "#slackconnectphase" },
@@ -318,35 +377,36 @@ async function handleConnect() {
 ```
 
 
-### useCreateAgentChannel
+### useCreateChannel
 
-Mutation hook that creates an `AgentChannel`.
+Mutation hook that creates a `Channel` of any type.
 
-Wraps `stigmer.agentChannel.create()` with loading/error state. An
-agent can carry several channels (e.g. two Slack workspaces), so a new
-channel must never overwrite a sibling whose derived slug collides —
-strict-create semantics make that mistake loud instead of silent.
-Updates and toggles go through `useSaveAgentChannel` (apply).
+Wraps `stigmer.channel.create()` with loading/error state. An
+agent can carry several channels (two Slack workspaces, a chat link per
+site), all in one slug namespace, so a new channel must never overwrite
+a sibling whose slug collides — strict-create semantics make that
+mistake loud instead of silent. Updates and toggles go through
+`useSaveChannel`.
 
 **Signature**
 
 ```tsx
-function useCreateAgentChannel(): UseCreateAgentChannelReturn
+function useCreateChannel(): UseCreateChannelReturn
 ```
 
-**Returns** — `UseCreateAgentChannelReturn`
+**Returns** — `UseCreateChannelReturn`
 
 <TypeTable
   type={{
     clearError: { type: "() => void", description: "Reset `error` to `null`." },
-    createChannel: { type: "(input: AgentChannelInput) => Promise<AgentChannel>", description: "Create a new agent channel (strict create: an existing org + slug fails with ALREADY_EXISTS rather than silently updating it — the reason this is not `apply`). Returns the created resource in `pending_install` state; run the provider install flow next." },
+    createChannel: { type: "(input: ChannelInput) => Promise<Channel>", description: "Create a new channel (strict create: an existing org + slug fails with ALREADY_EXISTS rather than silently updating it — the reason this is not `apply`). A Slack or WhatsApp channel comes back in `pending_install` state; run the provider install flow next. A web channel comes back serving its chat link." },
     error: { type: "Error | null", description: "Error from the last failed create, or `null` when healthy." },
     isPending: { type: "boolean", description: "`true` while the create request is in flight." },
   }}
 />
 
 ```tsx
-const { createChannel, isPending } = useCreateAgentChannel();
+const { createChannel, isPending } = useCreateChannel();
 
 const channel = await createChannel({
   name: "Support Slack",
@@ -358,11 +418,12 @@ const channel = await createChannel({
 ```
 
 
-### useDeleteAgentChannel
+### useDeleteChannel
 
-Mutation hook that deletes an `AgentChannel` resource.
+Mutation hook that deletes a `Channel` of any type.
 
-Wraps `stigmer.agentChannel.delete()` with loading/error state. The
+Wraps `stigmer.channel.delete()` (authorized by the channel's
+`can_delete`) with loading/error state. The
 caller is responsible for post-delete UI updates (e.g. refreshing the
 channel list) and for confirming the destructive action — the
 delete-vs-pause distinction belongs in the confirmation copy.
@@ -370,22 +431,22 @@ delete-vs-pause distinction belongs in the confirmation copy.
 **Signature**
 
 ```tsx
-function useDeleteAgentChannel(): UseDeleteAgentChannelReturn
+function useDeleteChannel(): UseDeleteChannelReturn
 ```
 
-**Returns** — `UseDeleteAgentChannelReturn`
+**Returns** — `UseDeleteChannelReturn`
 
 <TypeTable
   type={{
     clearError: { type: "() => void", description: "Reset `error` to `null`." },
-    deleteChannel: { type: "(id: string) => Promise<AgentChannel>", description: "Delete an agent channel by ID. Returns the deleted resource.  Deleting a channel is full teardown: the provider connection stops serving immediately and the stored install (including its credentials) is removed. To stop serving while keeping the install, save the channel with `enabled: false` instead (a config-preserving pause via `useSaveAgentChannel`)." },
+    deleteChannel: { type: "(id: string) => Promise<Channel>", description: "Delete a channel by ID. Returns the deleted resource.  Deleting a channel is full teardown: it stops serving immediately — a chat link dies for visitors mid-conversation, a Slack or WhatsApp connection's stored install (including its credentials) is removed — and its configuration is gone. To stop serving while keeping the configuration, save the channel with `enabled: false` instead (a config-preserving pause via `useSaveChannel`)." },
     error: { type: "Error | null", description: "Error from the last failed delete, or `null` when healthy." },
     isDeleting: { type: "boolean", description: "`true` while the delete request is in flight." },
   }}
 />
 
 ```tsx
-const { deleteChannel, isDeleting } = useDeleteAgentChannel();
+const { deleteChannel, isDeleting } = useDeleteChannel();
 
 const handleDelete = async () => {
   await deleteChannel(channel.metadata.id);
@@ -432,37 +493,37 @@ async function handleConnect() {
 ```
 
 
-### useSaveAgentChannel
+### useSaveChannel
 
-Mutation hook that creates or changes an `AgentChannel`.
+Mutation hook that applies or changes a `Channel` of any type.
 
-`save` wraps `stigmer.agentChannel.apply()` for a new channel; `update`
-wraps `stigmer.agentChannel.update()` for an existing one, naming only
+`save` wraps `stigmer.channel.apply()` for a new channel; `update`
+wraps `stigmer.channel.update()` for an existing one, naming only
 the fields its patch sets. The caller is responsible for post-save UI
 updates (e.g. refreshing the channel list).
 
 **Signature**
 
 ```tsx
-function useSaveAgentChannel(): UseSaveAgentChannelReturn
+function useSaveChannel(): UseSaveChannelReturn
 ```
 
-**Returns** — `UseSaveAgentChannelReturn`
+**Returns** — `UseSaveChannelReturn`
 
 <TypeTable
   type={{
     clearError: { type: "() => void", description: "Reset `error` to `null`." },
     error: { type: "Error | null", description: "Error from the last failed save or update, or `null` when healthy." },
     isPending: { type: "boolean", description: "`true` while a save or update is in flight." },
-    save: { type: "(input: AgentChannelInput) => Promise<AgentChannel>", description: "Create an agent channel (`apply` semantics: upsert by org + slug). Returns the persisted resource." },
-    update: { type: "(channel: AgentChannel, patch: Partial<AgentChannelInput>) => Promise<AgentChannel>", description: "Change the fields `patch` sets on an existing channel, as loaded: the update names exactly those fields, so every other field (the agent reference, the provider config, the bound vaults, the run override) keeps its stored value, and a channel changed since it was loaded refuses the save (ABORTED, reason `ETAG_MISMATCH`). A key set to `undefined` clears that field. Returns the updated resource.  Disabling is a config-preserving pause: `update(channel, { enabled: false })` keeps the provider install and its credentials. Deleting is the full teardown — see `useDeleteAgentChannel`." },
+    save: { type: "(input: ChannelInput) => Promise<Channel>", description: "Apply a channel (`apply` semantics: upsert by org + slug). Returns the persisted resource. A new channel that must never land on a sibling's slug goes through `useCreateChannel` (strict create)." },
+    update: { type: "(channel: Channel, patch: Partial<ChannelInput>) => Promise<Channel>", description: "Change the fields `patch` sets on an existing channel, as loaded: the update names exactly those fields, so every other field (the agent reference, the type's settings, the bound vaults, the run override) keeps its stored value, and a channel changed since it was loaded refuses the save (ABORTED, reason `ETAG_MISMATCH`). A key set to `undefined` clears that field. Returns the updated resource.  A type's settings are named field by field: `{ web: { audience } }` names `spec.web.audience` alone, so the chat link's allowed origins and messages keep their stored values; `{ whatsapp: { proactiveMessagingEnabled } }` names that switch and leaves the number and app as stored. An empty arm (`{ slack: {} }`) names the arm whole.  Disabling is a config-preserving pause: `update(channel, { enabled: false })` keeps the chat link, or the provider install and its credentials. Deleting is the full teardown — see `useDeleteChannel`." },
   }}
 />
 
 ```tsx
-const { update, isPending } = useSaveAgentChannel();
+const { update, isPending } = useSaveChannel();
 
-const handleToggle = async (channel: AgentChannel, enabled: boolean) => {
+const handleToggle = async (channel: Channel, enabled: boolean) => {
   await update(channel, { enabled });
   refetch(); // refresh the channel list
 };
@@ -470,43 +531,6 @@ const handleToggle = async (channel: AgentChannel, enabled: boolean) => {
 
 
 ## Components
-
-### AgentChannelsPanel
-
-Management surface for an agent's `AgentChannel` connections —
-rendered in the agent detail view's Channels tab.
-
-One card per channel showing the two serving axes side by side: the
-observed provider install state (`pending_install` / `installed` /
-`revoked`) and the owner's serving switch (`spec.enabled`). Traffic
-flows only when installed AND enabled. Channels always live in the
-agent's own org (no cross-org arm, unlike shares), so no org selector
-is needed.
-
-Connecting runs the provider's own dialog — [`ConnectSlackDialog`](#connectslackdialog)
-(OAuth popup) or [`ConnectWhatsAppDialog`](#connectwhatsappdialog) (direct install). On a
-`local` (OSS) backend, channel CRUD works but installs are cloud-only —
-connect affordances are replaced by a cloud-feature notice, matching
-the server's FAILED_PRECONDITION posture.
-
-Self-contained: owns its dialog, its confirmation prompts, and its
-refetch-after-mutation — hosts render it with just the agent (plus the
-external-connect delegate where popups are unavailable).
-
-This is an SDK component — embeddable by platform builders.
-
-**Props** — `AgentChannelsPanelProps`
-
-<TypeTable
-  type={{
-    agent: { type: "Agent", description: "The agent whose channels are managed.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
-    channelAppsHref: { type: "string", description: "Where the host manages Channel Apps (the console passes `/settings/channel-apps`). Threaded to the connect dialog's \"Register a channel app\" affordance; absent, the affordance degrades to plain guidance text." },
-    className: { type: "string", description: "Additional CSS class names." },
-    onConnectExternal: { type: "(channel: AgentChannel | null) => void", description: "When provided, connect actions for redirect-style providers (Slack) delegate to the host instead of running the in-app popup flow. For hosts whose webview cannot open popups (the desktop app): the delegate typically opens the web console in the system browser. Called with the channel being (re)connected, or `null` for a brand-new connection. Direct-install providers (WhatsApp) always connect in-app — their flow is a plain API call with nothing for a popup to do — so they never invoke the delegate." },
-    sessionHref: { type: "(sessionId: string) => string", description: "Maps a session id to the host's session route (the console passes `` (id) => `/sessions/${id}` ``). Threaded to each card's Conversations dialog so rows link to the read-only transcript; absent, the rows render without links (the SDK never assumes a routing scheme)." },
-  }}
-/>
-
 
 ### ChannelConversationsDialog
 
@@ -529,14 +553,14 @@ transcript read-only (the observer audience — channel viewers hold
 its owners and participants).
 
 Built on the native `<dialog>` element, matching the SDK's modal
-convention. Most hosts mount it via [`AgentChannelsPanel`](#agentchannelspanel)'s
+convention. Most hosts mount it via [`ChannelsPanel`](#channelspanel)'s
 channel card action.
 
 **Props** — `ChannelConversationsDialogProps`
 
 <TypeTable
   type={{
-    channel: { type: "AgentChannel", description: "The channel whose conversations are listed.", required: true },
+    channel: { type: "Channel", description: "The channel whose conversations are listed.", required: true },
     modal: { type: "boolean", description: "When `false`, renders as an in-flow open dialog instead of a top-layer modal — for embedding in constrained surfaces (documentation demos, visual tests). Interactive hosts keep the default." },
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog requests an open-state change.", required: true },
     open: { type: "boolean", description: "Whether the dialog is open.", required: true },
@@ -548,14 +572,14 @@ channel card action.
 ### ChannelCredentialsDialog
 
 Edits an installed channel's tool-credential bindings
-(`AgentChannelSpec.vaults`) after the fact — the companion
+(`ChannelSpec.vaults`) after the fact — the companion
 to binding at connect time in [`ConnectSlackDialog`](#connectslackdialog). A save is an
 update naming `spec.vaults` alone, so the agent reference, provider
 marker, and install status keep their stored values; an emptied list
 is an explicit unbind.
 
 Built on the native `<dialog>` element, matching the SDK's modal
-convention. Most hosts mount it via [`AgentChannelsPanel`](#agentchannelspanel)'s
+convention. Most hosts mount it via [`ChannelsPanel`](#channelspanel)'s
 channel card action.
 
 **Props** — `ChannelCredentialsDialogProps`
@@ -563,7 +587,7 @@ channel card action.
 <TypeTable
   type={{
     agent: { type: "Agent", description: "The agent the channel serves (drives the readiness hint).", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
-    channel: { type: "AgentChannel", description: "The channel whose credential bindings are edited.", required: true },
+    channel: { type: "Channel", description: "The channel whose credential bindings are edited.", required: true },
     modal: { type: "boolean", description: "When `false`, renders as an in-flow open dialog instead of a top-layer modal — for embedding in constrained surfaces (documentation demos, visual tests). Interactive hosts keep the default." },
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog requests an open-state change.", required: true },
     onSaved: { type: "() => void", description: "Called after a successful save (hosts typically pass `refetch`)." },
@@ -574,7 +598,7 @@ channel card action.
 
 ### ChannelRunConfigDialog
 
-Edits an installed channel's run settings (`AgentChannelSpec.run_config`)
+Edits an installed channel's run settings (`ChannelSpec.run_config`)
 — the console's first run_config editor (stigmer/stigmer#792), replacing
 the Edit-YAML detour for the model pin the write-time validation guards
 (stigmer/stigmer#774).
@@ -600,18 +624,55 @@ explicit, an unset one stays off the wire; unspecified-vs-explicit is a
 load-bearing usage-record distinction (#357).
 
 Built on the native `<dialog>` element, matching the SDK's modal
-convention. Most hosts mount it via [`AgentChannelsPanel`](#agentchannelspanel)'s
+convention. Most hosts mount it via [`ChannelsPanel`](#channelspanel)'s
 channel card action.
 
 **Props** — `ChannelRunConfigDialogProps`
 
 <TypeTable
   type={{
-    channel: { type: "AgentChannel", description: "The channel whose run settings are edited.", required: true },
+    channel: { type: "Channel", description: "The channel whose run settings are edited.", required: true },
     modal: { type: "boolean", description: "When `false`, renders as an in-flow open dialog instead of a top-layer modal — for embedding in constrained surfaces (documentation demos, visual tests). Interactive hosts keep the default." },
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog requests an open-state change.", required: true },
     onSaved: { type: "() => void", description: "Called after a successful save (hosts typically pass `refetch`)." },
     open: { type: "boolean", description: "Whether the dialog is open.", required: true },
+  }}
+/>
+
+
+### ChannelsPanel
+
+Management surface for an agent's Slack and WhatsApp `Channel`s —
+rendered in the agent detail view's Channels tab.
+
+One card per channel showing the two serving axes side by side: the
+observed provider install state (`pending_install` / `installed` /
+`revoked`) and the owner's serving switch (`spec.enabled`). Traffic
+flows only when installed AND enabled. Channels always live in the
+agent's own org (no cross-org arm), so no org selector
+is needed.
+
+Connecting runs the provider's own dialog — [`ConnectSlackDialog`](#connectslackdialog)
+(OAuth popup) or [`ConnectWhatsAppDialog`](#connectwhatsappdialog) (direct install). On a
+`local` (OSS) backend, channel CRUD works but installs are cloud-only —
+connect affordances are replaced by a cloud-feature notice, matching
+the server's FAILED_PRECONDITION posture.
+
+Self-contained: owns its dialog, its confirmation prompts, and its
+refetch-after-mutation — hosts render it with just the agent (plus the
+external-connect delegate where popups are unavailable).
+
+This is an SDK component — embeddable by platform builders.
+
+**Props** — `ChannelsPanelProps`
+
+<TypeTable
+  type={{
+    agent: { type: "Agent", description: "The agent whose channels are managed.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
+    channelAppsHref: { type: "string", description: "Where the host manages Channel Apps (the console passes `/settings/channel-apps`). Threaded to the connect dialog's \"Register a channel app\" affordance; absent, the affordance degrades to plain guidance text." },
+    className: { type: "string", description: "Additional CSS class names." },
+    onConnectExternal: { type: "(channel: Channel | null) => void", description: "When provided, connect actions for redirect-style providers (Slack) delegate to the host instead of running the in-app popup flow. For hosts whose webview cannot open popups (the desktop app): the delegate typically opens the web console in the system browser. Called with the channel being (re)connected, or `null` for a brand-new connection. Direct-install providers (WhatsApp) always connect in-app — their flow is a plain API call with nothing for a popup to do — so they never invoke the delegate." },
+    sessionHref: { type: "(sessionId: string) => string", description: "Maps a session id to the host's session route (the console passes `` (id) => `/sessions/${id}` ``). Threaded to each card's Conversations dialog so rows link to the read-only transcript; absent, the rows render without links (the SDK never assumes a routing scheme)." },
   }}
 />
 
@@ -639,7 +700,7 @@ relayed refusals; once a fetch does fail, the server's message
 renders verbatim.
 
 Built on the native `<dialog>` element, matching the SDK's modal
-convention. Most hosts mount it via [`AgentChannelsPanel`](#agentchannelspanel)'s
+convention. Most hosts mount it via [`ChannelsPanel`](#channelspanel)'s
 channel card action menu, which shows the action only for providers
 whose descriptor declares `supportsMessageTemplates`.
 
@@ -647,9 +708,9 @@ whose descriptor declares `supportsMessageTemplates`.
 
 <TypeTable
   type={{
-    channel: { type: "AgentChannel", description: "The channel whose provider template registry is listed.", required: true },
+    channel: { type: "Channel", description: "The channel whose provider template registry is listed.", required: true },
     modal: { type: "boolean", description: "When `false`, renders as an in-flow open dialog instead of a top-layer modal — for embedding in constrained surfaces (documentation demos, visual tests). Interactive hosts keep the default." },
-    onEditYaml: { type: "() => void", description: "Opens the channel's YAML editor — the only place `proactive_messaging_enabled` can be granted today. Wired by AgentChannelsPanel to its Edit YAML dialog; when absent, the teaching state renders without the affordance." },
+    onEditYaml: { type: "() => void", description: "Opens the channel's YAML editor — the only place `proactive_messaging_enabled` can be granted today. Wired by ChannelsPanel to its Edit YAML dialog; when absent, the teaching state renders without the affordance." },
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog requests an open-state change.", required: true },
     open: { type: "boolean", description: "Whether the dialog is open.", required: true },
   }}
@@ -676,7 +737,7 @@ The channel's vault picker with its explanation and readiness hint.
 
 ### ConnectSlackDialog
 
-The connect flow for a Slack channel: create the `AgentChannel`
+The connect flow for a Slack channel: create the `Channel`
 (create mode), then run the "Add to Slack" OAuth install in a popup
 and report progress phase by phase.
 
@@ -691,7 +752,7 @@ Built on the native `<dialog>` element for focus trapping and escape
 handling, matching the SDK's modal convention ([`ShareAgentDialog`](/docs/sdk/react/sharing#shareagentdialog)).
 All visual properties flow through `--stgm-*` design tokens.
 
-Most hosts mount it via [`AgentChannelsPanel`](#agentchannelspanel) (the Channels tab).
+Most hosts mount it via [`ChannelsPanel`](#channelspanel) (the Channels tab).
 Render it directly only when you own the open-state.
 
 **Props** — `ConnectSlackDialogProps`
@@ -699,7 +760,7 @@ Render it directly only when you own the open-state.
 <TypeTable
   type={{
     agent: { type: "Agent", description: "The agent the channel connects.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
-    channel: { type: "AgentChannel | null", description: "An existing channel to (re)connect — a `pending_install` channel whose install never completed, or a `revoked` one being re-installed. When omitted, the dialog opens in **create mode**: a name step creates a new channel, then runs the install flow on it." },
+    channel: { type: "Channel | null", description: "An existing channel to (re)connect — a `pending_install` channel whose install never completed, or a `revoked` one being re-installed. When omitted, the dialog opens in **create mode**: a name step creates a new channel, then runs the install flow on it." },
     channelAppsHref: { type: "string", description: "Where the host manages Channel Apps (the console passes `/settings/channel-apps`). When provided, the \"Connect as\" section and install refusals render a \"Register a channel app\" link there. SDK components never hardcode host routes — hosts inject the destination (the `onConnectExternal` delegate convention). Absent, the affordance degrades to plain guidance text." },
     modal: { type: "boolean", description: "When `false`, renders as an in-flow open dialog instead of a top-layer modal — no `showModal()`, no backdrop, no focus trap. For embedding the dialog in a constrained surface (documentation demos, visual tests). Interactive hosts keep the default." },
     onChannelsChanged: { type: "() => void", description: "Called after the channel set changes (created, or install completed). Hosts typically pass the channel list's `refetch`." },
@@ -712,7 +773,7 @@ Render it directly only when you own the open-state.
 ### ConnectWhatsAppDialog
 
 The connect flow for a WhatsApp channel: create the
-`AgentChannel` (create mode), then run the direct install — one
+`Channel` (create mode), then run the direct install — one
 server call that verifies the declared phone number against Meta's
 Graph API through the selected channel app's credentials.
 No consent popup, no callback route.
@@ -734,7 +795,7 @@ handling, matching the SDK's modal convention
 ([`ConnectSlackDialog`](#connectslackdialog)). All visual properties flow through
 `--stgm-*` design tokens.
 
-Most hosts mount it via [`AgentChannelsPanel`](#agentchannelspanel) (the Channels tab).
+Most hosts mount it via [`ChannelsPanel`](#channelspanel) (the Channels tab).
 Render it directly only when you own the open-state.
 
 **Props** — `ConnectWhatsAppDialogProps`
@@ -742,7 +803,7 @@ Render it directly only when you own the open-state.
 <TypeTable
   type={{
     agent: { type: "Agent", description: "The agent the channel connects.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
-    channel: { type: "AgentChannel | null", description: "An existing channel to (re)connect — a `pending_install` channel whose install never completed. Unlike Slack's frozen reconnect, the number and serving app stay editable here: a failed direct install usually means one of them is wrong, and both are server-mutable while the channel isn't installed. When omitted, the dialog opens in **create mode**." },
+    channel: { type: "Channel | null", description: "An existing channel to (re)connect — a `pending_install` channel whose install never completed. Unlike Slack's frozen reconnect, the number and serving app stay editable here: a failed direct install usually means one of them is wrong, and both are server-mutable while the channel isn't installed. When omitted, the dialog opens in **create mode**." },
     channelAppsHref: { type: "string", description: "Where the host manages Channel Apps (the console passes `/settings/channel-apps`). When provided, the serving-app section and install refusals render a \"Register a channel app\" link there. SDK components never hardcode host routes — hosts inject the destination. Absent, the affordance degrades to plain guidance text." },
     modal: { type: "boolean", description: "When `false`, renders as an in-flow open dialog instead of a top-layer modal — no `showModal()`, no backdrop, no focus trap. For embedding the dialog in a constrained surface (documentation demos, visual tests). Interactive hosts keep the default." },
     onChannelsChanged: { type: "() => void", description: "Called after the channel set changes (created, or install completed). Hosts typically pass the channel list's `refetch`." },

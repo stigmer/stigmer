@@ -73,7 +73,7 @@ Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`get`](#get) | Get a single session by ID. | |
 | [`list`](#list) | List all sessions with pagination and optional filtering. | |
 | [`listByAgent`](#listbyagent) | List the conversations on one agent, whichever version each runs. | |
-| [`listByChannel`](#listbychannel) | List the conversations an agent channel created. | |
+| [`listByChannel`](#listbychannel) | List the conversations a channel served. | |
 | [`listEvents`](#listevents) | List a session's events, oldest first unless desc is asked for. | |
 | [`apply`](#apply) | Create or update a session. | |
 | [`create`](#create) | Create a session. | |
@@ -235,9 +235,9 @@ SessionList result = client.sessions().listByAgent(ListSessionsByAgentRequest.bu
 
 ### listByChannel
 
-List the conversations an agent channel created.
+List the conversations a channel served.
 
-Returns the sessions the channel runtime (Slack, WhatsApp) created for the given agent channel, newest first. The caller must be able to view the channel; results are additionally filtered to sessions the caller can view.
+Returns the sessions the given channel's visitors or its Slack or WhatsApp runtime started, newest first. The caller must be able to view the channel; results are additionally filtered to sessions the caller can view.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -1371,11 +1371,11 @@ ListSessionsByAgentRequest lists the conversations on one agent.
 
 ### ListSessionsByChannelRequest
 
-ListSessionsByChannelRequest lists the conversations an agent channel created.
+ListSessionsByChannelRequest lists the conversations a channel served.
 
 <TypeTable
   type={{
-    channelId: { type: "string", description: "Agent channel ID to filter by.", required: true },
+    channelId: { type: "string", description: "Channel ID to filter by.", required: true },
     pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
     pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
     labels: { type: "Record<string, string>", description: "Only resources carrying every label given, each matched exactly (AND)." },

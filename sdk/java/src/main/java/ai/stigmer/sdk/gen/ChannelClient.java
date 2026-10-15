@@ -43,7 +43,6 @@ import ai.stigmer.agentic.channel.v1.UpdateChannelInput;
 import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import com.google.protobuf.FieldMask;
-import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
 /** Provides operations on channel resources. */
@@ -55,7 +54,7 @@ public final class ChannelClient {
     private final ChannelMessageQueryControllerGrpc.ChannelMessageQueryControllerBlockingStub channelMessageQuery;
     private final ChannelQueryControllerGrpc.ChannelQueryControllerBlockingStub query;
 
-    ChannelClient(Channel channel) {
+    ChannelClient(io.grpc.Channel channel) {
         this.command = ChannelCommandControllerGrpc.newBlockingStub(channel);
         this.channelConversationCommand = ChannelConversationCommandControllerGrpc.newBlockingStub(channel);
         this.channelConversationQuery = ChannelConversationQueryControllerGrpc.newBlockingStub(channel);
