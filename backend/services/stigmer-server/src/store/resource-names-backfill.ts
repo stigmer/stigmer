@@ -42,7 +42,7 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
@@ -81,7 +81,7 @@ export const NAMED_KINDS_AT_BACKFILL: ReadonlyArray<NamedKindAtBackfill> = [
   { kind: "agent_channel", schema: AgentChannelSchema },
   { kind: "agent_share", schema: AgentShareSchema },
   { kind: "channel_app", schema: ChannelAppSchema },
-  { kind: "evaluator", schema: EvaluatorSchema },
+  { kind: "evaluator", schema: ScoringRuleSchema },
   {
     kind: "identity_account",
     schema: IdentityAccountSchema,

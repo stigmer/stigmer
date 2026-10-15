@@ -1,21 +1,21 @@
-// Conformance suite for AI grading of live runs: an agent's evaluator sends
+// Conformance suite for AI grading of live runs: an agent's scoring rule sends
 // its completed runs to the platform's AI judge, which is itself a run.
 // Domain: agentic / score — graded on a real engine, with the scripted model
 // answering both the graded run and its judge.
 //
 // The contract under test:
-//   - with an evaluator sampling every run, a completed run gets one `judge`
+//   - with a scoring rule sampling every run, a completed run gets one `judge`
 //     score (source score_source_judge) with both standard rubrics, each with
 //     its reason, passing when no rubric failed, and naming the model that
 //     graded it; the judge's own run and session are gone once the grade is
-//     recorded, and the evaluator's month counts the grade;
+//     recorded, and the scoring rule's month counts the grade;
 //   - a judge whose answer is not the verdict's shape leaves the run not
 //     graded, "the judge's answer could not be read", never failed;
 //   - a monthly limit below one grade's cap leaves the run not graded,
 //     "spending limit reached", without starting a judge, and the
-//     evaluator's status says why;
+//     scoring rule's status says why;
 //   - a run outside the sample carries no judge score at all;
-//   - a run whose agent has no evaluator carries no judge score.
+//   - a run whose agent has no scoring rule carries no judge score.
 // Scripted turns are consumed in order: the graded run's turn, then the
 // judge run's (its session has a subject, so no title call is made), then,
 // when the judge's text carries no JSON, the structured-output extractor's.
@@ -51,8 +51,8 @@ import {
   MADE_NOTHING_UP,
   awaitJudgeVerdict,
   judgeRunsOf,
-  makeEvaluator,
-} from "../support/evaluators";
+  makeScoringRule,
+} from "../support/scoring-rules";
 import { uniqueName } from "../support/naming";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import { awaitRunHealth } from "../support/scores";
@@ -95,24 +95,24 @@ const PASSING_VERDICT = JSON.stringify({
 interface Graded {
   readonly org: string;
   readonly run: Run;
-  readonly evaluatorId: string | undefined;
+  readonly scoringRuleId: string | undefined;
 }
 
-// One run of a fresh agent in a fresh organization, with the evaluator the
-// arm asks for (none when `evaluator` is undefined), scripted on the mock.
+// One run of a fresh agent in a fresh organization, with the scoring rule the
+// arm asks for (none when `scoringRule` is undefined), scripted on the mock.
 async function gradedRun(
-  evaluator: { sampleRate?: number; monthlyLimitUsd?: number } | undefined,
+  scoringRule: { sampleRate?: number; monthlyLimitUsd?: number } | undefined,
   script: AnthropicMessageBody[],
 ): Promise<Graded> {
   const { org } = await target.provisionTenancy();
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("judged") }));
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-  let evaluatorId: string | undefined;
-  if (evaluator !== undefined) {
-    const created = await clients.evaluatorCommand.create(
-      makeEvaluator({ org, agentId: agent.metadata!.id, ...evaluator }),
+  let scoringRuleId: string | undefined;
+  if (scoringRule !== undefined) {
+    const created = await clients.scoringRuleCommand.create(
+      makeScoringRule({ org, agentId: agent.metadata!.id, ...scoringRule }),
     );
-    evaluatorId = created.metadata!.id;
+    scoringRuleId = created.metadata!.id;
   }
   for (const turn of script) mock.enqueue(turn);
   const created = await clients.agentExecutionCommand.create(
@@ -129,7 +129,7 @@ async function gradedRun(
     run.status?.phase,
     `run ${run.metadata?.id} should COMPLETE; reached ${RunPhase[run.status?.phase ?? 0]} (error: ${run.status?.error ?? ""})`,
   ).toBe(RunPhase.RUN_COMPLETED);
-  return { org, run, evaluatorId };
+  return { org, run, scoringRuleId };
 }
 
 // Read once at collection time to gate the judge-running arms (constructing a
@@ -137,8 +137,8 @@ async function gradedRun(
 const runnerServesJudgeRuns = createTarget().capabilities.runnerActsAsRunCreator;
 
 describe("AI grading", () => {
-  it.skipIf(!runnerServesJudgeRuns)("[rpc:ScoreQueryController.listByRun] [rpc:EvaluatorQueryController.get] a sampled run gets the judge's verdict on both rubrics, and the judge's run is gone", async () => {
-    const { org, run, evaluatorId } = await gradedRun({ sampleRate: 1 }, [
+  it.skipIf(!runnerServesJudgeRuns)("[rpc:ScoreQueryController.listByRun] [rpc:ScoringRuleQueryController.get] a sampled run gets the judge's verdict on both rubrics, and the judge's run is gone", async () => {
+    const { org, run, scoringRuleId } = await gradedRun({ sampleRate: 1 }, [
       anthropicText("Release 3.4 ships AI grading."),
       anthropicText(PASSING_VERDICT),
     ]);
@@ -162,9 +162,9 @@ describe("AI grading", () => {
     expect((await awaitRunHealth(clients, runId)).status?.state).toBe(ScoreState.graded);
 
     expect(await judgeRunsOf(clients, org, runId), "the judge's run is deleted with its session").toBe(0);
-    const evaluator = await clients.evaluatorQuery.get({ value: evaluatorId! });
-    expect(evaluator.status?.graded).toBe(1);
-    expect(evaluator.status?.reservedUsd, "the grade's cap is given back").toBe(0);
+    const scoringRule = await clients.scoringRuleQuery.get({ value: scoringRuleId! });
+    expect(scoringRule.status?.graded).toBe(1);
+    expect(scoringRule.status?.reservedUsd, "the grade's cap is given back").toBe(0);
   });
 
   it.skipIf(!runnerServesJudgeRuns)("[rpc:ScoreQueryController.listByRun] a judge answer that is not the verdict's shape leaves the run not graded", async () => {
@@ -180,8 +180,8 @@ describe("AI grading", () => {
     expect(verdict.spec?.value.case, "a run that could not be graded is never failed").toBeUndefined();
   });
 
-  it("[rpc:ScoreQueryController.listByRun] [rpc:EvaluatorQueryController.get] a limit below one grade's cap refuses the grade without starting a judge", async () => {
-    const { org, run, evaluatorId } = await gradedRun({ sampleRate: 1, monthlyLimitUsd: 0.1 }, [
+  it("[rpc:ScoreQueryController.listByRun] [rpc:ScoringRuleQueryController.get] a limit below one grade's cap refuses the grade without starting a judge", async () => {
+    const { org, run, scoringRuleId } = await gradedRun({ sampleRate: 1, monthlyLimitUsd: 0.1 }, [
       anthropicText("Release 3.4 ships AI grading."),
     ]);
     const runId = run.metadata!.id;
@@ -189,13 +189,13 @@ describe("AI grading", () => {
     expect(verdict.status?.state).toBe(ScoreState.not_graded);
     expect(verdict.status?.notGradedReason).toBe(JUDGE_LIMIT_REACHED_REASON);
     expect(await judgeRunsOf(clients, org, runId)).toBe(0);
-    const evaluator = await clients.evaluatorQuery.get({ value: evaluatorId! });
-    expect(evaluator.status?.notGraded).toBe(1);
-    expect(evaluator.status?.lastNotGradedReason).toBe(JUDGE_LIMIT_REACHED_REASON);
-    expect(evaluator.status?.spentUsd ?? 0).toBe(0);
+    const scoringRule = await clients.scoringRuleQuery.get({ value: scoringRuleId! });
+    expect(scoringRule.status?.notGraded).toBe(1);
+    expect(scoringRule.status?.lastNotGradedReason).toBe(JUDGE_LIMIT_REACHED_REASON);
+    expect(scoringRule.status?.spentUsd ?? 0).toBe(0);
   });
 
-  it("[rpc:ScoreQueryController.listByRun] a run outside the sample, or of an agent with no evaluator, carries no judge score", async () => {
+  it("[rpc:ScoreQueryController.listByRun] a run outside the sample, or of an agent with no scoring rule, carries no judge score", async () => {
     const outside = await gradedRun({ sampleRate: 0.0001 }, [anthropicText("Release 3.4 ships AI grading.")]);
     const ungraded = await gradedRun(undefined, [anthropicText("Release 3.4 ships AI grading.")]);
     for (const { run } of [outside, ungraded]) {

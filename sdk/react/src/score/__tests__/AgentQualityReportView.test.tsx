@@ -66,9 +66,9 @@ function client(
         opts.evalPages?.[req.pageToken] ?? { entries: opts.evals ?? [], nextPageToken: "" },
       ),
     },
-    evaluator: {
+    scoringrule: {
       getByAgent: vi.fn(async () => {
-        throw new StigmerError("not-found", "no evaluator", Code.NotFound);
+        throw new StigmerError("not-found", "no scoring rule", Code.NotFound);
       }),
       create: vi.fn(),
       update: vi.fn(),

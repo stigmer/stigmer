@@ -138,7 +138,7 @@ import type { OrganizationDepartureHandler } from "../domain/grant/grant-path.js
 import { registerGitHubServices } from "../domain/github/controller.js";
 import { registerMemoryServices } from "../domain/memory/controller.js";
 import { newRunScoreCascade } from "../domain/score/cascade.js";
-import { registerEvaluatorServices } from "../domain/evaluator/controller.js";
+import { registerScoringRuleServices } from "../domain/scoring-rule/controller.js";
 import { registerEvalRunServices } from "../domain/eval-run/controller.js";
 import { newCaseArchiveReader } from "../domain/eval-run/suite.js";
 import { newTemporalEvalRunWorkflows } from "../domain/eval-run/workflows.js";
@@ -752,7 +752,7 @@ export async function composeServer(
     credentialBinding,
   );
   // Who an AI judge run acts as: a unit's grading caller (the hosted
-  // edition's per-organization grading account), else the evaluator's
+  // edition's per-organization grading account), else the scoring rule's
   // creator under the built-in posture, for runs that creator may see,
   // else the server itself on the trusted-local laptop
   // (extensions/grading-caller.ts).
@@ -1967,7 +1967,7 @@ export async function composeServer(
       authorizationLifecycle,
       listReadScope,
     });
-    registerEvaluatorServices(router, {
+    registerScoringRuleServices(router, {
       store,
       logger,
       authorizer,

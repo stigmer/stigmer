@@ -93,8 +93,8 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
     { name: "Score", displayName: "Score", idPrefix: "scr" },
   ],
   [
-    ApiResourceKind.evaluator,
-    { name: "Evaluator", displayName: "Evaluator", idPrefix: "evl" },
+    ApiResourceKind.scoring_rule,
+    { name: "ScoringRule", displayName: "Scoring Rule", idPrefix: "srl", retiredIdPrefixes: ["evl"] },
   ],
   [
     ApiResourceKind.eval,
@@ -128,7 +128,7 @@ export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [
   ApiResourceKind.schedule,
   ApiResourceKind.session,
   ApiResourceKind.score,
-  ApiResourceKind.evaluator,
+  ApiResourceKind.scoring_rule,
   ApiResourceKind.eval,
   ApiResourceKind.eval_run,
 ];

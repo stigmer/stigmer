@@ -5,7 +5,7 @@
  * delete that follow.
  *
  * The create chain asks its question before it reads anything, in the
- * evaluator's anti-probing order (domain/evaluator/steps.ts): can_edit on
+ * scoring rule's anti-probing order (domain/scoring-rule/steps.ts): can_edit on
  * the subject named by the spec's subject oneof, then the subject is read,
  * so a caller who cannot edit it learns nothing about whether it exists.
  * The subject decides three steps:

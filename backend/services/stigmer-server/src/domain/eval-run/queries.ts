@@ -4,7 +4,7 @@
  * cascades), and an eval run's tries' sessions (its delete), found through
  * the session index's `eval_run` key. Every row is re-checked against what
  * it was asked for, whatever the index returned; undecodable rows are
- * skipped and logged, as the evaluator's reads do (domain/evaluator/
+ * skipped and logged, as the scoring rule's reads do (domain/scoring-rule/
  * queries.ts); a store fault is thrown as it came.
  */
 import { fromBinary } from "@bufbuild/protobuf";

@@ -285,10 +285,10 @@ export {
   type ScoreCriterionInput,
 } from "./gen/score.js";
 export {
-  EvaluatorClient,
-  buildEvaluatorProto,
-  type EvaluatorInput,
-} from "./gen/evaluator.js";
+  ScoringRuleClient,
+  buildScoringRuleProto,
+  type ScoringRuleInput,
+} from "./gen/scoringrule.js";
 // Eval runs: test cases run on an agent, or on a plugin on the built-in
 // assistant, optionally with and without a plugin. An eval run is started
 // and read, never applied, so it has no update input; the result document
@@ -512,7 +512,7 @@ export { toAgentChannelInput } from "./gen/agentchannel.js";
 export { toAgentShareInput } from "./gen/agentshare.js";
 export { toApiKeyInput } from "./gen/apikey.js";
 export { toChannelAppInput } from "./gen/channelapp.js";
-export { toEvaluatorInput } from "./gen/evaluator.js";
+export { toScoringRuleInput } from "./gen/scoringrule.js";
 export { toIdentityAccountInput } from "./gen/identityaccount.js";
 export { toFederationIssuerInput } from "./gen/federationissuer.js";
 export { toMemoryInput } from "./gen/memory.js";

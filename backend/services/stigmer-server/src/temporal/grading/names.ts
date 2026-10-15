@@ -84,6 +84,11 @@ export const JUDGE_BUSY_FAILURE_TYPE = "JudgeBusy";
 
 /** What a grade the planner set up carries to the later activities. */
 export interface JudgeTicket {
+  /**
+   * The scoring rule's id. The key keeps the kind's former name: a ticket
+   * travels in the recorded history of judge workflows in flight, so it is
+   * a wire field like every value here.
+   */
   readonly evaluatorId: string;
   /** The judge's model; empty for the platform's default. */
   readonly modelName: string;
@@ -94,7 +99,7 @@ export interface JudgeTicket {
 }
 
 /**
- * The planner's answer: nothing to do (no evaluator, not sampled, a judge
+ * The planner's answer: nothing to do (no scoring rule, not sampled, a judge
  * run, already graded), already recorded (the limit refused the grade), or
  * a grade to run. String-tagged for the JSON data converter.
  */

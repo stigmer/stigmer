@@ -11,7 +11,6 @@ from ._apikey import ApiKeyClient
 from ._channelapp import ChannelAppClient
 from ._eval import EvalClient
 from ._evalrun import EvalRunClient
-from ._evaluator import EvaluatorClient
 from ._federationissuer import FederationIssuerClient
 from ._grant import GrantClient
 from ._identityaccount import IdentityAccountClient
@@ -26,6 +25,7 @@ from ._providerkey import ProviderKeyClient
 from ._run import RunClient
 from ._schedule import ScheduleClient
 from ._score import ScoreClient
+from ._scoringrule import ScoringRuleClient
 from ._session import SessionClient
 from ._skill import SkillClient
 from ._subscription import SubscriptionClient
@@ -44,7 +44,6 @@ class GeneratedClient:
         self.channelapps = ChannelAppClient(channel)
         self.evals = EvalClient(channel)
         self.evalruns = EvalRunClient(channel)
-        self.evaluators = EvaluatorClient(channel)
         self.federation_issuers = FederationIssuerClient(channel)
         self.grants = GrantClient(channel)
         self.identity_accounts = IdentityAccountClient(channel)
@@ -59,6 +58,7 @@ class GeneratedClient:
         self.runs = RunClient(channel)
         self.schedules = ScheduleClient(channel)
         self.scores = ScoreClient(channel)
+        self.scoringrules = ScoringRuleClient(channel)
         self.sessions = SessionClient(channel)
         self.skills = SkillClient(channel)
         self.subscriptions = SubscriptionClient(channel)

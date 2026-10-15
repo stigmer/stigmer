@@ -10,12 +10,12 @@ import (
 	channelappv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channelapp/v1"
 	evalv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/eval/v1"
 	evalrunv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/evalrun/v1"
-	evaluatorv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/evaluator/v1"
 	memoryv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/memory/v1"
 	pluginv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
 	runv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
 	schedulev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/schedule/v1"
 	scorev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/score/v1"
+	scoringrulev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/scoringrule/v1"
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1"
 	vaultv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/vault/v1"
@@ -65,11 +65,6 @@ func EvalInputFromProto(p *evalv1.Eval) *EvalInput {
 // EvalRunInputFromProto creates a EvalRunInput from a proto EvalRun resource.
 func EvalRunInputFromProto(p *evalrunv1.EvalRun) *EvalRunInput {
 	return gen.EvalRunInputFromProto(p)
-}
-
-// EvaluatorInputFromProto creates a EvaluatorInput from a proto Evaluator resource.
-func EvaluatorInputFromProto(p *evaluatorv1.Evaluator) *EvaluatorInput {
-	return gen.EvaluatorInputFromProto(p)
 }
 
 // FederationIssuerInputFromProto creates a FederationIssuerInput from a proto FederationIssuer resource.
@@ -135,6 +130,11 @@ func ScheduleInputFromProto(p *schedulev1.Schedule) *ScheduleInput {
 // ScoreInputFromProto creates a ScoreInput from a proto Score resource.
 func ScoreInputFromProto(p *scorev1.Score) *ScoreInput {
 	return gen.ScoreInputFromProto(p)
+}
+
+// ScoringRuleInputFromProto creates a ScoringRuleInput from a proto ScoringRule resource.
+func ScoringRuleInputFromProto(p *scoringrulev1.ScoringRule) *ScoringRuleInput {
+	return gen.ScoringRuleInputFromProto(p)
 }
 
 // SessionInputFromProto creates a SessionInput from a proto Session resource.

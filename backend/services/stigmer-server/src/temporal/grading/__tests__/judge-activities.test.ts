@@ -2,7 +2,7 @@
  * Pins the judge activities' edges over a real store with doubles for the
  * score chains and the judge run's lane, where judge-composed.test.ts pins
  * the main paths through the composed server:
- *   - plan: an evaluator switched off between its read and the
+ *   - plan: a scoring rule switched off between its read and the
  *     reservation leaves no pending score; a judged run deleted meanwhile
  *     is skipped; a retried plan reuses its earlier attempt's cap, also when
  *     that attempt's pending score carries the rules' previous version;
@@ -32,7 +32,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { JUDGE_EVALUATOR_VERSION, RUBRICS } from "@stigmer/eval-runtime/judge";
-import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -42,7 +42,7 @@ import { ScoreSource, ScoreState } from "@stigmer/protos/ai/stigmer/agentic/scor
 import { ScoreStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import { periodOf } from "../../../domain/evaluator/budget.js";
+import { periodOf } from "../../../domain/scoring-rule/budget.js";
 import {
   RunEventsBuilder,
   appendRunEvents,
@@ -187,34 +187,34 @@ async function seedRun(
   return run;
 }
 
-async function seedEvaluator(enabled = true): Promise<void> {
+async function seedScoringRule(enabled = true): Promise<void> {
   await temp.store.saveResource(
-    ApiResourceKind.evaluator,
+    ApiResourceKind.scoring_rule,
     "evl_1",
-    EvaluatorSchema,
-    create(EvaluatorSchema, {
+    ScoringRuleSchema,
+    create(ScoringRuleSchema, {
       metadata: { id: "evl_1", name: "evl_1", org: "org_1" },
       spec: { agentId: "agt_1", enabled, sampleRate: 1, monthlyLimitUsd: 10 },
     }),
   );
 }
 
-async function evaluatorStatus() {
-  return (await temp.store.getResource(ApiResourceKind.evaluator, "evl_1", EvaluatorSchema)).status;
+async function scoringRuleStatus() {
+  return (await temp.store.getResource(ApiResourceKind.scoring_rule, "evl_1", ScoringRuleSchema)).status;
 }
 
 async function judgeScores(runId: string): Promise<Score[]> {
   return (await listRunScores(temp.store, silentLogger, runId)).filter((score) => score.spec?.metric === "judge");
 }
 
-/** A store whose evaluator writes find nothing, as when the row went between a read and a write. */
-function evaluatorGoneOnWrite(store: Store): Store {
+/** A store whose scoring rule writes find nothing, as when the row went between a read and a write. */
+function scoringRuleGoneOnWrite(store: Store): Store {
   return new Proxy(store, {
     get(target, property, receiver) {
       if (property === "updateResource") {
         return async (kind: ApiResourceKind, ...rest: unknown[]) => {
-          if (kind === ApiResourceKind.evaluator) {
-            throw new ResourceNotFoundError(`evaluator ${String(rest[0])}`);
+          if (kind === ApiResourceKind.scoring_rule) {
+            throw new ResourceNotFoundError(`scoring rule ${String(rest[0])}`);
           }
           return (target.updateResource as (...args: unknown[]) => unknown).call(target, kind, ...rest);
         };
@@ -226,26 +226,26 @@ function evaluatorGoneOnWrite(store: Store): Store {
 }
 
 describe("plan-judge", () => {
-  it("leaves no pending score when the evaluator went between its read and the reservation", async () => {
-    await seedEvaluator();
+  it("leaves no pending score when the scoring rule went between its read and the reservation", async () => {
+    await seedScoringRule();
     await seedRun("run_1", { agentId: "agt_1" });
-    const plan = await activities({ store: evaluatorGoneOnWrite(temp.store) })[PLAN_JUDGE_ACTIVITY_NAME]("run_1");
+    const plan = await activities({ store: scoringRuleGoneOnWrite(temp.store) })[PLAN_JUDGE_ACTIVITY_NAME]("run_1");
     expect(plan).toEqual({ kind: "skip" });
     expect(await judgeScores("run_1")).toEqual([]);
   });
 
   it("reuses an earlier attempt's reservation when a retried plan finds its pending score", async () => {
-    await seedEvaluator();
+    await seedScoringRule();
     await seedRun("run_1", { agentId: "agt_1" });
     const first = await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1");
     expect(first.kind).toBe("grade");
     expect(await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1")).toEqual(first);
-    expect((await evaluatorStatus())?.reservedUsd, "one cap, not two").toBe(PER_GRADE_CAP_USD);
+    expect((await scoringRuleStatus())?.reservedUsd, "one cap, not two").toBe(PER_GRADE_CAP_USD);
     expect((await judgeScores("run_1")).map((score) => score.status?.state)).toEqual([ScoreState.pending]);
   });
 
   it("reuses an earlier attempt's reservation when its pending score was written under rules a deploy has since changed", async () => {
-    await seedEvaluator();
+    await seedScoringRule();
     await seedRun("run_1", { agentId: "agt_1" });
     const first = await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1");
     expect(first.kind).toBe("grade");
@@ -254,45 +254,45 @@ describe("plan-judge", () => {
     pending.spec.evaluatorVersion = "rules-before-the-deploy";
     await temp.store.saveResource(ApiResourceKind.score, pending.metadata?.id ?? "", ScoreSchema, pending);
     expect(await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1")).toEqual(first);
-    expect((await evaluatorStatus())?.reservedUsd, "one cap, not two").toBe(PER_GRADE_CAP_USD);
+    expect((await scoringRuleStatus())?.reservedUsd, "one cap, not two").toBe(PER_GRADE_CAP_USD);
     expect((await judgeScores("run_1")).map((score) => score.spec?.evaluatorVersion)).toEqual(["rules-before-the-deploy"]);
   });
 
-  it("removes an earlier attempt's pending score, and gives its cap back, when grading was switched off or the evaluator went", async () => {
-    await seedEvaluator();
+  it("removes an earlier attempt's pending score, and gives its cap back, when grading was switched off or the scoring rule went", async () => {
+    await seedScoringRule();
     await seedRun("run_1", { agentId: "agt_1" });
     expect((await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1")).kind).toBe("grade");
-    await temp.store.updateResource(ApiResourceKind.evaluator, "evl_1", EvaluatorSchema, (live) => {
+    await temp.store.updateResource(ApiResourceKind.scoring_rule, "evl_1", ScoringRuleSchema, (live) => {
       if (live.spec !== undefined) live.spec.enabled = false;
     });
     expect(await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1")).toEqual({ kind: "skip" });
     expect(await judgeScores("run_1")).toEqual([]);
-    expect((await evaluatorStatus())?.reservedUsd).toBe(0);
+    expect((await scoringRuleStatus())?.reservedUsd).toBe(0);
 
-    await seedEvaluator();
+    await seedScoringRule();
     await seedRun("run_2", { agentId: "agt_1" });
     expect((await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_2")).kind).toBe("grade");
-    await temp.store.deleteResource(ApiResourceKind.evaluator, "evl_1");
+    await temp.store.deleteResource(ApiResourceKind.scoring_rule, "evl_1");
     expect(await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_2")).toEqual({ kind: "skip" });
     expect(await judgeScores("run_2")).toEqual([]);
   });
 
   it("skips a run deleted between its read and its pending score, and gives the cap back", async () => {
-    await seedEvaluator();
+    await seedScoringRule();
     await seedRun("run_1", { agentId: "agt_1" });
     const vanished: ScoreRecorder = { record: () => Promise.reject(new ConnectError("Run not found", Code.NotFound)) };
     expect(await activities({ recorder: vanished })[PLAN_JUDGE_ACTIVITY_NAME]("run_1")).toEqual({ kind: "skip" });
-    expect((await evaluatorStatus())?.reservedUsd).toBe(0);
+    expect((await scoringRuleStatus())?.reservedUsd).toBe(0);
   });
 
   it("reserves before it writes pending: a pending score it cannot write gives the cap back and is thrown", async () => {
-    await seedEvaluator();
+    await seedScoringRule();
     await seedRun("run_1", { agentId: "agt_1" });
     const down: ScoreRecorder = { record: () => Promise.reject(new ConnectError("store down", Code.Unavailable)) };
     await expect(activities({ recorder: down })[PLAN_JUDGE_ACTIVITY_NAME]("run_1")).rejects.toThrow("store down");
     expect(await judgeScores("run_1"), "no grading is left behind").toEqual([]);
-    expect((await evaluatorStatus())?.reservedUsd, "no cap is left set aside").toBe(0);
-    expect((await evaluatorStatus())?.notGraded, "a refusal to write is not counted").toBe(0);
+    expect((await scoringRuleStatus())?.reservedUsd, "no cap is left set aside").toBe(0);
+    expect((await scoringRuleStatus())?.notGraded, "a refusal to write is not counted").toBe(0);
   });
 
   it("skips a run deleted before it was planned", async () => {
@@ -427,7 +427,7 @@ describe("poll-judge", () => {
 
 describe("record-judge", () => {
   it("stops a judge still running and records it not finished, leaving a session an active run holds", async () => {
-    await seedEvaluator();
+    await seedScoringRule();
     await seedRun("run_1");
     await seedRun("run_judge", { phase: RunPhase.RUN_IN_PROGRESS, sessionId: "ses_judge", cost: 0.02 });
     const stopped: string[] = [];
@@ -445,7 +445,7 @@ describe("record-judge", () => {
   });
 
   it("logs a judge that cannot be stopped or a session that cannot be deleted, and throws any other stop fault", async () => {
-    await seedEvaluator();
+    await seedScoringRule();
     await seedRun("run_1");
     await seedRun("run_2");
     await seedRun("run_judge", { phase: RunPhase.RUN_IN_PROGRESS, sessionId: "ses_judge" });
@@ -462,7 +462,7 @@ describe("record-judge", () => {
   });
 
   it("records each failure and each judge end with its reason", async () => {
-    await seedEvaluator();
+    await seedScoringRule();
     const cases: Array<[string, Parameters<typeof seedRun>[1] | undefined, string, string]> = [
       ["run_busy", undefined, "busy", JUDGE_BUSY_REASON],
       ["run_vanished", undefined, "", JUDGE_RUN_FAILED_REASON],
@@ -485,7 +485,7 @@ describe("record-judge", () => {
   });
 
   it("grades a verdict whose reason runs past the bound, its reason cut and marked (stigmer#2177)", async () => {
-    await seedEvaluator();
+    await seedScoringRule();
     await seedRun("run_1");
     const long = "r".repeat(600);
     const judge = await seedRun("run_judge", { sessionId: "ses_judge" });
@@ -508,7 +508,7 @@ describe("record-judge", () => {
   });
 
   it("removes the score it wrote when the judged run went meanwhile, and only gives the grade's money back", async () => {
-    await seedEvaluator();
+    await seedScoringRule();
     await seedRun("run_1");
     const goesWhileWritten = new Proxy(temp.store, {
       get(target, property, receiver) {
@@ -527,12 +527,12 @@ describe("record-judge", () => {
     const outcome = await activities({ store: goesWhileWritten })[RECORD_JUDGE_ACTIVITY_NAME]("run_1", TICKET, "", "busy");
     expect(outcome).toBe(GRADE_RUN_GONE);
     expect(await judgeScores("run_1")).toEqual([]);
-    const evaluator = await temp.store.getResource(ApiResourceKind.evaluator, "evl_1", EvaluatorSchema);
-    expect(evaluator.status?.notGraded ?? 0, "a deleted run's grade counts nothing").toBe(0);
+    const scoringRule = await temp.store.getResource(ApiResourceKind.scoring_rule, "evl_1", ScoringRuleSchema);
+    expect(scoringRule.status?.notGraded ?? 0, "a deleted run's grade counts nothing").toBe(0);
   });
 
   it("answers gone for a judged run deleted before its score, keeps a grade already there, and deletes no session a judge run never named", async () => {
-    await seedEvaluator();
+    await seedScoringRule();
     const vanished: ScoreRecorder = { record: () => Promise.reject(new ConnectError("Run not found", Code.NotFound)) };
     await seedRun("run_1");
     expect(await activities({ recorder: vanished })[RECORD_JUDGE_ACTIVITY_NAME]("run_1", TICKET, "", "busy")).toBe(GRADE_RUN_GONE);
@@ -562,7 +562,7 @@ describe("record-judge", () => {
   });
 
   it("counts a retry's kept grade by the stored score, and settles before the session goes", async () => {
-    await seedEvaluator();
+    await seedScoringRule();
     await seedRun("run_1");
     // The first attempt recorded the grade; its settle failed, so the
     // retry finds the judge run gone and the grade kept.
@@ -573,9 +573,9 @@ describe("record-judge", () => {
       }),
     );
     expect(await activities()[RECORD_JUDGE_ACTIVITY_NAME]("run_1", TICKET, "run_judge_gone", "")).toBe(GRADE_ALREADY_GRADED);
-    const evaluator = await temp.store.getResource(ApiResourceKind.evaluator, "evl_1", EvaluatorSchema);
-    expect(evaluator.status?.graded, "counted as the grade it kept").toBe(1);
-    expect(evaluator.status?.notGraded ?? 0).toBe(0);
+    const scoringRule = await temp.store.getResource(ApiResourceKind.scoring_rule, "evl_1", ScoringRuleSchema);
+    expect(scoringRule.status?.graded, "counted as the grade it kept").toBe(1);
+    expect(scoringRule.status?.notGraded ?? 0).toBe(0);
 
     // A kept not-graded score counts with its own reason.
     await seedRun("run_3");
@@ -587,7 +587,7 @@ describe("record-judge", () => {
       }),
     );
     expect(await activities()[RECORD_JUDGE_ACTIVITY_NAME]("run_3", TICKET, "run_judge_gone", "")).toBe(GRADE_ALREADY_GRADED);
-    const after = await temp.store.getResource(ApiResourceKind.evaluator, "evl_1", EvaluatorSchema);
+    const after = await temp.store.getResource(ApiResourceKind.scoring_rule, "evl_1", ScoringRuleSchema);
     expect(after.status?.notGraded).toBe(1);
     expect(after.status?.lastNotGradedReason).toBe(JUDGE_BUSY_REASON);
 

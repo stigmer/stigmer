@@ -158,7 +158,7 @@ import {
   newValidateMcpServersStep,
   newValidatePluginListStep,
 } from "./steps.js";
-import { newCascadeDeleteEvaluatorsStep } from "../evaluator/cascade.js";
+import { newCascadeDeleteScoringRulesStep } from "../scoring-rule/cascade.js";
 import { newCascadeDeleteEvalRunsStep } from "../eval-run/cascade.js";
 import type { EvalRunCascadeDeps } from "../eval-run/cascade.js";
 import {
@@ -419,7 +419,7 @@ async function apply(
  * Delete — refused while another agent of the organization lists this
  * one in its subagents (GuardUnlisted, naming them); then cascades
  * children before the parent (delete_cascade.go): the agent's evals,
- * refused while one runs, then same-org shares and the agent's evaluator,
+ * refused while one runs, then same-org shares and the agent's scoring rule,
  * each one's access cleaned with its row, then the agent's version rows (best-effort), the agent row, its
  * access and its index entry. Returns the deleted agent (the audit-trail
  * convention).
@@ -462,7 +462,7 @@ async function deleteAgent(
       ),
     )
     .addStep(
-      newCascadeDeleteEvaluatorsStep(
+      newCascadeDeleteScoringRulesStep(
         deps.store,
         deps.authorizationLifecycle,
         deps.logger,

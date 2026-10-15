@@ -30,8 +30,8 @@ may be a `PageInfo`.
 
 A get whose answer holds a breakdown is not a list: the usage reports, the agent
 quality report, the run summary and the period estimate answer one total over a
-range, and their repeated fields belong to that total. Evaluator `getByAgent`
-answers one evaluator.
+range, and their repeated fields belong to that total. ScoringRule `getByAgent`
+answers one scoring rule.
 
 ## The classes
 

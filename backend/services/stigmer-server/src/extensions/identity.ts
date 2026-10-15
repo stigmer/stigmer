@@ -197,7 +197,7 @@ export function isServiceAccountCaller(caller: CallerIdentity): boolean {
  * the wire cannot claim this.
  *
  * This is the trust arm the label guard, the memory-capture gate, the
- * evaluator and score steps, run status updates and the first-party check
+ * scoring rule and score steps, run status updates and the first-party check
  * share: what a server-composed request
  * carries was decided by the service code that built it, and the
  * entry-point request already passed its own gate. It is NARROWER than

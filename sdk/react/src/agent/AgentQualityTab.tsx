@@ -2,11 +2,11 @@
 
 import { useId, useState } from "react";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import type { ScoringRule } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { cn } from "@stigmer/theme";
 import { ErrorMessage } from "../error/ErrorMessage.js";
-import { useAgentEvaluator } from "../evaluator/useAgentEvaluator.js";
-import { useSaveEvaluator } from "../evaluator/useSaveEvaluator.js";
+import { useAgentScoringRule } from "../scoring-rule/useAgentScoringRule.js";
+import { useSaveScoringRule } from "../scoring-rule/useSaveScoringRule.js";
 import {
   DEFAULT_GRADING_SETTINGS,
   MAX_ONE_IN,
@@ -14,7 +14,7 @@ import {
   isValidLimit,
   settingsOf,
   type GradingSettings,
-} from "../evaluator/grading-settings.js";
+} from "../scoring-rule/grading-settings.js";
 import { ModelSelector } from "../models/ModelSelector.js";
 import { AgentQualityReportView } from "../score/AgentQualityReportView.js";
 import { Section } from "../resource-detail/Section.js";
@@ -79,7 +79,7 @@ export function AgentQualityTab({
   );
 }
 
-/** Today's grading settings: read the agent's evaluator, then its form. */
+/** Today's grading settings: read the agent's scoring rule, then its form. */
 function GradingSettings({
   agent,
   editable,
@@ -88,7 +88,7 @@ function GradingSettings({
   readonly editable: boolean;
 }) {
   const agentId = agent.metadata?.id ?? "";
-  const { evaluator, isLoading, error, refetch } = useAgentEvaluator(agentId);
+  const { scoringRule, isLoading, error, refetch } = useAgentScoringRule(agentId);
 
   if (isLoading) {
     return (
@@ -102,15 +102,15 @@ function GradingSettings({
   }
 
   // A fresh read remounts the form, so the stored settings are its start.
-  const readKey = `${evaluator?.metadata?.id ?? "none"}:${
-    evaluator?.status?.audit?.specAudit?.updatedAt?.seconds?.toString() ?? ""
+  const readKey = `${scoringRule?.metadata?.id ?? "none"}:${
+    scoringRule?.status?.audit?.specAudit?.updatedAt?.seconds?.toString() ?? ""
   }`;
   return (
     <QualityForm
       key={readKey}
       agentId={agentId}
       agentOrg={agent.metadata?.org ?? ""}
-      evaluator={evaluator}
+      scoringRule={scoringRule}
       editable={editable}
       onSaved={refetch}
     />
@@ -120,24 +120,24 @@ function GradingSettings({
 function QualityForm({
   agentId,
   agentOrg,
-  evaluator,
+  scoringRule,
   editable,
   onSaved,
   className,
 }: {
   readonly agentId: string;
   readonly agentOrg: string;
-  readonly evaluator: Evaluator | null;
+  readonly scoringRule: ScoringRule | null;
   readonly editable: boolean;
   readonly onSaved: () => void;
   readonly className?: string;
 }) {
   const baseId = useId();
-  const { save, isSaving, error: saveError } = useSaveEvaluator();
+  const { save, isSaving, error: saveError } = useSaveScoringRule();
   const stored =
-    evaluator === null
+    scoringRule === null
       ? { ...DEFAULT_GRADING_SETTINGS, enabled: false }
-      : settingsOf(evaluator);
+      : settingsOf(scoringRule);
   const [draft, setDraft] = useState<GradingSettings>(stored);
   const [limitText, setLimitText] = useState(String(stored.monthlyLimitUsd));
 
@@ -154,7 +154,7 @@ function QualityForm({
       await save(
         { id: agentId, org: agentOrg },
         { ...draft, monthlyLimitUsd: limit },
-        evaluator,
+        scoringRule,
       );
       onSaved();
     } catch {
@@ -162,7 +162,7 @@ function QualityForm({
     }
   };
 
-  const status = evaluator?.status;
+  const status = scoringRule?.status;
 
   return (
     <div className={cn("stg:flex stg:flex-col stg:gap-6", className)}>

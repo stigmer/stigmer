@@ -11,7 +11,7 @@
  * would belong to nobody and, in the hosted edition, its sandbox would
  * launch with no runner credential. Two drivers answer it: open source,
  * under the built-in authorization posture, makes the judge act as the
- * evaluator's CREATOR (authorization/grading-caller.ts); the hosted
+ * scoring rule's CREATOR (authorization/grading-caller.ts); the hosted
  * edition mints a token for the organization's own grading system
  * account. The grading workflow then propagates the identity through the
  * caller-propagation header, as the schedule's run starter does.
@@ -22,12 +22,12 @@
  *   - any other thrown error is an INFRASTRUCTURE fault: the start
  *     activity lets it propagate, so Temporal retries it;
  *   - `GradingCallerRefusedError` is a DETERMINISTIC refusal: this grade
- *     can act as nobody and no retry changes that (an evaluator created by
+ *     can act as nobody and no retry changes that (a scoring rule created by
  *     a person who has since left, or one whose creator may not see the
  *     run: a judge's session carries the run's whole conversation, so a
  *     person the judge acts as must already be able to read it). The run
  *     is recorded as not graded, "grading cannot act for this agent", and
- *     the evaluator's status carries the reason, so the agent's maintainer
+ *     the scoring rule's status carries the reason, so the agent's maintainer
  *     sees it on the Quality tab.
  */
 import type { CallerIdentity } from "./identity.js";
@@ -35,13 +35,13 @@ import type { CallerIdentity } from "./identity.js";
 export interface GradingCallerMint {
   /**
    * Mints the caller identity the judge of the run `judgedRunId` acts as,
-   * for the evaluator `evaluatorId` of the organization `org`. A person
+   * for the scoring rule `scoringRuleId` of the organization `org`. A person
    * minted here must be able to see that run. `rawToken` must carry the
    * edition's verifiable credential when the edition reads it downstream.
    */
   mintGradingCaller(
     org: string,
-    evaluatorId: string,
+    scoringRuleId: string,
     judgedRunId: string,
   ): Promise<CallerIdentity>;
 }

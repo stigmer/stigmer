@@ -2679,45 +2679,46 @@ __metadata:
 
 "@stigmer/embed@file:../sdk/embed::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/embed@file:../sdk/embed#../sdk/embed::hash=353f6a&locator=stigmer-site%40workspace%3A."
-  checksum: 10c0/0bcc52bb1c4ec2e596307e88d9a9a024ebb704f8ba34723d3c52a250b4a603d32767f31e681c1dfeb5330b5c1400e19a47212f5fd0149774e3e7240437361b0c
+  resolution: "@stigmer/embed@file:../sdk/embed#../sdk/embed::hash=409798&locator=stigmer-site%40workspace%3A."
+  checksum: 10c0/8755269842f00008374972db678ca54896b7a52eb8a55ea54975307473054bd3c383b6ca07ef72deec86bb2444dfdda2235ae31c1b96e1f062d7c395328457f3
   languageName: node
   linkType: hard
 
 "@stigmer/eval-runtime@file:../backend/libs/ts/eval-runtime::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/eval-runtime@file:../backend/libs/ts/eval-runtime#../backend/libs/ts/eval-runtime::hash=d7e418&locator=stigmer-site%40workspace%3A."
-  checksum: 10c0/c16fe4b23bae9d24e4452f63ca904c38733bb68ef01a9e85eee6784b33a14300114f054e1d04c69056f261d8f86d0c14e36c2122378c0ae6c8a4887ddd19ea84
+  resolution: "@stigmer/eval-runtime@file:../backend/libs/ts/eval-runtime#../backend/libs/ts/eval-runtime::hash=547b3c&locator=stigmer-site%40workspace%3A."
+  checksum: 10c0/e3401430f30c85bb6120f8d4d3d525cc944d00c370e3e69e742830c714efb3a4e414ae2bd01bafc0721eb9b2e999e95ce092fae606af6763a0b14bf1397571a9
   languageName: node
   linkType: hard
 
 "@stigmer/plugin-package@file:../backend/libs/ts/plugin-package::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/plugin-package@file:../backend/libs/ts/plugin-package#../backend/libs/ts/plugin-package::hash=668414&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/plugin-package@file:../backend/libs/ts/plugin-package#../backend/libs/ts/plugin-package::hash=1fc666&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@stigmer/eval-runtime": "npm:*"
     fflate: "npm:^0.8.3"
     yaml: "npm:^2.8.2"
-  checksum: 10c0/54bfbed39c9b1d2029ed43f1958cedc9730e6a67fd0c2511816b2a464b98f5d2e1c56e5c3c822f416e56ddd4f6c9870c16709212bc50ad06d58863d5337ee352
+  checksum: 10c0/a3d3eb8a12da180ba7dae7c92a41a6af41274b8f938aa95a13e773205a359b1ee688af11b058beba14efc5d29e63fc73b040a2d3a0ad6cbad6c1303e92177fa0
   languageName: node
   linkType: hard
 
 "@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=e2d9fa&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=65ef81&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protobuf": "npm:2.12.0"
-  checksum: 10c0/85810ff8023811d92ddfcec1a1d82a4860edeef0e5f3b9e80f5ae979f4e553f52fbaa0f39b4dec29ab44eafa943dd7ed02204f0a2e4560b637839e381fe29e02
+  checksum: 10c0/0709983e69c7d484a6b189608ed08d071824163676f3657e52cfeaa390b15a917b34041b8a6d675cc03587e26406a3e744a1d113cd0a1ec37528ed76ea532aac
   languageName: node
   linkType: hard
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=737a44&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=13de81&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protovalidate": "npm:^1.1.1"
     "@stigmer/plugin-package": "npm:*"
     "@stigmer/theme": "npm:*"
+    "@stigmer/tool-vocabulary": "npm:*"
     diff: "npm:^8.0.3"
     fflate: "npm:^0.8.2"
     hast-util-to-jsx-runtime: "npm:^2.3.6"
@@ -2772,13 +2773,13 @@ __metadata:
       optional: true
     react-virtuoso:
       optional: true
-  checksum: 10c0/9b614d5fad759171d67dce5220ce9c08c4473df072e9a4428805fb14e55fd266369a484546f516c5df86f6bc90133f125f02fa96878acd49d2d549a513afc462
+  checksum: 10c0/e83aaaf99be2c9f127c6dc2701cf65d94de469c23aa684367390434176fbbb59b908f6eb9739183c1fb9cb589b560eb0070533f739a3ca7b57f91197c8fe9080
   languageName: node
   linkType: hard
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=eed862&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=00dd35&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2791,7 +2792,7 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/45f489ebc04da900b30e13c0bc3d9e9e93e14e01adaa7951345c51114a41bd9a1ad504cb01ff14089c19c2860ca6c7c6ae4b5331c7a10f029b4b19b8aa22aa4f
+  checksum: 10c0/da49149cb8bd89b2a3d53c4158077bdfbc02578bdebc7d7d64a8a766c1a212c52da415cac54bd45e96295e2986262a9a91942973200a7451a9f734ef2d08d0bb
   languageName: node
   linkType: hard
 

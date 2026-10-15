@@ -142,7 +142,7 @@ export const NAMED_KINDS: Readonly<Record<ApiResourceKind, NamedKind>> = {
   [ApiResourceKind.plugin]: CLAIMS,
   [ApiResourceKind.vault]: CLAIMS,
   [ApiResourceKind.score]: CLAIMS,
-  [ApiResourceKind.evaluator]: CLAIMS,
+  [ApiResourceKind.scoring_rule]: CLAIMS,
   [ApiResourceKind.eval]: CLAIMS,
   [ApiResourceKind.eval_run]: CLAIMS,
   [ApiResourceKind.plan]: {
@@ -493,7 +493,7 @@ export function newReleaseNamesStep<Desc extends DescMessage>(
  * Lets go of every name a deleted resource held in its kind and
  * organization, after its row is gone: what ReleaseNames does, for the
  * cascades that delete a resource's rows outside its delete chain (an
- * agent's shares and evaluators, a plugin's or an agent's evals).
+ * agent's shares and scoring rules, a plugin's or an agent's evals).
  * Best-effort: the resource is gone, so a fault is logged and the next
  * claim of the name frees it.
  */

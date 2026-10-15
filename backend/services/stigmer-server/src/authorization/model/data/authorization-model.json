@@ -2095,7 +2095,7 @@
           "can_view": {}
         },
         "source_info": {
-          "file": "agentic/evaluator.fga"
+          "file": "agentic/scoring_rule.fga"
         }
       },
       "relations": {
@@ -2133,7 +2133,7 @@
           }
         }
       },
-      "type": "evaluator"
+      "type": "scoring_rule"
     },
     {
       "metadata": {

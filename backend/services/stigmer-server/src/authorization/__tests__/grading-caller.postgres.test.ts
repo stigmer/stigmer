@@ -1,18 +1,18 @@
 /**
  * Pins the built-in grading caller on both store drivers: an AI judge run
- * acts as the creator of the evaluator that asked for it, resolved from the
+ * acts as the creator of the scoring rule that asked for it, resolved from the
  * row's creation stamp as the schedule fire's creator is
  * (schedule-fire-caller.postgres.test.ts beside this file), and only for a
  * run that creator may see: a judge's session holds the run's
  * conversation, so a creator the authorizer refuses on the run is the
- * seam's DETERMINISTIC refusal, as is an evaluator whose stamp names no
- * person this server knows; a missing evaluator and an authorizer that
+ * seam's DETERMINISTIC refusal, as is a scoring rule whose stamp names no
+ * person this server knows; a missing scoring rule and an authorizer that
  * cannot answer stay infrastructure throws.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
@@ -27,7 +27,7 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import {
   creatorCannotSeeRunMessage,
-  evaluatorHasNoPersonMessage,
+  scoringRuleHasNoPersonMessage,
   newBuiltInGradingCaller,
 } from "../grading-caller.js";
 import { driverFixtures, dropPostgresFixture } from "./drivers.js";
@@ -39,7 +39,7 @@ const PRIYA = accountIdFor(SUBJECT);
 afterAll(dropPostgresFixture);
 
 describe.each(
-  driverFixtures([ApiResourceKind.evaluator, ApiResourceKind.identity_account]),
+  driverFixtures([ApiResourceKind.scoring_rule, ApiResourceKind.identity_account]),
 )("the built-in grading caller on $name", (fixture) => {
   describe.skipIf(fixture.skip)("mintGradingCaller", () => {
     let opened: OpenedStore;
@@ -64,12 +64,12 @@ describe.each(
       await opened.close();
     });
 
-    async function evaluator(id: string, createdBy: string): Promise<void> {
+    async function scoringRule(id: string, createdBy: string): Promise<void> {
       await opened.store.saveResource(
-        ApiResourceKind.evaluator,
+        ApiResourceKind.scoring_rule,
         id,
-        EvaluatorSchema,
-        create(EvaluatorSchema, {
+        ScoringRuleSchema,
+        create(ScoringRuleSchema, {
           metadata: { id, name: id, org: "acme" },
           spec: { agentId: "agt_1", enabled: true, sampleRate: 1, monthlyLimitUsd: 10 },
           status: { audit: { specAudit: { createdBy: { id: createdBy } } } },
@@ -92,8 +92,8 @@ describe.each(
       return newBuiltInGradingCaller({ store: opened.store, accounts, authorizer: answering(answer) });
     }
 
-    it("a judge acts as the evaluator's creator, in the in-process identity shape", async () => {
-      await evaluator("evl_by_id", PRIYA);
+    it("a judge acts as the scoring rule's creator, in the in-process identity shape", async () => {
+      await scoringRule("evl_by_id", PRIYA);
       asked.length = 0;
       expect(await mint().mintGradingCaller("acme", "evl_by_id", "run_1")).toEqual({
         identityId: PRIYA,
@@ -104,12 +104,12 @@ describe.each(
         displayName: "Priya",
       });
       expect(asked, "the creator must see the graded run").toEqual([`${PRIYA} can_view run_1`]);
-      await evaluator("evl_by_sub", SUBJECT);
+      await scoringRule("evl_by_sub", SUBJECT);
       expect((await mint().mintGradingCaller("acme", "evl_by_sub", "run_1")).identityId).toBe(PRIYA);
     });
 
     it("refuses when the creator may not see the graded run, and throws when the authorizer cannot answer", async () => {
-      await evaluator("evl_blind", PRIYA);
+      await scoringRule("evl_blind", PRIYA);
       const refused = await mint("deny")
         .mintGradingCaller("acme", "evl_blind", "run_private")
         .catch((error: unknown) => error);
@@ -123,15 +123,15 @@ describe.each(
       ["the laptop's placeholder", "system"],
       ["a creator who has left", accountIdFor("auth0|gone")],
     ])("%s is the seam's deterministic refusal", async (_label, stamp) => {
-      await evaluator("evl_nobody", stamp);
+      await scoringRule("evl_nobody", stamp);
       const failure = await mint()
         .mintGradingCaller("acme", "evl_nobody", "run_1")
         .catch((error: unknown) => error);
       expect(failure).toBeInstanceOf(GradingCallerRefusedError);
-      expect((failure as Error).message).toBe(evaluatorHasNoPersonMessage("evl_nobody"));
+      expect((failure as Error).message).toBe(scoringRuleHasNoPersonMessage("evl_nobody"));
     });
 
-    it("an evaluator that no longer exists is an infrastructure throw, never a refusal", async () => {
+    it("a scoring rule that no longer exists is an infrastructure throw, never a refusal", async () => {
       const failure = await mint()
         .mintGradingCaller("acme", "evl_missing", "run_1")
         .catch((error: unknown) => error);

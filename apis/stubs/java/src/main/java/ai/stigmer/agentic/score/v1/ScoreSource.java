@@ -39,7 +39,7 @@ public enum ScoreSource
   /**
    * <pre>
    * An AI judge grading the run against Stigmer's standard rubrics, switched
-   * on per agent by its evaluator.
+   * on per agent by its scoring rule.
    * </pre>
    *
    * <code>score_source_judge = 3;</code>
@@ -89,7 +89,7 @@ public enum ScoreSource
   /**
    * <pre>
    * An AI judge grading the run against Stigmer's standard rubrics, switched
-   * on per agent by its evaluator.
+   * on per agent by its scoring rule.
    * </pre>
    *
    * <code>score_source_judge = 3;</code>

@@ -1236,7 +1236,7 @@ describe("the compose steps where callers are persons", () => {
   }
 
   // A judge run grades another run's conversation: nothing the
-  // organization or the evaluator's creator wrote or remembers reaches it,
+  // organization or the scoring rule's creator wrote or remembers reaches it,
   // in either posture (domain/score/judge/judge-run.ts).
   for (const [posture, accounts] of [
     ["where callers are persons", "persons"],

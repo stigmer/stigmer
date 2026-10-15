@@ -217,9 +217,9 @@ public enum ApiResourceKind
    * limit and judge model.
    * </pre>
    *
-   * <code>evaluator = 62 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   * <code>scoring_rule = 62 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
-  evaluator(62),
+  scoring_rule(62),
   /**
    * <pre>
    * One run of test cases on an agent, or on a plugin on the built-in
@@ -490,9 +490,9 @@ public enum ApiResourceKind
    * limit and judge model.
    * </pre>
    *
-   * <code>evaluator = 62 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   * <code>scoring_rule = 62 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
-  public static final int evaluator_VALUE = 62;
+  public static final int scoring_rule_VALUE = 62;
   /**
    * <pre>
    * One run of test cases on an agent, or on a plugin on the built-in
@@ -598,7 +598,7 @@ public enum ApiResourceKind
       case 58: return plugin;
       case 59: return vault;
       case 61: return score;
-      case 62: return evaluator;
+      case 62: return scoring_rule;
       case 65: return eval_run;
       case 66: return eval;
       case 70: return plan;
