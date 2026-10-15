@@ -48,6 +48,7 @@ import type {
   EvalRunTry,
 } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
 import { EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { FixtureTracker } from "../harness/fixtures";
@@ -93,7 +94,7 @@ export function evalRunNoCasesMessage(dir: string): string {
 }
 
 export const EVAL_RUN_NO_CASE_SOURCES_MESSAGE =
-  "this agent version attaches no plugin, and the eval run compares none: attach a plugin with eval cases, or compare one with --plugin";
+  "this agent version attaches no plugin, and the eval run compares none and names no eval: run an eval with --eval, attach a plugin with eval cases, or compare one with --plugin";
 
 export const EVAL_RUN_NO_CASES_MESSAGE =
   "none of the plugins whose cases this eval run runs has eval cases at the version it runs";
@@ -103,6 +104,11 @@ export function evalRunUnloadedCaseSourceMessage(plugin: string): string {
     `spec.cases names plugin '${plugin}', which this agent version does not attach and the eval run does not compare: ` +
     "a case runs with the plugin it was written for"
   );
+}
+
+/** The refusal of an Eval case source that is not there or that the creator cannot view: one sentence for both. */
+export function evalRunUnreadableEvalMessage(name: string): string {
+  return `spec.cases names eval '${name}', which is not an eval of the agent's organization you can view`;
 }
 
 export function evalRunTooLargeMessage(cases: number, tries: number): string {
@@ -192,12 +198,12 @@ function markdown(
   return `---\n${fields}---\n\n${body}\n`;
 }
 
-/** The files of one case, by plugin-relative path. */
+/** The files of one case, by plugin-relative path; `dir` empty puts the case at the root, as a pushed Eval holds it. */
 export function evalCaseFiles(
   evalCase: EvalCaseFixture,
   dir = "evals",
 ): Map<string, string> {
-  const root = `${dir}/${evalCase.name}`;
+  const root = dir === "" ? evalCase.name : `${dir}/${evalCase.name}`;
   const files = new Map<string, string>();
   files.set(
     `${root}/prompt.md`,
@@ -372,6 +378,8 @@ export type EvalRunSubjectOptions =
       readonly comparedPluginId?: string;
       /** The plugins whose cases run, by org and slug; the default when empty. */
       readonly cases?: ReadonlyArray<{ readonly org: string; readonly slug: string }>;
+      /** The Evals whose cases run, after the plugins, by org and slug at a version (a digest or a tag; empty: the current one). */
+      readonly evals?: ReadonlyArray<{ readonly org: string; readonly slug: string; readonly version?: string }>;
     };
 
 /** The options every eval run takes, whatever it is about. */
@@ -409,9 +417,17 @@ function subjectSpecOf(opts: EvalRunSubjectOptions) {
     subject: { case: "agentId" as const, value: opts.agentId },
     agentVersion: opts.agentVersion ?? "",
     comparedPluginId: opts.comparedPluginId ?? "",
-    cases: (opts.cases ?? []).map((ref) => ({
-      source: { case: "plugin" as const, value: { org: ref.org, slug: ref.slug } },
-    })),
+    cases: [
+      ...(opts.cases ?? []).map((ref) => ({
+        source: { case: "plugin" as const, value: { org: ref.org, slug: ref.slug } },
+      })),
+      ...(opts.evals ?? []).map((ref) => ({
+        source: {
+          case: "eval" as const,
+          value: { kind: ApiResourceKind.eval, org: ref.org, slug: ref.slug, version: ref.version ?? "" },
+        },
+      })),
+    ],
   };
 }
 

@@ -2,18 +2,21 @@
 // evals/ folder reads, rooted at the folder, through the library's own
 // pushed-eval reader (`readEvalFolder`, the server's push) as exactly the
 // cases the suites name, with nothing it cannot read; the one-case folder
-// reads as one loadable case; the archive is deterministic, so one file
+// reads as one loadable case; a folder of authored cases reads them at its
+// root with its mocks' servers; the archive is deterministic, so one file
 // map is one digest, and the digest is the archive's SHA-256. Nothing here
 // starts a server.
 import { createHash } from "node:crypto";
 import { readEvalFolder } from "@stigmer/plugin-package";
 import { inMemoryPluginFiles } from "@stigmer/plugin-package/testing";
 import { unzipSync } from "fflate";
+import { lastMessageGrader } from "../eval-runs";
 import { describe, expect, it } from "vitest";
 import {
   WORKING_AGENT_EVAL_CASES,
   digestOf,
   evalArchive,
+  evalFolderArchive,
   oneCaseEvalArchive,
   workingAgentEvalFiles,
 } from "../evals";
@@ -38,6 +41,25 @@ describe("the eval fixtures", () => {
     expect(suite.cases.map((evalCase) => [evalCase.dir, evalCase.prompt.trim()])).toEqual([
       ["answers", "What is the refund window?"],
     ]);
+  });
+
+  it("make a folder of authored cases at its root, its mocks beside them", () => {
+    const suite = readArchive(
+      evalFolderArchive(
+        [
+          { name: "first", prompt: "One.", graders: [lastMessageGrader("says-done", "^DONE")] },
+          { name: "second", prompt: "Two.", graders: [lastMessageGrader("says-done", "^DONE")] },
+        ],
+        { "mocks/tracker/create_issue.md": "Created." },
+      ),
+    );
+    expect(suite.findings).toEqual([]);
+    expect(suite.cases.map((evalCase) => [evalCase.dir, evalCase.prompt.trim()])).toEqual([
+      ["first", "One."],
+      ["second", "Two."],
+    ]);
+    expect(suite.servers).toEqual(["tracker"]);
+    expect(readArchive(evalFolderArchive([{ name: "only", prompt: "Hi.", graders: [lastMessageGrader("says-done", "^DONE")] }])).cases.map((c) => c.dir)).toEqual(["only"]);
   });
 
   it("archive one file map to one digest, the archive's SHA-256", () => {

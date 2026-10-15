@@ -18,6 +18,11 @@
 //     case source it runs the compared plugin's cases when one is compared,
 //     else every attached plugin's; it mints the eval run's own id and
 //     counts its tries (cases x runs, one arm unless a plugin is compared);
+//   - create naming an Eval as a case source, on an agent that attaches no
+//     plugin, stamps it in status.evals after the plugins (its id, slug and
+//     the digest of the version it runs: the current one, or the one a tag
+//     names) and counts its cases' tries; an Eval that is not there is
+//     refused INVALID_ARGUMENT naming it, and nothing is stored;
 //   - get answers what create stored; listByAgent answers the agent's eval
 //     runs newest first, and no other agent's;
 //   - create refuses, before anything is stored: an agent version that
@@ -52,6 +57,10 @@
 // agent is private) is refused get, listByAgent and create; and a child
 // organization's viewer of an agent its parent shares gets an empty
 // listByAgent and is refused get, because a try spends the parent's money.
+// On the same lane a member runs an organization Eval on an agent of their
+// own, and naming another person's private Eval is refused exactly as an
+// Eval that is not there (INVALID_ARGUMENT, the same sentence), so a
+// refusal never tells a private Eval exists.
 // A target with no enforcing lane skips those arms visibly. The relations
 // themselves are the authorization model's store tests
 // (backend/services/stigmer-server/fga/tests/eval-run-agent-access.fga.yaml).
@@ -90,6 +99,7 @@ import {
   evalRunOtherPluginToolMessage,
   evalRunTooLargeMessage,
   evalRunUnloadedCaseSourceMessage,
+  evalRunUnreadableEvalMessage,
   installPlugin,
   isActivePhase,
   lastMessageGrader,
@@ -97,6 +107,7 @@ import {
   skillFiredGrader,
   skillPluginWithEvals,
 } from "../support/eval-runs";
+import { digestOf, evalFolderArchive } from "../support/evals";
 import { organizationRole, grantTriple } from "../support/grants";
 import { uniqueName, uniqueOrg } from "../support/naming";
 import { claudePlugin } from "../support/plugins";
@@ -229,6 +240,39 @@ function sourceOf(plugin: Plugin) {
   return { org: plugin.metadata!.org, slug: plugin.metadata!.slug };
 }
 
+// A folder of the cases `first` and `second`, graded on their last
+// message; `marker` changes the bytes, so each marker is its own version.
+function evalFolder(marker = "v1"): Uint8Array {
+  const graders = [lastMessageGrader("says-done", "DONE")];
+  return evalFolderArchive([
+    { name: "first", prompt: `Write release notes for: renamed getUser to fetchUser (${marker}).`, graders },
+    { name: "second", prompt: "Write release notes for: dropped the legacy flag.", graders },
+  ]);
+}
+
+// Pushes `archive` as an Eval in `org` by `as` under `slug`, deleted after
+// the test (after every eval run and agent deferred later).
+async function pushEval(
+  slug: string,
+  archive: Uint8Array,
+  opts: { org?: string; as?: ConformanceClients; tag?: string; visibility?: ApiResourceVisibility } = {},
+) {
+  const as = opts.as ?? clients;
+  const pushed = await as.evalCommand.push({
+    org: opts.org ?? tenancy.org,
+    slug,
+    artifact: archive,
+    ...(opts.tag === undefined ? {} : { tag: opts.tag }),
+    ...(opts.visibility === undefined ? {} : { visibility: opts.visibility }),
+  });
+  fixtures.defer(() => as.evalCommand.delete({ value: pushed.metadata!.id }).then(() => undefined));
+  return pushed;
+}
+
+function stampedEvals(evals: ReadonlyArray<{ evalId: string; evalSlug: string; evalDigest: string; notRunReason: string }>) {
+  return evals.map((e) => [e.evalId, e.evalSlug, e.evalDigest, e.notRunReason]);
+}
+
 describe("EvalRun about an agent — create, get and listByAgent", () => {
   it("[rpc:EvalRunCommandController.create] create stamps the agent's current version and every attached plugin with its digest and not-run reason, mints the eval run's id and counts its tries", async () => {
     const notes = await installedWithEvals("evr-notes");
@@ -355,6 +399,50 @@ describe.skipIf(!capabilities.versionTagging)("EvalRun about an agent — a tagg
     const created = await createEval(v2, { agentVersion: "stable" });
     expect(created.spec?.agentVersion, "the tag is stamped as the hash it names").toBe(v1.status!.versionHash);
     expect(created.status?.agentVersionHash).toBe(v1.status!.versionHash);
+  });
+});
+
+describe("EvalRun about an agent — an Eval's cases", () => {
+  it("[rpc:EvalRunCommandController.create] an Eval named as a case source runs on an agent that attaches no plugin: create stamps its id, slug and current digest and counts its cases' tries", async () => {
+    const slug = uniqueName("evr-eval");
+    const folder = evalFolder();
+    const pushed = await pushEval(slug, folder);
+    const agent = await agentWith([]);
+
+    const created = await createEval(agent, { evals: [{ org: tenancy.org, slug }], runs: 2 });
+
+    expect(created.status?.plugins ?? []).toEqual([]);
+    expect(stampedEvals(created.status?.evals ?? [])).toEqual([[pushed.metadata!.id, slug, digestOf(folder), ""]]);
+    // The case `first` kept by the glob, one arm, two tries.
+    expect(created.status?.triesTotal).toBe(2);
+    const read = await clients.evalRunQuery.get({ value: created.metadata!.id });
+    expect(stampedEvals(read.status?.evals ?? []), "get answers the stamped Eval").toEqual(stampedEvals(created.status?.evals ?? []));
+  });
+
+  it("[rpc:EvalRunCommandController.create] an Eval named at a tag runs the tagged version, though a later one was pushed; named bare, its current one", async () => {
+    const slug = uniqueName("evr-eval-tag");
+    const stable = evalFolder("stable");
+    await pushEval(slug, stable, { tag: "stable" });
+    const next = evalFolder("next");
+    await pushEval(slug, next);
+    const agent = await agentWith([]);
+
+    const byTag = await createEval(agent, { evals: [{ org: tenancy.org, slug, version: "stable" }] });
+    expect(byTag.status?.evals.map((e) => e.evalDigest)).toEqual([digestOf(stable)]);
+    const current = await createEval(agent, { evals: [{ org: tenancy.org, slug }] });
+    expect(current.status?.evals.map((e) => e.evalDigest)).toEqual([digestOf(next)]);
+  });
+
+  it("[rpc:EvalRunCommandController.create] an Eval that is not there is INVALID_ARGUMENT naming it, and nothing is stored", async () => {
+    const agent = await agentWith([]);
+    const missing = uniqueName("evr-no-eval");
+    const refused = await expectGrpcCode(
+      () => clients.evalRunCommand.create(smallestEval({ org: tenancy.org, agentId: agent.metadata!.id, evals: [{ org: tenancy.org, slug: missing }] })),
+      Code.InvalidArgument,
+      "an eval run naming an Eval that is not there",
+    );
+    expect(refused.rawMessage).toBe(evalRunUnreadableEvalMessage(missing));
+    expect((await clients.evalRunQuery.listByAgent({ agentId: agent.metadata!.id })).entries).toEqual([]);
   });
 });
 
@@ -772,6 +860,42 @@ describe("EvalRun about an agent — who may run and read an eval run", () => {
       );
       expect(refused.rawMessage).toBe(EVAL_RUN_AGENT_DENIED_MESSAGE);
     }
+  });
+
+  it("[rpc:EvalRunCommandController.create] a member runs an organization Eval on an agent of their own; naming another person's private Eval is refused as an Eval that is not there", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    const lane = enforcing.lane;
+    const org = (await laneTenancy(lane)).org;
+    const shared = await pushEval(uniqueName("evr-authz-eval"), evalFolder("shared"), { org, as: lane.clients });
+    const hidden = await pushEval(uniqueName("evr-authz-private"), evalFolder("hidden"), {
+      org,
+      as: lane.clients,
+      visibility: ApiResourceVisibility.visibility_private,
+    });
+    const member = await lane.provisionMember({ org });
+    const agent = await createAgentWith(member, fixtures, org, [], {
+      name: uniqueName("evr-authz-member-agent"),
+      instructions: AGENT_INSTRUCTIONS,
+    });
+    const agentId = agent.metadata!.id;
+
+    const created = await member.evalRunCommand.create(
+      smallestEval({ org, agentId, evals: [{ org, slug: shared.metadata!.slug }] }),
+    );
+    fixtures.defer(() => cancelAndDeleteEvalRun(member, created.metadata!.id));
+    expect(created.status?.evals.map((e) => e.evalId), "the member's eval run stamps the organization's Eval").toEqual([
+      shared.metadata!.id,
+    ]);
+
+    const hiddenSlug = hidden.metadata!.slug;
+    const refused = await expectGrpcCode(
+      () => member.evalRunCommand.create(smallestEval({ org, agentId, evals: [{ org, slug: hiddenSlug }] })),
+      Code.InvalidArgument,
+      "a member naming another person's private Eval",
+    );
+    expect(refused.rawMessage, "the refusal is the one for an Eval that is not there").toBe(evalRunUnreadableEvalMessage(hiddenSlug));
+    expect((await member.evalRunQuery.listByAgent({ agentId })).entries.map((e) => e.metadata?.id)).toEqual([created.metadata!.id]);
   });
 
   it("[rpc:EvalRunQueryController.listByAgent] [rpc:EvalRunQueryController.get] a child organization's viewer of an agent its parent shares lists none of its eval runs and reads none", async (ctx) => {

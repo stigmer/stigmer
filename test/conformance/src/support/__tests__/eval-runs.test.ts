@@ -7,7 +7,7 @@
 // fresh eval run about a plugin runs its current version once per arm
 // within ten dollars, and one about an agent its current version, the
 // default cases, as the agent runs, carrying a compared plugin and case
-// sources when given; the agent fixture lists its plugins by slug and
+// sources when given, the plugins' and then the Evals' at their versions; the agent fixture lists its plugins by slug and
 // defers its delete; the follower reads past the phases it was not asked
 // for and fails loudly, naming what it last read, once its budget is
 // spent; `triesOf` walks the status in plugin, case, target and arm order;
@@ -51,6 +51,7 @@ import {
   evalRunTooLargeMessage,
   evalRunUnknownServerToolMessage,
   evalRunUnloadedCaseSourceMessage,
+  evalRunUnreadableEvalMessage,
   followEvalRun,
   installPlugin,
   lastMessageGrader,
@@ -149,6 +150,11 @@ describe("the suite layout", () => {
       "quality/evals/c/graders/g.md",
     ]);
   });
+
+  it("writes each case at the root when the directory is empty, as a pushed Eval holds it", () => {
+    const files = evalCaseFiles({ name: "c", prompt: "p", graders: [lastMessageGrader("g", "x")] }, "");
+    expect([...files.keys()]).toEqual(["c/prompt.md", "c/graders/g.md"]);
+  });
 });
 
 describe("the eval run fixture about a plugin", () => {
@@ -207,6 +213,7 @@ describe("the eval run fixture about an agent", () => {
       agentVersion: "stable",
       comparedPluginId: "plg_notes",
       cases: [{ org: "org_1", slug: "notes" }],
+      evals: [{ org: "org_1", slug: "support", version: "stable" }, { org: "org_1", slug: "smoke" }],
       runs: 3,
       caseGlob: "first",
       maxCostUsd: 0.01,
@@ -218,7 +225,11 @@ describe("the eval run fixture about an agent", () => {
     expect(made.spec).toMatchObject({
       agentVersion: "stable",
       comparedPluginId: "plg_notes",
-      cases: [{ source: { case: "plugin", value: { org: "org_1", slug: "notes" } } }],
+      cases: [
+        { source: { case: "plugin", value: { org: "org_1", slug: "notes" } } },
+        { source: { case: "eval", value: { kind: ApiResourceKind.eval, org: "org_1", slug: "support", version: "stable" } } },
+        { source: { case: "eval", value: { kind: ApiResourceKind.eval, org: "org_1", slug: "smoke", version: "" } } },
+      ],
       runs: 3,
       caseGlob: "first",
       maxCostUsd: 0.01,
@@ -398,13 +409,16 @@ describe("the copy the suites assert", () => {
       "this plugin version has no eval cases: add a case directory under evals/ holding a prompt.md or a case.yaml",
     );
     expect(EVAL_RUN_NO_CASE_SOURCES_MESSAGE).toBe(
-      "this agent version attaches no plugin, and the eval run compares none: attach a plugin with eval cases, or compare one with --plugin",
+      "this agent version attaches no plugin, and the eval run compares none and names no eval: run an eval with --eval, attach a plugin with eval cases, or compare one with --plugin",
     );
     expect(EVAL_RUN_NO_CASES_MESSAGE).toBe(
       "none of the plugins whose cases this eval run runs has eval cases at the version it runs",
     );
     expect(evalRunUnloadedCaseSourceMessage("notes")).toBe(
       "spec.cases names plugin 'notes', which this agent version does not attach and the eval run does not compare: a case runs with the plugin it was written for",
+    );
+    expect(evalRunUnreadableEvalMessage("support")).toBe(
+      "spec.cases names eval 'support', which is not an eval of the agent's organization you can view",
     );
     expect(evalRunActiveDeleteMessage("evr_1")).toBe("eval run evr_1 is still running: cancel it first, then delete it");
     expect(evalRunActiveOnSubjectDeleteMessage("agent", "evr_1")).toBe(

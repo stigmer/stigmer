@@ -42,6 +42,12 @@
 //   - the tries are left out of the session list and of the agent's own
 //     session listByAgent, where an ordinary turn on the agent is listed, and
 //     listByAgent of the agent's eval runs answers each without its tries;
+//   - an Eval pushed with a mock of a server the agent writes itself runs
+//     on that agent, which attaches no plugin: the try calls the tool and
+//     the fixed mock answers under the server's own name (the real server
+//     is never connected), every grader passes on that answer, the case is
+//     listed under the Eval with the server it mocked, and the eval run
+//     ends naming the Eval at the digest of the folder pushed;
 //   - a try with no targets runs the agent's own model and thinking setting
 //     (read back from the run's status.run_config and the model the provider
 //     received), its target labelled with the agent's model, while a named
@@ -106,6 +112,7 @@ import {
 } from "../support/eval-runs";
 import { agentRefOf, makeAgent } from "../support/agents";
 import { provisionOrgWithFacts } from "../support/memories";
+import { digestOf, evalFolderArchive } from "../support/evals";
 import { uniqueName } from "../support/naming";
 import { pluginArchive, toolServerSegment } from "../support/plugins";
 import {
@@ -796,5 +803,48 @@ describe.skipIf(!runnerServesTries)("EvalRun about an agent — what a try is gi
     const namedRun = await runOf(namedTry!.attempt.runId);
     expect(namedRun.status?.runConfig?.modelName).toBe(TARGET_MODEL);
     expect(readAnthropicRequest(mock.scriptedRequests()[0]!.body).model).toBe(await providerIdOf(TARGET_MODEL));
+  }, 360_000);
+});
+
+describe.skipIf(!runnerServesTries)("EvalRun about an agent — an Eval's cases", () => {
+  it("[rpc:EvalRunCommandController.create] [rpc:EvalRunQueryController.get] an Eval's case mocks a server the agent writes itself: the stand-in answers the try, the case is graded, and the eval run names the Eval at its pushed digest", async () => {
+    const server = "tracker";
+    const folder = evalFolderArchive(
+      [
+        {
+          name: "files-a-bug",
+          prompt: "File the crash on save.",
+          graders: [
+            { name: "asked-tracker", frontmatter: { type: "regex", pattern: '"title":"Crash on save"', target: "mock_calls" } },
+            { name: "mock-answered", frontmatter: { type: "regex", pattern: "Created issue #4821: Crash on save", target: "trace" } },
+            lastMessageGrader("says-done", "^DONE"),
+          ],
+        },
+      ],
+      { [`mocks/${server}/create_issue.md`]: "---\nexpect:\n  title: string\n---\n\nCreated issue #4821: {{input.title}}\n" },
+    );
+    const slug = uniqueName("evr-eval");
+    const pushed = await clients.evalCommand.push({ org: tenancy.org, slug, artifact: folder });
+    fixtures.defer(() => clients.evalCommand.delete({ value: pushed.metadata!.id }).then(() => undefined));
+    const agent = await agentWith([], { mcpServers: [{ name: server, url: mcp.url([ECHO_TOOL_NAME]) }] });
+    mcp.resetCaptured();
+    mock.enqueue(anthropicToolUse("call_create", "create_issue", { title: "Crash on save" }));
+    mock.enqueue(anthropicText(DONE));
+
+    const created = await startEval(agent, { evals: [{ org: tenancy.org, slug }] });
+    expect(created.status?.plugins).toEqual([]);
+    const ended = await awaitEvalRunEnd(clients, created.metadata!.id, 300_000);
+    const [block] = ended.status?.evals ?? [];
+    const attempt = block?.cases[0]?.targets[0]?.withPlugin?.tries[0];
+    const why = `state ${EvalRunTryState[attempt?.state ?? 0]} error "${attempt?.error ?? ""}" reason "${attempt?.notGradedReason ?? ""}"`;
+    expect(ended.status?.phase, why).toBe(EvalRunPhase.completed);
+    expect([block?.evalId, block?.evalSlug, block?.evalDigest]).toEqual([pushed.metadata!.id, slug, digestOf(folder)]);
+    expect(attempt?.state, why).toBe(EvalRunTryState.graded);
+    expect(attempt?.score, `every grader passes on the stand-in's answer: ${why}`).toBe(1);
+    expect(block?.cases.map((c) => [c.caseName, c.mockedServers.map((m) => [m.name, m.tools, m.notStartedReason])])).toEqual([
+      ["files-a-bug", [[server, ["create_issue"], ""]]],
+    ]);
+    expect(mock.consumed(), "exactly the scripted turns").toBe(2);
+    expect(mcp.capturedRequests().map((r) => r.method), "the mocked server is never connected").toEqual([]);
   }, 360_000);
 });
