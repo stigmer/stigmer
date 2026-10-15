@@ -231,6 +231,15 @@ public enum ApiResourceKind
   eval_run(65),
   /**
    * <pre>
+   * A set of test cases for an agent: an evals/ folder in Claude Code's
+   * plugin-eval format, pushed whole.
+   * </pre>
+   *
+   * <code>eval = 66 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  eval(66),
+  /**
+   * <pre>
    * Catalog entry naming a bundle of entitlements and the terms that buy it.
    *
    * Platform-level: a plan belongs to no organization, so it carries no
@@ -495,6 +504,15 @@ public enum ApiResourceKind
   public static final int eval_run_VALUE = 65;
   /**
    * <pre>
+   * A set of test cases for an agent: an evals/ folder in Claude Code's
+   * plugin-eval format, pushed whole.
+   * </pre>
+   *
+   * <code>eval = 66 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int eval_VALUE = 66;
+  /**
+   * <pre>
    * Catalog entry naming a bundle of entitlements and the terms that buy it.
    *
    * Platform-level: a plan belongs to no organization, so it carries no
@@ -582,6 +600,7 @@ public enum ApiResourceKind
       case 61: return score;
       case 62: return evaluator;
       case 65: return eval_run;
+      case 66: return eval;
       case 70: return plan;
       case 71: return subscription;
       case 72: return license;

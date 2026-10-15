@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.eval.v1;
+
+import "ai/stigmer/agentic/eval/v1/spec.proto";
+import "ai/stigmer/agentic/eval/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// Eval is a set of test cases for an agent: an evals/ folder in Claude
+// Code's plugin-eval format, pushed whole and kept with every version.
+//
+// Each case is a request a user might type, plus checks such as "the reply
+// mentions the renamed function" or a pass-or-fail rubric for an AI judge.
+// Pushing the same folder again changes nothing; a changed folder is a new
+// version, reachable by its digest or by a tag.
+//
+// @internal
+// Identity is the archive: the SHA-256 of the pushed ZIP is the version
+// (status.digest, metadata.version.id) and the previous head is archived on
+// every push, the plugin and skill discipline. What the archive holds is
+// read once, at push, into status by the library's suite reader. The slug
+// is the push request's, never the content's: the folder names nothing.
+message Eval {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Eval'];
+
+  // Standard resource metadata including name, id, labels, and tags.
+  // The slug is the one the push named; the name is its display name.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // The tag the current version holds.
+  EvalSpec spec = 4;
+
+  // What the current version holds, read when it was pushed.
+  EvalStatus status = 5;
+}

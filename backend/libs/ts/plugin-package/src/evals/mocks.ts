@@ -20,15 +20,17 @@
  *
  * A file that breaks these rules (an unknown key, a wrong type, an `expect`
  * pattern outside the dialect) is an `eval-mock-invalid` finding of the
- * case, which then does not load, as Claude Code stops such a case. A
- * directory for a server the plugin does not declare is a finding of the
- * suite and is ignored: no try could reach that server.
+ * case, which then does not load, as Claude Code stops such a case. Which
+ * servers a suite may mock is its reader's rule ({@link MockServerRule}): a
+ * plugin's suite mocks only the servers the plugin declares, a pushed
+ * folder any server whose name could be one. A directory the rule refuses
+ * is a finding of the suite and is ignored: no try could reach that server.
  */
 
 import { compileExpect } from "@stigmer/eval-runtime";
 import { isJsonObject, type JsonObject } from "../documents.js";
-import { comparePaths, type PluginFileIndex } from "../files.js";
-import { type CaseFindings, type FieldScope, quote, readNonEmptyString, readStringList, unknownKeys, wrong } from "./fields.js";
+import { comparePaths, joinPath, type PluginFileIndex } from "../files.js";
+import { type CaseFindings, type FieldScope, readNonEmptyString, readStringList, unknownKeys, wrong } from "./fields.js";
 import { readMarkdown } from "./markdown.js";
 import type { EvalMockServer, EvalMockTool, EvalSuiteFinding } from "./types.js";
 
@@ -51,35 +53,38 @@ export interface CaseMocks {
 }
 
 /**
- * Read the mocks one case sees. `declared` is the plugin's MCP server keys;
- * a mock directory for any other key adds a finding to `suiteFindings`
- * (once per directory: `reported` remembers the suite's) and is skipped.
+ * Whether a suite may mock the server a mock directory names: `undefined`
+ * keeps the directory, a sentence says why it is ignored.
+ */
+export type MockServerRule = (server: string) => string | undefined;
+
+/**
+ * Read the mocks one case sees. A mock directory `rule` refuses adds a
+ * finding to `suiteFindings` (once per directory: `reported` remembers the
+ * suite's) and is skipped.
  */
 export function readCaseMocks(
   index: PluginFileIndex,
   suiteDir: string,
   caseDir: string,
-  declared: ReadonlySet<string>,
+  rule: MockServerRule,
   findings: CaseFindings,
   suiteFindings: EvalSuiteFinding[],
   reported: Set<string>,
 ): CaseMocks {
-  const suiteMocks = `${suiteDir}/${MOCKS_DIR}`;
+  const suiteMocks = joinPath(suiteDir, MOCKS_DIR);
   const caseMocks = `${caseDir}/${MOCKS_DIR}`;
   const replays = index.isDirectory(`${suiteMocks}/${REPLAY_DIR}`) || index.isDirectory(`${caseMocks}/${REPLAY_DIR}`);
   const names = new Set([...index.childDirectories(suiteMocks), ...index.childDirectories(caseMocks)]);
   names.delete(REPLAY_DIR);
   const servers: EvalMockServer[] = [];
   for (const server of [...names].sort(comparePaths)) {
-    if (!declared.has(server)) {
+    const problem = rule(server);
+    if (problem !== undefined) {
       for (const dir of [`${suiteMocks}/${server}`, `${caseMocks}/${server}`]) {
         if (!index.isDirectory(dir) || reported.has(dir)) continue;
         reported.add(dir);
-        suiteFindings.push({
-          kind: "eval-mock-invalid",
-          path: dir,
-          message: `${dir}: the plugin declares no MCP server ${quote(server)}, so these mocks are ignored`,
-        });
+        suiteFindings.push({ kind: "eval-mock-invalid", path: dir, message: `${dir}: ${problem}` });
       }
       continue;
     }

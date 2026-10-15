@@ -27,6 +27,7 @@ export const GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> =
   [ApiResourceKind.schedule, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.plugin, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.vault, [IamRole.user]],
+  [ApiResourceKind.eval, [IamRole.owner, IamRole.viewer]],
 ]);
 
 /**
@@ -46,6 +47,7 @@ export const TEAM_GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole
   [ApiResourceKind.schedule, [IamRole.viewer]],
   [ApiResourceKind.plugin, [IamRole.viewer]],
   [ApiResourceKind.vault, [IamRole.user]],
+  [ApiResourceKind.eval, [IamRole.viewer]],
 ]);
 
 /**
@@ -107,6 +109,10 @@ export const ROLE_DESCRIPTIONS: ReadonlyMap<ApiResourceKind, ReadonlyMap<IamRole
   ])],
   [ApiResourceKind.vault, new Map<IamRole, string>([
     [IamRole.user, "Use this vault's logins and secrets in their runs"],
+  ])],
+  [ApiResourceKind.eval, new Map<IamRole, string>([
+    [IamRole.owner, "Everything, including pushing versions, deleting it and deciding who has access"],
+    [IamRole.viewer, "See its cases and download any version; cannot change it"],
   ])],
 ]);
 

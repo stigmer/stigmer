@@ -1,0 +1,231 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.eval.v1;
+
+import "ai/stigmer/agentic/eval/v1/api.proto";
+import "ai/stigmer/commons/apiresource/enum.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// EvalId wraps an eval identifier.
+message EvalId {
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// PushEvalRequest stores an evals/ folder as an eval's new version.
+// Creates the eval if no eval of the organization has the slug, or adds a
+// version to the one that has it; pushing the folder the eval already holds
+// changes nothing.
+//
+// The folder travels as a ZIP archive, one of two ways (exactly one must
+// be set):
+// - artifact: inline ZIP bytes, bounded by the gRPC message-size cap (10MB).
+// - artifact_upload_ref: a reference to bytes staged via
+//   createArtifactUploadUrl() + HTTP PUT, for archives above the cap.
+//
+// @internal
+// The cases are read by the backend from the archive with
+// @stigmer/plugin-package's readEvalFolder, the reader `stigmer push eval
+// --dry-run` runs offline, so a refusal here carries the sentences the CLI
+// already printed.
+message PushEvalRequest {
+  option (buf.validate.message).cel = {
+    id: "push_eval_request.artifact_source"
+    message: "exactly one of artifact (inline bytes) or artifact_upload_ref must be set"
+    expression: "(this.artifact.size() > 0) != (this.artifact_upload_ref != '')"
+  };
+
+  // Organization the eval belongs to.
+  string org = 1 [(buf.validate.field).required = true];
+
+  // The eval's slug, unique within the organization: the eval this push
+  // creates or adds a version to.
+  //
+  // A slug an eval of the organization was renamed away from in the last 30
+  // days is refused with SLUG_RENAMED: push to its new slug.
+  string slug = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 2,
+    (buf.validate.field).string.max_len = 63,
+    (buf.validate.field).string.pattern = "^[a-z][a-z0-9-]*[a-z0-9]$"
+  ];
+
+  // The eval's display name. Empty keeps the stored one, or is the slug when
+  // the push creates the eval.
+  string name = 3 [(buf.validate.field).string.max_len = 200];
+
+  // The folder as a ZIP archive, its case directories, mocks/ and any
+  // shared files at the archive root.
+  //
+  // Mutually exclusive with artifact_upload_ref (see the message comment).
+  bytes artifact = 4;
+
+  // Reference to an archive staged via createArtifactUploadUrl().
+  //
+  // Mutually exclusive with artifact (see the message comment).
+  string artifact_upload_ref = 5;
+
+  // Visibility for the eval: the whole organization or its owner alone.
+  // Unspecified keeps the stored level, or is the organization when the push
+  // creates the eval.
+  ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 6 [(buf.validate.field).enum.defined_only = true];
+
+  // Optional human-readable message describing this version, such as the
+  // commit it was pushed from, kept in metadata.version.message for the
+  // version history.
+  string message = 7;
+
+  // Optional tag to move to this version, such as "stable". A push with a
+  // tag onto the folder the eval already holds moves the tag and adds no
+  // version. "latest" is refused: it always names the current version.
+  string tag = 8 [
+    (buf.validate.field).string.pattern = "^$|^[a-zA-Z0-9._-]+$",
+    (buf.validate.field).string.max_len = 128,
+    (buf.validate.field).string.not_in = "latest"
+  ];
+}
+
+// CreateEvalArtifactUploadUrlRequest asks the server to mint a staging
+// slot for an eval archive too large to travel inline.
+message CreateEvalArtifactUploadUrlRequest {
+  // Organization the eval belongs to.
+  string org = 1 [(buf.validate.field).required = true];
+
+  // The slug the push will name: minting asks exactly what that push asks.
+  string slug = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 2,
+    (buf.validate.field).string.max_len = 63,
+    (buf.validate.field).string.pattern = "^[a-z][a-z0-9-]*[a-z0-9]$"
+  ];
+
+  // Declared size of the archive in bytes; an over-limit declaration is
+  // refused before any bytes move.
+  int64 size_bytes = 3 [(buf.validate.field).int64.gt = 0];
+}
+
+// EvalArtifactUploadUrl is a short-lived, single-use capability for staging
+// an eval archive over HTTP.
+message EvalArtifactUploadUrl {
+  // URL to PUT the archive bytes to. Content-Type: application/zip.
+  string url = 1;
+
+  // Opaque reference to pass as PushEvalRequest.artifact_upload_ref after
+  // the PUT succeeds. Single-use; invalid after the push consumes it or the
+  // TTL lapses.
+  string artifact_upload_ref = 2;
+
+  // Time-to-live for the upload URL in seconds.
+  int32 ttl_seconds = 3;
+}
+
+// EvalArchive is one version of an eval as the ZIP archive it was pushed
+// as.
+message EvalArchive {
+  // The archive bytes.
+  bytes artifact = 1;
+
+  // SHA-256 of the archive: the version's digest.
+  string digest = 2;
+}
+
+// EvalArchiveDownloadUrl is a URL to download one version of an eval over
+// HTTP.
+//
+// @internal
+// The download strategy differs by edition, as for the plugin and skill
+// archives: a pre-signed URL with a short TTL in the Cloud; a capability URL
+// on the server's own HTTP lane in OSS. Either is minted only after can_view
+// on the eval.
+message EvalArchiveDownloadUrl {
+  // URL to download the archive ZIP via HTTP GET.
+  string url = 1;
+
+  // Time-to-live for the download URL in seconds; 0 means no expiry.
+  int32 ttl_seconds = 2;
+
+  // Size of the archive ZIP in bytes.
+  int64 size_bytes = 3;
+
+  // SHA-256 of the archive: the version's digest, which the downloaded
+  // bytes must match.
+  string digest = 4;
+}
+
+// ListEvalVersionsInput requests the version history of an eval.
+message ListEvalVersionsInput {
+  // Organization that owns the eval.
+  string org = 1 [(buf.validate.field).required = true];
+
+  // Eval slug (unique within the organization).
+  string slug = 2 [(buf.validate.field).required = true];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 4 [(buf.validate.field).int32.gte = 0];
+}
+
+// EvalVersionEntry is one version of an eval.
+message EvalVersionEntry {
+  // SHA-256 of the archive, the immutable version identifier.
+  string digest = 1;
+
+  // When this version was pushed.
+  google.protobuf.Timestamp pushed_at = 2;
+
+  // Who pushed this version.
+  ai.stigmer.commons.apiresource.ApiResourceAuditActor pushed_by = 3;
+
+  // The tag this version holds now; empty when it holds none.
+  string tag = 4;
+
+  // Whether this is the eval's current version.
+  bool is_current = 5;
+
+  // The version message given at push time.
+  string message = 6;
+}
+
+// ListEvalVersionsResponse is a page of an eval's version history.
+message ListEvalVersionsResponse {
+  // Versions, newest first.
+  repeated EvalVersionEntry entries = 1;
+
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
+  string next_page_token = 2;
+}
+
+// Input for listing an organization's evals, newest first.
+message ListEvalsRequest {
+  // Organization whose evals to list, by id or slug.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 2 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+
+  // Only resources carrying every label given, each matched exactly (AND).
+  // A selective filter may answer short pages, even empty ones, that still
+  // carry a token.
+  map<string, string> labels = 4;
+}
+
+// One page of an organization's evals.
+message EvalList {
+  // The evals in this page, newest first.
+  repeated Eval entries = 1;
+
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
+  string next_page_token = 2;
+}

@@ -77,12 +77,14 @@ export const UPLOADS_SEGMENT = "/uploads/";
 
 /**
  * Downloads are restricted to the archive stores' own keys: skills
- * ("skills/<hash>.zip", and the staged uploads under STAGING_KEY_PREFIX) and
- * plugins ("plugins/<digest>.zip"). One blob driver holds both archive kinds
- * (boot/compose.ts), so one lane serves both; everything else under the
- * storage root stays unreachable from this lane.
+ * ("skills/<hash>.zip", and the staged uploads under STAGING_KEY_PREFIX),
+ * plugins ("plugins/<digest>.zip") and evals ("evals/<digest>.zip"). One
+ * blob driver holds every archive kind (boot/compose.ts), so one lane
+ * serves them all; everything else under the storage root stays
+ * unreachable from this lane. An eval's URL is minted only after can_view
+ * on the eval (domain/eval/controller.ts).
  */
-export const DOWNLOAD_KEY_PREFIXES: readonly string[] = ["skills/", "plugins/"];
+export const DOWNLOAD_KEY_PREFIXES: readonly string[] = ["skills/", "plugins/", "evals/"];
 
 /**
  * The #452 nested-only-SKILL.md hint — the "zipped the folder instead of

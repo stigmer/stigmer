@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.eval.v1;
+
+import "ai/stigmer/commons/apiresource/status.proto";
+import "buf/validate/validate.proto";
+
+// EvalStatus is what an eval's current version holds: its digest and its
+// test cases, read when it was pushed.
+//
+// @internal
+// Derived at push from the archive by the library's suite reader
+// (readEvalFolder) and bounded as a plugin's suite summary is, so the row
+// stays within one API message: the first 200 cases and 50 findings, while
+// case_count counts every case. The archive stays authoritative; a run
+// reads the cases from it. The archive's storage key is not stored: the
+// server derives it from the digest, and every download names the eval and
+// asks can_view.
+message EvalStatus {
+  // Standard audit information tracking creation and modification.
+  //
+  // @internal
+  // Field 99 follows Stigmer convention for audit placement.
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+
+  // SHA-256 of the pushed folder's archive, the immutable version
+  // identifier.
+  //
+  // @internal
+  // Calculated by the server from the pushed ZIP bytes; equals
+  // metadata.version.id. A re-push of the same digest changes nothing.
+  string digest = 1 [(buf.validate.field).string.pattern = "^$|^[a-f0-9]{64}$"];
+
+  // Cases in the folder, listed or not.
+  int32 case_count = 2;
+
+  // The tags the listed cases carry, once each, sorted: at most 200.
+  repeated string case_tags = 3;
+
+  // Each case, in directory order: at most 200.
+  repeated EvalCaseSummary cases = 4;
+
+  // Problems reading the folder: a case that cannot load, an unknown field,
+  // a mock directory whose name no MCP server could have. At most 50.
+  repeated EvalFinding findings = 5;
+
+  // The MCP servers the folder's mocks stand in for, by the directory names
+  // under mocks/, sorted.
+  //
+  // @internal
+  // A pushed eval names no plugin, so these are not checked against any
+  // server at push: running the eval on an agent resolves each against the
+  // agent's own servers.
+  repeated string mock_servers = 6;
+}
+
+// EvalCaseSummary is one test case of an eval.
+message EvalCaseSummary {
+  // The case's name.
+  string case_name = 1;
+
+  // The case's directory, relative to the folder's root.
+  string path = 2;
+
+  // The case's tags.
+  repeated string case_tags = 3;
+
+  // Why Stigmer cannot run the case yet, naming the feature, as in
+  // "plugins" for a case that runs with a plugin; empty when it can.
+  string unsupported = 4;
+}
+
+// EvalFinding is one problem a push found reading an eval's folder and did
+// not refuse.
+message EvalFinding {
+  // Stable finding kind, e.g. "eval-case-invalid", "eval-mock-invalid".
+  //
+  // @internal
+  // The library's eval finding kinds; a string rather than an enum because
+  // the library owns the vocabulary and the CLI renders it offline.
+  string kind = 1;
+
+  // The finding as one user-facing sentence.
+  string message = 2;
+
+  // The folder-relative path the finding points at.
+  string path = 3;
+}

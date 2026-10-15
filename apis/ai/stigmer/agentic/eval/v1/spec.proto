@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.eval.v1;
+
+import "buf/validate/validate.proto";
+
+// EvalSpec holds what a push says about the eval's current version.
+message EvalSpec {
+  // The tag the current version holds, such as "stable" or "v2"; empty when
+  // it holds none.
+  //
+  // A tag names one version at a time: pushing with a tag moves it to that
+  // version. "latest" is not a tag; a reference without a version, or with
+  // "latest", already names the current version.
+  //
+  // @internal
+  // Set from PushEvalRequest.tag; the audit tag column is the tag's single
+  // holder, and a fetched older version reports the tag it holds now.
+  string tag = 1 [
+    (buf.validate.field).string.pattern = "^$|^[a-zA-Z0-9._-]+$",
+    (buf.validate.field).string.max_len = 128,
+    (buf.validate.field).string.not_in = "latest"
+  ];
+}

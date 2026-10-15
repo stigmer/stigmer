@@ -43,6 +43,7 @@ import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/
 import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
 import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
@@ -88,6 +89,7 @@ export const RESOURCE_SCHEMAS: ReadonlyMap<ApiResourceKind, DescMessage> = new M
   [ApiResourceKind.organization, OrganizationSchema],
   [ApiResourceKind.plan, PlanSchema],
   [ApiResourceKind.plugin, PluginSchema],
+  [ApiResourceKind.eval, EvalSchema],
   [ApiResourceKind.eval_run, EvalRunSchema],
   [ApiResourceKind.run, RunSchema],
   [ApiResourceKind.schedule, ScheduleSchema],

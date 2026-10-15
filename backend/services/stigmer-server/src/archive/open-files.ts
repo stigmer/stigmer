@@ -1,35 +1,39 @@
 /**
- * The plugin archive gate: the pushed ZIP becomes the `PluginFiles` reader
- * `@stigmer/plugin-package` is pure over, and the bytes' SHA-256 becomes
- * the plugin's version identity. Composes the shared archive plumbing
- * (src/archive): open, hash, prefilter and the structural walk exactly as
- * the skill gate, then a lazy reader whose `read` inflates one entry under
- * the central directory's declared size as the real cap and verifies its
- * CRC — the library refuses an over-cap DECLARATION before asking, and this
- * reader refuses an over-cap INFLATION, so a bomb is caught on both sides.
+ * The archive gate every pushed folder kind shares (plugins, evals): the
+ * pushed ZIP becomes the `PluginFiles` reader `@stigmer/plugin-package` is
+ * pure over, and the bytes' SHA-256 becomes the version identity. Composes
+ * the shared archive plumbing in this folder: open, hash, prefilter and
+ * the structural walk exactly as the skill gate, then a lazy reader whose
+ * `read` inflates one entry under the central directory's declared size as
+ * the real cap and verifies its CRC — the library refuses an over-cap
+ * DECLARATION before asking, and this reader refuses an over-cap
+ * INFLATION, so a bomb is caught on both sides.
  *
- * Nothing here knows what a plugin IS: manifests, skills and overlays are
- * the library's to find. This module knows what an ARCHIVE is and how to
- * hand its files to the library without inflating anything nobody asked
- * for.
+ * Nothing here knows what a plugin or an eval IS: manifests, skills and
+ * cases are the library's to find. This module knows what an ARCHIVE is
+ * and how to hand its files to the library without inflating anything
+ * nobody asked for. It lived in the plugin domain until a second kind
+ * pushed folders.
  *
  * Error text is wire-visible: the shared gate's sentences pass through
  * verbatim (the same limits skills quote), and a failed read names the
- * entry. The push step wraps them into its InvalidArgument arm.
+ * entry and the caller's noun. The push step wraps them into its
+ * InvalidArgument arm.
  *
- * Proven by __tests__/archive.test.ts.
+ * Proven by the plugin domain's __tests__/plugin.test.ts and
+ * __tests__/legacy-status.test.ts, and the eval domain's push tests.
  */
 import type { PluginFileEntry, PluginFiles } from "@stigmer/plugin-package";
 import { comparePaths, isContainedPath } from "@stigmer/plugin-package";
 
-import { InflateError, inflateEntry } from "../../archive/inflate.js";
-import { MAX_ZIP_SIZE, PLATFORM_ARCHIVE_LIMITS } from "../../archive/limits.js";
-import { openArchive, validateArchiveStructure } from "../../archive/open.js";
-import type { PrefilteredEntry } from "../../archive/prefilter.js";
+import { InflateError, inflateEntry } from "./inflate.js";
+import { MAX_ZIP_SIZE, PLATFORM_ARCHIVE_LIMITS } from "./limits.js";
+import { openArchive, validateArchiveStructure } from "./open.js";
+import type { PrefilteredEntry } from "./prefilter.js";
 
 /** A gated archive: its identity and the files the library may read. */
-export interface OpenedPluginArchive {
-  /** SHA-256 hex of the archive bytes — the plugin's version identity. */
+export interface OpenedArchive {
+  /** SHA-256 hex of the archive bytes — the version identity. */
   readonly digest: string;
   readonly files: PluginFiles;
 }
@@ -39,9 +43,10 @@ export interface OpenedPluginArchive {
  * entries whose sanitised name the library would refuse as uncontained are
  * dropped here rather than surfaced: the prefilter already made every name
  * unrooted and `..`-free, so what remains is the rare empty-segment name,
- * which no plugin author writes and no manifest can declare.
+ * which no author writes and no manifest can declare. `noun` names the
+ * kind in a failed read's sentence ("plugin", "eval").
  */
-export function openPluginArchive(bytes: Uint8Array): OpenedPluginArchive {
+export function openArchiveFiles(bytes: Uint8Array, noun: string): OpenedArchive {
   const { hash, entries } = openArchive(bytes, MAX_ZIP_SIZE);
   validateArchiveStructure(entries, PLATFORM_ARCHIVE_LIMITS);
 
@@ -67,7 +72,7 @@ export function openPluginArchive(bytes: Uint8Array): OpenedPluginArchive {
     read(path: string): Uint8Array {
       const prefiltered = byPath.get(path);
       if (prefiltered === undefined) {
-        throw new Error(`plugin file '${path}' is not listed`);
+        throw new Error(`${noun} file '${path}' is not listed`);
       }
       try {
         return inflateEntry(
@@ -77,7 +82,7 @@ export function openPluginArchive(bytes: Uint8Array): OpenedPluginArchive {
       } catch (error) {
         if (error instanceof InflateError) {
           throw new Error(
-            `failed to read '${path}' from the plugin archive: ${error.detail}`,
+            `failed to read '${path}' from the ${noun} archive: ${error.detail}`,
           );
         }
         throw error;

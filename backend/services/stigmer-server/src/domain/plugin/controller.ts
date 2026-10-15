@@ -138,26 +138,29 @@ import {
 import { listTools } from "./list-tools.js";
 import type { PluginToolsDeps } from "./list-tools.js";
 import {
-  PLUGIN_CONVERGED_KEY,
-  PLUGIN_KEY,
-  EXISTING_PLUGIN_KEY,
   newArchiveCurrentPluginStep,
   newBuildInitialPluginStep,
-  newCheckAndStoreArtifactStep,
-  newFindExistingPluginBySlugStep,
-  newGateAndHashArchiveStep,
-  newGeneratePluginIdIfNeededStep,
-  newGuardPluginVisibilityStep,
   newIndexPluginSearchStep,
   newPlanPluginStatusStep,
-  newPluginPushAuthorizationTuplesStep,
   newPopulatePluginFieldsStep,
   newProbeServerSignInsStep,
   newReadPluginPackageStep,
-  newResolveConvergenceStep,
-  newClaimPluginNameStep,
-  newStorePluginStep,
+  pluginPushBinding,
 } from "./push.js";
+import {
+  CONVERGED_KEY,
+  EXISTING_PUSHED_RESOURCE_KEY,
+  PUSHED_RESOURCE_KEY,
+  newCheckAndStoreArtifactStep,
+  newClaimPushedNameStep,
+  newFindExistingBySlugStep,
+  newGateAndHashArchiveStep,
+  newGenerateIdIfNeededStep,
+  newGuardPushVisibilityStep,
+  newPushAuthorizationTuplesStep,
+  newResolveConvergenceStep,
+  newStorePushedStep,
+} from "../../pipeline/steps/archive-push.js";
 import { pluginVersionBinding } from "./versions.js";
 import { pluginSearchExtractor } from "./search-extractor.js";
 import {
@@ -262,19 +265,19 @@ async function push(
           },
         ),
       )
-      .addStep(newGateAndHashArchiveStep())
+      .addStep(newGateAndHashArchiveStep("plugin"))
       .addStep(newReadPluginPackageStep())
       .addStep(newBuildInitialPluginStep())
-      .addStep(newFindExistingPluginBySlugStep(deps.store))
-      .addStep(newGeneratePluginIdIfNeededStep())
+      .addStep(newFindExistingBySlugStep(deps.store, pluginPushBinding))
+      .addStep(newGenerateIdIfNeededStep())
       .addStep(newPlanPluginStatusStep())
-      .addStep(newGuardPluginVisibilityStep(deps.store))
-      .addStep(newResolveConvergenceStep())
+      .addStep(newGuardPushVisibilityStep(deps.store, pluginPushBinding, "GuardPluginVisibility"))
+      .addStep(newResolveConvergenceStep(pluginPushBinding))
       .build()
       .execute(reqCtx);
 
-    if (reqCtx.get(PLUGIN_CONVERGED_KEY) === true) {
-      return reqCtx.get(EXISTING_PLUGIN_KEY) as Plugin;
+    if (reqCtx.get(CONVERGED_KEY) === true) {
+      return reqCtx.get(EXISTING_PUSHED_RESOURCE_KEY) as Plugin;
     }
 
     await newPipeline<typeof PushPluginRequestSchema>(
@@ -289,20 +292,21 @@ async function push(
       )
       .addStep(newCheckAndStoreArtifactStep(deps.artifactStorage))
       .addStep(newPopulatePluginFieldsStep())
-      .addStep(newClaimPluginNameStep(deps.store))
-      .addStep(newStorePluginStep(deps.store, "StorePlugin"))
+      .addStep(newClaimPushedNameStep(deps.store, pluginPushBinding))
+      .addStep(newStorePushedStep(deps.store, pluginPushBinding, "StorePlugin"))
       .addStep(newArchiveCurrentPluginStep(deps.store, deps.logger))
       .addStep(
-        newPluginPushAuthorizationTuplesStep(
+        newPushAuthorizationTuplesStep(
           deps.authorizationLifecycle,
           deps.logger,
+          "PluginPushAuthorizationTuples",
         ),
       )
       .addStep(newIndexPluginSearchStep(deps.store, deps.logger))
       .build()
       .execute(reqCtx)
       .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
-    return reqCtx.get(PLUGIN_KEY) as Plugin;
+    return reqCtx.get(PUSHED_RESOURCE_KEY) as Plugin;
   });
 }
 

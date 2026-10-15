@@ -171,6 +171,8 @@ import { SERVER_VERSION } from "../domain/platform/version.js";
 import { registerSessionServices } from "../domain/session/controller.js";
 import { SessionEventBroker } from "../domain/session/events/broker.js";
 import { registerPluginServices } from "../domain/plugin/controller.js";
+import { registerEvalServices } from "../domain/eval/controller.js";
+import { EVAL_ARTIFACT_KEY_PREFIX } from "../domain/eval/constants.js";
 import { refreshLegacyPluginStatuses } from "../domain/plugin/legacy-status.js";
 import { newLocalProgramPolicy } from "../domain/run/local-programs.js";
 import { PLUGIN_ARTIFACT_KEY_PREFIX } from "../domain/plugin/constants.js";
@@ -1406,6 +1408,11 @@ export async function composeServer(
     skillStorageDriver,
     PLUGIN_ARTIFACT_KEY_PREFIX,
   );
+  // Eval archives the same way, under `evals/`.
+  const evalArtifactStorage = newContentAddressedArchiveStore(
+    skillStorageDriver,
+    EVAL_ARTIFACT_KEY_PREFIX,
+  );
   // One staging port for every archive kind, over the one skill blob
   // driver: the controllers mint, consume and sign through it and never
   // meet the slots or the bucket.
@@ -1997,6 +2004,15 @@ export async function composeServer(
       // The agentexecution blob store (server.go:362-363) — read side of
       // pushFromRunArtifact.
       executionArtifactStorage: artifactStorage,
+      staging: skillArchiveStaging,
+    });
+    registerEvalServices(router, {
+      store,
+      logger,
+      authorizer,
+      authorizationLifecycle,
+      listReadScope,
+      artifactStorage: evalArtifactStorage,
       staging: skillArchiveStaging,
     });
     // The staging port is the skill lane's: one upload surface for every

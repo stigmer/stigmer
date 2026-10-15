@@ -50,6 +50,7 @@
           "score",
           "evaluator",
           "eval_run",
+          "eval",
           "plan",
           "subscription",
           "license"

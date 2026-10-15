@@ -30,7 +30,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { ContentAddressedArchiveStore } from "../../archive/content-store.js";
 import type { Logger } from "../../boot/logger.js";
 import type { Store } from "../../store/interface.js";
-import { openPluginArchive } from "./archive.js";
+import { openArchiveFiles } from "../../archive/open-files.js";
 import { planPluginStatus } from "./plan-status.js";
 import { probeSignIns } from "./probe-sign-in.js";
 import { evalSuiteOf } from "./evals.js";
@@ -104,7 +104,7 @@ async function refreshOne(deps: LegacyStatusDeps, plugin: Plugin, raw: Uint8Arra
   if (status === undefined || status.artifactStorageKey === "") {
     throw new Error("it records no archive");
   }
-  const archive = openPluginArchive(await deps.artifactStorage.get(status.artifactStorageKey));
+  const archive = openArchiveFiles(await deps.artifactStorage.get(status.artifactStorageKey), "plugin");
   const outcome = readPluginPackage(archive.files);
   if (!outcome.ok) {
     throw new Error(outcome.errors.map((finding) => finding.message).join("; "));

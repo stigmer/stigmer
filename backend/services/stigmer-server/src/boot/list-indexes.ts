@@ -46,6 +46,7 @@ import { scheduleListIndex } from "../domain/schedule/list-index.js";
 import { skillListIndex } from "../domain/skill/list-index.js";
 import { agentExecutionListIndex } from "../domain/run/list-index.js";
 import { evaluatorListIndex } from "../domain/evaluator/list-index.js";
+import { evalListIndex } from "../domain/eval/list-index.js";
 import { evalRunListIndex } from "../domain/eval-run/list-index.js";
 import { grantListIndex } from "../domain/grant/list-index.js";
 import { memoryListIndex } from "../domain/memory/list-index.js";
@@ -68,6 +69,7 @@ export const LIST_INDEXES: ReadonlyArray<ListIndexDeclaration> = [
   scheduleListIndex,
   skillListIndex,
   evaluatorListIndex,
+  evalListIndex,
   evalRunListIndex,
   grantListIndex,
   memoryListIndex,

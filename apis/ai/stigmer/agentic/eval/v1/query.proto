@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.eval.v1;
+
+import "ai/stigmer/agentic/eval/v1/api.proto";
+import "ai/stigmer/agentic/eval/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// EvalQueryController handles read operations for evals.
+service EvalQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = eval;
+
+  // Get a single eval by ID.
+  rpc get(EvalId) returns (Eval) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = eval;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get eval";
+  }
+
+  // Get an eval by API resource reference, at a version.
+  //
+  // Version resolution (via ApiResourceReference.version field):
+  // - Empty/"latest" → Returns the current version
+  // - Tag name (e.g. "stable") → Resolves to the version holding this tag
+  // - SHA-256 digest (64 hex chars) → Returns the exact immutable version
+  //
+  // @internal
+  // Authorization is handled in the handler after resolving the reference to
+  // an eval ID (the input carries org and slug, not an id).
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Eval) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // List an organization's evals, newest first.
+  //
+  // Returns the evals of the input org that the caller may view, one page at
+  // a time.
+  //
+  // @internal
+  // Authorization in-handler: the list read scope keeps the evals the caller
+  // could get by id, as every organization list does.
+  rpc list(ListEvalsRequest) returns (EvalList) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // List an eval's versions, newest first, each with its digest, tag,
+  // message and who pushed it.
+  //
+  // @internal
+  // Authorization is handled in the handler after resolving the eval (the
+  // input carries org and slug, not an id).
+  rpc listVersions(ListEvalVersionsInput) returns (ListEvalVersionsResponse) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Download one version of an eval as the ZIP archive it was pushed as.
+  // The reference's version picks it as getByReference does; none is the
+  // current version. Larger archives ride getDownloadUrl.
+  //
+  // @internal
+  // Authorization in-handler: the reference is resolved to the eval at its
+  // version, then can_view is asked on the eval, so a person who can no
+  // longer view it cannot download any version, whatever digest they hold.
+  rpc download(ai.stigmer.commons.apiresource.ApiResourceReference) returns (EvalArchive) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Mint a URL for downloading one version of an eval over HTTP.
+  //
+  // Preferred over download for anything that might exceed the gRPC
+  // message-size cap (10MB). The reference's version picks the version as
+  // getByReference does.
+  //
+  // @internal
+  // Authorization in-handler, as download: can_view on the resolved eval
+  // before any URL is minted.
+  rpc getDownloadUrl(ai.stigmer.commons.apiresource.ApiResourceReference) returns (EvalArchiveDownloadUrl) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+}

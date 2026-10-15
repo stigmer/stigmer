@@ -33,6 +33,7 @@ import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchan
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
 import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -101,6 +102,7 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
   [ApiResourceKind.agent_channel, { schema: AgentChannelSchema }],
   [ApiResourceKind.agent_share, { schema: AgentShareSchema }],
   [ApiResourceKind.channel_app, { schema: ChannelAppSchema }],
+  [ApiResourceKind.eval, { schema: EvalSchema }],
   [ApiResourceKind.eval_run, { schema: EvalRunSchema }],
   [ApiResourceKind.evaluator, { schema: EvaluatorSchema }],
   [ApiResourceKind.memory, { schema: MemorySchema }],

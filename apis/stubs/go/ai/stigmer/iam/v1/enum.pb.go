@@ -139,6 +139,10 @@ const (
 	// TokenService.mintUserToken with org naming it. Its administrators, and
 	// a parent organization's administrators for a child.
 	IamPermission_can_mint_user_tokens IamPermission = 57
+	// Organization-level permission to create an eval: push an evals/ folder
+	// under a slug no eval of the organization holds. Whoever may create
+	// agents may create their tests.
+	IamPermission_can_create_eval IamPermission = 58
 )
 
 // Enum value maps for IamPermission.
@@ -182,6 +186,7 @@ var (
 		55: "can_manage_keys",
 		56: "can_view_access_history",
 		57: "can_mint_user_tokens",
+		58: "can_create_eval",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -222,6 +227,7 @@ var (
 		"can_manage_keys":              55,
 		"can_view_access_history":      56,
 		"can_mint_user_tokens":         57,
+		"can_create_eval":              58,
 	}
 )
 
@@ -433,7 +439,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1\x1a google/protobuf/descriptor.proto\"R\n" +
 	"\vIamRoleMeta\x12!\n" +
 	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription*\xae\v\n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription*\xc3\v\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -473,7 +479,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\acan_use\x105\x12\x13\n" +
 	"\x0fcan_manage_keys\x107\x12\x1b\n" +
 	"\x17can_view_access_history\x108\x12\x18\n" +
-	"\x14can_mint_user_tokens\x109\"\x04\b\x18\x10\x18\"\x04\b\x0e\x10\x0e\"\x04\b\a\x10\a\"\x04\b\f\x10\f\"\x04\b\x10\x10\x10\"\x04\b\x16\x10\x16\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
+	"\x14can_mint_user_tokens\x109\x12\x13\n" +
+	"\x0fcan_create_eval\x10:\"\x04\b\x18\x10\x18\"\x04\b\x0e\x10\x0e\"\x04\b\a\x10\a\"\x04\b\f\x10\f\"\x04\b\x10\x10\x10\"\x04\b\x16\x10\x16\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
 	"\x10\n" +
 	"\"\x04\b#\x10#\"\x04\b&\x10&\"\x04\b'\x10'\"\x04\b+\x10+\"\x04\b,\x10,\"\x04\b.\x10.*\x1acan_create_platform_client*\x13can_create_instance*\x13can_create_workflow*\x16can_create_environment*\x10can_read_secrets*\vcan_connect*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x1acan_manage_cursor_accounts*\x1acan_view_provider_standing*\x19can_set_public_visibility*\x15can_create_mcp_server*\x19can_create_agent_instance*\x12can_manage_credits*\xb7\x04\n" +
 	"\aIamRole\x12\x18\n" +

@@ -17,3 +17,14 @@ function claudeNamePart(name: string): string {
 export function toolServerSegment(pluginName: string, serverName: string): string {
   return `plugin_${claudeNamePart(pluginName)}_${claudeNamePart(serverName)}`;
 }
+
+/**
+ * Whether `name` can stand as a server segment of a tool name as it is:
+ * only `A-Za-z0-9_-`, with no `__` (the separator between a tool name's
+ * parts) and no trailing `_` (which would run into it). A pushed eval's
+ * mock directory names an agent's MCP server this way, so a name that
+ * fails could never match one.
+ */
+export function isToolNameSegment(name: string): boolean {
+  return /^[A-Za-z0-9_-]+$/.test(name) && !name.includes("__") && !name.endsWith("_");
+}

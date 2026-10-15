@@ -67,7 +67,7 @@ export type {
 } from "./marketplace/outcome.js";
 export { hasMarketplaceFile, readMarketplace, readMarketplaceFile } from "./marketplace/read-marketplace.js";
 export { readPluginPackage } from "./read-plugin-package.js";
-export { toolServerSegment } from "./tool-names.js";
+export { isToolNameSegment, toolServerSegment } from "./tool-names.js";
 export {
   DEFAULT_EVAL_DIR,
   EVAL_CURSOR_UNSUPPORTED_FEATURES,
@@ -77,6 +77,7 @@ export {
   type EvalCursorUnsupportedFeature,
   type EvalUnsupportedFeature,
   evalCaseUnsupportedOnCursor,
+  readEvalFolder,
   readEvalSuite,
 } from "./evals/read-eval-suite.js";
 export { MOCKS_DIR } from "./evals/mocks.js";

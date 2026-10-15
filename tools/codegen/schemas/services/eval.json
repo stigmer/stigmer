@@ -1,0 +1,1255 @@
+{
+  "resource": "eval",
+  "package": "ai.stigmer.agentic.eval.v1",
+  "goImportPath": "evalv1",
+  "services": [
+    {
+      "name": "EvalCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/agentic/eval/v1/command.proto",
+      "methods": [
+        {
+          "name": "Push",
+          "inputType": "PushEvalRequest",
+          "inputFullType": "ai.stigmer.agentic.eval.v1.PushEvalRequest",
+          "outputType": "Eval",
+          "outputFullType": "ai.stigmer.agentic.eval.v1.Eval",
+          "description": "Push an evals/ folder as an eval's new version.\n Creates the eval if the organization has none with the slug, or adds a\n version to the one it has; pushing the folder the eval already holds\n changes nothing, and with a new tag only moves the tag. The response's\n status lists the cases and what could not be read.\n\n Error Cases:\n\n - INVALID_ARGUMENT: the archive is not a ZIP within the limits, or no\n   case in it loads; the error lists the problems\n - FAILED_PRECONDITION: the slug was renamed away from (SLUG_RENAMED)\n - PERMISSION_DENIED: the caller may not create evals in the\n   organization, or may not edit the eval with this slug"
+        },
+        {
+          "name": "CreateArtifactUploadUrl",
+          "inputType": "CreateEvalArtifactUploadUrlRequest",
+          "inputFullType": "ai.stigmer.agentic.eval.v1.CreateEvalArtifactUploadUrlRequest",
+          "outputType": "EvalArtifactUploadUrl",
+          "outputFullType": "ai.stigmer.agentic.eval.v1.EvalArtifactUploadUrl",
+          "description": "Mint a short-lived, single-use upload URL for staging an eval archive\n that exceeds the gRPC message-size cap (10MB). Flow:\n\n 1. createArtifactUploadUrl(org, slug, size_bytes) → { url, artifact_upload_ref }\n 2. HTTP PUT the ZIP bytes to url\n 3. push(PushEvalRequest{ slug, artifact_upload_ref })"
+        },
+        {
+          "name": "UpdateVisibility",
+          "inputType": "UpdateVisibilityInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+          "outputType": "Eval",
+          "outputFullType": "ai.stigmer.agentic.eval.v1.Eval",
+          "description": "Update the visibility of an eval: the whole organization, or its owner\n alone. Only modifies metadata.visibility."
+        },
+        {
+          "name": "Rename",
+          "inputType": "RenameInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.RenameInput",
+          "outputType": "Eval",
+          "outputFullType": "ai.stigmer.agentic.eval.v1.Eval",
+          "description": "Rename an eval: change its slug.\n\n The eval keeps its id, its versions and its grants, and every answer\n names it by the new slug. The old slug keeps leading to the eval for\n reading for 30 days, during which no other eval of the organization can\n take it and this one can take it back; then it is released. A push that\n names the old slug is refused with SLUG_RENAMED. A slug another eval\n holds is refused with ALREADY_EXISTS, and one another eval was recently\n renamed away from with SLUG_RESERVED."
+        },
+        {
+          "name": "Delete",
+          "inputType": "EvalId",
+          "inputFullType": "ai.stigmer.agentic.eval.v1.EvalId",
+          "outputType": "Eval",
+          "outputFullType": "ai.stigmer.agentic.eval.v1.Eval",
+          "description": "Delete an eval and every version of it."
+        }
+      ]
+    },
+    {
+      "name": "EvalQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/agentic/eval/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "EvalId",
+          "inputFullType": "ai.stigmer.agentic.eval.v1.EvalId",
+          "outputType": "Eval",
+          "outputFullType": "ai.stigmer.agentic.eval.v1.Eval",
+          "description": "Get a single eval by ID."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "Eval",
+          "outputFullType": "ai.stigmer.agentic.eval.v1.Eval",
+          "description": "Get an eval by API resource reference, at a version.\n\n Version resolution (via ApiResourceReference.version field):\n - Empty/\"latest\" → Returns the current version\n - Tag name (e.g. \"stable\") → Resolves to the version holding this tag\n - SHA-256 digest (64 hex chars) → Returns the exact immutable version"
+        },
+        {
+          "name": "List",
+          "inputType": "ListEvalsRequest",
+          "inputFullType": "ai.stigmer.agentic.eval.v1.ListEvalsRequest",
+          "outputType": "EvalList",
+          "outputFullType": "ai.stigmer.agentic.eval.v1.EvalList",
+          "description": "List an organization's evals, newest first.\n\n Returns the evals of the input org that the caller may view, one page at\n a time."
+        },
+        {
+          "name": "ListVersions",
+          "inputType": "ListEvalVersionsInput",
+          "inputFullType": "ai.stigmer.agentic.eval.v1.ListEvalVersionsInput",
+          "outputType": "ListEvalVersionsResponse",
+          "outputFullType": "ai.stigmer.agentic.eval.v1.ListEvalVersionsResponse",
+          "description": "List an eval's versions, newest first, each with its digest, tag,\n message and who pushed it."
+        },
+        {
+          "name": "Download",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "EvalArchive",
+          "outputFullType": "ai.stigmer.agentic.eval.v1.EvalArchive",
+          "description": "Download one version of an eval as the ZIP archive it was pushed as.\n The reference's version picks it as getByReference does; none is the\n current version. Larger archives ride getDownloadUrl."
+        },
+        {
+          "name": "GetDownloadUrl",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "EvalArchiveDownloadUrl",
+          "outputFullType": "ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl",
+          "description": "Mint a URL for downloading one version of an eval over HTTP.\n\n Preferred over download for anything that might exceed the gRPC\n message-size cap (10MB). The reference's version picks the version as\n getByReference does."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "PushEvalRequest",
+      "description": "PushEvalRequest stores an evals/ folder as an eval's new version.\n Creates the eval if no eval of the organization has the slug, or adds a\n version to the one that has it; pushing the folder the eval already holds\n changes nothing.\n\n The folder travels as a ZIP archive, one of two ways (exactly one must\n be set):\n - artifact: inline ZIP bytes, bounded by the gRPC message-size cap (10MB).\n - artifact_upload_ref: a reference to bytes staged via\n   createArtifactUploadUrl() + HTTP PUT, for archives above the cap.",
+      "protoType": "ai.stigmer.agentic.eval.v1.PushEvalRequest",
+      "protoFile": "apis/ai/stigmer/agentic/eval/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the eval belongs to.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The eval's slug, unique within the organization: the eval this push\n creates or adds a version to.\n\n A slug an eval of the organization was renamed away from in the last 30\n days is refused with SLUG_RENAMED: push to its new slug.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The eval's display name. Empty keeps the stored one, or is the slug when\n the push creates the eval.",
+          "required": false,
+          "validation": {
+            "maxLength": 200
+          }
+        },
+        {
+          "name": "Artifact",
+          "jsonName": "artifact",
+          "protoField": "artifact",
+          "type": {
+            "kind": "bytes"
+          },
+          "description": "The folder as a ZIP archive, its case directories, mocks/ and any\n shared files at the archive root.\n\n Mutually exclusive with artifact_upload_ref (see the message comment).",
+          "required": false
+        },
+        {
+          "name": "ArtifactUploadRef",
+          "jsonName": "artifactUploadRef",
+          "protoField": "artifact_upload_ref",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Reference to an archive staged via createArtifactUploadUrl().\n\n Mutually exclusive with artifact (see the message comment).",
+          "required": false
+        },
+        {
+          "name": "Visibility",
+          "jsonName": "visibility",
+          "protoField": "visibility",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+            "enumValues": [
+              "visibility_private",
+              "visibility_public",
+              "visibility_org",
+              "visibility_child_orgs"
+            ]
+          },
+          "description": "Visibility for the eval: the whole organization or its owner alone.\n Unspecified keeps the stored level, or is the organization when the push\n creates the eval.",
+          "required": false
+        },
+        {
+          "name": "Message",
+          "jsonName": "message",
+          "protoField": "message",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional human-readable message describing this version, such as the\n commit it was pushed from, kept in metadata.version.message for the\n version history.",
+          "required": false
+        },
+        {
+          "name": "Tag",
+          "jsonName": "tag",
+          "protoField": "tag",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional tag to move to this version, such as \"stable\". A push with a\n tag onto the folder the eval already holds moves the tag and adds no\n version. \"latest\" is refused: it always names the current version.",
+          "required": false,
+          "validation": {
+            "maxLength": 128,
+            "pattern": "^$|^[a-zA-Z0-9._-]+$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CreateEvalArtifactUploadUrlRequest",
+      "description": "CreateEvalArtifactUploadUrlRequest asks the server to mint a staging\n slot for an eval archive too large to travel inline.",
+      "protoType": "ai.stigmer.agentic.eval.v1.CreateEvalArtifactUploadUrlRequest",
+      "protoFile": "apis/ai/stigmer/agentic/eval/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the eval belongs to.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The slug the push will name: minting asks exactly what that push asks.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "SizeBytes",
+          "jsonName": "sizeBytes",
+          "protoField": "size_bytes",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Declared size of the archive in bytes; an over-limit declaration is\n refused before any bytes move.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "EvalArtifactUploadUrl",
+      "description": "EvalArtifactUploadUrl is a short-lived, single-use capability for staging\n an eval archive over HTTP.",
+      "protoType": "ai.stigmer.agentic.eval.v1.EvalArtifactUploadUrl",
+      "protoFile": "apis/ai/stigmer/agentic/eval/v1/io.proto",
+      "fields": [
+        {
+          "name": "Url",
+          "jsonName": "url",
+          "protoField": "url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to PUT the archive bytes to. Content-Type: application/zip.",
+          "required": false
+        },
+        {
+          "name": "ArtifactUploadRef",
+          "jsonName": "artifactUploadRef",
+          "protoField": "artifact_upload_ref",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Opaque reference to pass as PushEvalRequest.artifact_upload_ref after\n the PUT succeeds. Single-use; invalid after the push consumes it or the\n TTL lapses.",
+          "required": false
+        },
+        {
+          "name": "TtlSeconds",
+          "jsonName": "ttlSeconds",
+          "protoField": "ttl_seconds",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Time-to-live for the upload URL in seconds.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "UpdateVisibilityInput",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode. Each\n level maps to exactly one tuple shape; on a transition the tuple for the\n old level is removed and the tuple for the new level is created:\n - PRIVATE:  no visibility tuple (owner + explicit grants only)\n - ORG:      resource#viewer@organization:\u003corg\u003e#viewer\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n\n Not all resources support all visibility levels — the supported set is\n declared per kind via VisibilityConfig in kind_meta:\n - Blueprints (agent, skill, plugin):\n     PRIVATE, ORG, or CHILD_ORGS\n - Org-only kinds (vault):\n     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)\n\n visibility_public is refused for every kind (INVALID_ARGUMENT naming the\n supported levels); the level is retired.",
+      "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the resource whose visibility is being updated.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Visibility",
+          "jsonName": "visibility",
+          "protoField": "visibility",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+            "enumValues": [
+              "visibility_private",
+              "visibility_public",
+              "visibility_org",
+              "visibility_child_orgs"
+            ]
+          },
+          "description": "The new visibility setting for the resource.\n Must not be unspecified (0). Valid values depend on resource kind —\n see the VisibilityConfig in the kind's kind_meta.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "RenameInput",
+      "description": "Input for renaming any API resource: changing its slug.\n\n Used by resource-specific command controllers whose kind lets a slug\n change. Each controller's rename RPC accepts this shared input and returns\n the full updated resource. A resource's slug never changes through update\n or apply; rename is its only writer.",
+      "protoType": "ai.stigmer.commons.apiresource.RenameInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the resource being renamed.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The new slug. Same format as metadata.slug, at most 63 characters: the\n longest a reference's org takes.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceReference",
+      "description": "Generic reference to any API resource.\n Used across resources to reference other resources (e.g., Vault, Agent, Skill).\n Canonical written format: \"org/slug\" (e.g., \"acme/web-search\", \"acme/my-agent\").\n\n A reference has three forms:\n - Written: by name (org and slug), by id, or by both. A write that carries\n   both must have them agree, or it is refused naming both. A name is\n   resolved to its resource's id when the referring resource is written.\n - Stored: org (the organization's id), kind, id and version. The slug is\n   not stored, so a reference keeps pointing at the resource it meant when\n   that resource is renamed, and never at a new resource that takes its old\n   name after it is deleted.\n - Returned: as stored, with slug filled with the resource's current name.\n   A reference whose resource was deleted is returned with an empty slug.\n\n The kind a reference names is the kind its field declares\n (reference_kind); a reference that carries another kind is refused.\n\n Every reference in a resource's spec is checked when the resource is\n written: the target must exist, and a target in another organization\n must be one the writing organization's parent shares with its child\n organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be\n more visible than the skills, plugins and agents it references, so\n what a person can run they can also read. A reference that fails the\n check is refused at write, never at run.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the referenced resource, by slug or id.\n\n When non-empty: an organization slug (lowercase alphanumeric with hyphens,\n starts with a letter, 2-63 characters; e.g. \"stigmer\", \"acme-corp\") or an\n organization id (org_\u003culid\u003e). The server stores the id, so a stored\n reference keeps pointing at its organization across a rename.\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form, the id).\n\n Use empty org for same-org references (the common case).\n An explicit other org is accepted only when that organization is your\n organization's parent and shares the resource with its children\n (visibility_child_orgs).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$|^org_[0-9a-z]{26}$"
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+            "enumValues": [
+              "api_resource_version",
+              "grant",
+              "identity_account",
+              "api_key",
+              "invitation",
+              "federation_issuer",
+              "oauth_app",
+              "team",
+              "organization",
+              "platform",
+              "agent",
+              "run",
+              "session",
+              "skill",
+              "agent_share",
+              "agent_channel",
+              "channel_app",
+              "schedule",
+              "memory",
+              "plugin",
+              "vault",
+              "score",
+              "evaluator",
+              "eval_run",
+              "eval",
+              "plan",
+              "subscription",
+              "license"
+            ]
+          },
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter\n and end with a letter or digit (e.g., \"web-search\", \"code-reviewer\").\n Length: 2-63 characters.\n\n Written to name the resource; never stored; returned filled with the\n resource's current name, empty when the resource was deleted.",
+          "required": false,
+          "validation": {
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Version",
+          "jsonName": "version",
+          "protoField": "version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The version of a skill, a plugin or a subagent the reference asks for;\n every other kind ignores it.\n\n Formats:\n - empty or \"latest\": the latest version;\n - a tag (e.g. \"stable\", \"v1.0\"): the version the tag names;\n - a 64-character hash: that exact version, which never changes.\n\n When it is read: a skill or plugin reference is resolved at the start\n of each turn, so a reference without a hash follows each new push, and\n the run records the version it loaded (RunStatus.loaded_versions). A\n subagent reference is resolved once, when the agent that lists it is\n saved, and the saved reference carries the hash it resolved to.",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
+          }
+        },
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The referenced resource's id: what a stored reference holds. Optional\n on write, where the slug may name the resource instead; an id no\n resource of the kind holds answers as a missing resource. At most 64\n characters.",
+          "required": false,
+          "validation": {
+            "maxLength": 64
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListEvalsRequest",
+      "description": "Input for listing an organization's evals, newest first.",
+      "protoType": "ai.stigmer.agentic.eval.v1.ListEvalsRequest",
+      "protoFile": "apis/ai/stigmer/agentic/eval/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization whose evals to list, by id or slug.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
+        },
+        {
+          "name": "Labels",
+          "jsonName": "labels",
+          "protoField": "labels",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Only resources carrying every label given, each matched exactly (AND).\n A selective filter may answer short pages, even empty ones, that still\n carry a token.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "EvalList",
+      "description": "One page of an organization's evals.",
+      "protoType": "ai.stigmer.agentic.eval.v1.EvalList",
+      "protoFile": "apis/ai/stigmer/agentic/eval/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "Eval"
+            }
+          },
+          "description": "The evals in this page, newest first.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListEvalVersionsInput",
+      "description": "ListEvalVersionsInput requests the version history of an eval.",
+      "protoType": "ai.stigmer.agentic.eval.v1.ListEvalVersionsInput",
+      "protoFile": "apis/ai/stigmer/agentic/eval/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the eval.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Eval slug (unique within the organization).",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListEvalVersionsResponse",
+      "description": "ListEvalVersionsResponse is a page of an eval's version history.",
+      "protoType": "ai.stigmer.agentic.eval.v1.ListEvalVersionsResponse",
+      "protoFile": "apis/ai/stigmer/agentic/eval/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "EvalVersionEntry"
+            }
+          },
+          "description": "Versions, newest first.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "EvalArchive",
+      "description": "EvalArchive is one version of an eval as the ZIP archive it was pushed\n as.",
+      "protoType": "ai.stigmer.agentic.eval.v1.EvalArchive",
+      "protoFile": "apis/ai/stigmer/agentic/eval/v1/io.proto",
+      "fields": [
+        {
+          "name": "Artifact",
+          "jsonName": "artifact",
+          "protoField": "artifact",
+          "type": {
+            "kind": "bytes"
+          },
+          "description": "The archive bytes.",
+          "required": false
+        },
+        {
+          "name": "Digest",
+          "jsonName": "digest",
+          "protoField": "digest",
+          "type": {
+            "kind": "string"
+          },
+          "description": "SHA-256 of the archive: the version's digest.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "EvalArchiveDownloadUrl",
+      "description": "EvalArchiveDownloadUrl is a URL to download one version of an eval over\n HTTP.",
+      "protoType": "ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl",
+      "protoFile": "apis/ai/stigmer/agentic/eval/v1/io.proto",
+      "fields": [
+        {
+          "name": "Url",
+          "jsonName": "url",
+          "protoField": "url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to download the archive ZIP via HTTP GET.",
+          "required": false
+        },
+        {
+          "name": "TtlSeconds",
+          "jsonName": "ttlSeconds",
+          "protoField": "ttl_seconds",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Time-to-live for the download URL in seconds; 0 means no expiry.",
+          "required": false
+        },
+        {
+          "name": "SizeBytes",
+          "jsonName": "sizeBytes",
+          "protoField": "size_bytes",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Size of the archive ZIP in bytes.",
+          "required": false
+        },
+        {
+          "name": "Digest",
+          "jsonName": "digest",
+          "protoField": "digest",
+          "type": {
+            "kind": "string"
+          },
+          "description": "SHA-256 of the archive: the version's digest, which the downloaded\n bytes must match.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines which\n users, inside that organization or in its child organizations, can read\n the resource. No level reaches every\n account on the server.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n   (everyone in every child organization of the owning organization)\n - PUBLIC: retired; see the value's own comment.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, plugin), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Retired. This level made a resource readable to every account on the\n server; it is refused at create and at updateVisibility for every kind,\n and every stored row that held it has been moved to visibility_org.\n Sharing across organizations happens through plugins (a copy is\n installed and owned) or, from a parent organization to its children,\n through visibility_child_orgs."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role just-in-time provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_run_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
+        },
+        {
+          "name": "visibility_child_orgs",
+          "number": 4,
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and vaults are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "grant",
+          "number": 10,
+          "description": "One role given to one principal on one resource. Who holds what on a\n resource is the set of its grants."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "federation_issuer",
+          "number": 21,
+          "description": "An outside issuer whose tokens Stigmer accepts for its own users\n (identity federation): its keys, its audience, and what its tokens get."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "team",
+          "number": 24,
+          "description": "Named group of an organization's people that access is shared with as one."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "The boundary that holds people, Agents, Sessions and secrets\n together; nothing outside it sees them.\n\n Its id is a minted org_\u003culid\u003e that never changes; every organization-scoped\n resource names it by that id (metadata.org). Its slug is unique across the\n server and may change through rename; requests may name the organization\n by either."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "run",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "agent_share",
+          "number": 46,
+          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
+        },
+        {
+          "name": "agent_channel",
+          "number": 47,
+          "description": "Connection binding an agent to an external messaging platform workspace."
+        },
+        {
+          "name": "channel_app",
+          "number": 48,
+          "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
+        },
+        {
+          "name": "schedule",
+          "number": 56,
+          "description": "Recurring trigger that runs an agent on a cron schedule."
+        },
+        {
+          "name": "memory",
+          "number": 57,
+          "description": "Agent-proposed, user-confirmed fact the platform remembers about a person."
+        },
+        {
+          "name": "plugin",
+          "number": 58,
+          "description": "An installed Agent Plugins package: one thing holding skills, agents,\n hooks and MCP servers, which agents and conversations list whole."
+        },
+        {
+          "name": "vault",
+          "number": 59,
+          "description": "A person's or an organization's box of logins (matched by a tool's\n address) and secrets (matched by name) that runs use."
+        },
+        {
+          "name": "score",
+          "number": 61,
+          "description": "One grade of a finished run: a person's thumbs or a free run-health\n check."
+        },
+        {
+          "name": "evaluator",
+          "number": 62,
+          "description": "AI grading switched on for one agent: its sample rate, monthly spending\n limit and judge model."
+        },
+        {
+          "name": "eval_run",
+          "number": 65,
+          "description": "One run of test cases on an agent, or on a plugin on the built-in\n assistant, optionally with and without a plugin."
+        },
+        {
+          "name": "eval",
+          "number": 66,
+          "description": "A set of test cases for an agent: an evals/ folder in Claude Code's\n plugin-eval format, pushed whole."
+        },
+        {
+          "name": "plan",
+          "number": 70,
+          "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."
+        },
+        {
+          "name": "subscription",
+          "number": 71,
+          "description": "An organization's binding to a Plan; at most one active per organization.\n\n System-created: the payment system drives its lifecycle, so it has no\n owner and grants no roles. Its reads and writes authorize on the\n organization through the billing permissions."
+        },
+        {
+          "name": "license",
+          "number": 72,
+          "description": "A signed grant of entitlements to a self-hosting customer for a term.\n\n Platform-level: issued by the cloud's operators and verified offline by\n the Enterprise server, so the customer is a value inside the license\n (which may or may not name a cloud organization) and the kind has no\n authorization scope and no owner. Claims are immutable once signed; a\n renewal is a new License."
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "Eval is a set of test cases for an agent: an evals/ folder in Claude\n Code's plugin-eval format, pushed whole and kept with every version.\n\n Each case is a request a user might type, plus checks such as \"the reply\n mentions the renamed function\" or a pass-or-fail rubric for an AI judge.\n Pushing the same folder again changes nothing; a changed folder is a new\n version, reachable by its digest or by a tag.",
+  "statusType": {
+    "name": "EvalStatus",
+    "description": "EvalStatus is what an eval's current version holds: its digest and its\n test cases, read when it was pushed.",
+    "protoType": "ai.stigmer.agentic.eval.v1.EvalStatus",
+    "protoFile": "apis/ai/stigmer/agentic/eval/v1/status.proto",
+    "fields": [
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information tracking creation and modification.",
+        "required": false
+      },
+      {
+        "name": "Digest",
+        "jsonName": "digest",
+        "protoField": "digest",
+        "type": {
+          "kind": "string"
+        },
+        "description": "SHA-256 of the pushed folder's archive, the immutable version\n identifier.",
+        "required": false,
+        "validation": {
+          "pattern": "^$|^[a-f0-9]{64}$"
+        }
+      },
+      {
+        "name": "CaseCount",
+        "jsonName": "caseCount",
+        "protoField": "case_count",
+        "type": {
+          "kind": "int32"
+        },
+        "description": "Cases in the folder, listed or not.",
+        "required": false
+      },
+      {
+        "name": "CaseTags",
+        "jsonName": "caseTags",
+        "protoField": "case_tags",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "string"
+          }
+        },
+        "description": "The tags the listed cases carry, once each, sorted: at most 200.",
+        "required": false
+      },
+      {
+        "name": "Cases",
+        "jsonName": "cases",
+        "protoField": "cases",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "EvalCaseSummary"
+          }
+        },
+        "description": "Each case, in directory order: at most 200.",
+        "required": false
+      },
+      {
+        "name": "Findings",
+        "jsonName": "findings",
+        "protoField": "findings",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "EvalFinding"
+          }
+        },
+        "description": "Problems reading the folder: a case that cannot load, an unknown field,\n a mock directory whose name no MCP server could have. At most 50.",
+        "required": false
+      },
+      {
+        "name": "MockServers",
+        "jsonName": "mockServers",
+        "protoField": "mock_servers",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "string"
+          }
+        },
+        "description": "The MCP servers the folder's mocks stand in for, by the directory names\n under mocks/, sorted.",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.\n\n This is the platform's single actor vocabulary: every \"who did this\"\n reference (created_by / updated_by, version-history applied_by / pushed_by,\n approval resolved_by_actor) uses this message, so actor rendering is\n uniform across all surfaces.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": "displayName",
+          "protoField": "display_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable display name (e.g. \"Ada Lovelace\"). Empty when unknown;\n renderers fall back to email, then id.",
+          "required": false
+        },
+        {
+          "name": "Email",
+          "jsonName": "email",
+          "protoField": "email",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Email address of the actor. Empty when unknown or not applicable\n (e.g. machine accounts).",
+          "required": false
+        },
+        {
+          "name": "MintedBy",
+          "jsonName": "mintedBy",
+          "protoField": "minted_by",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The service account whose key minted the user token the actor acted\n through. Empty for every other credential, and on an actor that records\n no act (an account's profile lookup).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "EvalCaseSummary",
+      "description": "EvalCaseSummary is one test case of an eval.",
+      "protoType": "ai.stigmer.agentic.eval.v1.EvalCaseSummary",
+      "protoFile": "apis/ai/stigmer/agentic/eval/v1/status.proto",
+      "fields": [
+        {
+          "name": "CaseName",
+          "jsonName": "caseName",
+          "protoField": "case_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The case's name.",
+          "required": false
+        },
+        {
+          "name": "Path",
+          "jsonName": "path",
+          "protoField": "path",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The case's directory, relative to the folder's root.",
+          "required": false
+        },
+        {
+          "name": "CaseTags",
+          "jsonName": "caseTags",
+          "protoField": "case_tags",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "The case's tags.",
+          "required": false
+        },
+        {
+          "name": "Unsupported",
+          "jsonName": "unsupported",
+          "protoField": "unsupported",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Why Stigmer cannot run the case yet, naming the feature, as in\n \"plugins\" for a case that runs with a plugin; empty when it can.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "EvalFinding",
+      "description": "EvalFinding is one problem a push found reading an eval's folder and did\n not refuse.",
+      "protoType": "ai.stigmer.agentic.eval.v1.EvalFinding",
+      "protoFile": "apis/ai/stigmer/agentic/eval/v1/status.proto",
+      "fields": [
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Stable finding kind, e.g. \"eval-case-invalid\", \"eval-mock-invalid\".",
+          "required": false
+        },
+        {
+          "name": "Message",
+          "jsonName": "message",
+          "protoField": "message",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The finding as one user-facing sentence.",
+          "required": false
+        },
+        {
+          "name": "Path",
+          "jsonName": "path",
+          "protoField": "path",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The folder-relative path the finding points at.",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

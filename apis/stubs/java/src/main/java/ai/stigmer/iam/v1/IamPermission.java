@@ -326,6 +326,16 @@ public enum IamPermission
    * <code>can_mint_user_tokens = 57;</code>
    */
   can_mint_user_tokens(57),
+  /**
+   * <pre>
+   * Organization-level permission to create an eval: push an evals/ folder
+   * under a slug no eval of the organization holds. Whoever may create
+   * agents may create their tests.
+   * </pre>
+   *
+   * <code>can_create_eval = 58;</code>
+   */
+  can_create_eval(58),
   UNRECOGNIZED(-1),
   ;
 
@@ -640,6 +650,16 @@ public enum IamPermission
    * <code>can_mint_user_tokens = 57;</code>
    */
   public static final int can_mint_user_tokens_VALUE = 57;
+  /**
+   * <pre>
+   * Organization-level permission to create an eval: push an evals/ folder
+   * under a slug no eval of the organization holds. Whoever may create
+   * agents may create their tests.
+   * </pre>
+   *
+   * <code>can_create_eval = 58;</code>
+   */
+  public static final int can_create_eval_VALUE = 58;
 
 
   public final int getNumber() {
@@ -704,6 +724,7 @@ public enum IamPermission
       case 55: return can_manage_keys;
       case 56: return can_view_access_history;
       case 57: return can_mint_user_tokens;
+      case 58: return can_create_eval;
       default: return null;
     }
   }

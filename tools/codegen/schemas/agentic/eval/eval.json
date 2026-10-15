@@ -1,0 +1,22 @@
+{
+  "name": "EvalSpec",
+  "description": "EvalSpec holds what a push says about the eval's current version.",
+  "protoType": "ai.stigmer.agentic.eval.v1.EvalSpec",
+  "protoFile": "apis/ai/stigmer/agentic/eval/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Tag",
+      "jsonName": "tag",
+      "protoField": "tag",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The tag the current version holds, such as \"stable\" or \"v2\"; empty when\n it holds none.\n\n A tag names one version at a time: pushing with a tag moves it to that\n version. \"latest\" is not a tag; a reference without a version, or with\n \"latest\", already names the current version.",
+      "required": false,
+      "validation": {
+        "maxLength": 128,
+        "pattern": "^$|^[a-zA-Z0-9._-]+$"
+      }
+    }
+  ]
+}

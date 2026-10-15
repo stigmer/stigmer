@@ -1,7 +1,7 @@
 /**
  * Reading an eval's suite: the plugin's archive at the eval's digest,
  * opened through the same gate a push opens it with
- * (domain/plugin/archive.ts), then read by `readEvalSuite`. The archive is
+ * (archive/open-files.ts), then read by `readEvalSuite`. The archive is
  * authoritative: `PluginStatus.evals` is a summary for the plugin's page
  * and is absent on plugins installed before the library read suites, so
  * create and the eval's workflow both read the archive itself.
@@ -23,7 +23,7 @@ import type { ContentAddressedArchiveStore } from "../../archive/content-store.j
 import type { VersionedResourceBinding } from "../../pipeline/steps/version-history.js";
 import { loadVersion } from "../../pipeline/steps/version-history.js";
 import type { Store } from "../../store/interface.js";
-import { openPluginArchive } from "../plugin/archive.js";
+import { openArchiveFiles } from "../../archive/open-files.js";
 import { pluginLiveTag } from "../plugin/push.js";
 
 /** What reading a suite needs: a plugin version's files. */
@@ -88,7 +88,7 @@ export function newPluginArchiveReader(
       const key =
         recordedKey !== "" ? recordedKey : deps.archives.getStorageKey(digest);
       const bytes = await deps.archives.get(key);
-      const opened = openPluginArchive(bytes);
+      const opened = openArchiveFiles(bytes, "plugin");
       if (opened.digest !== digest) {
         throw new Error(
           `plugin archive ${key} does not hash to version ${digest}`,

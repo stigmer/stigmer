@@ -48,6 +48,7 @@ import { newVaultPurge } from "../domain/vault/purge.js";
 import { newOAuthAppPurge } from "../domain/oauthapp/purge.js";
 import type { KindPurge, KindPurgeDeps } from "../domain/organization/purge/kind-purge.js";
 import { newPluginPurge } from "../domain/plugin/purge.js";
+import { newEvalPurge } from "../domain/eval/purge.js";
 import type { ClockProvider } from "../domain/schedule/clock.js";
 import { newSchedulePurge } from "../domain/schedule/purge.js";
 import type { RunScoreCascade } from "../domain/score/cascade.js";
@@ -118,6 +119,7 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
       newAgentPurge(deps),
       newSkillPurge(deps),
       newPluginPurge(deps),
+      newEvalPurge(deps),
       // What runs and blueprints read, last: a run references its vaults.
       newVaultPurge(deps),
       newOAuthAppPurge(deps),
@@ -151,6 +153,7 @@ export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.agent,
   ApiResourceKind.skill,
   ApiResourceKind.plugin,
+  ApiResourceKind.eval,
   ApiResourceKind.vault,
   ApiResourceKind.oauth_app,
   ApiResourceKind.api_key,

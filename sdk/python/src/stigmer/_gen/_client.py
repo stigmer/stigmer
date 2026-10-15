@@ -9,6 +9,7 @@ from ._agentchannel import AgentChannelClient
 from ._agentshare import AgentShareClient
 from ._apikey import ApiKeyClient
 from ._channelapp import ChannelAppClient
+from ._eval import EvalClient
 from ._evalrun import EvalRunClient
 from ._evaluator import EvaluatorClient
 from ._federationissuer import FederationIssuerClient
@@ -41,6 +42,7 @@ class GeneratedClient:
         self.agent_shares = AgentShareClient(channel)
         self.api_keys = ApiKeyClient(channel)
         self.channelapps = ChannelAppClient(channel)
+        self.evals = EvalClient(channel)
         self.evalruns = EvalRunClient(channel)
         self.evaluators = EvaluatorClient(channel)
         self.federation_issuers = FederationIssuerClient(channel)
