@@ -340,7 +340,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 
 | Method | Annotation | Handler |
 |---|---|---|
-| SearchService.search | is_skip_authorization | direct: CQRS read over the search query store, cross-aggregate, no api_resource_kind option (driver: ListReadScope — a composed scope narrows to the caller's authorized rows, fed as a per-effective-kind authorized-id allowlist into the engine query on every request shape) |
+| SearchService.search | is_skip_authorization | direct: CQRS read over the search query store, cross-aggregate, no api_resource_kind option (driver: ListReadScope — a composed scope narrows to the caller's authorized rows, fed as a per-effective-kind authorized-id allowlist into the engine query on every request shape; each kind's allowlist is built by its reach, `src/query/search/reach.ts`: agents, skills and plugins from the searched organizations' rows through the restrict verb, organizations from the `OrganizationDirectory`, sessions and runs from the enumeration) |
 
 ## 24. Activity (`src/query/activity/controller.ts`)
 

@@ -721,8 +721,9 @@ export async function composeServer(
       : undefined);
   // The ONE list read scope (the seam's single-instance point), bound
   // here under the same posture and handed to every list-shaped consumer
-  // below — the post-scan lanes through restrictListByReadScope, the
-  // search, activity and summary lanes through the enumeration verb. A
+  // below — the post-scan lanes, recent activity, the run summaries and
+  // search's organization kinds through restrictListByReadScope, search's
+  // sessions and runs through the enumeration verb. A
   // unit's driver wins in every posture; the built-in one evaluates the
   // model per candidate over the facts the candidate carries
   // (authorization/list-read-scope.ts); trusted-local composes none and
@@ -1495,11 +1496,13 @@ export async function composeServer(
     searchRegistry,
     logger,
   );
-  const searchHandler = new SearchHandler(
-    searchQueryStore,
-    logger,
+  const searchHandler = new SearchHandler({
+    store: searchQueryStore,
+    rows: store,
+    organizationDirectory,
     listReadScope,
-  );
+    logger,
+  });
   // The activity recents feed — pure reads over listResources.
   const activityHandler = new ActivityHandler(store, logger, listReadScope);
   // The plugin tools listing's engine provider — the same manager-backed

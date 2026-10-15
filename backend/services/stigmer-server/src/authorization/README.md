@@ -101,8 +101,8 @@ computes.
   offers is answered by `can_view`, the same question a get asks — one evaluator
   walk per candidate over one source seeded with the candidates' facts, so no
   candidate row is read twice and a parent hop reads each distinct parent once;
-  the enumeration verb (search, recent activity, the two execution summaries —
-  the console library rides it) scans the kind and evaluates the same way, a row
+  the enumeration verb (search's sessions and runs, whose reach is the person's
+  own; `query/search/reach.ts`) scans the kind and evaluates the same way, a row
   that does not decode skipped; the `internal` class keeps everything (the
   in-process skip); a fault throws and is never an empty answer; an undeclared
   kind is a consumer bug, loud.
