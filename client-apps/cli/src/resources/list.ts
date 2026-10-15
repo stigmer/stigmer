@@ -18,8 +18,8 @@
 // wire as-is.
 
 import { create, type DescMessage, type Message } from "@bufbuild/protobuf";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { ListAgentChannelsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ListChannelsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ListChannelAppsInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
@@ -113,15 +113,15 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
     },
   ],
   [
-    ApiResourceKind.agent_channel,
+    ApiResourceKind.channel,
     async (client, org, limit, labels) => {
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
-        client.agentChannel.list(create(ListAgentChannelsRequestSchema, { org, pageSize, pageToken, labels })),
+        client.channel.list(create(ListChannelsRequestSchema, { org, pageSize, pageToken, labels })),
       );
       return {
-        schema: AgentChannelSchema,
+        schema: ChannelSchema,
         entries,
-        table: AGENT_CHANNEL_TABLE,
+        table: CHANNEL_TABLE,
       };
     },
   ],
@@ -380,30 +380,47 @@ function agentLabel(agentRef: JsonObject, orgLabel: OrgLabel): string {
   return `${orgLabel(str(agentRef, "org"))}/${slug}`;
 }
 
-// A channel serves traffic only when installed AND enabled (the install
+// A channel's TYPE is the arm its spec carries (web, slack or whatsapp).
+// STATE is what decides who reaches the agent: a web channel's audience
+// (public or org), or a Slack or WhatsApp channel's install state. Such a
+// channel serves traffic only when installed AND enabled (the install
 // lifecycle and the owner's serving switch are deliberately distinct), so
 // the table surfaces both signals side by side.
-const AGENT_CHANNEL_TABLE: TableShape = {
-  resourceName: "agent channels",
-  headers: ["ID", "SLUG", "AGENT", "PROVIDER", "STATE", "ENABLED"],
+const CHANNEL_TABLE: TableShape = {
+  resourceName: "channels",
+  headers: ["ID", "SLUG", "AGENT", "TYPE", "STATE", "ENABLED"],
   orgs: (json) => [str(obj(obj(json, "spec"), "agent_ref"), "org")],
   row: (json, orgLabel) => {
     const metadata = obj(json, "metadata");
     const spec = obj(json, "spec");
     const agentRef = obj(spec, "agent_ref");
+    const type = channelTypeOf(spec);
     return [
       str(metadata, "id"),
       str(metadata, "slug"),
       agentLabel(agentRef, orgLabel),
-      providerOf(spec),
-      // Zero-valued enums are omitted from protojson; a channel is
-      // initialized to pending_install on create, so "-" is the rare
-      // unspecified case, matching the date() empty convention.
-      str(obj(json, "status"), "install_state") || "-",
+      type,
+      type === "web" ? webAudience(obj(spec, "web")) : str(obj(json, "status"), "install_state") || "-",
       bool(spec, "enabled") ? "true" : "false",
     ];
   },
 };
+
+// The type oneof serializes as exactly one type-named key in protojson.
+// Extend this list when a new type arm lands in the protos.
+const CHANNEL_TYPE_KEYS = ["web", "slack", "whatsapp"] as const;
+
+function channelTypeOf(spec: JsonObject): string {
+  return CHANNEL_TYPE_KEYS.find((key) => key in spec) ?? "-";
+}
+
+// A web channel's audience without the enum's prefix. Zero-valued enums are
+// omitted from protojson, and an omitted audience means the organization's
+// members (the server writes org in its place), so absent reads "org".
+function webAudience(web: JsonObject): string {
+  const audience = str(web, "audience");
+  return audience === "" ? "org" : audience.replace(/^channel_audience_/, "");
+}
 
 // Secret fields never reach this table: list responses are redacted
 // server-side in both editions (the RedactChannelApp pipeline).
@@ -485,8 +502,7 @@ function qualifiedName(json: JsonObject, orgLabel: OrgLabel): string {
 }
 
 // The provider_config oneof serializes as exactly one provider-named key in
-// protojson (AgentChannelSpec and ChannelAppSpec share the same oneof
-// shape). Extend this list when a new provider arm lands in the protos.
+// protojson. Extend this list when a new provider arm lands in the protos.
 const PROVIDER_KEYS = ["slack", "whatsapp"] as const;
 
 function providerOf(spec: JsonObject): string {

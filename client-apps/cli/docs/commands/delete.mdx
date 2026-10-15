@@ -29,8 +29,8 @@ stigmer delete agent my-agent --force
 | Type | Aliases | Behavior |
 |------|---------|----------|
 | Agent | `agent`, `agt`, `agents` | Permanently deletes the agent definition |
-| Agent Channel | `agent-channel`, `agentchannel`, `ach` | Disconnects the channel; the bound number stops serving the agent |
 | API Key | `apikey`, `key` | Revokes the key; callers using it are cut off immediately |
+| Channel | `channel`, `chn` | Tears the channel down: its chat link stops working, or its Slack workspace or WhatsApp number stops serving the agent |
 | Channel App | `channel-app`, `channelapp`, `chapp` | Permanently deletes the app and its stored provider secrets |
 | Eval Run | `eval-run`, `evr`, `eval-runs` | Deletes the eval run with its tries' conversations, runs and scores; a pending or running eval run is refused, so cancel it first |
 | Evaluator | `evaluator`, `evl`, `evaluators` | Switches AI grading off for its agent; scores already recorded stay on their runs |

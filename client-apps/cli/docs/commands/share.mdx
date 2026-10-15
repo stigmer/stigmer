@@ -36,9 +36,9 @@ stigmer share agent acme-corp/support-agent
 ```
 
 The command enables sharing and prints the public chat link
-(`https://app.stigmer.ai/chat/ash_01j9z3k8f2q4m6n7p8r9s0t1v2`) plus an embed
-snippet for your website. The link names the share by its permanent ID, so
-renaming your Organization never breaks it. Sharing is idempotent — running it
+(`https://app.stigmer.ai/chat/chn_01j9z3k8f2q4m6n7p8r9s0t1v2`) plus an embed
+snippet for your website. The link names the Agent's web Channel by its
+permanent ID, so renaming your Organization never breaks it. Sharing is idempotent — running it
 again reports the link without another write.
 
 Any embed origins or visitor messages you configured in the console's Share
@@ -84,13 +84,15 @@ kept for the next time you enable sharing.
 - Guest chat is served by Stigmer Cloud. Against a local backend the command
   still records the share, but the local link won't serve visitors.
 - A share lives in the Agent's own Organization, and creating one needs that
-  Organization's admin role (`can_create_agent_share`) as well as permission to
+  Organization's admin role (`can_create_channel`) as well as permission to
   edit the Agent. To share another Organization's Agent from yours, install the
   Plugin that carries it and share the installed copy.
 - To restrict which websites may embed the Agent, customize visitor messages,
   or bind tool credentials, use the Share dialog in the web console.
-- Sharing is stored as its own AgentShare resource, separate from the Agent.
-  Manage it declaratively with `stigmer apply`. Run `stigmer share agent`
+- Sharing is stored as the Agent's web Channel (`kind: Channel` with
+  `spec.web`), separate from the Agent. The first share creates one named
+  after the Agent (`<agent slug>-web`). Manage it declaratively with
+  `stigmer apply`, and list it with `stigmer get channels`. Run `stigmer share agent`
   on a share that is already on to print its link again: it changes nothing.
 
 {/* AUTO_SUBCOMMANDS */}

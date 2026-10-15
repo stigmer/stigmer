@@ -5,7 +5,7 @@
 // resolved org when absent → dry-run preview OR drive the raw command
 // controller's `apply` RPC with the full proto → build a CommandResult. Items
 // across all files are sorted into dependency order before applying so parents
-// (org → agent → agent channel → …) land before their dependents.
+// (org → agent → channel → …) land before their dependents.
 //
 // The slug rules (a renamed-away slug named, a declared slug followed with a
 // rename, a kind that cannot rename) are the SDK's, shared with the

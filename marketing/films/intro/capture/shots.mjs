@@ -13,7 +13,7 @@
  * - The chat scene is the owner-approved two-turn beat: natural ask,
  *   agent proposes, a quick "yes", then the gate.
  */
-import { readShareId } from "../demo/share-id.mjs";
+import { readChannelId } from "../demo/channel-id.mjs";
 import { CONSOLE_ORIGIN, ORG, dismissBanner, ensureOrg } from "./lib/harness.mjs";
 
 const lib = (path) => `${CONSOLE_ORIGIN}/library/${path}`;
@@ -117,7 +117,7 @@ export const SHOTS = {
   /** S4e — the hosted share link, live for anyone you choose. */
   "s4e-share": async (page, human) => {
     // The link names the share by the id the seed recorded.
-    await page.goto(`${CONSOLE_ORIGIN}/chat/${readShareId()}`, { waitUntil: "networkidle" });
+    await page.goto(`${CONSOLE_ORIGIN}/chat/${readChannelId()}`, { waitUntil: "networkidle" });
     await dismissBanner(page);
     await human.beat(2);
     await human.click(page.getByRole("textbox").first());

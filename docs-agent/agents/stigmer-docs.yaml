@@ -5,7 +5,7 @@ metadata:
   org: stigmer
   # Org visibility on purpose: this is first-party docs infrastructure, not a
   # marketplace template (that role belongs to stigmer/org-knowledge-agent).
-  # Public chat access comes from the AgentShare in ../shares/ — a share
+  # Public chat access comes from the web Channel in ../channels/ — a channel
   # carries its own audience and never exposes this blueprint's internals.
   visibility: visibility_org
 spec:
@@ -66,7 +66,7 @@ spec:
   # No mcp_server_usages, deliberately. Web retrieval is a harness built-in
   # on both harnesses — `web_fetch` natively, `WebFetch` on Cursor — so this
   # agent needs ZERO tool wiring: no MCP server to resolve, no subprocess to
-  # spawn, no credentials to bind on the share, nothing to rotate. The
+  # spawn, no credentials to bind on the channel, nothing to rotate. The
   # built-in is auto-approved by design (see stigmer#214), which is exactly
   # what anonymous guest conversations require: they run in unattended
   # approval mode, where a tool that requires approval is silently SKIPPED —

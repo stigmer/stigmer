@@ -8,11 +8,11 @@
 /**
  * Generate every accepted input form for a resource kind.
  *
- * From name "AgentChannel":   "agentchannel", "agent-channel", "agent_channel", "AgentChannel"
- * From displayName "Agent Channel": nothing here ("agent" is the name's own prefix);
+ * From name "ChannelApp":     "channelapp", "channel-app", "channel_app", "ChannelApp"
+ * From displayName "Channel App": nothing here ("channel" is the name's own prefix);
  *                              a single-word display name adds its lower/upper forms
- * From idPrefix "ach":         "ach"
- * From protoName "agent_channel": usually re-derives the forms above; for
+ * From idPrefix "chapp":       "chapp"
+ * From protoName "channel_app": usually re-derives the forms above; for
  *                              "OAuthApp" it contributes "oauth_app"/"oauth-app"
  * Plus the plural of every form above.
  */
@@ -34,13 +34,13 @@ export function generateAliases(
     }
   };
 
-  // From name: "AgentChannel"
-  add(name.toLowerCase()); // "agentchannel"
-  add(toKebabCase(name)); // "agent-channel"
-  add(toSnakeCase(name)); // "agent_channel"
-  add(name); // "AgentChannel"
+  // From name: "ChannelApp"
+  add(name.toLowerCase()); // "channelapp"
+  add(toKebabCase(name)); // "channel-app"
+  add(toSnakeCase(name)); // "channel_app"
+  add(name); // "ChannelApp"
 
-  // From the proto enum value name: "agent_channel". For most kinds this re-derives
+  // From the proto enum value name: "channel_app". For most kinds this re-derives
   // the snake/kebab forms above, but it is the only source that knows the true
   // word boundaries when the PascalCase name has consecutive capitals — no split
   // of "OAuthApp" can recover "oauth_app", because "OAuth" being one word is
@@ -52,8 +52,8 @@ export function generateAliases(
 
   // From display_name: single-word names contribute lower/upper forms; for
   // multi-word names only the first word is added, and only when it does not
-  // simply re-derive the name (this stops "Agent Share" from stealing
-  // "agent" from "Agent", while still letting a display name whose first word
+  // simply re-derive the name (this stops "Channel App" from stealing
+  // "channel" from "Channel", while still letting a display name whose first word
   // is not the name's own prefix register that word).
   const words = displayName.split(/\s+/).filter((w) => w.length > 0);
   if (words.length === 1) {
@@ -68,7 +68,7 @@ export function generateAliases(
     }
   }
 
-  // From id_prefix: "ach"
+  // From id_prefix: "chapp"
   add(idPrefix);
 
   // Plurals of every form gathered so far.
@@ -79,12 +79,12 @@ export function generateAliases(
   return aliases;
 }
 
-/** Convert PascalCase to kebab-case: "AgentChannel" -> "agent-channel". */
+/** Convert PascalCase to kebab-case: "ChannelApp" -> "channel-app". */
 export function toKebabCase(s: string): string {
   return splitCase(s, "-");
 }
 
-/** Convert PascalCase to snake_case: "AgentChannel" -> "agent_channel". */
+/** Convert PascalCase to snake_case: "ChannelApp" -> "channel_app". */
 export function toSnakeCase(s: string): string {
   return splitCase(s, "_");
 }

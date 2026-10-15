@@ -5,7 +5,7 @@
 
 import type { DescMessage, Message } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
@@ -44,11 +44,11 @@ export const GET_BINDINGS: ReadonlyMap<ApiResourceKind, Getter> = new Map([
     refGetter(ApiResourceKind.vault, VaultSchema, (c) => c.vault),
   ],
   [
-    ApiResourceKind.agent_channel,
+    ApiResourceKind.channel,
     refGetter(
-      ApiResourceKind.agent_channel,
-      AgentChannelSchema,
-      (c) => c.agentChannel,
+      ApiResourceKind.channel,
+      ChannelSchema,
+      (c) => c.channel,
     ),
   ],
   [
