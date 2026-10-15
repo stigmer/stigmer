@@ -7,7 +7,10 @@
  * fill in seeded with why the run went wrong. The person either downloads
  * that case folder as a zip whose one top-level directory is the case's
  * name, or adds it to one of the organization's evals as a new version
- * (`eval.addCaseFromRun`); the evals are listed only once the panel opens.
+ * (`eval.addCaseFromRun`); the evals are listed only once the panel opens,
+ * every page of them, the next read when the person asks for more. While
+ * they load the panel says so, and a list that fails is shown as such,
+ * never as an organization with no evals.
  * What the case leaves out (the server's notes) is listed after a
  * download, and the panel says that adding a case shows the conversation
  * to everyone who can read the eval.
@@ -47,7 +50,7 @@ const ACTION_CLASSES = cn(
 /** Downloads a run as a test case, or adds it to an eval (the module header). */
 export function MakeTestCasePanel({ runId, org }: MakeTestCasePanelProps) {
   const stigmer = useStigmer();
-  const { evals, isLoading } = useEvals(org);
+  const { evals, isLoading, error: listError, hasMore, loadMore, isLoadingMore, loadMoreError } = useEvals(org);
   const [chosen, setChosen] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -125,11 +128,27 @@ export function MakeTestCasePanel({ runId, org }: MakeTestCasePanelProps) {
             </button>
           </>
         )}
+        {hasMore && (
+          <button type="button" disabled={isLoadingMore} onClick={loadMore} className={ACTION_CLASSES}>
+            Load more evals
+          </button>
+        )}
       </div>
-      {evals.length > 0 ? (
+      {isLoading ? (
+        <p>Loading the organization's evals…</p>
+      ) : listError !== null ? (
+        <p role="alert" className="stg:text-destructive">
+          The organization's evals could not be listed: {listError.message}
+        </p>
+      ) : evals.length > 0 ? (
         <p>Everyone who can read the eval will see this conversation.</p>
       ) : (
-        !isLoading && <p>No evals in this organization yet: push one with stigmer push eval to add cases to it here.</p>
+        <p>No evals in this organization yet: push one with stigmer push eval to add cases to it here.</p>
+      )}
+      {loadMoreError !== null && (
+        <p role="alert" className="stg:text-destructive">
+          More evals could not be listed: {loadMoreError.message}
+        </p>
       )}
       {status !== null && <p role="status">{status}</p>}
       {notes.length > 0 && (

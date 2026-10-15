@@ -4,11 +4,14 @@
 // representative folder; a one-case folder is the cheap row the role cells
 // and the rename table push; a folder of authored cases is what an eval run
 // on an agent runs. One deterministic zipper (skills.ts) turns a
-// file map into the archive, so the same map is the same digest.
+// file map into the archive, so the same map is the same digest. A case the
+// server builds from a run reads back as text by its paths, and the
+// server's three sentences about such a case are copied here.
 // Domain: conformance support (agentic / eval).
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { strFromU8, unzipSync } from "fflate";
 import { evalCaseFiles, type EvalCaseFixture } from "./eval-runs";
 import { zipFiles } from "./skills";
 import { WORKING_AGENT_FIXTURE_DIR } from "./working-agent";
@@ -65,4 +68,23 @@ export function evalFolderArchive(cases: readonly EvalCaseFixture[], files: Read
 /** Lowercase hex SHA-256 of an archive: the version digest the server records. */
 export function digestOf(archive: Uint8Array): string {
   return createHash("sha256").update(archive).digest("hex");
+}
+
+/** A case archive `EvalQueryController.buildCaseFromRun` answers, as text by its paths. */
+export function caseArchiveText(archive: Uint8Array): Record<string, string> {
+  return Object.fromEntries(Object.entries(unzipSync(archive)).map(([path, bytes]) => [path, strFromU8(bytes)]));
+}
+
+/** The ALREADY_EXISTS sentence for a case name the eval already holds. */
+export function evalCaseExistsMessage(name: string, slug: string): string {
+  return `eval '${slug}' already holds a case named '${name}'; name this one otherwise`;
+}
+
+/** The FAILED_PRECONDITION sentence for an eval of another organization than the run's. */
+export const EVAL_CASE_OTHER_ORGANIZATION =
+  "the eval is not of the run's organization; a run's case is added to an eval of its own organization";
+
+/** The new version's message when an add names none. */
+export function evalCaseVersionMessage(name: string, runId: string): string {
+  return `case ${name} from run ${runId}`;
 }
