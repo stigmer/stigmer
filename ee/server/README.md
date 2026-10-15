@@ -12,7 +12,7 @@ The server reads one license key at boot and decides its edition once:
 - **A key that does not verify**: the boot is refused with the reason (an unknown key, a signature that does not match, contents that do not read, or a ticket that is not one), and the process exits 1. It never falls back to open source silently, because that would sign every single-sign-on person out over a typo.
 - **A verified key**: the Enterprise edition, on Postgres. Its tables live in their own `ee` schema beside the library's, created and migrated by the server at start.
 
-A license is verified offline, against the public keys compiled into this package; there is no setting that adds a key. When a license and its grace period have ended, the server keeps running and keeps every person, organization and record: it refuses only growth (a new organization, a new team, a new or changed federation issuer) until a renewed key is pasted. How long production use in that mode stays licensed is the license's to say (see `LICENSE`), not the code's: the server never locks anyone out.
+A license is verified offline, against the public keys compiled into this package; there is no setting that adds a key. When a license and its grace period have ended, the server keeps running and keeps every person, organization and record: it refuses only growth (a new organization, a new team, a new or changed federation issuer) until a renewed key is pasted. A server whose license allows one organization still makes that organization at its first start, even when the license has already ended, and logs a warning at every start once it has. How long production use in that mode stays licensed is the license's to say (see `LICENSE`), not the code's: the server never locks anyone out.
 
 ## Running it
 

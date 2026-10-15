@@ -32,8 +32,10 @@
  * an account the operator did not list when a list is set
  * (`STIGMER_ORGANIZATION_CREATORS`, editions/organization-creators.ts),
  * then refuses a new organization once the license and its grace period
- * have ended (both after the library's own limit on
- * `org-create:pre-side-effect-gate`), declares how long the access
+ * have ended, admitting the server's own create of its one organization at
+ * the first start (both after the library's own limit on
+ * `org-create:pre-side-effect-gate`; license/growth.ts says why), warns at
+ * boot when the license has already ended, declares how long the access
  * history is kept when the operator set a window
  * (`STIGMER_ACCESS_HISTORY_RETENTION_DAYS`, editions/enterprise-config.ts;
  * the library's retention runner removes what is older, and a lapsed
@@ -109,9 +111,13 @@ import {
 } from "@stigmer/server";
 
 import { newEnterpriseIdentityExtension } from "../extension/enterprise-identity.js";
-import { newGrowthGateStep } from "../iam/growth-gate.js";
 import { newKindMetaGrantScope } from "../iam/grant/roles.js";
-import { newLicenseGrowthGate } from "../license/growth.js";
+import {
+  LICENSE_RENEWAL_MESSAGE,
+  newLicenseGrowthGate,
+  newOrganizationGrowthStep,
+} from "../license/growth.js";
+import { isLapsed, licenseStateAt } from "../license/state.js";
 import { newLicenseStatusProvider } from "../license/status.js";
 import { trustedLicenseKeys } from "../license/trusted-keys.js";
 import { verifyLicenseTicket } from "../license/verify.js";
@@ -184,6 +190,9 @@ export async function composeEnterprise(
     keyId: verdict.keyId,
     organizations: maxOrgs ?? "unlimited",
   });
+  if (isLapsed(licenseStateAt(verdict.claims, clock()))) {
+    logger.warn(LICENSE_RENEWAL_MESSAGE);
+  }
   const retentionDays = options.accessHistoryRetentionDays;
   logger.info(
     retentionDays === undefined
@@ -224,7 +233,7 @@ export async function composeEnterprise(
         "org-create:pre-side-effect-gate",
         [
           ...(creators === undefined ? [] : [newOrganizationCreatorsStep(creators)]),
-          newGrowthGateStep(growthGate),
+          newOrganizationGrowthStep(growthGate),
         ],
       ],
     ]),

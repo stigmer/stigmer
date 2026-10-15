@@ -1,5 +1,5 @@
 /**
- * The self-hosted Enterprise server booted four ways, each the way its
+ * The self-hosted Enterprise server booted five ways, each the way its
  * entry boots it (editions/enterprise.ts, then the library's composition
  * and start), with people signing in through the library's OIDC lane:
  *
@@ -24,7 +24,12 @@
  *     injected clock moved past them), creating an organization, a team or
  *     a federation issuer, and changing one, are refused with the renewal
  *     reason, while invitations, their redemption, team membership, a
- *     provider's delete and sign-ins all keep working.
+ *     provider's delete and sign-ins all keep working;
+ *   - lapsed before its first start, on a license of one organization: the
+ *     server still starts and makes its one organization (the server's own
+ *     create is not growth), reports the license expired, its first person
+ *     sees that organization, and their new team in it is refused with the
+ *     renewal reason.
  *
  * Postgres comes from TEST_DATABASE_URL (unset: skipped by name outside a
  * test gate); each Postgres boot gets a fresh database.
@@ -444,5 +449,57 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("lapsed: growth refused, everyt
     const federated = federatedToken(issuer, "acme-okta", "okta|hal", "hal@acme.example");
     const hal = await createClient(IdentityAccountQueryController, transportTo(booted.port, federated)).whoAmI({});
     expect(hal.spec?.federationIssuerRef?.slug).toBe("acme-okta");
+  });
+});
+
+describe.skipIf(TEST_DATABASE_URL === undefined)("lapsed before the first start, on a license of one organization", () => {
+  // The license and its grace period ran out by the wall clock before the
+  // server first started, as a key pasted late does; the freeze and the
+  // license status both read that clock.
+  const claims = licenseClaims({ issuedAt: new Date("2025-01-01T00:00:00Z"), days: 30, graceDays: 7, maxOrgs: 1 });
+  const signer = newTestSigner();
+  let db: ProvisionedEnterpriseDatabase;
+  let booted: BootedServer;
+  let owner: Person;
+
+  beforeAll(async () => {
+    db = await provisionEnterpriseDatabase();
+    booted = await bootEnterprise({
+      issuer,
+      licenseKey: writeTicket(signer, claims),
+      ring: signer.ring,
+      databaseUrl: db.databaseUrl,
+      pool: db.pool,
+    });
+    owner = await signIn(booted, issuer, "operator|nina");
+  }, 120_000);
+
+  afterAll(async () => {
+    await booted?.close();
+    await db?.drop();
+  });
+
+  it("starts holding its one organization, its license reported expired", async () => {
+    const platform = createClient(PlatformQueryController, transportTo(booted.port));
+    expect((await platform.getServerInfo({})).singleOrg).toBe(true);
+    expect((await createClient(PlatformQueryController, owner.transport).getLicenseStatus({})).state).toBe(
+      LicenseState.expired,
+    );
+    const held = await createClient(OrganizationQueryController, owner.transport).listMine({});
+    expect(held.entries.map((org) => org.metadata?.slug)).toEqual(["stigmer"]);
+  });
+
+  it("still refuses its first person's new team with the renewal reason", async () => {
+    const [org] = (await createClient(OrganizationQueryController, owner.transport).listMine({})).entries;
+    expectRenewalRefusal(
+      await refusalOf(
+        createClient(TeamCommandController, owner.transport).create({
+          apiVersion: "iam.stigmer.ai/v1",
+          kind: "Team",
+          metadata: { name: "sre", org: org?.metadata?.id ?? "" },
+          spec: {},
+        }),
+      ),
+    );
   });
 });

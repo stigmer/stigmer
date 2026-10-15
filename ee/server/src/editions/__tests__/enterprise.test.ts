@@ -10,7 +10,9 @@
  *     when it grants none), reports the license, signs the server's own
  *     tokens with open source's ring on its key ladder (a configured key
  *     that does not load refuses the boot), registers the grant scope, and
- *     refuses growth before an organization is written, and declares the
+ *     refuses a person's new organization once the license has lapsed
+ *     while admitting the server acting as itself, warns at boot exactly
+ *     when the license has already ended, and declares the
  *     access history's window when the operator set one (logged at boot
  *     either way); with no key the window is not composed; registers the
  *     operator's list of who may create an organization ahead of the
@@ -25,12 +27,17 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
-import { createLogger, loadConfig, openSourceEdition } from "@stigmer/server";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { CallerIdentity, PipelineStep } from "@stigmer/server";
+import { createLogger, loadConfig, openSourceEdition, RequestContext, serverActingFor } from "@stigmer/server";
 
 import { ENTERPRISE_IDENTITY_UNIT } from "../../extension/enterprise-identity.js";
+import { LICENSE_RENEWAL_MESSAGE } from "../../license/growth.js";
 import { licenseClaims, newTestSigner, writeTicket } from "../../license/__tests__/test-tickets.js";
 import { readEnterpriseSettings } from "../enterprise-config.js";
 import { composeEnterprise, ENTERPRISE_LICENSE_UNIT } from "../enterprise.js";
@@ -49,6 +56,16 @@ const boot = {
   }),
   logger: SILENT_LOGGER,
 };
+
+/** An organization create's context for `caller`, as the library's chain hands it to the slot. */
+function creating(caller: CallerIdentity): RequestContext<typeof OrganizationSchema> {
+  return new RequestContext(
+    OrganizationSchema,
+    create(OrganizationSchema, { metadata: { slug: "acme" } }),
+    caller,
+    ApiResourceKind.organization,
+  );
+}
 
 describe("composeEnterprise: the verdict as units", () => {
   it.each([
@@ -168,7 +185,7 @@ describe("composeEnterprise: the verdict as units", () => {
     expect(policy?.blockedReason("169.254.169.254")).not.toBeNull();
   });
 
-  it("reads the wall clock when none is passed: a license whose grace has ended refuses a new organization", async () => {
+  it("reads the wall clock when none is passed: a license whose grace has ended refuses a person's new organization, not the server's own", async () => {
     const signer = newTestSigner();
     const ended = licenseClaims({ issuedAt: new Date("2026-01-01T00:00:00Z"), days: 30, graceDays: 7 });
     const [license] = await composeEnterprise(boot, {
@@ -176,8 +193,44 @@ describe("composeEnterprise: the verdict as units", () => {
       ring: signer.ring,
       keyLoader: KEY_LOADER,
     });
-    const [growth] = license?.gateSteps?.get("org-create:pre-side-effect-gate") ?? [];
-    await expect(growth?.execute(undefined as never)).rejects.toThrow(/license has ended/);
+    const [growth] = (license?.gateSteps?.get("org-create:pre-side-effect-gate") ?? []) as ReadonlyArray<
+      PipelineStep<typeof OrganizationSchema>
+    >;
+    const person: CallerIdentity = {
+      identityId: "ida_0123456789abcdefghjkmnpqrs",
+      callerClass: "user",
+      issuer: "https://sso.acme.example",
+      rawToken: "t",
+    };
+    await expect(growth?.execute(creating(person))).rejects.toThrow(/license has ended/);
+    await expect(growth?.execute(creating(serverActingFor("system")))).resolves.toBeUndefined();
+  });
+
+  it("warns at boot with the renewal copy when the license has already ended, and not while it is current", async () => {
+    const signer = newTestSigner();
+    const warnings: string[] = [];
+    const logger = createLogger({
+      level: "warn",
+      pretty: false,
+      write: (line: string) => {
+        warnings.push(String((JSON.parse(line) as { message?: unknown }).message ?? ""));
+      },
+    });
+    const issuedAt = new Date("2026-01-01T00:00:00Z");
+    const ended = licenseClaims({ issuedAt, days: 30, graceDays: 7 });
+    const options = { ring: signer.ring, keyLoader: KEY_LOADER };
+    await composeEnterprise(
+      { config: boot.config, logger },
+      { ...options, licenseKey: writeTicket(signer, ended), clock: () => new Date(issuedAt.getTime() + 38 * 24 * 60 * 60 * 1000) },
+    );
+    expect(warnings.filter((message) => message === LICENSE_RENEWAL_MESSAGE)).toHaveLength(1);
+
+    warnings.length = 0;
+    await composeEnterprise(
+      { config: boot.config, logger },
+      { ...options, licenseKey: writeTicket(signer, ended), clock: () => new Date(issuedAt.getTime() + 36 * 24 * 60 * 60 * 1000) },
+    );
+    expect(warnings, "inside grace").not.toContain(LICENSE_RENEWAL_MESSAGE);
   });
 
   it("declares the operator's access-history window on the license unit, and logs how long the history is kept", async () => {

@@ -8,9 +8,19 @@
  * every removal stays open, so a late renewal never stops a new hire's
  * onboarding or an admin cutting off a compromised provider. The gate
  * below is what the Enterprise host hands the identity unit (its neutral
- * `GrowthGate` port, iam/growth-gate.ts) and registers on the organization
- * create chain; the chains ask it, and this module alone decides and words
- * the answer.
+ * `GrowthGate` port, iam/growth-gate.ts); the chains ask it, and this
+ * module alone decides and words the answer.
+ *
+ * The organization create chain asks it through its own step, which first
+ * admits the server acting as itself (caller class `internal`): the freeze
+ * refuses the growth people ask for, and the organization a license of one
+ * makes at its first start (the library's boot/single-organization.ts) is
+ * not that. An expired license is never worse than no license, and without
+ * a key the server holds its one organization; the creators step
+ * (editions/organization-creators.ts) admits the same caller on the same
+ * slot for the same reason. Today that boot is the only create the server
+ * makes as itself; a later one that makes organizations for people decides
+ * on its own whether it is growth.
  *
  * The state is read from the clock at every ask, not once at boot: a
  * server that is never restarted must still lapse when its grace ends.
@@ -20,6 +30,8 @@
  * renewal refusal by its reason, never by its copy.
  */
 import type { LicenseClaims } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+import type { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { PipelineStep, RequestContext } from "@stigmer/server";
 import { failedPreconditionError } from "@stigmer/server";
 
 import type { GrowthGate } from "../iam/growth-gate.js";
@@ -47,6 +59,23 @@ export function newLicenseGrowthGate(input: LicenseGrowthInput): GrowthGate {
           reason: LICENSE_RENEWAL_REQUIRED,
         });
       }
+    },
+  };
+}
+
+/** The organization create chain's growth step: the gate, after admitting the server acting as itself. */
+export function newOrganizationGrowthStep(
+  gate: GrowthGate,
+): PipelineStep<typeof OrganizationSchema> {
+  return {
+    name: "GrowthGate",
+    async execute(
+      ctx: RequestContext<typeof OrganizationSchema>,
+    ): Promise<void> {
+      if (ctx.callerIdentity.callerClass === "internal") {
+        return;
+      }
+      gate.assertGrowthAllowed();
     },
   };
 }
