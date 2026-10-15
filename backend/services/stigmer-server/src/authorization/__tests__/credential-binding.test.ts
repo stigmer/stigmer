@@ -57,6 +57,7 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Authorizer, AuthzCheck } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
+import { SERVICE_ACCOUNT_CALLER_CLASS } from "../../extensions/identity.js";
 import type {
   ListEntryMeta,
   ListReadScope,
@@ -475,6 +476,22 @@ describe("the rule, for a caller bound to one organization", () => {
     expect(await on(childBound, ApiResourceKind.organization, BETA, IamPermission.can_view)).toBe("outside");
     expect(await on(childBound, ApiResourceKind.organization, "org_delta", IamPermission.can_view)).toBe("outside");
     expect(await on(childBound, ApiResourceKind.agent, "agt_sibling", IamPermission.can_view)).toBe("outside");
+  });
+
+  it("lets a service account's key reach its organization's children, and holds every class but an account's own to its organization", async () => {
+    const f = fixture([...ORGANIZATIONS]);
+    const binding = newCredentialBinding(f.deps);
+    const asClass = (callerClass: string): CallerIdentity => ({
+      ...boundTo(BETA),
+      callerClass,
+    });
+    expect(await binding.admitsOrganization(asClass(SERVICE_ACCOUNT_CALLER_CLASS), ALPHA)).toBe(true);
+    // A composition's own lane credentials (a sandbox's, a schedule's) and
+    // classes nobody stamps stay their bound organization.
+    for (const callerClass of ["sandbox", "connect_sandbox", "schedule", "machine"]) {
+      expect(await binding.admitsOrganization(asClass(callerClass), ALPHA), callerClass).toBe(false);
+      expect(await binding.admitsOrganization(asClass(callerClass), BETA), callerClass).toBe(true);
+    }
   });
 
   it("holds a run's credential to its run's organization: bound to a parent, it reaches no child", async () => {

@@ -22,17 +22,18 @@
  * construction.
  *
  * The rule, for a caller with `boundOrg`. The credential's ORGANIZATIONS
- * are the bound one and, for every credential but a run's
- * (`reachesChildren`), each child of it: one predicate,
+ * are the bound one and, for an account's own credential (a person's or a
+ * service account's, `reachesChildren`), each child of it: one predicate,
  * `admitsOrganization`, which answers the bound organization with no read
  * and a child with one memoised read of its `spec.parent_org` (the read
  * the user-token verifier makes for "the minter's organization or a child
  * of it", domain/organization/children.ts `isChildOf`). It never looks up:
  * a credential limited to a child reaches neither its parent nor a
- * sibling. A run's credential stays its run's organization because a run
- * belongs to one (runnerauth/runner-subject-verifier.ts): a run filed in
- * a parent must not execute a child's agent or use a child's vaults. A
- * target is INSIDE when it is:
+ * sibling. Every other credential stays its bound organization: a run's,
+ * because a run belongs to one (runnerauth/runner-subject-verifier.ts) and
+ * a run filed in a parent must not execute a child's agent or use a
+ * child's vaults, and a composition's own lane credentials for the same
+ * reason. A target is INSIDE when it is:
  *   - one of the credential's organizations;
  *   - a row of an organization-scoped or parent-scoped kind whose
  *     `metadata.org` is one of them (every such row carries it, an
@@ -105,8 +106,8 @@
  * class, the missing row, the admitted path and its limits (visibility,
  * the sharing organization, permission), a credential bound to a parent
  * reaching its children's rows and never a sibling's, a parent's or an
- * unrelated organization's, a run's credential held to its own
- * organization, the read memo, a read fault answering unavailable, and
+ * unrelated organization's, a run's credential and a composition's lane
+ * credential held to their own organization, the read memo, a read fault answering unavailable, and
  * the three decorators' unbound byte-identity.
  */
 import type { Message } from "@bufbuild/protobuf";
@@ -134,7 +135,7 @@ import type {
   CredentialBinding,
 } from "../extensions/credential-binding.js";
 import type { CallerIdentity } from "../extensions/identity.js";
-import { boundOrgOf } from "../extensions/identity.js";
+import { SERVICE_ACCOUNT_CALLER_CLASS, boundOrgOf } from "../extensions/identity.js";
 import type {
   ListEntryMeta,
   ListReadScope,
@@ -183,15 +184,24 @@ const READ_OR_RUN_PERMISSIONS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Whether a bound caller's credential reaches its organization's children:
- * every credential but a run's. The `runner` class is a run's credential
- * and nothing else (domain/identityaccount/actor.ts
- * `accountAsRunnerCaller` is its one builder, and the run verifier binds
- * it to the run's organization), so a composition that ever stamps the
- * class on something else gets the narrower reach, never a wider one.
+ * The caller classes whose bound credential reaches its organization's
+ * children: an account's own credential, a person's (`user`: a minted user
+ * token, a key limited to an organization, a federated sign-in) or a
+ * service account's key. An allow-list, so every other class stays exactly
+ * its bound organization: a run's credential (`runner`, bound to its run's
+ * organization by runnerauth/runner-subject-verifier.ts), and every class
+ * a composition stamps on its own lanes (a sandbox's, a channel's, a
+ * schedule's, a grader's), whose tokens are minted for one session's or
+ * one row's organization and must not act in its children.
  */
+const CLASSES_REACHING_CHILDREN: ReadonlySet<string> = new Set([
+  "user",
+  SERVICE_ACCOUNT_CALLER_CLASS,
+]);
+
+/** Whether a bound caller's credential reaches its organization's children (the allow-list above). */
 export function reachesChildren(caller: CallerIdentity): boolean {
-  return caller.callerClass !== "runner";
+  return CLASSES_REACHING_CHILDREN.has(caller.callerClass);
 }
 
 export interface CredentialBindingDeps {
@@ -313,7 +323,7 @@ export function newCredentialBinding(
 
   /**
    * Whether `org` is one of the credential's organizations: the bound one
-   * (no read) or, for every credential but a run's, a child of it.
+   * (no read) or, for an account's own credential, a child of it.
    */
   async function admits(
     caller: CallerIdentity,

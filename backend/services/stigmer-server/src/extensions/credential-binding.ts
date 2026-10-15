@@ -31,8 +31,8 @@ export interface BindingTarget {
 /**
  * The rule's answer.
  *   - `unbound`: the caller names no organization; the rule has nothing to say.
- *   - `inside`: the target is the bound organization's (or, for every
- *     credential but a run's, one of its children's), or nobody's.
+ *   - `inside`: the target is the bound organization's (or, for an
+ *     account's own credential, one of its children's), or nobody's.
  *   - `admitted`: outside, along the model's one cross-organization path.
  *   - `missing`: no row has that id; the inner driver answers as it would.
  *   - `outside`: refused.
@@ -53,8 +53,10 @@ export interface CredentialBinding {
   /**
    * Whether the caller may act in `org` (a lane that writes into an
    * organization): always for an unbound caller; for a bound one, its own
-   * organization with no read and, for every credential but a run's, a
-   * child of it, one memoised read of `org`'s `spec.parent_org`. Never a
+   * organization with no read and, for an account's own credential (a
+   * person's or a service account's), a child of it, one memoised read of
+   * `org`'s `spec.parent_org`; every other class (a run's, a composition's
+   * own lanes') stays its bound organization. Never a
    * parent or a sibling of the bound organization. Throws on a read fault.
    */
   admitsOrganization(caller: CallerIdentity, org: string): Promise<boolean>;

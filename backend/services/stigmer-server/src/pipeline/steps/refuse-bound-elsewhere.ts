@@ -1,8 +1,8 @@
 /**
  * RefuseBoundElsewhere — a credential bound to an organization
  * (`CallerIdentity.boundOrg`, authorization/credential-binding.ts) writes
- * only into the organizations it reaches: its own and, for every
- * credential but a run's, its own's children. Not a row, not a run, not a
+ * only into the organizations it reaches: its own and, for an account's
+ * own credential (a person's or a service account's), its own's children. Not a row, not a run, not a
  * connect elsewhere. The binding wraps the Authorizer, so every lane that
  * authorizes on the organization it writes into is bound already; this is
  * the check for the lanes that authorize on something else (the agent a

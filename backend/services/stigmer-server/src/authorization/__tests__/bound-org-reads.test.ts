@@ -8,9 +8,10 @@
  * held a parent's key out of its children on every write lane, and it
  * compiles and passes every test that only uses one organization.
  *
- * A read is a call of `boundOrgOf(...)` or a property access `.boundOrg`
- * on anything but an API key's spec (`spec.boundOrg` is the key's stored
- * limit, a different fact). Writing the field (`{ boundOrg: org }`, a
+ * A read is a call of `boundOrgOf(...)`, a property access `.boundOrg` or
+ * an element access `["boundOrg"]` on anything but an API key's spec
+ * (`spec.boundOrg` is the key's stored limit, a different fact), or a
+ * destructuring that binds `boundOrg`. Writing the field (`{ boundOrg: org }`, a
  * verifier stamping it) is not a read. Every non-test module of the server
  * and of Stigmer Enterprise is scanned with the TypeScript compiler API,
  * the house form of a structural guard (pipeline/__tests__/
@@ -85,11 +86,21 @@ function isRead(node: ts.Node): boolean {
   ) {
     return true;
   }
+  const isSpec = (receiver: ts.Expression): boolean =>
+    ts.isPropertyAccessExpression(receiver) && receiver.name.text === "spec";
   if (ts.isPropertyAccessExpression(node) && node.name.text === "boundOrg") {
-    const receiver = node.expression;
-    return !(
-      ts.isPropertyAccessExpression(receiver) && receiver.name.text === "spec"
-    );
+    return !isSpec(node.expression);
+  }
+  if (
+    ts.isElementAccessExpression(node) &&
+    ts.isStringLiteralLike(node.argumentExpression) &&
+    node.argumentExpression.text === "boundOrg"
+  ) {
+    return !isSpec(node.expression);
+  }
+  if (ts.isBindingElement(node)) {
+    const name = node.propertyName ?? node.name;
+    return ts.isIdentifier(name) && name.text === "boundOrg";
   }
   return false;
 }
@@ -145,8 +156,10 @@ describe("the bound-organization read rule", () => {
         const bound = boundOrgOf(caller);
         if (caller.boundOrg !== org) refuse();
         const own = account?.boundOrg ?? "";
+        const { boundOrg } = caller;
+        const other = caller["boundOrg"];
       `),
-    ).toEqual([2, 3, 4]);
+    ).toEqual([2, 3, 4, 5, 6]);
   });
 
   it("does not count a key's stored limit or a write of the field", () => {

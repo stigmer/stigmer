@@ -210,6 +210,7 @@ describe("child organizations — the parent's admins are admins in every child"
     expect(updated.spec?.parentOrg, "the update keeps the parent").toBe(
       parent.org,
     );
+    expect(updated.spec?.description).toBe("edited by the parent's admin");
     expect(await accessHoldersOf(on.clients, child.org)).toContain(
       customer.id,
     );

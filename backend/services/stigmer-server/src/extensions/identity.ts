@@ -110,9 +110,10 @@ export interface CallerIdentity {
    */
   readonly mintedBy?: string;
   /**
-   * The organization this credential is limited to: it works there and in
-   * that organization's children, as the account behind it would, and a
-   * run's credential (the `runner` class) works in its run's organization
+   * The organization this credential is limited to: an account's own
+   * credential (classes `user` and `service_account`) works there and in
+   * that organization's children, as the account behind it would; every
+   * other class (a run's credential, a composition's own lanes) works there
    * alone. Absent means the credential speaks for the person in every
    * organization they hold a role in (a person signed in at a console, the
    * trusted-local operator, a runner's own process credential, the server
