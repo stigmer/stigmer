@@ -78,6 +78,9 @@ This generates Go, Java, Python, and TypeScript stubs from `.proto` files.
 
 ### Reporting Bugs
 
+A security vulnerability is never reported in a public issue: report it
+privately, as [`SECURITY.md`](SECURITY.md) describes.
+
 **Before submitting**:
 - Search existing issues to avoid duplicates
 - Test against the latest `main` branch
