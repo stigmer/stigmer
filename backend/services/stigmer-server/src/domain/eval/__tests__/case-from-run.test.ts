@@ -30,6 +30,8 @@
  *     fault reading the session or an earlier run is thrown as it came;
  *   - the archive answered is the case zipped as the CLI zips a folder, its
  *     digest the archive's, refused past the inline limit;
+ *   - `caseSkillOf` names a skill as `<plugin>:<skill>`, its refusals pinned
+ *     on the composed server;
  *   - `suggestCaseName` names a case after its request, as the CLI did.
  */
 import { createHash } from "node:crypto";
@@ -57,7 +59,7 @@ import type { Store } from "../../../store/interface.js";
 import { RunEventsBuilder, appendRunEvents } from "../../session/events/__tests__/run-events-fixture.js";
 import { draftOf } from "../../session/events/codec.js";
 import type { BuiltCase } from "../case-from-run.js";
-import { DEFAULT_CASE_NAME, buildCaseFromRun, caseArchiveOf, suggestCaseName } from "../case-from-run.js";
+import { DEFAULT_CASE_NAME, buildCaseFromRun, caseArchiveOf, caseSkillOf, suggestCaseName } from "../case-from-run.js";
 import { evalCaseTooLargeMessage } from "../constants.js";
 
 const ORG = "acme";
@@ -386,6 +388,12 @@ describe("caseArchiveOf", () => {
     expect(refused).toBeInstanceOf(ConnectError);
     expect((refused as ConnectError).code).toBe(Code.ResourceExhausted);
     expect((refused as ConnectError).rawMessage).toBe(evalCaseTooLargeMessage(archive.artifact.length, 10));
+  });
+});
+
+describe("caseSkillOf", () => {
+  it("names a skill as <plugin>:<skill>, its parts trimmed, and none when none is given", () => {
+    expect([caseSkillOf(" thermos : review "), caseSkillOf("")]).toEqual(["thermos:review", ""]);
   });
 });
 

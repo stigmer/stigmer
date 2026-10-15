@@ -360,10 +360,12 @@ describe("an eval case from a run (built-in posture, composed server)", () => {
     )) as Awaited<ReturnType<ReturnType<typeof carolEvals>["addCaseFromRun"]>>;
     expect(added.status?.cases.map((c) => c.caseName).sort()).toEqual(["first", "landed", "refund-it"]);
 
+    // Deleted after the attempt's own can_edit read it, before the push finds it.
     const gone = await failureOf(
       landAfterHeadRead(
         () => carolEvals().delete({ value: id }),
         () => carolEvals().addCaseFromRun({ runId, eval: { slug }, caseName: "after-delete" }),
+        3,
       ),
     );
     expect(gone.code).toBe(Code.NotFound);
