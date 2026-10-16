@@ -577,8 +577,18 @@ pages:
     teaches:
       Who reaches a resource — general access, the Viewer, Editor and Owner
       roles with Participant and Can use, what an Organization's roles allow and
-      how they combine with a resource's, conversations, chat links, service
-      accounts, and what each edition grants.
+      how they combine with a resource's, conversations, that a chat link is a
+      channel and never a grant, service accounts, and what each edition grants.
+    medium: none
+
+  concepts/channels:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      A channel is one way people reach one Agent (a chat link, Slack or
+      WhatsApp); what every channel carries, who creates one and who reads its
+      conversations, why a channel is not sharing, and how it compares with
+      Azure Bot Service.
     medium: none
 
   concepts/identity:

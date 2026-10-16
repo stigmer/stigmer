@@ -123,10 +123,10 @@ The Agent's `env` map declares the keys it needs, never a person's values.
 Values reach a run when it starts, from [vaults](/docs/concepts/vaults): the My
 vault of the person sending the message, when the conversation includes it, then
 the vaults the conversation lists. An Agent carries no vaults: it is a
-blueprint, and each conversation names its own. A run no person sent (a
-Schedule, a share link, a channel) uses only the vaults its conversation and
-that surface name. The same Agent runs with test credentials from one Schedule
-and production credentials from another, and its definition never changes.
+blueprint, and each conversation names its own. A run no person sent (a Schedule
+or a channel) uses only the vaults its conversation and that Schedule or channel
+name. The same Agent runs with test credentials from one Schedule and production
+credentials from another, and its definition never changes.
 
 ### Sessions and runs
 
@@ -154,8 +154,8 @@ creates an Agent owns it, and so do the Organization's admins. An Agent's
 **Editor** changes and runs it, and its **Viewer** runs it and sees how it is
 set up; with the default Organization general access, everyone in the
 Organization is a Viewer. Running an Agent also needs the Organization's Member
-role or higher. Sharing it on a chat link or connecting it to a channel is an
-admin's act. [Sharing and access](/docs/concepts/sharing-and-access) explains
+role or higher. Giving it a chat link or connecting it to Slack or WhatsApp is
+an admin's act. [Sharing and access](/docs/concepts/sharing-and-access) explains
 the whole model.
 
 ## Versions
@@ -187,9 +187,8 @@ saved; until then its runs record only the Agent and run it as it is.
 A [Session](/docs/concepts/sessions#which-version-a-session-runs) runs the
 version it started on, so an author's later saves never change a conversation
 under the people in it; they reach an open conversation when someone updates it
-to the current version. Schedules, channels, and shares start each conversation
-on the version their reference names, or on the current version when it names
-none.
+to the current version. Schedules and channels start each conversation on the
+version their reference names, or on the current version when it names none.
 
 ## Subagents
 
@@ -292,8 +291,8 @@ message starts a fresh count.
 A message's settings are worked out once, when it is sent, from three layers,
 most specific first:
 
-1. **The message**, or the surface it came through: the saved `run_config` of a
-   Schedule, a channel or a share.
+1. **The message**, or the saved `run_config` of the Schedule or channel it came
+   through.
 2. **The Agent**: its `run_config`.
 3. **The operator**: the defaults the operator set for that kind of run.
 
@@ -324,16 +323,17 @@ thinking off for it, without changing the Agent.
 - Run settings are versioned with the Agent. A conversation runs the version it
   started on, so it keeps that version's model after the author picks another.
 - A new conversation on the Agent starts on the Agent's `harness`, unless the
-  person or the surface starting it names another. A message or a surface that
-  names a model but no Harness starts on native, the Harness that model was
-  checked against. On the other Harness the Agent's model, tier and thinking are
-  left out, since each Harness lists its own models, and only its limits apply.
+  person, Schedule or channel starting it names another. A message, Schedule or
+  channel that names a model but no Harness starts on native, the Harness that
+  model was checked against. On the other Harness the Agent's model, tier and
+  thinking are left out, since each Harness lists its own models, and only its
+  limits apply.
 - Stigmer checks the settings when the Agent is saved: a model needs a
   `harness`, the model must be one that Harness lists, and a fast tier or
   thinking needs a model that supports it there.
-- Saved settings stand on their own. An Agent, Schedule, channel or share that
-  sets a fast tier or thinking also names the model it is for. Only a message
-  may set them alone, to adjust the model it is given.
+- Saved settings stand on their own. An Agent, Schedule or channel that sets a
+  fast tier or thinking also names the model it is for. Only a message may set
+  them alone, to adjust the model it is given.
 
 ## The built-in assistant
 
@@ -352,7 +352,7 @@ Stigmer appears when you create Agents tailored to your domain, and a
 conversation can pick one up at any point: choosing an Agent binds the Session
 to it, and removing the Agent returns the Session to the assistant.
 
-Schedules, channels and shares always name an Agent; they never fall back to the
+Schedules and channels always name an Agent; they never fall back to the
 built-in assistant. The built-in assistant is for a person opening a
 conversation.
 

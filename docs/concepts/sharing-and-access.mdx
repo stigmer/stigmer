@@ -2,8 +2,8 @@
 title: Sharing and access
 description:
   Who can see and use what in Stigmer. Learn general access, the Viewer, Editor
-  and Owner roles, what an Organization's roles allow, how conversations and
-  chat links are shared, and how automation gets an account of its own.
+  and Owner roles, what an Organization's roles allow, how conversations are
+  shared, and how automation gets an account of its own.
 ---
 
 Two settings decide who reaches a resource in Stigmer, the same two you know
@@ -51,8 +51,8 @@ the three roles you know from shared documents:
 Two kinds of resource use a different word, because Viewer would understate what
 the role does there:
 
-- **Participant**, on a conversation or an Agent Channel, reads the conversation
-  and sends messages. A Viewer of a conversation only reads it.
+- **Participant**, on a conversation or a Slack or WhatsApp channel, reads the
+  conversation and sends messages. A Viewer of a conversation only reads it.
 - **Can use**, on a shared vault, lets a person's runs use the vault's logins
   and secrets. Handing secrets to a run with a shell is more than reading.
 
@@ -104,16 +104,11 @@ permission to run the conversation's Agent, asked again on every message:
 
 ## Chat links
 
-A chat link is a hosted chat page for one Agent. It reaches signed-in members of
-your Organization unless someone picks **Anyone with the link**, and only that
-explicit choice puts it on the internet. A chat link runs the Agent on the
-Organization's provider keys for everyone who holds it, so creating one, and
-connecting an Agent to a channel such as Slack, is an admin's act.
-
-A chat link lets people chat with the Agent. It does not let them see how the
+A chat link is one of an Agent's [channels](/docs/concepts/channels), never a
+grant. It lets people chat with the Agent, and does not let them see how the
 Agent is set up or change it: that stays with the Agent's general access and
-roles. [Share an Agent](/docs/guides/channels/create-a-chat-link) walks through
-it.
+roles. Creating a chat link, like connecting an Agent to Slack, is an admin's
+act.
 
 ## Automation
 

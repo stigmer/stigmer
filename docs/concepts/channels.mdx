@@ -1,0 +1,112 @@
+---
+title: Channels
+description:
+  A channel is one way people reach an Agent — a chat link, a Slack workspace or
+  a WhatsApp number. Learn what every channel has, who creates one, how channels
+  differ from sharing, and how they compare with Azure Bot Service.
+---
+
+A channel is one way people reach one Agent. Stigmer has three types:
+
+- A **chat link**: a hosted chat page at `app.stigmer.ai/chat/<id>`, and the
+  widget your own site embeds.
+- **Slack**: the Agent joins a Slack workspace, and people @mention it or
+  message it directly.
+- **WhatsApp**: the Agent answers a WhatsApp Business phone number.
+
+An Agent can carry several channels at once. A support Agent might have a public
+chat link on your docs site, a second chat link for one partner, and a Slack
+workspace where your own team asks it questions. Each is its own channel, with
+its own settings, and each lists on the Agent's **Channels** tab.
+
+If you want to add one now,
+[Create a chat link](/docs/guides/channels/create-a-chat-link) and
+[Connect an Agent to Slack](/docs/guides/channels/connect-slack) walk through
+it. This page explains what a channel is and why it is shaped this way.
+
+## What every channel has
+
+Whatever its type, a channel carries the same few things:
+
+- **Its Agent.** A channel serves exactly one Agent, which lives in the same
+  Organization. Deleting the Agent deletes its channels.
+- **A switch.** Turning a channel off stops it at once and keeps its settings;
+  turning it back on resumes it. Deleting it removes it for good.
+- **The vaults its conversations use.** A conversation that arrives through a
+  channel has no signed-in person behind it, so its tools use the
+  [vaults](/docs/concepts/vaults) the channel names. A chat link for your
+  Organization's members names none: members' chats use their own.
+- **Run settings.** A channel can pick the model its conversations use and lower
+  the Agent's [cost cap](/docs/concepts/billing#set-a-cost-cap) for each
+  message. It can only lower a cap, never raise one.
+
+Then each type adds its own settings. A chat link has its audience (your
+Organization's members, or anyone with the link), the sites that may embed it
+and the messages visitors read at a limit. A Slack or WhatsApp channel has the
+workspace or phone number it serves and the app it is installed through.
+
+Every conversation a channel starts is a [Session](/docs/concepts/sessions) of
+its Agent, so it reads, scores and costs like any other.
+
+## Who creates a channel
+
+A channel runs the Agent on the Organization's
+[provider keys](/docs/guides/integrations/model-provider-keys) for everyone who
+reaches it, so creating one is an Organization admin's act. Members who can edit
+the Agent but are not admins see no **Add channel** menu.
+
+A channel's conversations have their own roles. A **Participant** reads them and
+replies to customers as the business — that is how a person
+[takes over a conversation](/docs/guides/channels/take-over-conversations). A
+**Viewer** reads them and cannot reply.
+
+## A channel is not sharing
+
+A channel lets people chat with an Agent. It never grants anyone a role on it:
+someone chatting through a public chat link cannot see how the Agent is set up,
+edit it or read anyone else's conversation. Who may see or change the Agent
+stays with **Manage access**, as on every other resource.
+[Sharing and access](/docs/concepts/sharing-and-access) explains roles and
+general access.
+
+So the words split cleanly. You give an Agent a **chat link** or **connect** it
+to Slack; you **share** an Agent, a vault or a conversation when you give people
+access to it.
+
+## How it compares
+
+Azure Bot Service and Copilot Studio shape this the same way: one bot or agent,
+and many channels, each configured on the bot. Azure's own list of channels
+includes Web Chat, Microsoft Teams and Slack, among others
+([Configure a bot to run on one or more channels](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-manage-channels)).
+
+| On Stigmer                                | What you already know                      |
+| ----------------------------------------- | ------------------------------------------ |
+| An Agent with several channels            | An Azure bot connected to several channels |
+| A chat link, and the widget a site embeds | Azure's Web Chat channel                   |
+| A Slack channel                           | Azure's Slack channel                      |
+| The **Channels** tab on the Agent         | The bot's **Channels** settings in Azure   |
+
+## Where Stigmer differs, and why
+
+- **Your own vendor app is a resource of its own.** For Slack, the platform's
+  Stigmer app needs no setup, or you can
+  [bring your own Slack app](/docs/guides/channels/bring-your-own-slack-app) so
+  the bot carries your name and icon. WhatsApp always goes through
+  [your Meta app](/docs/guides/channels/set-up-your-meta-app). Either app is a
+  **Channel App**, registered once and used by every channel you install through
+  it, so its credentials live in one place.
+- **A chat link is a channel, not a second feature.** Many platforms put the
+  hosted link under "share" or "publish". On Stigmer it lists beside Slack and
+  WhatsApp, with the same switch, vaults and run settings, because it is one
+  more way people reach the Agent.
+- **One Agent, one Organization.** A channel always lives in its Agent's
+  Organization: its link, the keys it runs on and its credentials are that
+  Organization's. To offer another Organization's Agent, install the Plugin that
+  carries it, and give your copy a channel.
+
+## What's next
+
+A channel brings people to an Agent; a conversation is what they have there.
+[Sessions](/docs/concepts/sessions) explains how a conversation remembers what
+was said, who may send in it, and what each message costs.
