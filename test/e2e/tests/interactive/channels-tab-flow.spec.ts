@@ -59,7 +59,9 @@ async function createFirstChatLink(page: Page, linkSlug: string) {
 // destructive dialog, and waits for the tab's empty state, leaving the
 // fixture agent with no channels for other tests.
 async function deleteChatLink(page: Page, linkName: string) {
-  await page.getByRole("button", { name: `Actions for ${linkName}` }).click();
+  await page
+    .getByRole("button", { name: `Actions for ${linkName}`, exact: true })
+    .click();
   await page.getByRole("menuitem", { name: "Delete" }).click();
 
   const confirmDialog = page.getByRole("dialog", { name: "Delete chat link?" });
@@ -310,7 +312,9 @@ test.describe("Channels tab flow", () => {
 // Deletes the chat link through its card's menu while other channels stay
 // listed, so the tab does not return to its empty state.
 async function deleteChatLinkKeepingOthers(page: Page, linkName: string) {
-  await page.getByRole("button", { name: `Actions for ${linkName}` }).click();
+  await page
+    .getByRole("button", { name: `Actions for ${linkName}`, exact: true })
+    .click();
   await page.getByRole("menuitem", { name: "Delete" }).click();
   const confirmDialog = page.getByRole("dialog", { name: "Delete chat link?" });
   await confirmDialog.getByRole("button", { name: "Delete" }).click();
