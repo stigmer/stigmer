@@ -343,7 +343,7 @@ describe("NewSessionViewer — audience wiring", () => {
     expect(props.onAgentRefChange).toBeUndefined();
     expect(props.onAgentResolutionChange).toBeUndefined();
     expect(props.initialAgentRef).toBeUndefined();
-    // …and the launcher pins the flow to the shared agent's reference
+    // …and the launcher pins the flow to the chat link's agent reference
     // directly, as given.
     expect(stubNewSessionFlow.setAgentRef).toHaveBeenCalledWith(AGENT_REF);
     expect(stubNewSessionFlow.setResolution).toHaveBeenCalledWith({ mode: "direct" });

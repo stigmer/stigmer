@@ -390,7 +390,7 @@ export function useSessionPageFlow(
   //   being part of the derivation (not an initializer), a late arrival
   //   still applies unless the user has already flipped this session.
   // - `hostSeed`: the host's provider-level approvalDefaults (#302) — an
-  //   app-level trust judgment. Guests inherit neither seed (a share-link
+  //   app-level trust judgment. Guests inherit neither seed (a chat-link
   //   visitor is not the operator either trust judgment covers).
   // - `runArmed`: the ACTIVE run was created with
   //   spec.auto_approve_all, so the switch reflects an armed in-flight run —

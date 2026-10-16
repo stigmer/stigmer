@@ -9,7 +9,7 @@
  * conversation uses the vaults chosen for it: the person's pick in the
  * composer when they made one, else the host's, else My vault for a
  * signed-in person (the Console and an embedded chat) and nothing for a
- * share-link guest, who carries no vault pick of the composer either. The
+ * chat-link guest, who carries no vault pick of the composer either. The
  * plugins it uses ride the bootstrap as `sessionSpec.plugins`: a host's
  * seed (a plugin page's "Start a chat") starts the list, taken once even
  * when it arrives after mount and never over a pick; with
@@ -338,7 +338,7 @@ describe("useNewSessionFlow", () => {
         { wrapper: createWrapper() },
       );
 
-      // Guests submit against an explicitly pinned shared agent.
+      // Guests submit against an explicitly pinned agent (the chat link's).
       act(() => {
         result.current.setAgentRef({ org: "acme", slug: "shared-agent" });
         result.current.setResolution({ mode: "direct" });
@@ -1155,7 +1155,7 @@ describe("useNewSessionFlow", () => {
 
       // Platform share policy: the account's engine and models never seed a
       // guest; the flow's local harness stays the platform default, and the
-      // create names neither (the shared agent's own apply).
+      // create names neither (the chat link's agent applies its own).
       expect(result.current.harness).toBe("native");
       expect(result.current.modelId).toBeUndefined();
     });
@@ -1228,7 +1228,7 @@ describe("useNewSessionFlow", () => {
 
     it("fails closed on submit without a resolution — never the built-in assistant", async () => {
       // An integrator with no agent picked gets the built-in assistant; a
-      // guest on a shared page never does — only the pinned shared agent.
+      // guest on a chat link never does — only the chat link's pinned agent.
       const opts = { ...defaultOptions(), audience: "guest" as const };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
@@ -1241,7 +1241,7 @@ describe("useNewSessionFlow", () => {
       expect(opts.onError).toHaveBeenCalled();
     });
 
-    it("names no engine, ignoring a stored Console choice: the shared agent's engine applies", async () => {
+    it("names no engine, ignoring a stored Console choice: the chat link's agent's engine applies", async () => {
       // A browser previously used in the Console must not leak its stored
       // harness into a share/embed session.
       localStorage.setItem(STORAGE_KEY_HARNESS, "cursor");
@@ -1316,7 +1316,7 @@ describe("useNewSessionFlow", () => {
       expect(localStorage.getItem(STORAGE_KEY_MODEL_CURSOR)).toBeNull();
     });
 
-    it("submits with NO engine and NO model: the shared agent's own apply", async () => {
+    it("submits with NO engine and NO model: the chat link's agent applies its own", async () => {
       // Stored values simulate a Console-used browser: neither may leak.
       localStorage.setItem(STORAGE_KEY_HARNESS, "native");
       localStorage.setItem(STORAGE_KEY_MODEL_CURSOR, DEFAULT_CURSOR_MODEL_ID);
@@ -1332,7 +1332,7 @@ describe("useNewSessionFlow", () => {
       });
 
       const execInput = mockCreateExecution.mock.calls[0][0];
-      // Omitted engine = the engine the shared agent names, native when it
+      // Omitted engine = the engine the chat link's agent names, native when it
       // names none (the server's session-agent resolution).
       expect(execInput.sessionSpec.harness).toBeUndefined();
       // Omitted model = the agent's own default. If this ever carries a

@@ -119,7 +119,7 @@ describe("useCanCreateChannel", () => {
     await waitFor(() => expect(result.current.allowed).toBe(false));
   });
 
-  it("refuses when the viewer lacks can_create_channel on the organization — an agent owner who is not an organization admin sees no Create share", async () => {
+  it("refuses when the viewer lacks can_create_channel on the organization — an agent owner who is not an organization admin sees no Add channel", async () => {
     const client = createMockStigmer({ can_create_channel: false });
     const { result } = renderHook(() => useCanCreateChannel(makeAgent()), {
       wrapper: wrapper(client),

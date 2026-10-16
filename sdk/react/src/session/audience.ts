@@ -68,7 +68,7 @@ export function includesMyVaultByDefault(audience: SessionAudience): boolean {
  * Whether a thread presented to this audience shows run scores: thumbs on
  * a completed run's final answer and the run-health flags. The Console's
  * people and a conversation's reviewers grade runs; that is part of what
- * reviewing is for. An embedding product's end users and a share-link's
+ * reviewing is for. An embedding product's end users and a chat link's
  * visitors see neither: the server admits no rating from either (a
  * minted user token's person or a visitor is not a first-party person who can own
  * one). Hiding the health flags from them is a display choice of this

@@ -31,7 +31,7 @@ const STORAGE_KEY_HARNESS = "stigmer:session:harness";
 /**
  * Platform policy for guest (share/embed) sessions: the session names no
  * engine and the run names no model, so the server starts the conversation
- * on the engine the shared agent names (native when it names none) and the
+ * on the engine the chat link's agent names (native when it names none) and the
  * run takes the agent's own defaults. A guest runs the agent as its owner
  * built it, on the organization's own provider keys; nothing a visitor's
  * browser holds shapes it.
@@ -39,7 +39,7 @@ const STORAGE_KEY_HARNESS = "stigmer:session:harness";
  * This lives CLIENT-side deliberately — it is the only layer that can. The
  * SDK's guest audience covers both public visitors (guest tokens) and org
  * members chatting via an org-audience share (their own member tokens, which
- * carry no share linkage) — the server cannot distinguish the
+ * carry no chat-link linkage) — the server cannot distinguish the
  * latter from ordinary Console traffic, so share-surface policy must be
  * applied where the surface is known. Server-side guest-token gates own the
  * abuse controls (rate limits, bounded run profile).
@@ -400,7 +400,7 @@ export function useNewSessionFlow(
   // (default_auto_approve) resolves async with whoAmI — a mount-time
   // initializer would silently miss it (the harness seed's late-arrival
   // problem, solved here by derivation instead of a touched-ref effect).
-  // Guests inherit neither seed — a share-link visitor is not the operator
+  // Guests inherit neither seed — a chat-link visitor is not the operator
   // either trust judgment covers (the guest policy note on
   // GUEST_LOCAL_HARNESS). Carried into the bootstrap create as spec.auto_approve_all,
   // the whole-run server-side bypass — the created run stays covered even
@@ -584,7 +584,7 @@ export function useNewSessionFlow(
   // Restore persisted model — only after the registry has loaded so
   // getModel can actually validate the stored ID against live data.
   // Guests skip the restore: modelId stays undefined, the create omits
-  // modelName, and the run takes the shared agent's default — a Console-used
+  // modelName, and the run takes the chat link's agent's default — a Console-used
   // browser must not leak its stored model into a share/embed session.
   useEffect(() => {
     if (isGuest || isModelsLoading) return;
@@ -630,7 +630,7 @@ export function useNewSessionFlow(
         // The vaults the conversation uses: the person's pick in the
         // composer when they made one, else what the host set up. The pick
         // carries both halves together, so neither is mixed from two
-        // sources. A guest's pick is never taken: what a share-link
+        // sources. A guest's pick is never taken: what a chat-link
         // conversation reads is the host's to say, as on every follow-up.
         const pick = isGuest ? undefined : context;
         const includeMyVault = pick?.includeMyVault
@@ -655,7 +655,7 @@ export function useNewSessionFlow(
           metadata,
           sessionContext,
           // A guest's session names no engine: the server starts it on the
-          // engine the shared agent names (the guest policy note).
+          // engine the chat link's agent names (the guest policy note).
           harness: isGuest ? undefined : harness,
           executionTarget,
         };
@@ -699,7 +699,7 @@ export function useNewSessionFlow(
           sessionAgentRef = agentRef;
         } else if (isGuest) {
           // Fail closed: a guest session is only ever created against the
-          // pinned shared agent's resolution. Reaching here means the pin
+          // chat link's pinned agent's resolution. Reaching here means the pin
           // has not been applied yet (or was cleared) — an anonymous
           // visitor never gets the built-in assistant either.
           throw new Error(

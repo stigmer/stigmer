@@ -9,7 +9,7 @@ import { cn } from "@stigmer/theme";
  * - `primary` — filled call to action (one per view: empty-state CTAs,
  *   dialog confirms).
  * - `outline` — bordered pill for secondary actions that share a row
- *   with content (list-header actions like "Create share").
+ *   with content (list-header actions like "Add channel").
  * - `ghost` — borderless, hover-surfaced; for repeated inline actions
  *   (table row actions) where borders would add noise.
  * - `destructive` — filled danger action (dialog confirms for deletes).
@@ -70,7 +70,7 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
  * @example
  * ```tsx
  * <Button variant="outline" size="xs" icon={<PlusIcon />} onClick={onCreate}>
- *   Create share
+ *   Add channel
  * </Button>
  * ```
  */
