@@ -83,7 +83,7 @@ describe("chatPath / buildChatUrl", () => {
     );
   });
 
-  it("appends ?k= when the share link is locked with a token", () => {
+  it("appends ?k= when the chat link is locked with a token", () => {
     expect(chatPath(SHARE, "tok123")).toBe(`/chat/${SHARE}?k=tok123`);
     expect(buildChatUrl("https://app.stigmer.ai", SHARE, "tok123")).toBe(
       `https://app.stigmer.ai/chat/${SHARE}?k=tok123`,
@@ -141,7 +141,7 @@ describe("buildEmbedSnippet", () => {
     );
   });
 
-  it("adds the token attribute when the share link is locked", () => {
+  it("adds the token attribute when the chat link is locked", () => {
     expect(buildEmbedSnippet("https://app.stigmer.ai", "ash_1", "tok123")).toBe(
       [
         `<script src="https://app.stigmer.ai/embed.js" async></script>`,
