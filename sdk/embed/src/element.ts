@@ -4,13 +4,17 @@
  *
  * ```html
  * <script src="https://app.stigmer.ai/embed.js" async></script>
- * <stigmer-agent share="ash_01j9z3k8f2q4m6n7p8r9s0t1v2"></stigmer-agent>
+ * <stigmer-agent channel="ash_01j9z3k8f2q4m6n7p8r9s0t1v2"></stigmer-agent>
  * ```
  *
- * `share` is the web channel's id (a chat link minted before the Channel
+ * `channel` is the web channel's id (a chat link minted before the Channel
  * kind keeps its `ash_` id): the hosted chat link `/chat/<channel id>` names
  * nothing else, so no rename of the channel's organization can break an
  * embed and no later holder of that organization's name can take it over.
+ *
+ * The attribute was once called `share`. Pages already carrying
+ * `share="…"` keep working: the element reads it when `channel` is absent,
+ * and `channel` wins when both are present.
  *
  * The element renders a cross-origin iframe onto the hosted chat page — the
  * iframe is the isolation boundary; no Stigmer UI code runs in the host page.
@@ -23,6 +27,7 @@ import { createEmbedHost, type EmbedHost } from "./host.js";
 
 /** Attribute-driven configuration of `<stigmer-agent>`. */
 const OBSERVED_ATTRIBUTES = [
+  "channel",
   "share",
   "token",
   "theme",
@@ -87,10 +92,11 @@ export class StigmerAgentElement extends BaseElement {
   private attach(): void {
     this.detach();
 
-    const share = this.getAttribute("share");
+    // `share` is the deprecated name of `channel`; see the header comment.
+    const channel = this.getAttribute("channel") || this.getAttribute("share");
     const appOrigin = this.getAttribute("app-origin") ?? defaultAppOrigin;
-    if (!share) {
-      console.error("[stigmer-agent] the share attribute is required");
+    if (!channel) {
+      console.error("[stigmer-agent] the channel attribute is required");
       return;
     }
     if (!appOrigin) {
@@ -108,11 +114,11 @@ export class StigmerAgentElement extends BaseElement {
     const iframe = document.createElement("iframe");
     iframe.src = buildChatUrl(
       appOrigin,
-      share,
+      channel,
       this.getAttribute("token"),
       this.getAttribute("theme"),
     );
-    // The element holds only the share's id, and the frame protocol carries
+    // The element holds only the channel's id, and the frame protocol carries
     // no agent name, so the frame's accessible name is generic unless the
     // host names it with the element's own title attribute. Read once, when
     // the frame is built: title is deliberately not observed, because a
@@ -147,14 +153,14 @@ export class StigmerAgentElement extends BaseElement {
 
 function buildChatUrl(
   appOrigin: string,
-  share: string,
+  channel: string,
   token: string | null,
   theme: string | null,
 ): string {
-  const url = new URL(`/chat/${encodeURIComponent(share)}`, appOrigin);
+  const url = new URL(`/chat/${encodeURIComponent(channel)}`, appOrigin);
   // `k` is the platform's link-token parameter (see @stigmer/sdk's
   // LINK_TOKEN_PARAM — not imported: this loader stays dependency-free).
-  // Required when the share link is locked; the hosted page forwards it
+  // Required when the chat link is locked; the hosted page forwards it
   // on its guest mint, where the server validates it.
   if (token) {
     url.searchParams.set("k", token);

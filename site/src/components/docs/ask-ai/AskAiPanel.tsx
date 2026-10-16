@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
 import { useDocsColorMode } from "@/components/docs/useDocsColorMode";
 import { useAskAi } from "./AskAiProvider";
-import { ASK_AI_APP_ORIGIN, ASK_AI_SHARE } from "./config";
+import { ASK_AI_APP_ORIGIN, ASK_AI_CHANNEL } from "./config";
 
 /**
  * The Ask AI side panel: a non-modal Base UI dialog hosting the
@@ -21,7 +21,7 @@ import { ASK_AI_APP_ORIGIN, ASK_AI_SHARE } from "./config";
  * able to keep reading (and follow cited links) while the agent works; it
  * also avoids trapping focus around a cross-origin iframe, which no focus
  * trap can traverse. Renders nothing while no docs share is wired
- * (`ASK_AI_SHARE` empty). `disablePointerDismissal` keeps clicks into the docs
+ * (`ASK_AI_CHANNEL` empty). `disablePointerDismissal` keeps clicks into the docs
  * from closing the panel; `keepMounted` keeps the closed panel (hidden,
  * `display: none`) in the DOM so the iframe — and the conversation — survive
  * close/reopen. Escape only closes while focus is on panel chrome (keydowns
@@ -36,7 +36,7 @@ export function AskAiPanel() {
   // ANY attribute change, so the theme attribute must never vary mid-session.
   const colorMode = useDocsColorMode();
 
-  if (!ASK_AI_SHARE) return null;
+  if (!ASK_AI_CHANNEL) return null;
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen} modal={false} disablePointerDismissal>
@@ -84,7 +84,7 @@ export function AskAiPanel() {
                   <stigmer-agent
                     key={embedEpoch}
                     ref={elementRef}
-                    share={ASK_AI_SHARE}
+                    channel={ASK_AI_CHANNEL}
                     app-origin={ASK_AI_APP_ORIGIN}
                     theme={colorMode}
                     width="100%"

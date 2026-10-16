@@ -1,7 +1,7 @@
 /**
  * Ask AI wiring constants.
  *
- * `SHARE` is the id of the public web channel (the chat link) applied from
+ * `CHANNEL` is the id of the public web channel (the chat link) applied from
  * `docs-agent/channels/stigmer-docs.yaml`, and `APP_ORIGIN` the Stigmer app
  * that hosts its chat page. A hosted chat link names its channel only by its
  * id, which the server mints when the channel is first applied, so the id is
@@ -12,7 +12,7 @@
  * and a relative or env-derived value would only add a way to be wrong.
  */
 
-export const ASK_AI_SHARE = "";
+export const ASK_AI_CHANNEL = "";
 export const ASK_AI_APP_ORIGIN = "https://app.stigmer.ai";
 
 /**

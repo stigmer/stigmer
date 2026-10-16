@@ -12,7 +12,7 @@ import { ASK_AI_APP_ORIGIN, ASK_AI_READY_TIMEOUT_MS } from "../config";
 const wiring = vi.hoisted(() => ({ share: "" }));
 vi.mock("../config", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../config")>()),
-  get ASK_AI_SHARE() {
+  get ASK_AI_CHANNEL() {
     return wiring.share;
   },
 }));
@@ -81,7 +81,7 @@ describe("AskAiPanel", () => {
     expect(elements.length).toBe(1);
 
     const element = elements[0];
-    expect(element.getAttribute("share")).toBe(DOCS_SHARE);
+    expect(element.getAttribute("channel")).toBe(DOCS_SHARE);
     expect(element.getAttribute("app-origin")).toBe(ASK_AI_APP_ORIGIN);
     expect(element.getAttribute("theme")).toBe("dark");
     expect(element.getAttribute("width")).toBe("100%");

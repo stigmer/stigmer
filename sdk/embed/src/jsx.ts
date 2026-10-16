@@ -37,7 +37,7 @@ import type { StigmerAgentElement } from "./element.js";
  * (like a theme) once, before mounting.
  *
  * Every attribute is optional, including the two the element requires at
- * runtime (`share`, which it enforces with a console error). This is
+ * runtime (`channel`, which it enforces with a console error). This is
  * NOT laziness: libraries like react-markdown build mapped types over
  * `JSX.IntrinsicElements`, and an intrinsic with required props breaks their
  * assignability for every project that imports this augmentation. All
@@ -49,12 +49,18 @@ interface StigmerAgentAttributes
   extends ClassAttributes<StigmerAgentElement>,
     Omit<HTMLAttributes<StigmerAgentElement>, "children"> {
   /**
-   * The share's id (`ash_…`), the one path segment of the hosted chat
-   * link. Required at runtime (see above for why the type cannot enforce
-   * it).
+   * The web channel's id (`ash_…`), the one path segment of the hosted
+   * chat link. Required at runtime (see above for why the type cannot
+   * enforce it); `share` is accepted in its place.
+   */
+  channel?: string;
+  /**
+   * The former name of `channel`.
+   *
+   * @deprecated use `channel`; pages that carry `share` keep working.
    */
   share?: string;
-  /** Link token for a locked share; forwarded as the `?k=` parameter. */
+  /** Link token for a locked chat link; forwarded as the `?k=` parameter. */
   token?: string;
   /**
    * Color mode, resolved once at mount. `auto` follows the OS
