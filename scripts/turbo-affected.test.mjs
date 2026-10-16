@@ -128,7 +128,7 @@ test("readAffected: changed and downstream tasks name their package; an upstream
     ]),
   );
   assert.equal(fallback, null);
-  assert.deepEqual(packages.sort(), ["@stigmer/react-sdk", "@stigmer/client"]);
+  assert.deepEqual(packages.sort(), ["@stigmer/client", "@stigmer/react-sdk"]);
   assert.equal(rows.length, 5, "every task is kept for the summary");
   assert.ok(rows.find((r) => r.package === "@stigmer/design-tokens").upstreamOnly);
 });

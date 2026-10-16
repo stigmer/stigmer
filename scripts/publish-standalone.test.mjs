@@ -532,7 +532,7 @@ test("installGap adds the separator a registry URL without a trailing slash lack
   });
   assert.equal(
     registry.asked[0].url,
-    "https://npm.example.test/api/@stigmer%2fprotos",
+    "https://npm.example.test/api/@stigmer%2fapis",
   );
   assert.equal(registry.asked.length, 1);
 });

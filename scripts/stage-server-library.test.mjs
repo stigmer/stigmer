@@ -86,7 +86,7 @@ test("linkedLibs names the @stigmer/* file: links only, sorted", () => {
         "left-pad": "file:../left-pad",
       },
     }),
-    ["@stigmer/outbound", "@stigmer/apis"],
+    ["@stigmer/apis", "@stigmer/outbound"],
   );
   assert.deepEqual(linkedLibs({}), []);
 });
@@ -104,10 +104,10 @@ test("the checked-in server's links close over exactly the libs it links, so the
   );
   const libs = linkedLibs(manifest);
   assert.deepEqual(libs, [
+    "@stigmer/apis",
     "@stigmer/eval-runtime",
     "@stigmer/outbound",
     "@stigmer/plugin-package",
-    "@stigmer/apis",
     "@stigmer/session-log",
     "@stigmer/temporal-codecs",
     "@stigmer/tool-vocabulary",
@@ -157,5 +157,5 @@ test("the stage packs the server and Enterprise, and Enterprise links nothing th
   const staged = [...linkedLibs(server), server.name, enterprise.name];
   assert.deepEqual(unstagedLinks(enterprise, staged), []);
   // The links themselves, so the reason the set closes is visible.
-  assert.deepEqual(linkedLibs(enterprise), ["@stigmer/outbound", "@stigmer/apis", "@stigmer/server"]);
+  assert.deepEqual(linkedLibs(enterprise), ["@stigmer/apis", "@stigmer/outbound", "@stigmer/server"]);
 });

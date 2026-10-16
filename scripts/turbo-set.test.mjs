@@ -51,7 +51,7 @@ test("libs set is the package name of every PACKAGES entry, in publish order", (
   assert.equal(
     names[0],
     "@stigmer/apis",
-    "protos publishes first, so it builds first",
+    "the API stubs publish first, so they build first",
   );
   assert.equal(
     names.at(-1),
@@ -100,10 +100,10 @@ test("runner-deps set in this repo names the libs both standalone packages link 
     "backend/services/stigmer-server/package.json",
   ]);
   assert.deepEqual(runnerLinkedSet(), [
+    "@stigmer/apis",
     "@stigmer/eval-runtime",
     "@stigmer/outbound",
     "@stigmer/plugin-package",
-    "@stigmer/apis",
     "@stigmer/session-log",
     "@stigmer/temporal-codecs",
     "@stigmer/tool-vocabulary",
@@ -250,10 +250,10 @@ test("turboArgs: task first, one --filter per package, caller flags last", () =>
   assert.deepEqual(args, [
     "run",
     "build",
+    "--filter=@stigmer/apis",
     "--filter=@stigmer/eval-runtime",
     "--filter=@stigmer/outbound",
     "--filter=@stigmer/plugin-package",
-    "--filter=@stigmer/apis",
     "--filter=@stigmer/session-log",
     "--filter=@stigmer/temporal-codecs",
     "--filter=@stigmer/tool-vocabulary",
