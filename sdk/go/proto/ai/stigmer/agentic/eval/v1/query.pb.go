@@ -34,9 +34,9 @@ const file_ai_stigmer_agentic_eval_v1_query_proto_rawDesc = "" +
 	"\flistVersions\x121.ai.stigmer.agentic.eval.v1.ListEvalVersionsInput\x1a4.ai.stigmer.agentic.eval.v1.ListEvalVersionsResponse\"\x04и\x18\x01\x12o\n" +
 	"\bdownload\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a'.ai.stigmer.agentic.eval.v1.EvalArchive\"\x04и\x18\x01\x12\x80\x01\n" +
 	"\x0egetDownloadUrl\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a2.ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl\"\x04и\x18\x01\x12~\n" +
-	"\x10buildCaseFromRun\x127.ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest\x1a+.ai.stigmer.agentic.eval.v1.EvalCaseArchive\"\x04и\x18\x01\x1a\x04\xa0\xff+BB\x89\x02\n" +
+	"\x10buildCaseFromRun\x127.ai.stigmer.agentic.eval.v1.BuildEvalCaseFromRunRequest\x1a+.ai.stigmer.agentic.eval.v1.EvalCaseArchive\"\x04и\x18\x01\x1a\x04\xa0\xff+BB\xf6\x01\n" +
 	"\x1ecom.ai.stigmer.agentic.eval.v1B\n" +
-	"QueryProtoP\x01ZLgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/eval/v1;evalv1\xa2\x02\x04ASAE\xaa\x02\x1aAi.Stigmer.Agentic.Eval.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Eval_\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Agentic::Eval::V1b\x06proto3"
+	"QueryProtoP\x01Z9go.stigmer.ai/sdk/proto/ai/stigmer/agentic/eval/v1;evalv1\xa2\x02\x04ASAE\xaa\x02\x1aAi.Stigmer.Agentic.Eval.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Eval_\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Agentic::Eval::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_eval_v1_query_proto_goTypes = []any{
 	(*EvalId)(nil),                           // 0: ai.stigmer.agentic.eval.v1.EvalId

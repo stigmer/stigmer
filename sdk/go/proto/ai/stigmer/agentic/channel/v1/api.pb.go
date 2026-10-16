@@ -133,8 +133,8 @@ const file_ai_stigmer_agentic_channel_v1_api_proto_rawDesc = "" +
 	"\aChannelR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12>\n" +
 	"\x04spec\x18\x04 \x01(\v2*.ai.stigmer.agentic.channel.v1.ChannelSpecR\x04spec\x12D\n" +
-	"\x06status\x18\x05 \x01(\v2,.ai.stigmer.agentic.channel.v1.ChannelStatusR\x06statusB\x9a\x02\n" +
-	"!com.ai.stigmer.agentic.channel.v1B\bApiProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
+	"\x06status\x18\x05 \x01(\v2,.ai.stigmer.agentic.channel.v1.ChannelStatusR\x06statusB\x87\x02\n" +
+	"!com.ai.stigmer.agentic.channel.v1B\bApiProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_channel_v1_api_proto_rawDescOnce sync.Once

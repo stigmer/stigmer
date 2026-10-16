@@ -582,8 +582,8 @@ const file_ai_stigmer_agentic_session_v1_event_content_proto_rawDesc = "" +
 	"\x17AutoEvaluatedPermission\x12+\n" +
 	"\x04type\x18\x01 \x01(\tB\x17\xbaH\x14r\x12R\x05allowR\x03askR\x04denyR\x04type\x12\x1f\n" +
 	"\vreason_code\x18\x02 \x01(\tR\n" +
-	"reasonCodeB\xa3\x02\n" +
-	"!com.ai.stigmer.agentic.session.v1B\x11EventContentProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
+	"reasonCodeB\x90\x02\n" +
+	"!com.ai.stigmer.agentic.session.v1B\x11EventContentProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_session_v1_event_content_proto_rawDescOnce sync.Once

@@ -30,9 +30,9 @@ const file_ai_stigmer_agentic_scoringrule_v1_query_proto_rawDesc = "" +
 	"\x1aScoringRuleQueryController\x12\x9a\x01\n" +
 	"\x03get\x120.ai.stigmer.agentic.scoringrule.v1.ScoringRuleId\x1a..ai.stigmer.agentic.scoringrule.v1.ScoringRule\"1¸\x18-\b\x01\x10>\"\x05value* unauthorized to get scoring rule\x12\xc0\x01\n" +
 	"\n" +
-	"getByAgent\x12?.ai.stigmer.agentic.scoringrule.v1.GetScoringRuleByAgentRequest\x1a..ai.stigmer.agentic.scoringrule.v1.ScoringRule\"A¸\x18=\b\x01\x10(\"\bagent_id*-unauthorized to get the scoring rule of agent\x1a\x04\xa0\xff+>B\xb8\x02\n" +
+	"getByAgent\x12?.ai.stigmer.agentic.scoringrule.v1.GetScoringRuleByAgentRequest\x1a..ai.stigmer.agentic.scoringrule.v1.ScoringRule\"A¸\x18=\b\x01\x10(\"\bagent_id*-unauthorized to get the scoring rule of agent\x1a\x04\xa0\xff+>B\xa5\x02\n" +
 	"%com.ai.stigmer.agentic.scoringrule.v1B\n" +
-	"QueryProtoP\x01ZZgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/scoringrule/v1;scoringrulev1\xa2\x02\x04ASAS\xaa\x02!Ai.Stigmer.Agentic.Scoringrule.V1\xca\x02!Ai\\Stigmer\\Agentic\\Scoringrule\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Scoringrule\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Scoringrule::V1b\x06proto3"
+	"QueryProtoP\x01ZGgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/scoringrule/v1;scoringrulev1\xa2\x02\x04ASAS\xaa\x02!Ai.Stigmer.Agentic.Scoringrule.V1\xca\x02!Ai\\Stigmer\\Agentic\\Scoringrule\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Scoringrule\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Scoringrule::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_scoringrule_v1_query_proto_goTypes = []any{
 	(*ScoringRuleId)(nil),                // 0: ai.stigmer.agentic.scoringrule.v1.ScoringRuleId

@@ -1029,8 +1029,8 @@ const file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"q\n" +
 	"\tSkillList\x12<\n" +
 	"\aentries\x18\x01 \x03(\v2\".ai.stigmer.agentic.skill.v1.SkillR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\x8b\x02\n" +
-	"\x1fcom.ai.stigmer.agentic.skill.v1B\aIoProtoP\x01ZNgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\xf8\x01\n" +
+	"\x1fcom.ai.stigmer.agentic.skill.v1B\aIoProtoP\x01Z;go.stigmer.ai/sdk/proto/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_skill_v1_io_proto_rawDescOnce sync.Once

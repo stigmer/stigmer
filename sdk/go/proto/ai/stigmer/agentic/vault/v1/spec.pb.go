@@ -512,8 +512,8 @@ const file_ai_stigmer_agentic_vault_v1_spec_proto_rawDesc = "" +
 	"#vault_connection_source_unspecified\x10\x00\x12\n" +
 	"\n" +
 	"\x06pasted\x10\x01\x12\v\n" +
-	"\asign_in\x10\x02B\x8d\x02\n" +
-	"\x1fcom.ai.stigmer.agentic.vault.v1B\tSpecProtoP\x01ZNgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/vault/v1;vaultv1\xa2\x02\x04ASAV\xaa\x02\x1bAi.Stigmer.Agentic.Vault.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Vault\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Vault::V1b\x06proto3"
+	"\asign_in\x10\x02B\xfa\x01\n" +
+	"\x1fcom.ai.stigmer.agentic.vault.v1B\tSpecProtoP\x01Z;go.stigmer.ai/sdk/proto/ai/stigmer/agentic/vault/v1;vaultv1\xa2\x02\x04ASAV\xaa\x02\x1bAi.Stigmer.Agentic.Vault.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Vault\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Vault::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_vault_v1_spec_proto_rawDescOnce sync.Once

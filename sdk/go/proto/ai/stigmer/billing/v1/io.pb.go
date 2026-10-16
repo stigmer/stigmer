@@ -1050,8 +1050,8 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x8e\x01\n" +
 	"\x1dModelPricingBaselinesResponse\x12E\n" +
 	"\aentries\x18\x01 \x03(\v2+.ai.stigmer.billing.v1.ModelPricingBaselineR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\xe7\x01\n" +
-	"\x19com.ai.stigmer.billing.v1B\aIoProtoP\x01ZJgo.stigmer.ai/sdk/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\xd4\x01\n" +
+	"\x19com.ai.stigmer.billing.v1B\aIoProtoP\x01Z7go.stigmer.ai/sdk/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_billing_v1_io_proto_rawDescOnce sync.Once

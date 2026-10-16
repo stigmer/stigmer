@@ -130,8 +130,8 @@ const file_ai_stigmer_commons_rpc_authorization_config_proto_rawDesc = "" +
 	"field_path\x18\x04 \x01(\tR\tfieldPath\x12\x1b\n" +
 	"\terror_msg\x18\x05 \x01(\tR\berrorMsg\x12\x1f\n" +
 	"\vresource_id\x18\x06 \x01(\tR\n" +
-	"resourceIdB\xf5\x01\n" +
-	"\x1acom.ai.stigmer.commons.rpcB\x18AuthorizationConfigProtoP\x01ZAgo.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc\xa2\x02\x04ASCR\xaa\x02\x16Ai.Stigmer.Commons.Rpc\xca\x02\x16Ai\\Stigmer\\Commons\\Rpc\xe2\x02\"Ai\\Stigmer\\Commons\\Rpc\\GPBMetadata\xea\x02\x19Ai::Stigmer::Commons::Rpcb\x06proto3"
+	"resourceIdB\xe2\x01\n" +
+	"\x1acom.ai.stigmer.commons.rpcB\x18AuthorizationConfigProtoP\x01Z.go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc\xa2\x02\x04ASCR\xaa\x02\x16Ai.Stigmer.Commons.Rpc\xca\x02\x16Ai\\Stigmer\\Commons\\Rpc\xe2\x02\"Ai\\Stigmer\\Commons\\Rpc\\GPBMetadata\xea\x02\x19Ai::Stigmer::Commons::Rpcb\x06proto3"
 
 var (
 	file_ai_stigmer_commons_rpc_authorization_config_proto_rawDescOnce sync.Once

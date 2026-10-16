@@ -289,8 +289,8 @@ const file_ai_stigmer_agentic_eval_v1_status_proto_rawDesc = "" +
 	"\vEvalFinding\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x12\n" +
-	"\x04path\x18\x03 \x01(\tR\x04pathB\x8a\x02\n" +
-	"\x1ecom.ai.stigmer.agentic.eval.v1B\vStatusProtoP\x01ZLgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/eval/v1;evalv1\xa2\x02\x04ASAE\xaa\x02\x1aAi.Stigmer.Agentic.Eval.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Eval_\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Agentic::Eval::V1b\x06proto3"
+	"\x04path\x18\x03 \x01(\tR\x04pathB\xf7\x01\n" +
+	"\x1ecom.ai.stigmer.agentic.eval.v1B\vStatusProtoP\x01Z9go.stigmer.ai/sdk/proto/ai/stigmer/agentic/eval/v1;evalv1\xa2\x02\x04ASAE\xaa\x02\x1aAi.Stigmer.Agentic.Eval.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Eval_\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Agentic::Eval::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_eval_v1_status_proto_rawDescOnce sync.Once

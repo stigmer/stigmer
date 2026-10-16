@@ -2026,8 +2026,8 @@ const file_ai_stigmer_iam_grant_v1_io_proto_rawDesc = "" +
 	"\x12operator_ownership\x10\n" +
 	"\x12\x19\n" +
 	"\x15platform_client_grant\x10\v\x12\x1b\n" +
-	"\x17service_account_created\x10\fB\xf3\x01\n" +
-	"\x1bcom.ai.stigmer.iam.grant.v1B\aIoProtoP\x01ZJgo.stigmer.ai/sdk/proto/ai/stigmer/iam/grant/v1;grantv1\xa2\x02\x04ASIG\xaa\x02\x17Ai.Stigmer.Iam.Grant.V1\xca\x02\x17Ai\\Stigmer\\Iam\\Grant\\V1\xe2\x02#Ai\\Stigmer\\Iam\\Grant\\V1\\GPBMetadata\xea\x02\x1bAi::Stigmer::Iam::Grant::V1b\x06proto3"
+	"\x17service_account_created\x10\fB\xe0\x01\n" +
+	"\x1bcom.ai.stigmer.iam.grant.v1B\aIoProtoP\x01Z7go.stigmer.ai/sdk/proto/ai/stigmer/iam/grant/v1;grantv1\xa2\x02\x04ASIG\xaa\x02\x17Ai.Stigmer.Iam.Grant.V1\xca\x02\x17Ai\\Stigmer\\Iam\\Grant\\V1\xe2\x02#Ai\\Stigmer\\Iam\\Grant\\V1\\GPBMetadata\xea\x02\x1bAi::Stigmer::Iam::Grant::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_grant_v1_io_proto_rawDescOnce sync.Once

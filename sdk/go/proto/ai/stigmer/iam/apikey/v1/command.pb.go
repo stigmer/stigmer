@@ -31,8 +31,8 @@ const file_ai_stigmer_iam_apikey_v1_command_proto_rawDesc = "" +
 	"\x06create\x12 .ai.stigmer.iam.apikey.v1.ApiKey\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"\x04и\x18\x01\x12\xc5\x01\n" +
 	"\x17createForServiceAccount\x126.ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"P¸\x18L\b7\x10\v\"\x12service_account_id*2unauthorized to manage this service account's keys\x12\x97\x01\n" +
 	"\x06update\x12+.ai.stigmer.iam.apikey.v1.UpdateApiKeyInput\x1a .ai.stigmer.iam.apikey.v1.ApiKey\">¸\x18:\b\x02\x10\f\"\x14resource.metadata.id*\x1eunauthorized to update api key\x12\x7f\n" +
-	"\x06delete\x12\".ai.stigmer.iam.apikey.v1.ApiKeyId\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"/¸\x18+\b\x03\x10\f\"\x05value*\x1eunauthorized to delete api key\x1a\x04\xa0\xff+\fB\xff\x01\n" +
-	"\x1ccom.ai.stigmer.iam.apikey.v1B\fCommandProtoP\x01ZLgo.stigmer.ai/sdk/proto/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"
+	"\x06delete\x12\".ai.stigmer.iam.apikey.v1.ApiKeyId\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"/¸\x18+\b\x03\x10\f\"\x05value*\x1eunauthorized to delete api key\x1a\x04\xa0\xff+\fB\xec\x01\n" +
+	"\x1ccom.ai.stigmer.iam.apikey.v1B\fCommandProtoP\x01Z9go.stigmer.ai/sdk/proto/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"
 
 var file_ai_stigmer_iam_apikey_v1_command_proto_goTypes = []any{
 	(*ApiKey)(nil),                       // 0: ai.stigmer.iam.apikey.v1.ApiKey

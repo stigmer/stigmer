@@ -394,8 +394,8 @@ const file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc = "" +
 	"\x10standing_context\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContext\x12%\n" +
 	"\x0ememory_enabled\x18\x02 \x01(\bR\rmemoryEnabled\"Q\n" +
 	"\x14OrganizationPolicies\x129\n" +
-	"\x19members_can_create_agents\x18\x01 \x01(\bR\x16membersCanCreateAgentsB\xbe\x02\n" +
-	"&com.ai.stigmer.tenancy.organization.v1B\tSpecProtoP\x01Z\\go.stigmer.ai/sdk/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
+	"\x19members_can_create_agents\x18\x01 \x01(\bR\x16membersCanCreateAgentsB\xab\x02\n" +
+	"&com.ai.stigmer.tenancy.organization.v1B\tSpecProtoP\x01ZIgo.stigmer.ai/sdk/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDescOnce sync.Once

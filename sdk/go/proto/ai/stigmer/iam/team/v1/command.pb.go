@@ -31,8 +31,8 @@ const file_ai_stigmer_iam_team_v1_command_proto_rawDesc = "" +
 	"\x06create\x12\x1c.ai.stigmer.iam.team.v1.Team\x1a\x1c.ai.stigmer.iam.team.v1.Team\"H¸\x18D\b-\x10\x1e\"\fmetadata.org*0unauthorized to create team in this organization\x12\x8c\x01\n" +
 	"\x06update\x12'.ai.stigmer.iam.team.v1.UpdateTeamInput\x1a\x1c.ai.stigmer.iam.team.v1.Team\";¸\x187\b\x02\x10\x18\"\x14resource.metadata.id*\x1bunauthorized to update team\x12\x87\x01\n" +
 	"\x06rename\x12+.ai.stigmer.commons.apiresource.RenameInput\x1a\x1c.ai.stigmer.iam.team.v1.Team\"2¸\x18.\b\x03\x10\x18\"\vresource_id*\x1bunauthorized to rename team\x12\x92\x01\n" +
-	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a\x1c.ai.stigmer.iam.team.v1.Team\"2¸\x18.\b\x03\x10\x18\"\vresource_id*\x1bunauthorized to delete team\x1a\x04\xa0\xff+\x18B\xf1\x01\n" +
-	"\x1acom.ai.stigmer.iam.team.v1B\fCommandProtoP\x01ZHgo.stigmer.ai/sdk/proto/ai/stigmer/iam/team/v1;teamv1\xa2\x02\x04ASIT\xaa\x02\x16Ai.Stigmer.Iam.Team.V1\xca\x02\x16Ai\\Stigmer\\Iam\\Team\\V1\xe2\x02\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetadata\xea\x02\x1aAi::Stigmer::Iam::Team::V1b\x06proto3"
+	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a\x1c.ai.stigmer.iam.team.v1.Team\"2¸\x18.\b\x03\x10\x18\"\vresource_id*\x1bunauthorized to delete team\x1a\x04\xa0\xff+\x18B\xde\x01\n" +
+	"\x1acom.ai.stigmer.iam.team.v1B\fCommandProtoP\x01Z5go.stigmer.ai/sdk/proto/ai/stigmer/iam/team/v1;teamv1\xa2\x02\x04ASIT\xaa\x02\x16Ai.Stigmer.Iam.Team.V1\xca\x02\x16Ai\\Stigmer\\Iam\\Team\\V1\xe2\x02\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetadata\xea\x02\x1aAi::Stigmer::Iam::Team::V1b\x06proto3"
 
 var file_ai_stigmer_iam_team_v1_command_proto_goTypes = []any{
 	(*Team)(nil),                               // 0: ai.stigmer.iam.team.v1.Team

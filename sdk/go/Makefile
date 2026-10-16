@@ -51,9 +51,9 @@ codegen-stubs: ## Generate proto stubs inside the SDK module
 	@# buf.build network dependency (mirrors the apis go-stubs pipeline).
 	@$(MAKE) -C ../../apis go-stubs-tools
 	@cd ../../apis && buf generate --template buf.gen.sdk-go.yaml
-	@if [ -d "proto/github.com" ]; then \
+	@if [ -d "proto/go.stigmer.ai" ]; then \
 		mv proto/go.stigmer.ai/sdk/proto/* proto/ 2>/dev/null || true; \
-		rm -rf proto/github.com; \
+		rm -rf proto/go.stigmer.ai; \
 	fi
 	@# Scrub @internal comment sections: proto/ is a subpackage of the
 	@# published SDK module, so protoc-copied internal notes would render on

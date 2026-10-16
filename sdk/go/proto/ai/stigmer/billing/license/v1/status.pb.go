@@ -113,8 +113,8 @@ const file_ai_stigmer_billing_license_v1_status_proto_rawDesc = "" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12\x15\n" +
 	"\x06key_id\x18\x01 \x01(\tR\x05keyId\x127\n" +
 	"\tissued_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\bissuedAt\x12\x16\n" +
-	"\x06ticket\x18\x03 \x01(\tR\x06ticketB\x9d\x02\n" +
-	"!com.ai.stigmer.billing.license.v1B\vStatusProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/billing/license/v1;licensev1\xa2\x02\x04ASBL\xaa\x02\x1dAi.Stigmer.Billing.License.V1\xca\x02\x1dAi\\Stigmer\\Billing\\License\\V1\xe2\x02)Ai\\Stigmer\\Billing\\License\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Billing::License::V1b\x06proto3"
+	"\x06ticket\x18\x03 \x01(\tR\x06ticketB\x8a\x02\n" +
+	"!com.ai.stigmer.billing.license.v1B\vStatusProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/billing/license/v1;licensev1\xa2\x02\x04ASBL\xaa\x02\x1dAi.Stigmer.Billing.License.V1\xca\x02\x1dAi\\Stigmer\\Billing\\License\\V1\xe2\x02)Ai\\Stigmer\\Billing\\License\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Billing::License::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_billing_license_v1_status_proto_rawDescOnce sync.Once

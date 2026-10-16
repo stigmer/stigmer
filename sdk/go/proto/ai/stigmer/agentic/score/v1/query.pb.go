@@ -33,9 +33,9 @@ const file_ai_stigmer_agentic_score_v1_query_proto_rawDesc = "" +
 	"\rlistBySession\x127.ai.stigmer.agentic.score.v1.ListScoresBySessionRequest\x1a&.ai.stigmer.agentic.score.v1.ScoreList\"<¸\x188\b\x01\x10*\"\n" +
 	"session_id*&unauthorized to list scores of session\x12\xbd\x01\n" +
 	"\x15getAgentQualityReport\x129.ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest\x1a/.ai.stigmer.agentic.score.v1.AgentQualityReport\"8¸\x184\b\x01\x10\x1e\"\x03org*)unauthorized to view agent quality report\x12\xb7\x01\n" +
-	"\x12listFlaggedByAgent\x12<.ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest\x1a&.ai.stigmer.agentic.score.v1.ScoreList\";¸\x187\b\x01\x10\x1e\"\x03org*,unauthorized to list flagged scores of agent\x1a\x04\xa0\xff+=B\x8e\x02\n" +
+	"\x12listFlaggedByAgent\x12<.ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest\x1a&.ai.stigmer.agentic.score.v1.ScoreList\";¸\x187\b\x01\x10\x1e\"\x03org*,unauthorized to list flagged scores of agent\x1a\x04\xa0\xff+=B\xfb\x01\n" +
 	"\x1fcom.ai.stigmer.agentic.score.v1B\n" +
-	"QueryProtoP\x01ZNgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/score/v1;scorev1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Score.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Score\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Score::V1b\x06proto3"
+	"QueryProtoP\x01Z;go.stigmer.ai/sdk/proto/ai/stigmer/agentic/score/v1;scorev1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Score.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Score\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Score::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_score_v1_query_proto_goTypes = []any{
 	(*ScoreId)(nil),                         // 0: ai.stigmer.agentic.score.v1.ScoreId

@@ -238,8 +238,8 @@ const file_ai_stigmer_billing_v1_billing_account_proto_rawDesc = "" +
 	"\x05brand\x18\x02 \x01(\tR\x05brand\x12\x14\n" +
 	"\x05last4\x18\x03 \x01(\tR\x05last4\x12\x1b\n" +
 	"\texp_month\x18\x04 \x01(\x05R\bexpMonth\x12\x19\n" +
-	"\bexp_year\x18\x05 \x01(\x05R\aexpYearB\xf3\x01\n" +
-	"\x19com.ai.stigmer.billing.v1B\x13BillingAccountProtoP\x01ZJgo.stigmer.ai/sdk/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
+	"\bexp_year\x18\x05 \x01(\x05R\aexpYearB\xe0\x01\n" +
+	"\x19com.ai.stigmer.billing.v1B\x13BillingAccountProtoP\x01Z7go.stigmer.ai/sdk/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_billing_v1_billing_account_proto_rawDescOnce sync.Once

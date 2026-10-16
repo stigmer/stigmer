@@ -36,8 +36,8 @@ const file_ai_stigmer_agentic_channel_v1_command_proto_rawDesc = "" +
 	"rotateLink\x125.ai.stigmer.agentic.channel.v1.RotateChannelLinkInput\x1a&.ai.stigmer.agentic.channel.v1.Channel\":¸\x186\b\x02\x10/\"\vresource_id*#unauthorized to rotate channel link\x12\xc2\x01\n" +
 	"\x0finitiateInstall\x12:.ai.stigmer.agentic.channel.v1.InitiateChannelInstallInput\x1a;.ai.stigmer.agentic.channel.v1.InitiateChannelInstallOutput\"6¸\x182\b\x02\x10/\"\vresource_id*\x1funauthorized to install channel\x12\xad\x01\n" +
 	"\x0fcompleteInstall\x12:.ai.stigmer.agentic.channel.v1.CompleteChannelInstallInput\x1a&.ai.stigmer.agentic.channel.v1.Channel\"6¸\x182\b\x02\x10/\"\vresource_id*\x1funauthorized to install channel\x12\x8b\x01\n" +
-	"\x06delete\x12(.ai.stigmer.agentic.channel.v1.ChannelId\x1a&.ai.stigmer.agentic.channel.v1.Channel\"/¸\x18+\b\x03\x10/\"\x05value*\x1eunauthorized to delete channel\x1a\x04\xa0\xff+/B\x9e\x02\n" +
-	"!com.ai.stigmer.agentic.channel.v1B\fCommandProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
+	"\x06delete\x12(.ai.stigmer.agentic.channel.v1.ChannelId\x1a&.ai.stigmer.agentic.channel.v1.Channel\"/¸\x18+\b\x03\x10/\"\x05value*\x1eunauthorized to delete channel\x1a\x04\xa0\xff+/B\x8b\x02\n" +
+	"!com.ai.stigmer.agentic.channel.v1B\fCommandProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_channel_v1_command_proto_goTypes = []any{
 	(*Channel)(nil),                      // 0: ai.stigmer.agentic.channel.v1.Channel

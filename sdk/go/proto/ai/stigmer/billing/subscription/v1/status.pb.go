@@ -189,8 +189,8 @@ const file_ai_stigmer_billing_subscription_v1_status_proto_rawDesc = "" +
 	"\n" +
 	"\x06active\x10\x01\x12\f\n" +
 	"\bpast_due\x10\x02\x12\f\n" +
-	"\bcanceled\x10\x03B\xc0\x02\n" +
-	"&com.ai.stigmer.billing.subscription.v1B\vStatusProtoP\x01Z\\go.stigmer.ai/sdk/proto/ai/stigmer/billing/subscription/v1;subscriptionv1\xa2\x02\x04ASBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3"
+	"\bcanceled\x10\x03B\xad\x02\n" +
+	"&com.ai.stigmer.billing.subscription.v1B\vStatusProtoP\x01ZIgo.stigmer.ai/sdk/proto/ai/stigmer/billing/subscription/v1;subscriptionv1\xa2\x02\x04ASBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_billing_subscription_v1_status_proto_rawDescOnce sync.Once

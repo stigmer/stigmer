@@ -357,8 +357,8 @@ const file_ai_stigmer_platform_v1_entitlement_proto_rawDesc = "" +
 	"\x05teams\x10\x06\x12\x0e\n" +
 	"\n" +
 	"child_orgs\x10\a\x12\x12\n" +
-	"\x0eaccess_history\x10\bB\xf7\x01\n" +
-	"\x1acom.ai.stigmer.platform.v1B\x10EntitlementProtoP\x01ZLgo.stigmer.ai/sdk/proto/ai/stigmer/platform/v1;platformv1\xa2\x02\x03ASP\xaa\x02\x16Ai.Stigmer.Platform.V1\xca\x02\x16Ai\\Stigmer\\Platform\\V1\xe2\x02\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\xea\x02\x19Ai::Stigmer::Platform::V1b\x06proto3"
+	"\x0eaccess_history\x10\bB\xe4\x01\n" +
+	"\x1acom.ai.stigmer.platform.v1B\x10EntitlementProtoP\x01Z9go.stigmer.ai/sdk/proto/ai/stigmer/platform/v1;platformv1\xa2\x02\x03ASP\xaa\x02\x16Ai.Stigmer.Platform.V1\xca\x02\x16Ai\\Stigmer\\Platform\\V1\xe2\x02\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\xea\x02\x19Ai::Stigmer::Platform::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_platform_v1_entitlement_proto_rawDescOnce sync.Once

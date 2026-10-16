@@ -137,8 +137,8 @@ const file_ai_stigmer_agentic_schedule_v1_spec_proto_rawDesc = "" +
 	"\ttime_zone\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btimeZone\x12\x18\n" +
 	"\aenabled\x18\x03 \x01(\bR\aenabled\x12B\n" +
 	"\x05agent\x18\x04 \x01(\v2*.ai.stigmer.agentic.run.v1.AgentInvocationH\x00R\x05agentB\x0f\n" +
-	"\x06target\x12\x05\xbaH\x02\b\x01B\xa2\x02\n" +
-	"\"com.ai.stigmer.agentic.schedule.v1B\tSpecProtoP\x01ZTgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/schedule/v1;schedulev1\xa2\x02\x04ASAS\xaa\x02\x1eAi.Stigmer.Agentic.Schedule.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3"
+	"\x06target\x12\x05\xbaH\x02\b\x01B\x8f\x02\n" +
+	"\"com.ai.stigmer.agentic.schedule.v1B\tSpecProtoP\x01ZAgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/schedule/v1;schedulev1\xa2\x02\x04ASAS\xaa\x02\x1eAi.Stigmer.Agentic.Schedule.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_schedule_v1_spec_proto_rawDescOnce sync.Once

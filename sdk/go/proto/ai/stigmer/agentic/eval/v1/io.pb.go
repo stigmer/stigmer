@@ -1144,8 +1144,8 @@ const file_ai_stigmer_agentic_eval_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"n\n" +
 	"\bEvalList\x12:\n" +
 	"\aentries\x18\x01 \x03(\v2 .ai.stigmer.agentic.eval.v1.EvalR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\x86\x02\n" +
-	"\x1ecom.ai.stigmer.agentic.eval.v1B\aIoProtoP\x01ZLgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/eval/v1;evalv1\xa2\x02\x04ASAE\xaa\x02\x1aAi.Stigmer.Agentic.Eval.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Eval_\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Agentic::Eval::V1b\x06proto3"
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\xf3\x01\n" +
+	"\x1ecom.ai.stigmer.agentic.eval.v1B\aIoProtoP\x01Z9go.stigmer.ai/sdk/proto/ai/stigmer/agentic/eval/v1;evalv1\xa2\x02\x04ASAE\xaa\x02\x1aAi.Stigmer.Agentic.Eval.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Eval_\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Agentic::Eval::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_eval_v1_io_proto_rawDescOnce sync.Once

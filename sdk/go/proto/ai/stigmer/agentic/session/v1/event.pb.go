@@ -3756,9 +3756,9 @@ const file_ai_stigmer_agentic_session_v1_event_proto_rawDesc = "" +
 	"size_bytes\x18\x05 \x01(\x03B\a\xbaH\x04\"\x02(\x00R\tsizeBytes\x12!\n" +
 	"\fcontent_hash\x18\x06 \x01(\tR\vcontentHash\x12\x1b\n" +
 	"\tmime_type\x18\a \x01(\tR\bmimeType\x12\x19\n" +
-	"\bis_image\x18\b \x01(\bR\aisImageB\x9c\x02\n" +
+	"\bis_image\x18\b \x01(\bR\aisImageB\x89\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\n" +
-	"EventProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
+	"EventProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_session_v1_event_proto_rawDescOnce sync.Once

@@ -185,8 +185,8 @@ const file_ai_stigmer_billing_providerkey_v1_api_proto_rawDesc = "" +
 	"lastUsedAt\x12,\n" +
 	"\x12inherited_from_org\x18\t \x01(\tR\x10inheritedFromOrg\x12\x19\n" +
 	"\bbase_url\x18\n" +
-	" \x01(\tR\abaseUrlJ\x04\b\b\x10\tR\x06in_useB\xb6\x02\n" +
-	"%com.ai.stigmer.billing.providerkey.v1B\bApiProtoP\x01ZZgo.stigmer.ai/sdk/proto/ai/stigmer/billing/providerkey/v1;providerkeyv1\xa2\x02\x04ASBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3"
+	" \x01(\tR\abaseUrlJ\x04\b\b\x10\tR\x06in_useB\xa3\x02\n" +
+	"%com.ai.stigmer.billing.providerkey.v1B\bApiProtoP\x01ZGgo.stigmer.ai/sdk/proto/ai/stigmer/billing/providerkey/v1;providerkeyv1\xa2\x02\x04ASBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_billing_providerkey_v1_api_proto_rawDescOnce sync.Once

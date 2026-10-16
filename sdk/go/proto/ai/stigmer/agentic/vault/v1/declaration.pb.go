@@ -117,8 +117,8 @@ const file_ai_stigmer_agentic_vault_v1_declaration_proto_rawDesc = "" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1a\n" +
 	"\boptional\x18\x03 \x01(\bR\boptional\x12\x1f\n" +
 	"\x05value\x18\x04 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x04R\x05value:\x9c\x01\xbaH\x98\x01\x1a\x95\x01\n" +
-	"'env_var_declaration.secret_has_no_value\x12Ea secret declaration cannot carry a value: save the secret in a vault\x1a#!this.is_secret || this.value == ''B\x94\x02\n" +
-	"\x1fcom.ai.stigmer.agentic.vault.v1B\x10DeclarationProtoP\x01ZNgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/vault/v1;vaultv1\xa2\x02\x04ASAV\xaa\x02\x1bAi.Stigmer.Agentic.Vault.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Vault\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Vault::V1b\x06proto3"
+	"'env_var_declaration.secret_has_no_value\x12Ea secret declaration cannot carry a value: save the secret in a vault\x1a#!this.is_secret || this.value == ''B\x81\x02\n" +
+	"\x1fcom.ai.stigmer.agentic.vault.v1B\x10DeclarationProtoP\x01Z;go.stigmer.ai/sdk/proto/ai/stigmer/agentic/vault/v1;vaultv1\xa2\x02\x04ASAV\xaa\x02\x1bAi.Stigmer.Agentic.Vault.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Vault\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Vault::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_vault_v1_declaration_proto_rawDescOnce sync.Once

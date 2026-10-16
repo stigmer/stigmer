@@ -34,8 +34,8 @@ const file_ai_stigmer_agentic_schedule_v1_command_proto_rawDesc = "" +
 	"\x06rename\x12+.ai.stigmer.commons.apiresource.RenameInput\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\"6¸\x182\b\x03\x108\"\vresource_id*\x1funauthorized to rename schedule\x12\x90\x01\n" +
 	"\x06delete\x12*.ai.stigmer.agentic.schedule.v1.ScheduleId\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\"0¸\x18,\b\x03\x108\"\x05value*\x1funauthorized to delete schedule\x12\x90\x01\n" +
 	"\x06resume\x12*.ai.stigmer.agentic.schedule.v1.ScheduleId\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\"0¸\x18,\b\x02\x108\"\x05value*\x1funauthorized to resume schedule\x12\x9f\x01\n" +
-	"\atrigger\x12*.ai.stigmer.agentic.schedule.v1.ScheduleId\x1a5.ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult\"1¸\x18-\b\x02\x108\"\x05value* unauthorized to trigger schedule\x1a\x04\xa0\xff+8B\xa5\x02\n" +
-	"\"com.ai.stigmer.agentic.schedule.v1B\fCommandProtoP\x01ZTgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/schedule/v1;schedulev1\xa2\x02\x04ASAS\xaa\x02\x1eAi.Stigmer.Agentic.Schedule.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3"
+	"\atrigger\x12*.ai.stigmer.agentic.schedule.v1.ScheduleId\x1a5.ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult\"1¸\x18-\b\x02\x108\"\x05value* unauthorized to trigger schedule\x1a\x04\xa0\xff+8B\x92\x02\n" +
+	"\"com.ai.stigmer.agentic.schedule.v1B\fCommandProtoP\x01ZAgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/schedule/v1;schedulev1\xa2\x02\x04ASAS\xaa\x02\x1eAi.Stigmer.Agentic.Schedule.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_schedule_v1_command_proto_goTypes = []any{
 	(*Schedule)(nil),                // 0: ai.stigmer.agentic.schedule.v1.Schedule

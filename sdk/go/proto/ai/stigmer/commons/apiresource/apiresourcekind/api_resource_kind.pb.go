@@ -601,8 +601,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\alicense\x10H\x1a)\xaa\xff+%\b\x04\x10\x01\x1a\aLicense\"\aLicense*\x03lic8\x01@\x02J\x04\b\x05\x10\x04\"\x04\b\x17\x10\x17\"\x04\b,\x10,\"\x04\b-\x10-\"\x04\b.\x10.\"\x04\b1\x101\"\x04\b2\x102\"\x04\b3\x103\"\x04\b4\x104\"\x04\b5\x105\"\x04\b6\x106\"\x04\b7\x107\"\x04\b<\x10<\"\x04\b?\x10?\"\x04\b@\x10@*\x0fplatform_client*\n" +
 	"mcp_server*\x0eagent_instance*\vagent_share*\tdatastore*\bworkflow*\x11workflow_instance*\fworkflow_run*\venvironment*\x11execution_context*\bartifact*\aproject*\vplugin_eval*\n" +
 	"agent_eval:\x85\x01\n" +
-	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\x83\x03\n" +
-	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x14ApiResourceKindProtoP\x01ZYgo.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"
+	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\xf0\x02\n" +
+	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x14ApiResourceKindProtoP\x01ZFgo.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"
 
 var (
 	file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_proto_rawDescOnce sync.Once

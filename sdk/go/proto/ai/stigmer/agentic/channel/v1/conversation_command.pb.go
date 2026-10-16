@@ -36,8 +36,8 @@ const file_ai_stigmer_agentic_channel_v1_conversation_command_proto_rawDesc = ""
 	"channel_id*<unauthorized to participate in conversations on this channel\x12\xd1\x01\n" +
 	"\x0eclearAttention\x127.ai.stigmer.agentic.channel.v1.ConversationControlInput\x1a2.ai.stigmer.agentic.channel.v1.ChannelConversation\"R¸\x18N\b$\x10/\"\n" +
 	"channel_id*<unauthorized to participate in conversations on this channel\x12~\n" +
-	"\bescalate\x128.ai.stigmer.agentic.channel.v1.EscalateConversationInput\x1a2.ai.stigmer.agentic.channel.v1.ChannelConversation\"\x04и\x18\x01\x1a\x04\xa0\xff+/B\xaa\x02\n" +
-	"!com.ai.stigmer.agentic.channel.v1B\x18ConversationCommandProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
+	"\bescalate\x128.ai.stigmer.agentic.channel.v1.EscalateConversationInput\x1a2.ai.stigmer.agentic.channel.v1.ChannelConversation\"\x04и\x18\x01\x1a\x04\xa0\xff+/B\x97\x02\n" +
+	"!com.ai.stigmer.agentic.channel.v1B\x18ConversationCommandProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_channel_v1_conversation_command_proto_goTypes = []any{
 	(*ReplyToConversationInput)(nil),  // 0: ai.stigmer.agentic.channel.v1.ReplyToConversationInput

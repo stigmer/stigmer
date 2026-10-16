@@ -458,8 +458,8 @@ const file_ai_stigmer_agentic_vault_v1_values_proto_rawDesc = "" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x12\x14\n" +
 	"\x05token\x18\x03 \x01(\tR\x05token2\x91\x01\n" +
 	"\x14VaultValueController\x12y\n" +
-	"\vfetchValues\x126.ai.stigmer.agentic.vault.v1.FetchExecutionValuesInput\x1a,.ai.stigmer.agentic.vault.v1.ExecutionValues\"\x04и\x18\x01B\x8f\x02\n" +
-	"\x1fcom.ai.stigmer.agentic.vault.v1B\vValuesProtoP\x01ZNgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/vault/v1;vaultv1\xa2\x02\x04ASAV\xaa\x02\x1bAi.Stigmer.Agentic.Vault.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Vault\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Vault::V1b\x06proto3"
+	"\vfetchValues\x126.ai.stigmer.agentic.vault.v1.FetchExecutionValuesInput\x1a,.ai.stigmer.agentic.vault.v1.ExecutionValues\"\x04и\x18\x01B\xfc\x01\n" +
+	"\x1fcom.ai.stigmer.agentic.vault.v1B\vValuesProtoP\x01Z;go.stigmer.ai/sdk/proto/ai/stigmer/agentic/vault/v1;vaultv1\xa2\x02\x04ASAV\xaa\x02\x1bAi.Stigmer.Agentic.Vault.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Vault\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Vault::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_vault_v1_values_proto_rawDescOnce sync.Once

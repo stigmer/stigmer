@@ -32,9 +32,9 @@ const file_ai_stigmer_iam_apikey_v1_query_proto_rawDesc = "" +
 	"\fgetByKeyHash\x12$.ai.stigmer.iam.apikey.v1.ApiKeyHash\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"\x04и\x18\x01\x12[\n" +
 	"\x04list\x12*.ai.stigmer.iam.apikey.v1.ListApiKeysInput\x1a!.ai.stigmer.iam.apikey.v1.ApiKeys\"\x04и\x18\x01\x12\xab\x01\n" +
 	"\rlistByAccount\x123.ai.stigmer.iam.apikey.v1.ListApiKeysByAccountInput\x1a!.ai.stigmer.iam.apikey.v1.ApiKeys\"B¸\x18>\b\x01\x10\v\"\n" +
-	"account_id*,unauthorized to list this account's api keys\x1a\x04\xa0\xff+\fB\xfd\x01\n" +
+	"account_id*,unauthorized to list this account's api keys\x1a\x04\xa0\xff+\fB\xea\x01\n" +
 	"\x1ccom.ai.stigmer.iam.apikey.v1B\n" +
-	"QueryProtoP\x01ZLgo.stigmer.ai/sdk/proto/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"
+	"QueryProtoP\x01Z9go.stigmer.ai/sdk/proto/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"
 
 var file_ai_stigmer_iam_apikey_v1_query_proto_goTypes = []any{
 	(*ApiKeyId)(nil),                  // 0: ai.stigmer.iam.apikey.v1.ApiKeyId

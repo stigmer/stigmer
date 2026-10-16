@@ -34,8 +34,8 @@ const file_ai_stigmer_tenancy_organization_v1_command_proto_rawDesc = "" +
 	"\x0eupdatePolicies\x12C.ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput\x1a0.ai.stigmer.tenancy.organization.v1.Organization\">¸\x18:\b\x02\x10\x1e\"\x06org_id*,unauthorized to update organization policies\x12\xd3\x01\n" +
 	"\x0fupdateEmbedding\x12D.ai.stigmer.tenancy.organization.v1.UpdateOrganizationEmbeddingInput\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"H¸\x18D\b\x02\x10\x1e\"\x06org_id*6unauthorized to update organization embedding settings\x12\xa3\x01\n" +
 	"\x06rename\x12+.ai.stigmer.commons.apiresource.RenameInput\x1a0.ai.stigmer.tenancy.organization.v1.Organization\":¸\x186\b\x03\x10\x1e\"\vresource_id*#unauthorized to rename organization\x12\xa4\x01\n" +
-	"\x06delete\x122.ai.stigmer.tenancy.organization.v1.OrganizationId\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"4¸\x180\b\x03\x10\x1e\"\x05value*#unauthorized to delete organization\x1a\x04\xa0\xff+\x1eB\xc1\x02\n" +
-	"&com.ai.stigmer.tenancy.organization.v1B\fCommandProtoP\x01Z\\go.stigmer.ai/sdk/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
+	"\x06delete\x122.ai.stigmer.tenancy.organization.v1.OrganizationId\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"4¸\x180\b\x03\x10\x1e\"\x05value*#unauthorized to delete organization\x1a\x04\xa0\xff+\x1eB\xae\x02\n" +
+	"&com.ai.stigmer.tenancy.organization.v1B\fCommandProtoP\x01ZIgo.stigmer.ai/sdk/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
 
 var file_ai_stigmer_tenancy_organization_v1_command_proto_goTypes = []any{
 	(*Organization)(nil),                     // 0: ai.stigmer.tenancy.organization.v1.Organization

@@ -36,9 +36,9 @@ const file_ai_stigmer_agentic_session_v1_query_proto_rawDesc = "" +
 	"listEvents\x127.ai.stigmer.agentic.session.v1.ListSessionEventsRequest\x1a/.ai.stigmer.agentic.session.v1.SessionEventList\"9¸\x185\b\x01\x10*\"\n" +
 	"session_id*#unauthorized to list session events\x12\xc4\x01\n" +
 	"\fstreamEvents\x129.ai.stigmer.agentic.session.v1.StreamSessionEventsRequest\x1a:.ai.stigmer.agentic.session.v1.StreamSessionEventsResponse\";¸\x187\b\x01\x10*\"\n" +
-	"session_id*%unauthorized to stream session events0\x01\x1a\x04\xa0\xff+*B\x9c\x02\n" +
+	"session_id*%unauthorized to stream session events0\x01\x1a\x04\xa0\xff+*B\x89\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\n" +
-	"QueryProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
+	"QueryProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_session_v1_query_proto_goTypes = []any{
 	(*SessionId)(nil),                    // 0: ai.stigmer.agentic.session.v1.SessionId

@@ -278,8 +278,8 @@ const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"fileReview\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x01\x10\x02J\x04\b\x03\x10\x04J\x04\b\r\x10\x0eJ\x04\b\a\x10\bJ\x04\b\x10\x10\x11J\x04\b\x11\x10\x12R\x11agent_instance_idR\x10harness_state_idR\x18harness_state_id_historyR\x11mcp_server_usagesR\asecretsR\vconnectionsB\x9b\x02\n" +
-	"!com.ai.stigmer.agentic.session.v1B\tSpecProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x01\x10\x02J\x04\b\x03\x10\x04J\x04\b\r\x10\x0eJ\x04\b\a\x10\bJ\x04\b\x10\x10\x11J\x04\b\x11\x10\x12R\x11agent_instance_idR\x10harness_state_idR\x18harness_state_id_historyR\x11mcp_server_usagesR\asecretsR\vconnectionsB\x88\x02\n" +
+	"!com.ai.stigmer.agentic.session.v1B\tSpecProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_session_v1_spec_proto_rawDescOnce sync.Once

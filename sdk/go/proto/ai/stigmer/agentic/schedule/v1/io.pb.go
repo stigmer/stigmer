@@ -878,8 +878,8 @@ const file_ai_stigmer_agentic_schedule_v1_io_proto_rawDesc = "" +
 	"\x1dSCHEDULE_FIRE_OUTCOME_SKIPPED\x10\x04\x12#\n" +
 	"\x1fSCHEDULE_FIRE_OUTCOME_COMPLETED\x10\x05\x12 \n" +
 	"\x1cSCHEDULE_FIRE_OUTCOME_FAILED\x10\x06\x12#\n" +
-	"\x1fSCHEDULE_FIRE_OUTCOME_TIMED_OUT\x10\aB\xa0\x02\n" +
-	"\"com.ai.stigmer.agentic.schedule.v1B\aIoProtoP\x01ZTgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/schedule/v1;schedulev1\xa2\x02\x04ASAS\xaa\x02\x1eAi.Stigmer.Agentic.Schedule.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3"
+	"\x1fSCHEDULE_FIRE_OUTCOME_TIMED_OUT\x10\aB\x8d\x02\n" +
+	"\"com.ai.stigmer.agentic.schedule.v1B\aIoProtoP\x01ZAgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/schedule/v1;schedulev1\xa2\x02\x04ASAS\xaa\x02\x1eAi.Stigmer.Agentic.Schedule.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_schedule_v1_io_proto_rawDescOnce sync.Once

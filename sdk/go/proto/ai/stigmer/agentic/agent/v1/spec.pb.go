@@ -438,8 +438,8 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\n" +
 	"HookSource\x12B\n" +
 	"\x06inline\x18\x02 \x01(\v2(.ai.stigmer.agentic.plugin.v1.HookConfigH\x00R\x06inlineB\x0f\n" +
-	"\x06source\x12\x05\xbaH\x02\b\x01J\x04\b\x01\x10\x02R\x06pluginB\x8d\x02\n" +
-	"\x1fcom.ai.stigmer.agentic.agent.v1B\tSpecProtoP\x01ZNgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
+	"\x06source\x12\x05\xbaH\x02\b\x01J\x04\b\x01\x10\x02R\x06pluginB\xfa\x01\n" +
+	"\x1fcom.ai.stigmer.agentic.agent.v1B\tSpecProtoP\x01Z;go.stigmer.ai/sdk/proto/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescOnce sync.Once

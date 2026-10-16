@@ -495,8 +495,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x06Editor\x12<Change and use it; cannot delete it or decide who has access\x12J\n" +
 	"\x04user\x10\a\x1a@\x8a\xc4,<\n" +
 	"\aCan use\x121Use this vault's logins and secrets in their runs:`\n" +
-	"\trole_meta\x12!.google.protobuf.EnumValueOptions\x18\xc1\xc8\x05 \x01(\v2\x1e.ai.stigmer.iam.v1.IamRoleMetaR\broleMetaB\xcd\x01\n" +
-	"\x15com.ai.stigmer.iam.v1B\tEnumProtoP\x01ZBgo.stigmer.ai/sdk/proto/ai/stigmer/iam/v1;iamv1\xa2\x02\x03ASI\xaa\x02\x11Ai.Stigmer.Iam.V1\xca\x02\x11Ai\\Stigmer\\Iam\\V1\xe2\x02\x1dAi\\Stigmer\\Iam\\V1\\GPBMetadata\xea\x02\x14Ai::Stigmer::Iam::V1b\x06proto3"
+	"\trole_meta\x12!.google.protobuf.EnumValueOptions\x18\xc1\xc8\x05 \x01(\v2\x1e.ai.stigmer.iam.v1.IamRoleMetaR\broleMetaB\xba\x01\n" +
+	"\x15com.ai.stigmer.iam.v1B\tEnumProtoP\x01Z/go.stigmer.ai/sdk/proto/ai/stigmer/iam/v1;iamv1\xa2\x02\x03ASI\xaa\x02\x11Ai.Stigmer.Iam.V1\xca\x02\x11Ai\\Stigmer\\Iam\\V1\xe2\x02\x1dAi\\Stigmer\\Iam\\V1\\GPBMetadata\xea\x02\x14Ai::Stigmer::Iam::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_v1_enum_proto_rawDescOnce sync.Once

@@ -907,8 +907,8 @@ const file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc = "" +
 	"\tcase_name\x18\x01 \x01(\tR\bcaseName\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x1b\n" +
 	"\tcase_tags\x18\x03 \x03(\tR\bcaseTags\x12 \n" +
-	"\vunsupported\x18\x04 \x01(\tR\vunsupportedB\x96\x02\n" +
-	" com.ai.stigmer.agentic.plugin.v1B\vStatusProtoP\x01ZPgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/plugin/v1;pluginv1\xa2\x02\x04ASAP\xaa\x02\x1cAi.Stigmer.Agentic.Plugin.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3"
+	"\vunsupported\x18\x04 \x01(\tR\vunsupportedB\x83\x02\n" +
+	" com.ai.stigmer.agentic.plugin.v1B\vStatusProtoP\x01Z=go.stigmer.ai/sdk/proto/ai/stigmer/agentic/plugin/v1;pluginv1\xa2\x02\x04ASAP\xaa\x02\x1cAi.Stigmer.Agentic.Plugin.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescOnce sync.Once

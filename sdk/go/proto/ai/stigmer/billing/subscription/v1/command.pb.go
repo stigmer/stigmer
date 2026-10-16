@@ -30,8 +30,8 @@ const file_ai_stigmer_billing_subscription_v1_command_proto_rawDesc = "" +
 	"\x1dSubscriptionCommandController\x12\xb3\x01\n" +
 	"\n" +
 	"changePlan\x123.ai.stigmer.billing.subscription.v1.ChangePlanInput\x1a0.ai.stigmer.billing.subscription.v1.Subscription\">¸\x18:\b\x1c\x10\x1e\"\x03org*/unauthorized to change this organization's plan\x12\xbf\x01\n" +
-	"\x06cancel\x12;.ai.stigmer.billing.subscription.v1.CancelSubscriptionInput\x1a0.ai.stigmer.billing.subscription.v1.Subscription\"F¸\x18B\b\x1c\x10\x1e\"\x03org*7unauthorized to cancel this organization's subscription\x1a\x04\xa0\xff+GB\xc1\x02\n" +
-	"&com.ai.stigmer.billing.subscription.v1B\fCommandProtoP\x01Z\\go.stigmer.ai/sdk/proto/ai/stigmer/billing/subscription/v1;subscriptionv1\xa2\x02\x04ASBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3"
+	"\x06cancel\x12;.ai.stigmer.billing.subscription.v1.CancelSubscriptionInput\x1a0.ai.stigmer.billing.subscription.v1.Subscription\"F¸\x18B\b\x1c\x10\x1e\"\x03org*7unauthorized to cancel this organization's subscription\x1a\x04\xa0\xff+GB\xae\x02\n" +
+	"&com.ai.stigmer.billing.subscription.v1B\fCommandProtoP\x01ZIgo.stigmer.ai/sdk/proto/ai/stigmer/billing/subscription/v1;subscriptionv1\xa2\x02\x04ASBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3"
 
 var file_ai_stigmer_billing_subscription_v1_command_proto_goTypes = []any{
 	(*ChangePlanInput)(nil),         // 0: ai.stigmer.billing.subscription.v1.ChangePlanInput

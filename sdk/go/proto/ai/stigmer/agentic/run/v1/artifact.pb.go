@@ -203,8 +203,8 @@ const file_ai_stigmer_agentic_run_v1_artifact_proto_rawDesc = "" +
 	"expires_at\x18\b \x01(\tR\texpiresAt\x12\x18\n" +
 	"\aentries\x18\t \x03(\tR\aentries\x12!\n" +
 	"\fcontent_hash\x18\n" +
-	" \x01(\tR\vcontentHashB\x83\x02\n" +
-	"\x1dcom.ai.stigmer.agentic.run.v1B\rArtifactProtoP\x01ZJgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
+	" \x01(\tR\vcontentHashB\xf0\x01\n" +
+	"\x1dcom.ai.stigmer.agentic.run.v1B\rArtifactProtoP\x01Z7go.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_run_v1_artifact_proto_rawDescOnce sync.Once

@@ -125,8 +125,8 @@ const file_ai_stigmer_agentic_eval_v1_api_proto_rawDesc = "" +
 	"\x04EvalR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x128\n" +
 	"\x04spec\x18\x04 \x01(\v2$.ai.stigmer.agentic.eval.v1.EvalSpecR\x04spec\x12>\n" +
-	"\x06status\x18\x05 \x01(\v2&.ai.stigmer.agentic.eval.v1.EvalStatusR\x06statusB\x87\x02\n" +
-	"\x1ecom.ai.stigmer.agentic.eval.v1B\bApiProtoP\x01ZLgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/eval/v1;evalv1\xa2\x02\x04ASAE\xaa\x02\x1aAi.Stigmer.Agentic.Eval.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Eval_\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Agentic::Eval::V1b\x06proto3"
+	"\x06status\x18\x05 \x01(\v2&.ai.stigmer.agentic.eval.v1.EvalStatusR\x06statusB\xf4\x01\n" +
+	"\x1ecom.ai.stigmer.agentic.eval.v1B\bApiProtoP\x01Z9go.stigmer.ai/sdk/proto/ai/stigmer/agentic/eval/v1;evalv1\xa2\x02\x04ASAE\xaa\x02\x1aAi.Stigmer.Agentic.Eval.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Eval_\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Agentic::Eval::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_eval_v1_api_proto_rawDescOnce sync.Once

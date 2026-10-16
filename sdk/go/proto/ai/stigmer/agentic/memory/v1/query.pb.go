@@ -29,9 +29,9 @@ const file_ai_stigmer_agentic_memory_v1_query_proto_rawDesc = "" +
 	"(ai/stigmer/agentic/memory/v1/query.proto\x12\x1cai.stigmer.agentic.memory.v1\x1a&ai/stigmer/agentic/memory/v1/api.proto\x1a%ai/stigmer/agentic/memory/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x8b\x02\n" +
 	"\x15MemoryQueryController\x12\x80\x01\n" +
 	"\x03get\x12&.ai.stigmer.agentic.memory.v1.MemoryId\x1a$.ai.stigmer.agentic.memory.v1.Memory\"+¸\x18'\b\x01\x109\"\x05value*\x1aunauthorized to get memory\x12i\n" +
-	"\x04list\x121.ai.stigmer.agentic.memory.v1.ListMemoriesRequest\x1a(.ai.stigmer.agentic.memory.v1.MemoryList\"\x04и\x18\x01\x1a\x04\xa0\xff+9B\x95\x02\n" +
+	"\x04list\x121.ai.stigmer.agentic.memory.v1.ListMemoriesRequest\x1a(.ai.stigmer.agentic.memory.v1.MemoryList\"\x04и\x18\x01\x1a\x04\xa0\xff+9B\x82\x02\n" +
 	" com.ai.stigmer.agentic.memory.v1B\n" +
-	"QueryProtoP\x01ZPgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/memory/v1;memoryv1\xa2\x02\x04ASAM\xaa\x02\x1cAi.Stigmer.Agentic.Memory.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Memory\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Memory::V1b\x06proto3"
+	"QueryProtoP\x01Z=go.stigmer.ai/sdk/proto/ai/stigmer/agentic/memory/v1;memoryv1\xa2\x02\x04ASAM\xaa\x02\x1cAi.Stigmer.Agentic.Memory.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Memory\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Memory::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_memory_v1_query_proto_goTypes = []any{
 	(*MemoryId)(nil),            // 0: ai.stigmer.agentic.memory.v1.MemoryId

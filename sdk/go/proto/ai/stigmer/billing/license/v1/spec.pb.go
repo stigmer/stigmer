@@ -151,8 +151,8 @@ const file_ai_stigmer_billing_license_v1_spec_proto_rawDesc = "" +
 	"\vgrace_until\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"graceUntil\x12\x1e\n" +
 	"\x05notes\x18\a \x01(\tB\b\xbaH\x05r\x03\x18\x80 R\x05notes:{\xbaHx\x1av\n" +
-	"$license_spec.grace_not_before_expiry\x12)grace_until must not be before expires_at\x1a#this.grace_until >= this.expires_atB\x9b\x02\n" +
-	"!com.ai.stigmer.billing.license.v1B\tSpecProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/billing/license/v1;licensev1\xa2\x02\x04ASBL\xaa\x02\x1dAi.Stigmer.Billing.License.V1\xca\x02\x1dAi\\Stigmer\\Billing\\License\\V1\xe2\x02)Ai\\Stigmer\\Billing\\License\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Billing::License::V1b\x06proto3"
+	"$license_spec.grace_not_before_expiry\x12)grace_until must not be before expires_at\x1a#this.grace_until >= this.expires_atB\x88\x02\n" +
+	"!com.ai.stigmer.billing.license.v1B\tSpecProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/billing/license/v1;licensev1\xa2\x02\x04ASBL\xaa\x02\x1dAi.Stigmer.Billing.License.V1\xca\x02\x1dAi\\Stigmer\\Billing\\License\\V1\xe2\x02)Ai\\Stigmer\\Billing\\License\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Billing::License::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_billing_license_v1_spec_proto_rawDescOnce sync.Once

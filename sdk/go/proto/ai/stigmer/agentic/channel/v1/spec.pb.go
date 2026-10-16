@@ -578,8 +578,8 @@ const file_ai_stigmer_agentic_channel_v1_spec_proto_rawDesc = "" +
 	"\x0fChannelAudience\x12 \n" +
 	"\x1cchannel_audience_unspecified\x10\x00\x12\x1b\n" +
 	"\x17channel_audience_public\x10\x01\x12\x18\n" +
-	"\x14channel_audience_org\x10\x02B\x9b\x02\n" +
-	"!com.ai.stigmer.agentic.channel.v1B\tSpecProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
+	"\x14channel_audience_org\x10\x02B\x88\x02\n" +
+	"!com.ai.stigmer.agentic.channel.v1B\tSpecProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_channel_v1_spec_proto_rawDescOnce sync.Once

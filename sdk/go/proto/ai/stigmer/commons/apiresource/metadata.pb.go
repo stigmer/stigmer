@@ -318,8 +318,8 @@ const file_ai_stigmer_commons_apiresource_metadata_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12.\n" +
 	"\x13previous_version_id\x18\x03 \x01(\tR\x11previousVersionId\x12\x10\n" +
-	"\x03tag\x18\x04 \x01(\tR\x03tagB\x9a\x02\n" +
-	"\"com.ai.stigmer.commons.apiresourceB\rMetadataProtoP\x01ZIgo.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
+	"\x03tag\x18\x04 \x01(\tR\x03tagB\x87\x02\n" +
+	"\"com.ai.stigmer.commons.apiresourceB\rMetadataProtoP\x01Z6go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var (
 	file_ai_stigmer_commons_apiresource_metadata_proto_rawDescOnce sync.Once

@@ -237,8 +237,8 @@ const file_ai_stigmer_iam_team_v1_io_proto_rawDesc = "" +
 	"\bresource\x18\x01 \x01(\v2\x1c.ai.stigmer.iam.team.v1.TeamB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"updateMask:\xbc\x01\xbaH\xb8\x01\x1a\xb5\x01\n" +
-	"\x17update_names_its_target\x12Dresource.metadata.id is required: an update names the team by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\xec\x01\n" +
-	"\x1acom.ai.stigmer.iam.team.v1B\aIoProtoP\x01ZHgo.stigmer.ai/sdk/proto/ai/stigmer/iam/team/v1;teamv1\xa2\x02\x04ASIT\xaa\x02\x16Ai.Stigmer.Iam.Team.V1\xca\x02\x16Ai\\Stigmer\\Iam\\Team\\V1\xe2\x02\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetadata\xea\x02\x1aAi::Stigmer::Iam::Team::V1b\x06proto3"
+	"\x17update_names_its_target\x12Dresource.metadata.id is required: an update names the team by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\xd9\x01\n" +
+	"\x1acom.ai.stigmer.iam.team.v1B\aIoProtoP\x01Z5go.stigmer.ai/sdk/proto/ai/stigmer/iam/team/v1;teamv1\xa2\x02\x04ASIT\xaa\x02\x16Ai.Stigmer.Iam.Team.V1\xca\x02\x16Ai\\Stigmer\\Iam\\Team\\V1\xe2\x02\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetadata\xea\x02\x1aAi::Stigmer::Iam::Team::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_team_v1_io_proto_rawDescOnce sync.Once

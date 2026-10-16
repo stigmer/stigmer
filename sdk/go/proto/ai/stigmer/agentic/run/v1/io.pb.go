@@ -553,10 +553,10 @@ func (x *UpdateStatusResponse) GetSignalReason() string {
 //
 // ## Example
 //
-//	{
-//	  "id": "run_abc123xyz456",
-//	  "reason": "Agent stuck in infinite loop, not responding to cancel"
-//	}
+// 	{
+// 	  "id": "run_abc123xyz456",
+// 	  "reason": "Agent stuck in infinite loop, not responding to cancel"
+// 	}
 type TerminateRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Run ID to terminate.
@@ -653,9 +653,9 @@ func (x *TerminateRunInput) GetReason() string {
 //
 // ## Example
 //
-//	{
-//	  "id": "run_abc123xyz456"
-//	}
+// 	{
+// 	  "id": "run_abc123xyz456"
+// 	}
 type RecoverRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Run ID to recover.
@@ -729,10 +729,10 @@ func (x *RecoverRunInput) GetId() string {
 //
 // ## Example
 //
-//	{
-//	  "id": "run_abc123xyz456",
-//	  "reason": "Pausing to review progress before continuing"
-//	}
+// 	{
+// 	  "id": "run_abc123xyz456",
+// 	  "reason": "Pausing to review progress before continuing"
+// 	}
 type PauseRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Run ID to pause.
@@ -822,13 +822,13 @@ func (x *PauseRunInput) GetReason() string {
 //
 // ## Example
 //
-//	{
-//	  "id": "run_abc123xyz456"
-//	}
+// 	{
+// 	  "id": "run_abc123xyz456"
+// 	}
 //
-//	{
-//	  "id": "run_abc123xyz456"
-//	}
+// 	{
+// 	  "id": "run_abc123xyz456"
+// 	}
 type ResumeRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Run ID to resume.
@@ -3113,8 +3113,8 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	" RUN_SUMMARY_TIME_WINDOW_LAST_24H\x10\x01\x12#\n" +
 	"\x1fRUN_SUMMARY_TIME_WINDOW_LAST_7D\x10\x02\x12$\n" +
 	" RUN_SUMMARY_TIME_WINDOW_LAST_30D\x10\x03\x12$\n" +
-	" RUN_SUMMARY_TIME_WINDOW_ALL_TIME\x10\x04B\xfd\x01\n" +
-	"\x1dcom.ai.stigmer.agentic.run.v1B\aIoProtoP\x01ZJgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
+	" RUN_SUMMARY_TIME_WINDOW_ALL_TIME\x10\x04B\xea\x01\n" +
+	"\x1dcom.ai.stigmer.agentic.run.v1B\aIoProtoP\x01Z7go.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_run_v1_io_proto_rawDescOnce sync.Once

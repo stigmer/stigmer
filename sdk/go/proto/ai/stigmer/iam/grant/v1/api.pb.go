@@ -175,8 +175,8 @@ const file_ai_stigmer_iam_grant_v1_api_proto_rawDesc = "" +
 	"\x04spec\x18\x04 \x01(\v2\".ai.stigmer.iam.grant.v1.GrantSpecR\x04spec\x12<\n" +
 	"\x06status\x18\x05 \x01(\v2$.ai.stigmer.iam.grant.v1.GrantStatusR\x06status\"U\n" +
 	"\vGrantStatus\x12F\n" +
-	"\x05audit\x18\x01 \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\xf4\x01\n" +
-	"\x1bcom.ai.stigmer.iam.grant.v1B\bApiProtoP\x01ZJgo.stigmer.ai/sdk/proto/ai/stigmer/iam/grant/v1;grantv1\xa2\x02\x04ASIG\xaa\x02\x17Ai.Stigmer.Iam.Grant.V1\xca\x02\x17Ai\\Stigmer\\Iam\\Grant\\V1\xe2\x02#Ai\\Stigmer\\Iam\\Grant\\V1\\GPBMetadata\xea\x02\x1bAi::Stigmer::Iam::Grant::V1b\x06proto3"
+	"\x05audit\x18\x01 \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\xe1\x01\n" +
+	"\x1bcom.ai.stigmer.iam.grant.v1B\bApiProtoP\x01Z7go.stigmer.ai/sdk/proto/ai/stigmer/iam/grant/v1;grantv1\xa2\x02\x04ASIG\xaa\x02\x17Ai.Stigmer.Iam.Grant.V1\xca\x02\x17Ai\\Stigmer\\Iam\\Grant\\V1\xe2\x02#Ai\\Stigmer\\Iam\\Grant\\V1\\GPBMetadata\xea\x02\x1bAi::Stigmer::Iam::Grant::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_grant_v1_api_proto_rawDescOnce sync.Once

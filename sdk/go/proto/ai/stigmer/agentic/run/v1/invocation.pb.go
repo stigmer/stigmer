@@ -329,8 +329,8 @@ const file_ai_stigmer_agentic_run_v1_invocation_proto_rawDesc = "" +
 	"\x0fmax_tool_rounds\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\rmaxToolRounds\x12S\n" +
 	"\fservice_tier\x18\x04 \x01(\x0e2&.ai.stigmer.agentic.run.v1.ServiceTierB\b\xbaH\x05\x82\x01\x02\x10\x01R\vserviceTier\x12V\n" +
 	"\rthinking_mode\x18\x05 \x01(\x0e2'.ai.stigmer.agentic.run.v1.ThinkingModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\fthinkingMode\x12:\n" +
-	"\x15max_tool_result_chars\x18\x06 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x12maxToolResultCharsB\x85\x02\n" +
-	"\x1dcom.ai.stigmer.agentic.run.v1B\x0fInvocationProtoP\x01ZJgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
+	"\x15max_tool_result_chars\x18\x06 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x12maxToolResultCharsB\xf2\x01\n" +
+	"\x1dcom.ai.stigmer.agentic.run.v1B\x0fInvocationProtoP\x01Z7go.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_run_v1_invocation_proto_rawDescOnce sync.Once

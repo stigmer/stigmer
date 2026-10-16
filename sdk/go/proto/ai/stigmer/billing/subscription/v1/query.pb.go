@@ -31,9 +31,9 @@ const file_ai_stigmer_billing_subscription_v1_query_proto_rawDesc = "" +
 	"\tgetForOrg\x12>.ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput\x1a0.ai.stigmer.billing.subscription.v1.Subscription\"D¸\x18@\b\x1b\x10\x1e\"\x03org*5unauthorized to view this organization's subscription\x12\xcc\x01\n" +
 	"\x0fgetEntitlements\x128.ai.stigmer.billing.subscription.v1.GetEntitlementsInput\x1a9.ai.stigmer.billing.subscription.v1.GetEntitlementsOutput\"D¸\x18@\b\x1b\x10\x1e\"\x03org*5unauthorized to view this organization's entitlements\x12\xcc\x01\n" +
 	"\x11getPeriodEstimate\x12:.ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput\x1a2.ai.stigmer.billing.subscription.v1.PeriodEstimate\"G¸\x18C\b\x1b\x10\x1e\"\x03org*8unauthorized to view this organization's period estimate\x12\xbc\x01\n" +
-	"\rgetAgentHours\x126.ai.stigmer.billing.subscription.v1.GetAgentHoursInput\x1a..ai.stigmer.billing.subscription.v1.AgentHours\"C¸\x18?\b\x1b\x10\x1e\"\x03org*4unauthorized to view this organization's agent hours\x1a\x04\xa0\xff+GB\xbf\x02\n" +
+	"\rgetAgentHours\x126.ai.stigmer.billing.subscription.v1.GetAgentHoursInput\x1a..ai.stigmer.billing.subscription.v1.AgentHours\"C¸\x18?\b\x1b\x10\x1e\"\x03org*4unauthorized to view this organization's agent hours\x1a\x04\xa0\xff+GB\xac\x02\n" +
 	"&com.ai.stigmer.billing.subscription.v1B\n" +
-	"QueryProtoP\x01Z\\go.stigmer.ai/sdk/proto/ai/stigmer/billing/subscription/v1;subscriptionv1\xa2\x02\x04ASBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3"
+	"QueryProtoP\x01ZIgo.stigmer.ai/sdk/proto/ai/stigmer/billing/subscription/v1;subscriptionv1\xa2\x02\x04ASBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3"
 
 var file_ai_stigmer_billing_subscription_v1_query_proto_goTypes = []any{
 	(*GetSubscriptionForOrgInput)(nil), // 0: ai.stigmer.billing.subscription.v1.GetSubscriptionForOrgInput

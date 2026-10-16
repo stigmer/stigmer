@@ -33,9 +33,9 @@ const file_ai_stigmer_agentic_channel_v1_query_proto_rawDesc = "" +
 	"\vlistByAgent\x129.ai.stigmer.agentic.channel.v1.ListChannelsByAgentRequest\x1a*.ai.stigmer.agentic.channel.v1.ChannelList\"\x04и\x18\x01\x12l\n" +
 	"\x04list\x122.ai.stigmer.agentic.channel.v1.ListChannelsRequest\x1a*.ai.stigmer.agentic.channel.v1.ChannelList\"\x04и\x18\x01\x12\x89\x01\n" +
 	"\x0fgetAgentProfile\x12<.ai.stigmer.agentic.channel.v1.GetChannelAgentProfileRequest\x1a2.ai.stigmer.agentic.channel.v1.ChannelAgentProfile\"\x04ȸ\x18\x01\x12~\n" +
-	"\x18getAgentProfileForMember\x12(.ai.stigmer.agentic.channel.v1.ChannelId\x1a2.ai.stigmer.agentic.channel.v1.ChannelAgentProfile\"\x04и\x18\x01\x1a\x04\xa0\xff+/B\x9c\x02\n" +
+	"\x18getAgentProfileForMember\x12(.ai.stigmer.agentic.channel.v1.ChannelId\x1a2.ai.stigmer.agentic.channel.v1.ChannelAgentProfile\"\x04и\x18\x01\x1a\x04\xa0\xff+/B\x89\x02\n" +
 	"!com.ai.stigmer.agentic.channel.v1B\n" +
-	"QueryProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
+	"QueryProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_channel_v1_query_proto_goTypes = []any{
 	(*ChannelId)(nil),                        // 0: ai.stigmer.agentic.channel.v1.ChannelId

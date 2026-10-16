@@ -452,8 +452,8 @@ const file_ai_stigmer_iam_invitation_v1_io_proto_rawDesc = "" +
 	"expires_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x14\n" +
 	"\x05label\x18\x06 \x01(\tR\x05label\x12\x19\n" +
 	"\bis_valid\x18\a \x01(\bR\aisValid\x12%\n" +
-	"\x0einvalid_reason\x18\b \x01(\tR\rinvalidReasonB\x96\x02\n" +
-	" com.ai.stigmer.iam.invitation.v1B\aIoProtoP\x01ZTgo.stigmer.ai/sdk/proto/ai/stigmer/iam/invitation/v1;invitationv1\xa2\x02\x04ASII\xaa\x02\x1cAi.Stigmer.Iam.Invitation.V1\xca\x02\x1cAi\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3"
+	"\x0einvalid_reason\x18\b \x01(\tR\rinvalidReasonB\x83\x02\n" +
+	" com.ai.stigmer.iam.invitation.v1B\aIoProtoP\x01ZAgo.stigmer.ai/sdk/proto/ai/stigmer/iam/invitation/v1;invitationv1\xa2\x02\x04ASII\xaa\x02\x1cAi.Stigmer.Iam.Invitation.V1\xca\x02\x1cAi\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_invitation_v1_io_proto_rawDescOnce sync.Once
