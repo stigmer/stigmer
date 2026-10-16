@@ -1249,7 +1249,7 @@
     },
     {
       "name": "ChannelTemplates",
-      "description": "ChannelTemplates contains the message templates available on an agent\n channel.",
+      "description": "ChannelTemplates contains the message templates available on a channel.",
       "protoType": "ai.stigmer.agentic.channel.v1.ChannelTemplates",
       "protoFile": "apis/ai/stigmer/agentic/channel/v1/message_io.proto",
       "fields": [

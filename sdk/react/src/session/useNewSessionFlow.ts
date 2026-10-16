@@ -108,8 +108,8 @@ export interface UseNewSessionFlowOptions {
    * localStorage on explicit change — always takes precedence on
    * subsequent visits.
    *
-   * Ignored for the `"guest"` audience: a guest session runs the shared
-   * agent's own engine and defaults (the guest policy note on
+   * Ignored for the `"guest"` audience: a guest session runs the chat
+   * link's agent on its own engine and defaults (the guest policy note on
    * `GUEST_LOCAL_HARNESS`), never an embedder preference or a stored Console
    * choice.
    *
@@ -148,8 +148,7 @@ export interface UseNewSessionFlowOptions {
    * Who this flow serves. `"guest"` adapts the orchestration to the
    * guest principal's permission model: submission requires an explicit
    * agent resolution instead of falling back to the built-in assistant
-   * — a shared-agent page must never run anything but the pinned shared
-   * agent. See {@link SessionAudience}.
+   * — a chat link must never run anything but its pinned agent. See {@link SessionAudience}.
    *
    * @default "integrator"
    */

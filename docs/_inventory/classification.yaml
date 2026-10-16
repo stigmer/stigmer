@@ -297,8 +297,8 @@ pages:
       visitor messages, embedding, and credentials.
     medium: screenshot-journey
     why:
-      A console procedure across the share dialog's tabs; the current tour also
-      depicts an existing share where the prose teaches creating one (inherited
+      A console procedure across the chat link dialog's tabs; the current tour
+      also depicts an existing chat link where the prose teaches creating one (inherited
       drift a re-authored journey fixes).
     embeds:
       chat-link-tour: replace

@@ -114,8 +114,8 @@ export function buildEmbedLoaderUrl(appOrigin: string): string {
  * The two-line embed snippet an owner pastes into any website: the
  * loader script plus the `<stigmer-agent>` element where the widget
  * renders, naming the web channel by its id. A locked chat link adds the `token` attribute, which the
- * widget forwards as `?k=` on its iframe URL. Every surface (share
- * dialog, CLI, docs) emits exactly this.
+ * widget forwards as `?k=` on its iframe URL. Every surface (the chat
+ * link's dialog, CLI, docs) emits exactly this.
  */
 export function buildEmbedSnippet(
   appOrigin: string,

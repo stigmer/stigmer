@@ -192,11 +192,11 @@ A few principles:
 - **Leave out what an Agent should never do.** A support Agent that only looks
   things up needs `tools: [Read, Grep, mcp__plugin_<plugin>_<server>]`, not an
   approval on every write.
-- **Approval is for the person at the conversation.** On a channel or a guest
-  share there is no approver, so a tool that asks, by default or because a hook
-  asks, is skipped there; a hook's refusal still holds. Keep the tools such an
-  Agent needs free of `destructiveHint` and of hooks that ask, and confirm
-  intent in the conversation instead.
+- **Approval is for the person at the conversation.** On a Slack or WhatsApp
+  channel, or a chat link's guest, there is no approver, so a tool that asks, by
+  default or because a hook asks, is skipped there; a hook's refusal still
+  holds. Keep the tools such an Agent needs free of `destructiveHint` and of
+  hooks that ask, and confirm intent in the conversation instead.
 
 The goal is to make the approval decision quick. The human should see the
 request and immediately understand what's happening and whether to allow it.

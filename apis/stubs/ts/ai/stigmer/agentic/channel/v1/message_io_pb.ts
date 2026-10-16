@@ -248,8 +248,7 @@ export const ListChannelTemplatesInputSchema: GenMessage<ListChannelTemplatesInp
   messageDesc(file_ai_stigmer_agentic_channel_v1_message_io, 5);
 
 /**
- * ChannelTemplates contains the message templates available on an agent
- * channel.
+ * ChannelTemplates contains the message templates available on a channel.
  *
  * @generated from message ai.stigmer.agentic.channel.v1.ChannelTemplates
  */

@@ -43,7 +43,7 @@ export interface UseSessionPageFlowOptions {
    * version state (a read a guest token cannot make) are skipped, and
    * follow-ups carry no agent override, so they simply continue on the
    * agent and version the session pinned, which is exactly right for a
-   * shared-agent page.
+   * chat link.
    * See {@link SessionAudience}.
    *
    * @default "integrator"
