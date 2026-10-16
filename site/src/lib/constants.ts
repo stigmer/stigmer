@@ -192,6 +192,7 @@ export const FOOTER_LINKS = {
     { label: "Pricing", href: "/pricing" },
     { label: "Documentation", href: "/docs" },
     { label: "Download", href: "/download" },
+    { label: "Status", href: "https://status.stigmer.ai", external: true },
   ],
   developers: [
     { label: "Getting Started", href: "/docs/getting-started/quickstart" },
