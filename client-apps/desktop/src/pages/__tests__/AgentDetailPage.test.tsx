@@ -1,15 +1,17 @@
 /**
- * Pins the desktop agent page's Channels tab: it appears once the agent has
- * loaded, links the in-app WhatsApp connect dialog to the channel-apps
- * settings and channel conversations to the session route (hash URLs the
- * router picks up without a reload), and hands a redirect-style connect to
- * the web console in the system browser, because the Tauri webview blocks
- * the OAuth popup. The detail view and the panel are pinned in
- * @stigmer/react.
+ * Pins what the desktop agent page hands the view's Channels tab: the page
+ * adds no tab of its own (the view builds Channels in its second slot), and
+ * passes its routing seams: the in-app WhatsApp connect dialog links to the
+ * channel-apps settings and channel conversations to the session route
+ * (hash URLs the router picks up without a reload), and a redirect-style
+ * connect is handed to the web console's Channels tab in the system
+ * browser, because the Tauri webview blocks the OAuth popup. The detail
+ * view and the panel are pinned in @stigmer/react.
  *
  * Also pins how the page names organizations: a referenced resource, which
- * names its org by id, opens at a URL carrying the org's slug. A share link names neither: it
- * points at the web console's `/chat/<share id>`, never the Tauri origin.
+ * names its org by id, opens at a URL carrying the org's slug. A chat link
+ * names neither: it points at the web console's `/chat/<channel id>`,
+ * never the Tauri origin.
  *
  * And pins the page's own actions: Start session opens the new-session
  * screen on the agent itself (no instance to bind), and Delete warns that
@@ -21,25 +23,11 @@
  * navigates to `/sessions/<id>` only once the session is known; until then
  * it stays put, as the plugin page does.
  */
-import type { ReactElement } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { mockTauri } from "../../__test-utils__/tauri";
 import { CONSOLE_URL } from "../../config";
-
-interface Tab {
-  id: string;
-  label: string;
-  content: ReactElement<PanelProps>;
-}
-
-interface PanelProps {
-  agent: unknown;
-  onConnectExternal: () => void;
-  channelAppsHref: string;
-  sessionHref: (id: string) => string;
-}
 
 interface Action {
   id: string;
@@ -52,14 +40,17 @@ interface ConfirmRequest {
 }
 
 interface DetailProps {
-  additionalTabs: Tab[];
+  additionalTabs?: unknown;
+  channelAppsHref: string;
+  sessionHref: (id: string) => string;
+  onConnectExternal: (channel: unknown) => void;
   primaryAction: Action;
   actions: Action[];
   viewerOrg?: string;
   onSkillClick: (ref: { org: string; slug: string }) => void;
   onPluginClick: (ref: { org: string; slug: string }) => void;
   onAgentClick: (ref: { org: string; slug: string }) => void;
-  buildShareUrl: (channelId: string) => string;
+  buildChatLinkUrl: (channelId: string) => string;
   onNavigateToRun: (runId: string) => void;
   onRenamed: (agent: { metadata?: { slug: string } }) => void;
 }
@@ -79,7 +70,6 @@ const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
 const noop = () => undefined;
 
 vi.mock("@stigmer/react", () => ({
-  ChannelsPanel: () => null,
   AgentDetailView: (props: DetailProps) => {
     page.detail.push(props);
     return null;
@@ -152,22 +142,22 @@ beforeEach(() => {
 });
 
 describe("desktop AgentDetailPage — the Channels tab", () => {
-  it("is absent until the agent has loaded", () => {
+  it("adds no tab of its own, before or after the agent loads: the view builds Channels", () => {
     renderAgent();
+    expect(page.detail.at(-1)?.additionalTabs).toBeUndefined();
 
-    expect(page.detail.at(-1)?.additionalTabs).toEqual([]);
+    page.agent = AGENT;
+    renderAgent();
+    expect(page.detail.at(-1)?.additionalTabs).toBeUndefined();
   });
 
-  it("carries the loaded agent and the desktop's hash-router links", () => {
+  it("passes the view the desktop's hash-router links", () => {
     page.agent = AGENT;
     renderAgent();
 
-    const tabs = page.detail.at(-1)?.additionalTabs ?? [];
-    expect(tabs.map((t) => [t.id, t.label])).toEqual([["channels", "Channels"]]);
-    const panel = tabs[0]!.content.props;
-    expect(panel.agent).toBe(AGENT);
-    expect(panel.channelAppsHref).toBe("#/settings/channel-apps");
-    expect(panel.sessionHref("ses_9")).toBe("#/sessions/ses_9");
+    const view = page.detail.at(-1);
+    expect(view?.channelAppsHref).toBe("#/settings/channel-apps");
+    expect(view?.sessionHref("ses_9")).toBe("#/sessions/ses_9");
   });
 
   it("hands a redirect-style connect to the web console in the system browser", async () => {
@@ -175,7 +165,7 @@ describe("desktop AgentDetailPage — the Channels tab", () => {
     page.agent = AGENT;
     renderAgent();
 
-    page.detail.at(-1)?.additionalTabs[0]!.content.props.onConnectExternal();
+    page.detail.at(-1)?.onConnectExternal(null);
     await vi.waitFor(() => expect(tauri.callsTo("open_auth_in_browser")).toHaveLength(1));
 
     expect(tauri.callsTo("open_auth_in_browser")[0]).toEqual({
@@ -219,11 +209,11 @@ describe("desktop AgentDetailPage — organizations", () => {
     expect(screen.getByTestId("location").textContent).toBe("/library/agents/acme/researcher");
   });
 
-  it("builds a share link on the web console from the share's id alone", () => {
+  it("builds a chat link on the web console from the channel's id alone", () => {
     page.agent = AGENT;
     renderAgent();
 
-    expect(page.detail.at(-1)?.buildShareUrl("ash_01j9z3k8f2q4m6n7p8r9s0t1v2")).toBe(
+    expect(page.detail.at(-1)?.buildChatLinkUrl("ash_01j9z3k8f2q4m6n7p8r9s0t1v2")).toBe(
       `${CONSOLE_URL}/chat/ash_01j9z3k8f2q4m6n7p8r9s0t1v2`,
     );
   });

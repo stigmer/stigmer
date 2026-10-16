@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import type { DeploymentMode } from "@stigmer/sdk";
 import { SlackMarkIcon } from "./SlackMarkIcon.js";
 import { WhatsAppMarkIcon } from "./WhatsAppMarkIcon.js";
 
@@ -84,11 +85,18 @@ export interface ChannelProviderDescriptor {
 /**
  * All channel providers this UI can render, in display order.
  *
- * With two providers the connect affordance renders as one visible
- * "Connect to {label}" button per provider — deliberately NOT a dropdown
- * menu: two options are clearer side by side (visibility over a hidden
- * menu), and each button keeps its own stable cursor target for the docs
- * demos. A third entry is the signal to fold these into a provider menu.
+ * These are the vendors a channel is installed into. A chat link (the
+ * `web` type) is a channel too, but not a vendor: it has no install, no
+ * template registry and no staff send lane, so it lives in the channel
+ * type registry ({@link CHANNEL_TYPES}) beside these entries rather than
+ * among them.
+ *
+ * With two providers, connecting once rendered as one visible "Connect
+ * to {label}" button per provider, and a third type was the signal to fold
+ * them into a menu. The chat link was that third type: a Channels tab with
+ * channels listed offers one "Add channel" menu, while its empty state
+ * keeps one visible button per type, where a newcomer chooses. Each
+ * keeps its stable cursor target (`connect-<id>`) for the docs demos.
  */
 export const CHANNEL_PROVIDERS: readonly ChannelProviderDescriptor[] = [
   {
@@ -123,4 +131,18 @@ export function channelProviderOf(
   providerCase: string | undefined,
 ): ChannelProviderDescriptor | null {
   return CHANNEL_PROVIDERS.find((p) => p.id === providerCase) ?? null;
+}
+
+/**
+ * Whether the connected edition can install a channel into a vendor
+ * (Slack, WhatsApp): the facility is the hosted webhook and delivery
+ * runtime that receives the vendor's events and sends the agent's
+ * replies, and only Stigmer Cloud composes one. Every channel surface
+ * asks this one predicate, so the panel and the connect dialogs never
+ * disagree. Channel configuration (create, edit, the on/off switch,
+ * delete) needs no runtime and works in every edition, chat links
+ * included.
+ */
+export function channelInstallsAvailable(mode: DeploymentMode): boolean {
+  return mode === "cloud";
 }

@@ -4,7 +4,8 @@ import { test, expect } from "../../../fixtures";
  * What the owner of a resource is offered on its detail page, on the
  * open-source server: the actions that change or remove the resource and
  * the access controls, on an agent the test seeded (so the signed-in
- * operator owns it).
+ * operator owns it). Manage access is the menu's one sharing item: an
+ * agent's chat links live on its Channels tab, not in this menu.
  *
  * Hiding these actions from someone who is not an owner needs a second
  * principal with a narrower role, which only an edition with per-person
@@ -12,7 +13,7 @@ import { test, expect } from "../../../fixtures";
  * suite, not this open-source lane.
  */
 test.describe("Permission-gated actions for the owner", () => {
-  test("the owner of an agent can edit, delete, share and manage access, and start a session", async ({
+  test("the owner of an agent can edit, delete and manage access, and start a session", async ({
     page,
     testAgent,
   }) => {
@@ -23,8 +24,9 @@ test.describe("Permission-gated actions for the owner", () => {
     });
     await page.getByRole("button", { name: "More actions" }).first().click();
     const menu = page.getByRole("menu", { name: "More actions" });
-    for (const name of ["Edit YAML", "Delete", "Share", "Manage access"]) {
+    for (const name of ["Edit YAML", "Delete", "Manage access"]) {
       await expect(menu.getByRole("menuitem", { name })).toBeVisible();
     }
+    await expect(menu.getByRole("menuitem", { name: "Share", exact: true })).toHaveCount(0);
   });
 });

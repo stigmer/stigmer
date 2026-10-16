@@ -1,3 +1,9 @@
+// ConnectWhatsAppDialog: connecting an agent to a WhatsApp number. Pins the
+// create-then-direct-install flow on a registered Meta app, the retry of a
+// pending channel, the guided and verbatim refusals, and the cloud notice
+// that preempts the flow on every edition without vendor installs (open
+// source and Enterprise).
+
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
@@ -101,7 +107,7 @@ function Providers({
   children,
 }: {
   client: unknown;
-  mode?: "cloud" | "local";
+  mode?: "cloud" | "local" | "enterprise";
   children: ReactNode;
 }) {
   return (
@@ -532,6 +538,17 @@ describe("ConnectWhatsAppDialog", () => {
     expect(
       screen.queryByRole("button", { name: /connect to whatsapp/i }),
     ).toBeNull();
+  });
+
+  it("preempts the flow with the cloud notice on enterprise too — vendor installs are Stigmer Cloud's", () => {
+    render(
+      <Providers client={createMockStigmer()} mode="enterprise">
+        <ConnectWhatsAppDialog open onOpenChange={() => {}} agent={makeAgent()} />
+      </Providers>,
+    );
+
+    expect(screen.getByText(/require Stigmer Cloud/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /connect to whatsapp/i })).toBeNull();
   });
 
   it("resets flow state when reopened (body remounts per session)", async () => {

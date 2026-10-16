@@ -118,7 +118,7 @@ export function createStigmerPreview(
     //
     // `publicBaseUrl` names the address copyable URLs and snippets are
     // built from: the client's `"/"` is the router transport's, not an
-    // address anyone outside the page can call (the `buildShareUrl` tours
+    // address anyone outside the page can call (the `buildChatLinkUrl` tours
     // pass `https://app.stigmer.ai` for the same reason).
     return (
       <StigmerProvider

@@ -136,7 +136,7 @@ describe("buildEmbedSnippet", () => {
     expect(buildEmbedSnippet("https://app.stigmer.ai", "ash_1")).toBe(
       [
         `<script src="https://app.stigmer.ai/embed.js" async></script>`,
-        `<stigmer-agent share="ash_1"></stigmer-agent>`,
+        `<stigmer-agent channel="ash_1"></stigmer-agent>`,
       ].join("\n"),
     );
   });
@@ -145,7 +145,7 @@ describe("buildEmbedSnippet", () => {
     expect(buildEmbedSnippet("https://app.stigmer.ai", "ash_1", "tok123")).toBe(
       [
         `<script src="https://app.stigmer.ai/embed.js" async></script>`,
-        `<stigmer-agent share="ash_1" token="tok123"></stigmer-agent>`,
+        `<stigmer-agent channel="ash_1" token="tok123"></stigmer-agent>`,
       ].join("\n"),
     );
   });

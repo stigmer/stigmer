@@ -23,7 +23,7 @@ Everything the film shows on screen is real product state, authored here and app
 1. Bring up a local stack: `stigmer up` (with `ANTHROPIC_API_KEY` in the environment).
 2. `npm run demo:seed` (from `marketing/`; set `STIGMER_BIN` if the CLI isn't on PATH).
 3. For the embed shot: `npm run demo:embed`, then open http://localhost:4173.
-4. For the share-link shot: `stigmer share agent meridian-travel/traveler-assist --audience public`.
+4. For the chat-link shot: `stigmer channel link meridian-travel/traveler-assist --audience public`.
 
 The chat scene's booking is `MT-4821` (Priya Shah, SFO→JFK on flight MT-214, flex fare). "Move my flight to tomorrow morning" lands on MT-102 at 07:05 — a $42 fare difference, no change fee — and `rebook_booking` stops for approval with the booking and flight in the dialog message.
 

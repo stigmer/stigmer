@@ -4,7 +4,11 @@ export type { UseChannelListReturn } from "./useChannelList.js";
 export { useOrgChannelList } from "./useOrgChannelList.js";
 export type { UseOrgChannelListReturn } from "./useOrgChannelList.js";
 
-export { CHANNEL_PROVIDERS, channelProviderOf } from "./providers.js";
+export {
+  CHANNEL_PROVIDERS,
+  channelProviderOf,
+  channelInstallsAvailable,
+} from "./providers.js";
 export type {
   ChannelProviderDescriptor,
   ChannelProviderId,
@@ -34,6 +38,20 @@ export type { UseDeleteChannelReturn } from "./useDeleteChannel.js";
 
 export { useCanCreateChannel } from "./useCanCreateChannel.js";
 export type { UseCanCreateChannelReturn } from "./useCanCreateChannel.js";
+
+export { CHANNEL_TYPES, CHAT_LINK_TYPE, channelTypeOf } from "./channelTypes.js";
+export type { ChannelTypeDescriptor, ChannelTypeId } from "./channelTypes.js";
+
+export {
+  useAddChannelOptions,
+  ADD_CHANNEL_NEEDS_CLOUD,
+  ADD_CHANNEL_NEEDS_PERMISSION,
+} from "./useAddChannelOptions.js";
+export type {
+  AddChannelOption,
+  UseAddChannelOptionsOptions,
+  UseAddChannelOptionsReturn,
+} from "./useAddChannelOptions.js";
 
 export { useConnectSlackChannel } from "./useConnectSlackChannel.js";
 export type {

@@ -1,5 +1,10 @@
+// The channel provider registry (Slack, WhatsApp) and its presentation:
+// install styles, the template capability, per-provider copy, and the one
+// predicate every channel surface asks for whether vendor installs are
+// available on the connected edition (Stigmer Cloud only).
+
 import { describe, it, expect } from "vitest";
-import { CHANNEL_PROVIDERS, channelProviderOf } from "../providers";
+import { CHANNEL_PROVIDERS, channelInstallsAvailable, channelProviderOf } from "../providers";
 import {
   channelPresentationOf,
   DEFAULT_CHANNEL_PRESENTATION,
@@ -46,6 +51,17 @@ describe("channel provider registry", () => {
     // hides rather than disables.
     expect(channelProviderOf("whatsapp")?.supportsMessageTemplates).toBe(true);
     expect(channelProviderOf("slack")?.supportsMessageTemplates).toBe(false);
+  });
+});
+
+describe("channelInstallsAvailable", () => {
+  it("is true on Stigmer Cloud, the one edition with the hosted delivery runtime", () => {
+    expect(channelInstallsAvailable("cloud")).toBe(true);
+  });
+
+  it("is false on the open-source edition and on Stigmer Enterprise", () => {
+    expect(channelInstallsAvailable("local")).toBe(false);
+    expect(channelInstallsAvailable("enterprise")).toBe(false);
   });
 });
 

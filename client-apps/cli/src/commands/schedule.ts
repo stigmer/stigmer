@@ -8,7 +8,7 @@
 // through its own clock, so everything a cron fire does applies
 // — including feeding the failure streak. Declarative verbs stay in the
 // generic matrix (apply/get/list/delete); this group exists for the
-// kind-specific operational actions, the `stigmer share` shape.
+// kind-specific operational actions, the `stigmer channel` shape.
 //
 // Thin handler: resolve credentials/org, delegate to resources/schedule,
 // render the result. Heavy modules are lazy-imported so `--help` stays

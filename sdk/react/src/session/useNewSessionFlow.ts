@@ -89,8 +89,8 @@ export interface UseNewSessionFlowOptions {
    * read first, ahead of {@link vaults}. A pick the person makes in the
    * composer's vault picker (`SessionComposerSubmitContext.includeMyVault`)
    * wins. Defaults to on for the `"integrator"` and `"endUser"` audiences
-   * and off for `"guest"`: a share-link guest brings no keys, and the
-   * share's vaults are what its runs use.
+   * and off for `"guest"`: a chat-link guest brings no keys, and the
+   * link's vaults are what its runs use.
    */
   readonly includeMyVault?: boolean;
   /**
@@ -199,7 +199,7 @@ export interface UseNewSessionFlowOptions {
    * when they first arrive after it (a host that reads them from its URL
    * after hydration) unless the person has picked by then. A plugin
    * page's "Start a chat" arrives with its plugin here. Ignored for the
-   * `"guest"` audience, whose conversation is the share's.
+   * `"guest"` audience, whose conversation is the chat link's.
    */
   readonly initialPluginRefs?: readonly ResourceRef[];
   /**

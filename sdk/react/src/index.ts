@@ -1654,41 +1654,41 @@ export type {
   ConnectLinkCallbackProps,
 } from "./connect-link/index.js";
 
-// Sharing — shared-agent public profile, the anonymous-visitor chat organism,
-// and the owner-side Share experience over web channels (Shares tab list,
-// dialog, the web channel draft and its save inputs).
+// Chat links — a web channel's public agent profile, the chat a link's
+// visitors see, and the owner's chat-link dialog with the web channel draft
+// and its save inputs. The agent's Channels tab lists the links
+// (ChannelsPanel, below).
 export {
   useChannelAgentProfile,
-  SharedAgentChat,
+  VisitorChat,
   draftFromWebChannel,
-  sharingAudienceFromProto,
+  chatLinkAudienceFromProto,
   webChannelCreateInput,
   webChannelPatch,
   webConfigOf,
   webLinkTokenOf,
   useRotateChannelLink,
-  ShareAgentDialog,
-  WebChannelList,
-  useShareToolReadiness,
+  ChatLinkDialog,
+  useChatLinkToolReadiness,
   validateOrigin,
   MAX_ALLOWED_ORIGINS,
-} from "./sharing/index.js";
+} from "./chat-link/index.js";
 export type {
   UseChannelAgentProfileOptions,
   UseChannelAgentProfileReturn,
-  SharedAgentChatProps,
+  VisitorChatProps,
   WebChannelCreateIdentity,
   WebChannelDraft,
-  SharingAudience,
+  ChatLinkAudience,
   UseRotateChannelLinkReturn,
-  ShareAgentDialogProps,
-  WebChannelListProps,
-  ShareToolReadiness,
-} from "./sharing/index.js";
+  ChatLinkDialogProps,
+  ChatLinkToolReadiness,
+} from "./chat-link/index.js";
 
 // Channel — the one kind for every way people reach an agent (chat links,
-// Slack, WhatsApp): the Channel hooks, the Channels tab panel (Slack and
-// WhatsApp), and the per-provider connect dialogs.
+// Slack, WhatsApp): the Channel hooks, the add-a-channel behaviour, the
+// Channels tab panel (every type in one list), and the per-provider connect
+// dialogs.
 export {
   useChannelList,
   useChannel,
@@ -1696,6 +1696,8 @@ export {
   useCreateChannel,
   useDeleteChannel,
   useCanCreateChannel,
+  useAddChannelOptions,
+  channelInstallsAvailable,
   useConnectSlackChannel,
   useInstallChannel,
   useChannelToolReadiness,
@@ -1720,6 +1722,11 @@ export type {
   UseCreateChannelReturn,
   UseDeleteChannelReturn,
   UseCanCreateChannelReturn,
+  AddChannelOption,
+  UseAddChannelOptionsOptions,
+  UseAddChannelOptionsReturn,
+  ChannelTypeDescriptor,
+  ChannelTypeId,
   UseConnectSlackChannelReturn,
   SlackConnectPhase,
   UseInstallChannelReturn,

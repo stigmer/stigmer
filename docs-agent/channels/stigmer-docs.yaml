@@ -5,7 +5,7 @@ metadata:
   # the slug this chat link carried before links were channels, so applying
   # this file edits the channel the docs site already embeds and never makes a
   # second one. Its public chat link and the docs site's
-  # <stigmer-agent share="…"> attribute carry the channel's id instead, which
+  # <stigmer-agent channel="…"> attribute carry the channel's id instead, which
   # the server minted on the first apply (README.md, "Wire the docs site").
   name: stigmer-docs
   org: stigmer

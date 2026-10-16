@@ -371,7 +371,7 @@ describe("delete (cutover kinds: vault, channel, channel app)", () => {
 
     // The teardown-vs-pause distinction rides the warning (server doc contract).
     expect(plan.warning.hints).toContain(
-      "Delete is the connection's full teardown; to pause instead, apply with spec.enabled: false.",
+      "Delete is the connection's full teardown; to pause instead: stigmer channel disable <channel>",
     );
 
     const result = await plan.perform();

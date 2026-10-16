@@ -124,7 +124,7 @@ function samplePath(route: string): string {
 
 // The reviewed exceptions. A route joins either list only by editing it here.
 const PUBLIC = ["/auth/oauth/callback", "/connect/[token]", "/desktop/billing", "/invite/[token]", "/login"];
-const AUTH_OPTIONAL = ["/chat/[share]"];
+const AUTH_OPTIONAL = ["/chat/[channel]"];
 
 describe("the route chain", () => {
   beforeEach(() => {

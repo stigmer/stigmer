@@ -1,5 +1,5 @@
 /**
- * Share Agent tour — a single beat of the real `ShareAgentDialog` in its
+ * Share Agent tour — a single beat of the real `ChatLinkDialog` in its
  * editor state, scene-setting for `docs/guides/sharing/share-an-agent.mdx`.
  *
  * The dialog is handed an already-created share, so it opens as that share's

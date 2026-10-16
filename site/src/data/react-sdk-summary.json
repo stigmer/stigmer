@@ -53,7 +53,7 @@
       "slug": "channel",
       "title": "channel",
       "description": "",
-      "hooks": 12,
+      "hooks": 13,
       "components": 8
     },
     {
@@ -69,6 +69,13 @@
       "description": "Small inline-SVG charts drawn from the theme's chart tokens, each with a screen-reader table of its data.",
       "hooks": 0,
       "components": 1
+    },
+    {
+      "slug": "chat-link",
+      "title": "Chat Links",
+      "description": "Hooks and components for an agent's chat links — the chat-link dialog, the chat a link's visitors see, and the web channel draft behind both.",
+      "hooks": 3,
+      "components": 2
     },
     {
       "slug": "composer",
@@ -279,13 +286,6 @@
       "description": "Pre-composed settings sections for organization console embedding.",
       "hooks": 1,
       "components": 17
-    },
-    {
-      "slug": "sharing",
-      "title": "Sharing",
-      "description": "Hooks and components for turning an agent into a hosted, shareable chat link and embed.",
-      "hooks": 3,
-      "components": 3
     },
     {
       "slug": "sidebar",

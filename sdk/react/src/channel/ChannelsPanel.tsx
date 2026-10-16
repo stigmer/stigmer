@@ -1,40 +1,34 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { FileCode2, KeyRound, LayoutTemplate, MessageSquare, MoreHorizontal, Share2, SlidersHorizontal, Trash2 } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import { cn } from "@stigmer/theme";
-import {
-  deletedReferenceLabel,
-  getUserMessage,
-  isDeletedReference,
-} from "@stigmer/sdk";
+import { chatPath, getUserMessage } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { toast } from "../feedback/toast.js";
-import { useManageAccess } from "../access/useManageAccess.js";
-import { ActionMenu } from "../action-menu/index.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
-import { Switch } from "../switch/Switch.js";
+import { Menu, MenuContent, MenuItem, MenuTrigger } from "../internal/menu.js";
 import { useChannelAppList } from "../channel-app/useChannelAppList.js";
-import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { EditResourceYamlDialog } from "../manifest/EditResourceYamlDialog.js";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
-import { TruncatedText } from "../internal/truncated-text.js";
+import { ChatLinkDialog } from "../chat-link/ChatLinkDialog.js";
 import { ChannelConversationsDialog } from "./ChannelConversationsDialog.js";
 import { ChannelCredentialsDialog } from "./ChannelCredentialsDialog.js";
 import { ChannelRunConfigDialog } from "./ChannelRunConfigDialog.js";
 import { ChannelTemplatesDialog } from "./ChannelTemplatesDialog.js";
+import { ChatLinkCard } from "./ChatLinkCard.js";
 import { ConnectSlackDialog } from "./ConnectSlackDialog.js";
 import { ConnectWhatsAppDialog } from "./ConnectWhatsAppDialog.js";
+import { CHANNEL_TYPES } from "./channelTypes.js";
 import {
   CHANNEL_PROVIDERS,
+  channelInstallsAvailable,
   channelProviderOf,
   type ChannelProviderDescriptor,
 } from "./providers.js";
@@ -42,17 +36,26 @@ import {
   channelPresentationOf,
   DEFAULT_CHANNEL_PRESENTATION,
 } from "./providerPresentation.js";
-import { useCanCreateChannel } from "./useCanCreateChannel.js";
+import {
+  useAddChannelOptions,
+  type AddChannelOption,
+} from "./useAddChannelOptions.js";
 import { useChannelList } from "./useChannelList.js";
-import { useChannelToolReadiness } from "./useChannelToolReadiness.js";
 import { useDeleteChannel } from "./useDeleteChannel.js";
-import { useSaveChannel } from "./useSaveChannel.js";
-import { saveErrorMessage } from "../internal/maskedEdit.js";
+import { installStateOf, VendorChannelCard } from "./VendorChannelCard.js";
 
 /** Props for {@link ChannelsPanel}. */
 export interface ChannelsPanelProps {
   /** The agent whose channels are managed. */
   readonly agent: Agent;
+  /**
+   * Builds the absolute public chat URL for a chat link from its channel
+   * id (`metadata.id`, the one identity a link carries). The host owns
+   * URL construction: its configured public origin may differ from the
+   * rendering origin (e.g. the desktop app). When omitted, links fall back
+   * to the relative `/chat/<channel id>`.
+   */
+  readonly buildChatLinkUrl?: (channelId: string) => string;
   /**
    * When provided, connect actions for redirect-style providers (Slack)
    * delegate to the host instead of running the in-app popup flow. For
@@ -73,10 +76,9 @@ export interface ChannelsPanelProps {
   readonly channelAppsHref?: string;
   /**
    * Maps a session id to the host's session route (the console passes
-   * `` (id) => `/sessions/${id}` ``). Threaded to each card's
-   * Conversations dialog so rows link to the read-only transcript;
-   * absent, the rows render without links (the SDK never assumes a
-   * routing scheme).
+   * `` (id) => `/sessions/${id}` ``). Threaded to each vendor card's
+   * Sessions dialog so rows link to the read-only transcript; absent, the
+   * rows render without links (the SDK never assumes a routing scheme).
    */
   readonly sessionHref?: (sessionId: string) => string;
   /** Additional CSS class names. */
@@ -84,30 +86,36 @@ export interface ChannelsPanelProps {
 }
 
 /**
- * Management surface for an agent's Slack and WhatsApp {@link Channel}s —
- * rendered in the agent detail view's Channels tab.
+ * Every channel of an agent in one list — its chat links, Slack
+ * workspaces and WhatsApp numbers — rendered as the agent detail view's
+ * Channels tab.
  *
- * One card per channel showing the two serving axes side by side: the
- * observed provider install state (`pending_install` / `installed` /
- * `revoked`) and the owner's serving switch (`spec.enabled`). Traffic
- * flows only when installed AND enabled. Channels always live in the
- * agent's own org (no cross-org arm), so no org selector
- * is needed.
+ * One card per channel, in the frame every type shares: the type's mark
+ * and label, the channel's name, its state, its on/off switch where it can
+ * serve, and its menu. A chat link ({@link ChatLinkCard}) shows its link,
+ * audience and Active/Paused; a Slack or WhatsApp channel
+ * ({@link VendorChannelCard}) shows its install state and serving app, and
+ * serves only when installed and on.
  *
- * Connecting runs the provider's own dialog — {@link ConnectSlackDialog}
- * (OAuth popup) or {@link ConnectWhatsAppDialog} (direct install). On a
- * `local` (OSS) backend, channel CRUD works but installs are cloud-only —
- * connect affordances are replaced by a cloud-feature notice, matching
- * the server's FAILED_PRECONDITION posture.
+ * Adding runs through one affordance for every type
+ * ({@link useAddChannelOptions}): with channels listed, one "Add channel"
+ * menu; on an empty tab, one visible button per type, where a newcomer
+ * chooses. A chat link opens the chat-link dialog ({@link ChatLinkDialog});
+ * Slack and WhatsApp open their connect dialogs. Vendor installs need
+ * Stigmer Cloud ({@link channelInstallsAvailable}); elsewhere those options
+ * say so, and a notice explains only when the list holds a vendor channel
+ * this edition cannot connect. Channels always live in the agent's own
+ * org, so no org selector is needed.
  *
- * Self-contained: owns its dialog, its confirmation prompts, and its
- * refetch-after-mutation — hosts render it with just the agent (plus the
- * external-connect delegate where popups are unavailable).
+ * Self-contained: owns its dialogs, its confirmation prompts, and its
+ * refetch-after-mutation — hosts render it with the agent plus their
+ * routing seams.
  *
  * This is an SDK component — embeddable by platform builders.
  */
 export function ChannelsPanel({
   agent,
+  buildChatLinkUrl,
   onConnectExternal,
   channelAppsHref,
   sessionHref,
@@ -115,43 +123,36 @@ export function ChannelsPanel({
 }: ChannelsPanelProps) {
   const agentId = agent.metadata?.id ?? "";
   // Channels are same-org by invariant; scope the list to the agent's org.
-  const { channels: agentChannels, isLoading, error, refetch } = useChannelList(
+  const { channels, isLoading, error, refetch } = useChannelList(
     agentId,
     agent.metadata?.org ?? "",
   );
-  // This panel manages the Slack and WhatsApp channels; the chat links
-  // (web channels) are the Shares tab's. A type this UI does not know yet
-  // (a newer server) stays here, on the default provider's card.
-  const channels = useMemo(
-    () => agentChannels.filter((c) => c.spec?.type?.case !== "web"),
-    [agentChannels],
-  );
 
-  // One fetch for all cards: a channel's spec.app_ref carries only the
-  // slug, but the app's name is the bot name members @mention — the
+  // One fetch for all vendor cards: a channel's spec.app_ref carries only
+  // the slug, but the app's name is the bot name members @mention — the
   // label worth showing.
   const { channelApps } = useChannelAppList(agent.metadata?.org || null);
 
-  // Mirrors the server's two create bars so the connect affordance never
-  // appears to someone whose create would be refused: can_manage_audience
-  // on the agent (a channel puts it in front of a wider audience, the
-  // owner's decision, not an editor's) and can_create_channel on the
-  // organization (a channel spends its own provider keys, an admin's act, so a
-  // member who owns the agent is not enough).
-  const { allowed: canCreate } = useCanCreateChannel(agent);
-
-  // Installs need a channel delivery runtime, and only Stigmer Cloud
-  // composes one today; CRUD needs none. Outside Cloud the cards render and
-  // toggles work, but connect affordances give way to the notice. When a
-  // self-hosted edition composes a runtime, this becomes a probe of that
-  // runtime rather than an edition compare.
-  const installsAvailable = useDeploymentMode() === "cloud";
+  // The add bar, per type: the server's create bar, the edition, and the
+  // host's hand-off for redirect-style installs.
+  const { canAdd, options: addOptions } = useAddChannelOptions(agent, {
+    onConnectExternal,
+  });
+  const installsAvailable = channelInstallsAvailable(useDeploymentMode());
 
   const { deleteChannel } = useDeleteChannel();
   const { confirmState, confirm, handleConfirm, handleCancel } =
     useConfirmAction();
 
-  // One dialog mount serves both flows per provider: connecting the
+  // One chat-link dialog mount serves both flows: creating a new link, or
+  // editing the chosen one.
+  const [chatLinkEditor, setChatLinkEditor] = useState<
+    | { readonly mode: "create" }
+    | { readonly mode: "edit"; readonly channel: Channel }
+    | null
+  >(null);
+
+  // One connect dialog mount serves both vendor flows: connecting the
   // chosen channel, or creating a new one and connecting it in the same
   // session. The provider picks which dialog renders.
   const [connecting, setConnecting] = useState<
@@ -194,28 +195,81 @@ export function ChannelsPanel({
     [onConnectExternal],
   );
 
+  const handleAdd = useCallback(
+    (option: AddChannelOption) => {
+      const provider = option.type.provider;
+      if (provider === null) {
+        setChatLinkEditor({ mode: "create" });
+        return;
+      }
+      handleConnect(null, provider);
+    },
+    [handleConnect],
+  );
+
   const handleDelete = useCallback(
     async (channel: Channel) => {
       const name = channel.metadata?.name || channel.metadata?.slug || "this channel";
-      const presentation =
-        channelPresentationOf(channel.spec?.type?.case) ??
-        DEFAULT_CHANNEL_PRESENTATION;
-      const confirmed = await confirm({
-        title: "Disconnect channel?",
-        description: presentation.disconnectDescription(name),
-        confirmLabel: "Disconnect",
-        variant: "destructive",
-      });
+      const isChatLink = channel.spec?.type?.case === "web";
+      const confirmed = await confirm(
+        isChatLink
+          ? {
+              title: "Delete chat link?",
+              description:
+                `The link ${chatPath(channel.metadata?.id ?? "")} stops working ` +
+                "immediately — including for visitors mid-conversation — and its " +
+                "configuration (origins, messages, credential bindings) is gone. " +
+                "To stop serving while keeping the configuration, turn it off instead.",
+              confirmLabel: "Delete",
+              variant: "destructive",
+            }
+          : {
+              title: "Disconnect channel?",
+              description: (
+                channelPresentationOf(channel.spec?.type?.case) ??
+                DEFAULT_CHANNEL_PRESENTATION
+              ).disconnectDescription(name),
+              confirmLabel: "Disconnect",
+              variant: "destructive",
+            },
+      );
       if (!confirmed) return;
       try {
         await deleteChannel(channel.metadata?.id ?? "");
-        toast.success("Channel disconnected");
+        toast.success(isChatLink ? "Chat link deleted" : "Channel disconnected");
         refetch();
       } catch (err) {
         toast.error(getUserMessage(err));
       }
     },
     [confirm, deleteChannel, refetch],
+  );
+
+  // Whether a vendor card's Connect/Reconnect is actionable here: installs
+  // need the hosted runtime, but redirect-style providers can still hand
+  // off to the host (the desktop → system-browser path).
+  const connectAvailableFor = useCallback(
+    (provider: ChannelProviderDescriptor) =>
+      installsAvailable ||
+      (provider.installStyle === "redirect" && !!onConnectExternal),
+    [installsAvailable, onConnectExternal],
+  );
+
+  // The notice explains only what the list shows: a vendor channel this
+  // edition cannot connect. A tab of chat links carries no banner about
+  // features it isn't using.
+  const showCloudNotice = useMemo(
+    () =>
+      channels.some((c) => {
+        const typeCase = c.spec?.type?.case;
+        if (typeCase === "web") return false;
+        const provider = channelProviderOf(typeCase) ?? CHANNEL_PROVIDERS[0];
+        return (
+          installStateOf(c) !== ChannelInstallState.installed &&
+          !connectAvailableFor(provider)
+        );
+      }),
+    [channels, connectAvailableFor],
   );
 
   if (isLoading) {
@@ -229,23 +283,6 @@ export function ChannelsPanel({
       </div>
     );
   }
-
-  const showCloudNotice =
-    !installsAvailable &&
-    (channels.length === 0 ||
-      channels.some(
-        (c) => installStateOf(c) !== ChannelInstallState.installed,
-      ));
-
-  // Whether a provider's connect affordance is actionable here: installs
-  // are cloud-only, but redirect-style providers can still hand off to
-  // the host (the desktop → system-browser path). Direct-style providers
-  // have no hand-off — in local mode their affordance yields to the
-  // cloud notice.
-  const canConnectVia = (p: ChannelProviderDescriptor) =>
-    canCreate &&
-    (installsAvailable || (p.installStyle === "redirect" && !!onConnectExternal));
-  const connectableProviders = CHANNEL_PROVIDERS.filter(canConnectVia);
 
   // The provider of the in-flight connect flow: chosen by the user in
   // create mode, the channel's own on a reconnect. Unknown cases (a
@@ -270,8 +307,8 @@ export function ChannelsPanel({
 
       {channels.length === 0 ? (
         <ChannelEmptyState
-          providers={connectableProviders}
-          onConnectClick={(p) => handleConnect(null, p)}
+          options={canAdd ? addOptions : []}
+          onAddClick={handleAdd}
         />
       ) : (
         <>
@@ -279,43 +316,35 @@ export function ChannelsPanel({
             <h3 className="stg:text-sm stg:font-medium stg:text-foreground">
               {channels.length} {channels.length === 1 ? "channel" : "channels"}
             </h3>
-            {/* One visible button per provider — deliberately not a
-                dropdown: two options are clearer side by side, and each
-                keeps its own stable cursor target (see providers.ts). */}
-            {connectableProviders.length > 0 && (
-              <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-2">
-                {connectableProviders.map((p) => (
-                  <Button
-                    key={p.id}
-                    variant="outline"
-                    size="xs"
-                    icon={<p.Icon className="stg:size-3" />}
-                    onClick={() => handleConnect(null, p)}
-                    data-cursor-target={`connect-${p.id}`}
-                  >
-                    Connect to {p.label}
-                  </Button>
-                ))}
-              </div>
-            )}
+            {canAdd && <AddChannelMenu options={addOptions} onAddClick={handleAdd} />}
           </div>
 
           <div className="stg:space-y-2">
             {channels.map((channel) => {
+              if (channel.spec?.type?.case === "web") {
+                return (
+                  <ChatLinkCard
+                    key={channel.metadata?.id}
+                    channel={channel}
+                    buildChatLinkUrl={buildChatLinkUrl}
+                    onEditClick={() => setChatLinkEditor({ mode: "edit", channel })}
+                    onDeleteClick={() => void handleDelete(channel)}
+                    refetch={refetch}
+                  />
+                );
+              }
+              // A type this UI does not know yet (a newer server) renders
+              // on the default provider's card rather than not at all.
               const cardProvider =
                 channelProviderOf(channel.spec?.type?.case) ??
                 CHANNEL_PROVIDERS[0];
               return (
-                <ChannelCard
+                <VendorChannelCard
                   key={channel.metadata?.id}
                   agent={agent}
                   channel={channel}
                   channelApps={channelApps}
-                  connectAvailable={
-                    installsAvailable ||
-                    (cardProvider.installStyle === "redirect" &&
-                      !!onConnectExternal)
-                  }
+                  connectAvailable={connectAvailableFor(cardProvider)}
                   onConnectClick={() => handleConnect(channel, cardProvider)}
                   onDeleteClick={() => void handleDelete(channel)}
                   onEditCredentials={() => setEditingCredentials(channel)}
@@ -329,6 +358,19 @@ export function ChannelsPanel({
             })}
           </div>
         </>
+      )}
+
+      {chatLinkEditor && (
+        <ChatLinkDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setChatLinkEditor(null);
+          }}
+          agent={agent}
+          channel={chatLinkEditor.mode === "edit" ? chatLinkEditor.channel : undefined}
+          buildChatLinkUrl={buildChatLinkUrl}
+          onChannelsChanged={refetch}
+        />
       )}
 
       {connecting && connectingProvider?.id === "whatsapp" ? (
@@ -428,343 +470,59 @@ export function ChannelsPanel({
 }
 
 // ---------------------------------------------------------------------------
-// Card — one provider connection
+// Adding a channel
 // ---------------------------------------------------------------------------
-
-interface ChannelCardProps {
-  readonly agent: Agent;
-  readonly channel: Channel;
-  readonly channelApps: readonly ChannelApp[];
-  /** Whether the card's Connect/Reconnect affordance is actionable here. */
-  readonly connectAvailable: boolean;
-  readonly onConnectClick: () => void;
-  readonly onDeleteClick: () => void;
-  readonly onEditCredentials: () => void;
-  readonly onViewConversations: () => void;
-  readonly onViewTemplates: () => void;
-  readonly onEditYaml: () => void;
-  readonly onEditRunConfig: () => void;
-  readonly refetch: () => void;
-}
-
-function ChannelCard({
-  agent,
-  channel,
-  channelApps,
-  connectAvailable,
-  onConnectClick,
-  onDeleteClick,
-  onEditCredentials,
-  onViewConversations,
-  onViewTemplates,
-  onEditYaml,
-  onEditRunConfig,
-  refetch,
-}: ChannelCardProps) {
-  const meta = channel.metadata;
-  const id = meta?.id ?? "";
-  const enabled = channel.spec?.enabled ?? false;
-  const installState = installStateOf(channel);
-  // The serving app: set means the channel installs through
-  // the org's own channel app; absent means the platform Stigmer app
-  // (Slack only — WhatsApp always has one). The app's NAME is
-  // the identity people address, so prefer it over the ref's slug when
-  // the app is in the fetched list (it may not be — e.g. the app was
-  // deleted after install).
-  // An app deleted since comes back with no slug: it still names the
-  // channel's serving app, read as "deleted channel app", never as the
-  // platform app an absent reference means.
-  const type = channel.spec?.type;
-  const servingAppRef =
-    type?.case === "slack" || type?.case === "whatsapp" ? type.value.appRef : undefined;
-  const servingAppSlug = servingAppRef?.slug || null;
-  const namedServingApp = servingAppSlug
-    ? channelApps.find((app) => app.metadata?.slug === servingAppSlug)
-        ?.metadata?.name || servingAppSlug
-    : null;
-  const servingAppName = isDeletedReference(servingAppRef)
-    ? deletedReferenceLabel(ApiResourceKind.channel_app)
-    : namedServingApp;
-
-  // The spec's provider marker is set at create; unknown cases (a newer
-  // server) fall back to the default provider mark rather than no icon,
-  // and to the default presentation rather than no copy.
-  const provider =
-    channelProviderOf(channel.spec?.type?.case) ?? CHANNEL_PROVIDERS[0];
-  const presentation =
-    channelPresentationOf(channel.spec?.type?.case) ??
-    DEFAULT_CHANNEL_PRESENTATION;
-
-  const { update, isPending } = useSaveChannel();
-
-  // Decide the card's actions here (not via nested permission wrappers) so
-  // affordances are hidden entirely when the viewer can do nothing —
-  // permissive in OSS, so local single-user sees all.
-  const { allowed: canEdit } = useCheckPermission(
-    { kind: "channel", id },
-    "can_edit",
-  );
-  const { allowed: canDelete } = useCheckPermission(
-    { kind: "channel", id },
-    "can_delete",
-  );
-
-  // The channel's canonical access-management home: a participant grant covers
-  // every conversation on the channel, so the affordance belongs on the channel
-  // card. The conversation header's "Channel access" button is the
-  // point-of-need shortcut to the same dialog. Self-gates on can_view_access —
-  // `action` is null for viewers who may not see the access list.
-  const access = useManageAccess({
-    resource: id
-      ? {
-          kind: ApiResourceKind.channel,
-          kindString: "channel",
-          id,
-          org: meta?.org ?? "",
-          name: meta?.name || meta?.slug,
-        }
-      : null,
-  });
-
-  // On/off names `spec.enabled` alone: every other field keeps its
-  // stored value.
-  const handleToggleEnabled = useCallback(
-    async (next: boolean) => {
-      try {
-        await update(channel, { enabled: next });
-        toast.success(next ? "Channel turned on" : "Channel turned off");
-        refetch();
-      } catch (err) {
-        toast.error(saveErrorMessage(err, "channel"));
-      }
-    },
-    [update, channel, refetch],
-  );
-
-  return (
-    <div className="stg:rounded-lg stg:border stg:border-border stg:p-4">
-      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
-        <div className="stg:flex stg:min-w-0 stg:items-center stg:gap-2.5">
-          <provider.Icon className="stg:size-5 stg:shrink-0 stg:text-foreground" />
-          <div className="stg:min-w-0">
-            <div className="stg:flex stg:items-center stg:gap-2">
-              <TruncatedText
-                text={meta?.name || meta?.slug || "\u2014"}
-                className="stg:text-sm stg:font-medium stg:text-foreground"
-              />
-              <InstallStatePill state={installState} />
-            </div>
-            <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
-              {presentation.describeChannel(channel)}
-            </p>
-            <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground-faint">
-              {presentation.servingLine(servingAppName)}
-            </p>
-          </div>
-        </div>
-
-        <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-2">
-          {canEdit && installState === ChannelInstallState.installed && (
-            <Switch
-              checked={enabled}
-              onCheckedChange={(next) => void handleToggleEnabled(next)}
-              disabled={isPending}
-              aria-label={`Turn ${meta?.name || meta?.slug || "channel"} ${enabled ? "off" : "on"}`}
-            />
-          )}
-          {canEdit &&
-            connectAvailable &&
-            installState !== ChannelInstallState.installed && (
-              <Button variant="outline" size="xs" onClick={onConnectClick}>
-                {installState === ChannelInstallState.revoked
-                  ? "Reconnect"
-                  : "Connect"}
-              </Button>
-            )}
-          {/* The menu always renders: everyone who can see the card holds
-              can_view on the channel (the FGA-filtered list), which is
-              exactly the bar for viewing its conversations. */}
-          <ActionMenu>
-            <ActionMenu.Trigger
-              aria-label={`Actions for ${meta?.name || meta?.slug}`}
-            >
-              <MoreHorizontal className="stg:size-4" />
-            </ActionMenu.Trigger>
-            <ActionMenu.Content>
-              <ActionMenu.Item
-                icon={<MessageSquare />}
-                onSelect={onViewConversations}
-                /* "Sessions", deliberately not "Conversations": this
-                   dialog is the session-level forensics view (which
-                   sessions served a conversation). The word
-                   Conversations belongs to the top-level customer
-                   surface. */
-                data-cursor-target="channel-conversations"
-              >
-                Sessions
-              </ActionMenu.Item>
-              {access.action && (
-                <ActionMenu.Item icon={<Share2 />} onSelect={access.open}>
-                  Manage access
-                </ActionMenu.Item>
-              )}
-              {/* Gated on the bar the server enforces for listTemplates
-                  (ChannelMessagingReach: can_edit), and on the provider
-                  declaring a template registry at all — hidden, not
-                  disabled, for providers with no template concept. */}
-              {canEdit && provider.supportsMessageTemplates && (
-                <ActionMenu.Item
-                  icon={<LayoutTemplate />}
-                  onSelect={onViewTemplates}
-                  data-cursor-target="channel-templates"
-                >
-                  Templates
-                </ActionMenu.Item>
-              )}
-              {canEdit && (
-                <ActionMenu.Item
-                  icon={<SlidersHorizontal />}
-                  onSelect={onEditRunConfig}
-                  data-cursor-target="channel-run-config"
-                >
-                  Run settings
-                </ActionMenu.Item>
-              )}
-              {canEdit && (
-                <ActionMenu.Item
-                  icon={<KeyRound />}
-                  onSelect={onEditCredentials}
-                >
-                  Tool credentials
-                </ActionMenu.Item>
-              )}
-              {canEdit && (
-                <ActionMenu.Item
-                  icon={<FileCode2 />}
-                  onSelect={onEditYaml}
-                >
-                  Edit YAML
-                </ActionMenu.Item>
-              )}
-              {canDelete && (
-                <ActionMenu.Item
-                  icon={<Trash2 />}
-                  variant="destructive"
-                  onSelect={onDeleteClick}
-                >
-                  Disconnect
-                </ActionMenu.Item>
-              )}
-            </ActionMenu.Content>
-          </ActionMenu>
-        </div>
-      </div>
-
-      <CardReadinessWarning
-        agent={agent}
-        channel={channel}
-        canEdit={canEdit}
-        onEditCredentials={onEditCredentials}
-      />
-      {access.dialog}
-    </div>
-  );
-}
 
 /**
- * Serving-readiness warning for tool-using agents: channel runs
- * receive credentials only from the channel's own bindings, so an
- * installed, enabled channel with none (or with a private binding) will
- * refuse the first workspace message that needs a tool. The card is
- * where an owner — including one who connected before credential
- * binding existed — discovers the gap, instead of hearing about it from
- * a confused workspace member.
+ * The heading's "Add channel" menu: one item per type, each with the
+ * stable cursor target its empty-state button carries. A type this viewer
+ * cannot add here stays listed, disabled, with the reason beneath it, so
+ * the menu says what exists and why it is out of reach.
  */
-function CardReadinessWarning({
-  agent,
-  channel,
-  canEdit,
-  onEditCredentials,
+function AddChannelMenu({
+  options,
+  onAddClick,
 }: {
-  readonly agent: Agent;
-  readonly channel: Channel;
-  readonly canEdit: boolean;
-  readonly onEditCredentials: () => void;
+  readonly options: readonly AddChannelOption[];
+  readonly onAddClick: (option: AddChannelOption) => void;
 }) {
-  const serving =
-    (channel.spec?.enabled ?? false) &&
-    installStateOf(channel) === ChannelInstallState.installed;
-  const readiness = useChannelToolReadiness(
-    agent,
-    serving,
-    channel.spec?.vaults ?? [],
-  );
-
-  if (readiness.status !== "needs-credentials" && readiness.status !== "blocked") {
-    return null;
-  }
-
-  const message =
-    readiness.status === "needs-credentials"
-      ? "This agent uses tools, but this channel names no vault — workspace messages that need a tool will be refused."
-      : `Vault${readiness.unusableVaults.length > 1 ? "s" : ""} ${readiness.unusableVaults.join(", ")} ${readiness.unusableVaults.length > 1 ? "are" : "is"} not a shared vault you can read — name a shared vault so workspace messages can use its keys.`;
-
   return (
-    <p className="stg:mt-2 stg:text-xs stg:text-warning" role="status">
-      {message}
-      {canEdit && (
-        <>
-          {" "}
-          <button
-            type="button"
-            onClick={onEditCredentials}
-            className={cn(
-              "stg:font-medium stg:underline stg:underline-offset-2",
-              "stg:hover:text-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded",
-            )}
+    <Menu>
+      <MenuTrigger
+        render={
+          <Button
+            variant="outline"
+            size="xs"
+            icon={<Plus className="stg:size-3" />}
+            data-cursor-target="add-channel"
+          />
+        }
+      >
+        Add channel
+        <ChevronDown className="stg:size-3" aria-hidden="true" />
+      </MenuTrigger>
+      <MenuContent align="end" className="stg:w-auto stg:min-w-56">
+        {options.map((option) => (
+          <MenuItem
+            key={option.type.id}
+            disabled={!option.available}
+            onClick={() => onAddClick(option)}
+            data-cursor-target={option.type.addCursorTarget}
+            className="stg:items-start"
           >
-            Bind credentials
-          </button>
-        </>
-      )}
-    </p>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Install-state rendering
-// ---------------------------------------------------------------------------
-
-function installStateOf(channel: Channel): ChannelInstallState {
-  return (
-    channel.status?.installState ??
-    ChannelInstallState.channel_install_state_unspecified
-  );
-}
-
-function InstallStatePill({ state }: { readonly state: ChannelInstallState }) {
-  const { label, tone } = (() => {
-    switch (state) {
-      case ChannelInstallState.installed:
-        return { label: "Installed", tone: "stg:text-success" };
-      case ChannelInstallState.revoked:
-        return { label: "Revoked", tone: "stg:text-destructive" };
-      default:
-        return { label: "Pending install", tone: "stg:text-muted-foreground" };
-    }
-  })();
-
-  return (
-    <span
-      className={cn(
-        "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:text-xs",
-        tone,
-      )}
-    >
-      <span aria-hidden="true" className="stg:size-1.5 stg:rounded-full stg:bg-current" />
-      {label}
-    </span>
+            <option.type.Icon className="stg:mt-0.5 stg:size-4" />
+            <span className="stg:flex stg:flex-col">
+              <span>{option.type.label}</span>
+              {option.reason && (
+                <span className="stg:text-xs stg:text-muted-foreground">
+                  {option.reason}
+                </span>
+              )}
+            </span>
+          </MenuItem>
+        ))}
+      </MenuContent>
+    </Menu>
   );
 }
 
@@ -773,48 +531,65 @@ function InstallStatePill({ state }: { readonly state: ChannelInstallState }) {
 // ---------------------------------------------------------------------------
 
 function ChannelEmptyState({
-  providers,
-  onConnectClick,
+  options,
+  onAddClick,
 }: {
-  /** The providers the viewer can connect through, in display order. */
-  readonly providers: readonly ChannelProviderDescriptor[];
-  readonly onConnectClick: (provider: ChannelProviderDescriptor) => void;
+  /** Every type with its availability; empty when the viewer may add none. */
+  readonly options: readonly AddChannelOption[];
+  readonly onAddClick: (option: AddChannelOption) => void;
 }) {
-  const providerLabels = CHANNEL_PROVIDERS.map((p) => p.label).join(" or ");
+  const available = options.filter((o) => o.available);
+  // Unavailable types are named in one sentence per reason, never as
+  // disabled buttons: a newcomer reads what exists and what it needs.
+  const unavailableNotes = [
+    ...new Set(options.filter((o) => !o.available).map((o) => o.reason)),
+  ].map((reason) => {
+    const labels = options
+      .filter((o) => !o.available && o.reason === reason)
+      .map((o) => o.type.label);
+    // "Needs Stigmer Cloud" reads as "Slack and WhatsApp need Stigmer Cloud."
+    const verb = labels.length > 1 ? "need " : "needs ";
+    return `${labels.join(" and ")} ${(reason ?? "").replace(/^Needs /, verb)}.`;
+  });
   return (
     <EmptyState
       variant="first-use"
       icon={
         <span className="stg:flex stg:items-center stg:gap-2">
-          {CHANNEL_PROVIDERS.map((p) => (
-            <p.Icon key={p.id} className="stg:size-10" />
+          {CHANNEL_TYPES.map((t) => (
+            <t.Icon key={t.id} className="stg:size-10" />
           ))}
         </span>
       }
       title="No channels yet"
       description={
-        `Connect this agent to ${providerLabels} and people chat with it ` +
-        "right where they work — with policy, rate limits, and billing " +
-        "enforced by Stigmer."
+        "Give this agent a chat link to send or embed, or connect it to " +
+        "Slack or WhatsApp so people chat with it right where they work — " +
+        "with policy, rate limits, and billing enforced by Stigmer."
       }
     >
       {/* Rendered via the children slot (not `action`) so each button can
           carry its docs-demo cursor target, which EmptyState's action
-          config does not thread through. One visible button per provider
-          — see providers.ts for why this is not a dropdown. */}
-      {providers.length > 0 && (
-        <span className="stg:flex stg:items-center stg:gap-2">
-          {providers.map((p) => (
+          config does not thread through. One visible button per type: an
+          empty tab is where a newcomer chooses. */}
+      {available.length > 0 && (
+        <span className="stg:flex stg:flex-wrap stg:items-center stg:justify-center stg:gap-2">
+          {available.map((o) => (
             <Button
-              key={p.id}
+              key={o.type.id}
               variant="primary"
-              icon={<p.Icon className="stg:size-3" />}
-              onClick={() => onConnectClick(p)}
-              data-cursor-target={`connect-${p.id}`}
+              icon={<o.type.Icon className="stg:size-3" />}
+              onClick={() => onAddClick(o)}
+              data-cursor-target={o.type.addCursorTarget}
             >
-              Connect to {p.label}
+              {o.type.addLabel}
             </Button>
           ))}
+        </span>
+      )}
+      {unavailableNotes.length > 0 && available.length > 0 && (
+        <span className="stg:mt-2 stg:block stg:text-xs stg:text-muted-foreground">
+          {unavailableNotes.join(" ")}
         </span>
       )}
     </EmptyState>

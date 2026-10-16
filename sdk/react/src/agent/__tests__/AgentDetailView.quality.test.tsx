@@ -1,18 +1,21 @@
 /**
- * Pins the agent detail view's Quality tab: it is offered beside Shares,
+ * Pins the agent detail view's Quality tab: it is offered beside Channels,
  * and opening it shows the agent's AI grading read through
  * `scoringrule.getByAgent`, editable on a plugin-managed agent too when the
  * host makes the view editable (grading is not the agent's definition).
  * The report on top hands the view's `onNavigateToRun` to its flagged
  * runs, and a version's eval link opens the Evals tab on that eval. The
- * Shares tab beside it lists the agent's web channels, read through
- * `channel.listByAgent` in the agent's own organization.
+ * Channels tab in the second slot lists every channel of the agent (chat
+ * links, Slack, WhatsApp), read through `channel.listByAgent` by the
+ * agent's id in its own organization, and the agent's menu offers Manage
+ * access as its one sharing item, with no Share item.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { Code } from "@connectrpc/connect";
 import { StigmerError } from "@stigmer/sdk";
 import { samples } from "../../test/samples";
+import { openMenu } from "../../__tests__/helpers/open-menu";
 import { AgentDetailView } from "../AgentDetailView";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 import { agentEvalRunWith } from "../../eval-run/__tests__/eval-fixture.agent";
@@ -29,6 +32,18 @@ vi.mock("../../models/ModelSelector.js", () => ({
 
 afterEach(cleanup);
 beforeEach(() => localStorage.clear());
+beforeAll(() => {
+  // Base UI's menu positioner observes its anchor; happy-dom lacks
+  // ResizeObserver, so provide a no-op shim.
+  if (!("ResizeObserver" in globalThis)) {
+    (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      };
+  }
+});
 
 describe("AgentDetailView's Quality tab", () => {
   it("opens to the agent's AI grading, off until switched on", async () => {
@@ -112,15 +127,33 @@ describe("AgentDetailView's Quality tab", () => {
   });
 });
 
-describe("AgentDetailView's Shares tab", () => {
-  it("opens to the agent's web channel list, read by the agent's id in its own org", async () => {
+describe("AgentDetailView's Channels tab", () => {
+  it("is the second tab and lists every channel of the agent, read by the agent's id in its own org", async () => {
     const agent = samples.agent({ name: "Support Bot", org: ACME_ID });
-    const listByAgent = vi.fn(async () => ({ entries: [], nextPageToken: "" }));
+    const chatLink = {
+      metadata: { id: "ash_1", org: ACME_ID, slug: "website-chat", name: "Website chat" },
+      spec: { enabled: true, type: { case: "web", value: {} } },
+    };
+    const slack = {
+      metadata: { id: "ach_1", org: ACME_ID, slug: "support-slack", name: "Support Slack" },
+      spec: { enabled: true, type: { case: "slack", value: {} } },
+      status: { installState: 2, typeStatus: { case: undefined } },
+    };
+    const whatsapp = {
+      metadata: { id: "ach_2", org: ACME_ID, slug: "support-whatsapp", name: "Support WhatsApp" },
+      spec: { enabled: true, type: { case: "whatsapp", value: {} } },
+      status: { installState: 2, typeStatus: { case: undefined } },
+    };
+    const listByAgent = vi.fn(async () => ({
+      entries: [chatLink, slack, whatsapp],
+      nextPageToken: "",
+    }));
     render(<AgentDetailView org="acme" slug="support-bot" />, {
       wrapper: orgWrapper(
         {
           agent: { getByReference: vi.fn(async () => agent), update: vi.fn() },
           channel: { listByAgent },
+          channelapp: { list: vi.fn(async () => ({ entries: [], nextPageToken: "" })) },
           plugin: { getByReference: vi.fn(async () => undefined) },
           platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
           grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
@@ -129,10 +162,39 @@ describe("AgentDetailView's Shares tab", () => {
         true,
       ),
     });
-    fireEvent.click(await screen.findByRole("tab", { name: "Shares" }));
-    expect(await screen.findByText("No shares yet")).toBeDefined();
+    const tabs = await screen.findAllByRole("tab");
+    expect(tabs[1]?.textContent).toBe("Channels");
+    expect(screen.queryByRole("tab", { name: "Shares" })).toBeNull();
+
+    fireEvent.click(tabs[1]!);
+    expect(await screen.findByText("3 channels")).toBeDefined();
+    expect(
+      screen.getAllByRole("group").map((card) => card.getAttribute("aria-label")),
+    ).toEqual(["Chat link: Website chat", "Slack: Support Slack", "WhatsApp: Support WhatsApp"]);
     expect(listByAgent).toHaveBeenCalledWith(
-      expect.objectContaining({ agentId: agent.metadata!.id }),
+      expect.objectContaining({ agentId: agent.metadata!.id, org: ACME_ID }),
     );
+  });
+});
+
+describe("AgentDetailView's menu", () => {
+  it("offers Manage access as its one sharing item, and no Share item", async () => {
+    const agent = samples.agent({ name: "Support Bot", org: ACME_ID });
+    render(<AgentDetailView org="acme" slug="support-bot" />, {
+      wrapper: orgWrapper(
+        {
+          agent: { getByReference: vi.fn(async () => agent), update: vi.fn() },
+          plugin: { getByReference: vi.fn(async () => undefined) },
+          platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
+          grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: true })) },
+        },
+        undefined,
+        true,
+      ),
+    });
+
+    await openMenu(await screen.findByRole("button", { name: "More actions" }));
+    expect(screen.getByRole("menuitem", { name: "Manage access" })).toBeDefined();
+    expect(screen.queryByRole("menuitem", { name: "Share" })).toBeNull();
   });
 });

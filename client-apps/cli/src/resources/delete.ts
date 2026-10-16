@@ -324,7 +324,7 @@ function buildDeleteWarning(
     // The server's documented distinction: delete is the connection's full
     // teardown; disabling is the config-preserving pause.
     warning.hint(
-      "Delete is the connection's full teardown; to pause instead, apply with spec.enabled: false.",
+      "Delete is the connection's full teardown; to pause instead: stigmer channel disable <channel>",
     );
   }
 

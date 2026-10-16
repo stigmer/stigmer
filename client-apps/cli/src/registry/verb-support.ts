@@ -70,8 +70,9 @@ export const VERB_SUPPORT: ReadonlyMap<
     new Set<Verb>([Verb.Get, Verb.List, Verb.Delete]),
   ],
   // A Slack or WhatsApp channel's provider install flow is console-driven and
-  // cloud-only, and a web channel's link is switched by `stigmer share
-  // agent`; the generic verbs cover the declarative path (apply a manifest,
+  // cloud-only; a web channel's chat link is made and switched by `stigmer
+  // channel link`, and any channel is paused by `stigmer channel disable`.
+  // The generic verbs cover the declarative path (apply a manifest,
   // inspect, tear down) for every type.
   [
     ApiResourceKind.channel,

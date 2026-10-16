@@ -12,7 +12,8 @@ export interface UseCanCreateChannelReturn {
 /**
  * Mirrors the server's Channel create bar so create affordances never
  * appear to a user whose create would be refused. One bar for every
- * type: the Shares tab and the Channels panel both ask it.
+ * type: the Channels tab asks it for a chat link, Slack and WhatsApp
+ * alike (through {@link useAddChannelOptions}).
  *
  * A channel lives in its agent's organization (to share another
  * organization's agent, install the plugin that carries it and share the

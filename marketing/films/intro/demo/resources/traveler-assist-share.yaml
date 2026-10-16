@@ -4,9 +4,9 @@
 # embed/serve.mjs on localhost:4173.
 apiVersion: agentic.stigmer.ai/v1
 kind: Channel
-# The /chat/... link and the <stigmer-agent share="..."> attribute name the
+# The /chat/... link and the <stigmer-agent channel="..."> attribute name the
 # channel by its id, which the seed records (channel-id.mjs). The channel
-# carries the agent's own slug, so `stigmer share agent` edits this channel
+# carries the agent's own slug, so `stigmer channel link` edits this channel
 # rather than making another (kinds have separate slug namespaces).
 metadata:
   name: traveler-assist

@@ -108,8 +108,8 @@ describe("useChannelList", () => {
   });
 
   it("returns every channel of every type — each surface filters by spec.type", async () => {
-    // One list for the one kind: the Shares tab keeps the web channels, the
-    // Channels panel the Slack and WhatsApp ones; the hook never filters.
+    // One list for the one kind: the Channels tab lists every type and
+    // picks each channel's card by spec.type; the hook never filters.
     const chatLink = { ...makeChannel("acme", "support-agent-web"), spec: { enabled: true, type: { case: "web", value: {} } } };
     const slack = { ...makeChannel("acme", "support-agent-slack"), spec: { enabled: true, type: { case: "slack", value: {} } } };
     const whatsapp = { ...makeChannel("acme", "support-agent-whatsapp"), spec: { enabled: true, type: { case: "whatsapp", value: {} } } };

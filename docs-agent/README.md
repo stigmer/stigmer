@@ -76,10 +76,10 @@ channel's first apply, so the docs site learns it from the deployment:
    this changes nothing and prints the link, whose last segment is the id:
 
    ```bash
-   stigmer share agent stigmer/stigmer-docs
+   stigmer channel link stigmer/stigmer-docs
    ```
 
-2. Set `ASK_AI_SHARE` in `site/src/components/docs/ask-ai/config.ts` to that
+2. Set `ASK_AI_CHANNEL` in `site/src/components/docs/ask-ai/config.ts` to that
    id and merge it. While the constant is empty, the docs site hides its Ask
    AI button.
 

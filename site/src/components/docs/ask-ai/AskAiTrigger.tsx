@@ -3,7 +3,7 @@
 import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAskAi } from "./AskAiProvider";
-import { ASK_AI_SHARE } from "./config";
+import { ASK_AI_CHANNEL } from "./config";
 
 interface AskAiTriggerProps {
   /**
@@ -23,12 +23,12 @@ interface AskAiTriggerProps {
 
 /**
  * Opens the shared Ask AI panel (see `AskAiProvider`). Renders nothing
- * while no docs share is wired (`ASK_AI_SHARE` empty).
+ * while no docs channel is wired (`ASK_AI_CHANNEL` empty).
  */
 export function AskAiTrigger({ variant, className }: AskAiTriggerProps) {
   const { open, setOpen } = useAskAi();
 
-  if (!ASK_AI_SHARE) return null;
+  if (!ASK_AI_CHANNEL) return null;
 
   return (
     <button

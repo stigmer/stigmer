@@ -1,0 +1,167 @@
+Operate on channels: an Agent's chat link, and switching any channel on or off.
+
+A channel is how an Agent reaches people: a hosted chat link (a web channel), a
+Slack workspace or a WhatsApp number. `stigmer channel link` turns an Agent's
+chat link on — for anyone with the link (no Stigmer account needed) or for
+signed-in members of your Organization — and prints the hosted chat link and,
+for public links, a two-line embed snippet you can paste into any website.
+Visitors chat on the Organization's own provider keys. `stigmer channel enable`
+and `stigmer channel disable` flip any channel's switch, whatever its type.
+
+The declarative lifecycle rides the unified verbs: `stigmer apply -f` to create
+or update a channel from a manifest, `stigmer get channel` and
+`stigmer list channels` to inspect, and `stigmer delete channel` to tear one
+down.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Turn on an Agent's chat link for your Organization's members
+stigmer channel link support-agent
+
+# Make the link public and print the embed snippet
+stigmer channel link support-agent --audience public
+
+# Reset a public link — the old link stops working immediately
+stigmer channel link support-agent --reset-link
+
+# Give the link its own name
+stigmer channel link support-agent --name support-chat
+
+# Turn the chat link off — the link stops working immediately
+stigmer channel link support-agent --off
+
+# Pause any channel (web, Slack or WhatsApp), keeping its configuration
+stigmer channel disable acme-corp/support-agent-slack
+
+# Turn it back on
+stigmer channel enable acme-corp/support-agent-slack
+```
+
+## Examples
+
+### Turn on a chat link
+
+```bash
+stigmer channel link acme-corp/support-agent
+```
+
+The command turns the Agent's chat link on and prints it
+(`https://app.stigmer.ai/chat/chn_01j9z3k8f2q4m6n7p8r9s0t1v2`). A new link is
+for signed-in members of your Organization unless you pass `--audience public`.
+The link names the Agent's web channel by its permanent ID, so renaming your
+Organization or the channel never breaks it. The command is idempotent: running
+it again reports the link without another write.
+
+Any embed origins, visitor messages, credential bindings or run settings you
+configured in the console's chat link dialog are preserved; the command only
+changes the switch and the audience.
+
+### Make a link public
+
+```bash
+stigmer channel link acme-corp/support-agent --audience public
+```
+
+Anyone with the link can chat, and the command prints the embed snippet as well.
+Omitting `--audience` keeps the link's current audience — a plain toggle never
+turns an org-members-only link into a public one, or back.
+
+### Reset a leaked public link
+
+```bash
+stigmer channel link acme-corp/support-agent --reset-link
+```
+
+Mints a fresh link carrying a secret key (`?k=<key>`) and kills the current one
+— including for visitors mid-conversation. The link stays on. Re-copy the embed
+snippet afterwards so your website keeps working. Resetting applies to public
+links only; org-members-only access ends with membership instead.
+
+### Name a link
+
+```bash
+stigmer channel link acme-corp/support-agent --name support-chat
+```
+
+An Agent's first chat link is named `<agent slug>-web`. `--name` picks the
+link's slug instead: when the Agent has a web channel by that slug, the command
+edits it; otherwise it creates the link under that slug. One Organization's
+channels of every type share one set of names, so a name may already be taken —
+by a Slack channel, or by another Agent's channel. The command then refuses and
+names the holder, for example:
+
+```text
+the name `support-agent-web` is held by a Slack channel of agent `triage`
+```
+
+Pass `--name` with a free slug to create the link under it. A name a channel was
+renamed away from in the last 30 days still leads to that channel and is refused
+the same way. The command never picks another name for you, and never changes
+the channel that holds the name.
+
+### Turn a chat link off
+
+```bash
+stigmer channel link acme-corp/support-agent --off
+```
+
+Turning the link off is the kill switch: the hosted link and any embeds stop
+working on the visitor's next message. The link's settings are kept for the next
+time you turn it on.
+
+### Pause and resume any channel
+
+```bash
+stigmer channel disable acme-corp/support-agent-slack
+stigmer channel enable acme-corp/support-agent-slack
+```
+
+`disable` pauses a channel of any type — a chat link, a Slack workspace or a
+WhatsApp number stops serving the Agent — and keeps its configuration,
+credentials and install, so `enable` brings it back as it was. It changes the
+channel's `enabled` switch alone, the same change as the console's switch.
+`stigmer delete channel` is the teardown instead. A channel takes an ID,
+`org/slug`, or a slug in the current Organization.
+
+## Notes
+
+- Anyone with a public link can chat, and every chat runs on the Organization's
+  own provider keys. Public links can be forwarded and indexed by search engines
+  — don't make Agents that know confidential information public.
+- Guest chat is served by Stigmer Cloud. Against a local backend the command
+  still records the link, but a local public link won't serve visitors.
+- A chat link lives in the Agent's own Organization, and creating one needs that
+  Organization's admin role (`can_create_channel`) as well as permission to edit
+  the Agent. To offer another Organization's Agent from yours, install the
+  Plugin that carries it and link the installed copy.
+- To give people access to an Agent itself, use Manage access in the console. To
+  restrict which websites may embed the Agent, customize visitor messages, or
+  bind tool credentials, use the chat link dialog in the console.
+- A chat link is stored as the Agent's web channel (`kind: Channel` with
+  `spec.web`), separate from the Agent. Manage it declaratively with
+  `stigmer apply`, and list it with `stigmer get channels`. Run
+  `stigmer channel link` on a link that is already on to print it again: it
+  changes nothing.
+
+{/* AUTO_SUBCOMMANDS */}
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command                              | Description                                       |
+| ------------------------------------ | ------------------------------------------------- |
+| [`stigmer apply`](./apply)           | Create or update a channel from a manifest        |
+| [`stigmer get channel`](./get)       | Inspect a channel and its configuration           |
+| [`stigmer list channels`](./list)    | List channels                                     |
+| [`stigmer delete channel`](./delete) | Tear a channel down (`disable` pauses it instead) |
+
+## See also
+
+- [Share an Agent](/docs/guides/sharing/share-an-agent) — the full chat link
+  guide
+- [Embed an Agent](/docs/guides/sharing/embed-an-agent) — the embed widget guide
+- [Command Reference](./) — All available commands

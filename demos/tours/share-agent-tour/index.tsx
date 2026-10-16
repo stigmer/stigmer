@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { ShareAgentDialog } from "@stigmer/react";
+import { ChatLinkDialog } from "@stigmer/react";
 import { BrowserView } from "@scenar/react";
 import { DEMO_ORG } from "../_shared/fixtures";
 import { DEMO_SLUG, buildDemoAgent, buildDemoShare, type ShareAgentTourStep } from "./steps";
@@ -26,7 +26,7 @@ const DIALOG_PAGE: CSSProperties = {
 const noop = () => {};
 
 /**
- * Pure `renderStep`: the tour's single beat is the real `ShareAgentDialog`
+ * Pure `renderStep`: the tour's single beat is the real `ChatLinkDialog`
  * open on its editor state. Wrapped `inert` (the connect-tools precedent):
  * the dialog renders real toggles, copy buttons, and a save path a viewer
  * must not drive mid-playback — the beat depicts the state, the narration
@@ -41,12 +41,12 @@ export function renderStep(data: ShareAgentTourStep): ReactNode {
           contentKey="share"
         >
           <div style={DIALOG_PAGE} inert>
-            <ShareAgentDialog
+            <ChatLinkDialog
               open
               onOpenChange={noop}
               agent={buildDemoAgent()}
-              share={buildDemoShare()}
-              buildShareUrl={(channelId) => `https://app.stigmer.ai/chat/${channelId}`}
+              channel={buildDemoShare()}
+              buildChatLinkUrl={(channelId) => `https://app.stigmer.ai/chat/${channelId}`}
               modal={false}
             />
           </div>

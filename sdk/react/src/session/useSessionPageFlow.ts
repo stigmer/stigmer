@@ -345,7 +345,7 @@ export function useSessionPageFlow(
   // status.run_config, which records what the server resolved (an agent
   // default among them) and would copy that default into every later
   // message as if the person had picked it. Guests never seed: a guest's
-  // turn runs the share's saved settings, which the server writes over
+  // turn runs the chat link's saved settings, which the server writes over
   // what the visitor sent.
   const lastRequestedModelId = useMemo(() => {
     if (isGuest) return undefined;
@@ -649,7 +649,7 @@ export function useSessionPageFlow(
         plugins: pluginRefs.length > 0 ? pluginRefs : undefined,
         skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
         // A guest never changes which vaults the conversation uses: the
-        // write is the creator's, and the share's vaults are what a
+        // write is the creator's, and the chat link's vaults are what a
         // guest's runs use.
         vaults: isGuest ? undefined : context?.vaults,
         includeMyVault: isGuest ? undefined : context?.includeMyVault,

@@ -89,7 +89,7 @@ export function buildChatUrl(
  * Append the chat-link token to an already-built chat URL.
  *
  * For hosts that construct the base URL through their own callback (the
- * share dialog's `buildShareUrl` prop) rather than {@link buildChatUrl}.
+ * chat-link dialog's `buildChatLinkUrl` prop) rather than {@link buildChatUrl}.
  * A `null`/empty token returns the URL unchanged, so callers can pass
  * the web arm of `channel.status?.typeStatus` (its `linkToken`) straight through. Emits the identical
  * `?k=` shape as {@link chatPath} — one URL grammar across every surface.
@@ -125,7 +125,7 @@ export function buildEmbedSnippet(
   const tokenAttribute = linkToken ? ` token="${linkToken}"` : "";
   return [
     `<script src="${buildEmbedLoaderUrl(appOrigin)}" async></script>`,
-    `<stigmer-agent share="${channelId}"${tokenAttribute}></stigmer-agent>`,
+    `<stigmer-agent channel="${channelId}"${tokenAttribute}></stigmer-agent>`,
   ].join("\n");
 }
 

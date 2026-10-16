@@ -1344,7 +1344,7 @@ credentials.
 - **Capitalize**: Yes, when referring to the Stigmer resource.
 - **API surface**: `kind: Channel` with `spec.web`, prefix `chn` (a chat link
   made before chat links became channels keeps its `ash_` id). proto:
-  `channel/v1/spec.proto`. CLI: `stigmer share agent`.
+  `channel/v1/spec.proto`. CLI: `stigmer channel link`.
 - **Key fields**: `agent_ref`, `enabled`, `web.audience` (`org` or `public`).
 - **Context rule**: An omitted audience means the Organization: only its
   signed-in members chat. Say "Anyone with the link can chat" only for the

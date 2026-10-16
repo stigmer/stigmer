@@ -146,7 +146,7 @@ test("conversation deep links resolve to the conversations placeholder", () => {
 });
 
 test("chat resolves through the general rule without a special-case block", () => {
-  // A hosted chat link names only the share, by its id: /chat/[share] is a
+  // A hosted chat link names only the channel, by its id: /chat/[channel] is a
   // one-placeholder route, served by the two-segment block like /sessions.
   assert.equal(
     resolveProbe("/chat/ash_01j9z3k8f2q4m6n7p8r9s0t1v2"),
@@ -158,7 +158,7 @@ test("an old /chat/<org>/<slug> link no longer reaches a chat page", () => {
   // It falls to the three-segment block, whose candidates
   // (/chat/acme/__placeholder__.html, /chat/__placeholder__/__placeholder__.html)
   // no longer exist in the export, so it ends at the real not-found page —
-  // never the chat page under another share's id, never the blank shell.
+  // never the chat page under another channel's id, never the blank shell.
   assert.equal(resolveProbe("/chat/acme/support-bot"), "/404.html");
 });
 
@@ -365,7 +365,7 @@ test("verifyRoutes passes the probe config and fails the historical one, naming 
     ["conversations", "[channelId]", "[key]"],
     ["conversations", "archived", "[id]"],
     ["sessions", "[id]"],
-    ["chat", "[share]"],
+    ["chat", "[channel]"],
   ]);
   try {
     const routes = enumerateRoutes(dir);

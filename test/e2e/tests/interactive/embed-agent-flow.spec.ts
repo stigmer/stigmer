@@ -91,7 +91,7 @@ test.describe("Embed agent flow", () => {
   }) => {
     const channelId = await enableSharing(stigmerClient, testAgent);
 
-    hostPageAttributes = `share="${channelId}"`;
+    hostPageAttributes = `channel="${channelId}"`;
     await page.goto(`${hostOrigin}/`);
 
     // The loader upgraded the element into an iframe pointed at the hosted
@@ -117,6 +117,23 @@ test.describe("Embed agent flow", () => {
     await expect(page.locator("stigmer-agent")).toBeVisible();
   });
 
+  test("a page carrying the older share attribute still loads the chat", async ({
+    page,
+    testAgent,
+    stigmerClient,
+  }) => {
+    const channelId = await enableSharing(stigmerClient, testAgent);
+
+    hostPageAttributes = `share="${channelId}"`;
+    await page.goto(`${hostOrigin}/`);
+
+    await expect(page.locator("stigmer-agent iframe")).toHaveAttribute(
+      "src",
+      `${APP_URL}/chat/${channelId}`,
+      { timeout: 15_000 },
+    );
+  });
+
   test("theme and sizing attributes flow into the frame", async ({
     page,
     testAgent,
@@ -124,7 +141,7 @@ test.describe("Embed agent flow", () => {
   }) => {
     const channelId = await enableSharing(stigmerClient, testAgent);
 
-    hostPageAttributes = `share="${channelId}" theme="dark" width="320" height="480"`;
+    hostPageAttributes = `channel="${channelId}" theme="dark" width="320" height="480"`;
     await page.goto(`${hostOrigin}/`);
 
     const embedFrame = page.locator("stigmer-agent iframe");

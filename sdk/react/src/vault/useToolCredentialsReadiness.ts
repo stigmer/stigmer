@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Whether a surface whose runs have no person (a share's guests, a
+ * Whether a surface whose runs have no person (a chat link's guests, a
  * channel's conversations) will find the keys its agent's tools need.
  *
  * Such runs use only the vaults the surface names, never anyone's My vault,
@@ -42,7 +42,7 @@ const NEEDS_CREDENTIALS: ToolCredentialsReadiness = { status: "needs-credentials
  * Data hook that checks a surface's named vaults. `applicable` is the
  * caller's predicate (shares add an audience arm; channels do not).
  *
- * Surface wrappers: {@link useShareToolReadiness}, {@link useChannelToolReadiness}.
+ * Surface wrappers: {@link useChatLinkToolReadiness}, {@link useChannelToolReadiness}.
  */
 export function useToolCredentialsReadiness(
   applicable: boolean,

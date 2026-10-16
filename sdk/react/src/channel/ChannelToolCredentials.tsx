@@ -4,8 +4,8 @@
  * The channel's vault surface: explanatory copy, the vault picker, and the
  * readiness hint. Shared by the connect dialog (naming vaults at connect
  * time) and the channel card's credentials dialog (editing later) so the
- * two surfaces never drift — the share dialog's pattern, applied to
- * channels.
+ * two surfaces never drift — the chat-link dialog's pattern, applied to
+ * vendor channels.
  *
  * A channel's conversations have no person, so they use only the vaults
  * the channel names, never anyone's My vault; the picker offers shared
