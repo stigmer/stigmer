@@ -54,7 +54,7 @@ Same source, same version, same tag. The slim artifact is what you run; the libr
 ## Consuming as a library
 
 ```bash
-npm install @stigmer/server@3.14.0 @stigmer/apis@3.14.0 @stigmer/temporal-codecs@3.14.0
+npm install @stigmer/server@0.1.0 @stigmer/apis@0.1.0 @stigmer/temporal-codecs@0.1.0
 ```
 
 Pin all three to the same exact version. The library's own dependencies on `@stigmer/apis` and `@stigmer/temporal-codecs` are pinned to its release version, so matching pins give you one copy of each and one `@bufbuild/protobuf` registry; a mismatch gives you two, and protobuf-es schemas from two registries do not compare equal.

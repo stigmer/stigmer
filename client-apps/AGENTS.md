@@ -3,9 +3,10 @@
 The three first-party clients: `cli` (the `stigmer` command, commander plus the
 Ink session view from `sdk/ink`), `web` (the Next.js console) and `desktop`
 (Tauri, Vite and React Router). The web console and the desktop app are thin
-shells over `@stigmer/react-sdk`; the CLI is a thin shell over `@stigmer/client`.
-Anything a platform builder could need belongs in `sdk/`, whose guide binds
-there. This guide is an index; the READMEs and headers it names are the truth.
+shells over `@stigmer/react-sdk`; the CLI is a thin shell over
+`@stigmer/client`. Anything a platform builder could need belongs in `sdk/`,
+whose guide binds there. This guide is an index; the READMEs and headers it
+names are the truth.
 
 ## Read in this order
 

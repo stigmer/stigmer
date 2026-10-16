@@ -220,8 +220,8 @@ For cloud execution you provide neither prop. The SDK skips all adapter calls
 when no adapter is configured, so the same components work in both apps.
 
 The interface type ships from `@stigmer/client` (framework-agnostic) and is
-re-exported from `@stigmer/react-sdk` alongside the `useRunnerAdapter` hook. A Java
-mirror exists too: `ai.stigmer.sdk.RunnerAdapter`, wired through
+re-exported from `@stigmer/react-sdk` alongside the `useRunnerAdapter` hook. A
+Java mirror exists too: `ai.stigmer.sdk.RunnerAdapter`, wired through
 `StigmerClient.builder().runnerAdapter(...)`.
 
 Most TypeScript embedders do not write that object by hand. If you already have

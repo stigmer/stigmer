@@ -1,10 +1,11 @@
 # Agent guide: sdk
 
-The published client surface: `typescript` (`@stigmer/client`), `react`, `theme`,
-`ink` and `embed` in TypeScript, and the `go`, `python` and `java` SDKs. The
-TypeScript packages are the product the web console and the desktop app are thin
-shells over; a platform builder embedding Stigmer consumes the same packages.
-This guide is an index; the READMEs and headers it names are the truth.
+The published client surface: `typescript` (`@stigmer/client`), `react`,
+`theme`, `ink` and `embed` in TypeScript, and the `go`, `python` and `java`
+SDKs. The TypeScript packages are the product the web console and the desktop
+app are thin shells over; a platform builder embedding Stigmer consumes the same
+packages. This guide is an index; the READMEs and headers it names are the
+truth.
 
 ## Read in this order
 
@@ -38,8 +39,8 @@ This guide is an index; the READMEs and headers it names are the truth.
 ## Laws, the TypeScript SDKs
 
 - SDK first. A feature is a data hook, then a behaviour hook, then a styled
-  component in `@stigmer/react-sdk`; each layer imports independently. If a platform
-  builder could need it, it does not go in a client app.
+  component in `@stigmer/react-sdk`; each layer imports independently. If a
+  platform builder could need it, it does not go in a client app.
 - Zero framework dependencies in `@stigmer/react-sdk`: no `next/*`, no
   `@tauri-apps/*`, no client-app imports; navigation and image handling are
   callback props.
