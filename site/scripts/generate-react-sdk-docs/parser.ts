@@ -116,7 +116,7 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
   "chat-link": {
     title: "Chat Links",
     description:
-      "Hooks and components for an agent's chat links: the chat-link dialog, the chat a link's visitors see, and the web channel draft behind both.",
+      "Hooks and components for an agent's chat links — the chat-link dialog, the chat a link's visitors see, and the web channel draft behind both.",
   },
   "federation-issuer": {
     title: "Federation Issuer",
