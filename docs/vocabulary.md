@@ -56,37 +56,37 @@ definitions, API names, and examples follow below.
 
 <!-- vale Stigmer.terms = NO -->
 
-| Term                   | Sales site       | Quickstart / tutorial                  | Concepts / how-to      | Reference / SDK                                     | README             |
-| ---------------------- | ---------------- | -------------------------------------- | ---------------------- | --------------------------------------------------- | ------------------ |
-| **Agent**              | Agent            | Agent                                  | Agent                  | Agent, `kind: Agent`                                | Agent              |
-| **Skill**              | domain knowledge | Skill ("domain knowledge")             | Skill                  | Skill, `skill_refs`                                 | Skill              |
-| **Plugin**             | plugin           | plugin ("what you install")            | Plugin                 | Plugin, `kind: Plugin`                              | plugin             |
-| **Marketplace**        | marketplace      | Marketplace ("where you install from") | Marketplace            | Marketplace; source, `stigmer install`              | marketplace        |
-| **MCP server**         | tools            | MCP server ("tool connection")         | MCP server             | `PluginStatus.mcp_servers`, `AgentSpec.mcp_servers` | MCP server         |
-| **Session**            | conversation     | Session ("conversation")               | Session                | Session, `kind: Session`                            | Session            |
-| **Session event**      | ---              | ---                                    | event                  | `SessionEvent`, `agent.message`, `stigmer.*`        | event              |
-| **Runner**             | compute          | runner ("where your Agent runs")       | Runner                 | Runner                                              | runner             |
-| **Harness**            | execution engine | harness ("execution engine")           | Harness                | Harness, `SessionSpec.harness`                      | harness            |
-| **Approval flow**      | approval flow    | approval flow                          | approval flow, HITL    | `destructiveHint`, `confirmToolUse`                 | HITL, approval     |
-| **Organization**       | Organization     | Organization                           | Organization           | Organization, `kind: organization`                  | Organization       |
-| **Agent hour**         | agent hours      | ---                                    | agent hours            | `included_agent_hours`, `per_agent_hour_micros`     | agent hours        |
-| **Working time**       | ---              | working time                           | working time           | `working_seconds`                                   | working time       |
-| **Edition**            | the three names  | ---                                    | edition                | `ServerEdition`, `DeploymentMode`                   | edition            |
-| **Team**               | teams            | ---                                    | Team                   | Team, `kind: team`                                  | Team               |
-| **Grant**              | ---              | ---                                    | Grant                  | Grant, `kind: Grant`                                | Grant              |
-| **Vault**              | vault            | vault ("your keys and logins")         | Vault                  | Vault, `kind: Vault`                                | vault              |
-| **Preference**         | preferences      | preference ("standing context")        | Preference             | `spec.preferences.standing_context`                 | Preference         |
-| **Federation Issuer**  | ---              | identity provider (Auth0, Okta, …)     | Federation Issuer      | FederationIssuer, `kind: FederationIssuer`          | Federation Issuer  |
-| **Identity Account**   | ---              | ---                                    | Identity Account       | IdentityAccount, `kind: identity_account`           | Identity Account   |
-| **Embedding settings** | ---              | ---                                    | embedding settings     | `OrganizationSpec.embedding`                        | embedding settings |
-| **App user**           | ---              | ---                                    | app user               | `provisioning_mode: app_user`                       | app user           |
-| **Run**                | ---              | run                                    | run                    | Run, `kind: Run`                                    | Run                |
-| **Subagent**           | ---              | ---                                    | subagent               | subagent, `subagents`, `<plugin>:<agent>`           | subagent           |
-| **Channel**            | chat link, Slack, WhatsApp | chat link                      | channel, Channel       | Channel, `kind: Channel`                            | Channel            |
-| **Channel App**        | ---              | ---                                    | Channel App            | ChannelApp, `kind: ChannelApp`                      | Channel App        |
-| **Schedule**           | ---              | ---                                    | schedule, Schedule     | Schedule, `kind: Schedule`                          | Schedule           |
-| **Label**              | ---              | label                                  | label                  | `metadata.labels`, `labels` filter                  | label              |
-| **Tag**                | ---              | tag                                    | tag                    | `metadata.tags`                                     | tag                |
+| Term                   | Sales site                 | Quickstart / tutorial                  | Concepts / how-to   | Reference / SDK                                     | README             |
+| ---------------------- | -------------------------- | -------------------------------------- | ------------------- | --------------------------------------------------- | ------------------ |
+| **Agent**              | Agent                      | Agent                                  | Agent               | Agent, `kind: Agent`                                | Agent              |
+| **Skill**              | domain knowledge           | Skill ("domain knowledge")             | Skill               | Skill, `skill_refs`                                 | Skill              |
+| **Plugin**             | plugin                     | plugin ("what you install")            | Plugin              | Plugin, `kind: Plugin`                              | plugin             |
+| **Marketplace**        | marketplace                | Marketplace ("where you install from") | Marketplace         | Marketplace; source, `stigmer install`              | marketplace        |
+| **MCP server**         | tools                      | MCP server ("tool connection")         | MCP server          | `PluginStatus.mcp_servers`, `AgentSpec.mcp_servers` | MCP server         |
+| **Session**            | conversation               | Session ("conversation")               | Session             | Session, `kind: Session`                            | Session            |
+| **Session event**      | ---                        | ---                                    | event               | `SessionEvent`, `agent.message`, `stigmer.*`        | event              |
+| **Runner**             | compute                    | runner ("where your Agent runs")       | Runner              | Runner                                              | runner             |
+| **Harness**            | execution engine           | harness ("execution engine")           | Harness             | Harness, `SessionSpec.harness`                      | harness            |
+| **Approval flow**      | approval flow              | approval flow                          | approval flow, HITL | `destructiveHint`, `confirmToolUse`                 | HITL, approval     |
+| **Organization**       | Organization               | Organization                           | Organization        | Organization, `kind: organization`                  | Organization       |
+| **Agent hour**         | agent hours                | ---                                    | agent hours         | `included_agent_hours`, `per_agent_hour_micros`     | agent hours        |
+| **Working time**       | ---                        | working time                           | working time        | `working_seconds`                                   | working time       |
+| **Edition**            | the three names            | ---                                    | edition             | `ServerEdition`, `DeploymentMode`                   | edition            |
+| **Team**               | teams                      | ---                                    | Team                | Team, `kind: team`                                  | Team               |
+| **Grant**              | ---                        | ---                                    | Grant               | Grant, `kind: Grant`                                | Grant              |
+| **Vault**              | vault                      | vault ("your keys and logins")         | Vault               | Vault, `kind: Vault`                                | vault              |
+| **Preference**         | preferences                | preference ("standing context")        | Preference          | `spec.preferences.standing_context`                 | Preference         |
+| **Federation Issuer**  | ---                        | identity provider (Auth0, Okta, …)     | Federation Issuer   | FederationIssuer, `kind: FederationIssuer`          | Federation Issuer  |
+| **Identity Account**   | ---                        | ---                                    | Identity Account    | IdentityAccount, `kind: identity_account`           | Identity Account   |
+| **Embedding settings** | ---                        | ---                                    | embedding settings  | `OrganizationSpec.embedding`                        | embedding settings |
+| **App user**           | ---                        | ---                                    | app user            | `provisioning_mode: app_user`                       | app user           |
+| **Run**                | ---                        | run                                    | run                 | Run, `kind: Run`                                    | Run                |
+| **Subagent**           | ---                        | ---                                    | subagent            | subagent, `subagents`, `<plugin>:<agent>`           | subagent           |
+| **Channel**            | chat link, Slack, WhatsApp | chat link                              | channel, Channel    | Channel, `kind: Channel`                            | Channel            |
+| **Channel App**        | ---                        | ---                                    | Channel App         | ChannelApp, `kind: ChannelApp`                      | Channel App        |
+| **Schedule**           | ---                        | ---                                    | schedule, Schedule  | Schedule, `kind: Schedule`                          | Schedule           |
+| **Label**              | ---                        | label                                  | label               | `metadata.labels`, `labels` filter                  | label              |
+| **Tag**                | ---                        | tag                                    | tag                 | `metadata.tags`                                     | tag                |
 
 <!-- vale Stigmer.terms = YES -->
 
@@ -491,11 +491,11 @@ number. Each Channel has one type, and an Agent can have several.
 
 **Good examples**:
 
-| Context    | Copy                                                                                         |
-| ---------- | -------------------------------------------------------------------------------------------- |
-| Sales site | "Give your Agent a chat link, or connect it to Slack and WhatsApp."                          |
-| How-to     | "Open the **Channels** tab and click **Add channel → Chat link**."                           |
-| Reference  | "`Channel`---one way people reach one Agent; `spec.web`, `spec.slack` or `spec.whatsapp`."   |
+| Context    | Copy                                                                                       |
+| ---------- | ------------------------------------------------------------------------------------------ |
+| Sales site | "Give your Agent a chat link, or connect it to Slack and WhatsApp."                        |
+| How-to     | "Open the **Channels** tab and click **Add channel → Chat link**."                         |
+| Reference  | "`Channel`---one way people reach one Agent; `spec.web`, `spec.slack` or `spec.whatsapp`." |
 
 **Bad examples**:
 
@@ -787,11 +787,11 @@ Stigmer has no concept called a tenant.
 "Share" means giving people access to a resource, as in Google Drive.
 
 - **Use it for**: **Manage access** and the Grants it writes ("share the Agent
-  with the Support Team"), a conversation's share dialog, and plain English
-  that keeps its sense: a **shared vault**, "the share of runs that passed".
+  with the Support Team"), a conversation's share dialog, and plain English that
+  keeps its sense: a **shared vault**, "the share of runs that passed".
 - **Say instead**: a hosted link or widget people chat with an Agent through is
-  a **chat link**, a [Channel](#channel) of type `web`. Never "a share", `share
-  link` or "a shared Agent".
+  a **chat link**, a [Channel](#channel) of type `web`. Never "a share",
+  `share link` or "a shared Agent".
 - **Context rule**: If people can chat through it, it is a channel. If people
   gain a role on it, it is shared.
 
@@ -940,8 +940,9 @@ and decide who may use them.
   CLI: `stigmer vault`, `stigmer get vault`, `stigmer list vaults`.
 - **Key fields**: `secrets` (by name), `connections` (by address),
   `external_id`. Values are write-only: no read returns one. Each place that
-  names vaults holds them in an ordered `vaults` list; a Session also sets `include_my_vault` to
-  use each sender's own My vault first. An Agent names no vaults.
+  names vaults holds them in an ordered `vaults` list; a Session also sets
+  `include_my_vault` to use each sender's own My vault first. An Agent names no
+  vaults.
 - **Where vaults are named**: a Session, a Schedule (`agent.vaults`), a Channel
   (a chat link only when its audience is public: members' runs use their own)
   and an Organization's embedding settings each carry `vaults`. A run with no
@@ -1250,10 +1251,10 @@ Organization.
 
 - **The words**: **Viewer** sees it and changes nothing; **Editor** changes it
   and never deletes it or decides who has access; **Owner** does everything. Two
-  kinds keep their own word: **Participant** on a Session or a Channel
-  (reads and sends messages) and **Can use** on a shared vault (its logins and
-  secrets reach the person's runs). An Organization's roles are Owner, Admin,
-  Member and Viewer.
+  kinds keep their own word: **Participant** on a Session or a Channel (reads
+  and sends messages) and **Can use** on a shared vault (its logins and secrets
+  reach the person's runs). An Organization's roles are Owner, Admin, Member and
+  Viewer.
 - **Capitalize**: Yes, when naming a role ("grant Viewer", "an Organization
   Admin"). "admins" and "members" stay lowercase as plain nouns.
 - **API surface**: `IamRole` (`iam/v1/enum.proto`), each value's `role_meta`
@@ -2196,5 +2197,5 @@ word has a replacement, defined in its entry:
 - `Agent Channel` for Slack or WhatsApp: a **channel** (Channel).
 - `share` for anything but giving access: "share" means giving access only
   (Share (the word)).
-- `surface` for what started a run: name it, a Session, a Schedule or a
-  channel (Vault).
+- `surface` for what started a run: name it, a Session, a Schedule or a channel
+  (Vault).
