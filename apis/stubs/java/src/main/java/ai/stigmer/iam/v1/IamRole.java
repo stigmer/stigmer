@@ -88,7 +88,7 @@ public enum IamRole
    * <pre>
    * Editor of a blueprint (an agent): may change
    * its definition and do whatever a viewer can, and may not delete it,
-   * change its visibility, publish it on a share link or a channel, or decide
+   * change its visibility, give it a chat link or another channel, or decide
    * who else has access.
    * </pre>
    *
@@ -179,7 +179,7 @@ public enum IamRole
    * <pre>
    * Editor of a blueprint (an agent): may change
    * its definition and do whatever a viewer can, and may not delete it,
-   * change its visibility, publish it on a share link or a channel, or decide
+   * change its visibility, give it a chat link or another channel, or decide
    * who else has access.
    * </pre>
    *

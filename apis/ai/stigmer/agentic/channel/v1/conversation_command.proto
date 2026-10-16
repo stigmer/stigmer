@@ -115,7 +115,7 @@ service ChannelConversationCommandController {
   // carries only the reason. Appends an
   // internal-lane escalation event and updates the row projection through
   // the participation writer, idempotently. Approval-free by construction
-  // (unattended surfaces skip gated tools — a gated escalation would
+  // (unattended runs skip gated tools — a gated escalation would
   // never fire). Cloud-first runtime; OSS refuses FAILED_PRECONDITION.
   rpc escalate(EscalateConversationInput) returns (ChannelConversation) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;

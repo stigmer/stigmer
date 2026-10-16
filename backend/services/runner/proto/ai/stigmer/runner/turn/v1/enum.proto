@@ -630,8 +630,8 @@ enum ApprovalPolicySource {
 
   // The unattended approval mode (RunStatus.approval_mode =
   // APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:
-  // the lane the run came through (a schedule's fire, a messaging
-  // channel, a guest share) has no approver, so the platform skipped the
+  // the lane the run came through (a schedule's fire, a Slack or WhatsApp
+  // channel, a chat link's guest) has no approver, so the platform skipped the
   // tool and told the model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it
   // records HOW the gate was resolved, overriding the gating-layer source on
   // the resolved call. The tool call carries TOOL_CALL_SKIPPED with NO

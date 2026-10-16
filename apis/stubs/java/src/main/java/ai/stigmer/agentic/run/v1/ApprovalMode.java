@@ -12,8 +12,8 @@ package ai.stigmer.agentic.run.v1;
  * The approval default (shell commands, file writes and deletes, and MCP tools
  * their server marks destructive) decides WHICH tools are gated; this mode
  * decides WHAT HAPPENS when a gate fires. It exists for lanes where no
- * approver is present at the conversation — a schedule's fire, messaging
- * channels (Slack/WhatsApp) and guest shares — where an interactive pause
+ * approver is present at the conversation — a schedule's fire, Slack and
+ * WhatsApp channels, and chat links' guests — where an interactive pause
  * would park the run in RUN_WAITING_FOR_APPROVAL forever.
  *
  * The mode is a fact of the lane the run came through, recorded by
@@ -56,7 +56,8 @@ public enum ApprovalMode
   APPROVAL_MODE_INTERACTIVE(1),
   /**
    * <pre>
-   * Unattended: no approver exists on the creating surface. A gated tool is
+   * Unattended: no approver exists where the run came from (a schedule, a
+   * channel). A gated tool is
    * resolved as an automatic SKIP — the tool does NOT run, the model is told
    * the action requires an approval that is not available in this
    * conversation and to adapt and explain in plain language, and the turn
@@ -104,7 +105,8 @@ public enum ApprovalMode
   public static final int APPROVAL_MODE_INTERACTIVE_VALUE = 1;
   /**
    * <pre>
-   * Unattended: no approver exists on the creating surface. A gated tool is
+   * Unattended: no approver exists where the run came from (a schedule, a
+   * channel). A gated tool is
    * resolved as an automatic SKIP — the tool does NOT run, the model is told
    * the action requires an approval that is not available in this
    * conversation and to adapt and explain in plain language, and the turn
