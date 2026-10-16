@@ -12,7 +12,7 @@ in the language's own idiom.
 | TypeScript | `@stigmer/client`                         | [typescript/README.md](./typescript/README.md) |
 | Go         | `go.stigmer.ai/sdk` | [go/README.md](./go/README.md)                 |
 | Python     | `stigmer`                              | [python/README.md](./python/README.md)         |
-| Java       | `stigmer-java`                         | [java/README.md](./java/README.md)             |
+| Java       | `stigmer-sdk`                         | [java/README.md](./java/README.md)             |
 
 Each client reaches every resource (Agents, Sessions, Runs, Vaults and the rest)
 with the same operations, authenticates with an API key or a user token, and

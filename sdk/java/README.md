@@ -1,4 +1,4 @@
-# stigmer-java
+# Stigmer Java SDK (`ai.stigmer:stigmer-sdk`)
 
 Java SDK for the [Stigmer](https://stigmer.ai) platform. Provides typed API clients for all Stigmer resources with authentication, error handling, and cross-resource search.
 
@@ -9,7 +9,7 @@ Java SDK for the [Stigmer](https://stigmer.ai) platform. Provides typed API clie
 ```xml
 <dependency>
     <groupId>ai.stigmer</groupId>
-    <artifactId>stigmer-java</artifactId>
+    <artifactId>stigmer-sdk</artifactId>
     <version>0.1.0</version>
 </dependency>
 ```
@@ -17,16 +17,16 @@ Java SDK for the [Stigmer](https://stigmer.ai) platform. Provides typed API clie
 ### Gradle (Groovy)
 
 ```groovy
-implementation "ai.stigmer:stigmer-java:0.1.0"
+implementation "ai.stigmer:stigmer-sdk:0.1.0"
 ```
 
 ### Gradle (Kotlin DSL)
 
 ```kotlin
-implementation("ai.stigmer:stigmer-java:0.1.0")
+implementation("ai.stigmer:stigmer-sdk:0.1.0")
 ```
 
-`stigmer-java-protos` (generated protobuf types) is pulled in automatically as a transitive dependency.
+`stigmer-apis` (generated protobuf types) is pulled in automatically as a transitive dependency.
 
 ## Quick Start
 

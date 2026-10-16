@@ -181,7 +181,7 @@ jobs:
           # `deploy` runs through `install`, so the SNAPSHOT is also placed in the
           # local ~/.m2 for the SDK build below to resolve.
           mvn --batch-mode deploy -DskipTests
-          echo "Deployed ai.stigmer:stigmer-java-protos:$VERSION"
+          echo "Deployed ai.stigmer:stigmer-apis:$VERSION"
 
       - name: Generate SDK client code
         run: make -C sdk/java codegen
@@ -195,9 +195,9 @@ jobs:
         run: |
           VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_MAVEN_VERSION}"
           mvn --batch-mode versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
-          mvn --batch-mode versions:set-property -Dproperty=stigmer-protos.version -DnewVersion="$VERSION" -DgenerateBackupPoms=false
+          mvn --batch-mode versions:set-property -Dproperty=stigmer-apis.version -DnewVersion="$VERSION" -DgenerateBackupPoms=false
           mvn --batch-mode deploy -DskipTests
-          echo "Deployed ai.stigmer:stigmer-java:$VERSION (protos: $VERSION)"
+          echo "Deployed ai.stigmer:stigmer-sdk:$VERSION (protos: $VERSION)"
 
   # ---------------------------------------------------------------------------
   # npm: publish all @stigmer/* libs under the `dev` dist-tag.
@@ -696,7 +696,7 @@ jobs:
               echo '```xml'
               echo "<dependency>"
               echo "  <groupId>ai.stigmer</groupId>"
-              echo "  <artifactId>stigmer-java</artifactId>"
+              echo "  <artifactId>stigmer-sdk</artifactId>"
               echo "  <version>$MAVEN_VERSION</version>"
               echo "</dependency>"
               echo '```'

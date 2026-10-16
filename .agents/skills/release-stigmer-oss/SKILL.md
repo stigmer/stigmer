@@ -62,6 +62,11 @@ commit on `main` ships in it, and section 2 is skipped.
 
 ## 2. The bump, by impact
 
+On the 0.x line, before `v1.0.0`, a change this section grades as a major ships
+as a minor (0.N to 0.N+1), the semver rule for a 0.x version; every other grade
+stands. `bump=major` is never chosen by grading: `v1.0.0` is cut on purpose,
+when the contract is declared stable.
+
 The presence of a `feat` commit is not a minor bump. Judge the change:
 
 - **major**: a `BREAKING CHANGE:` footer or `!` after the type; a public

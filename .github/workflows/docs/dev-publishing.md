@@ -30,7 +30,7 @@ setup (below), switching a dependency between a dev build and a prod release is
 
 | Language | Prod reference | Dev reference |
 | --- | --- | --- |
-| Java (Maven) | `ai.stigmer:stigmer-java:0.1.0` | `ai.stigmer:stigmer-java:0.1.1-SNAPSHOT` |
+| Java (Maven) | `ai.stigmer:stigmer-sdk:0.1.0` | `ai.stigmer:stigmer-sdk:0.1.1-SNAPSHOT` |
 | npm | `@stigmer/react-sdk@0.1.0` | `@stigmer/react-sdk@dev` |
 | Python | `stigmer-sdk==0.1.0` | `stigmer-sdk==0.1.1.dev<N>` (from TestPyPI) |
 | Go | `go.stigmer.ai/sdk@v0.1.0` | `go.stigmer.ai/sdk@<branch>` |
@@ -198,14 +198,14 @@ Then switch the dependency version only:
 <!-- prod -->
 <dependency>
   <groupId>ai.stigmer</groupId>
-  <artifactId>stigmer-java</artifactId>
+  <artifactId>stigmer-sdk</artifactId>
   <version>0.1.0</version>
 </dependency>
 
 <!-- dev (only the version changed) -->
 <dependency>
   <groupId>ai.stigmer</groupId>
-  <artifactId>stigmer-java</artifactId>
+  <artifactId>stigmer-sdk</artifactId>
   <version>0.1.1-SNAPSHOT</version>
 </dependency>
 ```

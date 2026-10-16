@@ -314,11 +314,11 @@ XML
   snapshot "sdk/java/pom.xml"
   ( cd sdk/java \
     && mvn -B -s "$settings" versions:set -DnewVersion="$MAVEN_VERSION" -DgenerateBackupPoms=false \
-    && mvn -B -s "$settings" versions:set-property -Dproperty=stigmer-protos.version -DnewVersion="$MAVEN_VERSION" -DgenerateBackupPoms=false \
+    && mvn -B -s "$settings" versions:set-property -Dproperty=stigmer-apis.version -DnewVersion="$MAVEN_VERSION" -DgenerateBackupPoms=false \
     && mvn -B -s "$settings" deploy -DskipTests )
 
   unset MAVEN_CENTRAL_USERNAME MAVEN_CENTRAL_PASSWORD
-  ok "maven: deployed ai.stigmer:stigmer-java:$MAVEN_VERSION (protos pinned to same)"
+  ok "maven: deployed ai.stigmer:stigmer-sdk:$MAVEN_VERSION (protos pinned to same)"
 }
 
 # ─── Python (TestPyPI) ─────────────────────────────────────────────────────
@@ -378,7 +378,7 @@ log "Dev build published — consumer coordinates"
 echo "Setup is one-time (see .github/workflows/docs/dev-publishing.md); switching dev<->prod is only a version-string change."
 echo ""
 if want maven; then
-  echo "Maven (Java SDK):  ai.stigmer:stigmer-java:${MAVEN_VERSION}   (mvn -U to refresh)"
+  echo "Maven (Java SDK):  ai.stigmer:stigmer-sdk:${MAVEN_VERSION}   (mvn -U to refresh)"
 fi
 if want npm; then
   echo "npm (React/TS):    npm install @stigmer/react-sdk@dev          # exact: @stigmer/react-sdk@${NPM_VERSION}"

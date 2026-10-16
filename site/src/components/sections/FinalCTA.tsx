@@ -119,7 +119,7 @@ with StigmerClient("sk_...") as client:
     java: {
       label: "Java",
       installPrefix: "// Gradle:",
-      install: `implementation("ai.stigmer:stigmer-java:0.1.0")`,
+      install: `implementation("ai.stigmer:stigmer-sdk:0.1.0")`,
       code: `import ai.stigmer.sdk.StigmerClient;
 import ai.stigmer.sdk.gen.RunInput;
 
