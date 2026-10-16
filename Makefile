@@ -1402,24 +1402,16 @@ release-pins: ## Bump the release pins to version=X.Y.Z (mcp-server bridge, comp
 	@perl -pi -e 's/^STIGMER_VERSION=v[0-9A-Za-z.+-]+$$/STIGMER_VERSION=v$(version)/; s/^(\s+--version )[0-9A-Za-z.+-]+( \\)$$/$${1}$(version)$${2}/' docs/guides/self-hosting/operations.mdx
 	@echo "release pins set to $(version):"; git --no-pager diff --stat -- mcp-server/Dockerfile docker-compose.yml .env.example deploy/helm/stigmer/Chart.yaml docs/guides/self-hosting/operations.mdx
 
+# The new tag is the newest stable v* tag bumped by `bump=`, or v0.1.0 when
+# the line has no stable tag yet, whatever `bump=` says
+# (scripts/lib/line-base.mjs, the rule the dev lanes take their base from).
 release: release-preflight ## Tag and push a release (usage: make release [bump=patch|minor|major]); run `make release-pins` and commit first
-	@LATEST_TAG=$$(git tag -l "v*" | sort -V | tail -n1); \
-	[ -z "$$LATEST_TAG" ] && LATEST_TAG="v0.0.0"; \
-	VERSION=$$(echo $$LATEST_TAG | sed 's/^v//'); \
-	MAJOR=$$(echo $$VERSION | cut -d. -f1); \
-	MINOR=$$(echo $$VERSION | cut -d. -f2); \
-	PATCH=$$(echo $$VERSION | cut -d. -f3); \
-	case $(bump) in \
-		major) MAJOR=$$((MAJOR + 1)); MINOR=0; PATCH=0 ;; \
-		minor) MINOR=$$((MINOR + 1)); PATCH=0 ;; \
-		patch) PATCH=$$((PATCH + 1)) ;; \
-		*) echo "error: invalid bump '$(bump)' (use patch|minor|major)" && exit 1 ;; \
-	esac; \
-	NEW_TAG="v$$MAJOR.$$MINOR.$$PATCH"; \
+	@LATEST_TAG=$$(node scripts/lib/line-base.mjs --latest) || exit 1; \
+	NEW_VERSION=$$(node scripts/lib/line-base.mjs --bump="$(bump)") || exit 1; \
+	NEW_TAG="v$$NEW_VERSION"; \
 	if git rev-parse "$$NEW_TAG" >/dev/null 2>&1; then \
 		echo "error: tag $$NEW_TAG already exists" && exit 1; \
 	fi; \
-	NEW_VERSION="$$MAJOR.$$MINOR.$$PATCH"; \
 	PIN=$$(git show HEAD:mcp-server/Dockerfile | sed -n 's/^ARG MCP_SERVER_VERSION=//p'); \
 	COMPOSE_PIN=$$(git show HEAD:docker-compose.yml | sed -n -E 's/.*STIGMER_VERSION:-v([0-9A-Za-z.+-]+).*/\1/p' | sort -u | tr '\n' ' ' | sed 's/ $$//'); \
 	ENV_PIN=$$(git show HEAD:.env.example | sed -n -E 's/^#STIGMER_VERSION=v(.*)$$/\1/p'); \
@@ -1438,7 +1430,7 @@ release: release-preflight ## Tag and push a release (usage: make release [bump=
 		echo "  (.agents/skills/release-stigmer-oss/SKILL.md, section 3)"; \
 		exit 1; \
 	fi; \
-	echo "$$LATEST_TAG -> $$NEW_TAG (release pins OK)"; \
+	echo "$${LATEST_TAG:-no release yet} -> $$NEW_TAG (release pins OK)"; \
 	git tag -a "sdk/go/$$NEW_TAG" -m "Release sdk/go $$NEW_TAG"; \
 	git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG"; \
 	for t in "sdk/go/$$NEW_TAG" "$$NEW_TAG"; do \

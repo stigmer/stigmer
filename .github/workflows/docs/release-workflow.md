@@ -20,7 +20,7 @@ Beside the npm packages, the same workflow pushes the container images to GHCR, 
 
 ```mermaid
 flowchart TB
-    A[Tag push v1.0.0 / Manual Trigger] --> B{Determine Version}
+    A[Tag push v0.1.0 / Manual Trigger] --> B{Determine Version}
     B -->|should_release| C[Verify or create the tag]
     C --> D[Generate changelog from the annotated tag body]
     D --> E[Create GitHub Release]
@@ -38,6 +38,8 @@ Use the repo's `@release-stigmer-oss` action rule: it curates the annotated tag 
 ## Version numbering
 
 Semantic versioning, `MAJOR.MINOR.PATCH`. The CLI, server-slim, runner, and proto packages all publish the same version per release — the CLI pins its runtime acquisitions to its own version, so the stack stays in lockstep.
+
+Versions run on one 0.x line whose first release is `v0.1.0`. `make release` tags the next version from the newest stable `v*` tag (`bump=patch|minor|major`), or `v0.1.0` while there is none, whatever `bump=` says; `scripts/lib/line-base.mjs` is that rule, and the dev lanes take their base from it too, so until `v0.1.0` every dev build is `0.1.0-dev.<14-digit UTC stamp>.g<12-character commit>` ([Dev Publishing Guide](dev-publishing.md)). The upgrade rehearsal starts from the newest earlier release npm does not mark deprecated; for the line's first release there is none, and it says so and passes.
 
 ## Homebrew
 

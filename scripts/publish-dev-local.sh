@@ -20,7 +20,7 @@
 # Usage:
 #   scripts/publish-dev-local.sh                 # all targets, auto base version
 #   TARGETS=npm,maven scripts/publish-dev-local.sh
-#   BASE=3.1.0 scripts/publish-dev-local.sh
+#   BASE=0.1.1 scripts/publish-dev-local.sh
 #
 # Prefer the `make publish-dev-local` wrapper.
 
@@ -134,10 +134,10 @@ if [ "$TARGETS" = "all" ]; then TARGETS="npm,maven,python"; fi
 command -v planton >/dev/null 2>&1 || die "planton CLI not found (needed to fetch publish credentials)."
 command -v git >/dev/null 2>&1 || die "git not found."
 
+# The next patch after the newest stable v* tag, or 0.1.0 before the line's
+# first release: the rule release.dev.yaml and `make release` read too.
 if [ -z "$BASE" ]; then
-  LATEST="$(git tag -l "v*" | sort -V | tail -n1)"; [ -z "$LATEST" ] && LATEST="v0.0.0"
-  V="${LATEST#v}"
-  BASE="$(echo "$V" | cut -d. -f1).$(echo "$V" | cut -d. -f2).$(( $(echo "$V" | cut -d. -f3) + 1 ))"
+  BASE="$(node scripts/lib/line-base.mjs)" || die "could not derive the dev base version from the v* tags."
 fi
 git rev-parse "v$BASE" >/dev/null 2>&1 && die "v$BASE already exists as a release tag — pass a higher BASE=X.Y.Z."
 

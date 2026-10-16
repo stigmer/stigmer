@@ -21,7 +21,7 @@ make publish-dev
 
 # Or scope it and/or pin the base version:
 make publish-dev targets=maven,npm
-make publish-dev targets=maven base=3.1.0
+make publish-dev targets=maven base=0.2.0
 ```
 
 **Consumer** (the person trying the changes): after a **one-time** per-language
@@ -30,11 +30,15 @@ setup (below), switching a dependency between a dev build and a prod release is
 
 | Language | Prod reference | Dev reference |
 | --- | --- | --- |
-| Java (Maven) | `ai.stigmer:stigmer-java:3.0.0` | `ai.stigmer:stigmer-java:3.0.1-SNAPSHOT` |
-| npm | `@stigmer/react-sdk@3.0.0` | `@stigmer/react-sdk@dev` |
-| Python | `stigmer==3.0.0` | `stigmer==3.0.1.dev<N>` (from TestPyPI) |
-| Go | `...@v3.0.0` | `...@<branch>` |
-| Rust | crates.io `"3.0.0"` | `{ git = "...", branch = "..." }` |
+| Java (Maven) | `ai.stigmer:stigmer-java:0.1.0` | `ai.stigmer:stigmer-java:0.1.1-SNAPSHOT` |
+| npm | `@stigmer/react-sdk@0.1.0` | `@stigmer/react-sdk@dev` |
+| Python | `stigmer-sdk==0.1.0` | `stigmer-sdk==0.1.1.dev<N>` (from TestPyPI) |
+| Go | `go.stigmer.ai/sdk@v0.1.0` | `go.stigmer.ai/sdk@<branch>` |
+| Rust | crates.io `"0.1.0"` | `{ git = "...", branch = "..." }` |
+
+The examples are the line after its first release, `v0.1.0`. Until that is
+tagged there is no prod reference, and every dev build is on base `0.1.0`
+(`0.1.0-SNAPSHOT`, `0.1.0-dev.<stamp>.g<sha12>`, `0.1.0.dev<N>`).
 
 ---
 
@@ -75,8 +79,10 @@ setup (below), switching a dependency between a dev build and a prod release is
 ## Versioning scheme
 
 `release.dev.yaml` derives a single **base** version (the next patch after the
-latest `v*` tag, unless you pass `base=X.Y.Z`) and stamps each ecosystem with the
-suffix it expects:
+newest stable `v*` tag, or `0.1.0` while the line has no release yet, unless you
+pass `base=X.Y.Z`; `scripts/lib/line-base.mjs` is the rule, which
+`make release` tags by too) and stamps each ecosystem with the suffix it
+expects:
 
 | Channel | Version | Notes |
 | --- | --- | --- |
@@ -98,7 +104,7 @@ your laptop — and gives you an audit log.
 ```bash
 make publish-dev                       # all targets, auto base version
 make publish-dev targets=maven,npm     # subset
-make publish-dev base=3.1.0            # pin the base version
+make publish-dev base=0.2.0            # pin the base version
 ```
 
 `make publish-dev` runs `gh workflow run release.dev.yaml` against your **current
@@ -122,7 +128,7 @@ ref from GitHub). For a tight inner loop, `make publish-dev-local` publishes
 make publish-dev-local                    # all targets, auto base version
 make publish-dev-local targets=npm,maven  # subset
 make publish-dev-local targets=maven      # Maven only
-make publish-dev-local base=3.1.0         # pin the base version
+make publish-dev-local base=0.2.0         # pin the base version
 ```
 
 (`make publish-dev-maven-local` is kept as an alias for `targets=maven`.)
@@ -193,14 +199,14 @@ Then switch the dependency version only:
 <dependency>
   <groupId>ai.stigmer</groupId>
   <artifactId>stigmer-java</artifactId>
-  <version>3.0.0</version>
+  <version>0.1.0</version>
 </dependency>
 
 <!-- dev (only the version changed) -->
 <dependency>
   <groupId>ai.stigmer</groupId>
   <artifactId>stigmer-java</artifactId>
-  <version>3.0.1-SNAPSHOT</version>
+  <version>0.1.1-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -212,12 +218,12 @@ Nothing to configure — the `dev` dist-tag lives on the same public npm registr
 `latest`. Switch the version reference only:
 
 ```bash
-npm install @stigmer/react-sdk@3.0.0   # prod
+npm install @stigmer/react-sdk@0.1.0   # prod
 npm install @stigmer/react-sdk@dev     # dev (latest dev build)
 ```
 
 `@dev` always resolves to the newest dev build. To pin an exact dev build, use the
-full `3.0.1-dev.<stamp>.g<sha12>` version from the run summary.
+full `0.1.1-dev.<stamp>.g<sha12>` version from the run summary.
 
 **`@stigmer/server` (the library a composition pins).** A composition that pins the library at an exact release has three ways to run against an unreleased server change, fastest first:
 
@@ -242,7 +248,7 @@ pip install stigmer-sdk
 pip install \
   -i https://test.pypi.org/simple/ \
   --extra-index-url https://pypi.org/simple/ \
-  --pre 'stigmer-sdk==3.0.1.dev<N>'
+  --pre 'stigmer-sdk==0.1.1.dev<N>'
 ```
 
 To make this a one-time setup, add the extra index to your `pip.conf`
@@ -259,7 +265,7 @@ pre = true
 The Go SDK is consumed by module path. Prod uses a tag; dev uses your branch:
 
 ```bash
-go get go.stigmer.ai/sdk@v3.0.0      # prod
+go get go.stigmer.ai/sdk@v0.1.0      # prod
 go get go.stigmer.ai/sdk@my-branch   # dev
 ```
 
@@ -269,7 +275,7 @@ crates.io is immutable, so dev iteration uses a git dependency in `Cargo.toml`:
 
 ```toml
 # prod
-stigmer-runner-host = "3.0.0"
+stigmer-runner-host = "0.1.0"
 
 # dev
 stigmer-runner-host = { git = "https://github.com/stigmer/stigmer", branch = "my-branch" }
@@ -286,7 +292,7 @@ docker pull ghcr.io/stigmer/mcp-server-stigmer:dev-<sha>
 A composition that selects its runner by its pin (the cloud's does: `runner:v<pinned version>`) needs nothing more. The open-source server itself still launches `runner:latest` for a dev-channel version, because it cannot tell a workflow build from a local one. To pull one by hand:
 
 ```bash
-docker pull ghcr.io/stigmer/runner:v3.0.1-dev.<stamp>.g<sha12>
+docker pull ghcr.io/stigmer/runner:v0.1.1-dev.<stamp>.g<sha12>
 ```
 
 ---

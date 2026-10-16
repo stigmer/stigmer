@@ -1,30 +1,49 @@
-// Pins the upgrade rehearsal's pure decisions: which release an upgrade
-// starts from (the newest stable release below the target, never a
-// prerelease, never npm's `latest` tag, and a loud refusal when there is
-// none; a prerelease target starts below its X.Y.Z); what the command line
+// Pins the upgrade rehearsal's decisions: which release an upgrade starts
+// from (the newest stable release below the target that npm does not mark
+// deprecated, never a prerelease, never npm's `latest` tag; a prerelease
+// target starts below its X.Y.Z); that no such release reads as the line's
+// first release, which the rehearsal states and passes on, while releases
+// that are all half-published or a registry that cannot be read still fail;
+// what the one registry read takes from npm's install document; what the command line
 // accepts (only forward upgrades, a release or a prerelease as the target,
 // only a stable base, one of the four artifacts, a packaged chart only for a
 // published Helm target); which server version the upgraded
 // install must report (the release's own, or this checkout's from-source
 // version); and when the running images are not the release's. The installs
 // themselves are exercised by running the rehearsal (`make rehearse-upgrade
-// ARTIFACT=<a>`), not here. Run via `npm run test:scripts`.
+// ARTIFACT=<a>`), not here; the first-release pass and the registry failure
+// are, against a registry served on loopback. Run via `npm run test:scripts`.
 
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { createServer } from "node:http";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import process from "node:process";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
+  NOTHING_TO_UPGRADE,
   compareVersions,
   expectedServerVersion,
   imageMismatches,
   parseRehearsalArgs,
   pickFromVersion,
   pickPublishedBase,
+  publishedReleases,
+  reportNothingToUpgrade,
   versionCore,
 } from "./rehearse-upgrade.mjs";
 import { sourceBuildVersion } from "../../scripts/lib/source-version.mjs";
 
-const PUBLISHED = ["3.38.3", "3.39.0", "3.39.1-dev.20260928194002", "3.40.0", "3.40.1", "3.41.0", "3.9.9"];
+const SCRIPT = fileURLToPath(new URL("./rehearse-upgrade.mjs", import.meta.url));
+const PUBLISHED = {
+  versions: ["3.38.3", "3.39.0", "3.39.1-dev.20260928194002", "3.40.0", "3.40.1", "3.41.0", "3.9.9"],
+  deprecated: [],
+};
+const only = (...versions) => ({ versions, deprecated: [] });
 
 test("a build upgrades from the newest stable release", () => {
   assert.equal(pickFromVersion(PUBLISHED, { kind: "build" }), "3.41.0");
@@ -33,16 +52,23 @@ test("a build upgrades from the newest stable release", () => {
 test("a published target upgrades from the newest stable release below it, by number not by text", () => {
   assert.equal(pickFromVersion(PUBLISHED, { kind: "published", version: "3.41.0" }), "3.40.1");
   assert.equal(pickFromVersion(PUBLISHED, { kind: "published", version: "3.40.0" }), "3.39.0");
-  assert.equal(pickFromVersion(["3.9.9", "3.10.0"], { kind: "build" }), "3.10.0");
+  assert.equal(pickFromVersion(only("3.9.9", "3.10.0"), { kind: "build" }), "3.10.0");
 });
 
 test("a prerelease is never the base", () => {
   assert.equal(pickFromVersion(PUBLISHED, { kind: "published", version: "3.40.0" }), "3.39.0");
-  assert.throws(() => pickFromVersion(["3.39.1-dev.1"], { kind: "build" }), /no published release below this build/);
+  assert.equal(pickFromVersion(only("0.1.0-dev.20261016120000.g10c87982a0f1"), { kind: "build" }), undefined);
 });
 
-test("no release below the target is refused loudly", () => {
-  assert.throws(() => pickFromVersion(PUBLISHED, { kind: "published", version: "3.9.9" }), /no published release below 3\.9\.9/);
+test("a deprecated release is passed over for the newest one that is not", () => {
+  const releases = { versions: PUBLISHED.versions, deprecated: ["3.41.0", "3.40.1"] };
+  assert.equal(pickFromVersion(releases, { kind: "build" }), "3.40.0");
+  assert.equal(pickFromVersion(releases, { kind: "published", version: "3.42.0" }), "3.40.0");
+});
+
+test("no undeprecated release below the target reads as none, not as a refusal", () => {
+  assert.equal(pickFromVersion(PUBLISHED, { kind: "published", version: "3.9.9" }), undefined);
+  assert.equal(pickFromVersion({ versions: ["3.40.1", "3.41.0", "0.1.0"], deprecated: ["3.40.1", "3.41.0"] }, { kind: "published", version: "0.1.0" }), undefined);
 });
 
 test("a prerelease target upgrades from the newest stable release below its X.Y.Z", () => {
@@ -74,7 +100,7 @@ test("the base is the newest release when everything is published, asked about o
 
 test("no fully published release below the target is refused, naming every one tried; a registry fault is not a gap", async () => {
   await assert.rejects(
-    pickPublishedBase(["3.40.1", "3.41.0"], { kind: "build" }, async () => "the chart", () => {}),
+    pickPublishedBase(only("3.40.1", "3.41.0"), { kind: "build" }, async () => "the chart", () => {}),
     /no release below this build has every artifact this install needs published \(tried 3\.41\.0, 3\.40\.1\)/,
   );
   await assert.rejects(
@@ -83,6 +109,129 @@ test("no fully published release below the target is refused, naming every one t
     }, () => {}),
     /HTTP 503/,
   );
+});
+
+test("a line whose every earlier release is deprecated has no base, and nothing is asked of the registries", async () => {
+  const logged = [];
+  const asked = [];
+  const releases = { versions: ["3.40.1", "3.41.0", "0.1.0-dev.20261016120000.g10c87982a0f1"], deprecated: ["3.40.1", "3.41.0"] };
+  const base = await pickPublishedBase(releases, { kind: "build" }, async (version) => (asked.push(version), undefined), (line) => logged.push(line));
+  assert.equal(base, undefined);
+  assert.deepEqual(asked, []);
+  assert.deepEqual(logged, ["2 deprecated release(s) passed over, the newest 3.41.0"]);
+  assert.equal(await pickPublishedBase(only(), { kind: "published", version: "0.1.0" }, async () => undefined, () => {}), undefined);
+});
+
+/** A fetch that answers one install document, or the given failure. */
+function registryAnswering(answer) {
+  return async (url, init) => {
+    assert.equal(url, "https://registry.example.invalid/@stigmer%2fcli");
+    assert.match(init.headers.accept, /application\/vnd\.npm\.install-v1\+json/);
+    if (answer instanceof Error) throw answer;
+    return answer;
+  };
+}
+
+test("one read of npm's install document gives every version and the deprecated ones", async () => {
+  const document = {
+    versions: {
+      "3.41.0": { version: "3.41.0", deprecated: "the 3.x line is retired; install 0.1.0 or later" },
+      "3.40.1": { version: "3.40.1", deprecated: "" },
+      "0.1.0": { version: "0.1.0" },
+    },
+  };
+  const releases = await publishedReleases("@stigmer/cli", {
+    registry: "https://registry.example.invalid",
+    fetchImpl: registryAnswering(new Response(JSON.stringify(document), { status: 200 })),
+  });
+  assert.deepEqual(releases, { versions: ["3.41.0", "3.40.1", "0.1.0"], deprecated: ["3.41.0"] });
+});
+
+test("a registry that cannot be read fails; it never reads as a first release", async () => {
+  const registry = "https://registry.example.invalid/";
+  await assert.rejects(
+    publishedReleases("@stigmer/cli", { registry, fetchImpl: registryAnswering(new TypeError("fetch failed", { cause: new Error("ENOTFOUND") })) }),
+    /npm registry unreachable reading @stigmer\/cli's releases: fetch failed: ENOTFOUND/,
+  );
+  await assert.rejects(
+    publishedReleases("@stigmer/cli", { registry, fetchImpl: registryAnswering(new Response("busy", { status: 503 })) }),
+    /npm registry answered HTTP 503/,
+  );
+  await assert.rejects(
+    publishedReleases("@stigmer/cli", { registry, fetchImpl: registryAnswering(new Response("<html>", { status: 200 })) }),
+    /unreadable document/,
+  );
+  await assert.rejects(
+    publishedReleases("@stigmer/cli", { registry, fetchImpl: registryAnswering(new Response("{}", { status: 200 })) }),
+    /lists no versions/,
+  );
+});
+
+test("the first release is stated on stdout, and in the job summary only when there is one", () => {
+  const written = [];
+  const appended = [];
+  const append = (path, text) => appended.push([path, text]);
+  reportNothingToUpgrade("helm", "0.1.0", { env: { GITHUB_STEP_SUMMARY: "/summary.md" }, write: (line) => written.push(line), append });
+  assert.deepEqual(written, [`rehearse-upgrade: helm to 0.1.0: ${NOTHING_TO_UPGRADE}`]);
+  assert.deepEqual(appended, [["/summary.md", `### Upgrade rehearsal: helm\n\nhelm to 0.1.0: ${NOTHING_TO_UPGRADE}\n`]]);
+
+  reportNothingToUpgrade("cli", "0.1.0", { env: {}, write: () => {}, append });
+  assert.equal(appended.length, 1);
+  assert.equal(NOTHING_TO_UPGRADE, "no earlier release on this line: nothing to upgrade from");
+});
+
+/**
+ * Runs the rehearsal against a registry on loopback that answers every
+ * request with `status` and `body`, and resolves to its exit code, output
+ * and job summary. The base is decided before anything is installed, so
+ * these runs need no docker.
+ */
+async function rehearseAgainstRegistry(status, body, args) {
+  const server = createServer((_request, response) => {
+    response.writeHead(status, { "content-type": "application/json" });
+    response.end(body);
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const dir = mkdtempSync(join(tmpdir(), "rehearse-upgrade-"));
+  const summary = join(dir, "summary.md");
+  try {
+    const env = {
+      ...process.env,
+      npm_config_registry: `http://127.0.0.1:${server.address().port}/`,
+      GITHUB_STEP_SUMMARY: summary,
+    };
+    const result = await new Promise((resolve) => {
+      execFile(process.execPath, [SCRIPT, ...args], { env, encoding: "utf8" }, (error, stdout, stderr) =>
+        resolve({ code: error === null ? 0 : error.code, stdout, stderr }),
+      );
+    });
+    let written = "";
+    try {
+      written = readFileSync(summary, "utf8");
+    } catch {
+      written = "";
+    }
+    return { ...result, summary: written };
+  } finally {
+    server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test("run against a registry whose every release is deprecated, the rehearsal states the first release and exits 0", async () => {
+  const document = JSON.stringify({ versions: { "3.41.0": { version: "3.41.0", deprecated: "retired" } } });
+  const run = await rehearseAgainstRegistry(200, document, ["--artifact=compose", "--to=0.1.0"]);
+  assert.equal(run.code, 0, run.stderr);
+  assert.match(run.stdout, /rehearse-upgrade: compose to 0\.1\.0: no earlier release on this line: nothing to upgrade from/);
+  assert.match(run.summary, /### Upgrade rehearsal: compose\n\ncompose to 0\.1\.0: no earlier release on this line: nothing to upgrade from/);
+});
+
+test("run against a registry that fails, the rehearsal fails and states no first release", async () => {
+  const run = await rehearseAgainstRegistry(503, "{}", ["--artifact=compose", "--to=0.1.0"]);
+  assert.equal(run.code, 1);
+  assert.match(run.stderr, /rehearse-upgrade: FAIL — npm registry answered HTTP 503/);
+  assert.equal(run.summary, "");
+  assert.doesNotMatch(run.stdout, /nothing to upgrade from/);
 });
 
 test("compareVersions orders numerically", () => {

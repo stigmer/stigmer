@@ -22,6 +22,10 @@ name: release.dev
 #                   with npm, the sandbox runner images at the npm version,
 #                   `ghcr.io/stigmer/runner:v<npm version>` (and runner-layer,
 #                   runner-base), before the server that launches them.
+#   - X.Y.Z is one base for every channel: the next patch after the newest
+#     stable v* tag, or 0.1.0 while the line has no release yet
+#     (scripts/lib/line-base.mjs). Until v0.1.0 is tagged an npm dev build is
+#     `0.1.0-dev.<14-digit UTC stamp>.g<12-char sha>`; after it, `0.1.1-dev...`.
 #   - Consumers configure each channel ONCE; thereafter switching a dev<->prod
 #     dependency is only a version-string change (see the consumer doc).
 #   - Go SDK and the Rust crate have no dev publish step: their native dev
@@ -37,7 +41,7 @@ on:
   workflow_dispatch:
     inputs:
       base_version:
-        description: 'Base semver to derive the dev build from, e.g. 3.0.1 (default: next patch after the latest v* tag)'
+        description: 'Base semver to derive the dev build from, e.g. 0.1.1 (default: next patch after the latest v* tag, or 0.1.0 before the first release)'
         required: false
         type: string
       targets:
@@ -91,18 +95,14 @@ jobs:
             TARGETS="$TARGETS,npm"
           fi
 
-          # Base semver: explicit input wins; otherwise bump the patch of the
-          # latest v* tag. A dev build always targets the NEXT unreleased version
-          # so it sorts below the eventual real release.
+          # Base semver: explicit input wins; otherwise the next patch after the
+          # newest stable v* tag, or 0.1.0 before the line's first release
+          # (scripts/lib/line-base.mjs, the rule `make release` tags by too). A
+          # dev build always targets the NEXT unreleased version so it sorts
+          # below the eventual real release.
           BASE="${GITHUB_EVENT_INPUTS_BASE_VERSION}"
           if [ -z "$BASE" ]; then
-            LATEST_TAG=$(git tag -l "v*" | sort -V | tail -n1)
-            [ -z "$LATEST_TAG" ] && LATEST_TAG="v0.0.0"
-            V="${LATEST_TAG#v}"
-            MAJOR=$(echo "$V" | cut -d. -f1)
-            MINOR=$(echo "$V" | cut -d. -f2)
-            PATCH=$(echo "$V" | cut -d. -f3)
-            BASE="${MAJOR}.${MINOR}.$((PATCH + 1))"
+            BASE=$(node scripts/lib/line-base.mjs)
           fi
 
           # Reject a base that collides with an existing release tag: a dev build

@@ -8,9 +8,10 @@
 # compatibility axis is IPC_PROTOCOL_VERSION (see src/protocol.rs), not the
 # proto/SDK contract. We still ride the platform version for uniformity — one
 # version number describes the whole system. The accepted cost: a *breaking*
-# Rust API change to this crate must land in a platform MAJOR bump, never a
-# minor/patch, or it violates Cargo semver. Revisit independent versioning if
-# that ever becomes constraining.
+# Rust API change to this crate must land in a platform bump Cargo reads as
+# incompatible, or it violates Cargo semver. On the 0.x line that starts at
+# v0.1.0 that is a minor (0.1 -> 0.2), never a patch; from 1.0.0 on, a MAJOR.
+# Revisit independent versioning if that ever becomes constraining.
 #
 # Auth: token-based via the CARGO_REGISTRY_TOKEN secret (matching the NPM_TOKEN
 # / MAVEN_CENTRAL_* convention). OIDC Trusted Publishing is a deferred hardening.
