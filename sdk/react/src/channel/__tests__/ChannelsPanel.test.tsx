@@ -58,6 +58,8 @@ interface MockOverrides {
   update?: (resource: Channel, paths: string[]) => Promise<unknown>;
   delete?: (id: string) => Promise<unknown>;
   checkMyPermission?: (input: unknown) => Promise<unknown>;
+  /** The organization's channel apps, as `channelapp.list` answers them. */
+  channelApps?: unknown[];
 }
 
 interface MakeChannelOverrides {
@@ -74,10 +76,10 @@ interface MakeChannelOverrides {
 
 function createMockStigmer(overrides: MockOverrides = {}) {
   return {
-    // The connect dialog's serving-app picker lists the org's channel
-    // apps; the panel itself never fetches them.
+    // The org's channel apps: the vendor cards name their serving app
+    // from this list, and the connect dialog's picker offers it.
     channelapp: {
-      list: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
+      list: vi.fn().mockResolvedValue({ entries: overrides.channelApps ?? [], nextPageToken: "" }),
     },
     channel: {
       listByAgent:
@@ -463,6 +465,25 @@ describe("ChannelsPanel", () => {
     expect(
       screen.getByText(/Serving app: acme-support-app \(your app\)/),
     ).toBeTruthy();
+  });
+
+  it("names the serving app by the name members @mention when the organization's app list holds it", async () => {
+    const client = createMockStigmer({
+      channels: [makeChannel({ id: "ach_2", name: "Branded Channel", appRefSlug: "acme-support-app" })],
+      channelApps: [
+        { metadata: { id: "cha_other", slug: "acme-other-app", name: "Acme Other" } },
+        { metadata: { id: "cha_1", slug: "acme-support-app", name: "Acme Support" } },
+      ],
+    });
+    render(
+      <Providers client={client}>
+        <ChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText(/Serving app: Acme Support \(your app\) — members @mention Acme Support/)).toBeTruthy(),
+    );
   });
 
   it("names a serving app deleted since as a deleted channel app, never the platform app", async () => {
@@ -1193,6 +1214,22 @@ describe("ChannelsPanel", () => {
       fireEvent.click(await screen.findByRole("button", { name: /create a chat link/i }));
 
       expect(await screen.findByRole("heading", { name: "Create a chat link" })).toBeTruthy();
+    });
+
+    it("closes the chat-link dialog without creating anything", async () => {
+      const client = createMockStigmer();
+      render(
+        <Providers client={client}>
+          <ChannelsPanel agent={makeAgent()} />
+        </Providers>,
+      );
+
+      fireEvent.click(await screen.findByRole("button", { name: /create a chat link/i }));
+      await screen.findByRole("heading", { name: "Create a chat link" });
+      fireEvent.click(screen.getByRole("button", { name: "Close", hidden: true }));
+
+      await waitFor(() => expect(screen.queryByRole("heading", { name: "Create a chat link", hidden: true })).toBeNull());
+      expect(screen.getByText("No channels yet")).toBeTruthy();
     });
 
     it("opens the WhatsApp connect dialog from the Add menu", async () => {

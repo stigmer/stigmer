@@ -39,7 +39,11 @@ beforeAll(() => {
   }
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.mocked(toast.success).mockClear();
+  vi.mocked(toast.error).mockClear();
+});
 
 interface MockOverrides {
   update?: (resource: Channel, paths: string[]) => Promise<unknown>;
@@ -248,6 +252,17 @@ describe("ChatLinkCard", () => {
       expect(sentUpdate<Channel>(update).resource.spec?.enabled).toBe(true);
       expect(toast.success).toHaveBeenCalledWith("Chat link resumed");
     });
+
+    it("reports a refused switch and leaves the list as it was", async () => {
+      const update = vi.fn().mockRejectedValue(new Error("permission denied"));
+      const handlers = renderCard(createMockStigmer({ update }), makeChatLink());
+
+      fireEvent.click(screen.getByRole("switch", { name: "Turn Support Agent off" }));
+
+      await waitFor(() => expect(toast.error).toHaveBeenCalledTimes(1));
+      expect(toast.success).not.toHaveBeenCalled();
+      expect(handlers.refetch).not.toHaveBeenCalled();
+    });
   });
 
   describe("the menu", () => {
@@ -273,6 +288,18 @@ describe("ChatLinkCard", () => {
       await waitFor(() => expect(rotateLink).toHaveBeenCalledTimes(1));
       expect((rotateLink.mock.calls[0]![0] as { resourceId: string }).resourceId).toBe("ash_1");
       await waitFor(() => expect(handlers.refetch).toHaveBeenCalledTimes(1));
+    });
+
+    it("reports a refused reset and keeps the current link", async () => {
+      const rotateLink = vi.fn().mockRejectedValue(new Error("permission denied"));
+      const handlers = renderCard(createMockStigmer({ rotateLink }), makeChatLink());
+
+      await openMenu(screen.getByRole("button", { name: "Actions for Support Agent" }));
+      fireEvent.click(screen.getByRole("menuitem", { name: "Reset link" }));
+
+      await waitFor(() => expect(toast.error).toHaveBeenCalledTimes(1));
+      expect(toast.success).not.toHaveBeenCalled();
+      expect(handlers.refetch).not.toHaveBeenCalled();
     });
 
     it("does not offer Reset link on an organization link (membership gates access, not the token)", async () => {

@@ -934,6 +934,30 @@ describe("linkAgent when the link's name is taken (stigmer#2360)", () => {
     expect(creates).toHaveLength(0);
   });
 
+  it("says another channel holds the name when the refusal names no holder", async () => {
+    const { client } = fakeClient(makeAgent(), null, {
+      failWith: refusal(Code.AlreadyExists, "Channel already exists"),
+    });
+
+    const err = await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD }).catch(
+      (e: unknown) => e,
+    );
+
+    expect(err).toBeInstanceOf(UsageError);
+    expect((err as Error).message).toContain("the name `support-agent-web` is held by another channel");
+  });
+
+  it("passes any other refusal of the create through unchanged", async () => {
+    const denied = refusal(Code.PermissionDenied, "permission denied: can_create_channel required");
+    const { client } = fakeClient(makeAgent(), null, { failWith: denied });
+
+    const err = await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD }).catch(
+      (e: unknown) => e,
+    );
+
+    expect(err).toBe(denied);
+  });
+
   it("--name edits that web channel of the agent, not the canonical one", async () => {
     const canonical = makeShare({ id: "chn_01ARZ3NDEKTSV4RRFFQ69G5WEB", slug: "support-agent-web", enabled: false });
     const docs = makeShare({ id: "chn_01ARZ3NDEKTSV4RRFFQ69G5DOC", slug: "docs-chat", enabled: false });

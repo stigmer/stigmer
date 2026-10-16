@@ -197,7 +197,6 @@ export function ChannelsPanel({
 
   const handleAdd = useCallback(
     (option: AddChannelOption) => {
-      if (!option.available) return;
       const provider = option.type.provider;
       if (provider === null) {
         setChatLinkEditor({ mode: "create" });
