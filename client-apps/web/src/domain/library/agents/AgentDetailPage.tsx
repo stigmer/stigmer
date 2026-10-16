@@ -13,7 +13,7 @@ import {
   ConfirmDialog,
   useBreadcrumbOverride,
   type DetailAction,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 import {
   useLibraryNavigation,
   useRouteDetailYieldsToOverlay,

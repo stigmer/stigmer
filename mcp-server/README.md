@@ -27,7 +27,7 @@ MCP client ──JSON-RPC──▶ stdio | HTTP (stateless) ──▶ tool handl
                                             stigmer-server (gRPC)
 ```
 
-- **Proto-first.** Tools call the generated `@stigmer/protos` `*Controller`
+- **Proto-first.** Tools call the generated `@stigmer/apis` `*Controller`
   clients directly and serialize responses with protojson (`toJson` with
   `useProtoFieldName: true`), so output is byte-for-byte comparable with the Go
   server.
@@ -193,6 +193,6 @@ is an append to `MCP_TS_APPLY_RESOURCES` in
 
 ## Conventions
 
-- Import generated proto code from `@stigmer/protos/.../*_pb` only — never the
+- Import generated proto code from `@stigmer/apis/.../*_pb` only — never the
   broken `*_connect` files.
 - `src/gen/` is generated; edit the codegen, not the output.

@@ -30,14 +30,14 @@ import {
 import type { Interceptor } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { StreamSessionEventsResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
+import { StreamSessionEventsResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
 import {
   Health,
   HealthCheckResponse_ServingStatus as ServingStatus,
-} from "@stigmer/protos/grpc/health/v1/health_pb";
+} from "@stigmer/apis/grpc/health/v1/health_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import {

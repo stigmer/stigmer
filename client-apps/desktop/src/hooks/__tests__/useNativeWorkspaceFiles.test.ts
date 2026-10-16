@@ -7,7 +7,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 import { invoke } from "@tauri-apps/api/core";
 import { useNativeWorkspaceFiles } from "../useNativeWorkspaceFiles";
-import type { WorkspaceEntry } from "@stigmer/react";
+import type { WorkspaceEntry } from "@stigmer/react-sdk";
 
 const mockedInvoke = vi.mocked(invoke);
 

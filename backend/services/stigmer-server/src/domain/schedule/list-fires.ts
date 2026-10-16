@@ -14,18 +14,18 @@
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleQueryController } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/query_pb";
 import {
   ScheduleFireListSchema,
   ScheduleFireOrigin,
   ScheduleFireOutcome,
   ScheduleFireSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
-import type { ScheduleFire } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
+import type { ScheduleFire } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { internalError, notFoundError } from "../../pipeline/errors.js";
 import {

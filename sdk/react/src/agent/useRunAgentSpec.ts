@@ -21,10 +21,10 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { GetAgentVersionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
-import { isNotFound, type ResourceRef } from "@stigmer/sdk";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { GetAgentVersionInputSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
+import { isNotFound, type ResourceRef } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 import { useAgent } from "./useAgent.js";

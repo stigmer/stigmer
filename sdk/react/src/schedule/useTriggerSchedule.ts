@@ -4,8 +4,8 @@ import { useCallback, useMemo, useState } from "react";
 import {
   ScheduleFireOutcome,
   type ScheduleTriggerResult,
-} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
-import { getUserMessage } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
+import { getUserMessage } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { toast } from "../feedback/toast.js";
 import { toError } from "../internal/toError.js";

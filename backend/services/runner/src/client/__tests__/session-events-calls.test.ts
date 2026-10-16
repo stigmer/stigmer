@@ -37,7 +37,7 @@ vi.mock("@connectrpc/connect", async (importOriginal) => {
 });
 
 import { create } from "@bufbuild/protobuf";
-import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import { StigmerClient } from "../stigmer-client.js";
 

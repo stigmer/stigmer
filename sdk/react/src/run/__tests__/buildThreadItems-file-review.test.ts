@@ -10,7 +10,7 @@
  * thread with records off emit nothing.
  */
 import { describe, it, expect } from "vitest";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { buildThreadItems, type ThreadItem } from "../MessageThread";
 import {
   changes,

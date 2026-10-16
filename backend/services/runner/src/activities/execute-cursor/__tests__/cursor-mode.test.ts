@@ -1,13 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { CursorMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import {
   WorkspaceEntrySchema,
   WorkspaceSourceSchema,
   GitRepoSourceSchema,
   LocalPathSourceSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
 import { determineCursorMode, isCloudMode } from "../cursor-mode.js";
 
 /**

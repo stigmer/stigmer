@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 /** Which pane carries the drag-controlled pixel width; its sibling flexes. */
 export type ResizablePane = "primary" | "secondary";

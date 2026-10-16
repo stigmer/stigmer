@@ -1,7 +1,7 @@
 "use client";
 
-import { ModelPricingBaselineStatus } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
-import type { PricingBlock } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
+import { ModelPricingBaselineStatus } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
+import type { PricingBlock } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { Button } from "../button/index.js";
 import type { ModelCatalogRow } from "./useModelCatalogView.js";
 import { ZERO, formatRate } from "./pricing-format.js";

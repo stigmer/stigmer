@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
 import { create } from "@bufbuild/protobuf";
 import type { DescService } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { wrapError } from "../gen/errors.js";
 import { metadataOf, type ManifestDocument } from "./parse.js";
 import {

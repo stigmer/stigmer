@@ -4,10 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import {
   CheckMyPermissionInputSchema,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import {
   ApiResourceRefSchema,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 import { useStigmer } from "../hooks.js";
 
 /** Resource reference for permission checks. */

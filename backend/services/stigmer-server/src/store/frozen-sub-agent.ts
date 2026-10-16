@@ -28,8 +28,8 @@ import {
   FileDescriptorProtoSchema,
 } from "@bufbuild/protobuf/wkt";
 
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { file_ai_stigmer_commons_apiresource_io } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { file_ai_stigmer_commons_apiresource_io } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 
 /** The retired AgentSpec field that held sub-agents. */
 export const AGENT_SPEC_SUB_AGENTS_FIELD = 6;

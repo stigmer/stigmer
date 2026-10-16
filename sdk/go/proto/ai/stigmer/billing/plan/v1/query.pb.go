@@ -7,8 +7,8 @@
 package planv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -31,7 +31,7 @@ const file_ai_stigmer_billing_plan_v1_query_proto_rawDesc = "" +
 	"\x03get\x12\".ai.stigmer.billing.plan.v1.PlanId\x1a .ai.stigmer.billing.plan.v1.Plan\"\x04и\x18\x01\x12[\n" +
 	"\x04list\x12*.ai.stigmer.billing.plan.v1.ListPlansInput\x1a!.ai.stigmer.billing.plan.v1.Plans\"\x04и\x18\x01\x1a\x04\xa0\xff+FB\x87\x02\n" +
 	"\x1ecom.ai.stigmer.billing.plan.v1B\n" +
-	"QueryProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/plan/v1;planv1\xa2\x02\x04ASBP\xaa\x02\x1aAi.Stigmer.Billing.Plan.V1\xca\x02\x1aAi\\Stigmer\\Billing\\Plan\\V1\xe2\x02&Ai\\Stigmer\\Billing\\Plan\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Billing::Plan::V1b\x06proto3"
+	"QueryProtoP\x01ZLgo.stigmer.ai/sdk/proto/ai/stigmer/billing/plan/v1;planv1\xa2\x02\x04ASBP\xaa\x02\x1aAi.Stigmer.Billing.Plan.V1\xca\x02\x1aAi\\Stigmer\\Billing\\Plan\\V1\xe2\x02&Ai\\Stigmer\\Billing\\Plan\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Billing::Plan::V1b\x06proto3"
 
 var file_ai_stigmer_billing_plan_v1_query_proto_goTypes = []any{
 	(*PlanId)(nil),         // 0: ai.stigmer.billing.plan.v1.PlanId

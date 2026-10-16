@@ -4,15 +4,15 @@ import { wrapError } from "./errors.js";
 import { stripUndefined, toTimestamp } from "./proto-utils.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { LicenseSchema, type License } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
-import { LicenseCommandController } from "@stigmer/protos/ai/stigmer/billing/license/v1/command_pb";
-import { LicenseIdSchema, ListLicensesInputSchema, LicensesSchema, type ListLicensesInput, type Licenses } from "@stigmer/protos/ai/stigmer/billing/license/v1/io_pb";
-import { LicenseQueryController } from "@stigmer/protos/ai/stigmer/billing/license/v1/query_pb";
-import { LicenseSpecSchema } from "@stigmer/protos/ai/stigmer/billing/license/v1/spec_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { Feature, EntitlementLimitsSchema, EntitlementsSchema } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
-import { LicenseTerm, LicenseCustomerSchema } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+import { LicenseSchema, type License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
+import { LicenseCommandController } from "@stigmer/apis/ai/stigmer/billing/license/v1/command_pb";
+import { LicenseIdSchema, ListLicensesInputSchema, LicensesSchema, type ListLicensesInput, type Licenses } from "@stigmer/apis/ai/stigmer/billing/license/v1/io_pb";
+import { LicenseQueryController } from "@stigmer/apis/ai/stigmer/billing/license/v1/query_pb";
+import { LicenseSpecSchema } from "@stigmer/apis/ai/stigmer/billing/license/v1/spec_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { Feature, EntitlementLimitsSchema, EntitlementsSchema } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
+import { LicenseTerm, LicenseCustomerSchema } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 
 /** Provides operations on license resources. */
 export class LicenseClient {

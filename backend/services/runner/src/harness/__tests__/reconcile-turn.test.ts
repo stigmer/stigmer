@@ -21,8 +21,8 @@ import { join } from "node:path";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ExecutionValuesSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
+import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { ExecutionValuesSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
 
 import { createHermeticEnvironment } from "../../__test-utils__/hermetic-activity.js";
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";

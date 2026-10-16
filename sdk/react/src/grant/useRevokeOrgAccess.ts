@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { RevokeOrgAccessInputSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+import { RevokeOrgAccessInputSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

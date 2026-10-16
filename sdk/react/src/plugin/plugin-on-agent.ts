@@ -11,7 +11,7 @@
  * the agent's own, as the server reads it.
  */
 
-import type { AgentInput, ResourceRef } from "@stigmer/sdk";
+import type { AgentInput, ResourceRef } from "@stigmer/client";
 
 /** Whether the agent's `plugins` already name this plugin. */
 export function listsPlugin(input: AgentInput, ref: ResourceRef): boolean {

@@ -4,13 +4,13 @@ import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { MemorySchema, type Memory } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
-import { MemoryCommandController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/command_pb";
-import { MemoryIdSchema, UpdateMemoryInputSchema, ListMemoriesRequestSchema, MemoryListSchema, type ListMemoriesRequest, type MemoryList } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/io_pb";
-import { MemoryQueryController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/query_pb";
-import { MemorySpecSchema, MemoryProvenanceSchema, type MemoryProvenance } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/spec_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { MemorySchema, type Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
+import { MemoryCommandController } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/command_pb";
+import { MemoryIdSchema, UpdateMemoryInputSchema, ListMemoriesRequestSchema, MemoryListSchema, type ListMemoriesRequest, type MemoryList } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/io_pb";
+import { MemoryQueryController } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/query_pb";
+import { MemorySpecSchema, MemoryProvenanceSchema, type MemoryProvenance } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/spec_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on memory resources. */
 export class MemoryClient {

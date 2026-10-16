@@ -5,7 +5,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   ChannelAppSchema,
   type ChannelApp,
-} from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { ChannelAppDetailPanel } from "../ChannelAppDetailPanel";
 

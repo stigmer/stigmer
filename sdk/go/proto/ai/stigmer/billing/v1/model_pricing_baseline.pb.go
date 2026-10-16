@@ -800,7 +800,7 @@ const file_ai_stigmer_billing_v1_model_pricing_baseline_proto_rawDesc = "" +
 	"\x17pricing_baseline_active\x10\x01\x12\x1f\n" +
 	"\x1bpricing_baseline_superseded\x10\x02\x12\x1c\n" +
 	"\x18pricing_baseline_retired\x10\x03B\xf9\x01\n" +
-	"\x19com.ai.stigmer.billing.v1B\x19ModelPricingBaselineProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
+	"\x19com.ai.stigmer.billing.v1B\x19ModelPricingBaselineProtoP\x01ZJgo.stigmer.ai/sdk/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_billing_v1_model_pricing_baseline_proto_rawDescOnce sync.Once

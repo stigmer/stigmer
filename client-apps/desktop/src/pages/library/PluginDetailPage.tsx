@@ -10,7 +10,7 @@ import {
   type DetailAction,
   useOrgSlugForId,
   useResolveRunSession,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 
 /**
  * The home-route URL that opens the new-session screen for a chat with the

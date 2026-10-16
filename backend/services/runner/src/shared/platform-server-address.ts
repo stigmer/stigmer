@@ -32,13 +32,13 @@
  * listing (shared/mcp-tool-listing.ts), so both share one rule.
  */
 
-import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { Config } from "../config.js";
 
 /**
  * Reserved env key: the Stigmer server's gRPC dial target, host:port. The
  * name the mcp-server reads its target from (mcp-server/src/config.ts) and
- * `@stigmer/react` keeps out of its setup prompts
+ * `@stigmer/react-sdk` keeps out of its setup prompts
  * (sdk/react/src/environment/systemEnvVars.ts); a cross-package string,
  * pinned on every side.
  */

@@ -5,14 +5,14 @@
  * then it stays put. Remove asks first, deletes once confirmed and returns
  * to the plugins list; a failed delete stays on the page (the delete hook
  * shows its own error), and a declined one deletes nothing. The detail
- * view is pinned in @stigmer/react; here it
+ * view is pinned in @stigmer/react-sdk; here it
  * is stubbed to capture its props, and the resolve hook answers from a
  * table. Organization links are pinned in library-detail-pages.orgs.test.tsx.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
-import type { DetailAction } from "@stigmer/react";
+import type { DetailAction } from "@stigmer/react-sdk";
 
 interface ViewProps {
   onNavigateToRun: (runId: string) => void;
@@ -29,7 +29,7 @@ const page = vi.hoisted(() => ({
   deleteFails: false,
 }));
 
-vi.mock("@stigmer/react", () => {
+vi.mock("@stigmer/react-sdk", () => {
   const noop = () => undefined;
   return {
     PluginDetailView: (props: ViewProps) => {

@@ -117,10 +117,10 @@
  */
 
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
-import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
+import type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
+import type { WorkspaceWriteBack } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 import { POLICY_ENGINE_VERSION, toProtoPolicySource, type PolicySource } from "../../shared/approval-policy.js";
 import { SALIENT_ARG_FIELDS, buildElidedArgsPreview, redactSensitiveArgs } from "../../shared/args-preview.js";
 import { classifyTool } from "../../shared/tool-kind.js";

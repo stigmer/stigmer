@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage } from "@stigmer/client";
 
 /**
  * The plain install-refusal alert: the server's copy rendered verbatim —

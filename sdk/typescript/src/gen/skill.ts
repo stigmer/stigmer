@@ -5,15 +5,15 @@ import { stripUndefined } from "./proto-utils.js";
 import { type ResourceRef } from "./types.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { SkillSchema, type Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
-import { SkillIdSchema, PushSkillRequestSchema, CreateSkillArtifactUploadUrlRequestSchema, SkillArtifactUploadUrlSchema, PushSkillFromRunArtifactRequestSchema, ListSkillsRequestSchema, SkillListSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, SkillArtifactDownloadUrlSchema, ListSkillVersionsInputSchema, ListSkillVersionsResponseSchema, type PushSkillRequest, type CreateSkillArtifactUploadUrlRequest, type SkillArtifactUploadUrl, type PushSkillFromRunArtifactRequest, type ListSkillsRequest, type SkillList, type GetArtifactRequest, type GetArtifactResponse, type SkillArtifactDownloadUrl, type ListSkillVersionsInput, type ListSkillVersionsResponse } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
-import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
-import { SkillSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/spec_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceMetadataSchema, ApiResourceMetadataVersionSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { SkillSchema, type Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import { SkillCommandController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/command_pb";
+import { SkillIdSchema, PushSkillRequestSchema, CreateSkillArtifactUploadUrlRequestSchema, SkillArtifactUploadUrlSchema, PushSkillFromRunArtifactRequestSchema, ListSkillsRequestSchema, SkillListSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, SkillArtifactDownloadUrlSchema, ListSkillVersionsInputSchema, ListSkillVersionsResponseSchema, type PushSkillRequest, type CreateSkillArtifactUploadUrlRequest, type SkillArtifactUploadUrl, type PushSkillFromRunArtifactRequest, type ListSkillsRequest, type SkillList, type GetArtifactRequest, type GetArtifactResponse, type SkillArtifactDownloadUrl, type ListSkillVersionsInput, type ListSkillVersionsResponse } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
+import { SkillQueryController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/query_pb";
+import { SkillSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceReferenceSchema, type UpdateVisibilityInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceMetadataSchema, ApiResourceMetadataVersionSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on skill resources. */
 export class SkillClient {

@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import { ChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelInstallState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { useChannelTemplateReadiness } from "../useChannelTemplateReadiness";
 

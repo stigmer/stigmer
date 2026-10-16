@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useId, type FormEvent } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import type { EnvVarInput } from "./types.js";
 import { useScrollShadows } from "../internal/useScrollShadows.js";
 import { ScrollFade } from "../internal/ScrollFade.js";

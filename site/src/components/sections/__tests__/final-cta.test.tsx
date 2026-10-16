@@ -22,14 +22,14 @@ describe("FinalCTA SDK snippets", () => {
   it("opens on the TypeScript run snippet", () => {
     render(<FinalCTA />);
 
-    expect(screen.getByText("npm install @stigmer/sdk")).toBeTruthy();
+    expect(screen.getByText("npm install @stigmer/client")).toBeTruthy();
     expect(code()).toContain("const run = await stigmer.run.create({");
     expect(code()).toContain('message: "Can I return these shoes?",');
   });
 
   it.each([
-    ["Go", "go get github.com/stigmer/stigmer/sdk/go/v3", "run, _ := client.Run.Create(ctx,"],
-    ["Python", "pip install stigmer", "run = client.agent_runs.create("],
+    ["Go", "go get go.stigmer.ai/sdk", "run, _ := client.Run.Create(ctx,"],
+    ["Python", "pip install stigmer-sdk", "run = client.agent_runs.create("],
     ["Java", 'implementation("ai.stigmer:stigmer-java:0.1.0")', "var run = client.run.create("],
   ])("switches to the %s install command and run snippet", (label, install, call) => {
     render(<FinalCTA />);

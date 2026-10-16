@@ -31,9 +31,9 @@ import { agentFs } from "./agent-fs.js";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import type { StigmerClient } from "../client/stigmer-client.js";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { getPlatformDir } from "./workspace/platform-dir.js";
 import {
   SKILLS_SUBDIR,

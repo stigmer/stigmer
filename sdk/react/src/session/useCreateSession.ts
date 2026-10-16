@@ -6,7 +6,7 @@ import {
   mergeSessionContext,
   type ResourceRef,
   type WorkspaceEntryInput,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { toProtoHarness, type HarnessOption } from "../models/harness.js";

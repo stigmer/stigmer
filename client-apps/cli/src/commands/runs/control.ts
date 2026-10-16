@@ -81,7 +81,7 @@ async function runControl(verb: ControlVerb, runId: string, reason: string): Pro
 function dispatch(
   verb: ControlVerb,
   control: typeof import("../../resources/run-control.js"),
-  client: import("@stigmer/sdk").Stigmer,
+  client: import("@stigmer/client").Stigmer,
   runId: string,
   reason: string,
 ): Promise<import("../../resources/run-control.js").ControlResult> {

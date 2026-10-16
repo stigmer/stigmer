@@ -14,8 +14,8 @@
  */
 
 import { useId, useState } from "react";
-import { cn } from "@stigmer/theme";
-import type { ResourceRef } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import type { ResourceRef } from "@stigmer/client";
 import { AgentPicker } from "../agent/AgentPicker.js";
 import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";

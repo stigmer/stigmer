@@ -183,7 +183,7 @@ const file_ai_stigmer_agentic_memory_v1_spec_proto_rawDesc = "" +
 	"\x06run_id\x18\x03 \x01(\tR\x05runId\x12 \n" +
 	"\ftool_call_id\x18\x04 \x01(\tR\n" +
 	"toolCallIdB\x94\x02\n" +
-	" com.ai.stigmer.agentic.memory.v1B\tSpecProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/memory/v1;memoryv1\xa2\x02\x04ASAM\xaa\x02\x1cAi.Stigmer.Agentic.Memory.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Memory\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Memory::V1b\x06proto3"
+	" com.ai.stigmer.agentic.memory.v1B\tSpecProtoP\x01ZPgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/memory/v1;memoryv1\xa2\x02\x04ASAM\xaa\x02\x1cAi.Stigmer.Agentic.Memory.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Memory\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Memory::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_memory_v1_spec_proto_rawDescOnce sync.Once

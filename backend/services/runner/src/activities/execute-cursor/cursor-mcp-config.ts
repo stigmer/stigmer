@@ -10,8 +10,8 @@
  * final SDK serialization differs.
  */
 
-import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import { toolServerSegment } from "../../shared/plugin-servers.js";
 

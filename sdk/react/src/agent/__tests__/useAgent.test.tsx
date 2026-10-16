@@ -78,7 +78,7 @@ describe("useAgent", () => {
 
   it("returns null without error on NOT_FOUND", async () => {
     const notFoundError = Object.assign(new Error("Not found"), { code: "not_found" });
-    // The hook uses `isNotFound(err)` from @stigmer/sdk — simulate
+    // The hook uses `isNotFound(err)` from @stigmer/client — simulate
     // by making the ConnectError-compatible shape the SDK recognizes.
     (notFoundError as unknown as Record<string, unknown>)["name"] = "ConnectError";
     // Connect gRPC code 5 = NOT_FOUND

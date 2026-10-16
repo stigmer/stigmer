@@ -36,11 +36,11 @@
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
 import {
   ScoreSource,
   ScoreState,
-} from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Store } from "../../store/interface.js";

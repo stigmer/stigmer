@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import { ConnectError, Code } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunControlSignal, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunControlSignal, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../status.js";
 import { AgentMessageSchema, ToolCallSchema, TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 

@@ -17,7 +17,7 @@
  * so a list evaluates the model over what the lane already decoded and
  * never reads a candidate's row a second time.
  */
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { RowAuthorizationFacts } from "../extensions/resource-authorization.js";
 import { rowAuthorizationFactsOf } from "../pipeline/steps/authorization-facts.js";

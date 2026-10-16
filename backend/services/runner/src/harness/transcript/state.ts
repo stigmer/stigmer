@@ -29,7 +29,7 @@
  * it was `ExecutionState` in the native adapter (renamed in #1097).
  */
 
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { AgentMessage, ToolCall, SubAgentRun, TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 

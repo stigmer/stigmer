@@ -7,8 +7,8 @@
 // compactions and the turn's errors once each; how an ask was answered; a
 // turn the fold did not touch is not written again; thinking is silent.
 
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import { foldSession, type ToolUse } from "@stigmer/sdk";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { foldSession, type ToolUse } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import {
   asked,

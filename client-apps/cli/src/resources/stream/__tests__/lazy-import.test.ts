@@ -10,14 +10,14 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const SRC_ROOT = fileURLToPath(new URL("../../..", import.meta.url));
-// The only modules allowed to statically import react/ink/@stigmer/ink. Each is
+// The only modules allowed to statically import react/ink/@stigmer/ink-ui. Each is
 // itself reached exclusively through a dynamic import() in a command action, so
 // the heavy graph stays out of every non-interactive path.
 const INK_MODULES = [
   join(SRC_ROOT, "resources/stream/ink.tsx"),
   join(SRC_ROOT, "resources/picker/ink.tsx"),
 ];
-const STATIC_HEAVY_IMPORT = /^\s*import\s+[^;]*?from\s+["'](?:react|ink|@stigmer\/ink)["']/m;
+const STATIC_HEAVY_IMPORT = /^\s*import\s+[^;]*?from\s+["'](?:react|ink|@stigmer\/ink-ui)["']/m;
 
 function walk(dir: string): string[] {
   const out: string[] = [];
@@ -30,7 +30,7 @@ function walk(dir: string): string[] {
 }
 
 describe("lazy-import boundary", () => {
-  it("only the lazy Ink entrypoints statically import react/ink/@stigmer/ink", () => {
+  it("only the lazy Ink entrypoints statically import react/ink/@stigmer/ink-ui", () => {
     const offenders = walk(SRC_ROOT)
       .filter((path) => !INK_MODULES.includes(path))
       .filter((path) => STATIC_HEAVY_IMPORT.test(readFileSync(path, "utf8")));

@@ -29,8 +29,8 @@
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { BinaryReader, WireType } from "@bufbuild/protobuf/wire";
 
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
 
 /** The `kind` column value of the rows the step rewrites. */
 export const SESSION_HARNESS_KIND = "session";

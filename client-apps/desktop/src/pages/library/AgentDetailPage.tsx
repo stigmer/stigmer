@@ -14,8 +14,8 @@ import {
   type DetailAction,
   useOrgSlugForId,
   useResolveRunSession,
-} from "@stigmer/react";
-import { buildChatUrl } from "@stigmer/sdk";
+} from "@stigmer/react-sdk";
+import { buildChatUrl } from "@stigmer/client";
 import { CONSOLE_URL } from "../../config";
 import { AGENT_DELETE_DESCRIPTION } from "./agent-delete-confirmation";
 import { useCanonicalDetailSlug } from "./canonical-slug";

@@ -7,8 +7,8 @@
 package scoringrulev1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -31,7 +31,7 @@ const file_ai_stigmer_agentic_scoringrule_v1_command_proto_rawDesc = "" +
 	"\x06create\x12..ai.stigmer.agentic.scoringrule.v1.ScoringRule\x1a..ai.stigmer.agentic.scoringrule.v1.ScoringRule\"\x04и\x18\x01\x12\xb8\x01\n" +
 	"\x06update\x129.ai.stigmer.agentic.scoringrule.v1.UpdateScoringRuleInput\x1a..ai.stigmer.agentic.scoringrule.v1.ScoringRule\"C¸\x18?\b\x02\x10>\"\x14resource.metadata.id*#unauthorized to update scoring rule\x12\xa0\x01\n" +
 	"\x06delete\x120.ai.stigmer.agentic.scoringrule.v1.ScoringRuleId\x1a..ai.stigmer.agentic.scoringrule.v1.ScoringRule\"4¸\x180\b\x03\x10>\"\x05value*#unauthorized to delete scoring rule\x1a\x04\xa0\xff+>B\xba\x02\n" +
-	"%com.ai.stigmer.agentic.scoringrule.v1B\fCommandProtoP\x01ZZgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/scoringrule/v1;scoringrulev1\xa2\x02\x04ASAS\xaa\x02!Ai.Stigmer.Agentic.Scoringrule.V1\xca\x02!Ai\\Stigmer\\Agentic\\Scoringrule\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Scoringrule\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Scoringrule::V1b\x06proto3"
+	"%com.ai.stigmer.agentic.scoringrule.v1B\fCommandProtoP\x01ZZgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/scoringrule/v1;scoringrulev1\xa2\x02\x04ASAS\xaa\x02!Ai.Stigmer.Agentic.Scoringrule.V1\xca\x02!Ai\\Stigmer\\Agentic\\Scoringrule\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Scoringrule\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Scoringrule::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_scoringrule_v1_command_proto_goTypes = []any{
 	(*ScoringRule)(nil),            // 0: ai.stigmer.agentic.scoringrule.v1.ScoringRule

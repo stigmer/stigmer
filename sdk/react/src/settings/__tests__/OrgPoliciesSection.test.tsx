@@ -6,7 +6,7 @@
  */
 import { create } from "@bufbuild/protobuf";
 import { cleanup, render, screen } from "@testing-library/react";
-import { OrganizationSchema, type Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { OrganizationSchema, type Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";

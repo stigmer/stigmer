@@ -11,8 +11,8 @@
 import { useCallback, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Message } from "@bufbuild/protobuf";
-import { RenameInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { RenameInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import type { RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

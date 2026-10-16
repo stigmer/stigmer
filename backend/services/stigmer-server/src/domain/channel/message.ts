@@ -40,10 +40,10 @@
 import type { ConnectRouter } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 
-import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_command_pb";
-import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_query_pb";
-import { MessagingChannelsSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
-import type { MessagingChannels } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
+import { ChannelMessageCommandController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_command_pb";
+import { ChannelMessageQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_query_pb";
+import { MessagingChannelsSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
+import type { MessagingChannels } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
 
 import { failedPreconditionError } from "../../pipeline/errors.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";

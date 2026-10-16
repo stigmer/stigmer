@@ -62,7 +62,7 @@
 //   plugin eval's document, whose cases sat at its top): the working agent
 //   as a plugin whose `evals/` suite holds the quality tasks, with each
 //   harness's parity model as a target. `quality` carries the eval run's
-//   id, what was asked of it, and its result document whole (`@stigmer/sdk`
+//   id, what was asked of it, and its result document whole (`@stigmer/client`
 //   `toResultDocument`, whose one plugin block is the plugin-eval format's
 //   `schemaVersion: 1` file), so a reader reads the quality numbers as any
 //   plugin author reads theirs. The document is kept as JSON, not typed

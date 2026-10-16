@@ -283,7 +283,7 @@ const file_ai_stigmer_agentic_channelapp_v1_spec_proto_rawDesc = "" +
 	"app_secret\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tappSecret\x12*\n" +
 	"\faccess_token\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vaccessToken\x12*\n" +
 	"\fverify_token\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vverifyTokenB\xb0\x02\n" +
-	"$com.ai.stigmer.agentic.channelapp.v1B\tSpecProtoP\x01ZXgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channelapp/v1;channelappv1\xa2\x02\x04ASAC\xaa\x02 Ai.Stigmer.Agentic.Channelapp.V1\xca\x02 Ai\\Stigmer\\Agentic\\Channelapp\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Channelapp\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Channelapp::V1b\x06proto3"
+	"$com.ai.stigmer.agentic.channelapp.v1B\tSpecProtoP\x01ZXgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/channelapp/v1;channelappv1\xa2\x02\x04ASAC\xaa\x02 Ai.Stigmer.Agentic.Channelapp.V1\xca\x02 Ai\\Stigmer\\Agentic\\Channelapp\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Channelapp\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Channelapp::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_channelapp_v1_spec_proto_rawDescOnce sync.Once

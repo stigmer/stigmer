@@ -11,8 +11,8 @@
 // transport at all is refused before anything starts.
 
 import { create } from "@bufbuild/protobuf";
-import { McpServerEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
+import { McpServerEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { createServer } from "node:net";
 import type { AddressInfo } from "node:net";
 import { fileURLToPath } from "node:url";

@@ -12,8 +12,8 @@ import { create } from "@bufbuild/protobuf";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { BillingAccountSchema } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
-import { BillingAccountStatus } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
+import { BillingAccountSchema } from "@stigmer/apis/ai/stigmer/billing/v1/billing_account_pb";
+import { BillingAccountStatus } from "@stigmer/apis/ai/stigmer/billing/v1/enum_pb";
 
 const portals = vi.hoisted(() => [] as string[]);
 

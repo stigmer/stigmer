@@ -23,7 +23,7 @@ import { fromBinary } from "@bufbuild/protobuf";
 import {
   SessionEventSchema,
   type SessionEvent,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import { NO_SESSION_EVENT_GATES } from "../../../store/session-events.js";
 import type {

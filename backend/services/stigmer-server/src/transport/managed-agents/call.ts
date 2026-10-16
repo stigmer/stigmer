@@ -13,9 +13,9 @@
  */
 import type { CallOptions, Client } from "@connectrpc/connect";
 
-import type { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
-import type { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import type { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
+import type { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
+import type { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
+import type { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
 
 /** The native methods the lane calls. */
 export interface LaneClients {

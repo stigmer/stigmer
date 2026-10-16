@@ -28,13 +28,13 @@
 // hosted edition gives each judge run a grading sandbox of its own, which the
 // composition's sandbox tests prove. The two arms that start no judge run on
 // every target.
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   CriterionResult,
   ScoreSource,
   ScoreState,
-} from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, type AnthropicMessageBody } from "@stigmer/test-support/mock-llm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";

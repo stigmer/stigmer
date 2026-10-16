@@ -7,7 +7,7 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import { HookGroupSchema, HookHandlerSchema, type HookGroup } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { HookGroupSchema, HookHandlerSchema, type HookGroup } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { HookSourceGroups } from "../../shared/hooks/hook-set.js";
 import type { ContractHook, ContractHookBehaviour, ProposedAction } from "./types.js";
 

@@ -21,19 +21,19 @@ import { createClient, createRouterTransport } from "@connectrpc/connect";
 import type { ConnectRouter, Transport } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 
-import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
-import { GetAgentVersionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
-import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
-import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
-import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
-import { SessionIdSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
-import { TerminateRunInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { ScoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/command_pb";
-import { ScoreIdSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
+import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
+import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
+import { AgentIdSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/io_pb";
+import { GetAgentVersionInputSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
+import { SkillCommandController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/command_pb";
+import { OrganizationCommandController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/command_pb";
+import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
+import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
+import { SessionIdSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
+import { TerminateRunInputSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { ScoreCommandController } from "@stigmer/apis/ai/stigmer/agentic/score/v1/command_pb";
+import { ScoreIdSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
 
 import type {
   AgentLoader,

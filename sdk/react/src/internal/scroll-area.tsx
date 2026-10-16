@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 // ---------------------------------------------------------------------------
 // SDK-internal thin-scrollbar scroll container.
 //
-// NOT exported from @stigmer/react. Plain CSS (no primitive library): a thin
+// NOT exported from @stigmer/react-sdk. Plain CSS (no primitive library): a thin
 // token-colored scrollbar over native overflow, so long lists (sidebar
 // recents) scroll like the console everywhere the SDK renders.
 // ---------------------------------------------------------------------------

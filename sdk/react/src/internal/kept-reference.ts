@@ -7,7 +7,7 @@
  * its org and slug. The pinned version rides along: dropping it would move
  * the reference to the target's latest.
  */
-import type { ResourceRef } from "@stigmer/sdk";
+import type { ResourceRef } from "@stigmer/client";
 
 /** What an editor read for one reference row. */
 export interface ReadReference {

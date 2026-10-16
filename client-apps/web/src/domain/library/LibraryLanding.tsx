@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Blocks, Bot, CalendarClock, FileCode2, Plus, Sparkles, Server } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { ADD_MCP_SERVER_HREF } from "@/domain/library/plugins/add-mcp-server";
 import {
   ApplyManifestDialog,
@@ -16,7 +16,7 @@ import {
   ResourceCountCard,
   useActiveOrgId,
   useCanCreateAgent,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 
 function isPlainClick(e: MouseEvent): boolean {
   return !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && e.button === 0;

@@ -51,8 +51,8 @@
  * open.
  */
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";

@@ -11,8 +11,8 @@
 import { useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AlertTriangle, FileQuestion, RotateCcw } from "lucide-react";
-import { getUserMessage } from "@stigmer/sdk";
-import { useResolveRunSession } from "@stigmer/react";
+import { getUserMessage } from "@stigmer/client";
+import { useResolveRunSession } from "@stigmer/react-sdk";
 
 export default function RunPage() {
   const { id } = useParams<{ id: string }>();

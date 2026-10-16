@@ -17,9 +17,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   RunSchema,
   RunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { eventTypeOf } from "@stigmer/session-log";
 import { createLogger } from "../../../../boot/logger.js";

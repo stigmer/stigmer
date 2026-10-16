@@ -80,7 +80,7 @@ The presence of a `feat` commit is not a minor bump. Judge the change:
   before launch, and grading each as a major would move every Go import path
   once per step for no consumer's benefit. The cost is accepted for every
   package the release ships: a Go consumer who runs `go get -u`, and a consumer
-  of `@stigmer/protos` or the npm SDKs on a caret range, the Python SDK on a
+  of `@stigmer/apis` or the npm SDKs on a caret range, the Python SDK on a
   `~=X.Y` or open range, or the Java SDK on a version range, takes the change at
   the next update, and learns of it from the Upgrading section. A release that
   changes a surface a known outside consumer uses is a major, as above. The rule

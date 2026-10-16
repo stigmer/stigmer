@@ -5,15 +5,15 @@ import { stripUndefined } from "./proto-utils.js";
 import { type ResourceRef } from "./types.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { EvalRunSchema, type EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { EvalRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/command_pb";
-import { EvalRunIdSchema, ListEvalRunsByAgentRequestSchema, EvalRunListSchema, ListEvalRunsByPluginRequestSchema, type ListEvalRunsByAgentRequest, type EvalRunList, type ListEvalRunsByPluginRequest } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/io_pb";
-import { EvalRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/query_pb";
-import { EvalRunSpecSchema, EvalRunAblation, EvalRunCaseSourceSchema, EvalRunTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { EvalRunSchema, type EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunCommandController } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/command_pb";
+import { EvalRunIdSchema, ListEvalRunsByAgentRequestSchema, EvalRunListSchema, ListEvalRunsByPluginRequestSchema, type ListEvalRunsByAgentRequest, type EvalRunList, type ListEvalRunsByPluginRequest } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/io_pb";
+import { EvalRunQueryController } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/query_pb";
+import { EvalRunSpecSchema, EvalRunAblation, EvalRunCaseSourceSchema, EvalRunTargetSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on evalrun resources. */
 export class EvalRunClient {

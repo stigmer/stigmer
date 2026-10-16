@@ -17,17 +17,17 @@
 import { PassThrough, Readable } from "node:stream";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { type Vault, VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
-import { ConnectLinkSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+import { type Vault, VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultCommandController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/command_pb";
+import { ConnectLinkSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 import type {
   CreateConnectLinkInput,
   RemoveVaultConnectionsInput,
   RemoveVaultSecretsInput,
   SetVaultConnectionInput,
   SetVaultSecretsInput,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
-import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
+import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Config } from "../../config/index.js";
 import { buildProgram } from "../../program.js";

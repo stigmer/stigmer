@@ -7,7 +7,7 @@ import {
   transcriptToJson,
   transcriptToMarkdown,
   type SessionTranscript,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { toast } from "../feedback/toast.js";
 import { useStigmer } from "../hooks.js";
 import { downloadTextFile } from "../internal/download.js";

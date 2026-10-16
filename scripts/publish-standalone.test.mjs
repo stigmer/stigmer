@@ -70,7 +70,7 @@ test("stampManifest pins every @stigmer/* file: link to the release version and 
     name: "@stigmer/example",
     version: "0.0.0-dev",
     dependencies: {
-      "@stigmer/protos": "file:../../../apis/stubs/ts",
+      "@stigmer/apis": "file:../../../apis/stubs/ts",
       "@stigmer/temporal-codecs": "file:../../libs/ts/temporal-codecs",
       "@stigmer/already-pinned": "3.13.0",
       "@temporalio/worker": "1.16.2",
@@ -80,18 +80,18 @@ test("stampManifest pins every @stigmer/* file: link to the release version and 
   const { manifest, pinned } = stampManifest(input, "3.14.0");
   assert.equal(manifest.version, "3.14.0");
   assert.deepEqual(manifest.dependencies, {
-    "@stigmer/protos": "3.14.0",
+    "@stigmer/apis": "3.14.0",
     "@stigmer/temporal-codecs": "3.14.0",
     "@stigmer/already-pinned": "3.13.0",
     "@temporalio/worker": "1.16.2",
     pg: "8.23.0",
   });
-  assert.deepEqual(pinned, ["@stigmer/protos", "@stigmer/temporal-codecs"]);
+  assert.deepEqual(pinned, ["@stigmer/apis", "@stigmer/temporal-codecs"]);
   // Pure: the caller's object is untouched (the script restores the file
   // from the original text on --dry-run; a mutated input would defeat that).
   assert.equal(input.version, "0.0.0-dev");
   assert.equal(
-    input.dependencies["@stigmer/protos"],
+    input.dependencies["@stigmer/apis"],
     "file:../../../apis/stubs/ts",
   );
 });
@@ -334,17 +334,17 @@ test("the wait's budget is almost three times the worst lag measured, polled fro
 
 test("waitForRegistry returns without sleeping when every lib is already installable", async () => {
   const registry = fakeRegistry({
-    "@stigmer/protos": 0,
+    "@stigmer/apis": 0,
     "@stigmer/outbound": 0,
   });
   await waitForRegistry(
-    ["@stigmer/protos", "@stigmer/outbound"],
+    ["@stigmer/apis", "@stigmer/outbound"],
     "3.28.0",
     registry.options,
   );
   assert.deepEqual(registry.sleeps, []);
   assert.deepEqual(registry.queries, [
-    "@stigmer/protos@3.28.0",
+    "@stigmer/apis@3.28.0",
     "@stigmer/outbound@3.28.0",
   ]);
 });
@@ -401,7 +401,7 @@ test("waitForRegistry holds a lib that is listed but not downloadable until its 
 test("waitForRegistry shares one deadline across libs and cuts its last sleep to it", async () => {
   const registry = fakeRegistry({});
   await assert.rejects(
-    waitForRegistry(["@stigmer/protos", "@stigmer/plugin-package"], "3.28.0", {
+    waitForRegistry(["@stigmer/apis", "@stigmer/plugin-package"], "3.28.0", {
       ...registry.options,
       budgetMs: 100_000,
     }),
@@ -416,13 +416,13 @@ test("waitForRegistry shares one deadline across libs and cuts its last sleep to
 
 test("waitForRegistry's refusal names each lagging lib with what it lacks, and the rerun, not a failed libs job", async () => {
   const registry = fakeRegistry({
-    "@stigmer/protos": 0,
+    "@stigmer/apis": 0,
     "@stigmer/temporal-codecs": { listedAtMs: 0, servedAtMs: Infinity },
   });
   await assert.rejects(
     waitForRegistry(
       [
-        "@stigmer/protos",
+        "@stigmer/apis",
         "@stigmer/temporal-codecs",
         "@stigmer/plugin-package",
       ],
@@ -526,7 +526,7 @@ test("installGap adds the separator a registry URL without a trailing slash lack
   const registry = fakeFetch({
     document: { status: 200, body: { versions: {} } },
   });
-  await installGap("@stigmer/protos", "1.0.0", {
+  await installGap("@stigmer/apis", "1.0.0", {
     registry: "https://npm.example.test/api",
     fetchImpl: registry.fetchImpl,
   });

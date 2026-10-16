@@ -7,7 +7,7 @@
 package activityv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -29,7 +29,7 @@ const file_ai_stigmer_activity_v1_query_proto_rawDesc = "" +
 	"\x17ActivityQueryController\x12\x81\x01\n" +
 	"\x12listRecentActivity\x121.ai.stigmer.activity.v1.ListRecentActivityRequest\x1a2.ai.stigmer.activity.v1.ListRecentActivityResponse\"\x04и\x18\x01B\xf1\x01\n" +
 	"\x1acom.ai.stigmer.activity.v1B\n" +
-	"QueryProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/activity/v1;activityv1\xa2\x02\x03ASA\xaa\x02\x16Ai.Stigmer.Activity.V1\xca\x02\x16Ai\\Stigmer\\Activity\\V1\xe2\x02\"Ai\\Stigmer\\Activity\\V1\\GPBMetadata\xea\x02\x19Ai::Stigmer::Activity::V1b\x06proto3"
+	"QueryProtoP\x01ZLgo.stigmer.ai/sdk/proto/ai/stigmer/activity/v1;activityv1\xa2\x02\x03ASA\xaa\x02\x16Ai.Stigmer.Activity.V1\xca\x02\x16Ai\\Stigmer\\Activity\\V1\xe2\x02\"Ai\\Stigmer\\Activity\\V1\\GPBMetadata\xea\x02\x19Ai::Stigmer::Activity::V1b\x06proto3"
 
 var file_ai_stigmer_activity_v1_query_proto_goTypes = []any{
 	(*ListRecentActivityRequest)(nil),  // 0: ai.stigmer.activity.v1.ListRecentActivityRequest

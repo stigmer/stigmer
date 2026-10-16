@@ -37,8 +37,8 @@ import type { JsonValue } from "@bufbuild/protobuf";
 
 import { EARLIER_TURNS_MAX } from "@stigmer/eval-runtime/judge";
 import type { SubjectCall, SubjectCallStatus, SubjectParts } from "@stigmer/eval-runtime/judge";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { ToolUseState, Turn } from "@stigmer/session-log";
 
 import { canonicalJson } from "../../../pipeline/steps/spec-hash.js";

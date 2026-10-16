@@ -9,7 +9,7 @@
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup, screen } from "@testing-library/react";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 import { StigmerProvider } from "../provider";
 import { resolvePublicBaseUrl, usePublicBaseUrl } from "../public-base-url-context";
 

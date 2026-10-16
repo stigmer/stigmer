@@ -30,8 +30,8 @@
  * (middleware interruptOn model) to determine which tools need approval.
  */
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { ApprovalMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SENSITIVE_ARG_KEYS } from "./args-preview.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "./tool-kind.js";
 import { extractFilePath } from "./file-tools.js";

@@ -20,7 +20,7 @@
  */
 
 import { useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 /** Props for {@link PluginFace}. */
 export interface PluginFaceProps {

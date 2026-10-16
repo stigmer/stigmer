@@ -10,7 +10,7 @@
  * the process-global registry.Store(); this edition has no singletons (the
  * composition root owns the store), so the store is the first parameter.
  */
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import { explicitProvider } from "./document-catalog.js";
 import type { ModelCatalogProvider } from "./model-catalog-provider.js";

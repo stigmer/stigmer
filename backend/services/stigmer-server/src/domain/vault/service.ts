@@ -65,22 +65,22 @@
 import { create } from "@bufbuild/protobuf";
 import { timestampNow } from "@bufbuild/protobuf/wkt";
 
-import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import {
   VaultConnectionSchema,
   VaultConnectionSignInSchema,
   VaultConnectionSource,
   VaultSecretSchema,
   VaultSpecSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import type {
   VaultConnection,
   VaultSecret,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { Code, ConnectError } from "@connectrpc/connect";
 
 import type { Logger } from "../../boot/logger.js";

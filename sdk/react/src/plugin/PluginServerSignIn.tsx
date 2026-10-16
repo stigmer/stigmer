@@ -17,8 +17,8 @@
  */
 
 import { useState } from "react";
-import { cn } from "@stigmer/theme";
-import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import { cn } from "@stigmer/design-tokens";
+import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { Button } from "../button/Button.js";
 import type { VaultSignInPhase } from "../vault/useVaultSignIn.js";
 import { type UsePluginServerSignInReturn, usePluginServerSignIn } from "./usePluginServerSignIn.js";

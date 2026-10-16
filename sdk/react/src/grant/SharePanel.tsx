@@ -1,7 +1,7 @@
 "use client";
 
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { cn } from "@stigmer/theme";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { cn } from "@stigmer/design-tokens";
 import type { ShareFlowResource } from "./useShareFlow.js";
 import { PeopleWithAccess } from "./PeopleWithAccess.js";
 

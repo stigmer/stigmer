@@ -35,10 +35,10 @@ import { clone, create } from "@bufbuild/protobuf";
 
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { probeEndpointAuth } from "@stigmer/outbound/mcp-oauth";
-import { McpServerEntrySchema, McpServerSignInSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import type { McpServerEntry, PluginStatus } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
-import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
+import { McpServerEntrySchema, McpServerSignInSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { McpServerEntry, PluginStatus } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
+import type { EnvVarDeclaration } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { accessTokenVariable } from "@stigmer/tool-vocabulary";
 
 import type { Logger } from "../../boot/logger.js";

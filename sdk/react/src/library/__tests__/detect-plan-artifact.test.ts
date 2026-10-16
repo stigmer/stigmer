@@ -3,10 +3,10 @@ import { create } from "@bufbuild/protobuf";
 import {
   RunSchema,
   RunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   isPlanArtifact,
   isPlanArtifactName,

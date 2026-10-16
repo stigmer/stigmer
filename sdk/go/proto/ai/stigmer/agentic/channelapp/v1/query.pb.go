@@ -7,8 +7,8 @@
 package channelappv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,7 +32,7 @@ const file_ai_stigmer_agentic_channelapp_v1_query_proto_rawDesc = "" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a,.ai.stigmer.agentic.channelapp.v1.ChannelApp\"\x04и\x18\x01\x12\xb4\x01\n" +
 	"\x04list\x126.ai.stigmer.agentic.channelapp.v1.ListChannelAppsInput\x1a-.ai.stigmer.agentic.channelapp.v1.ChannelApps\"E¸\x18A\b\x01\x10\x1e\"\x03org*6unauthorized to list channel apps in this organization\x1a\x04\xa0\xff+0B\xb1\x02\n" +
 	"$com.ai.stigmer.agentic.channelapp.v1B\n" +
-	"QueryProtoP\x01ZXgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channelapp/v1;channelappv1\xa2\x02\x04ASAC\xaa\x02 Ai.Stigmer.Agentic.Channelapp.V1\xca\x02 Ai\\Stigmer\\Agentic\\Channelapp\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Channelapp\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Channelapp::V1b\x06proto3"
+	"QueryProtoP\x01ZXgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/channelapp/v1;channelappv1\xa2\x02\x04ASAC\xaa\x02 Ai.Stigmer.Agentic.Channelapp.V1\xca\x02 Ai\\Stigmer\\Agentic\\Channelapp\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Channelapp\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Channelapp::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_channelapp_v1_query_proto_goTypes = []any{
 	(*apiresource.ApiResourceId)(nil),        // 0: ai.stigmer.commons.apiresource.ApiResourceId

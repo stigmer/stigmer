@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import type { BulkAction } from "../types.js";
 
 /** Props for {@link BulkActionBar}. */

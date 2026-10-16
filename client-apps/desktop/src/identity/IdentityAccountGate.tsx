@@ -7,7 +7,7 @@
 
 import type { ReactNode } from "react";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
-import { useIdentityAccountGate } from "@stigmer/react";
+import { useIdentityAccountGate } from "@stigmer/react-sdk";
 import { useAuth } from "../auth/AuthProvider";
 import { GateHeader } from "../shell/GateHeader";
 

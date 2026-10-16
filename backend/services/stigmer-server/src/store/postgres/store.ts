@@ -40,7 +40,7 @@ import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import pg from "pg";
 import type { Pool, PoolClient } from "pg";
 
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import {
   AuditNotFoundError,

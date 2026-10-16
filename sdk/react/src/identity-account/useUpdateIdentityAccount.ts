@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import type { IdentityAccount, IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccount, IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

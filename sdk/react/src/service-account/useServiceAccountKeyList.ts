@@ -10,10 +10,10 @@
  * the account: the organization's admins. As with every key read, no raw key
  * value comes back, only the fingerprint.
  */
-import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import type { ApiKey } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { create } from "@bufbuild/protobuf";
-import { ListApiKeysByAccountInputSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
+import { ListApiKeysByAccountInputSchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/io_pb";
 import { useCursorPages } from "../internal/useCursorPages.js";
 
 /** Return value of {@link useServiceAccountKeyList}. */

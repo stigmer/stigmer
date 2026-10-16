@@ -11,7 +11,7 @@ export type { ClassValue };
  * a host application's own Tailwind build. The prefix is deliberately NOT
  * `stgm`: Tailwind v4 prefixes theme variables too, and a `stgm` prefix would
  * collide with the `--stgm-*` token namespace (`--stgm-font-sans`,
- * `--stgm-shadow-sm`) that `@stigmer/theme` already owns.
+ * `--stgm-shadow-sm`) that `@stigmer/design-tokens` already owns.
  */
 export const UTILITY_PREFIX = "stg:";
 

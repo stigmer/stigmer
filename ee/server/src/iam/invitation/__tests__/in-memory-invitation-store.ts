@@ -12,20 +12,20 @@
 import { clone, create, toBinary } from "@bufbuild/protobuf";
 import { timestampFromDate, TimestampSchema } from "@bufbuild/protobuf/wkt";
 
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   ApiResourceAuditInfoSchema,
   ApiResourceAuditSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
+import type { Invitation } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
 import {
   InvitationRedemptionSchema,
   InvitationSchema,
   InvitationStatusSchema,
-} from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
-import { InvitationState } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/enum_pb";
-import { InvitationSpecSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/spec_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
+import { InvitationState } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/enum_pb";
+import { InvitationSpecSchema } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/spec_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import type { ListIndexCursor, ListIndexRow } from "@stigmer/server";
 

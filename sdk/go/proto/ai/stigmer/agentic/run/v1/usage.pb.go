@@ -1500,7 +1500,7 @@ const file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc = "" +
 	"\x1cPROVIDER_KEY_SOURCE_PLATFORM\x10\x01\x12$\n" +
 	" PROVIDER_KEY_SOURCE_ORGANIZATION\x10\x02B\x80\x02\n" +
 	"\x1dcom.ai.stigmer.agentic.run.v1B\n" +
-	"UsageProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
+	"UsageProtoP\x01ZJgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_run_v1_usage_proto_rawDescOnce sync.Once

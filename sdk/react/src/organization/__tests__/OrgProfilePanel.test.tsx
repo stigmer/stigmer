@@ -13,12 +13,12 @@ import { create } from "@bufbuild/protobuf";
 import {
   OrganizationSchema,
   type Organization,
-} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { CheckMyPermissionInput } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import {
   FederationIssuerSchema,
   type FederationIssuer,
-} from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";

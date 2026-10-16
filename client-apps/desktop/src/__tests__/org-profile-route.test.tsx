@@ -8,7 +8,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, matchRoutes } from "react-router-dom";
-import type { OrgProfileSectionProps } from "@stigmer/react";
+import type { OrgProfileSectionProps } from "@stigmer/react-sdk";
 
 vi.mock("@tauri-apps/plugin-http", () => ({ fetch: vi.fn() }));
 vi.mock("@tauri-apps/plugin-deep-link", () => ({ onOpenUrl: vi.fn() }));
@@ -23,8 +23,8 @@ vi.mock("@tauri-apps/api/window", () => ({
 }));
 vi.mock("@tauri-apps/plugin-updater", () => ({ check: vi.fn().mockResolvedValue(null) }));
 
-vi.mock("@stigmer/react", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@stigmer/react")>()),
+vi.mock("@stigmer/react-sdk", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-sdk")>()),
   OrgProfileSection: ({ onOrgChanged }: OrgProfileSectionProps) => (
     <button type="button" onClick={() => onOrgChanged?.({} as never)}>
       open a child

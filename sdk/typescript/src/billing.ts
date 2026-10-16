@@ -1,7 +1,7 @@
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
-import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
-import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/query_pb";
+import { BillingCommandController } from "@stigmer/apis/ai/stigmer/billing/v1/command_pb";
+import { BillingQueryController } from "@stigmer/apis/ai/stigmer/billing/v1/query_pb";
 import {
   GetOrCreateBillingAccountInputSchema,
   GetBillingAccountInputSchema,
@@ -13,9 +13,9 @@ import {
   type CreateBillingPortalSessionResponse,
   type CreatePaymentMethodSetupSessionResponse,
   type ModelPricingBaselinesResponse,
-} from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
-import type { ModelPricingBaseline } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
-import type { BillingAccount } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
+} from "@stigmer/apis/ai/stigmer/billing/v1/io_pb";
+import type { ModelPricingBaseline } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
+import type { BillingAccount } from "@stigmer/apis/ai/stigmer/billing/v1/billing_account_pb";
 import { wrapError } from "./gen/errors.js";
 import { everyEntry } from "./pages.js";
 

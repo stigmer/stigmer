@@ -352,9 +352,9 @@ export function tsProtoPkg(protoType: string): string {
 // TS naming helpers
 // ---------------------------------------------------------------------
 
-/** "ai.stigmer.agentic.agent.v1" → "@stigmer/protos/ai/stigmer/agentic/agent/v1". */
+/** "ai.stigmer.agentic.agent.v1" → "@stigmer/apis/ai/stigmer/agentic/agent/v1". */
 export function deriveTSImportBase(pkg: string): string {
-  return "@stigmer/protos/" + pkg.replaceAll(".", "/");
+  return "@stigmer/apis/" + pkg.replaceAll(".", "/");
 }
 
 /** snake_case → camelCase (first part unchanged). */

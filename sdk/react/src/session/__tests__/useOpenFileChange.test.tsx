@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
-import type { DisplayFileChange } from "@stigmer/sdk";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { DisplayFileChange } from "@stigmer/client";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
 // ---------------------------------------------------------------------------
 // useOpenFileChange correlates the open file with the ONE session change that

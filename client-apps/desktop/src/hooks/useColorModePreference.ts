@@ -1,5 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
-import type { ColorMode } from "@stigmer/react";
+import type { ColorMode } from "@stigmer/react-sdk";
 
 const COLOR_MODE_KEY = "stigmer:colorMode";
 const DEFAULT: ColorMode = "system";

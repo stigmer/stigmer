@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { cn } from "@stigmer/theme";
-import { buildAgentProto, getUserMessage, serializeManifest } from "@stigmer/sdk";
-import type { AgentInput } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { buildAgentProto, getUserMessage, serializeManifest } from "@stigmer/client";
+import type { AgentInput } from "@stigmer/client";
 import type { AgentWizardData } from "./types.js";
 import { useOrgSlugForId } from "../../organization/useOrgRefs.js";
 

@@ -9,7 +9,7 @@
  * they change only through the entry writes (useVaultEntries, useMyVault).
  */
 import { useCallback, useState } from "react";
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

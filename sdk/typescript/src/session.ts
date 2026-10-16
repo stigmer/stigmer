@@ -8,7 +8,7 @@
  * paths must filter this sentinel so it is never shown to end users.
  */
 
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 
 /**
  * Sentinel value the backend writes as a placeholder subject when a session
@@ -74,7 +74,7 @@ export function resolvedSubject(subject: string | undefined): string | null {
  *
  * Set it at session creation via `session.create({ metadata })` or the
  * one-call bootstrap's `sessionSpec.metadata`, or use the typed
- * `sessionContext` field on the `@stigmer/react` hooks, which maps onto
+ * `sessionContext` field on the `@stigmer/react-sdk` hooks, which maps onto
  * this key via {@link mergeSessionContext}.
  *
  * Personalization, not authorization: anyone who can create the session

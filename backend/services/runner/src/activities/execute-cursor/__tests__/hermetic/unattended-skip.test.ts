@@ -29,7 +29,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   ApprovalMode,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { foldSession, turnOf, type ToolUse } from "@stigmer/session-log";
 
 vi.mock("@cursor/sdk", async () =>

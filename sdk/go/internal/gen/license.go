@@ -7,9 +7,9 @@ import (
 	"iter"
 	"time"
 
-	licensev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/license/v1"
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	platformv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/platform/v1"
+	licensev1 "go.stigmer.ai/sdk/proto/ai/stigmer/billing/license/v1"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	platformv1 "go.stigmer.ai/sdk/proto/ai/stigmer/platform/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"

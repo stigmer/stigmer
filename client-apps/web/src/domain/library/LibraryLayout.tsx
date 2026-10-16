@@ -7,7 +7,7 @@ import {
   type ActiveDetail,
 } from "@/domain/library/library-navigation";
 import { LibraryBreadcrumb } from "@/domain/library/LibraryBreadcrumb";
-import { LibraryBreadcrumbProvider } from "@stigmer/react";
+import { LibraryBreadcrumbProvider } from "@stigmer/react-sdk";
 import { AgentDetailPageInner } from "@/domain/library/agents/AgentDetailPage";
 import { SkillDetailPageInner } from "@/domain/library/skills/SkillDetailPage";
 import { ScheduleDetailPageInner } from "@/domain/library/schedules/ScheduleDetailPage";

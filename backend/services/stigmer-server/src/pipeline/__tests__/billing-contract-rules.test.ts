@@ -25,17 +25,17 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
   PlanInstrument,
   PlanSpecSchema,
-} from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
-import { LicenseSpecSchema } from "@stigmer/protos/ai/stigmer/billing/license/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/billing/plan/v1/spec_pb";
+import { LicenseSpecSchema } from "@stigmer/apis/ai/stigmer/billing/license/v1/spec_pb";
 import {
   EntitlementLimitsSchema,
   EntitlementsSchema,
   Feature,
-} from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+} from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import {
   LicenseClaimsSchema,
   LicenseTerm,
-} from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+} from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 import { describe, expect, it } from "vitest";
 
 import { validator } from "../steps/validation.js";

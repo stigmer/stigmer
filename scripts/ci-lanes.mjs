@@ -315,7 +315,7 @@ export const LANES = {
       // (the workflow says why). Its source holds the Temporal CLI's pin,
       // downloader and the errors it exits with too; the installer is beside it
       // (scripts/lane-triggers.test.mjs fails when any is missing). What the
-      // CLI imports by package name (@stigmer/sdk and the others) is not
+      // CLI imports by package name (@stigmer/client and the others) is not
       // traced, as that guard's header says, so their changes reach this lane
       // only through the paths above.
       "client-apps/cli/src/**",

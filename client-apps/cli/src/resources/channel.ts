@@ -27,18 +27,18 @@
 // everything else as stored. Disabling pauses a channel; delete is the
 // teardown.
 //
-// URL and snippet shapes come from @stigmer/sdk's sharing helpers — the single
+// URL and snippet shapes come from @stigmer/client's sharing helpers — the single
 // source of truth shared with the web console — so every surface emits
 // byte-identical output. The caller supplies the app origin (resolved from the
 // backend type by the command layer) to keep this module pure and env-free.
 
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { Channel, ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import { RotateChannelLinkInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
-import { ChannelAudience, type WebChannelConfig } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Channel, ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import { RotateChannelLinkInputSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
+import { ChannelAudience, type WebChannelConfig } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   buildChatUrl,
   buildEmbedSnippet,
@@ -47,7 +47,7 @@ import {
   toChannelInput,
   type ChannelInput,
   type Stigmer,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
 import { idPrefixesFor, isAgentId, parseReference } from "./reference.js";

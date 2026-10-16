@@ -5,8 +5,8 @@
  * completing once it is approved. Each frame is the turn's session events,
  * folded; nothing reads the clock.
  */
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { samples, sampleInstant } from "@stigmer/react/test";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { samples, sampleInstant } from "@stigmer/react-sdk/test";
 import type { ScenarioStep } from "@scenar/react";
 import { conversation, type DemoConversation } from "../../fixtures";
 

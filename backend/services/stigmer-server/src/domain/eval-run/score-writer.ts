@@ -40,16 +40,16 @@ import { create } from "@bufbuild/protobuf";
 
 import { JUDGE_INSTRUCTION_VERSION, cutReason } from "@stigmer/eval-runtime/judge";
 import type { EvalGrader } from "@stigmer/plugin-package";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { ScoreSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
 import {
   CriterionResult,
   ScoreSource,
-} from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
-import { ScoreCriterionSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/spec_pb";
-import { ScoreStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/status_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
+import { ScoreCriterionSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/spec_pb";
+import { ScoreStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/status_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 import { EVAL_METRIC } from "../score/constants.js";
 import { replaceUnlessGraded } from "../score/record.js";

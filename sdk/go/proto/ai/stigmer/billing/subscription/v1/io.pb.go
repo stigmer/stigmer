@@ -8,7 +8,7 @@ package subscriptionv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/platform/v1"
+	v1 "go.stigmer.ai/sdk/proto/ai/stigmer/platform/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -799,7 +799,7 @@ const file_ai_stigmer_billing_subscription_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"child_orgs\x10\x03\x12\x0f\n" +
 	"\vagent_hours\x10\x04\"\x04\b\x02\x10\x02*\x11commission_creditB\xbc\x02\n" +
-	"&com.ai.stigmer.billing.subscription.v1B\aIoProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/subscription/v1;subscriptionv1\xa2\x02\x04ASBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3"
+	"&com.ai.stigmer.billing.subscription.v1B\aIoProtoP\x01Z\\go.stigmer.ai/sdk/proto/ai/stigmer/billing/subscription/v1;subscriptionv1\xa2\x02\x04ASBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_billing_subscription_v1_io_proto_rawDescOnce sync.Once

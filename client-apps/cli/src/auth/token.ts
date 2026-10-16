@@ -1,7 +1,7 @@
 // Auth0 token operations: exchange an authorization code for tokens, refresh an
 // expired access token, and expose a token provider that refreshes silently.
 
-import type { TokenProvider } from "@stigmer/sdk";
+import type { TokenProvider } from "@stigmer/client";
 import {
   type Config,
   type NamedBackendConfig,

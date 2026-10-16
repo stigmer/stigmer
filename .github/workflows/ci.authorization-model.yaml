@@ -60,11 +60,11 @@ jobs:
       - name: Install npm workspace dependencies
         run: npm ci
 
-      # The resource-kind generator reads kind metadata from @stigmer/protos
+      # The resource-kind generator reads kind metadata from @stigmer/apis
       # at runtime, and that package exports only ./dist, which a bare
       # checkout does not have (stigmer#1498).
       - name: Build the protos dist the generator reads
-        run: npm run build -w @stigmer/protos
+        run: npm run build -w @stigmer/apis
 
       - name: Test the generator
         run: npm run test -w @stigmer/codegen -- --coverage.enabled --coverage.reportsDirectory=coverage/v8 --reporter=default --reporter=github-actions --reporter=json --outputFile.json=coverage/report.json

@@ -10,9 +10,9 @@
  */
 import { useCallback } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { cn } from "@stigmer/theme";
-import { getUserMessage, iamRoleDisplayName } from "@stigmer/sdk";
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage, iamRoleDisplayName } from "@stigmer/client";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { useResourceAccess } from "../grant/useResourceAccess.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { orgRoleOf } from "./org-role.js";

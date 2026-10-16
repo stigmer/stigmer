@@ -3,7 +3,7 @@
 // Pure presentational artifact list row for the session's artifact facets.
 // Domain: run (renders the ArtifactRowItem view-model).
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { FileTypeIcon, FolderTypeIcon } from "../internal/file-icons/index.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import type { ArtifactRowItem } from "./artifact-row-item.js";

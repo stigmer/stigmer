@@ -67,7 +67,7 @@
  *   node scripts/turbo-set.mjs libs build
  *   node scripts/turbo-set.mjs libs build --force        # bypass the cache
  *   node scripts/turbo-set.mjs runner-deps build
- *   node scripts/turbo-set.mjs libs test --only=@stigmer/sdk,@stigmer/react
+ *   node scripts/turbo-set.mjs libs test --only=@stigmer/client,@stigmer/react-sdk
  *   node scripts/turbo-set.mjs root test:root
  *
  * Every extra argument other than --only is handed to `turbo run` unchanged,

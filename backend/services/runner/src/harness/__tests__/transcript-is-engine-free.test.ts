@@ -35,7 +35,7 @@ const SRC_ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const TRANSCRIPT_ROOT = join(SRC_ROOT, "harness", "transcript");
 
 /** What a production module under `harness/transcript/` may name. */
-const ALLOWED = new Set(["@bufbuild/protobuf", "@stigmer/protos"]);
+const ALLOWED = new Set(["@bufbuild/protobuf", "@stigmer/apis"]);
 /** What a test under `harness/transcript/__tests__/` may name in addition. */
 const ALLOWED_IN_TESTS = new Set([...ALLOWED, "vitest"]);
 
@@ -49,14 +49,14 @@ describe("packageNames (the checker itself)", () => {
   it("reduces a specifier to its package and drops relatives and builtins", () => {
     const source = [
       'import { create } from "@bufbuild/protobuf";',
-      'import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";',
+      'import type { AgentMessage } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";',
       'import { join } from "node:path";',
       'import { a } from "./events.js";',
       'import { b } from "../../shared/status.js";',
       'import ts from "typescript";',
       'const m = await import("@langchain/core/messages");',
     ].join("\n");
-    expect(packageNames(file, source)).toEqual(["@bufbuild/protobuf", "@stigmer/protos", "typescript", "@langchain/core"]);
+    expect(packageNames(file, source)).toEqual(["@bufbuild/protobuf", "@stigmer/apis", "typescript", "@langchain/core"]);
   });
 });
 

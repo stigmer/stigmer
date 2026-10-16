@@ -11,7 +11,7 @@
  * reads the teammate's My vault, which no browser here can read, so the
  * setups judge readiness for the person at the keyboard only.
  */
-import type { ResourceRef } from "@stigmer/sdk";
+import type { ResourceRef } from "@stigmer/client";
 
 /** The vaults a conversation uses. */
 export interface ConversationVaults {

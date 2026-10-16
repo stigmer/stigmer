@@ -28,10 +28,10 @@
 
 import { useState, type ReactNode } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import type { AgentQualityReport } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
-import { cn } from "@stigmer/theme";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import type { AgentQualityReport } from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
+import { cn } from "@stigmer/design-tokens";
 import { agentVersionLabel, useAgentVersions } from "../agent/useAgentVersions.js";
 import { TrendChart } from "../charts/TrendChart.js";
 import type { TrendMarker } from "../charts/trend-layout.js";

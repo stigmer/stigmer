@@ -38,7 +38,7 @@
  *     must hand THIS one, never its own instance, to its consumers.
  */
 import type { Transport } from "@connectrpc/connect";
-import type { ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+import type { ApiResourceRef } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 
 import type { CreateAccount } from "../domain/identityaccount/provisioning.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";

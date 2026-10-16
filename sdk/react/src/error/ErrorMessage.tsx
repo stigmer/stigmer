@@ -7,8 +7,8 @@ import {
   getRpcMetadata,
   isRetryableError,
   type ErrorCategory,
-} from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+} from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 
 /** Props for {@link ErrorMessage}. */
 export interface ErrorMessageProps {
@@ -43,7 +43,7 @@ const CATEGORY_TITLES: Record<ErrorCategory, string> = {
  * technical details (RPC method and path).
  *
  * Uses `classifyError()`, `getUserMessage()`, `getRpcMetadata()`, and
- * `isRetryableError()` from `@stigmer/sdk` to provide structured,
+ * `isRetryableError()` from `@stigmer/client` to provide structured,
  * user-friendly error rendering.
  *
  * All visual properties flow through `--stgm-*` design tokens. No

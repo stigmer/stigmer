@@ -1,5 +1,5 @@
 // Test fixtures for the terminal components: session events, built with
-// `@stigmer/react/test`'s samples where they cover the shape and with
+// `@stigmer/react-sdk/test`'s samples where they cover the shape and with
 // `create(SessionEventSchema)` where they do not (asks' answers, file
 // reviews, subagent threads), folded the way the conversation hooks fold
 // them. Every component under test reads the fold's types.
@@ -7,9 +7,9 @@ import { create, type JsonObject, type MessageInitShape } from "@bufbuild/protob
 import {
   SessionEventSchema,
   type SessionEvent,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import type { FileReviewSet, ToolUse, Turn } from "@stigmer/sdk";
-import { samples } from "@stigmer/react/test";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import type { FileReviewSet, ToolUse, Turn } from "@stigmer/client";
+import { samples } from "@stigmer/react-sdk/test";
 
 export const RUN_ID = "run_00000000000000000000000001";
 

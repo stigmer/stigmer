@@ -19,8 +19,8 @@
  * server would refuse, and renders its `fallback` otherwise.
  */
 import { type ReactNode, useCallback, useEffect, useId, useState } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import {

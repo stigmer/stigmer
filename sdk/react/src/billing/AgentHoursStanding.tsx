@@ -8,8 +8,8 @@
 // hours used and no meter. The words "agent hours" are the plan's billed
 // unit; the Usage page's working time is the clock behind them.
 
-import { cn } from "@stigmer/theme";
-import { AgentHoursWindow, type AgentHours } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
+import { cn } from "@stigmer/design-tokens";
+import { AgentHoursWindow, type AgentHours } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
 import { formatUsd } from "./format.js";
 import { formatAgentHours, formatPeriodDay } from "./plan-features.js";
 

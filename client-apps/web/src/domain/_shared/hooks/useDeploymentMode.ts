@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Stigmer, DeploymentMode } from "@stigmer/sdk";
+import type { Stigmer, DeploymentMode } from "@stigmer/client";
 import { getApiBaseUrl } from "@/config/env";
 
 export type { DeploymentMode };

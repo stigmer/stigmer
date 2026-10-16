@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
 import {
   IamPermission,
   IamPermissionSchema,
-} from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import { permissionByEnumName } from "../permissions.js";
 

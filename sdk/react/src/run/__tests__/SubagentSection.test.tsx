@@ -7,7 +7,7 @@
 // tool calls as groups, internal to-do calls and compactions left out.
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, act, fireEvent } from "@testing-library/react";
-import type { MessageItem, NoteItem, ThinkingItem, Thread, TurnItem } from "@stigmer/sdk";
+import type { MessageItem, NoteItem, ThinkingItem, Thread, TurnItem } from "@stigmer/client";
 import { SubagentSection, subagentSubjectOf } from "../SubagentSection";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
 import { thread, toolUse } from "./__fixtures__/fold-values";

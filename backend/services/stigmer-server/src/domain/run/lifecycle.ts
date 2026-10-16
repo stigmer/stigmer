@@ -32,24 +32,24 @@
 import { create } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
 
-import type { Run, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run, RunValueSource } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunCredentialsSchema,
   RunSchema,
   RunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
 import {
   RunPhase,
   RunPhaseSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type {
   PauseRunInput,
   RecoverRunInput,
   ResumeRunInput,
   TerminateRunInput,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { DescMessage, DescMethod, MessageShape } from "@bufbuild/protobuf";
 import { enumToJson } from "@bufbuild/protobuf";
 

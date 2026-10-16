@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
-import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+import type { Grant } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
+import type { GrantSpec } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

@@ -58,8 +58,8 @@
     "@connectrpc/connect": "^2.0.0",
     "@connectrpc/connect-node": "^2.1.1",
     "@modelcontextprotocol/sdk": "^1.26.0",
-    "@stigmer/protos": "*",
-    "@stigmer/sdk": "*",
+    "@stigmer/apis": "*",
+    "@stigmer/client": "*",
     "yaml": "^2.8.2",
     "zod": "^3.25.0"
   },

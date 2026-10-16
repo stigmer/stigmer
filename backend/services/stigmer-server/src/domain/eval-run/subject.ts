@@ -5,7 +5,7 @@
  *
  * Proven by __tests__/subject.test.ts.
  */
-import type { EvalRunSpec } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import type { EvalRunSpec } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
 
 /** An eval run's subject. */
 export type EvalRunSubject =

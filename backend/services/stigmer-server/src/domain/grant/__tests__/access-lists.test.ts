@@ -18,10 +18,10 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
-import { ApiResourceRefViewSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { GrantSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
+import { ApiResourceRefViewSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import type { GrantSpec } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 
 import type { PrincipalDisplay } from "../../../extensions/principal-display.js";
 import { buildPrincipalAccessList, resolveHierarchy } from "../access-lists.js";

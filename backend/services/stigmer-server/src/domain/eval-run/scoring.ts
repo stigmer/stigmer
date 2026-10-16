@@ -46,10 +46,10 @@ import type {
   EvalRunCase,
   EvalRunCaseTarget,
   EvalRunStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import { EvalRunTryState } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { EvalRunTryState } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
 import { create } from "@bufbuild/protobuf";
-import { EvalRunAggregatesSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { EvalRunAggregatesSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
 
 /** The threshold a case needs when the eval names none. */
 export const DEFAULT_THRESHOLD = 1;

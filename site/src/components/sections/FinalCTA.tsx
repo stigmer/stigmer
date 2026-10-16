@@ -67,8 +67,8 @@ function SDKSnippets() {
     ts: {
       label: "TypeScript",
       installPrefix: "$",
-      install: "npm install @stigmer/sdk",
-      code: `import { Stigmer } from "@stigmer/sdk";
+      install: "npm install @stigmer/client",
+      code: `import { Stigmer } from "@stigmer/client";
 
 const stigmer = new Stigmer({
   baseUrl: "https://api.stigmer.ai",
@@ -85,8 +85,8 @@ const run = await stigmer.run.create({
     go: {
       label: "Go",
       installPrefix: "$",
-      install: "go get github.com/stigmer/stigmer/sdk/go/v3",
-      code: `import stigmer "github.com/stigmer/stigmer/sdk/go/v3"
+      install: "go get go.stigmer.ai/sdk",
+      code: `import stigmer "go.stigmer.ai/sdk"
 
 client, _ := stigmer.NewClient("sk_...")
 defer client.Close()
@@ -103,7 +103,7 @@ run, _ := client.Run.Create(ctx,
     python: {
       label: "Python",
       installPrefix: "$",
-      install: "pip install stigmer",
+      install: "pip install stigmer-sdk",
       code: `from stigmer import StigmerClient, RunInput
 
 with StigmerClient("sk_...") as client:

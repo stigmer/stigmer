@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { PlanInput } from "@stigmer/sdk";
-import type { Plan } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
+import type { PlanInput } from "@stigmer/client";
+import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

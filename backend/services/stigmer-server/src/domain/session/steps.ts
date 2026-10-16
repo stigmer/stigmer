@@ -21,21 +21,21 @@
 import { create, fromBinary } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import {
   ExecutionTarget,
   Harness,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { SessionListSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import type { SessionList } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import type { SessionStatus } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { SessionListSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import type { SessionList } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import type { SessionStatus } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";

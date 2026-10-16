@@ -22,7 +22,7 @@
  */
 
 import { clone } from "@bufbuild/protobuf";
-import { FileChangeSetSchema, type FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import { FileChangeSetSchema, type FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 
 /** The server's merge of a written record onto the held one: each set replaced by id, a new one appended, none removed. */
 export function upsertFileChanges(held: readonly FileChangeSet[], written: readonly FileChangeSet[]): FileChangeSet[] {

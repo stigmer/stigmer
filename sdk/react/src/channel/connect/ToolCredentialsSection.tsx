@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { cn } from "@stigmer/theme";
-import type { ResourceRef } from "@stigmer/sdk";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import type { ResourceRef } from "@stigmer/client";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelToolCredentials } from "../ChannelToolCredentials.js";
 import { ChevronIcon } from "./icons.js";
 import { agentUsesTools } from "../../agent/runServers.js";

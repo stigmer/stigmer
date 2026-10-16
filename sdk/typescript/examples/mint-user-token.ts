@@ -15,7 +15,7 @@
  */
 
 import express from "express";
-import { createNodeClient } from "@stigmer/sdk/node";
+import { createNodeClient } from "@stigmer/client/node";
 
 const app = express();
 

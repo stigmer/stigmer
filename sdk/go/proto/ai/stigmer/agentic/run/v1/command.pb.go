@@ -7,8 +7,8 @@
 package runv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -37,7 +37,7 @@ const file_ai_stigmer_agentic_run_v1_command_proto_rawDesc = "" +
 	"\x05pause\x12(.ai.stigmer.agentic.run.v1.PauseRunInput\x1a\x1e.ai.stigmer.agentic.run.v1.Run\"'¸\x18#\b\x02\x10)\"\x02id*\x19unauthorized to pause run\x12}\n" +
 	"\x06resume\x12).ai.stigmer.agentic.run.v1.ResumeRunInput\x1a\x1e.ai.stigmer.agentic.run.v1.Run\"(¸\x18$\b\x02\x10)\"\x02id*\x1aunauthorized to resume run\x12\x81\x01\n" +
 	"\x10uploadAttachment\x122.ai.stigmer.agentic.run.v1.UploadAttachmentRequest\x1a3.ai.stigmer.agentic.run.v1.UploadAttachmentResponse\"\x04и\x18\x01\x1a\x04\xa0\xff+)B\x82\x02\n" +
-	"\x1dcom.ai.stigmer.agentic.run.v1B\fCommandProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
+	"\x1dcom.ai.stigmer.agentic.run.v1B\fCommandProtoP\x01ZJgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_run_v1_command_proto_goTypes = []any{
 	(*Run)(nil),                       // 0: ai.stigmer.agentic.run.v1.Run

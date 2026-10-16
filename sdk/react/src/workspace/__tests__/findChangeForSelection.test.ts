@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { DisplayFileChange, DisplayFileChangeType } from "@stigmer/sdk";
+import type { DisplayFileChange, DisplayFileChangeType } from "@stigmer/client";
 import { findChangeForSelection } from "../findChangeForSelection";
 import type { WorkspaceEntry } from "../useWorkspaceEntries";
 

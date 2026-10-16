@@ -288,7 +288,7 @@ const file_ai_stigmer_iam_oauthapp_v1_io_proto_rawDesc = "" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"updateMask:\xc1\x01\xbaH\xbd\x01\x1a\xba\x01\n" +
 	"\x17update_names_its_target\x12Iresource.metadata.id is required: an update names the OAuth app by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\x88\x02\n" +
-	"\x1ecom.ai.stigmer.iam.oauthapp.v1B\aIoProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
+	"\x1ecom.ai.stigmer.iam.oauthapp.v1B\aIoProtoP\x01ZPgo.stigmer.ai/sdk/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_oauthapp_v1_io_proto_rawDescOnce sync.Once

@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@stigmer/enterprise": "file:../..",
-    "@stigmer/protos": "file:../../../../apis/stubs/ts",
+    "@stigmer/apis": "file:../../../../apis/stubs/ts",
     "@stigmer/server": "file:../../../../backend/services/stigmer-server"
   },
   "devDependencies": {

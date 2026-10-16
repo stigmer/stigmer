@@ -27,7 +27,7 @@ import type { Interceptor } from "@connectrpc/connect";
 import {
   Health,
   HealthCheckResponse_ServingStatus,
-} from "@stigmer/protos/grpc/health/v1/health_pb";
+} from "@stigmer/apis/grpc/health/v1/health_pb";
 import { describe, expect, it } from "vitest";
 
 function recordingInterceptor(name: string, log: string[]): Interceptor {

@@ -145,7 +145,7 @@ embedded in a product whose whole surface the *host* has already judged
 trusted — e.g. a desktop app whose sessions operate on the user's own local
 folder, where file review is the safety net — the host may pre-arm the
 session default via `StigmerProvider`'s `approvalDefaults` prop
-(`@stigmer/react`). This is the same trust judgment behind app-level auto-run
+(`@stigmer/react-sdk`). This is the same trust judgment behind app-level auto-run
 modes in coding IDEs, made by the embedding product rather than the platform.
 The user always keeps the last word: the "Auto-approving tool calls" notice
 shows from the first render with its "Turn off" control, guests never inherit

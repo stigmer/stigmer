@@ -379,7 +379,7 @@ jobs:
       # would ship no runner at all (and historically the dev symlink leaked
       # the full ~485 MB runner tree into local bundles — or a broken one
       # without dist/node_modules in CI). The runner is not an npm workspace,
-      # so its deps install here. @stigmer/protos dist was built by build:libs.
+      # so its deps install here. @stigmer/apis dist was built by build:libs.
       # On macOS with APPLE_SIGNING_IDENTITY exported above, the stage script
       # also code-signs the runner's native binaries: Tauri never signs
       # Resources/, and the notary rejects a bundle with any unsigned Mach-O.

@@ -1,7 +1,7 @@
 "use client";
 
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { ResourceRef } from "@stigmer/sdk";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { ResourceRef } from "@stigmer/client";
 import { useDeploymentMode } from "../deployment-mode.js";
 import {
   useToolCredentialsReadiness,

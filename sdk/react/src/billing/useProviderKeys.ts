@@ -2,12 +2,12 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { ProviderKey } from "@stigmer/protos/ai/stigmer/billing/providerkey/v1/api_pb";
+import type { ProviderKey } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/api_pb";
 import {
   DeleteProviderKeyInputSchema,
   ListProviderKeysInputSchema,
   SetProviderKeyInputSchema,
-} from "@stigmer/protos/ai/stigmer/billing/providerkey/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";

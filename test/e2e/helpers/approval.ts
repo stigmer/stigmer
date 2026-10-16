@@ -3,10 +3,10 @@
 // the mock LLM, so the browser only renders and resolves what was seeded.
 import type { Page, Locator } from "@playwright/test";
 import { create } from "@bufbuild/protobuf";
-import type { HookSourceInput, Stigmer } from "@stigmer/sdk";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { TerminateRunInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import type { HookSourceInput, Stigmer } from "@stigmer/client";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { TerminateRunInputSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import {
   anthropicText,
   anthropicToolUses,

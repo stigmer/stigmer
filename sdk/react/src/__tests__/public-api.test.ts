@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import { ENTERPRISE_CLOUD_PLAN, FEATURE_COPY, type NamedFeature, type SessionRunConfig } from "../index.js";
 
 // Root-surface pin (oss#802): the package's exports map exposes only the root

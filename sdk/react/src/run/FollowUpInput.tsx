@@ -7,7 +7,7 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { ModelSelector } from "../models/ModelSelector.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 

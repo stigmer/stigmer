@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import {
   ApiResourceKind,
   ResourceTier,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { getKindMeta } from "../../../pipeline/apiresource-meta.js";
 import {

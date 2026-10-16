@@ -64,13 +64,13 @@ import {
   serverActingFor,
 } from "@stigmer/server";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
-import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Grant } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
+import { GrantCommandController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/command_pb";
 import type {
   ApiResourceRef,
   GrantSpec,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 
 import type { TransportRef } from "../../rpc/transport-ref.js";
 

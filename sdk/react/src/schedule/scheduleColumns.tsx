@@ -1,8 +1,8 @@
 "use client";
 
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { isDeletedReference } from "@stigmer/sdk";
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { isDeletedReference } from "@stigmer/client";
+import type { Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
 import type { WorkbenchColumnDef } from "../resource-workbench/types.js";

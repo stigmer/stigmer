@@ -2,8 +2,8 @@
 
 import { useMemo, useRef } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { ListSessionsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { ListSessionsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useCursorPages } from "../internal/useCursorPages.js";
 

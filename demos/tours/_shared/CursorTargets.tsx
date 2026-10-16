@@ -1,5 +1,5 @@
 /**
- * Cursor targets on controls a real `@stigmer/react` component renders
+ * Cursor targets on controls a real `@stigmer/react-sdk` component renders
  * without one. Scenar's cursor, scroll and camera find their element by
  * `data-cursor-target`, and the SDK ships that hook only on the controls an
  * earlier guided tour needed; the plugin page's "Sign in", "Check tools"

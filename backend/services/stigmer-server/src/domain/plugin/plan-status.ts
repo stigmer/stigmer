@@ -46,7 +46,7 @@ import { create } from "@bufbuild/protobuf";
 
 import { hookVariableReferences, toolServerSegment } from "@stigmer/plugin-package";
 import type { EvalSuite, PluginFiles, PluginHooks, PluginPackage, PluginSubAgent } from "@stigmer/plugin-package";
-import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
   HttpMcpServerSchema,
   McpServerEntrySchema,
@@ -54,15 +54,15 @@ import {
   PluginSkillSchema,
   PluginWarningSchema,
   StdioMcpServerSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import type {
   McpServerEntry,
   PluginAgent,
   PluginSkill,
   PluginWarning,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
-import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
+import type { EnvVarDeclaration } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 
 import { validator } from "../../pipeline/steps/validation.js";
 import { SERVER_WARNING_KINDS, VERSION_TAG_PATTERN } from "./constants.js";

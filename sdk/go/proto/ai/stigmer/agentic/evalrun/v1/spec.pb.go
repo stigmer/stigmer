@@ -8,8 +8,8 @@ package evalrunv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	v1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -567,7 +567,7 @@ const file_ai_stigmer_agentic_evalrun_v1_spec_proto_rawDesc = "" +
 	"\x1deval_run_ablation_unspecified\x10\x00\x12\"\n" +
 	"\x1eeval_run_ablation_with_without\x10\x01\x12\x1a\n" +
 	"\x16eval_run_ablation_none\x10\x02B\x9b\x02\n" +
-	"!com.ai.stigmer.agentic.evalrun.v1B\tSpecProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/evalrun/v1;evalrunv1\xa2\x02\x04ASAE\xaa\x02\x1dAi.Stigmer.Agentic.Evalrun.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Evalrun\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Evalrun\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Evalrun::V1b\x06proto3"
+	"!com.ai.stigmer.agentic.evalrun.v1B\tSpecProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/evalrun/v1;evalrunv1\xa2\x02\x04ASAE\xaa\x02\x1dAi.Stigmer.Agentic.Evalrun.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Evalrun\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Evalrun\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Evalrun::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_evalrun_v1_spec_proto_rawDescOnce sync.Once

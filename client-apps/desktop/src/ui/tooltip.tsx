@@ -1,6 +1,6 @@
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip";
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 function TooltipProvider({ ...props }: TooltipPrimitive.Provider.Props) {
   return <TooltipPrimitive.Provider data-slot="tooltip-provider" {...props} />;

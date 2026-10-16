@@ -12,9 +12,9 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { SnapshotKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { FileChangeSetSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { SnapshotKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeSetSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import {
   awaitsReview,

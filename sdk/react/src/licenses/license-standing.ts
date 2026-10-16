@@ -18,8 +18,8 @@
 // Expiring from the day it was issued, and a badge that is always on warns
 // nobody.
 
-import { LicenseState } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
-import type { License } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
+import { LicenseState } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
+import type { License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
 import type { StatusPhase } from "../resource-workbench/types.js";
 import { coveredThroughDay, toDate } from "./license-format.js";
 

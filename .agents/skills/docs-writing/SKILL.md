@@ -65,7 +65,7 @@ yes wins. Two doctrines sit behind it:
 
 Every screen demonstration (animated tour, still, screenshot journey) is a
 Scenar scenario under `demos/tours/`: a timeline of steps plus a pure render
-function over real `@stigmer/react` components and frozen fixtures.
+function over real `@stigmer/react-sdk` components and frozen fixtures.
 `demos/README.md` is the authoring guide and the source of the numbers (the
 canonical viewport, the sizing contract, the theme contract); read it before
 touching a tour. `scripts/verify-scenar-tours.mjs` enforces the invariants in

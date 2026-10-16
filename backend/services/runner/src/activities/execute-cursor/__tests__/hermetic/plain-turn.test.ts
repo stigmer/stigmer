@@ -29,7 +29,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 // Both mocks are hoisted by vitest; they must live in this file. Each factory
 // imports the reusable module and returns its mock surface.

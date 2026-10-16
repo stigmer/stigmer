@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
 import { Switch } from "../switch/Switch.js";
 import { SpinnerIcon } from "./SpinnerIcon.js";
 

@@ -11,9 +11,9 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase, InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { BackendClient } from "../../../client/index.js";
 import { phase, said, user } from "../../__test-utils__/session-events.js";
 

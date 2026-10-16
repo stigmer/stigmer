@@ -25,8 +25,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   FederationIssuerSchema,
   type FederationIssuer,
-} from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
-import type { DeploymentMode } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
+import type { DeploymentMode } from "@stigmer/client";
 import { DeploymentModeContext } from "../../deployment-mode";
 
 const stubs = vi.hoisted(() => ({

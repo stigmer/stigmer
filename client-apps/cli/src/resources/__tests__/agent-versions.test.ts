@@ -5,9 +5,9 @@
 
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it, vi } from "vitest";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentVersionEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentVersionEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
+import type { Stigmer } from "@stigmer/client";
 import { getAgentAtVersion, renderAgentVersionHistory } from "../version.js";
 
 const V2 = "b".repeat(64);

@@ -11,7 +11,7 @@
 
 import { create } from "@bufbuild/protobuf";
 import { ToolMessage } from "@langchain/core/messages";
-import { HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { hookLeaseKey } from "../../shared/approval-policy.js";
 import { HookEvaluator } from "../../shared/hooks/evaluate.js";

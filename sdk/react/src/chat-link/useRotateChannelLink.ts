@@ -2,8 +2,8 @@
 
 import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import { RotateChannelLinkInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import { RotateChannelLinkInputSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

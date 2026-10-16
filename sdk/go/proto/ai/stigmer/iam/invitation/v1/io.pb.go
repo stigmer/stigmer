@@ -8,7 +8,7 @@ package invitationv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/v1"
+	v1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -453,7 +453,7 @@ const file_ai_stigmer_iam_invitation_v1_io_proto_rawDesc = "" +
 	"\x05label\x18\x06 \x01(\tR\x05label\x12\x19\n" +
 	"\bis_valid\x18\a \x01(\bR\aisValid\x12%\n" +
 	"\x0einvalid_reason\x18\b \x01(\tR\rinvalidReasonB\x96\x02\n" +
-	" com.ai.stigmer.iam.invitation.v1B\aIoProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/invitation/v1;invitationv1\xa2\x02\x04ASII\xaa\x02\x1cAi.Stigmer.Iam.Invitation.V1\xca\x02\x1cAi\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3"
+	" com.ai.stigmer.iam.invitation.v1B\aIoProtoP\x01ZTgo.stigmer.ai/sdk/proto/ai/stigmer/iam/invitation/v1;invitationv1\xa2\x02\x04ASII\xaa\x02\x1cAi.Stigmer.Iam.Invitation.V1\xca\x02\x1cAi\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_invitation_v1_io_proto_rawDescOnce sync.Once

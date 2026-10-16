@@ -5,7 +5,7 @@
  * the platform for; a GitHub source needs nothing but the network.
  */
 
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 
 import { openGitHubTree } from "./github.js";
 import { openOfficialTree } from "./official.js";

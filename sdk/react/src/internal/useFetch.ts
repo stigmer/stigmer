@@ -75,7 +75,7 @@ export interface UseFetchReturn<T> {
  * @param initialData  Value returned before the first successful fetch.
  * @param options  Optional configuration (e.g. polling interval).
  *
- * @internal Not part of the public `@stigmer/react` API.
+ * @internal Not part of the public `@stigmer/react-sdk` API.
  */
 export function useFetch<T>(
   fetchFn: (() => Promise<T>) | null,

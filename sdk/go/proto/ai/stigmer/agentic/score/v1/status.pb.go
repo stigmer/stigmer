@@ -7,7 +7,7 @@
 package scorev1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -118,7 +118,7 @@ const file_ai_stigmer_agentic_score_v1_status_proto_rawDesc = "" +
 	"\bagent_id\x18\x03 \x01(\tR\aagentId\x12,\n" +
 	"\x12agent_version_hash\x18\x04 \x01(\tR\x10agentVersionHash\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\x8f\x02\n" +
-	"\x1fcom.ai.stigmer.agentic.score.v1B\vStatusProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/score/v1;scorev1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Score.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Score\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Score::V1b\x06proto3"
+	"\x1fcom.ai.stigmer.agentic.score.v1B\vStatusProtoP\x01ZNgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/score/v1;scorev1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Score.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Score\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Score::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_score_v1_status_proto_rawDescOnce sync.Once

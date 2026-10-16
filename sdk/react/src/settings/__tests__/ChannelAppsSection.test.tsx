@@ -25,8 +25,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   ChannelAppSchema,
   type ChannelApp,
-} from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import type { DeploymentMode } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
+import type { DeploymentMode } from "@stigmer/client";
 import { DeploymentModeContext } from "../../deployment-mode";
 
 const stubs = vi.hoisted(() => ({

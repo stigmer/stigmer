@@ -12,9 +12,9 @@ vi.mock("../../hooks", () => ({
   useStigmer: vi.fn(),
 }));
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { StigmerError } from "@stigmer/sdk";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { StigmerError } from "@stigmer/client";
 import { useStigmer } from "../../hooks";
 import { samples } from "../../test/samples";
 import { useLiveRun } from "../useLiveRun";

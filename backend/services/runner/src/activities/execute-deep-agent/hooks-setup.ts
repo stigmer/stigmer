@@ -12,7 +12,7 @@
  * bound and the workspace's virtual paths.
  */
 
-import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { TurnInput, TurnSink, TurnSubagent } from "../../harness/types.js";
 import { hookServerNamesOf } from "../../shared/hooks/tool-view.js";

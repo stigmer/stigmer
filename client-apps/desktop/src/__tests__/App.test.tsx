@@ -96,7 +96,7 @@ vi.mock("sonner", () => ({ Toaster: () => null }));
 const providerProps = vi.hoisted(() => ({
   calls: [] as Record<string, unknown>[],
 }));
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   StigmerProvider: (
     props: Record<string, unknown> & { children: React.ReactNode },
   ) => {
@@ -115,7 +115,7 @@ const sdk = vi.hoisted(() => ({
   configs: [] as Record<string, unknown>[],
   serverInfo: null as null | (() => Promise<{ deploymentMode: string }>),
 }));
-vi.mock("@stigmer/sdk", () => ({
+vi.mock("@stigmer/client", () => ({
   Stigmer: class {
     platform = {
       getServerInfo: () =>

@@ -4,7 +4,7 @@
 // the list read, whose rendering goes to stdout. The backend and the list read
 // are replaced at their module seams; the program and the registry are real.
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Config } from "../../config/index.js";
 import { buildProgram } from "../../program.js";

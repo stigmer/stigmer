@@ -17,8 +17,8 @@
  */
 import type { JsonObject } from "@bufbuild/protobuf";
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import type { Store } from "../../../store/interface.js";
 import type { SessionEventRecord } from "../../../store/session-events.js";

@@ -58,23 +58,23 @@
  */
 import { clone, create } from "@bufbuild/protobuf";
 
-import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
   RunStatusSchema,
   type Run,
   type RunSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ApprovalMode,
   ServiceTier,
   ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   RunConfigSchema,
   type RunConfig,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { RunLanes } from "../../extensions/run-lanes.js";

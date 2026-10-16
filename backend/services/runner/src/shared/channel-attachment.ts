@@ -41,7 +41,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type {
   ChannelTemplate,
   MessagingChannel,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { CHANNELS_MCP_SERVER } from "@stigmer/tool-vocabulary";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";

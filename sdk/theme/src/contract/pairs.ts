@@ -2,7 +2,7 @@
  * The declared contrast contract: which token pairs must remain readable,
  * and at what threshold.
  *
- * Every pair is grounded in a real rendering in `@stigmer/react` (the
+ * Every pair is grounded in a real rendering in `@stigmer/react-sdk` (the
  * `usage` field cites it). The audit resolves both tokens through the real
  * cascade for every preset × color mode and measures the WCAG 2.1 ratio —
  * this file is the single place where a new "text X renders on surface Y"

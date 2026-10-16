@@ -48,19 +48,19 @@
  */
 import { clone, create } from "@bufbuild/protobuf";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Grant } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
 import type {
   ApiResourceRefView,
   PrincipalAccess,
   RoleGrant,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import {
   ApiResourceRefViewSchema,
   PrincipalAccessSchema,
   RoleGrantSchema,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import { ApiResourceRefSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 
 import type { PrincipalDisplay } from "../../extensions/principal-display.js";
 import {

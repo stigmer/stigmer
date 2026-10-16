@@ -4,7 +4,7 @@
  * no instance is ever bound. Delete warns that conversations on the agent
  * cannot continue, in the same words as the agents list's row Delete, and
  * deletes and returns to the list only once the person confirms. The detail view, the confirm dialog and the delete hook
- * are pinned in @stigmer/react; this file pins only the page's wiring.
+ * are pinned in @stigmer/react-sdk; this file pins only the page's wiring.
  * A listed subagent opens the agents detail for its org and slug, and an
  * eval try's run, from the Evals tab, opens through run navigation.
  */
@@ -39,7 +39,7 @@ const page = vi.hoisted(() => ({
   details: [] as string[][],
 }));
 
-vi.mock("@stigmer/react", () => {
+vi.mock("@stigmer/react-sdk", () => {
   const none = () => null;
   return {
     ConfirmDialog: none,

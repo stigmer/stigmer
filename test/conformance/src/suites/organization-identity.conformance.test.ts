@@ -24,7 +24,7 @@
 // The member and outsider arms run on the target's enforcing lane, where a
 // grant is a real row; where a target lends no lane they skip visibly.
 import { Code } from "@connectrpc/connect";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";

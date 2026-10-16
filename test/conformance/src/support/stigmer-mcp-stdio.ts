@@ -22,7 +22,7 @@
 // environment and no vault is asked for it. A plugin never carries a literal
 // value in a server's environment: the library refuses one.
 import type { InitShape } from "./init-shape";
-import type { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { makeAgent } from "./agents";
 import { type PluginFixture, oneServerPlugin } from "./plugins";
 

@@ -7,7 +7,7 @@
  * function the thread is unchanged.
  */
 import { describe, it, expect } from "vitest";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { buildThreadItems, type ThreadItem } from "../MessageThread";
 import { runOf, said, status, turnsOf, user } from "./__fixtures__/thread-events";
 

@@ -4,7 +4,7 @@
 // header toggle, and its by-reference memo comparator.
 import { describe, it, expect, afterEach } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/react";
-import type { Todo } from "@stigmer/sdk";
+import type { Todo } from "@stigmer/client";
 import { TodoCard, todoCardPropsEqual } from "../TodoCard";
 
 afterEach(cleanup);

@@ -10,7 +10,7 @@
  * exported from the package barrel.
  */
 import { useId } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 
 /** A key lifetime the forms offer. */

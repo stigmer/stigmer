@@ -19,15 +19,15 @@ import { clone, create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import {
   VaultConnectionSchema,
   VaultSecretSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
-import type { VaultSpec } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
+import type { VaultSpec } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 
 import type { Logger } from "../../../boot/logger.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";

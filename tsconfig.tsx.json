@@ -3,7 +3,7 @@
 //
 // Why this exists: `tsx` applies a single tsconfig's `compilerOptions` only to
 // files matched by that config's `include`. The `stigmer` CLI imports JSX source
-// from sibling packages (@stigmer/ink, @stigmer/react), and no per-package
+// from sibling packages (@stigmer/ink-ui, @stigmer/react-sdk), and no per-package
 // tsconfig's `include` covers those cross-package files — so they fall back to
 // esbuild's classic JSX runtime (`React.createElement`), which crashes with
 // "React is not defined" because those components are authored for the automatic

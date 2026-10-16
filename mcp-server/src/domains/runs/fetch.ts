@@ -9,7 +9,7 @@
 //
 // The events reach the model in one of two shapes:
 //   - compact (the default): the turn as the shared fold (`foldSession`
-//     from @stigmer/sdk) reads it, summarized: its phase, its answer, the
+//     from @stigmer/client) reads it, summarized: its phase, its answer, the
 //     tool uses that wait for an answer (with the `tool_use_id`
 //     submit_run_approval names), its to-do list, its changed files, and a
 //     bounded tail of its items. A model polling a run needs exactly that,
@@ -25,10 +25,10 @@
 import type { CallOptions, Transport } from "@connectrpc/connect";
 import { createClient } from "@connectrpc/connect";
 import { toJson, type JsonObject, type JsonValue } from "@bufbuild/protobuf";
-import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
+import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
 import {
   foldSession,
   toManagedAgentsJson,
@@ -36,7 +36,7 @@ import {
   type ToolUse,
   type Turn,
   type TurnItem,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 
 import { withTransport } from "../client.js";
 import { rpcError } from "../rpcerr.js";

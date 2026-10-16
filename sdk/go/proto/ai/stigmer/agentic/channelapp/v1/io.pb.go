@@ -239,7 +239,7 @@ const file_ai_stigmer_agentic_channelapp_v1_io_proto_rawDesc = "" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"updateMask:\xc3\x01\xbaH\xbf\x01\x1a\xbc\x01\n" +
 	"\x17update_names_its_target\x12Kresource.metadata.id is required: an update names the channel app by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\xae\x02\n" +
-	"$com.ai.stigmer.agentic.channelapp.v1B\aIoProtoP\x01ZXgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channelapp/v1;channelappv1\xa2\x02\x04ASAC\xaa\x02 Ai.Stigmer.Agentic.Channelapp.V1\xca\x02 Ai\\Stigmer\\Agentic\\Channelapp\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Channelapp\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Channelapp::V1b\x06proto3"
+	"$com.ai.stigmer.agentic.channelapp.v1B\aIoProtoP\x01ZXgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/channelapp/v1;channelappv1\xa2\x02\x04ASAC\xaa\x02 Ai.Stigmer.Agentic.Channelapp.V1\xca\x02 Ai\\Stigmer\\Agentic\\Channelapp\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Channelapp\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Channelapp::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_channelapp_v1_io_proto_rawDescOnce sync.Once

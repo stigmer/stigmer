@@ -7,8 +7,8 @@
 package evalrunv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,7 +32,7 @@ const file_ai_stigmer_agentic_evalrun_v1_query_proto_rawDesc = "" +
 	"\vlistByAgent\x129.ai.stigmer.agentic.evalrun.v1.ListEvalRunsByAgentRequest\x1a*.ai.stigmer.agentic.evalrun.v1.EvalRunList\";¸\x187\b\x01\x10(\"\bagent_id*'unauthorized to list eval runs of agent\x12\xb5\x01\n" +
 	"\flistByPlugin\x12:.ai.stigmer.agentic.evalrun.v1.ListEvalRunsByPluginRequest\x1a*.ai.stigmer.agentic.evalrun.v1.EvalRunList\"=¸\x189\b\x01\x10:\"\tplugin_id*(unauthorized to list eval runs of plugin\x1a\x04\xa0\xff+AB\x9c\x02\n" +
 	"!com.ai.stigmer.agentic.evalrun.v1B\n" +
-	"QueryProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/evalrun/v1;evalrunv1\xa2\x02\x04ASAE\xaa\x02\x1dAi.Stigmer.Agentic.Evalrun.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Evalrun\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Evalrun\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Evalrun::V1b\x06proto3"
+	"QueryProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/evalrun/v1;evalrunv1\xa2\x02\x04ASAE\xaa\x02\x1dAi.Stigmer.Agentic.Evalrun.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Evalrun\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Evalrun\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Evalrun::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_evalrun_v1_query_proto_goTypes = []any{
 	(*EvalRunId)(nil),                   // 0: ai.stigmer.agentic.evalrun.v1.EvalRunId

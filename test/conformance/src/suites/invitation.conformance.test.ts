@@ -36,14 +36,14 @@
 // Enterprise's handler suite pins.
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { Code } from "@connectrpc/connect";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import type { Invitation, InvitationSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
-import { InvitationCommandController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/command_pb";
-import { InvitationState } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/enum_pb";
-import { InvitationQueryController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/query_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import type { Invitation, InvitationSchema } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
+import { InvitationCommandController } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/command_pb";
+import { InvitationState } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/enum_pb";
+import { InvitationQueryController } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/query_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { toJsonString } from "@bufbuild/protobuf";
-import { InvitationPreviewSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/io_pb";
+import { InvitationPreviewSchema } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/io_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { expectGrpcCode } from "../contract/errors";

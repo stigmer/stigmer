@@ -14,8 +14,8 @@
  * eval-view.agent.test.ts pins the rules of an eval run about an agent.
  */
 import { describe, expect, it } from "vitest";
-import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunAblation } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { create } from "@bufbuild/protobuf";
 import {
   EvalRunMockedServerSchema,
@@ -23,8 +23,8 @@ import {
   EvalRunPhase,
   EvalRunTrySchema,
   EvalRunTryState,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import {
   DEFAULT_EVAL_FORM,
   MAX_ALLOW_TOOLS,

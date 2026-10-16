@@ -10,13 +10,13 @@
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { create } from "@bufbuild/protobuf";
 import {
   ApiKeySchema,
   type ApiKey,
-} from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { OrgProvider } from "../../organization/OrgProvider";
 

@@ -34,8 +34,8 @@ import type {
   OrganizationPurgeProgress,
   OrganizationPurgeStage,
 } from "../../../../extensions/organization-purge.js";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../../boot/logger.js";
 import { sessionListIndex } from "../../../session/list-index.js";

@@ -4,7 +4,7 @@
 // three-class contract (manifest / anchored fragment / no-validate) is a
 // ratchet: no YAML shown to users can be silently unvalidated.
 //
-// Messages resolve from @stigmer/protos' descriptors (stigmer-registry.ts);
+// Messages resolve from @stigmer/apis' descriptors (stigmer-registry.ts);
 // manifest kinds come from the protovalidate string.const pinned on
 // kind/api_version fields — nothing hand-maintained.
 
@@ -13,7 +13,7 @@ import * as path from "node:path";
 
 import type { DescField, DescMessage, JsonValue, Message, Registry } from "@bufbuild/protobuf";
 import { fromJson, getOption, hasOption } from "@bufbuild/protobuf";
-import { field as validateFieldExt } from "@stigmer/protos/buf/validate/validate_pb";
+import { field as validateFieldExt } from "@stigmer/apis/buf/validate/validate_pb";
 import { parseAllDocuments } from "yaml";
 
 import type { DocsYamlRuleEval, DocsYamlRuleMode } from "./docs-yaml-rules.js";

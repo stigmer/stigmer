@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Markdown from "react-markdown";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import {
   MARKDOWN_COMPONENTS,
   REMARK_PLUGINS,
@@ -68,7 +68,7 @@ export interface ArtifactContentRendererProps {
  *
  * @example
  * ```tsx
- * import { ArtifactContentRenderer, useArtifactContent } from "@stigmer/react";
+ * import { ArtifactContentRenderer, useArtifactContent } from "@stigmer/react-sdk";
  *
  * function MyArtifactPanel({ executionId, storageKey, fileName }) {
  *   const { content } = useArtifactContent(executionId, storageKey);

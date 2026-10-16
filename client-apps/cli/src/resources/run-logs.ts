@@ -17,8 +17,8 @@
 // simply stops (no stack trace).
 
 import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import { followSession, SessionLog, toManagedAgentsJson, turnOf, type Stigmer, type Turn } from "@stigmer/sdk";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { followSession, SessionLog, toManagedAgentsJson, turnOf, type Stigmer, type Turn } from "@stigmer/client";
 import { shouldColorize, styler } from "../output/style.js";
 import { listSessionEvents, sessionOfRun } from "./session.js";
 

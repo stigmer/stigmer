@@ -27,13 +27,13 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import type { Violation } from "@bufbuild/protovalidate";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { ChannelAudience, ChannelSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
-import { AgentInvocationSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
-import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { OrganizationEmbeddingSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
+import { ChannelAudience, ChannelSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
+import { AgentInvocationSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
+import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
+import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
+import { VaultCommandController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/command_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { OrganizationEmbeddingSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/spec_pb";
 
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";

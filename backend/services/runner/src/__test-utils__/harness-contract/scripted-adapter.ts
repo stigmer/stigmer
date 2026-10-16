@@ -52,7 +52,7 @@
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { Config } from "../../config.js";
 import type { HarnessCapabilities, PausePrimitive, StateIdSource } from "../../harness/capabilities.js";

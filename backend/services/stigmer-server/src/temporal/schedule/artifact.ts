@@ -26,7 +26,7 @@ import {
 } from "@temporalio/client";
 import type { Workflow } from "@temporalio/common";
 
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import type { Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
 
 import type { ScheduleTemporalConfig } from "./config.js";
 import { TICK_WORKFLOW_TYPE, artifactId } from "./names.js";

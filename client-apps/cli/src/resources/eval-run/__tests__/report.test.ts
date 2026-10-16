@@ -12,7 +12,7 @@
 // pins the views of an eval run about an agent.
 
 import { create } from "@bufbuild/protobuf";
-import { EvalRunAblation, EvalRunTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { EvalRunAblation, EvalRunTargetSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import {
   EvalRunAbortSchema,
   EvalRunCaseTargetSchema,
@@ -20,8 +20,8 @@ import {
   EvalRunPartialReason,
   EvalRunPhase,
   EvalRunTryState,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import {
   EvalExit,

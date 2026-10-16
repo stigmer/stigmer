@@ -79,14 +79,14 @@ test("linkedLibs names the @stigmer/* file: links only, sorted", () => {
   assert.deepEqual(
     linkedLibs({
       dependencies: {
-        "@stigmer/protos": "file:../../../apis/stubs/ts",
+        "@stigmer/apis": "file:../../../apis/stubs/ts",
         "@bufbuild/protobuf": "2.12.0",
         "@stigmer/outbound": "file:../../libs/ts/outbound",
         "@stigmer/pinned": "3.38.3",
         "left-pad": "file:../left-pad",
       },
     }),
-    ["@stigmer/outbound", "@stigmer/protos"],
+    ["@stigmer/outbound", "@stigmer/apis"],
   );
   assert.deepEqual(linkedLibs({}), []);
 });
@@ -107,7 +107,7 @@ test("the checked-in server's links close over exactly the libs it links, so the
     "@stigmer/eval-runtime",
     "@stigmer/outbound",
     "@stigmer/plugin-package",
-    "@stigmer/protos",
+    "@stigmer/apis",
     "@stigmer/session-log",
     "@stigmer/temporal-codecs",
     "@stigmer/tool-vocabulary",
@@ -129,7 +129,7 @@ test("unstagedLinks names the @stigmer/* links the stage packs no tarball for, s
   const manifest = {
     dependencies: {
       "@stigmer/server": "file:../../backend/services/stigmer-server",
-      "@stigmer/protos": "file:../../apis/stubs/ts",
+      "@stigmer/apis": "file:../../apis/stubs/ts",
       "@stigmer/new-lib": "file:../../backend/libs/ts/new-lib",
       "@stigmer/another": "file:../../backend/libs/ts/another",
       "@stigmer/pinned": "3.38.3",
@@ -137,7 +137,7 @@ test("unstagedLinks names the @stigmer/* links the stage packs no tarball for, s
     },
   };
   assert.deepEqual(
-    unstagedLinks(manifest, ["@stigmer/protos", "@stigmer/server"]),
+    unstagedLinks(manifest, ["@stigmer/apis", "@stigmer/server"]),
     ["@stigmer/another", "@stigmer/new-lib"],
   );
   assert.deepEqual(unstagedLinks({}, []), []);
@@ -157,5 +157,5 @@ test("the stage packs the server and Enterprise, and Enterprise links nothing th
   const staged = [...linkedLibs(server), server.name, enterprise.name];
   assert.deepEqual(unstagedLinks(enterprise, staged), []);
   // The links themselves, so the reason the set closes is visible.
-  assert.deepEqual(linkedLibs(enterprise), ["@stigmer/outbound", "@stigmer/protos", "@stigmer/server"]);
+  assert.deepEqual(linkedLibs(enterprise), ["@stigmer/outbound", "@stigmer/apis", "@stigmer/server"]);
 });

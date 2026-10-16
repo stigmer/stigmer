@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log"
 
-	stigmer "github.com/stigmer/stigmer/sdk/go/v3"
+	stigmer "go.stigmer.ai/sdk"
 )
 
 func ErrorHandling() {

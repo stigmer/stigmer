@@ -21,7 +21,7 @@ import { describe, expect, it } from "vitest";
 import {
   ApiResourceKind,
   ApiResourceKindSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { grantableRolesFor } from "../../../pipeline/apiresource-meta.js";
 import { newOrganizationOnlyGrantScope } from "../grant-scope.js";

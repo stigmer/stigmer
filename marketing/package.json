@@ -23,8 +23,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@remotion/cli": "4.0.448",
-    "@stigmer/react": "*",
-    "@stigmer/sdk": "*",
+    "@stigmer/react-sdk": "*",
+    "@stigmer/client": "*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "remotion": "4.0.448",

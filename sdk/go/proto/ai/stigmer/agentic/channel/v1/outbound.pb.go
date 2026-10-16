@@ -454,7 +454,7 @@ const file_ai_stigmer_agentic_channel_v1_outbound_proto_rawDesc = "" +
 	"\boperator\x10\x02\x12\f\n" +
 	"\bplatform\x10\x03\x12\x0f\n" +
 	"\vparticipant\x10\x04B\x9f\x02\n" +
-	"!com.ai.stigmer.agentic.channel.v1B\rOutboundProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
+	"!com.ai.stigmer.agentic.channel.v1B\rOutboundProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_channel_v1_outbound_proto_rawDescOnce sync.Once

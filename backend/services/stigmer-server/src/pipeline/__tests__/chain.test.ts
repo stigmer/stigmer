@@ -21,13 +21,13 @@ import {
   createRouterTransport,
 } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   Health,
   HealthCheckResponse_ServingStatus as ServingStatus,
-} from "@stigmer/protos/grpc/health/v1/health_pb";
+} from "@stigmer/apis/grpc/health/v1/health_pb";
 import { describe, expect, it } from "vitest";
 
 import { createLogger } from "../../boot/logger.js";

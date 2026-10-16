@@ -34,7 +34,7 @@ browser can run it too.
 ## Dependency policy
 
 One runtime dependency, `yaml` (the CLI's and the SDK's YAML library), for
-`SKILL.md` and sub-agent frontmatter. No dependency on `@stigmer/protos`:
+`SKILL.md` and sub-agent frontmatter. No dependency on `@stigmer/apis`:
 the library describes the plugin format, and the CLI's offline validation
 should not pull the resource schemas in for a parse. Field names in the
 normalised types mirror the protos (`PluginAgent`, `EnvVarDeclaration`,

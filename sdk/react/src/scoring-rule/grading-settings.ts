@@ -8,8 +8,8 @@
  * whole one in N is kept on save unless N is changed. The monthly limit is
  * US dollars of estimated model spend.
  */
-import type { ScoringRule } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
-import type { ScoringRuleInput } from "@stigmer/sdk";
+import type { ScoringRule } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import type { ScoringRuleInput } from "@stigmer/client";
 
 /** The largest N in "one in N runs". */
 export const MAX_ONE_IN = 100;

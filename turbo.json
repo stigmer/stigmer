@@ -1,7 +1,7 @@
 // The task graph for the npm workspace. Turborepo derives the package
 // graph from each member's dependencies, devDependencies and
 // optionalDependencies (never from peerDependencies, vercel/turborepo#13025;
-// the three packages whose only link to @stigmer/protos was a peer mirror it
+// the three packages whose only link to @stigmer/apis was a peer mirror it
 // into devDependencies for that reason). This file adds the task edges and
 // the cache contract on top.
 //
@@ -45,7 +45,7 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
-    // tsc --noEmit. Needs the dependencies' dist because @stigmer/protos (and
+    // tsc --noEmit. Needs the dependencies' dist because @stigmer/apis (and
     // the two backend libs) export compiled .d.ts, not source.
     "typecheck": {
       "dependsOn": ["^build"],
@@ -56,7 +56,7 @@
     "lint": {
       "outputs": []
     },
-    // Vitest. The default suites import @stigmer/protos from dist, hence
+    // Vitest. The default suites import @stigmer/apis from dist, hence
     // ^build. No outputs; a cache hit replays the log. Tests that read files
     // outside their own package must widen `inputs` (see the two overrides
     // below); scripts/turbo-inputs.test.mjs fails when a new one appears
@@ -68,7 +68,7 @@
     // TypeDoc with validation warnings as errors: a broken {@link}, an
     // undocumented export. It resolves the dependencies' compiled .d.ts, so
     // it needs their dist like typecheck does. Only the packages that define
-    // the script run it (today @stigmer/react and @stigmer/ink). The JSON it
+    // the script run it (today @stigmer/react-sdk and @stigmer/ink-ui). The JSON it
     // writes on success (typedoc-output.json, git-ignored) is not the point
     // of the task, so it is not an output.
     "tsdoc:check": {
@@ -133,7 +133,7 @@
       "env": ["TAURI_ENV_PLATFORM", "TAURI_ENV_DEBUG"]
     },
     // Two SDK suites read fixtures that live outside their package.
-    "@stigmer/sdk#test": {
+    "@stigmer/client#test": {
       "dependsOn": ["^build"],
       "outputs": [],
       "inputs": [
@@ -155,7 +155,7 @@
         "$TURBO_ROOT$/docs/sdk/managed-agents.mdx"
       ]
     },
-    "@stigmer/react#test": {
+    "@stigmer/react-sdk#test": {
       "dependsOn": ["^build"],
       "outputs": [],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/test/fixtures/tool-view/**"]
@@ -175,7 +175,7 @@
     // this package (test/fixtures/tool-view) belongs to the default suite, and
     // scripts/turbo-inputs.test.mjs checks each react test file against the
     // suite its glob puts it in.
-    "@stigmer/react#test:a11y": {
+    "@stigmer/react-sdk#test:a11y": {
       "dependsOn": ["build"],
       "outputs": []
     },
@@ -200,12 +200,12 @@
     // A root suite that imports a workspace package's build output declares
     // that package's build here, so every caller gets it first:
     // scripts/verify-docs-tour-parity.test.mjs imports the tour fixtures,
-    // which import @stigmer/protos from its dist and, through the SDK's
+    // which import @stigmer/apis from its dist and, through the SDK's
     // source, @stigmer/session-log from its dist. Never cached: the suites
     // read files across the whole repository (workflows, the Makefile, docs,
     // the chart), which no input list here would keep complete.
     "//#test:root": {
-      "dependsOn": ["@stigmer/protos#build", "@stigmer/session-log#build"],
+      "dependsOn": ["@stigmer/apis#build", "@stigmer/session-log#build"],
       "cache": false
     }
   }

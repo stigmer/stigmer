@@ -25,10 +25,10 @@
 // goes on. A session whose first turn was never created has no session for
 // the rest: they are recorded as failed at create, never skipped silently.
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
+import type { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { makeAgentExecution, sessionIdOf } from "../support/runs";
 import type { AgentRefInit } from "../support/agents";

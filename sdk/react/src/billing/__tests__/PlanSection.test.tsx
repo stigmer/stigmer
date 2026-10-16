@@ -16,17 +16,17 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { clone, create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
-import { StigmerError } from "@stigmer/sdk";
+import { StigmerError } from "@stigmer/client";
 import {
   AgentHoursSchema,
   AgentHoursWindow,
   PeriodEstimateLineKind,
   PeriodEstimateLineSchema,
   PeriodEstimateSchema,
-} from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
-import { PlanSchema } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
-import { EntitlementLimitsSchema } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
-import { SubscriptionState } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/status_pb";
+} from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
+import { PlanSchema } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
+import { EntitlementLimitsSchema } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
+import { SubscriptionState } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/status_pb";
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";

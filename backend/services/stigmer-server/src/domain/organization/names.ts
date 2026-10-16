@@ -71,9 +71,9 @@ import type { NameHolder } from "../../pipeline/steps/names.js";
 import { RENAMED_NAME_HOLD_MS } from "../../pipeline/steps/rename.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 
 /**
  * The ErrorInfo reason a create or rename carries when the slug is another

@@ -2,11 +2,11 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { ChevronDown, Plus } from "lucide-react";
-import { cn } from "@stigmer/theme";
-import { chatPath, getUserMessage } from "@stigmer/sdk";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import { ChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
+import { cn } from "@stigmer/design-tokens";
+import { chatPath, getUserMessage } from "@stigmer/client";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelInstallState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
 import { toast } from "../feedback/toast.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";

@@ -1,6 +1,6 @@
 "use client";
 
-import { ModelCatalogConsole } from "@stigmer/react";
+import { ModelCatalogConsole } from "@stigmer/react-sdk";
 
 /**
  * Platform-operator console for the model catalog: the models the

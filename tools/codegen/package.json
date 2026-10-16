@@ -24,7 +24,7 @@
     "@bufbuild/protobuf": "2.12.0",
     "@bufbuild/protovalidate": "^1.1.1",
     "@openfga/syntax-transformer": "0.2.2",
-    "@stigmer/protos": "*",
+    "@stigmer/apis": "*",
     "yaml": "^2.8.2"
   },
   "devDependencies": {

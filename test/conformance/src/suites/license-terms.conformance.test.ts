@@ -34,10 +34,10 @@
 import { Code, type ConnectError } from "@connectrpc/connect";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { clone } from "@bufbuild/protobuf";
-import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { LicenseState } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { FederationIssuerSchema } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import { LicenseState } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 import { startLocalOidcIssuer, type LocalOidcIssuer } from "@stigmer/test-support/local-oidc-issuer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

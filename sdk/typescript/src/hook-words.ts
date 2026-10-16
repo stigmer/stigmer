@@ -7,7 +7,7 @@
 // own name. Events and commands are always shown verbatim beside these words,
 // because the exact strings are what runs.
 
-import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { HookFormat } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 
 export { HookFormat };
 

@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { renderHook, waitFor, act, cleanup } from "@testing-library/react";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useSessionSearch } from "../useSessionSearch";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 

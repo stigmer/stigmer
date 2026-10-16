@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { getGrantableRoles, hasGrantableRoles } from "@stigmer/sdk";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import { getGrantableRoles, hasGrantableRoles } from "@stigmer/client";
 
 /** Return value of {@link useGrantableRoles}. */
 export interface UseGrantableRolesReturn {

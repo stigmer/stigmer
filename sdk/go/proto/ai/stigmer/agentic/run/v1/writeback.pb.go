@@ -250,7 +250,7 @@ const file_ai_stigmer_agentic_run_v1_writeback_proto_rawDesc = "" +
 	"\x1bWORKSPACE_WRITE_BACK_PUSHED\x10\x02\x12#\n" +
 	"\x1fWORKSPACE_WRITE_BACK_PR_CREATED\x10\x03\x12\x1f\n" +
 	"\x1bWORKSPACE_WRITE_BACK_FAILED\x10\x04B\x84\x02\n" +
-	"\x1dcom.ai.stigmer.agentic.run.v1B\x0eWritebackProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
+	"\x1dcom.ai.stigmer.agentic.run.v1B\x0eWritebackProtoP\x01ZJgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_run_v1_writeback_proto_rawDescOnce sync.Once

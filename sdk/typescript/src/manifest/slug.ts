@@ -31,13 +31,13 @@
 
 import { create, type Message } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   ApiResourceReferenceSchema,
   RenameInputSchema,
   type ApiResourceReference,
   type RenameInput,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { getErrorReason, StigmerError, wrapError } from "../errors.js";
 import { metadataOf } from "./parse.js";
 import type { ServiceClientFn } from "./registry.js";

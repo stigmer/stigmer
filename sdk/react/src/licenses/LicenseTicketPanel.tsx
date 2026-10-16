@@ -2,8 +2,8 @@
 
 import { useCallback, useRef, useState } from "react";
 import { Check, Copy, Eye, EyeOff } from "lucide-react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
 import { Button } from "../button/index.js";
 import { selectElementText } from "../internal/select-element-text.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";

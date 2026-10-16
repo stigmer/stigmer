@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionSchema, type Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import {
   CHANNEL_SESSION_LABELS,
   channelSessionExternalUserKey,

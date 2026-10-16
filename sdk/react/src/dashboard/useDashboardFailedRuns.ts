@@ -3,10 +3,10 @@
 import { useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ListRunsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { everyEntry } from "@stigmer/sdk";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { ListRunsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { everyEntry } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 import type { DashboardFailedRun } from "./types.js";

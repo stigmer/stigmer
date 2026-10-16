@@ -1,14 +1,14 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ListRunsBySessionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { sortChronologically } from "@stigmer/sdk";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { ListRunsBySessionRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { sortChronologically } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { LIST_PAGE_MAX, readWholeList } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";
 
-// The ordering rule lives in @stigmer/sdk with the other shared
+// The ordering rule lives in @stigmer/client with the other shared
 // conversation-assembly rules; re-exported here for existing consumers.
 export { sortChronologically };
 

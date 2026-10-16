@@ -1,4 +1,4 @@
-import type { ToolUse } from "@stigmer/sdk";
+import type { ToolUse } from "@stigmer/client";
 import { resolveToolCategoryFromCall } from "./tool-categories.js";
 import type { ToolCategory } from "./tool-categories.js";
 import { resolveRunGroupable } from "./tool-presenter.js";

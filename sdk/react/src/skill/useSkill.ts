@@ -1,7 +1,7 @@
 "use client";
 
-import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { isNotFound } from "@stigmer/sdk";
+import type { Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import { isNotFound } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 

@@ -9,7 +9,7 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
 import type { WorkspaceFileLister } from "./WorkspaceFileLister.js";

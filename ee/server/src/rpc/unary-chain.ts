@@ -54,7 +54,7 @@ import {
   RequestContext,
   updateContext,
 } from "@stigmer/server";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 export interface UnaryChainDeps {
   readonly authorizer: Authorizer;

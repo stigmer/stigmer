@@ -10,10 +10,10 @@
 
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { Plan } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
-import { PlanInstrument, type PlanTerms } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
-import { PlanLifecycle } from "@stigmer/protos/ai/stigmer/billing/plan/v1/status_pb";
-import { Feature, type Entitlements } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
+import { PlanInstrument, type PlanTerms } from "@stigmer/apis/ai/stigmer/billing/plan/v1/spec_pb";
+import { PlanLifecycle } from "@stigmer/apis/ai/stigmer/billing/plan/v1/status_pb";
+import { Feature, type Entitlements } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import { FEATURE_COPY, isNamedFeature, type NamedFeature } from "../internal/features.js";
 import { formatUsd } from "./format.js";
 

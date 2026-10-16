@@ -42,9 +42,9 @@
 import { setMaxListeners } from "node:events";
 import { CancelledFailure, Context } from "@temporalio/activity";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { TurnRowsSchema } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
-import { RunPhase, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase, InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { Config } from "../config.js";
 import type { StigmerClient } from "../client/stigmer-client.js";

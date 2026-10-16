@@ -16,7 +16,7 @@
  */
 
 import { useCallback, useRef } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 import { Button } from "../button/Button.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";

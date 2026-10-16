@@ -1,11 +1,11 @@
-# @stigmer/theme
+# @stigmer/design-tokens
 
 Design tokens, color presets, and utilities for Stigmer UI components.
 
 ## Install
 
 ```bash
-npm install @stigmer/theme
+npm install @stigmer/design-tokens
 ```
 
 Peer dependencies: `clsx`, `tailwind-merge`
@@ -15,7 +15,7 @@ Peer dependencies: `clsx`, `tailwind-merge`
 Import the base token stylesheet to get all Stigmer design variables (light and dark mode):
 
 ```css
-@import "@stigmer/theme/tokens.css";
+@import "@stigmer/design-tokens/tokens.css";
 ```
 
 This defines CSS custom properties on `:root` (light) and `[data-stgm-color-mode="dark"]` (dark mode). All properties use the `--stgm-*` namespace to avoid collisions with host application styles.
@@ -54,11 +54,11 @@ Stigmer ships with 6 design language presets. Each represents a real-world produ
 | Preset | Archetype | Import | CSS Class |
 |--------|-----------|--------|-----------|
 | Default | Stigmer's own identity | (built-in) | *(none)* |
-| Corporate | Enterprise SaaS (Azure, Salesforce) | `@stigmer/theme/presets/corporate.css` | `stgm-theme-corporate` |
-| Startup | Dev tools (Linear, Vercel) | `@stigmer/theme/presets/startup.css` | `stgm-theme-startup` |
-| Friendly | Consumer SaaS (Notion, Intercom) | `@stigmer/theme/presets/friendly.css` | `stgm-theme-friendly` |
-| Fintech | Premium financial (Stripe, Mercury) | `@stigmer/theme/presets/fintech.css` | `stgm-theme-fintech` |
-| Monochrome | Editorial black-and-white (Linear, Notion) | `@stigmer/theme/presets/monochrome.css` | `stgm-theme-monochrome` |
+| Corporate | Enterprise SaaS (Azure, Salesforce) | `@stigmer/design-tokens/presets/corporate.css` | `stgm-theme-corporate` |
+| Startup | Dev tools (Linear, Vercel) | `@stigmer/design-tokens/presets/startup.css` | `stgm-theme-startup` |
+| Friendly | Consumer SaaS (Notion, Intercom) | `@stigmer/design-tokens/presets/friendly.css` | `stgm-theme-friendly` |
+| Fintech | Premium financial (Stripe, Mercury) | `@stigmer/design-tokens/presets/fintech.css` | `stgm-theme-fintech` |
+| Monochrome | Editorial black-and-white (Linear, Notion) | `@stigmer/design-tokens/presets/monochrome.css` | `stgm-theme-monochrome` |
 
 Each preset overrides most of the token surface — radius, surface colors, borders, sidebar, and accent palette — for both light and dark modes, and falls through to the defaults for anything it leaves alone (Monochrome deliberately keeps the semantic status colors). The full per-preset override tables are at [stigmer.ai/docs/sdk/theme/presets](https://stigmer.ai/docs/sdk/theme/presets).
 
@@ -67,8 +67,8 @@ Each preset overrides most of the token surface — radius, surface colors, bord
 1. Import the base tokens and the preset CSS:
 
 ```css
-@import "@stigmer/theme/tokens.css";
-@import "@stigmer/theme/presets/corporate.css";
+@import "@stigmer/design-tokens/tokens.css";
+@import "@stigmer/design-tokens/presets/corporate.css";
 ```
 
 2. Add the preset class to a root element:
@@ -86,9 +86,9 @@ Dark mode is controlled by the `data-stgm-color-mode` attribute, which `StigmerP
 The preset list is available as a typed constant for building UI selectors:
 
 ```typescript
-import { THEME_PRESETS } from "@stigmer/theme";
+import { THEME_PRESETS } from "@stigmer/design-tokens";
 // or
-import { THEME_PRESETS } from "@stigmer/theme/presets";
+import { THEME_PRESETS } from "@stigmer/design-tokens/presets";
 
 // THEME_PRESETS is an array of:
 // { id: string, name: string, className: string, description: string, swatch: string }
@@ -156,7 +156,7 @@ All built-in tokens use [OKLCH](https://developer.mozilla.org/en-US/docs/Web/CSS
 Combines class names with Tailwind conflict resolution (powered by `clsx` + `tailwind-merge`):
 
 ```typescript
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 <div className={cn("px-4 py-2", isActive && "bg-primary text-primary-foreground")} />
 ```
@@ -165,14 +165,14 @@ import { cn } from "@stigmer/theme";
 
 | Export | Content |
 |--------|---------|
-| `@stigmer/theme` | `cn()`, `ClassValue`, `THEME_PRESETS`, `ThemePreset` |
-| `@stigmer/theme/tokens.css` | Base CSS custom properties (light + dark) |
-| `@stigmer/theme/presets` | `THEME_PRESETS` array and `ThemePreset` type |
-| `@stigmer/theme/presets/corporate.css` | Corporate (Enterprise SaaS) design language |
-| `@stigmer/theme/presets/startup.css` | Startup (Modern dev tools) design language |
-| `@stigmer/theme/presets/friendly.css` | Friendly (Consumer SaaS) design language |
-| `@stigmer/theme/presets/fintech.css` | Fintech (Premium financial) design language |
-| `@stigmer/theme/presets/monochrome.css` | Monochrome (Editorial black-and-white) design language |
+| `@stigmer/design-tokens` | `cn()`, `ClassValue`, `THEME_PRESETS`, `ThemePreset` |
+| `@stigmer/design-tokens/tokens.css` | Base CSS custom properties (light + dark) |
+| `@stigmer/design-tokens/presets` | `THEME_PRESETS` array and `ThemePreset` type |
+| `@stigmer/design-tokens/presets/corporate.css` | Corporate (Enterprise SaaS) design language |
+| `@stigmer/design-tokens/presets/startup.css` | Startup (Modern dev tools) design language |
+| `@stigmer/design-tokens/presets/friendly.css` | Friendly (Consumer SaaS) design language |
+| `@stigmer/design-tokens/presets/fintech.css` | Fintech (Premium financial) design language |
+| `@stigmer/design-tokens/presets/monochrome.css` | Monochrome (Editorial black-and-white) design language |
 
 ## License
 

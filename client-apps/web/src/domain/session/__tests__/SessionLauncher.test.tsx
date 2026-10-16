@@ -8,7 +8,7 @@
  * plugin; a link that arrives after the launcher is open is read too, and
  * the address is cleaned once read; and the person's plugin picks are
  * remembered.
- * The viewer is pinned in @stigmer/react.
+ * The viewer is pinned in @stigmer/react-sdk.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render } from "@testing-library/react";
@@ -19,7 +19,7 @@ const page = vi.hoisted(() => ({
   search: new URLSearchParams(),
 }));
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   NewSessionViewer: (props: Record<string, unknown>) => {
     page.viewer.push(props);
     return null;

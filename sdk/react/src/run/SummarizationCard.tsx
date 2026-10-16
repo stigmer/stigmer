@@ -1,8 +1,8 @@
 "use client";
 
 import { memo } from "react";
-import type { CompactedItem } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+import type { CompactedItem } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 
 /** Props for {@link SummarizationCard}. */
 export interface SummarizationCardProps {

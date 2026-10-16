@@ -58,11 +58,11 @@ import {
 } from "@bufbuild/protobuf/wkt";
 import type { DescriptorProto, FieldDescriptorProto } from "@bufbuild/protobuf/wkt";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
-import { file_ai_stigmer_commons_apiresource_io } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { file_ai_stigmer_commons_apiresource_metadata } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { file_ai_stigmer_commons_apiresource_status } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { reference_kind } from "@stigmer/apis/ai/stigmer/commons/apiresource/field_options_pb";
+import { file_ai_stigmer_commons_apiresource_io } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { file_ai_stigmer_commons_apiresource_metadata } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { file_ai_stigmer_commons_apiresource_status } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 
 /** The envelope of a retired AgentInstance row. */
 export const FrozenAgentInstanceEnvelopeSchema = frozenEnvelope(

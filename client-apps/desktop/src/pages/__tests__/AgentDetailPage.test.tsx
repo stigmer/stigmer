@@ -6,7 +6,7 @@
  * (hash URLs the router picks up without a reload), and a redirect-style
  * connect is handed to the web console's Channels tab in the system
  * browser, because the Tauri webview blocks the OAuth popup. The detail
- * view and the panel are pinned in @stigmer/react.
+ * view and the panel are pinned in @stigmer/react-sdk.
  *
  * Also pins how the page names organizations: a referenced resource, which
  * names its org by id, opens at a URL carrying the org's slug. A chat link
@@ -69,7 +69,7 @@ const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
 
 const noop = () => undefined;
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   AgentDetailView: (props: DetailProps) => {
     page.detail.push(props);
     return null;

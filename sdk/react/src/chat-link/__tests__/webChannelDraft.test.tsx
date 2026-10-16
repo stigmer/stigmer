@@ -8,12 +8,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelAudience } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   ServiceTier,
   ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { useSaveChannel } from "../../channel/useSaveChannel";
 import {

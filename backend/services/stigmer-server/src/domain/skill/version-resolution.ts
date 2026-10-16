@@ -16,18 +16,18 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
+import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import type { Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import { SkillQueryController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/query_pb";
 import {
   ListSkillVersionsResponseSchema,
   SkillVersionEntrySchema,
-} from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 import type {
   ListSkillVersionsResponse,
   SkillVersionEntry,
-} from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { Store } from "../../store/interface.js";

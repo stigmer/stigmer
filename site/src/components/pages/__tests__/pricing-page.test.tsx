@@ -13,7 +13,7 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
-import { ENTERPRISE_CLOUD_PLAN, FEATURE_COPY } from "@stigmer/react";
+import { ENTERPRISE_CLOUD_PLAN, FEATURE_COPY } from "@stigmer/react-sdk";
 import { PricingPage } from "../PricingPage";
 
 afterEach(() => {

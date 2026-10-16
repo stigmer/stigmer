@@ -309,7 +309,7 @@ const file_ai_stigmer_agentic_evalrun_v1_io_proto_rawDesc = "" +
 	"\vEvalRunList\x12@\n" +
 	"\aentries\x18\x01 \x03(\v2&.ai.stigmer.agentic.evalrun.v1.EvalRunR\aentries\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\x99\x02\n" +
-	"!com.ai.stigmer.agentic.evalrun.v1B\aIoProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/evalrun/v1;evalrunv1\xa2\x02\x04ASAE\xaa\x02\x1dAi.Stigmer.Agentic.Evalrun.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Evalrun\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Evalrun\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Evalrun::V1b\x06proto3"
+	"!com.ai.stigmer.agentic.evalrun.v1B\aIoProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/evalrun/v1;evalrunv1\xa2\x02\x04ASAE\xaa\x02\x1dAi.Stigmer.Agentic.Evalrun.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Evalrun\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Evalrun\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Evalrun::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_evalrun_v1_io_proto_rawDescOnce sync.Once

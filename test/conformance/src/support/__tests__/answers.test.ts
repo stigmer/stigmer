@@ -13,7 +13,7 @@
 // Domain: conformance support (approvals are session events).
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import { type SessionEvent, SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { type SessionEvent, SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { describe, expect, it, vi } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import { answersOf, awaitIdleWith, awaitRequiresAction, confirmPerContract, newestIdle, sessionLog } from "../answers";

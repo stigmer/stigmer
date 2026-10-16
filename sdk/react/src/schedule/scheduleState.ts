@@ -15,8 +15,8 @@
 // wins for display — the owner's intent dominates — but callers should
 // keep the paused reason visible alongside (the banner does).
 
-import type { ScheduleSpec } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
-import type { ScheduleStatus } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/status_pb";
+import type { ScheduleSpec } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/spec_pb";
+import type { ScheduleStatus } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/status_pb";
 import type { StatusPhase } from "../resource-workbench/types.js";
 
 /** The three mutually-exclusive display states of a schedule. */

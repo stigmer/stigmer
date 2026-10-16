@@ -48,7 +48,7 @@ export type QuickstartTourStep =
 function askAgentListing(headline: string, question: string): string[] {
   return [
     `// ${QUICKSTART_WORKSPACE.entryFile} — ${headline}`,
-    'import { Stigmer } from "@stigmer/sdk";',
+    'import { Stigmer } from "@stigmer/client";',
     "",
     "const stigmer = new Stigmer({",
     "  apiKey: process.env.STIGMER_API_KEY!,",

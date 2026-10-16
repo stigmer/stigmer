@@ -6,12 +6,12 @@
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { StigmerError, type ChannelInput } from "@stigmer/sdk";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { StigmerError, type ChannelInput } from "@stigmer/client";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DeploymentModeContext } from "../../deployment-mode";

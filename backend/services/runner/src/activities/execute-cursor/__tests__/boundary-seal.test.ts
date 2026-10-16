@@ -9,8 +9,8 @@
 
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { describe, expect, it, vi } from "vitest";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import { AppendSessionEventsResponseSchema, type SessionEventPreview } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { AppendSessionEventsResponseSchema, type SessionEventPreview } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
 import { SessionEventEmitter } from "../../../harness/events/emitter.js";
 import { boundaryMayStillRewrite } from "../boundary-rows.js";

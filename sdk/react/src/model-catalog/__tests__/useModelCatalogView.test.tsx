@@ -12,7 +12,7 @@ import {
   ModelPricingBaselineStatus,
   PricingBlockSchema,
   type ModelPricingBaseline,
-} from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
+} from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { useModelCatalogView } from "../useModelCatalogView";
 
 const baselinesReturn = vi.fn();

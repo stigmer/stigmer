@@ -23,7 +23,7 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import {
   Health,
   HealthCheckResponse_ServingStatus as ServingStatus,
-} from "@stigmer/protos/grpc/health/v1/health_pb";
+} from "@stigmer/apis/grpc/health/v1/health_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createLogger } from "../../boot/logger.js";

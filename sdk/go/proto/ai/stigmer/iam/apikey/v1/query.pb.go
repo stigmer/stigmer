@@ -7,8 +7,8 @@
 package apikeyv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -34,7 +34,7 @@ const file_ai_stigmer_iam_apikey_v1_query_proto_rawDesc = "" +
 	"\rlistByAccount\x123.ai.stigmer.iam.apikey.v1.ListApiKeysByAccountInput\x1a!.ai.stigmer.iam.apikey.v1.ApiKeys\"B¸\x18>\b\x01\x10\v\"\n" +
 	"account_id*,unauthorized to list this account's api keys\x1a\x04\xa0\xff+\fB\xfd\x01\n" +
 	"\x1ccom.ai.stigmer.iam.apikey.v1B\n" +
-	"QueryProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"
+	"QueryProtoP\x01ZLgo.stigmer.ai/sdk/proto/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"
 
 var file_ai_stigmer_iam_apikey_v1_query_proto_goTypes = []any{
 	(*ApiKeyId)(nil),                  // 0: ai.stigmer.iam.apikey.v1.ApiKeyId

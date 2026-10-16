@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { SurfaceRailView } from "../workspace/WorkspaceSurface.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";

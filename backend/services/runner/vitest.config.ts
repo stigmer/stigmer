@@ -54,7 +54,7 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: /^(@stigmer\/protos\/.*)\.js$/,
+        find: /^(@stigmer\/apis\/.*)\.js$/,
         replacement: "$1",
       },
       {

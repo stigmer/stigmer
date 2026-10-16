@@ -7,8 +7,8 @@
 package grantv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
@@ -36,7 +36,7 @@ const file_ai_stigmer_iam_grant_v1_command_proto_rawDesc = "" +
 	"\x0frevokeOrgAccess\x12-.ai.stigmer.iam.grant.v1.RevokeOrgAccessInput\x1a\x16.google.protobuf.Empty\"9¸\x185\b\x04\x10\x1e\"\x03org**unauthorized to revoke organization access\x12\xc8\x01\n" +
 	"\x18bootstrapRevokeOrgAccess\x12-.ai.stigmer.iam.grant.v1.RevokeOrgAccessInput\x1a\x16.google.protobuf.Empty\"e¸\x18a\b\x11\x10\x1f*Runauthorized to revoke organization access - can_bootstrap_iam permission required2\astigmer\x1a\x04\xa0\xff+\n" +
 	"B\xf8\x01\n" +
-	"\x1bcom.ai.stigmer.iam.grant.v1B\fCommandProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/grant/v1;grantv1\xa2\x02\x04ASIG\xaa\x02\x17Ai.Stigmer.Iam.Grant.V1\xca\x02\x17Ai\\Stigmer\\Iam\\Grant\\V1\xe2\x02#Ai\\Stigmer\\Iam\\Grant\\V1\\GPBMetadata\xea\x02\x1bAi::Stigmer::Iam::Grant::V1b\x06proto3"
+	"\x1bcom.ai.stigmer.iam.grant.v1B\fCommandProtoP\x01ZJgo.stigmer.ai/sdk/proto/ai/stigmer/iam/grant/v1;grantv1\xa2\x02\x04ASIG\xaa\x02\x17Ai.Stigmer.Iam.Grant.V1\xca\x02\x17Ai\\Stigmer\\Iam\\Grant\\V1\xe2\x02#Ai\\Stigmer\\Iam\\Grant\\V1\\GPBMetadata\xea\x02\x1bAi::Stigmer::Iam::Grant::V1b\x06proto3"
 
 var file_ai_stigmer_iam_grant_v1_command_proto_goTypes = []any{
 	(*GrantSpec)(nil),            // 0: ai.stigmer.iam.grant.v1.GrantSpec

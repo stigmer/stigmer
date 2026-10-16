@@ -2,8 +2,8 @@
 
 import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { PushSkillFromRunArtifactRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
-import { parseManifest } from "@stigmer/sdk";
+import { PushSkillFromRunArtifactRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
+import { parseManifest } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

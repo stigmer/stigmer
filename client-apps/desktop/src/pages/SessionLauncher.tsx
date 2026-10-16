@@ -6,8 +6,8 @@ import {
   useAccountExecutionDefaults,
   useWorkspaceSources,
   useActiveOrgId,
-} from "@stigmer/react";
-import type { ResourceRef } from "@stigmer/sdk";
+} from "@stigmer/react-sdk";
+import type { ResourceRef } from "@stigmer/client";
 import { useNativeFolderPicker } from "../hooks/useNativeFolderPicker";
 import { useNativeWorkspaceFiles } from "../hooks/useNativeWorkspaceFiles";
 import { useNativeWorkspaceFileReader } from "../hooks/useNativeWorkspaceFileReader";

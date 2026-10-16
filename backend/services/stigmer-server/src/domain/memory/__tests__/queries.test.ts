@@ -15,10 +15,10 @@ import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
-import type { Memory } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
-import { MemoryLifecycleState } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/enum_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { MemorySchema } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
+import type { Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
+import { MemoryLifecycleState } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Store } from "../../../store/interface.js";
 import { apiResourceKindName } from "../../../store/proto-fields.js";

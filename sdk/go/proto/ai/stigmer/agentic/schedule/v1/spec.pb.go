@@ -8,7 +8,7 @@ package schedulev1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
+	v1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -138,7 +138,7 @@ const file_ai_stigmer_agentic_schedule_v1_spec_proto_rawDesc = "" +
 	"\aenabled\x18\x03 \x01(\bR\aenabled\x12B\n" +
 	"\x05agent\x18\x04 \x01(\v2*.ai.stigmer.agentic.run.v1.AgentInvocationH\x00R\x05agentB\x0f\n" +
 	"\x06target\x12\x05\xbaH\x02\b\x01B\xa2\x02\n" +
-	"\"com.ai.stigmer.agentic.schedule.v1B\tSpecProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/schedule/v1;schedulev1\xa2\x02\x04ASAS\xaa\x02\x1eAi.Stigmer.Agentic.Schedule.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3"
+	"\"com.ai.stigmer.agentic.schedule.v1B\tSpecProtoP\x01ZTgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/schedule/v1;schedulev1\xa2\x02\x04ASAS\xaa\x02\x1eAi.Stigmer.Agentic.Schedule.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_schedule_v1_spec_proto_rawDescOnce sync.Once

@@ -903,7 +903,7 @@ const file_ai_stigmer_agentic_channel_v1_message_io_proto_rawDesc = "" +
 	"\n" +
 	"\x06queued\x10\x02\x12\v\n" +
 	"\arefused\x10\x03B\xa0\x02\n" +
-	"!com.ai.stigmer.agentic.channel.v1B\x0eMessageIoProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
+	"!com.ai.stigmer.agentic.channel.v1B\x0eMessageIoProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_channel_v1_message_io_proto_rawDescOnce sync.Once

@@ -7,7 +7,7 @@
 package apiresource
 
 import (
-	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	apiresourcekind "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	descriptorpb "google.golang.org/protobuf/types/descriptorpb"
@@ -90,7 +90,7 @@ const file_ai_stigmer_commons_apiresource_field_options_proto_rawDesc = "" +
 	"\x0ereference_kind\x12\x1d.google.protobuf.FieldOptions\x18\xdc\xc0\x05 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\rreferenceKind:>\n" +
 	"\n" +
 	"event_type\x12\x1d.google.protobuf.FieldOptions\x18\xde\xc0\x05 \x01(\tR\teventTypeB\x9e\x02\n" +
-	"\"com.ai.stigmer.commons.apiresourceB\x11FieldOptionsProtoP\x01ZIgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
+	"\"com.ai.stigmer.commons.apiresourceB\x11FieldOptionsProtoP\x01ZIgo.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var file_ai_stigmer_commons_apiresource_field_options_proto_goTypes = []any{
 	(*descriptorpb.FieldOptions)(nil),    // 0: google.protobuf.FieldOptions

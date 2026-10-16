@@ -2,10 +2,10 @@
 
 import { useCallback, useState, type ReactNode } from "react";
 import { FileBadge, Plus } from "lucide-react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage, isPermissionDenied, isUnimplemented, type LicenseInput } from "@stigmer/sdk";
-import type { License } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
-import { LicenseState } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage, isPermissionDenied, isUnimplemented, type LicenseInput } from "@stigmer/client";
+import type { License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
+import { LicenseState } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 import { Button } from "../button/index.js";
 import { ApiResourceKind, useResourceAvailable } from "../deployment-mode.js";
 import { EmptyState } from "../empty-state/index.js";

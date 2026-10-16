@@ -3,7 +3,7 @@
 // fold. Thinking is not rendered in the terminal.
 import React, { useMemo } from "react";
 import { Box, Text } from "ink";
-import type { ThreadMessage } from "@stigmer/react";
+import type { ThreadMessage } from "@stigmer/react-sdk";
 import { renderMarkdown } from "../markdown.js";
 
 /** Props for {@link MessageEntry}. */

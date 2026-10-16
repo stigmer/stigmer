@@ -1,5 +1,5 @@
-import type { Memory } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
-import { MemoryLifecycleState } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/enum_pb";
+import type { Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
+import { MemoryLifecycleState } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/enum_pb";
 
 /** Memories bucketed by consent lifecycle, pending proposals first. */
 export interface MemoryGroups {

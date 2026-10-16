@@ -2,7 +2,7 @@
  * Pins where the web library scopes to the viewer's active organization by
  * its id, the way the server names every org: the landing's resource
  * counts; the agent page shows the agent where it lives. The views
- * and count hooks are pinned in @stigmer/react.
+ * and count hooks are pinned in @stigmer/react-sdk.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -14,7 +14,7 @@ const page = vi.hoisted(() => ({
   agentView: [] as Array<Record<string, unknown>>,
 }));
 
-vi.mock("@stigmer/react", () => {
+vi.mock("@stigmer/react-sdk", () => {
   const count = (org: string | null) => {
     page.counted.push(org);
     return { count: 0, isLoading: false };

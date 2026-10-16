@@ -22,19 +22,19 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { Stigmer } from "@stigmer/sdk";
-import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import type { Stigmer } from "@stigmer/client";
+import { ApiKeySchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
 import {
   ApiKeysSchema,
   type CreateServiceAccountKeyInput,
-} from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/iam/apikey/v1/io_pb";
 import {
   IdentityAccountSchema,
   type IdentityAccount,
-} from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { ResourceAccessByPrincipalListSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { ResourceAccessByPrincipalListSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import type { GrantSpec } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 import { StigmerContext } from "../../context";
 import { ServiceAccountDetailPanel } from "../ServiceAccountDetailPanel";
 

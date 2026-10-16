@@ -10,7 +10,7 @@ import {
   ApiResourceKind,
   ApiResourceKindSchema,
   kind_meta,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { describe, expect, it } from "vitest";
 
 import { KIND_META } from "../metadata.js";

@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { ensureMyIdentityAccount } from "@stigmer/sdk";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { ensureMyIdentityAccount } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
@@ -65,7 +65,7 @@ export interface UseIdentityAccountGateReturn {
  * Headless behavior hook that ensures the authenticated caller has an
  * identity account before the application renders.
  *
- * The flow itself is `@stigmer/sdk`'s {@link ensureMyIdentityAccount} — the
+ * The flow itself is `@stigmer/client`'s {@link ensureMyIdentityAccount} — the
  * same one the `stigmer` CLI runs on `auth login` and `auth whoami`, and the
  * one a platform builder without React calls directly. This hook adds the
  * React lifecycle around it: a state machine, a `retry`, and the discipline

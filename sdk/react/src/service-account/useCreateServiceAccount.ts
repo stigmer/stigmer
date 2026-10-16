@@ -11,9 +11,9 @@
  */
 import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { CreateServiceAccountInputSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
-import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { CreateServiceAccountInputSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
+import type { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

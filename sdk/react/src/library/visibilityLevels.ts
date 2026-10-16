@@ -1,4 +1,4 @@
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 
 /**
  * A selectable visibility level: label, explanation, and escalation copy.

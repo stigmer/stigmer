@@ -7,7 +7,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   VaultTargetSchema,
   type VaultTarget,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 
 /** The caller's own My vault in `org`. */
 export function myVaultTarget(org: string): VaultTarget {

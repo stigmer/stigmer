@@ -43,14 +43,14 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { ApiResourceGroup } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_group_pb";
+import { ApiResourceGroup } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_group_pb";
 import {
   ApiResourceKind,
   ApiResourceKindSchema,
   ApiResourceVersion,
   ResourceTier,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import {
   getKindMeta,

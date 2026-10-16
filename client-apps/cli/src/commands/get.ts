@@ -7,12 +7,12 @@
 
 import type { Command } from "commander";
 import type { Message } from "@bufbuild/protobuf";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 import { omitsOrganization } from "../client/single-org.js";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
 import type { OutputFlags, OutputFormat } from "../output/index.js";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { defaultRegistry, Verb } from "../registry/index.js";
 import { addReadFlags, globalOrg, readFormat } from "./shared.js";
 
@@ -70,7 +70,7 @@ async function runGet(type: string, reference: string, options: GetFlags, comman
       return;
     }
     const [{ AgentSchema }, agent, hideOrg] = await Promise.all([
-      import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"),
+      import("@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb"),
       getAgentAtVersion(client.stigmer, refOrg, slug, options.version ?? ""),
       omitsOrganization(client.stigmer),
     ]);

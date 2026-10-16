@@ -2,12 +2,12 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
-import { cn } from "@stigmer/theme";
-import { getUserMessage, type AttachmentInput, type ResourceRef } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage, type AttachmentInput, type ResourceRef } from "@stigmer/client";
 import {
   GetArtifactContentRequestSchema,
   UploadAttachmentRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
 import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
@@ -46,7 +46,7 @@ import { useSessionAccess } from "./useSessionAccess.js";
 import { useSessionPageFlow } from "./useSessionPageFlow.js";
 import { useOrgIdForRef } from "../organization/useOrgRefs.js";
 import { isChannelOriginSession } from "./channelOrigin.js";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { useOpenFileChange } from "./useOpenFileChange.js";
 import { usePlanDraft, planDraftKey, type PlanDraftController } from "./usePlanDraft.js";
 import { PlanEditor } from "./PlanEditor.js";
@@ -69,7 +69,7 @@ import {
   type SessionArtifactEntry,
 } from "./useSessionArtifacts.js";
 import type { SetupTabProps } from "./facets/SetupTab.js";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { SessionAudience, SessionPanelMode } from "./audience.js";
 import { showsRunScores } from "./audience.js";

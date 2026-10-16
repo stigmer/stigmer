@@ -16,13 +16,13 @@ import type { AddressInfo } from "node:net";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   type SearchResponse,
   SearchResponseSchema,
   SearchResultSchema,
-} from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
+} from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+import { SearchService } from "@stigmer/apis/ai/stigmer/search/v1/query_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { configureLogger } from "../../../logger";

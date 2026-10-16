@@ -1,4 +1,4 @@
-import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
 import { trimTrailing } from "../internal/trim.js";
 
 const PLATFORM_PREFIX = ".stigmer/";

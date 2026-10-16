@@ -14,7 +14,7 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import { HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { describe, expect, it, vi } from "vitest";
 import { HookSet, type HookFormatName } from "../../../shared/hooks/hook-set.js";
 import { rewriteEchoes } from "../../../shared/hooks/tool-view.js";

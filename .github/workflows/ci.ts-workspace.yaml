@@ -8,7 +8,7 @@
 # (the SDK typecheck gate)
 # and ci.frontend (SDK and client-app tests). Each of those carried a
 # hand-written `paths:` list that approximated the package graph and said so
-# in its comments ("sdk/react consumes @stigmer/theme workspace source, so a
+# in its comments ("sdk/react consumes @stigmer/design-tokens workspace source, so a
 # theme change can break react's typecheck without touching sdk/react/**").
 # Turborepo derives that graph from the manifests, so this lane has no path
 # list at all: ci.gate.yaml calls it for every change (`always` in
@@ -22,7 +22,7 @@
 # shell's suites, and its Rust crate with the Rust toolchain and Tauri's
 # system packages); `typecheck-clean-room` is the one job that is not about
 # the diff at all (below). No package is tested twice in one run except
-# @stigmer/react: its coverage run (`react-tests`) is on the `forks` pool,
+# @stigmer/react-sdk: its coverage run (`react-tests`) is on the `forks` pool,
 # so `react-vm-tests` runs it again on `vmForks`, the pool developers run.
 #
 # The gate (`changes`) runs scripts/turbo-affected.mjs, which asks
@@ -71,7 +71,7 @@
 # own devDependencies discipline: npm hoists, so no install-shaped job can
 # see that class.
 #
-# @stigmer/protos, @stigmer/plugin-package and @stigmer/zip-structure export
+# @stigmer/apis, @stigmer/plugin-package and @stigmer/zip-structure export
 # ./dist (every other workspace package exports src in dev; the backend libs
 # export dist because the standalone server and runner link them); no dist is
 # committed, so every job that needs one builds it, which turbo does through
@@ -145,7 +145,7 @@ jobs:
       # same files. (Before #1087 this step named `scripts/*.test.mjs` alone
       # and `scripts/lib/*.test.mjs` never ran in CI.) The script runs turbo's
       # `//#test:root`, whose edges in turbo.json build what the root suites
-      # import first (the @stigmer/protos dist), so no step here orders it.
+      # import first (the @stigmer/apis dist), so no step here orders it.
       - name: Root script tests
         run: npm run test:scripts
 
@@ -193,10 +193,10 @@ jobs:
 
       # Coverage on, written per package under coverage/ (the flags after `--`
       # reach each package's `vitest run`; scripts/ci-coverage.test.mjs holds
-      # them to one shape in every lane). @stigmer/react's suite runs in its
+      # them to one shape in every lane). @stigmer/react-sdk's suite runs in its
       # own job, `react-tests`, below.
       - name: Tests
-        run: node scripts/turbo-set.mjs libs test --only="$AFFECTED" --filter='!@stigmer/react' -- --coverage.enabled --coverage.reportsDirectory=coverage/v8 --reporter=default --reporter=github-actions --reporter=json --outputFile.json=coverage/report.json
+        run: node scripts/turbo-set.mjs libs test --only="$AFFECTED" --filter='!@stigmer/react-sdk' -- --coverage.enabled --coverage.reportsDirectory=coverage/v8 --reporter=default --reporter=github-actions --reporter=json --outputFile.json=coverage/report.json
 
       # The coverage and the report for ci.gate.yaml's Coverage job, red or
       # green: a failed run still says what it covered (reportOnFailure).
@@ -288,7 +288,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: changes
-    if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/react')
+    if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/react-sdk')
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -311,7 +311,7 @@ jobs:
         uses: ./.github/actions/playwright-chromium
 
       - name: Run browser-mode suites
-        run: node scripts/turbo-set.mjs workspace test:a11y --only=@stigmer/react
+        run: node scripts/turbo-set.mjs workspace test:a11y --only=@stigmer/react-sdk
 
   # The React SDK's default (happy-dom) suite, with coverage, in its own job.
   # A coverage run puts every file on the `forks` pool (sdk/react's
@@ -324,7 +324,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: changes
-    if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/react')
+    if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/react-sdk')
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -344,7 +344,7 @@ jobs:
         run: npm ci
 
       - name: Run the React SDK tests
-        run: node scripts/turbo-set.mjs libs test --only=@stigmer/react -- --coverage.enabled --coverage.reportsDirectory=coverage/v8 --reporter=default --reporter=github-actions --reporter=json --outputFile.json=coverage/report.json
+        run: node scripts/turbo-set.mjs libs test --only=@stigmer/react-sdk -- --coverage.enabled --coverage.reportsDirectory=coverage/v8 --reporter=default --reporter=github-actions --reporter=json --outputFile.json=coverage/report.json
 
       # The coverage and the report for ci.gate.yaml's Coverage job, red or
       # green: a failed run still says what it covered (reportOnFailure).
@@ -367,7 +367,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: changes
-    if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/react')
+    if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/react-sdk')
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -387,7 +387,7 @@ jobs:
         run: npm ci
 
       - name: Run the React SDK tests on vmForks
-        run: node scripts/turbo-set.mjs libs test --only=@stigmer/react
+        run: node scripts/turbo-set.mjs libs test --only=@stigmer/react-sdk
 
   web-tests:
     name: Web Console Tests
@@ -574,7 +574,7 @@ jobs:
       # typechecked.
       - name: Build the dist-exporting libs the consumers import
         run: |
-          npm run build -w @stigmer/protos
+          npm run build -w @stigmer/apis
           npm run build -w @stigmer/tool-vocabulary
           npm run build -w @stigmer/session-log
           npm run build -w @stigmer/eval-runtime

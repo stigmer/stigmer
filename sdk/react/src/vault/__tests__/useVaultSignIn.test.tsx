@@ -13,14 +13,14 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { createRouterTransport } from "@connectrpc/connect";
-import { Stigmer } from "@stigmer/sdk";
-import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
+import { Stigmer } from "@stigmer/client";
+import { VaultCommandController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/command_pb";
 import {
   CompleteSignInOutputSchema,
   SignInReturn,
   StartSignInOutputSchema,
   type StartSignInInput,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { startSignInInput, useVaultSignIn } from "../useVaultSignIn";
 

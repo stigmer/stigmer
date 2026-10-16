@@ -10,8 +10,8 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { UseSessionUsageReturn } from "../useSessionUsage.js";
 
 // UsageTab's render contract is what this suite pins; the aggregation

@@ -27,12 +27,12 @@
  */
 import { create, toBinary } from "@bufbuild/protobuf";
 
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import type { SessionEventPreview } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import type { SessionEventPreview } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import {
   StreamSessionEventsResponseSchema,
   type StreamSessionEventsResponse,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
 import type { Logger } from "../../../boot/logger.js";
 

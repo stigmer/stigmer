@@ -1,5 +1,5 @@
 import { create } from "@bufbuild/protobuf";
-import { ApiResourceKindMetaSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKindMetaSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { parse as parseYaml } from "yaml";
 import { describe, expect, it } from "vitest";
 import {

@@ -5,7 +5,7 @@
 // that a renewed customer counts once.
 
 import { describe, it, expect } from "vitest";
-import { LicenseState, LicenseTerm } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+import { LicenseState, LicenseTerm } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 import {
   deriveLicenseStandings,
   deriveTimeState,

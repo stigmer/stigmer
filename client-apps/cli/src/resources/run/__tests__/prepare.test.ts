@@ -6,9 +6,9 @@
 
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
-import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import type { Stigmer } from "@stigmer/client";
 import { type AgentExecFlags, prepareAgentExec, validateHarness, validateMode, validateServiceTier, validateThinking } from "../prepare.js";
 
 describe("validateMode", () => {

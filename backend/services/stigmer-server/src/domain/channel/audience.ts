@@ -16,11 +16,11 @@
  *     the package root instead of comparing to org, which once let an
  *     omitted audience mean public.
  */
-import type { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import type { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   ChannelAudience,
   type ChannelSpec,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
 
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";

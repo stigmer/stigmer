@@ -86,7 +86,7 @@ import type {
 import { getOption } from "@bufbuild/protobuf";
 import type { DescMethod } from "@bufbuild/protobuf";
 
-import { is_public } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
+import { is_public } from "@stigmer/apis/ai/stigmer/commons/rpc/method_options_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { CallerGuard } from "../../extensions/caller-guards.js";

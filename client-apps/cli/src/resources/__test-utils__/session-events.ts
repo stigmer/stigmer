@@ -6,11 +6,11 @@
 // a real log.
 
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
-import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import {
   StreamSessionEventsResponseSchema,
   type StreamSessionEventsResponse,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
 type EventInit = MessageInitShape<typeof SessionEventSchema>["event"];
 

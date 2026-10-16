@@ -23,9 +23,9 @@ import { create } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { describe, expect, it, vi } from "vitest";
 
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase as AgentPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { newConnectExecutionId } from "../../domain/plugin/tools/execution-id.js";
 import { ResourceNotFoundError } from "../../store/interface.js";

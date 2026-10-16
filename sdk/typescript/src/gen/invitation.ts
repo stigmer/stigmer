@@ -4,14 +4,14 @@ import { wrapError } from "./errors.js";
 import { stripUndefined, toTimestamp } from "./proto-utils.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { InvitationSchema, type Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
-import { InvitationCommandController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/command_pb";
-import { InvitationIdSchema, RedeemInvitationInputSchema, ListInvitationsInputSchema, InvitationsSchema, InvitationTokenInputSchema, InvitationPreviewSchema, type RedeemInvitationInput, type ListInvitationsInput, type Invitations, type InvitationTokenInput, type InvitationPreview } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/io_pb";
-import { InvitationQueryController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/query_pb";
-import { InvitationSpecSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/spec_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { InvitationSchema, type Invitation } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
+import { InvitationCommandController } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/command_pb";
+import { InvitationIdSchema, RedeemInvitationInputSchema, ListInvitationsInputSchema, InvitationsSchema, InvitationTokenInputSchema, InvitationPreviewSchema, type RedeemInvitationInput, type ListInvitationsInput, type Invitations, type InvitationTokenInput, type InvitationPreview } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/io_pb";
+import { InvitationQueryController } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/query_pb";
+import { InvitationSpecSchema } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/spec_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 /** Provides operations on invitation resources. */
 export class InvitationClient {

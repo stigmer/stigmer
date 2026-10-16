@@ -18,11 +18,11 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
 import {
   ListFlaggedScoresByAgentRequestSchema,
   type ScoreList,
-} from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 import { toError } from "../internal/toError.js";

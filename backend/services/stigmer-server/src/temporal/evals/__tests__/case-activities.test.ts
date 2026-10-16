@@ -62,25 +62,25 @@ import { MockActivityEnvironment } from "@temporalio/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { inMemoryPluginFiles } from "@stigmer/plugin-package";
-import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
-import { EvalRunSchema as EvalRunRowSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginSkillSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import { EvalSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
+import { EvalRunSchema as EvalRunRowSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginSkillSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import {
   RunSchema,
   RunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   FileChangeKind,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { CapturedFileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { CapturedFileChangeSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   CriterionResult,
   ScoreSource,
-} from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { LogFields, Logger } from "../../../boot/logger.js";
 import { EVAL_RUN_LABEL } from "../../../domain/eval-run/constants.js";

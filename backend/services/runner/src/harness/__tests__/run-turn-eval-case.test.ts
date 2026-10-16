@@ -26,9 +26,9 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { EvalCaseContextSchema, EvalMockServerSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { EvalCaseContextSchema, EvalMockServerSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
+import { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 import { parseTryStop } from "@stigmer/eval-runtime";
 
 import type { PrepareOutcome } from "../../shared/eval-case/prepare-case.js";

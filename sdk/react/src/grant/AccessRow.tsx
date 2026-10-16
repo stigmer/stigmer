@@ -12,9 +12,9 @@
  * is shown without a remove control rather than revoked by guesswork.
  */
 import { useCallback } from "react";
-import type { PrincipalAccess } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import { cn } from "@stigmer/theme";
-import { granteeFromView, type Grantee } from "@stigmer/sdk";
+import type { PrincipalAccess } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import { cn } from "@stigmer/design-tokens";
+import { granteeFromView, type Grantee } from "@stigmer/client";
 import { GranteeAvatar } from "./GranteeAvatar.js";
 import { PermissionGate } from "./PermissionGate.js";
 

@@ -1,5 +1,5 @@
 /**
- * TSDoc coverage analysis for @stigmer/ink.
+ * TSDoc coverage analysis for @stigmer/ink-ui.
  *
  * Reads the TypeDoc JSON output (dist/api.json) and produces a structured
  * coverage report as markdown tables to stdout. Designed to be run
@@ -261,7 +261,7 @@ const totalExports = exports.length;
 const documented = exports.filter((e) => e.hasDoc).length;
 const withExample = exports.filter((e) => e.hasExample).length;
 
-console.log("# TSDoc Coverage Report — @stigmer/ink\n");
+console.log("# TSDoc Coverage Report — @stigmer/ink-ui\n");
 console.log(`**Total exports**: ${totalExports}`);
 console.log(
   `**Documented** (has top-level summary): ${documented} (${pct(documented, totalExports)})`,

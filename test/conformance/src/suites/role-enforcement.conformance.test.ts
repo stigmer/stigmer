@@ -97,11 +97,11 @@
 // question being who may, not what the sentence says).
 import { Code } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import {
   OrganizationPoliciesSchema,
   OrganizationSpecSchema,
-} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/spec_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { expectGrpcCode, expectGrpcCodeWithin } from "../contract/errors";
@@ -124,7 +124,7 @@ import { makeOAuthApp } from "../support/oauthapps";
 import { makeSession } from "../support/sessions";
 import { makeSkillArtifact } from "../support/skills";
 import { digestOf, oneCaseEvalArchive } from "../support/evals";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   createTarget,
   enforcingLaneOf,

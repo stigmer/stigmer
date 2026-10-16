@@ -50,21 +50,21 @@ import type {
 import { callerIdentityKey, createLogger, RequestContext } from "@stigmer/server";
 import { describe, expect, it } from "vitest";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import { TeamCommandController } from "@stigmer/protos/ai/stigmer/iam/team/v1/command_pb";
-import { TeamQueryController } from "@stigmer/protos/ai/stigmer/iam/team/v1/query_pb";
-import { TeamSpecSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/spec_pb";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { OwnerAttributionType } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
+import { TeamSchema } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
+import { TeamCommandController } from "@stigmer/apis/ai/stigmer/iam/team/v1/command_pb";
+import { TeamQueryController } from "@stigmer/apis/ai/stigmer/iam/team/v1/query_pb";
+import { TeamSpecSchema } from "@stigmer/apis/ai/stigmer/iam/team/v1/spec_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
+import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import { newTeamServiceRegistrations, type TeamLaneDeps } from "../handlers.js";
 import type { TeamInsertOutcome } from "../store.js";
 import { InMemoryTeamStore, storedTeam } from "./in-memory-team-store.js";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { inMemoryNames } from "../../../__test-utils__/in-memory-names.js";
 import { newLoadTeamByReferenceStep } from "../steps.js";
 import type { InMemoryNames } from "../../../__test-utils__/in-memory-names.js";

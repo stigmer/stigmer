@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"testing"
 
-	searchv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1"
+	searchv1 "go.stigmer.ai/sdk/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 )

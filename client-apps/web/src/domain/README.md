@@ -8,7 +8,7 @@ and utilities that belong to a single area of the Stigmer Console.
 
 Ask one question: **"Would a platform builder embedding Stigmer need this?"**
 
-- **Yes** → It belongs in `@stigmer/react` (SDK), not here.
+- **Yes** → It belongs in `@stigmer/react-sdk` (SDK), not here.
 - **No** → It belongs in `domain/` under the appropriate product area.
 
 ### Directory map
@@ -18,7 +18,7 @@ Ask one question: **"Would a platform builder embedding Stigmer need this?"**
 | `_shared/layout/` | App shell, sidebars, org switcher, user menu — the chrome that wraps every page |
 | `_shared/org/` | Organization context and org gate — multi-tenancy infrastructure used across all areas |
 | `_shared/hooks/` | Cross-cutting Console hooks (deployment mode, static route params) |
-| `_shared/ui/` | Console UI primitives (button, card, dialog, etc.) — thin wrappers over `@stigmer/theme` |
+| `_shared/ui/` | Console UI primitives (button, card, dialog, etc.) — thin wrappers over `@stigmer/design-tokens` |
 | `session/` | Session page, session launcher, session navigation context, launcher URL builders |
 | `settings/` | Settings section panels (members, API keys, vaults, etc.) |
 | `library/` | Library landing, resource list/detail pages, library navigation, breadcrumb |
@@ -42,7 +42,7 @@ Ask one question: **"Would a platform builder embedding Stigmer need this?"**
 2. **No cross-domain imports.** `domain/settings/` should not import from
    `domain/session/`. Shared concerns live in `domain/_shared/`.
 3. **SDK first.** If a component could be useful to platform builders,
-   build it in `@stigmer/react` and consume it from here.
+   build it in `@stigmer/react-sdk` and consume it from here.
 4. **Console components stay Console-specific.** This directory is for code that
    depends on Next.js routing, Console auth, or app shell context — things that
    don't belong in the framework-agnostic SDK.

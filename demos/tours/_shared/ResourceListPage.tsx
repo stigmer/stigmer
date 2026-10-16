@@ -1,9 +1,9 @@
 import { useMemo, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { Plus, Upload } from "lucide-react";
-import { ResourceWorkbench } from "@stigmer/react";
-import type { WorkbenchPage } from "@stigmer/react";
-import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import { ResourceWorkbench } from "@stigmer/react-sdk";
+import type { WorkbenchPage } from "@stigmer/react-sdk";
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import { PulseHighlight } from "@scenar/react";
 import { DEMO_ORG } from "./fixtures";
 import "./ResourceListPage.css";

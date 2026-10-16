@@ -16,7 +16,7 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
   ListRecentActivityResponseSchema,
   RecentActivityEntrySchema,
-} from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/activity/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 

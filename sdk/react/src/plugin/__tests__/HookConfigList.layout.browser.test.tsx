@@ -12,8 +12,8 @@ import "../../../dist/styles.css";
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import type { Stigmer } from "@stigmer/sdk";
-import { HookConfigSchema, HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import type { Stigmer } from "@stigmer/client";
+import { HookConfigSchema, HookFormat } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { StigmerProvider } from "../../provider";
 import { HookConfigList } from "../HookConfigList";
 

@@ -1,11 +1,11 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import type { PrincipalAccess } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+import type { PrincipalAccess } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import {
   ListResourceAccessInputSchema,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import { ApiResourceRefSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 

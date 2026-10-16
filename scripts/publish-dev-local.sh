@@ -228,7 +228,7 @@ publish_npm() {
   # (scripts/publish-standalone.mjs): stamp the dev version, pin EVERY
   # workspace-lib file: link to it, wait until the pinned libs are installable
   # from npm, run the consumer-install smoke (#786) over the stamped manifest,
-  # publish under `dev`. The inline stamp this replaced pinned @stigmer/protos
+  # publish under `dev`. The inline stamp this replaced pinned @stigmer/apis
   # only, so a local dev runner shipped three unresolvable file: links
   # (stigmer/stigmer#1381). The manifest stays stamped for the slim steps
   # below; cleanup restores it from the snapshot.
@@ -242,7 +242,7 @@ publish_npm() {
 
   # The slim embedding artifact (stigmer/stigmer#170): @stigmer/runner-slim plus
   # its per-platform native-bridge packages. Self-contained — its bundle does
-  # not pin @stigmer/protos — so it just needs the version already stamped into
+  # not pin @stigmer/apis — so it just needs the version already stamped into
   # package.json above, which bundle-slim.mjs propagates into every manifest.
   # dist/ was produced by `make build-runner` above and carries no version, so
   # no rebuild is needed before emitting the packages.
@@ -338,7 +338,7 @@ publish_python() {
   python3 - "sdk/python/pyproject.toml" "$PY_VERSION" <<'PY'
 import re, sys, pathlib
 p = pathlib.Path(sys.argv[1]); text = p.read_text()
-text = re.sub(r'"stigmer-protos[^"]*"', f'"stigmer-protos=={sys.argv[2]}"', text)
+text = re.sub(r'"stigmer-apis[^"]*"', f'"stigmer-apis=={sys.argv[2]}"', text)
 p.write_text(text)
 PY
 
@@ -364,7 +364,7 @@ PY
       apis/stubs/python/stigmer/dist/* sdk/python/dist/*
   fi
 
-  ok "python: uploaded stigmer-protos and stigmer at $PY_VERSION to TestPyPI"
+  ok "python: uploaded stigmer-apis and stigmer-sdk at $PY_VERSION to TestPyPI"
 }
 
 # ─── Run selected targets ──────────────────────────────────────────────────
@@ -381,13 +381,13 @@ if want maven; then
   echo "Maven (Java SDK):  ai.stigmer:stigmer-java:${MAVEN_VERSION}   (mvn -U to refresh)"
 fi
 if want npm; then
-  echo "npm (React/TS):    npm install @stigmer/react@dev          # exact: @stigmer/react@${NPM_VERSION}"
+  echo "npm (React/TS):    npm install @stigmer/react-sdk@dev          # exact: @stigmer/react-sdk@${NPM_VERSION}"
   echo "npm (embed runner): npm install @stigmer/runner-slim@dev   # exact: @stigmer/runner-slim@${NPM_VERSION}"
   echo "npm (server lib):   pin @stigmer/server and every other @stigmer/* dependency at exactly ${NPM_VERSION}"
 fi
 if want python; then
-  echo "Python (TestPyPI): pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ --pre 'stigmer==${PY_VERSION}'"
+  echo "Python (TestPyPI): pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ --pre 'stigmer-sdk==${PY_VERSION}'"
 fi
-echo "Go SDK:            go get github.com/stigmer/stigmer/sdk/go/v3@$(git rev-parse --abbrev-ref HEAD)"
+echo "Go SDK:            go get go.stigmer.ai/sdk@$(git rev-parse --abbrev-ref HEAD)"
 echo ""
 ok "Done."

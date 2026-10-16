@@ -41,31 +41,31 @@ import { create } from "@bufbuild/protobuf";
 import type { PluginFinding, PluginHooks, PluginPackage } from "@stigmer/plugin-package";
 import { readPluginPackage } from "@stigmer/plugin-package";
 import type { OutboundFetch } from "@stigmer/outbound/egress";
-import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import type { PushPluginRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { PushPluginRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import {
   PluginAuthorSchema,
   PluginDialect,
   PluginSpecSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/spec_pb";
 import {
   HookConfigSchema,
   HookFormat,
   HookGroupSchema,
   HookHandlerSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import type { HookConfig } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import type { HookConfig } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import {
   PluginStatusSchema,
   PluginWarningSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import {
   ApiResourceMetadataSchema,
   ApiResourceMetadataVersionSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceAuditSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { OpenedArchive } from "../../archive/open-files.js";

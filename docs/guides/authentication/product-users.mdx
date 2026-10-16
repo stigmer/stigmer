@@ -109,7 +109,7 @@ account's API key.
 ### TypeScript (Node.js)
 
 ```typescript
-import { createNodeClient } from "@stigmer/sdk/node";
+import { createNodeClient } from "@stigmer/client/node";
 
 const stigmer = createNodeClient({
   baseUrl: "https://api.stigmer.ai",
@@ -131,7 +131,7 @@ app.get("/api/stigmer-token", async (req, res) => {
 ### Go
 
 ```go
-import stigmer "github.com/stigmer/stigmer/sdk/go/v3"
+import stigmer "go.stigmer.ai/sdk"
 
 client, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
 if err != nil {
@@ -184,8 +184,8 @@ Your frontend fetches the token from your backend and passes it to
 `StigmerProvider`. No key is needed in the browser.
 
 ```tsx
-import { StigmerProvider } from "@stigmer/react";
-import { Stigmer } from "@stigmer/sdk";
+import { StigmerProvider } from "@stigmer/react-sdk";
+import { Stigmer } from "@stigmer/client";
 
 let cachedToken: { accessToken: string; expiresAt: Date } | null = null;
 

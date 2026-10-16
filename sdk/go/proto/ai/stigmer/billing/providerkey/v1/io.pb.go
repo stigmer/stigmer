@@ -300,7 +300,7 @@ const file_ai_stigmer_billing_providerkey_v1_io_proto_rawDesc = "" +
 	"\x16ListProviderKeysOutput\x12H\n" +
 	"\aentries\x18\x01 \x03(\v2..ai.stigmer.billing.providerkey.v1.ProviderKeyR\aentries\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\xb5\x02\n" +
-	"%com.ai.stigmer.billing.providerkey.v1B\aIoProtoP\x01ZZgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/providerkey/v1;providerkeyv1\xa2\x02\x04ASBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3"
+	"%com.ai.stigmer.billing.providerkey.v1B\aIoProtoP\x01ZZgo.stigmer.ai/sdk/proto/ai/stigmer/billing/providerkey/v1;providerkeyv1\xa2\x02\x04ASBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_billing_providerkey_v1_io_proto_rawDescOnce sync.Once

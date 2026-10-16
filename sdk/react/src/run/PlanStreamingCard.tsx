@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { formatArtifactSize } from "./artifact-utils.js";
 
 /** Props for {@link PlanStreamingCard}. */

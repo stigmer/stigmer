@@ -835,7 +835,7 @@ function findUnmatchedStreamCallByNormalizedSalient(
  * truth. The blanked messages are already invisible on every surface via the
  * existing empty-message handling (`buildThreadItems` skips empty `MESSAGE_AI`;
  * `MessageEntry` renders nothing for empty `MESSAGE_THINKING`), so the shared
- * `@stigmer/react`/Ink components stay harness-agnostic with zero per-harness UI
+ * `@stigmer/react-sdk`/Ink components stay harness-agnostic with zero per-harness UI
  * special-casing — the cleanliness lives in the data, not in each consumer.
  *
  * WHY BLANK INSTEAD OF REMOVE. Removing the messages would make the persisted

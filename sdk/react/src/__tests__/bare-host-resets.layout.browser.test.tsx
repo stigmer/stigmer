@@ -28,7 +28,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import Markdown from "react-markdown";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 import { StigmerProvider } from "../provider";
 import { TodoList } from "../run/TodoList.js";
 import { UNSTYLED_FIELDSET, UNSTYLED_LIST } from "../internal/element-resets.js";

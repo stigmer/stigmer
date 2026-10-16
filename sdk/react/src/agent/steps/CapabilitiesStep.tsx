@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useId, useMemo, useState } from "react";
-import { cn } from "@stigmer/theme";
-import type { ResourceRef } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import type { ResourceRef } from "@stigmer/client";
 import { PluginPicker } from "../../plugin/PluginPicker.js";
 import { useCanCreatePlugin } from "../../plugin/useCanCreatePlugin.js";
 import { SkillPicker } from "../../skill/SkillPicker.js";

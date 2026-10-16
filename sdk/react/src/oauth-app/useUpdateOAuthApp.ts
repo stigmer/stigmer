@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import type { OAuthApp, OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
+import type { OAuthApp, OAuthAppSchema } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useId, useRef, type KeyboardEvent, type ReactNode } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 export interface TabItem {
   /** Unique identifier for the tab, used as the `activeTab` value. */

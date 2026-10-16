@@ -14,8 +14,8 @@
 
 import { useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { Eval } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
-import { ListEvalsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
+import type { Eval } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
+import { ListEvalsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useCursorPages } from "../internal/useCursorPages.js";
 

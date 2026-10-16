@@ -8,9 +8,9 @@
 // unless --no-my-vault, and each --plugin as a plugin reference.
 
 import { describe, expect, it } from "vitest";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Stigmer } from "@stigmer/client";
 import type { Command } from "commander";
 import { type AgentExecOptions, toAgentExecFlags } from "../commands/agent-exec-flags.js";
 import { buildProgram, RETIRED_COMMANDS, RETIRED_OPTIONS, RETIRED_SUBCOMMANDS } from "../program.js";

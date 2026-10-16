@@ -9,7 +9,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { ScenarioPlayer, useNarrationManifest, useStepInteractions, Cursor } from "@scenar/react";
-import type { MessageThreadProps } from "@stigmer/react";
+import type { MessageThreadProps } from "@stigmer/react-sdk";
 import { StigmerPreviewProvider } from "../../shared/StigmerPreviewProvider";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { AppShell } from "../../views/AppShell";

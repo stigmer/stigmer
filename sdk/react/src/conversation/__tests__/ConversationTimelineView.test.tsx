@@ -4,17 +4,17 @@ import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 import {
   ConversationItemAuthor,
   ConversationLane,
   ConversationTimelineItemSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import {
   ChannelAttemptFailureKind,
   ChannelDeliveryStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/delivery_pb";
-import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/outbound_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/delivery_pb";
+import { ChannelReceiptState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/outbound_pb";
 import { StigmerContext } from "../../context";
 import { ConversationTimelineView } from "../ConversationTimelineView";
 

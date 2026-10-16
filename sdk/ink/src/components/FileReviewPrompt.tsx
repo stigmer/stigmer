@@ -5,15 +5,15 @@
 // them.
 import React, { useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { FileReviewFile, FileReviewSet } from "@stigmer/sdk";
+import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { FileReviewFile, FileReviewSet } from "@stigmer/client";
 import {
   changeSetReviewability,
   fileChangeKindOf,
   fileReviewability,
   type FileReviewAction,
   type ReviewFileChangesOptions,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 import {
   blockReasonNote,
   changeSetLineStats,

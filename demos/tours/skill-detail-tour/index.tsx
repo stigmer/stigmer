@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { SkillDetailView } from "@stigmer/react";
+import { SkillDetailView } from "@stigmer/react-sdk";
 import { BrowserView } from "@scenar/react";
 import { DEMO_ORG } from "../_shared/fixtures";
 import { SKILL_SLUG, type SkillDetailTourStep } from "./steps";

@@ -3,10 +3,10 @@
 import { wrapError } from "./errors.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { ProviderKeySchema, type ProviderKey } from "@stigmer/protos/ai/stigmer/billing/providerkey/v1/api_pb";
-import { ProviderKeyCommandController } from "@stigmer/protos/ai/stigmer/billing/providerkey/v1/command_pb";
-import { SetProviderKeyInputSchema, DeleteProviderKeyInputSchema, ListProviderKeysInputSchema, ListProviderKeysOutputSchema, type SetProviderKeyInput, type DeleteProviderKeyInput, type ListProviderKeysInput, type ListProviderKeysOutput } from "@stigmer/protos/ai/stigmer/billing/providerkey/v1/io_pb";
-import { ProviderKeyQueryController } from "@stigmer/protos/ai/stigmer/billing/providerkey/v1/query_pb";
+import { ProviderKeySchema, type ProviderKey } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/api_pb";
+import { ProviderKeyCommandController } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/command_pb";
+import { SetProviderKeyInputSchema, DeleteProviderKeyInputSchema, ListProviderKeysInputSchema, ListProviderKeysOutputSchema, type SetProviderKeyInput, type DeleteProviderKeyInput, type ListProviderKeysInput, type ListProviderKeysOutput } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/io_pb";
+import { ProviderKeyQueryController } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/query_pb";
 
 /** Provides operations on providerkey resources. */
 export class ProviderKeyClient {

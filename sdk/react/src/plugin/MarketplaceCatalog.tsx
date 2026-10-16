@@ -34,7 +34,7 @@
  */
 
 import { useCallback, useId, useMemo, useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import type { MarketplaceEntry } from "@stigmer/plugin-package";
 
 import { Button } from "../button/Button.js";

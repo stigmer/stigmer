@@ -53,8 +53,8 @@ the gate asks whether the tests that should exist do.
   a suite under `test/conformance/src/suites-execution/` or a runner behaviour
   changes. `test/conformance/README.md` has the recipes.
 - In a fresh worktree, `npm ci` and `make build-ts-stubs` (or
-  `npm run build -w @stigmer/protos`) come first; without them the TypeScript
-  packages cannot resolve `@stigmer/protos` and every typecheck fails for the
+  `npm run build -w @stigmer/apis`) come first; without them the TypeScript
+  packages cannot resolve `@stigmer/apis` and every typecheck fails for the
   wrong reason.
 - When in doubt whether a row applies, run it. A few seconds of checking beats a
   red pipeline.

@@ -10,7 +10,7 @@ import {
   type RowSelectionState,
   type Table,
 } from "@tanstack/react-table";
-import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import { useTokenPages } from "../../internal/useTokenPages.js";
 import type {
   WorkbenchColumnDef,

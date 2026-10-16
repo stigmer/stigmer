@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { ResourceRef, Stigmer } from "@stigmer/sdk";
-import { GetMyVaultInputSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+import type { ResourceRef, Stigmer } from "@stigmer/client";
+import { GetMyVaultInputSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 import type { EnvVarInput } from "../vault/types.js";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import type { EnvVarDeclaration } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { useMyVault } from "../vault/useMyVault.js";

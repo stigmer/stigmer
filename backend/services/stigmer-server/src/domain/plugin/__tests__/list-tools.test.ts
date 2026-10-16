@@ -24,17 +24,17 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import {
   HttpMcpServerSchema,
   McpServerEntrySchema,
   PluginStatusSchema,
   StdioMcpServerSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { ListPluginToolsInputSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { ListPluginToolsInputSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";

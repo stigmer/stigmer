@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
-import { BillingSection } from "@stigmer/react";
+import { BillingSection } from "@stigmer/react-sdk";
 
 /**
  * Billing settings. Stripe returns here: `?setup=success&plan=<id>` after

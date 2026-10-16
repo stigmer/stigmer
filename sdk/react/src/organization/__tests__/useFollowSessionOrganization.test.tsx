@@ -17,8 +17,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   SessionSchema,
   type Session,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { FetchCache } from "../../internal/fetch-cache";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";

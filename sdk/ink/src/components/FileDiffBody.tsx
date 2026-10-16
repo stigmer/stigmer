@@ -1,12 +1,12 @@
 import React, { useMemo } from "react";
 import { Box, Text } from "ink";
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { CapturedFileChange } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   computeDiff,
   useFileChangeContent,
   type DiffHunk,
-} from "@stigmer/react";
-import { toDisplayFileChange } from "@stigmer/sdk";
+} from "@stigmer/react-sdk";
+import { toDisplayFileChange } from "@stigmer/client";
 
 /**
  * The most diff lines a single file's body renders before it is capped. A
@@ -23,7 +23,7 @@ export interface FileDiffBodyProps {
 }
 
 /**
- * The terminal analogue of `@stigmer/react`'s `FileChangeDiff` — the whole-file
+ * The terminal analogue of `@stigmer/react-sdk`'s `FileChangeDiff` — the whole-file
  * branch. Renders a single `CapturedFileChange`'s unified diff for review in the
  * terminal.
  *

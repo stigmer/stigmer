@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 interface ApprovalPeekBarProps {
   /** Whether the bar is shown — typically `notFollowing && count > 0`. */

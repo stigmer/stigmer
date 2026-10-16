@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { UnknownPublicAddressNotice } from "../internal/UnknownPublicAddressNotice.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";

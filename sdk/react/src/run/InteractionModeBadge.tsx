@@ -1,8 +1,8 @@
 "use client";
 
 import { memo } from "react";
-import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { cn } from "@stigmer/theme";
+import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { cn } from "@stigmer/design-tokens";
 
 /** Props for {@link InteractionModeBadge}. */
 export interface InteractionModeBadgeProps {

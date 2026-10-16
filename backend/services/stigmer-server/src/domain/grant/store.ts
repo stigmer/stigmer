@@ -81,7 +81,7 @@
  * when every change has been removed. A store that keeps no history
  * answers 0 to both.
  */
-import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import type { Grant } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
 
 import type {
   GrantChange,

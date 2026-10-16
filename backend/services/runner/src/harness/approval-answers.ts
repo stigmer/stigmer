@@ -50,7 +50,7 @@
  * goldens.
  */
 
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import type { LeaseGrant } from "../shared/approval-policy.js";
 import { toolUseEventId } from "./events/ids.js";

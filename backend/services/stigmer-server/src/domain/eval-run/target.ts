@@ -10,8 +10,8 @@
  * Proven through __tests__/steps.test.ts and
  * temporal/evals/__tests__/agent-subject-activities.test.ts.
  */
-import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { AgentTarget } from "./matrix.js";
 

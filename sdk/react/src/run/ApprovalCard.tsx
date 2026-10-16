@@ -2,8 +2,8 @@
 
 import { memo, useCallback, useEffect, useId, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
-import { resolveToolKind, type ToolUse } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+import { resolveToolKind, type ToolUse } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 import {
   describeApprovalPolicySource,
   hookApproveAllLabel,

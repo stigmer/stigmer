@@ -19,12 +19,12 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/query_pb";
-import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
+import { ActivityQueryController } from "@stigmer/apis/ai/stigmer/activity/v1/query_pb";
+import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { SearchService } from "@stigmer/apis/ai/stigmer/search/v1/query_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { OrganizationCommandController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/command_pb";
 
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";

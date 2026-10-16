@@ -20,7 +20,7 @@
  * is no blueprint to spend, so the second resolver answers no target. Both
  * are pure over the record being built.
  */
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
 import {
   RUN_GATE_CHECKS,

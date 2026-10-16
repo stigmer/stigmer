@@ -136,7 +136,7 @@ export const SHOTS = {
 
   /**
    * S4d — the payoff beat: Meridian's own React app with the assistant
-   * integrated through @stigmer/react (the React component, not the
+   * integrated through @stigmer/react-sdk (the React component, not the
    * iframe widget — richer UX, and the whole film stays local). A
    * before/after story: the page with NO assistant,
    * then the panel appears (the composition cuts the JSX snippet graphic

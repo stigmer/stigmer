@@ -42,14 +42,14 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import type { Stigmer, ResourceRef } from "@stigmer/sdk";
-import type { AgentMcpServer, AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { McpServerEntrySchema, type McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { Stigmer, ResourceRef } from "@stigmer/client";
+import type { AgentMcpServer, AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { McpServerEntrySchema, type McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import {
   EnvVarDeclarationSchema,
   type EnvVarDeclaration,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import {
   hookVariableReferences,
   PLACEHOLDER_PATTERN,

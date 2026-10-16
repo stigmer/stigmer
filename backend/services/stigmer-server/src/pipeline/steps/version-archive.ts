@@ -59,7 +59,7 @@
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage, Message, MessageShape } from "@bufbuild/protobuf";
 
-import { ApiResourceMetadataVersionSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceMetadataVersionSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { PipelineStep } from "../pipeline.js";

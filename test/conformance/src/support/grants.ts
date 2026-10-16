@@ -14,11 +14,11 @@
 // grant it makes.
 import { create } from "@bufbuild/protobuf";
 
-import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+import type { GrantSpec } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 import {
   ApiResourceRefSchema,
   GrantSpecSchema,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 
 export const GRANT_API_VERSION = "iam.stigmer.ai/v1";
 export const GRANT_KIND = "Grant";

@@ -42,8 +42,8 @@
 import type { DescMessage, Message, MessageShape } from "@bufbuild/protobuf";
 import { create, fromBinary } from "@bufbuild/protobuf";
 
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceRefSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 
 import type { Logger } from "../../../boot/logger.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";

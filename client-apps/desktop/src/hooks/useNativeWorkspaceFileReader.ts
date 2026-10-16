@@ -4,7 +4,7 @@ import type {
   WorkspaceEntry,
   WorkspaceFileContent,
   WorkspaceFileReader,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 
 /**
  * The Rust `ReadResult` shape: `WorkspaceFileContent` minus `bytes`, plus the

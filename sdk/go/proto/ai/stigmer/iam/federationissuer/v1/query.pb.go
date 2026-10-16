@@ -7,8 +7,8 @@
 package federationissuerv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,7 +32,7 @@ const file_ai_stigmer_iam_federationissuer_v1_query_proto_rawDesc = "" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a4.ai.stigmer.iam.federationissuer.v1.FederationIssuer\"\x04и\x18\x01\x12\xca\x01\n" +
 	"\x04list\x12>.ai.stigmer.iam.federationissuer.v1.ListFederationIssuersInput\x1a5.ai.stigmer.iam.federationissuer.v1.FederationIssuers\"K¸\x18G\b\x01\x10\x1e\"\x03org*<unauthorized to list federation issuers in this organization\x1a\x04\xa0\xff+\x15B\xc3\x02\n" +
 	"&com.ai.stigmer.iam.federationissuer.v1B\n" +
-	"QueryProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/federationissuer/v1;federationissuerv1\xa2\x02\x04ASIF\xaa\x02\"Ai.Stigmer.Iam.Federationissuer.V1\xca\x02\"Ai\\Stigmer\\Iam\\Federationissuer\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Federationissuer\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Federationissuer::V1b\x06proto3"
+	"QueryProtoP\x01Z`go.stigmer.ai/sdk/proto/ai/stigmer/iam/federationissuer/v1;federationissuerv1\xa2\x02\x04ASIF\xaa\x02\"Ai.Stigmer.Iam.Federationissuer.V1\xca\x02\"Ai\\Stigmer\\Iam\\Federationissuer\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Federationissuer\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Federationissuer::V1b\x06proto3"
 
 var file_ai_stigmer_iam_federationissuer_v1_query_proto_goTypes = []any{
 	(*apiresource.ApiResourceId)(nil),        // 0: ai.stigmer.commons.apiresource.ApiResourceId

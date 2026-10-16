@@ -29,10 +29,10 @@ import { isReservedMcpServerName } from "@stigmer/tool-vocabulary";
 import type {
   Agent,
   AgentSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import type { HookConfig, HookHandler } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { HookFormat } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import type { HookConfig, HookHandler } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import {

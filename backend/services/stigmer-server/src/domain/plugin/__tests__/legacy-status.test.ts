@@ -24,15 +24,15 @@ import { describe, expect, it } from "vitest";
 
 import { claudePlugin } from "@stigmer/plugin-package/testing";
 import type { OutboundFetch } from "@stigmer/outbound/egress";
-import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/spec_pb";
 import {
   PluginStatusSchema,
   PluginWarningSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 import type { ContentAddressedArchiveStore } from "../../../archive/content-store.js";
 import { writeArchive } from "../../../archive/write.js";

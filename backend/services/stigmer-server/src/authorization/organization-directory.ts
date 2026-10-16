@@ -35,7 +35,7 @@
  * row once for the evaluation — two primary-key reads per organization,
  * a handful per person, and the contract's own read is the controller's.
  */
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { GrantStore } from "../domain/grant/store.js";
 import type { CallerIdentity } from "../extensions/identity.js";

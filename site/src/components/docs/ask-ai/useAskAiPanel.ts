@@ -53,7 +53,7 @@ export interface AskAiPanelState {
  * through `useAskAi()`.
  *
  * Kept presentation-free (and free of Fumadocs/Next specifics) so a future
- * extraction into `@stigmer/react` is a file move, not a rewrite.
+ * extraction into `@stigmer/react-sdk` is a file move, not a rewrite.
  */
 export function useAskAiPanel(): AskAiPanelState {
   const [open, setOpenState] = useState(false);

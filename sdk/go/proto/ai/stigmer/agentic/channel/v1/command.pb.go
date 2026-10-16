@@ -7,8 +7,8 @@
 package channelv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -37,7 +37,7 @@ const file_ai_stigmer_agentic_channel_v1_command_proto_rawDesc = "" +
 	"\x0finitiateInstall\x12:.ai.stigmer.agentic.channel.v1.InitiateChannelInstallInput\x1a;.ai.stigmer.agentic.channel.v1.InitiateChannelInstallOutput\"6¸\x182\b\x02\x10/\"\vresource_id*\x1funauthorized to install channel\x12\xad\x01\n" +
 	"\x0fcompleteInstall\x12:.ai.stigmer.agentic.channel.v1.CompleteChannelInstallInput\x1a&.ai.stigmer.agentic.channel.v1.Channel\"6¸\x182\b\x02\x10/\"\vresource_id*\x1funauthorized to install channel\x12\x8b\x01\n" +
 	"\x06delete\x12(.ai.stigmer.agentic.channel.v1.ChannelId\x1a&.ai.stigmer.agentic.channel.v1.Channel\"/¸\x18+\b\x03\x10/\"\x05value*\x1eunauthorized to delete channel\x1a\x04\xa0\xff+/B\x9e\x02\n" +
-	"!com.ai.stigmer.agentic.channel.v1B\fCommandProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
+	"!com.ai.stigmer.agentic.channel.v1B\fCommandProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_channel_v1_command_proto_goTypes = []any{
 	(*Channel)(nil),                      // 0: ai.stigmer.agentic.channel.v1.Channel

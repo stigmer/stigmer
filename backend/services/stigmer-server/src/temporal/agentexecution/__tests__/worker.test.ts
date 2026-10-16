@@ -10,8 +10,8 @@ import { create } from "@bufbuild/protobuf";
 import type { Worker } from "@temporalio/worker";
 import { describe, expect, it } from "vitest";
 
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { fileReviewSeed } from "../../../domain/run/__tests__/file-review-seed.js";
 import {

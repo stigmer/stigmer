@@ -32,8 +32,8 @@ import { inTransaction } from "../../postgres/transaction.js";
 import { fromBinary, toBinary } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 
-import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
+import { TeamSchema } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 
 import type { GuardedRead } from "@stigmer/server";
 import { stampEtag } from "@stigmer/server";

@@ -10,12 +10,12 @@
 // reference.ts's `isRunId`, over the kind's current and retired prefixes.
 
 import { create } from "@bufbuild/protobuf";
-import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunListSchema, ListRunsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { InterruptSessionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunListSchema, ListRunsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { InterruptSessionInputSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Stigmer } from "@stigmer/client";
 import type { OutputFormat } from "../output/index.js";
 import { buildTypeInfo } from "../registry/index.js";
 import { readCursorPages } from "./cursor-pages.js";

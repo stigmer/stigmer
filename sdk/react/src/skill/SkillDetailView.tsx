@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import type { GitProvenance } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/status_pb";
-import { SkillState } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/status_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import type { GitProvenance } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/status_pb";
+import { SkillState } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/status_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useSkill } from "./useSkill.js";
 import { SkillFileBrowser } from "./SkillFileBrowser.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";

@@ -13,9 +13,9 @@
 // Earth that has reached it. The arithmetic goes through `Date.UTC` and ISO
 // strings only and never reads the host's time zone.
 
-import type { EntitlementLimitsInput, LicenseCustomerInput, LicenseInput } from "@stigmer/sdk";
-import { LicenseTerm } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
-import type { License } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
+import type { EntitlementLimitsInput, LicenseCustomerInput, LicenseInput } from "@stigmer/client";
+import { LicenseTerm } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
+import type { License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
 import {
   TERM_LABELS,
   coveredThroughDay,

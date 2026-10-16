@@ -4,7 +4,7 @@
 //
 // Three inputs, one pure computation:
 // - The declared set, read from the committed generated TypeScript sources of
-//   `@stigmer/protos` (`apis/stubs/ts/ai/**/*_pb.ts`), never from a hand list
+//   `@stigmer/apis` (`apis/stubs/ts/ai/**/*_pb.ts`), never from a hand list
 //   and never from the built `dist`: `tsc` never prunes its outputs, so a
 //   checkout that once built another branch's protos keeps their modules in
 //   `dist`, and a count over it includes RPCs this checkout does not declare.
@@ -52,14 +52,14 @@ function stubsRoot(): string {
   const require = createRequire(import.meta.url);
   let resolved: string;
   try {
-    resolved = require.resolve(`@stigmer/protos/${anchor}`);
+    resolved = require.resolve(`@stigmer/apis/${anchor}`);
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    throw new Error(`cannot locate @stigmer/protos (build the stubs: make build-ts-stubs): ${reason}`);
+    throw new Error(`cannot locate @stigmer/apis (build the stubs: make build-ts-stubs): ${reason}`);
   }
   const distAnchor = join("dist", `${anchor}.js`);
   if (!resolved.endsWith(distAnchor)) {
-    throw new Error(`@stigmer/protos resolved ${anchor} to ${resolved}, not under its dist/`);
+    throw new Error(`@stigmer/apis resolved ${anchor} to ${resolved}, not under its dist/`);
   }
   return resolved.slice(0, resolved.length - distAnchor.length);
 }

@@ -9,8 +9,8 @@ import {
   Building2,
   LogOut,
 } from "lucide-react";
-import { CreateOrganizationForm, useOrgGate } from "@stigmer/react";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { CreateOrganizationForm, useOrgGate } from "@stigmer/react-sdk";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useAuth } from "@/auth";
 
 /** Routes that bypass the org gate (user may not have an org yet). */

@@ -1,4 +1,4 @@
-// Public API for @stigmer/sdk
+// Public API for @stigmer/client
 
 // Top-level client
 export { Stigmer } from "./stigmer.js";
@@ -116,7 +116,7 @@ export {
   iamRoleDescription,
   grantableRoleDescription,
 } from "./iam-role.js";
-export { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+export { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 // Activity client (unified recents)
 export {
@@ -374,7 +374,7 @@ export {
   resolvedSubject,
 } from "./session.js";
 
-// Tool-call view model (framework-agnostic; shared by @stigmer/react and @stigmer/ink)
+// Tool-call view model (framework-agnostic; shared by @stigmer/react-sdk and @stigmer/ink-ui)
 export {
   type ToolKind,
   resolveToolKind,

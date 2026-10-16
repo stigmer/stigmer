@@ -37,11 +37,11 @@ const APP_DIR = resolve(process.cwd(), "src", "app");
 const FONTS_DIR = join(APP_DIR, "fonts");
 const requireFromConsole = createRequire(join(process.cwd(), "package.json"));
 
-/** The `@stigmer/theme` stylesheets `globals.css` imports, resolved to files. */
+/** The `@stigmer/design-tokens` stylesheets `globals.css` imports, resolved to files. */
 function themeStylesheets(): string[] {
   const globals = readFileSync(join(APP_DIR, "globals.css"), "utf8");
   const specifiers = [
-    ...globals.matchAll(/@import\s+"(@stigmer\/theme\/[^"]+\.css)"/g),
+    ...globals.matchAll(/@import\s+"(@stigmer\/design-tokens\/[^"]+\.css)"/g),
   ].map((m) => m[1]);
   return specifiers.map((specifier) => requireFromConsole.resolve(specifier));
 }

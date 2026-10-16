@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { Button } from "../button/Button.js";
 import { useEmptyState } from "./useEmptyState.js";
 import type { EmptyStateProps } from "./types.js";

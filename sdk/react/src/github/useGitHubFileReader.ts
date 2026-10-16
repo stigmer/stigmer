@@ -7,7 +7,7 @@
  * ceiling come back by size alone, reported as too large to preview.
  */
 import { useCallback } from "react";
-import { isNotFound } from "@stigmer/sdk";
+import { isNotFound } from "@stigmer/client";
 import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
 import {
   WorkspaceFileNotFoundError,

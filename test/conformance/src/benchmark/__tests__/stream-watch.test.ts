@@ -13,11 +13,11 @@
 // and thinking previews.
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import {
   StreamSessionEventsResponseSchema,
   type StreamSessionEventsResponse,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { describe, expect, it, vi } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import { streamSessionEvents, watchTurn } from "../stream-watch";

@@ -4,7 +4,7 @@
  * The share flow for one resource: who has access, and granting or removing
  * a person or a team.
  *
- * Grantees are `Grantee` values from `@stigmer/sdk` and reach the wire only
+ * Grantees are `Grantee` values from `@stigmer/client` and reach the wire only
  * through `granteeRef`, so a team is always `team:<id>#member` and no caller
  * spells the qualifier. Removing a grantee revokes EVERY role it holds
  * directly on the resource, read from the access list this hook already
@@ -19,13 +19,13 @@
  */
 import { useCallback, useMemo, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import type { PrincipalAccess } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import type { PrincipalAccess } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import {
   GrantSpecSchema,
   ApiResourceRefSchema,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 import {
   getTeamGrantableRoles,
   granteeFromView,
@@ -33,7 +33,7 @@ import {
   granteeRef,
   iamRoleToString,
   type Grantee,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { useResourceAvailable } from "../deployment-mode.js";
 import { toError } from "../internal/toError.js";
 import { useResourceAccess, type ResourceAccessRef } from "./useResourceAccess.js";

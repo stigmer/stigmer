@@ -6,9 +6,9 @@
 // the live turn re-renders in place.
 import React, { useMemo } from "react";
 import { Box, Text, Static } from "ink";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   displayFileChangeSets,
   isTodoTool,
@@ -17,7 +17,7 @@ import {
   type Thread,
   type ToolUse,
   type Turn,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import {
   FileReviewContext,
   runPhaseOf,
@@ -25,7 +25,7 @@ import {
   type FileReviewContextValue,
   type ThreadMessage,
   type ToolUseAnswer,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 import { MessageEntry } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { SubagentBlock } from "./SubagentBlock.js";

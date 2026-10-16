@@ -16,8 +16,8 @@ import { Code, ConnectError, createContextValues } from "@connectrpc/connect";
 import type { HandlerContext } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { CreateServiceAccountInputSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { CreateServiceAccountInputSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import type { Authorizer } from "../../../extensions/authorizer.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";

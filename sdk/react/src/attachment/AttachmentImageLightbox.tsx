@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
 
 /** Props for {@link AttachmentImageLightbox}. */

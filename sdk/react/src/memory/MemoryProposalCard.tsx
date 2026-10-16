@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
-import type { Memory } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
-import { MemoryLifecycleState } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/enum_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
+import type { Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
+import { MemoryLifecycleState } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/enum_pb";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { formatMemoryProvenance } from "./memoryGroups.js";
 import { useConfirmMemory } from "./useConfirmMemory.js";

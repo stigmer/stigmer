@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage, isUnimplemented } from "@stigmer/sdk";
-import type { Plan } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
-import { PlanInstrument } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
-import { PlanLifecycle } from "@stigmer/protos/ai/stigmer/billing/plan/v1/status_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage, isUnimplemented } from "@stigmer/client";
+import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
+import { PlanInstrument } from "@stigmer/apis/ai/stigmer/billing/plan/v1/spec_pb";
+import { PlanLifecycle } from "@stigmer/apis/ai/stigmer/billing/plan/v1/status_pb";
 import { formatChildOrgs, formatMonthlyFee, offeredFeatures } from "../billing/plan-features.js";
 import { usePlans } from "../billing/usePlans.js";
 import { Button } from "../button/index.js";

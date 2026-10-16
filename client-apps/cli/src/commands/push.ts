@@ -12,8 +12,8 @@ import { join } from "node:path";
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import {
   type OutputFlags,
   renderResult as renderCommandResult,
@@ -407,7 +407,7 @@ interface ArchiveContext {
  * silently ignore.
  */
 async function pushArchive(
-  client: import("@stigmer/sdk").Stigmer,
+  client: import("@stigmer/client").Stigmer,
   skill: typeof import("../resources/skill.js"),
   ctx: ArchiveContext,
 ): Promise<void> {
@@ -488,7 +488,7 @@ interface RemoteContext {
 }
 
 async function pushRemote(
-  client: import("@stigmer/sdk").Stigmer,
+  client: import("@stigmer/client").Stigmer,
   skill: typeof import("../resources/skill.js"),
   ctx: RemoteContext,
 ): Promise<void> {

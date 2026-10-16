@@ -8,7 +8,7 @@
  * https://stigmer.ai/demos/<tour>/. Output goes to demos/.bundles/<tour>/ —
  * a derived artifact, never committed (see demos/.gitignore).
  *
- * The compiled @stigmer/react stylesheet is a pack prerequisite (the tours
+ * The compiled @stigmer/react-sdk stylesheet is a pack prerequisite (the tours
  * import sdk/react/dist/styles.css — see tours/_shared/stigmer-preview.tsx),
  * so this script always rebuilds it first: a stale stylesheet would silently
  * drift the tours from the components they depict.
@@ -91,8 +91,8 @@ async function collectShotsByTour() {
 
 const shotsByTour = await collectShotsByTour();
 
-console.log("Building @stigmer/react stylesheet (pack prerequisite)...");
-execFileSync("npm", ["run", "build:css", "-w", "@stigmer/react"], {
+console.log("Building @stigmer/react-sdk stylesheet (pack prerequisite)...");
+execFileSync("npm", ["run", "build:css", "-w", "@stigmer/react-sdk"], {
   cwd: repoRoot,
   stdio: "inherit",
 });

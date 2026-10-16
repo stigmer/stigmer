@@ -7,9 +7,9 @@
 // position: the first vault holding a key wins, so a second mention would
 // change nothing.
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import type { Stigmer } from "@stigmer/client";
 import { resolveRunReferences } from "./references.js";
 
 /** The vault reads an id lookup needs, injectable for tests. */

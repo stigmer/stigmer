@@ -64,12 +64,12 @@
 
 import { CancelledFailure } from "@temporalio/activity";
 import { clone } from "@bufbuild/protobuf";
-import { RunStatusSchema, type Run, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { RunSpec } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { RunStatusSchema, type Run, type RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { RunSpec } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
+import type { RunConfig } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import type { Config } from "../config.js";
 import type { StigmerClient } from "../client/stigmer-client.js";
@@ -115,16 +115,16 @@ import { listTurnTools, type McpToolListing } from "../shared/mcp-tool-listing.j
 import { ToolScope } from "../shared/tool-lists.js";
 import { resolveAttachments } from "../shared/attachment-resolver.js";
 import { resolveSkills, type SkillMetadata } from "../shared/skill-resolver.js";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { loadedVersionsOf } from "./loaded-versions.js";
 import { mountPlugin, PluginMountError } from "../shared/plugin-mount.js";
 import { isTerminalError } from "../shared/grpc-retry.js";
 import { hookServerNamesOf } from "../shared/hooks/tool-view.js";
 import { getPlatformDir } from "../shared/workspace/platform-dir.js";
-import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import type { HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { HookFormat } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import type { HookSource } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { HookFormatName } from "../shared/hooks/hook-set.js";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { join } from "node:path";
 import { PLUGINS_SUBDIR } from "../shared/plugin-mount.js";
 import { ensureStigmerSymlink, STIGMER_LOCAL_STATE_DIR } from "../shared/workspace/stigmer-link.js";

@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { DisplayFileChange } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+import type { DisplayFileChange } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 import { BoundedContent } from "../internal/BoundedContent.js";
 import { computeDiff } from "../version-history/computeDiff.js";
 import { DiffViewer } from "../version-history/DiffViewer.js";

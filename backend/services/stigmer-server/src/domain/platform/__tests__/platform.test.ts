@@ -50,12 +50,12 @@ import {
   LicenseClaimsSchema,
   LicenseState,
   LicenseTerm,
-} from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+} from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 import {
   GetRunnerScopedTokenInputSchema,
   PlatformQueryController,
   ServerEdition,
-} from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+} from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";

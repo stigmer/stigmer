@@ -8,7 +8,7 @@ package licensev1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/platform/v1"
+	v1 "go.stigmer.ai/sdk/proto/ai/stigmer/platform/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -152,7 +152,7 @@ const file_ai_stigmer_billing_license_v1_spec_proto_rawDesc = "" +
 	"graceUntil\x12\x1e\n" +
 	"\x05notes\x18\a \x01(\tB\b\xbaH\x05r\x03\x18\x80 R\x05notes:{\xbaHx\x1av\n" +
 	"$license_spec.grace_not_before_expiry\x12)grace_until must not be before expires_at\x1a#this.grace_until >= this.expires_atB\x9b\x02\n" +
-	"!com.ai.stigmer.billing.license.v1B\tSpecProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/license/v1;licensev1\xa2\x02\x04ASBL\xaa\x02\x1dAi.Stigmer.Billing.License.V1\xca\x02\x1dAi\\Stigmer\\Billing\\License\\V1\xe2\x02)Ai\\Stigmer\\Billing\\License\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Billing::License::V1b\x06proto3"
+	"!com.ai.stigmer.billing.license.v1B\tSpecProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/billing/license/v1;licensev1\xa2\x02\x04ASBL\xaa\x02\x1dAi.Stigmer.Billing.License.V1\xca\x02\x1dAi\\Stigmer\\Billing\\License\\V1\xe2\x02)Ai\\Stigmer\\Billing\\License\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Billing::License::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_billing_license_v1_spec_proto_rawDescOnce sync.Once

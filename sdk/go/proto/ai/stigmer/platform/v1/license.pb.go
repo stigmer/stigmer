@@ -385,7 +385,7 @@ const file_ai_stigmer_platform_v1_license_proto_rawDesc = "" +
 	"\x05grace\x10\x04\x12\v\n" +
 	"\aexpired\x10\x05\x12\v\n" +
 	"\ainvalid\x10\x06B\xf3\x01\n" +
-	"\x1acom.ai.stigmer.platform.v1B\fLicenseProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/platform/v1;platformv1\xa2\x02\x03ASP\xaa\x02\x16Ai.Stigmer.Platform.V1\xca\x02\x16Ai\\Stigmer\\Platform\\V1\xe2\x02\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\xea\x02\x19Ai::Stigmer::Platform::V1b\x06proto3"
+	"\x1acom.ai.stigmer.platform.v1B\fLicenseProtoP\x01ZLgo.stigmer.ai/sdk/proto/ai/stigmer/platform/v1;platformv1\xa2\x02\x03ASP\xaa\x02\x16Ai.Stigmer.Platform.V1\xca\x02\x16Ai\\Stigmer\\Platform\\V1\xe2\x02\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\xea\x02\x19Ai::Stigmer::Platform::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_platform_v1_license_proto_rawDescOnce sync.Once

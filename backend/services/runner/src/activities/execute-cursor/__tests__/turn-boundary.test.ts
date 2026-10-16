@@ -34,7 +34,7 @@ import { runTurnBoundary, type TurnBoundaryOptions } from "../turn-boundary.js";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { AgentMessageSchema, ToolCallSchema, type AgentMessage, TurnRowsSchema, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { MessageType, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
 const EXEC_ID = "exec-boundary-1";
 

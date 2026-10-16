@@ -30,12 +30,12 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { create } from "@bufbuild/protobuf";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
-import { HealthCheckResponse_ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
-import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { IdentityAccountSpecSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/spec_pb";
+import { HealthCheckResponse_ServingStatus } from "@stigmer/apis/grpc/health/v1/health_pb";
+import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
@@ -48,10 +48,10 @@ import type { GrantStore } from "../../domain/grant/store.js";
 import { serverActingFor } from "../../pipeline/interceptors/auth.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../pipeline/steps/authorize.js";
 import { platformTokenKeyRingFromPem } from "../../platformtoken/key-ring.js";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
-import { ApiResourceRefSchema, GrantSpecSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import { GrantSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
+import { ApiResourceRefSchema, GrantSpecSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 
 import { BOUND_ELSEWHERE_DENY_REASON } from "../../authorization/credential-binding.js";
 import type { AuthorizationQueryEngine } from "../authorization-queries.js";
@@ -63,7 +63,7 @@ import type { ServerExtension } from "../registry.js";
 import type { ResourceAuthorizationLifecycle } from "../resource-authorization.js";
 import type { ResourceRowReader } from "../resource-row-reader.js";
 import { widerEditionPurge } from "./composed-support.js";
-import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import { TeamSchema } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { testCallerIdentity } from "../../pipeline/__tests__/support.js";
 import {

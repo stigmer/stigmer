@@ -6,20 +6,20 @@ import { type ResourceRef } from "./types.js";
 import { create, type MessageInitShape, type JsonObject } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
-import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { EvalMockKind, EvalMockToolSchema, EvalMockPluginHomeSchema, EvalMockAgentHomeSchema, EvalMockServerSchema, EvalCaseContextSchema, type EvalMockTool, type EvalMockPluginHome, type EvalMockAgentHome, type EvalMockServer, type EvalCaseContext } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
-import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import { RunIdSchema, UpdateRunInputSchema, RunUpdateStatusInputSchema, UpdateStatusResponseSchema, TerminateRunInputSchema, RecoverRunInputSchema, PauseRunInputSchema, ResumeRunInputSchema, UploadAttachmentRequestSchema, UploadAttachmentResponseSchema, ListRunsRequestSchema, RunListSchema, ListRunsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetRunUsageReportInputSchema, GetRunUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetRunSummaryRequestSchema, RunSummarySchema, type RunUpdateStatusInput, type UpdateStatusResponse, type TerminateRunInput, type RecoverRunInput, type PauseRunInput, type ResumeRunInput, type UploadAttachmentRequest, type UploadAttachmentResponse, type ListRunsRequest, type RunList, type ListRunsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetRunUsageReportInput, type GetRunUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetRunSummaryRequest, type RunSummary } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
-import { RunSpecSchema, AttachmentSchema, ConversationCatchupSchema, type Attachment, type ConversationCatchup } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { SessionSpecSchema, type SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
-import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema, type GitRepoSource, type LocalPathSource, type WorkspaceSource, type WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceIdSchema, ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
+import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { EvalMockKind, EvalMockToolSchema, EvalMockPluginHomeSchema, EvalMockAgentHomeSchema, EvalMockServerSchema, EvalCaseContextSchema, type EvalMockTool, type EvalMockPluginHome, type EvalMockAgentHome, type EvalMockServer, type EvalCaseContext } from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
+import { RunConfigSchema, type RunConfig } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
+import { RunIdSchema, UpdateRunInputSchema, RunUpdateStatusInputSchema, UpdateStatusResponseSchema, TerminateRunInputSchema, RecoverRunInputSchema, PauseRunInputSchema, ResumeRunInputSchema, UploadAttachmentRequestSchema, UploadAttachmentResponseSchema, ListRunsRequestSchema, RunListSchema, ListRunsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetRunUsageReportInputSchema, GetRunUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetRunSummaryRequestSchema, RunSummarySchema, type RunUpdateStatusInput, type UpdateStatusResponse, type TerminateRunInput, type RecoverRunInput, type PauseRunInput, type ResumeRunInput, type UploadAttachmentRequest, type UploadAttachmentResponse, type ListRunsRequest, type RunList, type ListRunsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetRunUsageReportInput, type GetRunUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetRunSummaryRequest, type RunSummary } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
+import { RunSpecSchema, AttachmentSchema, ConversationCatchupSchema, type Attachment, type ConversationCatchup } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
+import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { SessionSpecSchema, type SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
+import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema, type GitRepoSource, type LocalPathSource, type WorkspaceSource, type WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceIdSchema, ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on run resources. */
 export class RunClient {

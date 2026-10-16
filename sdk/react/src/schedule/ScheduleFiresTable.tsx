@@ -1,13 +1,13 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import {
   ScheduleFireOrigin,
   ScheduleFireOutcome,
   type ScheduleFire,
-} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Pagination } from "../internal/Pagination.js";

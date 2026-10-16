@@ -31,7 +31,7 @@ setup (below), switching a dependency between a dev build and a prod release is
 | Language | Prod reference | Dev reference |
 | --- | --- | --- |
 | Java (Maven) | `ai.stigmer:stigmer-java:3.0.0` | `ai.stigmer:stigmer-java:3.0.1-SNAPSHOT` |
-| npm | `@stigmer/react@3.0.0` | `@stigmer/react@dev` |
+| npm | `@stigmer/react-sdk@3.0.0` | `@stigmer/react-sdk@dev` |
 | Python | `stigmer==3.0.0` | `stigmer==3.0.1.dev<N>` (from TestPyPI) |
 | Go | `...@v3.0.0` | `...@<branch>` |
 | Rust | crates.io `"3.0.0"` | `{ git = "...", branch = "..." }` |
@@ -68,7 +68,7 @@ setup (below), switching a dependency between a dev build and a prod release is
    `-SNAPSHOT` / `-dev.<stamp>` / `.dev<N>` suffix and targets the *next*
    unreleased version. This structurally prevents a dev artifact from shadowing a
    real release (the failure mode behind issue #156, where a published
-   `@stigmer/protos` shadowed the in-repo workspace stub).
+   `@stigmer/apis` shadowed the in-repo workspace stub).
 
 ---
 
@@ -212,8 +212,8 @@ Nothing to configure — the `dev` dist-tag lives on the same public npm registr
 `latest`. Switch the version reference only:
 
 ```bash
-npm install @stigmer/react@3.0.0   # prod
-npm install @stigmer/react@dev     # dev (latest dev build)
+npm install @stigmer/react-sdk@3.0.0   # prod
+npm install @stigmer/react-sdk@dev     # dev (latest dev build)
 ```
 
 `@dev` always resolves to the newest dev build. To pin an exact dev build, use the
@@ -236,13 +236,13 @@ dev builds go to TestPyPI. Point pip at TestPyPI **with PyPI as an extra index**
 
 ```bash
 # prod
-pip install stigmer
+pip install stigmer-sdk
 
 # dev (TestPyPI)
 pip install \
   -i https://test.pypi.org/simple/ \
   --extra-index-url https://pypi.org/simple/ \
-  --pre 'stigmer==3.0.1.dev<N>'
+  --pre 'stigmer-sdk==3.0.1.dev<N>'
 ```
 
 To make this a one-time setup, add the extra index to your `pip.conf`
@@ -259,8 +259,8 @@ pre = true
 The Go SDK is consumed by module path. Prod uses a tag; dev uses your branch:
 
 ```bash
-go get github.com/stigmer/stigmer/sdk/go/v3@v3.0.0      # prod
-go get github.com/stigmer/stigmer/sdk/go/v3@my-branch   # dev
+go get go.stigmer.ai/sdk@v3.0.0      # prod
+go get go.stigmer.ai/sdk@my-branch   # dev
 ```
 
 ### Rust (no publish — git dependency)
@@ -315,7 +315,7 @@ One-time account/secret setup. There are **two credential planes**:
 
 - CI: publishes via **OIDC Trusted Publishing** (matching
   `release.python-sdk.yaml`). A Trusted Publisher must be configured on
-  `test.pypi.org` for **both** projects (`stigmer` and `stigmer-protos`), pointing
+  `test.pypi.org` for **both** projects (`stigmer-sdk` and `stigmer-apis`), pointing
   at this repository and the `release.dev` workflow.
 - Local: uses the `testpypi-token` Planton secret (an API token), which does not
   require the trusted-publisher setup.

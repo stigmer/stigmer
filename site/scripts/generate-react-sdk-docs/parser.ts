@@ -884,7 +884,7 @@ function resolveLinkTarget(
   }
 
   if (isExternalTarget(target)) {
-    if (target.packageName === "@stigmer/protos") {
+    if (target.packageName === "@stigmer/apis") {
       const slug = mapProtoToResourceSlug(target.qualifiedName);
       if (slug) return `/docs/sdk/resources/${slug}`;
     }
@@ -907,7 +907,7 @@ function resolveTypeLink(
     return `/docs/sdk/react/${domain}#${toAnchor(type.name)}`;
   }
 
-  if (isExternalTarget(type.target) && type.target.packageName === "@stigmer/protos") {
+  if (isExternalTarget(type.target) && type.target.packageName === "@stigmer/apis") {
     const slug = mapProtoToResourceSlug(type.target.qualifiedName);
     if (slug) return `/docs/sdk/resources/${slug}`;
   }

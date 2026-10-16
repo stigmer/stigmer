@@ -24,8 +24,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   OAuthAppSchema,
   type OAuthApp,
-} from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
-import type { DeploymentMode } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
+import type { DeploymentMode } from "@stigmer/client";
 import { DeploymentModeContext } from "../../deployment-mode";
 
 const stubs = vi.hoisted(() => ({

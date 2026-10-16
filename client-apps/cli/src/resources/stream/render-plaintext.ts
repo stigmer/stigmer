@@ -9,7 +9,7 @@
 // frames. Each fold is compared with the last by reference, so a turn no event
 // touched is not walked again, and everything already written stays written.
 
-import { extractShellIntent, type SessionFold, type ToolUse, type Turn, type TurnItem } from "@stigmer/sdk";
+import { extractShellIntent, type SessionFold, type ToolUse, type Turn, type TurnItem } from "@stigmer/client";
 import { answerWord, type ApproveDefault, type AskAnswer } from "./answer.js";
 import type { HeadlessRenderer } from "./headless.js";
 import type { LineWriter } from "./render-ndjson.js";

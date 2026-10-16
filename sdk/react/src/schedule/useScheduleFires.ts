@@ -4,7 +4,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   ListScheduleFiresRequestSchema,
   type ScheduleFire,
-} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useTokenPages } from "../internal/useTokenPages.js";
 

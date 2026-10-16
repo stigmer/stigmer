@@ -21,9 +21,9 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
-import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
+import { WorkspaceWriteBackSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { DeepAgentTranslator } from "../translator.js";
 import type { DeepAgentGateState } from "../turn-setup.js";
@@ -50,7 +50,7 @@ import {
   ToolKind,
   TodoStatus,
 } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
-import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunStatusSchema, type RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
 /**
  * A builder over an empty status. Usage never reaches the builder:

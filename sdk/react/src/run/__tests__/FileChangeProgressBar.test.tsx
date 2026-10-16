@@ -12,8 +12,8 @@ import {
   FileChangeProgressSchema,
   FileChangeProgressEntrySchema,
   type FileChangeProgress,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { FileChangeProgressBar } from "../FileChangeProgressBar";
 
 function entry(path: string, kind: FileChangeKind, added: number, removed: number) {

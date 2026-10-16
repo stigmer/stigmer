@@ -67,10 +67,10 @@ const canonicalBySegment = new Map([
 // first render. The mock answers it the same way; the others at once.
 const answeredByLookup = new Set(["acme-old"]);
 
-vi.mock("@stigmer/react", async (importOriginal) => {
+vi.mock("@stigmer/react-sdk", async (importOriginal) => {
   const { useEffect, useState } = await import("react");
   return {
-    ...(await importOriginal<typeof import("@stigmer/react")>()),
+    ...(await importOriginal<typeof import("@stigmer/react-sdk")>()),
     useOrgSlugForId: () => (id: string) => slugById.get(id) ?? id,
     useCanonicalOrgSlug: (segment: string | null) => {
       const looked = answeredByLookup.has(segment ?? "");

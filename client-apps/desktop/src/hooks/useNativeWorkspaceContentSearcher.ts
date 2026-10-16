@@ -4,7 +4,7 @@ import type {
   WorkspaceContentSearchResult,
   WorkspaceContentSearcher,
   WorkspaceEntry,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 
 /**
  * Returns a stable {@link WorkspaceContentSearcher} that greps local workspace

@@ -18,11 +18,11 @@ const mocks = vi.hoisted(() => ({
 vi.mock("next-themes", () => ({
   useTheme: () => ({ resolvedTheme: "light" }),
 }));
-vi.mock("@stigmer/sdk", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@stigmer/sdk")>()),
+vi.mock("@stigmer/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/client")>()),
   Stigmer: class {},
 }));
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   StigmerProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 vi.mock("@/config/env", () => ({

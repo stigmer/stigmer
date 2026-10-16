@@ -7,8 +7,8 @@
 package teamv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,7 +32,7 @@ const file_ai_stigmer_iam_team_v1_query_proto_rawDesc = "" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\x1c.ai.stigmer.iam.team.v1.Team\"\x04и\x18\x01\x12\x8d\x01\n" +
 	"\x04list\x12&.ai.stigmer.iam.team.v1.ListTeamsInput\x1a\x1d.ai.stigmer.iam.team.v1.Teams\">¸\x18:\b\x01\x10\x1e\"\x03org*/unauthorized to list teams in this organization\x1a\x04\xa0\xff+\x18B\xef\x01\n" +
 	"\x1acom.ai.stigmer.iam.team.v1B\n" +
-	"QueryProtoP\x01ZHgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/team/v1;teamv1\xa2\x02\x04ASIT\xaa\x02\x16Ai.Stigmer.Iam.Team.V1\xca\x02\x16Ai\\Stigmer\\Iam\\Team\\V1\xe2\x02\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetadata\xea\x02\x1aAi::Stigmer::Iam::Team::V1b\x06proto3"
+	"QueryProtoP\x01ZHgo.stigmer.ai/sdk/proto/ai/stigmer/iam/team/v1;teamv1\xa2\x02\x04ASIT\xaa\x02\x16Ai.Stigmer.Iam.Team.V1\xca\x02\x16Ai\\Stigmer\\Iam\\Team\\V1\xe2\x02\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetadata\xea\x02\x1aAi::Stigmer::Iam::Team::V1b\x06proto3"
 
 var file_ai_stigmer_iam_team_v1_query_proto_goTypes = []any{
 	(*apiresource.ApiResourceId)(nil),        // 0: ai.stigmer.commons.apiresource.ApiResourceId

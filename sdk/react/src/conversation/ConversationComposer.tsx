@@ -2,10 +2,10 @@
 
 import { useId, useState } from "react";
 import { LayoutTemplate, Send, TriangleAlert } from "lucide-react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
-import { ChannelSendOutcome } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
-import type { SendChannelMessageOutput } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
+import { ChannelSendOutcome } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
+import type { SendChannelMessageOutput } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { Button } from "../button/Button.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useComposer } from "../composer/useComposer.js";

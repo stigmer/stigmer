@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { EntitlementsSchema, Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import { EntitlementsSchema, Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import { coveredThroughDay, entitlementParts, formatDayFromToday } from "../license-format";
 
 describe("coveredThroughDay", () => {

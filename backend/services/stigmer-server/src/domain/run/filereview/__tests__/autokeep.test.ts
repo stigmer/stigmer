@@ -18,10 +18,10 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { DiffCompleteness } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { TurnCommandProvenanceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { DiffCompleteness } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import { TurnCommandProvenanceSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import type { LogFields, Logger } from "../../../../boot/logger.js";
 import { capturedSet, reviewableChange } from "../../__tests__/file-review-seed.js";

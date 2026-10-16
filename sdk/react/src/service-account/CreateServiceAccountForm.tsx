@@ -13,11 +13,11 @@
  * and `onDone` fires when the flow is over (the key dismissed or declined).
  */
 import { useCallback, useId, useState, type FormEvent } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage, iamRoleDisplayName } from "@stigmer/sdk";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage, iamRoleDisplayName } from "@stigmer/client";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { ApiKeyCreatedAlert } from "../api-key/ApiKeyCreatedAlert.js";
 import { RoleSelector } from "../grant/RoleSelector.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";

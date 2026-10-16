@@ -15,8 +15,8 @@ import { describe, expect, it } from "vitest";
 import {
   MintGuestTokenResponseSchema,
   TokenService,
-} from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
-import type { MintGuestTokenRequest } from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
+} from "@stigmer/apis/ai/stigmer/iam/token/v1/token_pb";
+import type { MintGuestTokenRequest } from "@stigmer/apis/ai/stigmer/iam/token/v1/token_pb";
 
 import type { GuestTokenMinting } from "../../../extensions/guest-token-minting.js";
 import { GUEST_MINT_UNIMPLEMENTED_MESSAGE } from "../constants.js";

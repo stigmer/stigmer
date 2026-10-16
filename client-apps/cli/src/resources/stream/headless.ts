@@ -18,8 +18,8 @@
 // own, joined to the caller's, aborted on every way out, so the open stream
 // does not hold the process after the turn has ended.
 
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import type { StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import type { StreamSessionEventsResponse } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import {
   foldSession,
   SessionLog,
@@ -28,7 +28,7 @@ import {
   type SessionStatusView,
   type ToolUse,
   type Turn,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { answerFor, type ApproveDefault, type AskAnswer } from "./answer.js";
 import {
   APPROVAL_RETRY_BASE_DELAY_MS,

@@ -5,7 +5,7 @@ Go client library for the [Stigmer](https://stigmer.ai) platform API.
 ## Install
 
 ```bash
-go get github.com/stigmer/stigmer/sdk/go/v3
+go get go.stigmer.ai/sdk
 ```
 
 ## Quick Start
@@ -18,7 +18,7 @@ import (
     "fmt"
     "log"
 
-    stigmer "github.com/stigmer/stigmer/sdk/go/v3"
+    stigmer "go.stigmer.ai/sdk"
 )
 
 func main() {
@@ -99,8 +99,8 @@ fmt.Println(len(support.GetEntries()))
 ```
 
 `apiresource` is
-`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource` and
-`agentv1` is `github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1`.
+`go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource` and
+`agentv1` is `go.stigmer.ai/sdk/proto/ai/stigmer/agentic/agent/v1`.
 
 ## Billing
 
@@ -177,7 +177,7 @@ for {
 }
 ```
 
-`sessionv1` is `github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1`.
+`sessionv1` is `go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1`.
 Answer a tool use that waits for approval with `client.Session.ConfirmToolUse`.
 
 ## Types

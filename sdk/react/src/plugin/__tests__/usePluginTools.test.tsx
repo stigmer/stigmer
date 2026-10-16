@@ -8,7 +8,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { ListPluginToolsInput } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+import type { ListPluginToolsInput } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 
 import { StigmerContext } from "../../context.js";
 import { usePluginTools } from "../usePluginTools.js";

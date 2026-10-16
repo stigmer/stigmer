@@ -18,7 +18,7 @@ import type {
 } from "@bufbuild/protobuf";
 import { FieldMaskSchema } from "@bufbuild/protobuf/wkt";
 import type { FieldMask } from "@bufbuild/protobuf/wkt";
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../request-context.js";

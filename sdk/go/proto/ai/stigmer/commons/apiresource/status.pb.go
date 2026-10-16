@@ -323,7 +323,7 @@ const file_ai_stigmer_commons_apiresource_status_proto_rawDesc = "" +
 	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\x12\x14\n" +
 	"\x05email\x18\x04 \x01(\tR\x05email\x12\x1b\n" +
 	"\tminted_by\x18\x06 \x01(\tR\bmintedByJ\x04\b\x05\x10\x06R\x12platform_client_idB\x98\x02\n" +
-	"\"com.ai.stigmer.commons.apiresourceB\vStatusProtoP\x01ZIgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
+	"\"com.ai.stigmer.commons.apiresourceB\vStatusProtoP\x01ZIgo.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var (
 	file_ai_stigmer_commons_apiresource_status_proto_rawDescOnce sync.Once

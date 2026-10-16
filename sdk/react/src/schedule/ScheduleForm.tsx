@@ -1,13 +1,13 @@
 "use client";
 
 import { type FormEvent, useCallback, useId, useMemo, useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import {
   getUserMessage,
   type ResourceRef,
   type RunConfigInput,
-} from "@stigmer/sdk";
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+} from "@stigmer/client";
+import type { Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
 import { Popover } from "@base-ui/react/popover";
 import { AgentPicker } from "../agent/AgentPicker.js";
 import { VaultPicker } from "../vault/VaultPicker.js";

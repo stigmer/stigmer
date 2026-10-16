@@ -20,9 +20,9 @@ import { create } from "@bufbuild/protobuf";
 import {
   FederationIssuerSchema,
   type FederationIssuer,
-} from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import type { DeploymentMode } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import type { DeploymentMode } from "@stigmer/client";
 import { DeploymentModeContext } from "../../deployment-mode";
 
 vi.mock("../../organization/OrgProvider.js", () => ({

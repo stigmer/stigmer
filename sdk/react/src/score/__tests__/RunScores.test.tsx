@@ -23,24 +23,24 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import {
   RunSchema,
   type Run,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   ScoreSchema,
   type Score,
-} from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
 import {
   CriterionResult,
   ScoreSource,
   ScoreState,
-} from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
-import { ScoreListSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
-import { buildScoreProto, type ScoreInput } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
+import { ScoreListSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
+import { buildScoreProto, type ScoreInput } from "@stigmer/client";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { MessageThread } from "../../run/MessageThread";
-import type { Turn } from "@stigmer/sdk";
+import type { Turn } from "@stigmer/client";
 import { samples } from "../../test/samples";
 
 afterEach(() => {

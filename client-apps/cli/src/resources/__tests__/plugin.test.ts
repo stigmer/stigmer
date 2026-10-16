@@ -183,9 +183,9 @@ describe("renderPushOutcome", () => {
     const { renderPushOutcome } = await import("../plugin.js");
     const { create } = await import("@bufbuild/protobuf");
     const { PluginSchema } =
-      await import("@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb");
+      await import("@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb");
     const { PluginDialect } =
-      await import("@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb");
+      await import("@stigmer/apis/ai/stigmer/agentic/plugin/v1/spec_pb");
     const { renderResult } = await import("../../output/command-result.js");
 
     const plugin = create(PluginSchema, {
@@ -240,7 +240,7 @@ describe("nextSteps", () => {
     env: Record<string, { isSecret?: boolean; optional?: boolean; value?: string }>,
   ) {
     const { create } = await import("@bufbuild/protobuf");
-    const { PluginSchema } = await import("@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb");
+    const { PluginSchema } = await import("@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb");
     return create(PluginSchema, {
       metadata: { id: "plg_1", slug: "linear" },
       status: {
@@ -356,8 +356,8 @@ describe("the hooks summary", () => {
   it("names the hooks an install recorded", async () => {
     const { renderPushOutcome } = await import("../plugin.js");
     const { create } = await import("@bufbuild/protobuf");
-    const { PluginSchema } = await import("@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb");
-    const { HookFormat } = await import("@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb");
+    const { PluginSchema } = await import("@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb");
+    const { HookFormat } = await import("@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb");
     const plugin = create(PluginSchema, {
       metadata: { id: "plg_2", slug: "guard" },
       status: {

@@ -122,7 +122,7 @@ $(RUNNER_DIR)/node_modules: $(RUNNER_DIR)/package.json
 	@touch $(RUNNER_DIR)/node_modules
 
 bootstrap-runner: node_modules build-ts-stubs $(RUNNER_DIR)/node_modules ## One-shot prep for the TS runner (proto stubs + deps)
-	@echo "runner ready: @stigmer/protos dist built + $(RUNNER_DIR) deps installed"
+	@echo "runner ready: @stigmer/apis dist built + $(RUNNER_DIR) deps installed"
 
 build-runner: build-ts-stubs $(RUNNER_DIR)/node_modules ## Compile unified runner (TypeScript)
 	@echo "build    $(RUNNER_DIR)"
@@ -133,7 +133,7 @@ build-runner-slim: build-runner ## Build the slim embedding artifact (dist-slim/
 	@cd $(RUNNER_DIR) && node scripts/bundle-slim.mjs
 
 # The TS server follows the runner's standalone-package model: own lockfile,
-# file:-linked @stigmer/protos, NOT an npm workspace.
+# file:-linked @stigmer/apis, NOT an npm workspace.
 $(SERVER_DIR)/node_modules: $(SERVER_DIR)/package.json
 	@echo "npm install  $(SERVER_DIR)"
 	@cd $(SERVER_DIR) && npm install
@@ -178,7 +178,7 @@ gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-d
 
 gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
-	@npm run build -w @stigmer/protos --silent
+	@npm run build -w @stigmer/apis --silent
 	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=sdk-docs \
 		--schema-dir tools/codegen/schemas --output-dir docs/sdk/resources --apis-dir apis
 
@@ -260,7 +260,7 @@ gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sd
 
 gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
-	@npm run build -w @stigmer/protos --silent
+	@npm run build -w @stigmer/apis --silent
 	@tmpdir=$$(mktemp -d) && \
 	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=sdk-docs \
 		--schema-dir tools/codegen/schemas --output-dir "$$tmpdir" --apis-dir apis && \
@@ -362,7 +362,7 @@ gen-ipc-fixtures: $(RUNNER_DIR)/node_modules ## Regenerate golden IPC fixtures f
 gen-ipc-fixtures-check: $(RUNNER_DIR)/node_modules ## Verify golden IPC fixtures are fresh (CI) — fails if the contract changed without regenerating
 	@cd $(RUNNER_DIR) && npm run gen:ipc-fixtures -- --check
 
-build-ts-stubs: node_modules ## Rebuild the runner-linked workspace lib dists (@stigmer/protos after stub regeneration + @stigmer/temporal-codecs)
+build-ts-stubs: node_modules ## Rebuild the runner-linked workspace lib dists (@stigmer/apis after stub regeneration + @stigmer/temporal-codecs)
 	npm run build:runner-deps
 
 # Build only. The libs' unit suites are test-libs, run by `make check` and
@@ -817,7 +817,7 @@ tidy: ## Run go mod tidy on all Go modules
        check-prep check-go check-node check-site check-rust check-java
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
-	-npm run lint:fix -w @stigmer/react
+	-npm run lint:fix -w @stigmer/react-sdk
 	-npm run lint -w client-apps/web -- --fix
 
 lint: ## Run all linters and type checks
@@ -826,9 +826,9 @@ lint: ## Run all linters and type checks
 	done
 	@gofmt -s -w .
 	@$(MAKE) -C apis lint
-	npm run typecheck -w @stigmer/sdk
-	npm run lint -w @stigmer/react
-	npm run typecheck -w @stigmer/react
+	npm run typecheck -w @stigmer/client
+	npm run lint -w @stigmer/react-sdk
+	npm run typecheck -w @stigmer/react-sdk
 	npm run lint -w client-apps/web
 	$(MAKE) -C site lint
 	$(MAKE) -C site typecheck
@@ -854,12 +854,12 @@ clean-web: ## Remove web build artifacts
 clean-build-web: clean-web build-web ## Clean + build web console
 
 lint-web: ## Lint web console and React SDK
-	npm run lint -w @stigmer/react
+	npm run lint -w @stigmer/react-sdk
 	npm run lint -w client-apps/web
 
 typecheck-web: ## Typecheck web console, SDK, and React SDK
-	npm run typecheck -w @stigmer/sdk
-	npm run typecheck -w @stigmer/react
+	npm run typecheck -w @stigmer/client
+	npm run typecheck -w @stigmer/react-sdk
 	npm run typecheck -w client-apps/web
 
 verify-web-routing: ## Verify every web route resolves through nginx.conf's static-export rules
@@ -871,9 +871,9 @@ test-web: ## Run web console component tests (Vitest)
 	npm run test -w client-apps/web
 
 test-a11y: ## Run the SDK workspace-panel accessibility audit (real Chromium via Vitest browser mode)
-	npm run build -w @stigmer/react
+	npm run build -w @stigmer/react-sdk
 	npx playwright install chromium
-	npm run test:a11y -w @stigmer/react
+	npm run test:a11y -w @stigmer/react-sdk
 
 # ─── Client Apps: Desktop (Tauri v2 + Vite + React) ──
 
@@ -1249,12 +1249,12 @@ agents-check: ## Verify agent guidance: shims and hooks.json in sync, every cite
 
 check-docs-yaml: ## Validate every docs YAML block + raw examples/plugins manifests against the proto contracts, incl. platform-parity protovalidate rules (CI)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
-	@npm run build -w @stigmer/protos --silent
+	@npm run build -w @stigmer/apis --silent
 	@node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=docs-yaml-check --docs-dir docs --authoring-dirs examples,plugins --rules=enforce
 
 report-docs-yaml-rules: ## Protovalidate rule report over docs YAML manifests (never fails)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
-	@npm run build -w @stigmer/protos --silent
+	@npm run build -w @stigmer/apis --silent
 	@node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=docs-yaml-check --docs-dir docs --rules=report
 
 check-docs-inventory: ## Verify every docs page is classified in docs/_inventory/classification.yaml (CI)
@@ -1293,7 +1293,7 @@ install-cli-shim: node_modules ## Install ~/bin/stigmer — a shim running the @
 	@mkdir -p $(HOME)/bin
 	@# --tsconfig is required: tsx applies a tsconfig's jsx setting only to files it
 	@# matches, and no per-package config covers the cross-package JSX source the CLI
-	@# imports (@stigmer/ink, @stigmer/react). tsconfig.tsx.json forces the automatic
+	@# imports (@stigmer/ink-ui, @stigmer/react-sdk). tsconfig.tsx.json forces the automatic
 	@# JSX runtime tree-wide so those components don't fall back to classic React.createElement.
 	@# Each line is one printf argument with its paths spelled $(CURDIR)/..., so
 	@# scripts/lane-triggers.test.mjs reads which source the shim runs.
@@ -1454,7 +1454,7 @@ release: release-preflight ## Tag and push a release (usage: make release [bump=
 	@echo "    + the server, Enterprise server, runner and all-in-one images on GHCR, and the Helm chart"
 	@echo "      at oci://ghcr.io/stigmer/charts/stigmer, each smoked before it is promoted or pushed"
 	@echo "  - Go SDK (go get)                (sdk/go tag auto-cached by proxy.golang.org)"
-	@echo "  - stigmer + stigmer-protos PyPI  (release.python-sdk.yaml)"
+	@echo "  - stigmer-sdk + stigmer-apis PyPI  (release.python-sdk.yaml)"
 	@echo "  - MCP server Docker image        (release.mcp-server.yaml)"
 	@echo "  - Live check on real providers   (ci.live.yaml, after the npm release)"
 

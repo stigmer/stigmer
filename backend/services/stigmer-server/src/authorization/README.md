@@ -128,7 +128,7 @@ and shapes the tuple lifecycle writes from, for every kind with stored rows.
 the message `kind_meta` names, and the team grants to `team_grantable_roles`;
 `model/__tests__/openfga-json.test.ts` pins every refusal of the reader;
 `__tests__/wire-permissions.test.ts` pins that every question an RPC annotation
-in `@stigmer/protos` asks is a relation the model defines, today's known gaps
+in `@stigmer/apis` asks is a relation the model defines, today's known gaps
 pinned by name. The rest pin the machinery:
 alias matching, the memo, the bounds, the source and the derived rules on
 both store drivers. The four drivers are pinned arm by arm on both store drivers

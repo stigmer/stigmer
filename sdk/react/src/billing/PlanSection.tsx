@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { cn } from "@stigmer/theme";
-import { getUserMessage, isUnimplemented } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage, isUnimplemented } from "@stigmer/client";
 import { ApiResourceKind, useResourceAvailable } from "../deployment-mode.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { ChangePlanDialog } from "./ChangePlanDialog.js";

@@ -9,8 +9,8 @@
 // backend creates a session that names none, and the header shows the
 // assistant's name.
 
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { BUILT_IN_ASSISTANT_NAME } from "@stigmer/sdk";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { BUILT_IN_ASSISTANT_NAME } from "@stigmer/client";
 import type { BackendClient } from "../../client/index.js";
 import { downloadRunArtifacts } from "../download.js";
 import { type AgentRefInput, createAgentRun } from "./create.js";

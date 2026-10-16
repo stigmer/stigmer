@@ -37,7 +37,7 @@
  */
 import type { PipelineStep, RequestContext } from "@stigmer/server";
 import { accountIdFor, permissionDeniedWithReasonError } from "@stigmer/server";
-import type { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 
 /** The refusal's ErrorInfo reason, documented on OrganizationCommandController.create. */
 export const ORGANIZATION_CREATOR_NOT_LISTED = "ORGANIZATION_CREATOR_NOT_LISTED";

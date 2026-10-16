@@ -25,11 +25,11 @@ import type { DescMessage, Message, MessageShape } from "@bufbuild/protobuf";
 import { timestampNow } from "@bufbuild/protobuf/wkt";
 import { create } from "@bufbuild/protobuf";
 
-import { ApiResourceMetadataVersionSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceMetadataVersionSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   ApiResourceAuditSchema,
   ApiResourceAuditInfoSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 
 import { internalError } from "../errors.js";
 import { etagMismatchError } from "../guarded-write.js";

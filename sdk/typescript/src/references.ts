@@ -12,7 +12,7 @@
  * Writes are untouched: a client names a reference by `org` and `slug`,
  * and the server resolves the name to the id.
  */
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 /**
  * The fields of a reference this module reads: a returned

@@ -13,7 +13,7 @@ import (
 	"slices"
 	"testing"
 
-	githubv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/platform/github/v1"
+	githubv1 "go.stigmer.ai/sdk/proto/ai/stigmer/platform/github/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

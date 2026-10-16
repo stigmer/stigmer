@@ -336,7 +336,7 @@ const file_ai_stigmer_agentic_plugin_v1_hooks_proto_rawDesc = "" +
 	"\x17HOOK_FORMAT_CLAUDE_CODE\x10\x01\x12\x16\n" +
 	"\x12HOOK_FORMAT_CURSOR\x10\x02B\x95\x02\n" +
 	" com.ai.stigmer.agentic.plugin.v1B\n" +
-	"HooksProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1;pluginv1\xa2\x02\x04ASAP\xaa\x02\x1cAi.Stigmer.Agentic.Plugin.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3"
+	"HooksProtoP\x01ZPgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/plugin/v1;pluginv1\xa2\x02\x04ASAP\xaa\x02\x1cAi.Stigmer.Agentic.Plugin.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_plugin_v1_hooks_proto_rawDescOnce sync.Once

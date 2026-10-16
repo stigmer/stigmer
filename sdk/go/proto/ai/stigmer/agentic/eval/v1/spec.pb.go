@@ -80,7 +80,7 @@ const file_ai_stigmer_agentic_eval_v1_spec_proto_rawDesc = "" +
 	"%ai/stigmer/agentic/eval/v1/spec.proto\x12\x1aai.stigmer.agentic.eval.v1\x1a\x1bbuf/validate/validate.proto\"D\n" +
 	"\bEvalSpec\x128\n" +
 	"\x03tag\x18\x01 \x01(\tB&\xbaH#r!\x18\x80\x012\x14^$|^[a-zA-Z0-9._-]+$Z\x06latestR\x03tagB\x88\x02\n" +
-	"\x1ecom.ai.stigmer.agentic.eval.v1B\tSpecProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/eval/v1;evalv1\xa2\x02\x04ASAE\xaa\x02\x1aAi.Stigmer.Agentic.Eval.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Eval_\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Agentic::Eval::V1b\x06proto3"
+	"\x1ecom.ai.stigmer.agentic.eval.v1B\tSpecProtoP\x01ZLgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/eval/v1;evalv1\xa2\x02\x04ASAE\xaa\x02\x1aAi.Stigmer.Agentic.Eval.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Eval_\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Agentic::Eval::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_eval_v1_spec_proto_rawDescOnce sync.Once

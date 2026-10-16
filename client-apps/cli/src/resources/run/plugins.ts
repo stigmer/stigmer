@@ -6,9 +6,9 @@
 // the one rule every run flag naming resources shares (references.ts), and
 // names the installed version: the server reads the plugin at each turn.
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import type { Stigmer } from "@stigmer/client";
 import { resolveRunReferences } from "./references.js";
 
 /** The plugin reads an id lookup needs, injectable for tests. */

@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { NavLink, useNavigate, useParams, useLocation } from "react-router-dom";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import {
   useConversationsWantsHumanCount,
   useRecentActivity,
   WorkspaceSidebar,
   useActiveOrgId,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 import type {
   RecentActivityEntry,
   SidebarLinkRenderProps,
   WorkspaceNavId,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
 import { useRunner } from "../hooks/EmbeddedRunnerContext";

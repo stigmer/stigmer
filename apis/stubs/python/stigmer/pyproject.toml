@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "stigmer-protos"
+name = "stigmer-apis"
 version = "0.1.0"
 description = "Generated Python stubs for Stigmer APIs"
 authors = ["Stigmer <engineering@stigmer.ai>"]

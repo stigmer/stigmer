@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { BrowserView } from "@scenar/react";
-import { ConversationsWorkbench } from "@stigmer/react";
+import { ConversationsWorkbench } from "@stigmer/react-sdk";
 import { AppShell } from "../_shared/AppShell";
 import { DEMO_NOW, DEMO_ORG } from "../_shared/fixtures";
 import { WANTS_HUMAN_CONVERSATIONS, CHANNEL_ID, YOU } from "./fixtures";

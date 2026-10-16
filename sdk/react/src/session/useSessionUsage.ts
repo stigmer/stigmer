@@ -17,15 +17,15 @@
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   GetSessionUsageReportInputSchema,
   type GetSessionUsageReportOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import type {
   ModelUsage,
   ProviderKeySource,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import { useStigmer } from "../hooks.js";
 import { isTerminalPhase } from "../run/run-phases.js";
 import { useFetch } from "../internal/useFetch.js";

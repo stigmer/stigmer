@@ -1,5 +1,5 @@
 // The conversation's live state for one session: the session's event log,
-// folded (`SessionLog` from @stigmer/sdk), plus the follow's lifecycle stage
+// folded (`SessionLog` from @stigmer/client), plus the follow's lifecycle stage
 // and its two watchdog signals. Frames go into the log as they arrive; the
 // fold is published to React only when the stream controller flushes, so a
 // burst of frames commits once. The fold itself keeps every turn, item and
@@ -7,8 +7,8 @@
 // objects by reference with the one before it and only the changed rows
 // re-render. Implements the contract `useSyncExternalStore` reads.
 
-import { SessionLog, type SessionFold } from "@stigmer/sdk";
-import type { StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionLog, type SessionFold } from "@stigmer/client";
+import type { StreamSessionEventsResponse } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
 // ---------------------------------------------------------------------------
 // Stream state

@@ -16,7 +16,7 @@
 import {
   IamPermission,
   IamPermissionSchema,
-} from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 let byName: Map<string, IamPermission> | undefined;
 

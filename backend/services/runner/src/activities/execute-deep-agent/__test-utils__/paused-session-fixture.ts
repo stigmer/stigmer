@@ -24,7 +24,7 @@ import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { expect } from "vitest";
 import { fromJson, toJson, type JsonObject, type JsonValue } from "@bufbuild/protobuf";
-import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunStatusSchema, type RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
 import { SqliteCheckpointSaver } from "../../../shared/checkpointer/sqlite-saver.js";
 import { TurnRowsSchema, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";

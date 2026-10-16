@@ -18,8 +18,8 @@
 
 import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Stigmer } from "@stigmer/sdk";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { Stigmer } from "@stigmer/client";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { Config } from "../../config/index.js";
 import { classify, ExitCode } from "../../errors/index.js";
 import { buildProgram } from "../../program.js";

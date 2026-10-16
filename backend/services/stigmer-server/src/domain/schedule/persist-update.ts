@@ -16,7 +16,7 @@
  * A row deleted since the read loses the swap too, and the next attempt's
  * read answers NOT_FOUND: the delete won, honestly.
  */
-import type { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import type { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
 
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";

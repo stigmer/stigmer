@@ -18,7 +18,7 @@ import type { ConnectRouter } from "@connectrpc/connect";
 import {
   Health,
   HealthCheckResponse_ServingStatus as ServingStatus,
-} from "@stigmer/protos/grpc/health/v1/health_pb";
+} from "@stigmer/apis/grpc/health/v1/health_pb";
 
 type StatusListener = (status: ServingStatus) => void;
 

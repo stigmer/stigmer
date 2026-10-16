@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
 
 /** The visual weight of a {@link DecisionButton}. */

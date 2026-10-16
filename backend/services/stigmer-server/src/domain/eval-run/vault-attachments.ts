@@ -13,8 +13,8 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import type { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { EvalRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+import type { EvalRunSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
 
 import type { VaultAttachmentOptions } from "../vault/attachments.js";
 

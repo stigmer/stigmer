@@ -27,25 +27,25 @@ import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import { ChannelAgentProfileSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelAgentProfileSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
 import type {
   ChannelAgentProfile,
   ChannelIdSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
-import { ChannelSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
-import type { ChannelSpec } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
+import { ChannelSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
+import type { ChannelSpec } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import {
   ChannelInstallState,
   ChannelStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import type { Authorizer } from "../../extensions/authorizer.js";
 import {

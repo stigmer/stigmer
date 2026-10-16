@@ -1,4 +1,4 @@
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 
 /**
  * Metadata labels the channel runtime stamps on the sessions a channel

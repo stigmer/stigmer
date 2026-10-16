@@ -6,11 +6,11 @@
 // client double that records what it was asked.
 
 import { create, isMessage, type Message } from "@bufbuild/protobuf";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunListSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import type { ListRunsRequest } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunListSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import type { ListRunsRequest } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import type { Stigmer } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { isRunId } from "../reference.js";
 import {

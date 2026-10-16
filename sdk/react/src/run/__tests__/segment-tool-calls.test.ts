@@ -5,7 +5,7 @@
 // override is honoured.
 import { describe, it, expect } from "vitest";
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { ToolUse } from "@stigmer/sdk";
+import type { ToolUse } from "@stigmer/client";
 import { segmentToolCalls } from "../segment-tool-calls";
 import { registerToolPresenter } from "../tool-presenter";
 import { toolUse } from "./__fixtures__/fold-values";

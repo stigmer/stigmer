@@ -7,13 +7,13 @@
 // Not a hook: callers memoize on their runs reference
 // (`useSessionFileChanges`).
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   displayFileChangeSets,
   toDisplayFileChange,
   type DisplayFileChange,
   type DisplayFileChangeType,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { computeDiff } from "../version-history/computeDiff.js";
 import type { DiffHunk, FileDiffEntry } from "../version-history/types.js";
 

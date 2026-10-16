@@ -129,12 +129,12 @@ See [mcp-server/README.md](mcp-server/README.md) for IDE configuration (Cursor, 
 
 | SDK | Install | Reference |
 |-----|---------|-----------|
-| **Go** | `go get github.com/stigmer/stigmer/sdk/go/v3` | [Reference](https://stigmer.ai/docs/sdk/go) |
-| **TypeScript** | `npm install @stigmer/sdk` | [Reference](https://stigmer.ai/docs/sdk/typescript) |
-| **Python** | `pip install stigmer` | [Reference](https://stigmer.ai/docs/sdk/python) |
+| **Go** | `go get go.stigmer.ai/sdk` | [Reference](https://stigmer.ai/docs/sdk/go) |
+| **TypeScript** | `npm install @stigmer/client` | [Reference](https://stigmer.ai/docs/sdk/typescript) |
+| **Python** | `pip install stigmer-sdk` | [Reference](https://stigmer.ai/docs/sdk/python) |
 | **Java** | Maven: `ai.stigmer:stigmer-java` | [Reference](https://stigmer.ai/docs/sdk/java) |
-| **React** | `npm install @stigmer/react` | [Reference](https://stigmer.ai/docs/sdk/react) |
-| **Ink** | `npm install @stigmer/ink` | [Reference](https://stigmer.ai/docs/sdk/ink) |
+| **React** | `npm install @stigmer/react-sdk` | [Reference](https://stigmer.ai/docs/sdk/react) |
+| **Ink** | `npm install @stigmer/ink-ui` | [Reference](https://stigmer.ai/docs/sdk/ink) |
 
 The Go, TypeScript, Python, and Java SDKs provide typed API clients for all platform resources. The React SDK renders agent UIs — session composers, message threads, and approval views. The Ink SDK brings the same components to the terminal.
 

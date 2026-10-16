@@ -3,7 +3,7 @@
  *
  * The runner redacts a call's arguments at creation, but calls recorded
  * before it did still carry the values, so every sink that renders a tool
- * use's input hides them through `@stigmer/sdk`'s `redactSecretArgs` /
+ * use's input hides them through `@stigmer/client`'s `redactSecretArgs` /
  * `isSecretArgKey` — the reader side of test/fixtures/tool-view/secret-args.json.
  * Each case renders a tool use whose input holds the secret in clear.
  */
@@ -11,7 +11,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { ToolUse } from "@stigmer/sdk";
+import type { ToolUse } from "@stigmer/client";
 import { McpToolDetail } from "../McpToolDetail";
 import { ToolArgsView } from "../ToolArgsView";
 import { ToolCallDetail } from "../ToolCallDetail";

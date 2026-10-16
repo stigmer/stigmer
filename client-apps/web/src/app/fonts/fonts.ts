@@ -4,7 +4,7 @@
 // Each loader defines one `--font-*` variable that the theme's font stacks
 // fall back through (`sdk/theme/src/tokens.css` for Geist, the corporate,
 // friendly and fintech presets for the rest), so the variable names are a
-// contract with `@stigmer/theme` and never change here alone. Only the
+// contract with `@stigmer/design-tokens` and never change here alone. Only the
 // default stack (Geist, Geist Mono) is preloaded; a preset's family downloads
 // when that preset is active.
 //

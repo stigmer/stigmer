@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { ManageAccessDialog } from "../ManageAccessDialog";
 
@@ -10,8 +10,8 @@ import { ManageAccessDialog } from "../ManageAccessDialog";
 // two heavy children to assert *which* sections mount, and pin the
 // proto-generated capability so the People gate is deterministic.
 const hasGrantableRolesMock = vi.fn<(kind: ApiResourceKind) => boolean>(() => true);
-vi.mock("@stigmer/sdk", async (importActual) => {
-  const actual = await importActual<typeof import("@stigmer/sdk")>();
+vi.mock("@stigmer/client", async (importActual) => {
+  const actual = await importActual<typeof import("@stigmer/client")>();
   return { ...actual, hasGrantableRoles: (kind: ApiResourceKind) => hasGrantableRolesMock(kind) };
 });
 

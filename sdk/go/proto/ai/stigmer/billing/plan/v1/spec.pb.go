@@ -8,7 +8,7 @@ package planv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/platform/v1"
+	v1 "go.stigmer.ai/sdk/proto/ai/stigmer/platform/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -294,7 +294,7 @@ const file_ai_stigmer_billing_plan_v1_spec_proto_rawDesc = "" +
 	"\x1bplan_instrument_unspecified\x10\x00\x12\x10\n" +
 	"\fsubscription\x10\x01\x12\v\n" +
 	"\alicense\x10\x02B\x86\x02\n" +
-	"\x1ecom.ai.stigmer.billing.plan.v1B\tSpecProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/plan/v1;planv1\xa2\x02\x04ASBP\xaa\x02\x1aAi.Stigmer.Billing.Plan.V1\xca\x02\x1aAi\\Stigmer\\Billing\\Plan\\V1\xe2\x02&Ai\\Stigmer\\Billing\\Plan\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Billing::Plan::V1b\x06proto3"
+	"\x1ecom.ai.stigmer.billing.plan.v1B\tSpecProtoP\x01ZLgo.stigmer.ai/sdk/proto/ai/stigmer/billing/plan/v1;planv1\xa2\x02\x04ASBP\xaa\x02\x1aAi.Stigmer.Billing.Plan.V1\xca\x02\x1aAi\\Stigmer\\Billing\\Plan\\V1\xe2\x02&Ai\\Stigmer\\Billing\\Plan\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Billing::Plan::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_billing_plan_v1_spec_proto_rawDescOnce sync.Once

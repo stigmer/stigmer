@@ -7,8 +7,8 @@
 package agentv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -35,7 +35,7 @@ const file_ai_stigmer_agentic_agent_v1_query_proto_rawDesc = "" +
 	"\n" +
 	"getVersion\x121.ai.stigmer.agentic.agent.v1.GetAgentVersionInput\x1a..ai.stigmer.agentic.agent.v1.AgentVersionEntry\"5¸\x181\b\x01\x10(\"\bagent_id*!unauthorized to get agent version\x1a\x04\xa0\xff+(B\x8e\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.agent.v1B\n" +
-	"QueryProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
+	"QueryProtoP\x01ZNgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_agent_v1_query_proto_goTypes = []any{
 	(*AgentId)(nil),                          // 0: ai.stigmer.agentic.agent.v1.AgentId

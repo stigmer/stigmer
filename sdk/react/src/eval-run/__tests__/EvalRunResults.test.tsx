@@ -22,12 +22,12 @@ import {
 } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
 import {
   EvalRunMockedServerSchema,
   EvalRunPartialReason,
   EvalRunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";

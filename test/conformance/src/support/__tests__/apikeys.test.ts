@@ -3,7 +3,7 @@
 // answers), an empty spec — throws instead of handing a caller an empty
 // credential to boot a process with.
 import { create } from "@bufbuild/protobuf";
-import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import { ApiKeySchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
 import { describe, expect, it } from "vitest";
 
 import {

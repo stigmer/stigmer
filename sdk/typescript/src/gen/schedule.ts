@@ -5,19 +5,19 @@ import { stripUndefined, toResourceRefInput, toResourceRefInputs } from "./proto
 import { type ResourceRef } from "./types.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunConfigSchema, AgentInvocationSchema, type RunConfig, type AgentInvocation } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
-import { ScheduleIdSchema, UpdateScheduleInputSchema, ScheduleTriggerResultSchema, ListSchedulesByAgentRequestSchema, ScheduleListSchema, ListSchedulesRequestSchema, ListScheduleFiresRequestSchema, ScheduleFireListSchema, type ScheduleTriggerResult, type ListSchedulesByAgentRequest, type ScheduleList, type ListSchedulesRequest, type ListScheduleFiresRequest, type ScheduleFireList } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
-import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
-import { ScheduleSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
-import { Harness, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema, type GitRepoSource, type LocalPathSource, type WorkspaceSource, type WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema, type RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunConfigSchema, AgentInvocationSchema, type RunConfig, type AgentInvocation } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
+import { ScheduleSchema, type Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleCommandController } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/command_pb";
+import { ScheduleIdSchema, UpdateScheduleInputSchema, ScheduleTriggerResultSchema, ListSchedulesByAgentRequestSchema, ScheduleListSchema, ListSchedulesRequestSchema, ListScheduleFiresRequestSchema, ScheduleFireListSchema, type ScheduleTriggerResult, type ListSchedulesByAgentRequest, type ScheduleList, type ListSchedulesRequest, type ListScheduleFiresRequest, type ScheduleFireList } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
+import { ScheduleQueryController } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/query_pb";
+import { ScheduleSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/spec_pb";
+import { Harness, GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema, type GitRepoSource, type LocalPathSource, type WorkspaceSource, type WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceReferenceSchema, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on schedule resources. */
 export class ScheduleClient {

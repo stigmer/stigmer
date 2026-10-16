@@ -215,7 +215,7 @@ export function waitForOAuthCallback(
       settle(
         new Error(
           "OAuth authentication timed out. Ensure your callback page " +
-            "renders <OAuthCallbackHandler /> from @stigmer/react at " +
+            "renders <OAuthCallbackHandler /> from @stigmer/react-sdk at " +
             "the URL configured as your OAuth redirect URI.",
         ),
       );

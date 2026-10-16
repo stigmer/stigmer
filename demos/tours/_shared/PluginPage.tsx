@@ -20,7 +20,7 @@
  * page is not interactive during playback.
  */
 import { useMemo, type CSSProperties } from "react";
-import { PluginDetailView } from "@stigmer/react";
+import { PluginDetailView } from "@stigmer/react-sdk";
 import { CursorTargets, type CursorTargetSpec } from "./CursorTargets";
 
 const noop = () => {};

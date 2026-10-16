@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { formatTryStop, parseTryStop } from "@stigmer/eval-runtime";
 
 import { StallTimeoutError } from "../../shared/stall-watchdog.js";

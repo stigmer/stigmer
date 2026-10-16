@@ -127,7 +127,7 @@ pages:
     fate: keep
     diataxis: tutorial
     teaches:
-      Install @stigmer/react, wrap a React app in StigmerProvider, and embed a
+      Install @stigmer/react-sdk, wrap a React app in StigmerProvider, and embed a
       pinned-Agent chat with NewSessionViewer and SessionViewer against the
       local server.
     medium: animated-tour
@@ -882,7 +882,7 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Install @stigmer/sdk, construct a client, and make one call with not-found
+      Install @stigmer/client, construct a client, and make one call with not-found
       handling.
     medium: none
 
@@ -914,7 +914,7 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Install @stigmer/react, wrap an app in StigmerProvider with the right
+      Install @stigmer/react-sdk, wrap an app in StigmerProvider with the right
       credential per environment, and find the hooks.
     medium: none
 
@@ -933,7 +933,7 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Spawn the @stigmer/ink binary from a non-JavaScript CLI, pass through
+      Spawn the @stigmer/ink-ui binary from a non-JavaScript CLI, pass through
       terminal streams, and read final state.
     medium: none
 

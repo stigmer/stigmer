@@ -19,8 +19,8 @@ import (
 	"log"
 	"strings"
 
-	stigmer "github.com/stigmer/stigmer/sdk/go/v3"
-	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
+	stigmer "go.stigmer.ai/sdk"
+	sessionv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1"
 	"google.golang.org/protobuf/proto"
 )
 

@@ -32,14 +32,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { claudePlugin, inMemoryPluginFiles } from "@stigmer/plugin-package/testing";
 
-import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { EvalRunSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
 import {
   ListEvalRunsByPluginRequestSchema,
   EvalRunIdSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/io_pb";
-import type { EvalRunList } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/io_pb";
+import type { EvalRunList } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/io_pb";
 import {
   EvalRunArmSchema,
   EvalRunCaseSchema,
@@ -50,11 +50,11 @@ import {
   EvalRunStatusSchema,
   EvalRunTryState,
   EvalRunTrySchema,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import { EvalRunTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { EvalRunTargetSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import type { Authorizer } from "../../../extensions/authorizer.js";

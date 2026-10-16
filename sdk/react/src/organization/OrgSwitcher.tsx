@@ -9,8 +9,8 @@ import {
   Plus,
 } from "lucide-react";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { cn } from "@stigmer/theme";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
 import { useStigmerPortalContainer } from "../portal-container.js";
 import {
   Menu,

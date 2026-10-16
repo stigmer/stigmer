@@ -5,15 +5,15 @@ import { stripUndefined } from "./proto-utils.js";
 import { type DeleteResourceInput, type ResourceRef } from "./types.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { TeamSchema, type Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import { TeamCommandController } from "@stigmer/protos/ai/stigmer/iam/team/v1/command_pb";
-import { UpdateTeamInputSchema, ListTeamsInputSchema, TeamsSchema, type ListTeamsInput, type Teams } from "@stigmer/protos/ai/stigmer/iam/team/v1/io_pb";
-import { TeamQueryController } from "@stigmer/protos/ai/stigmer/iam/team/v1/query_pb";
-import { TeamSpecSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { TeamSchema, type Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
+import { TeamCommandController } from "@stigmer/apis/ai/stigmer/iam/team/v1/command_pb";
+import { UpdateTeamInputSchema, ListTeamsInputSchema, TeamsSchema, type ListTeamsInput, type Teams } from "@stigmer/apis/ai/stigmer/iam/team/v1/io_pb";
+import { TeamQueryController } from "@stigmer/apis/ai/stigmer/iam/team/v1/query_pb";
+import { TeamSpecSchema } from "@stigmer/apis/ai/stigmer/iam/team/v1/spec_pb";
 
 /** Provides operations on team resources. */
 export class TeamClient {

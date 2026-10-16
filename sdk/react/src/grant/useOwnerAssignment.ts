@@ -1,6 +1,6 @@
 "use client";
 
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { useCheckPermission } from "./useCheckPermission.js";
 
 /** What a caller who is not an owner may not assign: owner is assigned by owners. */

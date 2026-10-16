@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
-import type { ResourceRef } from "@stigmer/sdk";
+import type { ResourceRef } from "@stigmer/client";
 import { ACME_ID, GLOBEX_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 
 // ---------------------------------------------------------------------------

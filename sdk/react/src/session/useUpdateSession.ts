@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import type { Session, SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { Session, SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 
 /** Return value of {@link useUpdateSession}. */

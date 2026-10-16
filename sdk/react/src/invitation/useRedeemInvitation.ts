@@ -2,8 +2,8 @@
 
 import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
-import { RedeemInvitationInputSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/io_pb";
+import type { Invitation } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
+import { RedeemInvitationInputSchema } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

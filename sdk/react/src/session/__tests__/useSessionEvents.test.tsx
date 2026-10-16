@@ -13,12 +13,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { ALL_SESSION_PREVIEWS, StigmerError, type Stigmer } from "@stigmer/sdk";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { ALL_SESSION_PREVIEWS, StigmerError, type Stigmer } from "@stigmer/client";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import type {
   StreamSessionEventsRequest,
   StreamSessionEventsResponse,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { ConversationStore } from "../../internal/store/index";
 import { samples } from "../../test/samples";

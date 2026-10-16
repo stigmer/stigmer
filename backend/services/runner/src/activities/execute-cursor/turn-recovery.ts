@@ -36,7 +36,7 @@
  * standing-context sections carry whatever the session already had.
  */
 
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { foldSession, turnOf, type TurnItem, type ToolUse } from "@stigmer/session-log";
 
 /** Per-line text budget; longer texts are cut with an ellipsis (as the bridge does). */

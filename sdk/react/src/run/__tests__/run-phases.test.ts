@@ -4,8 +4,8 @@
  * reads as unspecified).
  */
 import { describe, it, expect } from "vitest";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { TurnPhase } from "@stigmer/sdk";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { TurnPhase } from "@stigmer/client";
 import { isTerminalPhase, runPhaseOf } from "../run-phases";
 
 describe("isTerminalPhase", () => {

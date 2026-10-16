@@ -210,7 +210,7 @@ Errors are API surface: the CLI, the console and the SDKs render them directly.
 ## How a core change reaches the cloud edition
 
 The cloud repository has no copy of this code; it depends on the published
-`@stigmer/server`, `@stigmer/protos` and `@stigmer/temporal-codecs` at one exact
+`@stigmer/server`, `@stigmer/apis` and `@stigmer/temporal-codecs` at one exact
 version. A change that the cloud needs therefore follows one order:
 
 1. The OSS pull request lands the seam (the new extension point, the new export,

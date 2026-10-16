@@ -3,7 +3,7 @@
  * dashboard and the session launcher) ask the server by the organization's
  * minted id, never its slug: the slug can be renamed, the id cannot, and the
  * server keys every scoped query by id. The views and data hooks are pinned
- * in @stigmer/react.
+ * in @stigmer/react-sdk.
  */
 import type { ComponentType } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -21,7 +21,7 @@ const { ACME, page, record } = vi.hoisted(() => {
   };
 });
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   useActiveOrgId: () => ACME.id,
   useOrg: () => ({ activeOrg: { metadata: { id: ACME.id, slug: ACME.slug } } }),
   OperationalDashboard: ({ org }: { org: string }) => {

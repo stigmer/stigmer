@@ -1,7 +1,7 @@
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
-import { StigmerError } from "@stigmer/sdk";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
+import { StigmerError } from "@stigmer/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setDebug } from "../../runtime.js";
 import { classify } from "../classify.js";

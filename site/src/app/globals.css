@@ -1,11 +1,11 @@
 @import "tailwindcss";
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
-@import "@stigmer/theme/tokens.css";
+@import "@stigmer/design-tokens/tokens.css";
 /* The COMPILED SDK stylesheet (dist/styles.css, `stg:`-prefixed utilities;
    #454) — the same prebuilt artifact npm consumers get. This site's Tailwind
    build no longer scans SDK sources or inherits SDK build directives. */
-@import "@stigmer/react/styles.css";
+@import "@stigmer/react-sdk/styles.css";
 @import "@scenar/react/theme.css";
 
 /* `dark:` responds to the docs `.dark` class AND the SDK color-mode attribute
@@ -26,7 +26,7 @@
  * The whole site is dark-only: `<html class="dark">` is hardcoded in the
  * root layout, no theme provider ever changes it, and the palette below is
  * declared once on :root. The `.dark` class itself stays on <html> because
- * vendor stylesheets (fumadocs shiki.css, @stigmer/theme, @scenar/react)
+ * vendor stylesheets (fumadocs shiki.css, @stigmer/design-tokens, @scenar/react)
  * key their dark tokens off it.
  */
 
@@ -175,7 +175,7 @@
  * STIGMER SDK DEMO SCOPES
  *
  * The site's @theme inline block above wins Tailwind's theme resolution over
- * the mapping in @stigmer/react/styles.css, so shared utilities (bg-background,
+ * the mapping in @stigmer/react-sdk/styles.css, so shared utilities (bg-background,
  * bg-card, text-foreground, ...) compile against the site palette. Inside a
  * `.stgm` demo scope, re-point those palette variables at the --stgm-* tokens
  * so SDK components respond to `data-stgm-color-mode` and preset classes —

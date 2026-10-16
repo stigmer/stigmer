@@ -11,9 +11,9 @@
  * granted to them directly.
  */
 import { useCallback, useMemo, useState } from "react";
-import type { DeleteResourceInput, TeamInput } from "@stigmer/sdk";
+import type { DeleteResourceInput, TeamInput } from "@stigmer/client";
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import type { Team, TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import type { Team, TeamSchema } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

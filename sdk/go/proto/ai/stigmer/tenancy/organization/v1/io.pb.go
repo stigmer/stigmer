@@ -603,7 +603,7 @@ const file_ai_stigmer_tenancy_organization_v1_io_proto_rawDesc = "" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"updateMask:\xc4\x01\xbaH\xc0\x01\x1a\xbd\x01\n" +
 	"\x17update_names_its_target\x12Lresource.metadata.id is required: an update names the organization by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\xbc\x02\n" +
-	"&com.ai.stigmer.tenancy.organization.v1B\aIoProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
+	"&com.ai.stigmer.tenancy.organization.v1B\aIoProtoP\x01Z\\go.stigmer.ai/sdk/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_tenancy_organization_v1_io_proto_rawDescOnce sync.Once

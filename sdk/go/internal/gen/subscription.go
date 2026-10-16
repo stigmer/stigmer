@@ -5,8 +5,8 @@ package gen
 import (
 	"context"
 
-	subscriptionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/subscription/v1"
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	subscriptionv1 "go.stigmer.ai/sdk/proto/ai/stigmer/billing/subscription/v1"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
 )
 

@@ -4,8 +4,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   FileContentSchema,
   type FileContent,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { DisplayFileChange } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
+import type { DisplayFileChange } from "@stigmer/client";
 import type { UseFileChangeContentReturn } from "../useFileChangeContent";
 
 // ---------------------------------------------------------------------------

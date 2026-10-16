@@ -5,7 +5,7 @@
 // every other code/output block (CollapsibleCode, search, list) — not a
 // bespoke dark box — so it tracks the host theme, preset, and color mode.
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { CollapsiblePre } from "./tool-rendering-primitives.js";
 import { useSandboxNormalize } from "./SandboxContext.js";
 

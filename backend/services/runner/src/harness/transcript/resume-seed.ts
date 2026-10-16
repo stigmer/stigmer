@@ -47,7 +47,7 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import { POLICY_SOURCE_WORDS } from "../events/emitter.js";
 import type { TranscriptSeed } from "./state.js";

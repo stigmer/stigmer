@@ -2,11 +2,11 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { Subscription } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/api_pb";
+import type { Subscription } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/api_pb";
 import {
   CancelSubscriptionInputSchema,
   ChangePlanInputSchema,
-} from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

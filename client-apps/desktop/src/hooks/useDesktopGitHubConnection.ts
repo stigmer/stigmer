@@ -7,7 +7,7 @@ import {
   type UseGitHubConnectionReturn,
   type UseGitHubConnectionConfig,
   type SignInReturnTo,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 
 /**
  * Payload of the `sign-in-callback` Tauri event.

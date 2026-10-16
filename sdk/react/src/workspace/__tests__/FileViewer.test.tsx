@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { DisplayFileChange } from "@stigmer/sdk";
+import { FileContentSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
+import type { DisplayFileChange } from "@stigmer/client";
 import type { UseFileChangeContentReturn } from "../../run/useFileChangeContent";
 
 // Drive FileChangeDiff's content deterministically (it is rendered by the diff

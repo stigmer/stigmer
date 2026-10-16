@@ -7,8 +7,8 @@
 package evalv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -34,7 +34,7 @@ const file_ai_stigmer_agentic_eval_v1_command_proto_rawDesc = "" +
 	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a .ai.stigmer.agentic.eval.v1.Eval\"=¸\x189\b0\x10B\"\vresource_id*&unauthorized to update eval visibility\x12\x8b\x01\n" +
 	"\x06rename\x12+.ai.stigmer.commons.apiresource.RenameInput\x1a .ai.stigmer.agentic.eval.v1.Eval\"2¸\x18.\b\x03\x10B\"\vresource_id*\x1bunauthorized to rename eval\x12|\n" +
 	"\x06delete\x12\".ai.stigmer.agentic.eval.v1.EvalId\x1a .ai.stigmer.agentic.eval.v1.Eval\",¸\x18(\b\x03\x10B\"\x05value*\x1bunauthorized to delete eval\x1a\x04\xa0\xff+BB\x8b\x02\n" +
-	"\x1ecom.ai.stigmer.agentic.eval.v1B\fCommandProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/eval/v1;evalv1\xa2\x02\x04ASAE\xaa\x02\x1aAi.Stigmer.Agentic.Eval.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Eval_\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Agentic::Eval::V1b\x06proto3"
+	"\x1ecom.ai.stigmer.agentic.eval.v1B\fCommandProtoP\x01ZLgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/eval/v1;evalv1\xa2\x02\x04ASAE\xaa\x02\x1aAi.Stigmer.Agentic.Eval.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Eval_\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Eval_\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Agentic::Eval::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_eval_v1_command_proto_goTypes = []any{
 	(*PushEvalRequest)(nil),                    // 0: ai.stigmer.agentic.eval.v1.PushEvalRequest

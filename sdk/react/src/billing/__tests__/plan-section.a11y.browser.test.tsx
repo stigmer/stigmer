@@ -9,8 +9,8 @@
 import { afterEach, describe, it } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Stigmer } from "@stigmer/sdk";
-import { SubscriptionState } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/status_pb";
+import type { Stigmer } from "@stigmer/client";
+import { SubscriptionState } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/status_pb";
 import { COLOR_MODES, auditA11y, renderAudited, resetAudit } from "../../__tests__/helpers/a11y-audit.js";
 import { PlanCatalogConsole } from "../../plan-catalog/PlanCatalogConsole.js";
 import { PlanSection } from "../PlanSection.js";

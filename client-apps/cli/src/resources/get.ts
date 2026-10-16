@@ -2,9 +2,9 @@
 // the registry-bound SDK sub-clients (get-bindings); organizations are a
 // special case (not org-scoped; slug lookups resolve via listMine).
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { Stigmer } from "@stigmer/client";
 import { cannotSeeOrganization, myOrganizations } from "../client/organizations.js";
 import { CliExitError, ExitCode, UsageError } from "../errors/index.js";
 import { getterFor, type ResourceResult } from "./get-bindings.js";

@@ -83,10 +83,10 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import {
   FileChangeKind,
   FileReviewBlockReason,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import { SessionEventPreviewSchema, type SessionEventPreview } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { CapturedFileChange } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionEventPreviewSchema, type SessionEventPreview } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { ReconciledUndo } from "../owed-undos.js";

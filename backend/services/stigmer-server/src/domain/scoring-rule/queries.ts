@@ -8,8 +8,8 @@
  */
 import { fromBinary } from "@bufbuild/protobuf";
 
-import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
-import type { ScoringRule } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import { ScoringRuleSchema } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import type { ScoringRule } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Store } from "../../store/interface.js";

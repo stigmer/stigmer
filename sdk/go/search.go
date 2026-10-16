@@ -4,9 +4,9 @@ import (
 	"context"
 	"iter"
 
-	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
-	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
-	searchv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1"
+	"go.stigmer.ai/sdk/internal/gen"
+	apiresourcekind "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	searchv1 "go.stigmer.ai/sdk/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 )

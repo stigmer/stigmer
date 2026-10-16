@@ -7,8 +7,8 @@
 package memoryv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -31,7 +31,7 @@ const file_ai_stigmer_agentic_memory_v1_query_proto_rawDesc = "" +
 	"\x03get\x12&.ai.stigmer.agentic.memory.v1.MemoryId\x1a$.ai.stigmer.agentic.memory.v1.Memory\"+¸\x18'\b\x01\x109\"\x05value*\x1aunauthorized to get memory\x12i\n" +
 	"\x04list\x121.ai.stigmer.agentic.memory.v1.ListMemoriesRequest\x1a(.ai.stigmer.agentic.memory.v1.MemoryList\"\x04и\x18\x01\x1a\x04\xa0\xff+9B\x95\x02\n" +
 	" com.ai.stigmer.agentic.memory.v1B\n" +
-	"QueryProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/memory/v1;memoryv1\xa2\x02\x04ASAM\xaa\x02\x1cAi.Stigmer.Agentic.Memory.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Memory\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Memory::V1b\x06proto3"
+	"QueryProtoP\x01ZPgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/memory/v1;memoryv1\xa2\x02\x04ASAM\xaa\x02\x1cAi.Stigmer.Agentic.Memory.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Memory\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Memory::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_memory_v1_query_proto_goTypes = []any{
 	(*MemoryId)(nil),            // 0: ai.stigmer.agentic.memory.v1.MemoryId

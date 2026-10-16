@@ -1,6 +1,6 @@
 import { test as base, expect } from "@playwright/test";
-import { createNodeClient } from "@stigmer/sdk/node";
-import type { Stigmer } from "@stigmer/sdk";
+import { createNodeClient } from "@stigmer/client/node";
+import type { Stigmer } from "@stigmer/client";
 import {
   createTestOrg,
   createTestAgent,

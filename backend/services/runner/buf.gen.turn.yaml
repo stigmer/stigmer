@@ -1,8 +1,8 @@
 # The runner's private turn rows (proto/ai/stigmer/runner/turn/v1), generated
 # for the runner and its in-process agent host. Runner-private: never part of
-# @stigmer/protos, which carries the public contract only. The rows import
+# @stigmer/apis, which carries the public contract only. The rows import
 # public types (FileContent, ToolCallOutputRef, FileChangeSet and the run's
-# enums), so the generated files take those from @stigmer/protos, the way the
+# enums), so the generated files take those from @stigmer/apis, the way the
 # rest of the runner does.
 #
 # The rows compile against the public apis/ tree, which lives outside this
@@ -20,4 +20,4 @@ plugins:
     opt:
       - target=ts
       - import_extension=js
-      - rewrite_imports=./ai/stigmer/agentic/**/*_pb.js:@stigmer/protos
+      - rewrite_imports=./ai/stigmer/agentic/**/*_pb.js:@stigmer/apis

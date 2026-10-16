@@ -8,8 +8,8 @@ package pluginv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/vault/v1"
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	v1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/vault/v1"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -908,7 +908,7 @@ const file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc = "" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x1b\n" +
 	"\tcase_tags\x18\x03 \x03(\tR\bcaseTags\x12 \n" +
 	"\vunsupported\x18\x04 \x01(\tR\vunsupportedB\x96\x02\n" +
-	" com.ai.stigmer.agentic.plugin.v1B\vStatusProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1;pluginv1\xa2\x02\x04ASAP\xaa\x02\x1cAi.Stigmer.Agentic.Plugin.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3"
+	" com.ai.stigmer.agentic.plugin.v1B\vStatusProtoP\x01ZPgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/plugin/v1;pluginv1\xa2\x02\x04ASAP\xaa\x02\x1cAi.Stigmer.Agentic.Plugin.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescOnce sync.Once

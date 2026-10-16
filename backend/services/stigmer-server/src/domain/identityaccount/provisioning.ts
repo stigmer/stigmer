@@ -44,9 +44,9 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import type { IdentityAccountSpec } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
-import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccountSpec } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/spec_pb";
+import { IdentityAccountSpecSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/spec_pb";
 
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { fittedName } from "../../pipeline/steps/slug.js";

@@ -15,13 +15,13 @@
 // in test/fixtures/tool-view/result-views.json).
 
 import { create, toJson } from "@bufbuild/protobuf";
-import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
-import { MemoryCommandController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/command_pb";
+import { MemorySchema } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
+import { MemoryCommandController } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/command_pb";
 import {
   MemoryProvenanceSchema,
   MemorySpecSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/memory/v1/spec_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/memory/v1/spec_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 import { withClient } from "../client.js";
 import type { CaptureContext } from "./context.js";

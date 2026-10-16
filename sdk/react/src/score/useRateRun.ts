@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import { getErrorReason } from "@stigmer/sdk";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import { getErrorReason } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import {

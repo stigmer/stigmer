@@ -7,8 +7,8 @@
 package licensev1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -31,7 +31,7 @@ const file_ai_stigmer_billing_license_v1_query_proto_rawDesc = "" +
 	"\x03get\x12(.ai.stigmer.billing.license.v1.LicenseId\x1a&.ai.stigmer.billing.license.v1.License\"<¸\x188\b*\x10\x1f*)only platform operators can view licenses2\astigmer\x12\x9f\x01\n" +
 	"\x04list\x120.ai.stigmer.billing.license.v1.ListLicensesInput\x1a'.ai.stigmer.billing.license.v1.Licenses\"<¸\x188\b*\x10\x1f*)only platform operators can view licenses2\astigmer\x1a\x04\xa0\xff+HB\x9c\x02\n" +
 	"!com.ai.stigmer.billing.license.v1B\n" +
-	"QueryProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/license/v1;licensev1\xa2\x02\x04ASBL\xaa\x02\x1dAi.Stigmer.Billing.License.V1\xca\x02\x1dAi\\Stigmer\\Billing\\License\\V1\xe2\x02)Ai\\Stigmer\\Billing\\License\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Billing::License::V1b\x06proto3"
+	"QueryProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/billing/license/v1;licensev1\xa2\x02\x04ASBL\xaa\x02\x1dAi.Stigmer.Billing.License.V1\xca\x02\x1dAi\\Stigmer\\Billing\\License\\V1\xe2\x02)Ai\\Stigmer\\Billing\\License\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Billing::License::V1b\x06proto3"
 
 var file_ai_stigmer_billing_license_v1_query_proto_goTypes = []any{
 	(*LicenseId)(nil),         // 0: ai.stigmer.billing.license.v1.LicenseId

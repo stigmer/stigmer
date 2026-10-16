@@ -1,8 +1,8 @@
 import { useCallback, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { PulseHighlight } from "@scenar/react";
-import { UserMenu, WorkspaceSidebar } from "@stigmer/react";
-import type { RenderSidebarLink, WorkspaceNavId } from "@stigmer/react";
+import { UserMenu, WorkspaceSidebar } from "@stigmer/react-sdk";
+import type { RenderSidebarLink, WorkspaceNavId } from "@stigmer/react-sdk";
 // The console's typeface (see fonts/fonts.css). Kept here as well as in
 // stigmer-preview so the shell never renders in a fallback face even if a
 // consumer wires providers differently.
@@ -44,7 +44,7 @@ interface AppShellProps {
 }
 
 /**
- * Web-app layout framing a tour's real `@stigmer/react` components in the
+ * Web-app layout framing a tour's real `@stigmer/react-sdk` components in the
  * console's workspace zone — rendered by the console's own
  * `WorkspaceSidebar`, so the depicted chrome cannot drift from the product
  * (stigmer/stigmer#317; the `SessionView` precedent applied to the shell).

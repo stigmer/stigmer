@@ -2,7 +2,7 @@
 // origin plus the channel's permanent id (`/chat/<channel id>`), the one
 // identity a hosted chat link carries. The agent detail page hands it to the
 // Channels tab and the chat-link dialog.
-import { buildChatUrl } from "@stigmer/sdk";
+import { buildChatUrl } from "@stigmer/client";
 
 import { getAppBaseUrl } from "@/config/env";
 

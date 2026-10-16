@@ -11,8 +11,8 @@
  */
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentQualityReportSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
-import { EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { AgentQualityReportSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
+import { EvalRunPhase } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
 import { agentEvalRunWith } from "../../eval-run/__tests__/eval-fixture.agent";
 import {
   criterionNamesOf,

@@ -11,7 +11,7 @@ import {
   FileCaptureClass,
   FileChangeKind,
   FileReviewBlockReason,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   appendFileReviewEvents,
   buildBaselineCapturedEvent,

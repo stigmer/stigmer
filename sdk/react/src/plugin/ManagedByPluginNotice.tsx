@@ -12,8 +12,8 @@
  * when the resource is nobody's.
  */
 
-import { cn } from "@stigmer/theme";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginIcon } from "./PluginIcon.js";
 
 /** Props for {@link ManagedByPluginNotice}. */

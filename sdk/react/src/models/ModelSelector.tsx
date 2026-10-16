@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Popover } from "@base-ui/react/popover";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { useStigmerPortalContainer } from "../portal-container.js";
 import { Switch } from "../switch/Switch.js";
 import { useModelRegistry } from "./useModelRegistry.js";

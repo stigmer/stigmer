@@ -7,8 +7,8 @@
 package scoringrulev1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,7 +32,7 @@ const file_ai_stigmer_agentic_scoringrule_v1_query_proto_rawDesc = "" +
 	"\n" +
 	"getByAgent\x12?.ai.stigmer.agentic.scoringrule.v1.GetScoringRuleByAgentRequest\x1a..ai.stigmer.agentic.scoringrule.v1.ScoringRule\"A¸\x18=\b\x01\x10(\"\bagent_id*-unauthorized to get the scoring rule of agent\x1a\x04\xa0\xff+>B\xb8\x02\n" +
 	"%com.ai.stigmer.agentic.scoringrule.v1B\n" +
-	"QueryProtoP\x01ZZgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/scoringrule/v1;scoringrulev1\xa2\x02\x04ASAS\xaa\x02!Ai.Stigmer.Agentic.Scoringrule.V1\xca\x02!Ai\\Stigmer\\Agentic\\Scoringrule\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Scoringrule\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Scoringrule::V1b\x06proto3"
+	"QueryProtoP\x01ZZgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/scoringrule/v1;scoringrulev1\xa2\x02\x04ASAS\xaa\x02!Ai.Stigmer.Agentic.Scoringrule.V1\xca\x02!Ai\\Stigmer\\Agentic\\Scoringrule\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Scoringrule\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Scoringrule::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_scoringrule_v1_query_proto_goTypes = []any{
 	(*ScoringRuleId)(nil),                // 0: ai.stigmer.agentic.scoringrule.v1.ScoringRuleId

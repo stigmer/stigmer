@@ -25,13 +25,13 @@
 import { create } from "@bufbuild/protobuf";
 import type { HandlerContext } from "@connectrpc/connect";
 
-import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
+import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
 import {
   SessionEventListSchema,
   type ListSessionEventsRequest,
   type SessionEventList,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../../boot/logger.js";
 import type { Authorizer } from "../../../extensions/authorizer.js";

@@ -1,55 +1,55 @@
 import { create, type JsonObject, type MessageInitShape } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { foldSession, type SessionFold, type ToolUse, type Turn, type TurnPhase } from "@stigmer/sdk";
-import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { foldSession, type SessionFold, type ToolUse, type Turn, type TurnPhase } from "@stigmer/client";
+import { AgentSchema, type Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
   RunSchema,
   RunStatusSchema,
   type Run,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunArtifactSchema,
   type RunArtifact,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
 import {
   RunArtifactKind,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   RunListSchema,
   type RunList,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { RunSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import {
   VaultSchema,
   type Vault,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import {
   ApiKeySchema,
   ApiKeyStatusSchema,
   type ApiKey,
-} from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import { ApiKeySpecSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
+import { ApiKeySpecSchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/spec_pb";
 import {
   ApiKeysSchema,
   type ApiKeys,
-} from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/iam/apikey/v1/io_pb";
 import {
   ApiResourceAuditSchema,
   ApiResourceAuditInfoSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
+import { PluginSchema, type Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/spec_pb";
 import {
   McpServerEntrySchema,
   McpServerSignInSchema,
   PluginStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import {
   SessionSchema,
   type Session,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import {
   SessionEventListSchema,
   SessionListSchema,
@@ -57,31 +57,31 @@ import {
   type SessionEventList,
   type SessionList,
   type StreamSessionEventsResponse,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import {
   SessionEventSchema,
   type SessionEvent,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
-import { SkillSchema, type Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { SkillSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
+import { SkillSchema, type Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import { SkillSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/spec_pb";
 import {
   OrganizationSchema,
   type Organization,
-} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import {
   OrganizationsSchema,
   type Organizations,
-} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
-import { OrganizationSpecSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+} from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
+import { OrganizationSpecSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   SearchResponseSchema,
   SearchResultSchema,
   type SearchResponse,
   type SearchResult,
-} from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 
 // ---------------------------------------------------------------------------
 // The frozen instant
@@ -374,7 +374,7 @@ function numbered(events: readonly SessionEvent[]): SessionEvent[] {
  *
  * @example
  * ```ts
- * import { samples, sampleInstant } from "@stigmer/react/test";
+ * import { samples, sampleInstant } from "@stigmer/react-sdk/test";
  *
  * const scenario = buildScenario(
  *   fixtures.session.get(() => samples.session({ subject: "My topic" })),

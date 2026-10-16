@@ -13,7 +13,7 @@ import { useCallback, useMemo, useState } from "react";
 import {
   ModelPricingBaselineStatus,
   type ModelPricingBaseline,
-} from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
+} from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { useModelPricingBaselines } from "./useModelPricingBaselines.js";
 
 /**

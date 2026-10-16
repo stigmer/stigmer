@@ -4,13 +4,13 @@ import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { GrantSchema, type Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
-import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
-import { GrantIdSchema, RevokeOrgAccessInputSchema, CheckMyPermissionInputSchema, CheckAuthorizationResultSchema, CheckAuthorizationInputSchema, ListAuthorizedResourceIdsInputSchema, AuthorizedResourceIdsListSchema, ListAuthorizedPrincipalIdsInputSchema, AuthorizedPrincipalIdsListSchema, ListResourceAccessInputSchema, ResourceAccessByPrincipalListSchema, PrincipalResourceInputSchema, PrincipalResourceRolesSchema, GetPrincipalsCountInputSchema, PrincipalsCountSchema, ListAccessHistoryInputSchema, AccessHistoryPageSchema, type RevokeOrgAccessInput, type CheckMyPermissionInput, type CheckAuthorizationResult, type CheckAuthorizationInput, type ListAuthorizedResourceIdsInput, type AuthorizedResourceIdsList, type ListAuthorizedPrincipalIdsInput, type AuthorizedPrincipalIdsList, type ListResourceAccessInput, type ResourceAccessByPrincipalList, type PrincipalResourceInput, type PrincipalResourceRoles, type GetPrincipalsCountInput, type PrincipalsCount, type ListAccessHistoryInput, type AccessHistoryPage } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
-import { ApiResourceRefSchema, GrantSpecSchema, type GrantSpec, type ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { GrantSchema, type Grant } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
+import { GrantCommandController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/command_pb";
+import { GrantIdSchema, RevokeOrgAccessInputSchema, CheckMyPermissionInputSchema, CheckAuthorizationResultSchema, CheckAuthorizationInputSchema, ListAuthorizedResourceIdsInputSchema, AuthorizedResourceIdsListSchema, ListAuthorizedPrincipalIdsInputSchema, AuthorizedPrincipalIdsListSchema, ListResourceAccessInputSchema, ResourceAccessByPrincipalListSchema, PrincipalResourceInputSchema, PrincipalResourceRolesSchema, GetPrincipalsCountInputSchema, PrincipalsCountSchema, ListAccessHistoryInputSchema, AccessHistoryPageSchema, type RevokeOrgAccessInput, type CheckMyPermissionInput, type CheckAuthorizationResult, type CheckAuthorizationInput, type ListAuthorizedResourceIdsInput, type AuthorizedResourceIdsList, type ListAuthorizedPrincipalIdsInput, type AuthorizedPrincipalIdsList, type ListResourceAccessInput, type ResourceAccessByPrincipalList, type PrincipalResourceInput, type PrincipalResourceRoles, type GetPrincipalsCountInput, type PrincipalsCount, type ListAccessHistoryInput, type AccessHistoryPage } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
+import { ApiResourceRefSchema, GrantSpecSchema, type GrantSpec, type ApiResourceRef } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 
 /** Provides operations on grant resources. */
 export class GrantClient {

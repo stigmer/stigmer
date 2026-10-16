@@ -12,8 +12,8 @@
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import { StreamSessionEventsResponseSchema, type StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { StreamSessionEventsResponseSchema, type StreamSessionEventsResponse } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
 import { SessionLog, foldSession, previewPlaceOf, textOf, turnOf } from "../fold.js";
 import type { MessageItem, ThinkingItem, ToolUse, TurnItem } from "../types.js";

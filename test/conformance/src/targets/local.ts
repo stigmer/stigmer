@@ -11,7 +11,7 @@
 // library entry (test/support/src/library-server.mjs: the shipped process
 // body with no unit), not the shipped entry, whose open-source unit holds
 // one; the shipped entry is local-single-org's.
-import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { ensureLibraryServerEntry } from "@stigmer/test-support/ts-build";
 import {
   createTransport,

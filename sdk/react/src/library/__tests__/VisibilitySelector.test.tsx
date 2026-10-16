@@ -7,7 +7,7 @@ import {
   waitFor,
   cleanup,
 } from "@testing-library/react";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import {
   VisibilitySelector,
   VisibilityBadge,

@@ -14,14 +14,14 @@
  */
 import { type FormEvent, type ReactNode, useCallback, useId, useMemo, useState } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import {
   VaultConnectionSource,
   type VaultConnection,
   type VaultSecret,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { normalizeAddress } from "./address.js";
 import {

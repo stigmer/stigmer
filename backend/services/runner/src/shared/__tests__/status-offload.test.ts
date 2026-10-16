@@ -1,14 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
 import { create, toBinary } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import {
   DiffCompleteness,
   FileCaptureClass,
   FileChangeKind,
   FileReviewBlockReason,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   offloadOversizedToolOutputs,
   offloadCandidateChangesToFit,
@@ -23,7 +23,7 @@ import {
   buildCapturedFileChange,
   type ChangeSetContext,
 } from "../filereview/events.js";
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { CapturedFileChange } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,

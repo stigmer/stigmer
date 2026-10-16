@@ -14,7 +14,7 @@
 import { generateKeyPairSync } from "node:crypto";
 
 import { create } from "@bufbuild/protobuf";
-import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CLOUD_ENV } from "../../harness/cloud-env";

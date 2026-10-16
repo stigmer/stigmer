@@ -1,7 +1,7 @@
 "use client";
 
 import { Copy, Download, FileJson, FileText } from "lucide-react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { ActionMenu } from "../action-menu/ActionMenu.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import {

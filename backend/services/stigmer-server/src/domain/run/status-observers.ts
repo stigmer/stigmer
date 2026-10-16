@@ -38,10 +38,10 @@
  */
 import { clone } from "@bufbuild/protobuf";
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { UpdateStatusResponse } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { UpdateStatusResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type {

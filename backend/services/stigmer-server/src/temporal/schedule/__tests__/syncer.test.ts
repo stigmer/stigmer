@@ -14,8 +14,8 @@ import type { Client } from "@temporalio/client";
 import { ScheduleAlreadyRunning, ScheduleNotFoundError } from "@temporalio/client";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";

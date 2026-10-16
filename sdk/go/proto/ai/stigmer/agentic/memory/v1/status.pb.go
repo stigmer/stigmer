@@ -7,7 +7,7 @@
 package memoryv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -96,7 +96,7 @@ const file_ai_stigmer_agentic_memory_v1_status_proto_rawDesc = "" +
 	"\x0flifecycle_state\x18\x01 \x01(\x0e22.ai.stigmer.agentic.memory.v1.MemoryLifecycleStateR\x0elifecycleState\x12D\n" +
 	"\x10state_changed_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x0estateChangedAt\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\x96\x02\n" +
-	" com.ai.stigmer.agentic.memory.v1B\vStatusProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/memory/v1;memoryv1\xa2\x02\x04ASAM\xaa\x02\x1cAi.Stigmer.Agentic.Memory.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Memory\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Memory::V1b\x06proto3"
+	" com.ai.stigmer.agentic.memory.v1B\vStatusProtoP\x01ZPgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/memory/v1;memoryv1\xa2\x02\x04ASAM\xaa\x02\x1cAi.Stigmer.Agentic.Memory.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Memory\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Memory::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_memory_v1_status_proto_rawDescOnce sync.Once

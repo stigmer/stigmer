@@ -41,7 +41,7 @@ skill" when it could be misread.
   Agent Plugins reader the CLI validates with and the server installs from),
   `outbound` (the egress address policy and the MCP OAuth rules the server, the
   runner and the catalogue audit dial user-supplied URLs by).
-- `sdk/`: `typescript` (`@stigmer/sdk`), `react`, `theme`, `ink`, `embed`, `go`,
+- `sdk/`: `typescript` (`@stigmer/client`), `react`, `theme`, `ink`, `embed`, `go`,
   `python`, `java`. Generated clients live under each SDK's `gen` directory.
 - `client-apps/`: `cli` (the `stigmer` command), `web` (Next.js console),
   `desktop` (Tauri + Vite).
@@ -62,8 +62,8 @@ skill" when it could be misread.
 - `scripts/`: repo-level Node scripts, each with a `*.test.mjs` sibling run by
   `npm run test:scripts`.
 
-Dependency direction: `@stigmer/protos` (from `apis/stubs/ts`) -> `@stigmer/sdk`
--> `@stigmer/react` -> client apps. The server and runner depend on
+Dependency direction: `@stigmer/apis` (from `apis/stubs/ts`) -> `@stigmer/client`
+-> `@stigmer/react-sdk` -> client apps. The server and runner depend on
 `backend/libs/ts` and the protos; nothing depends on a client app or on `ee/`.
 
 ## Toolchains
@@ -106,9 +106,9 @@ summary line in the final message. Never report unverified work as done.
   `make test-authorization-model`. `tools/codegen/src/authorization-model/**`:
   `npm run test -w @stigmer/codegen && make gen-authorization-model-check`.
 - `backend/services/runner/**`: `make test-runner`. `ee/**`: `make test-ee`.
-- `sdk/typescript/**`: `npm run typecheck -w @stigmer/sdk`. `sdk/react/**`:
-  `npm run lint -w @stigmer/react && npm run typecheck -w @stigmer/react && npm run test -w @stigmer/react`.
-  `sdk/ink/**`: `npm run typecheck -w @stigmer/ink`.
+- `sdk/typescript/**`: `npm run typecheck -w @stigmer/client`. `sdk/react/**`:
+  `npm run lint -w @stigmer/react-sdk && npm run typecheck -w @stigmer/react-sdk && npm run test -w @stigmer/react-sdk`.
+  `sdk/ink/**`: `npm run typecheck -w @stigmer/ink-ui`.
 - `client-apps/web/**`: `make verify-web`. `client-apps/desktop/**`:
   `make verify-desktop`. `client-apps/cli/**`:
   `npm run typecheck -w @stigmer/cli && npm run test -w @stigmer/cli && make gen-cli-docs-check`.

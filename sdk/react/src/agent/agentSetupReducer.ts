@@ -1,5 +1,5 @@
-import type { ResourceRef } from "@stigmer/sdk";
-import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { ResourceRef } from "@stigmer/client";
+import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { AgentEnvFormVariable } from "./AgentEnvForm.js";
 
 // ---------------------------------------------------------------------------

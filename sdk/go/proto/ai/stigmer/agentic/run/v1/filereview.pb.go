@@ -853,7 +853,7 @@ const file_ai_stigmer_agentic_run_v1_filereview_proto_rawDesc = "" +
 	"\vlines_added\x18\x04 \x01(\x05R\n" +
 	"linesAdded\x12#\n" +
 	"\rlines_removed\x18\x05 \x01(\x05R\flinesRemovedB\x85\x02\n" +
-	"\x1dcom.ai.stigmer.agentic.run.v1B\x0fFilereviewProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
+	"\x1dcom.ai.stigmer.agentic.run.v1B\x0fFilereviewProtoP\x01ZJgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_run_v1_filereview_proto_rawDescOnce sync.Once

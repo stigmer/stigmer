@@ -9,7 +9,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   ServiceAccountsSection: () => <p>service accounts section</p>,
 }));
 

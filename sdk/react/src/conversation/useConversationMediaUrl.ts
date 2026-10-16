@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
-import { GetConversationMediaDownloadUrlInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { GetConversationMediaDownloadUrlInputSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 

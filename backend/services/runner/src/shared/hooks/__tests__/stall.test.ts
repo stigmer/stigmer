@@ -9,7 +9,7 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import { HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { describe, expect, it, vi } from "vitest";
 import { startStallWatchdog } from "../../stall-watchdog.js";
 import { HookEvaluator } from "../evaluate.js";

@@ -38,7 +38,7 @@ export function libraryServerEntryPath(): string {
 }
 
 export async function buildTsServer(): Promise<string> {
-  // The server file-links the workspace libs (@stigmer/protos,
+  // The server file-links the workspace libs (@stigmer/apis,
   // @stigmer/temporal-codecs, @stigmer/zip-structure), so their dists must
   // exist before the server compiles. The root
   // build:runner-deps script is the one canonical list of those libs —

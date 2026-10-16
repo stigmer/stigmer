@@ -8,13 +8,13 @@
 
 import { toJson, type MessageInitShape } from "@bufbuild/protobuf";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   type SearchRequestSchema,
   type SearchResponse,
   SearchResponseSchema,
-} from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
+} from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+import { SearchService } from "@stigmer/apis/ai/stigmer/search/v1/query_pb";
 import { z } from "zod";
 
 import { resolveToken, withClient, type BackendTarget } from "../client.js";

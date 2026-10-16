@@ -10,9 +10,9 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentVersionEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
-import type { GetAgentVersionInput } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
+import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
+import { AgentVersionEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
+import type { GetAgentVersionInput } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 
 import { createInProcessClients } from "../inprocess.js";
 import { createLogger } from "../logger.js";

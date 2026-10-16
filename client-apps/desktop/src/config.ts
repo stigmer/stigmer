@@ -1,4 +1,4 @@
-import type { DeploymentMode } from "@stigmer/sdk";
+import type { DeploymentMode } from "@stigmer/client";
 
 /**
  * Public Stigmer web console URL (no trailing slash).

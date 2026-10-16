@@ -41,12 +41,12 @@ async function parse(children: Reflection[]) {
   const project: TypeDocProject = {
     schemaVersion: "2.0",
     id: 0,
-    name: "@stigmer/react",
+    name: "@stigmer/react-sdk",
     variant: "project",
     kind: ReflectionKind.Project,
     children,
     symbolIdMap: {},
-    packageName: "@stigmer/react",
+    packageName: "@stigmer/react-sdk",
   };
   const file = path.join(dir, "api.json");
   await fs.writeFile(file, JSON.stringify(project));

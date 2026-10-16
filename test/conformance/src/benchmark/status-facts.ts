@@ -23,8 +23,8 @@
 // create. The other runtime attachments (channel messaging, conversation)
 // need a channel or conversation label the benchmark never sets.
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Turn } from "@stigmer/session-log";
 import type { BenchmarkAxes, SampleOutcome, TokenCounts } from "./report";
 

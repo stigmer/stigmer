@@ -34,7 +34,7 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import { FileChangeSetSchema, type FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import { FileChangeSetSchema, type FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 
 import type { TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 

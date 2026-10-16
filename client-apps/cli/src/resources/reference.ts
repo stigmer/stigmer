@@ -16,7 +16,7 @@
 // from parseReference's lenient `${prefix}_` test — `run my-agent` must not
 // treat a slug that merely starts with a known prefix as an ID.
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { KIND_META } from "../registry/index.js";
 
 export type ParsedReference =

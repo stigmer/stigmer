@@ -127,9 +127,9 @@
 // visitor-isolation consequence of checkMyPermission through the composed
 // Authorizer (no guest caller exists in this harness).
 import { Code } from "@connectrpc/connect";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { AccessChange, AccessChangeCause } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { AccessChange, AccessChangeCause } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { expectGrpcCode } from "../contract/errors";

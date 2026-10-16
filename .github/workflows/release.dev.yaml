@@ -107,7 +107,7 @@ jobs:
 
           # Reject a base that collides with an existing release tag: a dev build
           # must never share a coordinate with a real release (cf. the published
-          # @stigmer/protos shadowing a workspace stub, issue #156).
+          # @stigmer/apis shadowing a workspace stub, issue #156).
           if git rev-parse "v${BASE}" >/dev/null 2>&1; then
             echo "ERROR: v${BASE} already exists as a release tag. Pass a higher base_version." >&2
             exit 1
@@ -242,7 +242,7 @@ jobs:
         run: node scripts/publish-libs.mjs --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION}" --tag dev
 
   # @stigmer/runner is a non-workspace npm package built via `make build-runner`.
-  # It pins @stigmer/protos to the exact dev version, so it must run after the
+  # It pins @stigmer/apis to the exact dev version, so it must run after the
   # libs job has put that version on npm. Mirrors the production publish-runner.
   publish-npm-runner:
     needs: [determine-version, publish-npm]
@@ -299,7 +299,7 @@ jobs:
 
       # The slim embedding artifact (stigmer/stigmer#170), mirroring the
       # production publish in release.npm-libs.yaml. Self-contained — its bundle
-      # does not pin @stigmer/protos — so it just needs the version already
+      # does not pin @stigmer/apis — so it just needs the version already
       # stamped above, which the bundle script propagates into every manifest.
       - name: Build slim artifact packages
         working-directory: backend/services/runner
@@ -519,7 +519,7 @@ jobs:
           text = re.sub(r'version\s*=\s*\"[^\"]*\"', 'version = \"$VERSION\"', text, count=1)
           p.write_text(text)
           "
-          echo "Set stigmer-protos version to $VERSION"
+          echo "Set stigmer-apis version to $VERSION"
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_PY_VERSION: ${{ needs.determine-version.outputs.py_version }}
 
@@ -572,7 +572,7 @@ jobs:
           p = pathlib.Path('pyproject.toml')
           text = p.read_text()
           text = re.sub(r'version\s*=\s*\"[^\"]*\"', 'version = \"$VERSION\"', text, count=1)
-          text = re.sub(r'\"stigmer-protos[^\"]*\"', '\"stigmer-protos==$VERSION\"', text)
+          text = re.sub(r'\"stigmer-apis[^\"]*\"', '\"stigmer-apis==$VERSION\"', text)
           p.write_text(text)
           "
           echo "Set stigmer version to $VERSION (protos dependency: $VERSION)"
@@ -707,7 +707,7 @@ jobs:
             if [[ "$TARGETS" == *npm* ]]; then
               echo "## npm (React / TS SDK)"
               echo '```bash'
-              echo "npm install @stigmer/react@dev   # or pin exactly: @stigmer/react@$NPM_VERSION"
+              echo "npm install @stigmer/react-sdk@dev   # or pin exactly: @stigmer/react-sdk@$NPM_VERSION"
               echo '```'
               echo "The \`dev\` dist-tag always resolves to the newest dev build."
               echo ""
@@ -726,7 +726,7 @@ jobs:
               echo "## npm (@stigmer/server library — a composition's pin)"
               if [ "$SERVER_RESULT" = "success" ]; then
                 echo '```json'
-                echo "\"@stigmer/server\": \"$NPM_VERSION\", \"@stigmer/protos\": \"$NPM_VERSION\", \"@stigmer/temporal-codecs\": \"$NPM_VERSION\", \"@stigmer/outbound\": \"$NPM_VERSION\", \"@stigmer/enterprise\": \"$NPM_VERSION\""
+                echo "\"@stigmer/server\": \"$NPM_VERSION\", \"@stigmer/apis\": \"$NPM_VERSION\", \"@stigmer/temporal-codecs\": \"$NPM_VERSION\", \"@stigmer/outbound\": \"$NPM_VERSION\", \"@stigmer/enterprise\": \"$NPM_VERSION\""
                 echo '```'
                 echo "Exact versions, all equal. Built from \`main\`, this is a build a composition may merge on; built from a branch, its commit is not on \`main\`, so it is for trying, not for merging."
               else
@@ -738,7 +738,7 @@ jobs:
             if [[ "$TARGETS" == *python* ]]; then
               echo "## Python SDK (TestPyPI)"
               echo '```bash'
-              echo "pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ --pre 'stigmer==$PY_VERSION'"
+              echo "pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ --pre 'stigmer-sdk==$PY_VERSION'"
               echo '```'
               echo ""
             fi
@@ -754,7 +754,7 @@ jobs:
             echo "## Go SDK / Rust crate (no publish needed — use a git ref)"
             echo '```bash'
             echo "# Go:"
-            echo "go get github.com/stigmer/stigmer/sdk/go/v3@$REF_NAME"
+            echo "go get go.stigmer.ai/sdk@$REF_NAME"
             echo "# Rust (Cargo.toml):"
             echo "# stigmer-runner-host = { git = \"https://github.com/stigmer/stigmer\", branch = \"$REF_NAME\" }"
             echo '```'

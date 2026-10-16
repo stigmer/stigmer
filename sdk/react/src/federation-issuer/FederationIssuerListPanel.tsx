@@ -1,10 +1,10 @@
 "use client";
 
 import { type ReactNode, useCallback, useState } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { PermissionGate } from "../grant/PermissionGate.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useFederationIssuerList } from "./useFederationIssuerList.js";

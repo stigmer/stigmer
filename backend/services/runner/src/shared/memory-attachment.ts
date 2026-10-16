@@ -47,7 +47,7 @@
  * When the snapshot is absent or disabled: no tool, honest absence.
  */
 
-import type { RecalledMemories } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import type { RecalledMemories } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import { MEMORY_MCP_SERVER } from "@stigmer/tool-vocabulary";
 
 import type { ResolvedMcpServer } from "./mcp-resolver.js";

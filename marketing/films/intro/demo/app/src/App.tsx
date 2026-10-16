@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { Stigmer } from "@stigmer/sdk";
-import { NewSessionViewer, SessionViewer, StigmerProvider } from "@stigmer/react";
-import "@stigmer/react/styles.css";
+import { Stigmer } from "@stigmer/client";
+import { NewSessionViewer, SessionViewer, StigmerProvider } from "@stigmer/react-sdk";
+import "@stigmer/react-sdk/styles.css";
 
 /**
  * Meridian Travel's "Manage my trip" page with the travel assistant
- * integrated through @stigmer/react — the platform-builder integration
+ * integrated through @stigmer/react-sdk — the platform-builder integration
  * the film's scene-4 payoff beat records (and the same wiring shape as
  * the SDK's real product consumers): one client, one provider, one
  * session component pinned to the org's agent with the endUser audience.

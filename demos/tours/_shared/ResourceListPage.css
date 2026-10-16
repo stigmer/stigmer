@@ -4,7 +4,7 @@
  * px-6 py-8`), the breadcrumb, the header ramp, the inert create-button
  * twin, and the Scenar seams (pulse anchoring, engine-driven hover, the
  * new-item flash). The collection itself is the real `ResourceWorkbench`
- * from `@stigmer/react`, styled by the compiled SDK stylesheet — there is
+ * from `@stigmer/react-sdk`, styled by the compiled SDK stylesheet — there is
  * no replica CSS left to drift (stigmer/stigmer#317).
  *
  * Layout is plain CSS — Tailwind utilities no-op under `scenar pack`.

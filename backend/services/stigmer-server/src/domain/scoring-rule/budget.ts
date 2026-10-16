@@ -31,10 +31,10 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
-import { ScoringRuleStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/status_pb";
-import type { ScoringRuleStatus } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/status_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ScoringRuleSchema } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import { ScoringRuleStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/status_pb";
+import type { ScoringRuleStatus } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/status_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { bumpStatusAudit } from "../../pipeline/steps/defaults.js";
 import { ResourceNotFoundError } from "../../store/interface.js";

@@ -1,8 +1,8 @@
 "use client";
 
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage, type AttachmentInput, type ResourceRef } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage, type AttachmentInput, type ResourceRef } from "@stigmer/client";
 import type { EnvVarInput } from "../vault/types.js";
 import { useComposer } from "./useComposer.js";
 import { ComposerToolbar } from "./ComposerToolbar.js";

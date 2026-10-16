@@ -4,10 +4,10 @@ import { memo, useCallback, useEffect, useId, useMemo, useState } from "react";
 import type {
   CapturedFileChange,
   FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { FileCaptureClass } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { toDisplayFileChange, type FileReviewFile, type FileReviewSet } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import { FileCaptureClass } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { toDisplayFileChange, type FileReviewFile, type FileReviewSet } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 import { FileChangeDiff } from "./FileChangesView.js";
 import { FileKindBadge, FileLineStats } from "./FileReviewAtoms.js";
 import { FilePathLink } from "./FilePathLink.js";

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { ListSessionsByChannelRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import type { ListSessionsByChannelRequest } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useChannelSessions } from "../useChannelSessions";

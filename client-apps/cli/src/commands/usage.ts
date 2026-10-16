@@ -102,7 +102,7 @@ async function runAgentHours(options: UsageFlags, command: Command): Promise<voi
   const [{ connectBackend }, usage, { ApiResourceKind }] = await Promise.all([
     import("../backend.js"),
     import("../resources/usage.js"),
-    import("@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb"),
+    import("@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb"),
   ]);
   const client = connectBackend();
   ensureAuthenticated(client.config);

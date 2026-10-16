@@ -40,8 +40,8 @@
 // (eval-run-agent.conformance.test.ts); and a values fetch with the run's own
 // credential, which the cloud refuses an outside caller (the manifest is
 // read with a plain get instead, support/run-values.ts runSourcesOf).
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { Code } from "@connectrpc/connect";
 import type { ToolUse, Turn } from "@stigmer/session-log";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";

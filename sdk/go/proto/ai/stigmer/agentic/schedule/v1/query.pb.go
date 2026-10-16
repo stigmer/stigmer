@@ -7,8 +7,8 @@
 package schedulev1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -34,7 +34,7 @@ const file_ai_stigmer_agentic_schedule_v1_query_proto_rawDesc = "" +
 	"\x04list\x124.ai.stigmer.agentic.schedule.v1.ListSchedulesRequest\x1a,.ai.stigmer.agentic.schedule.v1.ScheduleList\"\x04и\x18\x01\x12\xb3\x01\n" +
 	"\tlistFires\x128.ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest\x1a0.ai.stigmer.agentic.schedule.v1.ScheduleFireList\":¸\x186\b\x01\x108\"\vschedule_id*#unauthorized to list schedule fires\x1a\x04\xa0\xff+8B\xa3\x02\n" +
 	"\"com.ai.stigmer.agentic.schedule.v1B\n" +
-	"QueryProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/schedule/v1;schedulev1\xa2\x02\x04ASAS\xaa\x02\x1eAi.Stigmer.Agentic.Schedule.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3"
+	"QueryProtoP\x01ZTgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/schedule/v1;schedulev1\xa2\x02\x04ASAS\xaa\x02\x1eAi.Stigmer.Agentic.Schedule.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_schedule_v1_query_proto_goTypes = []any{
 	(*ScheduleId)(nil),                       // 0: ai.stigmer.agentic.schedule.v1.ScheduleId

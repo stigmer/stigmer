@@ -4,8 +4,8 @@
 
 import { useMemo, type ReactNode } from "react";
 import { createConnectTransport } from "@connectrpc/connect-web";
-import { Stigmer } from "@stigmer/sdk";
-import { StigmerProvider } from "@stigmer/react";
+import { Stigmer } from "@stigmer/client";
+import { StigmerProvider } from "@stigmer/react-sdk";
 
 interface PreviewProvidersProps {
   readonly children: ReactNode;

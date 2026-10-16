@@ -20,7 +20,7 @@
 
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import {
   APPROVAL_ANSWER_EVENT_TYPES,

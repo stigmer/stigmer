@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { PanelLeft } from "lucide-react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { OrgGate } from "../org/OrgGate";
 import { ManagementSidebar } from "./ManagementSidebar";
 import { Sidebar } from "./Sidebar";

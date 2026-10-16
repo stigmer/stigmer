@@ -7,7 +7,7 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { FileChangeProgressSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import { FileChangeProgressSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 
 import { capturedSet } from "../../__tests__/file-review-seed.js";
 import { reconcileFileChangeProgress } from "../progress.js";

@@ -22,7 +22,7 @@ import { create, toJson, type JsonObject } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { describe, expect, it } from "vitest";
 
-import { LicenseClaimsSchema } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+import { LicenseClaimsSchema } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 
 import { verifyLicenseTicket, type LicenseRefusalKind } from "../verify.js";
 import { goldenVector, newTestSigner, segment, writeTicket } from "./test-tickets.js";

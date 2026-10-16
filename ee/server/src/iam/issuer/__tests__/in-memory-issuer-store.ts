@@ -16,15 +16,15 @@ import { clone, create, toBinary } from "@bufbuild/protobuf";
 import { stampEtag } from "@stigmer/server";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   ApiResourceAuditInfoSchema,
   ApiResourceAuditSchema,
   ApiResourceAuditStatusSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
-import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
-import { FederationIssuerSpecSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
+import type { FederationIssuer } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerSchema } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerSpecSchema } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/spec_pb";
 
 import type { GuardedRead, ListIndexCursor, ListIndexRow } from "@stigmer/server";
 

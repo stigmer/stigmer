@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { AttachmentImageLightbox } from "../attachment/AttachmentImageLightbox.js";
 import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";

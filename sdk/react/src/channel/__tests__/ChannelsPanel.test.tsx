@@ -11,10 +11,10 @@
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { render, screen, fireEvent, waitFor, cleanup, within } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { ChannelInput } from "@stigmer/sdk";
+import type { ChannelInput } from "@stigmer/client";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DeploymentModeContext } from "../../deployment-mode";
@@ -22,8 +22,8 @@ import { openMenu } from "../../__tests__/helpers/open-menu";
 import { ChannelsPanel } from "../ChannelsPanel";
 import { toast } from "../../feedback/toast";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
-import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
+import { ChannelAudience } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
 
 // Toasts are visual feedback owned by the feedback module; keep them inert.
 vi.mock("../../feedback/toast", () => ({

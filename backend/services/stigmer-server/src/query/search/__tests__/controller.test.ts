@@ -16,13 +16,13 @@ import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import { createRouterTransport } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { ListRecentActivityRequestSchema } from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
-import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/query_pb";
+import { ListRecentActivityRequestSchema } from "@stigmer/apis/ai/stigmer/activity/v1/io_pb";
+import { ActivityQueryController } from "@stigmer/apis/ai/stigmer/activity/v1/query_pb";
 import {
   SearchRequestSchema,
   SearchResultSchema,
-} from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
+} from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+import { SearchService } from "@stigmer/apis/ai/stigmer/search/v1/query_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import { createVerifierChainInterceptor } from "../../../pipeline/interceptors/auth.js";

@@ -12,7 +12,7 @@ import {
   McpServerEntrySchema,
   StdioMcpServerSchema,
   type McpServerEntry,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import {
   SERVER_ADDRESS_ENV_KEY,
   fillPlatformServerAddress,

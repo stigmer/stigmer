@@ -6,7 +6,7 @@ import {
   memo,
   type CSSProperties,
 } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { EditorState, Compartment } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLine, drawSelection, highlightSpecialChars } from "@codemirror/view";
 import { yaml } from "@codemirror/lang-yaml";

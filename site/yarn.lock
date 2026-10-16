@@ -2702,22 +2702,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
+"@stigmer/apis@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=65ef81&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/apis@file:../apis/stubs/ts#../apis/stubs/ts::hash=65ef81&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protobuf": "npm:2.12.0"
   checksum: 10c0/0709983e69c7d484a6b189608ed08d071824163676f3657e52cfeaa390b15a917b34041b8a6d675cc03587e26406a3e744a1d113cd0a1ec37528ed76ea532aac
   languageName: node
   linkType: hard
 
-"@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
+"@stigmer/react-sdk@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=13de81&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react-sdk@file:../sdk/react#../sdk/react::hash=13de81&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protovalidate": "npm:^1.1.1"
     "@stigmer/plugin-package": "npm:*"
-    "@stigmer/theme": "npm:*"
+    "@stigmer/design-tokens": "npm:*"
     "@stigmer/tool-vocabulary": "npm:*"
     diff: "npm:^8.0.3"
     fflate: "npm:^0.8.2"
@@ -2740,8 +2740,8 @@ __metadata:
     "@codemirror/state": ^6.0.0
     "@codemirror/view": ^6.0.0
     "@lezer/highlight": ^1.0.0
-    "@stigmer/protos": "*"
-    "@stigmer/sdk": "*"
+    "@stigmer/apis": "*"
+    "@stigmer/client": "*"
     "@tanstack/react-table": ^8.20.0
     lucide-react: ">=0.400.0"
     mermaid: ^11.0.0
@@ -2777,9 +2777,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
+"@stigmer/client@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=00dd35&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/client@file:../sdk/typescript#../sdk/typescript::hash=00dd35&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2788,7 +2788,7 @@ __metadata:
   peerDependencies:
     "@bufbuild/protobuf": ^2.0.0
     "@connectrpc/connect-node": ^2.0.0
-    "@stigmer/protos": "*"
+    "@stigmer/apis": "*"
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
@@ -2803,14 +2803,14 @@ __metadata:
     "@stigmer/tool-vocabulary": "npm:*"
   peerDependencies:
     "@bufbuild/protobuf": ^2.8.0
-    "@stigmer/protos": "*"
+    "@stigmer/apis": "*"
   checksum: 10c0/a2de54b736e286a8055a685f1ab1c7072aaac940987f84c06b36c95c62c97c89d1fe97af0391c6a76cfb091fb978203a0e5650062a980ec0fa6b12e9559b9290
   languageName: node
   linkType: hard
 
-"@stigmer/theme@file:../sdk/theme::locator=stigmer-site%40workspace%3A.":
+"@stigmer/design-tokens@file:../sdk/theme::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/theme@file:../sdk/theme#../sdk/theme::hash=b10861&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/design-tokens@file:../sdk/theme#../sdk/theme::hash=b10861&locator=stigmer-site%40workspace%3A."
   peerDependencies:
     clsx: ^2.0.0
     tailwind-merge: ^3.0.0
@@ -10599,10 +10599,10 @@ __metadata:
     "@scenar/react": "npm:0.5.0"
     "@stigmer/embed": "file:../sdk/embed"
     "@stigmer/plugin-package": "file:../backend/libs/ts/plugin-package"
-    "@stigmer/protos": "file:../apis/stubs/ts"
-    "@stigmer/react": "file:../sdk/react"
-    "@stigmer/sdk": "file:../sdk/typescript"
-    "@stigmer/theme": "file:../sdk/theme"
+    "@stigmer/apis": "file:../apis/stubs/ts"
+    "@stigmer/react-sdk": "file:../sdk/react"
+    "@stigmer/client": "file:../sdk/typescript"
+    "@stigmer/design-tokens": "file:../sdk/theme"
     "@tailwindcss/postcss": "npm:^4.0.0"
     "@tanstack/react-table": "npm:^8.21.3"
     "@testing-library/dom": "npm:^10.4.0"

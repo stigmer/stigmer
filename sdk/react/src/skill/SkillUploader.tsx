@@ -2,8 +2,8 @@
 
 import { type DragEvent, useCallback, useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
-import { cn } from "@stigmer/theme";
-import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import type { Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components.js";
 import { UploadIcon } from "../internal/UploadIcon.js";
 import { useSkillUpload } from "./useSkillUpload.js";

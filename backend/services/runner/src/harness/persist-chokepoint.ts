@@ -55,9 +55,9 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunControlSignal } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
+import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunControlSignal } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { StreamingUsageSummarySchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 
 import type { StigmerClient } from "../client/stigmer-client.js";
 import { captureFileChangeProgress } from "../shared/filereview/progress.js";

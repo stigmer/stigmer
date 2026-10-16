@@ -2,8 +2,8 @@
 
 import type {
   ModelPricingBaseline,
-} from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
-import { everyEntry } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
+import { everyEntry } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { LIST_PAGE_MAX } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";

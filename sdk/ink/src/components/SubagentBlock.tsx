@@ -4,7 +4,7 @@
 // error — the same entries the main thread renders.
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
-import { isTodoTool, type Thread, type ToolUse } from "@stigmer/sdk";
+import { isTodoTool, type Thread, type ToolUse } from "@stigmer/client";
 import { MessageEntry } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 

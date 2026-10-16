@@ -22,7 +22,7 @@ import { createHash } from "node:crypto";
 
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 import { internalError, invalidArgumentError } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";

@@ -1,8 +1,8 @@
 ---
 name: sdk-console-architecture
 description:
-  The architecture decisions behind the TypeScript SDK packages (@stigmer/react,
-  @stigmer/theme, @stigmer/sdk) and the client apps that are thin shells over
+  The architecture decisions behind the TypeScript SDK packages (@stigmer/react-sdk,
+  @stigmer/design-tokens, @stigmer/client) and the client apps that are thin shells over
   them, each with its reason, plus the theme-token reference. Use when adding or
   changing a hook, a component, a token, a streaming view, or any wiring between
   a client app and an SDK component.
@@ -27,9 +27,9 @@ each was taken, so that a change which bends one knows what it is bending.
 
 | Package               | Role                                                   | Allowed dependencies                      |
 | --------------------- | ------------------------------------------------------ | ----------------------------------------- |
-| `@stigmer/sdk`        | Typed API clients generated from the protobuf contract | `@stigmer/protos`                         |
-| `@stigmer/react`      | Data hooks, behaviour hooks, styled components         | `@stigmer/sdk`, `@stigmer/theme`, `react` |
-| `@stigmer/theme`      | `--stgm-*` tokens, presets, the `cn()` utility         | none beyond `clsx` and `tailwind-merge`   |
+| `@stigmer/client`        | Typed API clients generated from the protobuf contract | `@stigmer/apis`                         |
+| `@stigmer/react-sdk`      | Data hooks, behaviour hooks, styled components         | `@stigmer/client`, `@stigmer/design-tokens`, `react` |
+| `@stigmer/design-tokens`      | `--stgm-*` tokens, presets, the `cn()` utility         | none beyond `clsx` and `tailwind-merge`   |
 | `client-apps/web`     | The Next.js console: routing, app shell, page layout   | the SDK packages, `next/*`                |
 | `client-apps/desktop` | The Tauri app: Vite, React Router, native integrations | the SDK packages, `@tauri-apps/*`         |
 
@@ -41,7 +41,7 @@ apps never import from each other. `sdk-import-boundaries` in
 
 Each decision is named; cite it by name in code comments and reviews.
 
-**SDK first.** Build every feature in `@stigmer/react` first (data hook, then
+**SDK first.** Build every feature in `@stigmer/react-sdk` first (data hook, then
 behaviour hook, then styled component) and consume it from a client app second.
 When placement is uncertain, default to the SDK: extraction later is harder than
 inclusion now.
@@ -51,13 +51,13 @@ page file that grows past a screen of layout and imports is carrying logic that
 belongs in the SDK.
 
 **Headless first.** Three layers, each independently importable: data hooks (API
-data through `@stigmer/sdk`), behaviour hooks (interaction logic and state
-machines), styled components (hooks composed with `@stigmer/theme` tokens). A
+data through `@stigmer/client`), behaviour hooks (interaction logic and state
+machines), styled components (hooks composed with `@stigmer/design-tokens` tokens). A
 platform builder adopts at the layer that fits: full control with hooks only,
 partial control with hooks and their own rendering, zero effort with the styled
 components. `useSession()` without `<SessionViewer />` must be a valid import.
 
-**No framework dependencies in the SDK.** `@stigmer/react` has no `next/*`, no
+**No framework dependencies in the SDK.** `@stigmer/react-sdk` has no `next/*`, no
 `@tauri-apps/*`, no routing, no app-shell auth, no framework assumption; it runs
 in any React environment. Navigation and image optimisation are the consumer's
 responsibility, reached through callback props. The `"use client"` directive is
@@ -74,8 +74,8 @@ what to do. A hook used outside its provider throws a message naming the
 provider to add; a data hook returns a typed error state; a styled component
 renders meaningful error UI, never a blank screen.
 
-**Generated types are the source of truth.** `@stigmer/protos` feeds
-`@stigmer/sdk`, which feeds `@stigmer/react`. Never hand-write a type that
+**Generated types are the source of truth.** `@stigmer/apis` feeds
+`@stigmer/client`, which feeds `@stigmer/react-sdk`. Never hand-write a type that
 duplicates a generated one; never raw-fetch beside a generated client. Derived
 types (`Pick`, `Omit`, UI extensions) are fine.
 
@@ -145,7 +145,7 @@ with exponential backoff and full jitter before showing any error. A
 non-terminal interruption enters `reconnecting`, keeps the last-known-good state
 visible (`error` stays `null`, `isReconnecting` is true), and surfaces a
 terminal error only when retries are exhausted. `isTransientStreamError` in
-`@stigmer/sdk` (`sdk/typescript/src/errors.ts`) classifies transient against
+`@stigmer/client` (`sdk/typescript/src/errors.ts`) classifies transient against
 deterministic; not-found, validation and auth errors never retry. Reconnect is
 on by default and tunable through `autoReconnect` and `reconnectOptions`;
 `reconnect()` is the manual fallback. Every consumer of `streamState.stage`
@@ -184,7 +184,7 @@ must never become a layout channel.
 layout in a real browser.
 
 **Console chrome is SDK-owned.** `WorkspaceSidebar` and `SettingsSidebar` are
-public `@stigmer/react` surfaces rendered by the web console, the desktop app
+public `@stigmer/react-sdk` surfaces rendered by the web console, the desktop app
 and the documentation tours (`demos/tours/_shared/`), so the depicted chrome
 cannot drift from the product (stigmer/stigmer#317). Per-host differences enter
 only through named seams: `renderLink` (the host's router link, or an inert row
@@ -238,6 +238,6 @@ touches every day.
 3. Does it work identically embedded in a third-party dashboard and in the
    console?
 4. Are its hooks exported independently of its styled component?
-5. Does it use generated types from `@stigmer/sdk`, not hand-written ones?
+5. Does it use generated types from `@stigmer/client`, not hand-written ones?
 6. If it changes how a client app wires an SDK component, has every client app
    been updated?

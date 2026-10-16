@@ -5,12 +5,12 @@
 // The page hands the route to OrgProfileSection and gives it the landing an
 // organization switch from the sidebar has. The section's behaviour (the
 // profile, the Child organizations list and its Open action) is pinned by
-// its own suites in @stigmer/react.
+// its own suites in @stigmer/react-sdk.
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import type { OrgProfileSectionProps } from "@stigmer/react";
+import type { OrgProfileSectionProps } from "@stigmer/react-sdk";
 
 const push = vi.hoisted(() => vi.fn());
 
@@ -18,7 +18,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
 }));
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   OrgProfileSection: ({ onOrgChanged }: OrgProfileSectionProps) => (
     <button type="button" onClick={() => onOrgChanged?.({} as never)}>
       open a child

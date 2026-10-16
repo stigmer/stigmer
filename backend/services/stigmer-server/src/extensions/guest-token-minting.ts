@@ -21,7 +21,7 @@
 import type {
   MintGuestTokenRequest,
   MintGuestTokenResponse,
-} from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
+} from "@stigmer/apis/ai/stigmer/iam/token/v1/token_pb";
 
 export interface GuestTokenMinting {
   mintGuestToken(

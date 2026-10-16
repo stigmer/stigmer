@@ -31,16 +31,16 @@
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
-import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { OrganizationCommandController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/command_pb";
+import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import {
   ChildOrgListSchema,
   OrganizationsSchema,
-} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
 import type {
   ChildOrgList,
   ListChildOrgsInput,
@@ -50,9 +50,9 @@ import type {
   Organizations,
   UpdateOrganizationEmbeddingInput,
   UpdateOrganizationPoliciesInput,
-} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
-import type { UpdateOrganizationInput } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
-import { UpdateOrganizationInputSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
+import type { UpdateOrganizationInput } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
+import { UpdateOrganizationInputSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { CredentialBinding } from "../../extensions/credential-binding.js";

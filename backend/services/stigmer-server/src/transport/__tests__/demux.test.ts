@@ -27,7 +27,7 @@ import { connectNodeAdapter } from "@connectrpc/connect-node";
 import {
   Health,
   HealthCheckResponse_ServingStatus,
-} from "@stigmer/protos/grpc/health/v1/health_pb";
+} from "@stigmer/apis/grpc/health/v1/health_pb";
 import { createServer as createHttp1Server } from "node:http";
 import { createServer as createHttp2Server } from "node:http2";
 import { connect as netConnect, type Server, type Socket } from "node:net";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { WorkspaceEntryInput, WorkspaceSourceInput } from "@stigmer/sdk";
+import type { WorkspaceEntryInput, WorkspaceSourceInput } from "@stigmer/client";
 
 /**
  * A single workspace entry managed by {@link useWorkspaceEntries}.

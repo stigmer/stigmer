@@ -14,7 +14,7 @@ import type { Client } from "@connectrpc/connect";
 import { Code, createClient, createRouterTransport } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
+import { SkillCommandController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/command_pb";
 
 import type { ArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
 import { createLogger } from "../../../boot/logger.js";

@@ -20,8 +20,8 @@ import {
   type GitHubFileContent,
   type GitHubRepositoryList,
   type GitHubTree,
-} from "@stigmer/protos/ai/stigmer/platform/github/v1/io_pb";
-import { GitHubQueryController } from "@stigmer/protos/ai/stigmer/platform/github/v1/query_pb";
+} from "@stigmer/apis/ai/stigmer/platform/github/v1/io_pb";
+import { GitHubQueryController } from "@stigmer/apis/ai/stigmer/platform/github/v1/query_pb";
 import { wrapError } from "./gen/errors.js";
 
 /** A repository on GitHub, by owner and name. */

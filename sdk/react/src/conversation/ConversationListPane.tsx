@@ -3,15 +3,15 @@
 import { memo, useCallback, useId, useRef } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { MessageSquare, TriangleAlert, User } from "lucide-react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
-import { getUserMessage } from "@stigmer/sdk";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { getUserMessage } from "@stigmer/client";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   ChannelConversationListFilter,
   ConversationControl,
   type ChannelConversation,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { channelProviderOf } from "../channel/providers.js";
 import { Button } from "../button/Button.js";

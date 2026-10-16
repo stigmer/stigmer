@@ -1,6 +1,6 @@
 /**
  * `RealButtonTarget`, the wrapper a plugin demo puts around a real
- * `@stigmer/react` page so its cursor can point at, and press, a button the
+ * `@stigmer/react-sdk` page so its cursor can point at, and press, a button the
  * page draws with no cursor target of its own.
  *
  * Pins: the button whose accessible name matches (its `aria-label`, else its

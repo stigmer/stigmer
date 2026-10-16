@@ -16,8 +16,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   OrganizationSchema,
   type Organization,
-} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import type { UpdateOrganizationPoliciesInput } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { UpdateOrganizationPoliciesInput } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
 import { ConnectError, Code } from "@connectrpc/connect";
 import type { ReactNode } from "react";
 import { StigmerContext } from "../../context";

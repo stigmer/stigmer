@@ -7,8 +7,8 @@
 package sessionv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -43,7 +43,7 @@ const file_ai_stigmer_agentic_session_v1_command_proto_rawDesc = "" +
 	"\x06delete\x12(.ai.stigmer.agentic.session.v1.SessionId\x1a&.ai.stigmer.agentic.session.v1.Session\"/¸\x18+\b\x03\x10*\"\x05value*\x1eunauthorized to delete session\x12\x89\x01\n" +
 	"\fappendEvents\x127.ai.stigmer.agentic.session.v1.AppendSessionEventsInput\x1a:.ai.stigmer.agentic.session.v1.AppendSessionEventsResponse\"\x04и\x18\x01\x12\x87\x01\n" +
 	"\x10bindHarnessState\x124.ai.stigmer.agentic.session.v1.BindHarnessStateInput\x1a7.ai.stigmer.agentic.session.v1.BindHarnessStateResponse\"\x04и\x18\x01\x1a\x04\xa0\xff+*B\x9e\x02\n" +
-	"!com.ai.stigmer.agentic.session.v1B\fCommandProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
+	"!com.ai.stigmer.agentic.session.v1B\fCommandProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_session_v1_command_proto_goTypes = []any{
 	(*Session)(nil),                     // 0: ai.stigmer.agentic.session.v1.Session

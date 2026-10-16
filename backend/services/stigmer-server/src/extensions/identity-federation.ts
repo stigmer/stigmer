@@ -21,14 +21,14 @@
  * carries direct-account methods only, because a port does not carry
  * methods only one edition calls.
  */
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type {
   CreateFederatedAccountInput,
   DeprovisionFederatedAccountInput,
   ExternalSubLookup,
   UpdateFederatedAccountInput,
-} from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
 
 import type { CallerIdentity } from "./identity.js";
 

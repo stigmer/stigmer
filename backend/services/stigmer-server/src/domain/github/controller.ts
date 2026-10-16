@@ -25,7 +25,7 @@ import {
   GitHubRepositorySchema,
   GitHubTreeEntrySchema,
   GitHubTreeSchema,
-} from "@stigmer/protos/ai/stigmer/platform/github/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/platform/github/v1/io_pb";
 import type {
   GetGitHubFileContentInput,
   GetGitHubTreeInput,
@@ -37,8 +37,8 @@ import type {
   ListGitHubBranchesInput,
   ListGitHubRepositoriesInput,
   SearchGitHubRepositoriesInput,
-} from "@stigmer/protos/ai/stigmer/platform/github/v1/io_pb";
-import { GitHubQueryController } from "@stigmer/protos/ai/stigmer/platform/github/v1/query_pb";
+} from "@stigmer/apis/ai/stigmer/platform/github/v1/io_pb";
+import { GitHubQueryController } from "@stigmer/apis/ai/stigmer/platform/github/v1/query_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";

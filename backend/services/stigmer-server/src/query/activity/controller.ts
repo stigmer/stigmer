@@ -18,7 +18,7 @@
  */
 import type { ConnectRouter } from "@connectrpc/connect";
 
-import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/query_pb";
+import { ActivityQueryController } from "@stigmer/apis/ai/stigmer/activity/v1/query_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";

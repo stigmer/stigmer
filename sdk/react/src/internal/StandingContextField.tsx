@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 /**
  * Both `OrganizationPreferences.standing_context` and
@@ -39,7 +39,7 @@ export interface StandingContextFieldProps {
  * render. Owns the proto length cap and the remaining-characters
  * counter; the parent panel owns label, load/save, and dirty state.
  *
- * Internal to `@stigmer/react` — the public surface is the panels.
+ * Internal to `@stigmer/react-sdk` — the public surface is the panels.
  */
 export function StandingContextField({
   id,

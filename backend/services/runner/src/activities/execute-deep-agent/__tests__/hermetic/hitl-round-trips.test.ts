@@ -61,7 +61,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { ToolMessage } from "@langchain/core/messages";
 import {
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),

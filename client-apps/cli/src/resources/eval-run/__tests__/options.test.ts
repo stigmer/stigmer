@@ -12,8 +12,8 @@
 // every invalid option exits 1, the format's code, never the CLI's usage
 // code 2, which the format keeps for a partial run.
 
-import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { EvalRunAblation } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import { CliExitError } from "../../../errors/index.js";
 import {

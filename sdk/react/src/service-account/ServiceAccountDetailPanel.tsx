@@ -13,20 +13,20 @@
  */
 import { useCallback, useId, useRef, useState, type FormEvent } from "react";
 import { create } from "@bufbuild/protobuf";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import {
   getUserMessage,
   iamRoleDisplayName,
   iamRoleToString,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { saveErrorMessage } from "../internal/maskedEdit.js";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   ApiResourceRefSchema,
   GrantSpecSchema,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { ApiKeyCreatedAlert } from "../api-key/ApiKeyCreatedAlert.js";
 import { useUpdateIdentityAccount } from "../identity-account/useUpdateIdentityAccount.js";
 import { RoleSelector } from "../grant/RoleSelector.js";

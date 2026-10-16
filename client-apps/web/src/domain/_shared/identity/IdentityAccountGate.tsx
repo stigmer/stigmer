@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, AlertCircle, RefreshCw, LogOut } from "lucide-react";
-import { useIdentityAccountGate } from "@stigmer/react";
+import { useIdentityAccountGate } from "@stigmer/react-sdk";
 import { useAuth } from "@/auth";
 import { getRuntimeConfig } from "@/config/runtime-config";
 

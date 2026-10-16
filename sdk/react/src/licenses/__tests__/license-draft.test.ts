@@ -5,7 +5,7 @@
 // fixed and the arithmetic is UTC-only, so the suite passes in any zone.
 
 import { describe, it, expect } from "vitest";
-import { LicenseTerm } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+import { LicenseTerm } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 import {
   coverageStartDay,
   graceDaysOf,

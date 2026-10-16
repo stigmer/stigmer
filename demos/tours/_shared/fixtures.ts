@@ -1,10 +1,10 @@
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import type { RecentActivityEntry, UserMenuProps } from "@stigmer/react";
-import type { UseWorkspaceEntriesReturn } from "@stigmer/react";
-import { samples, sampleDate } from "@stigmer/react/test";
-import type { Turn } from "@stigmer/sdk";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import type { RecentActivityEntry, UserMenuProps } from "@stigmer/react-sdk";
+import type { UseWorkspaceEntriesReturn } from "@stigmer/react-sdk";
+import { samples, sampleDate } from "@stigmer/react-sdk/test";
+import type { Turn } from "@stigmer/client";
 
 /**
  * Org slug used across real-component tour chrome. Shown in the shell's org

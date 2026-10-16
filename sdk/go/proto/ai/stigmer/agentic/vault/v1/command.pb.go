@@ -7,8 +7,8 @@
 package vaultv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -41,7 +41,7 @@ const file_ai_stigmer_agentic_vault_v1_command_proto_rawDesc = "" +
 	"\vstartSignIn\x12-.ai.stigmer.agentic.vault.v1.StartSignInInput\x1a..ai.stigmer.agentic.vault.v1.StartSignInOutput\"\x04и\x18\x01\x12{\n" +
 	"\x0ecompleteSignIn\x120.ai.stigmer.agentic.vault.v1.CompleteSignInInput\x1a1.ai.stigmer.agentic.vault.v1.CompleteSignInOutput\"\x04и\x18\x01\x12\xba\x01\n" +
 	"\x11createConnectLink\x123.ai.stigmer.agentic.vault.v1.CreateConnectLinkInput\x1a(.ai.stigmer.agentic.vault.v1.ConnectLink\"F¸\x18B\b\x02\x10;\"\bvault_id*2unauthorized to make a Connect link for this vault\x1a\x04\xa0\xff+;B\x90\x02\n" +
-	"\x1fcom.ai.stigmer.agentic.vault.v1B\fCommandProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/vault/v1;vaultv1\xa2\x02\x04ASAV\xaa\x02\x1bAi.Stigmer.Agentic.Vault.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Vault\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Vault::V1b\x06proto3"
+	"\x1fcom.ai.stigmer.agentic.vault.v1B\fCommandProtoP\x01ZNgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/vault/v1;vaultv1\xa2\x02\x04ASAV\xaa\x02\x1bAi.Stigmer.Agentic.Vault.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Vault\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Vault::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_vault_v1_command_proto_goTypes = []any{
 	(*Vault)(nil),                              // 0: ai.stigmer.agentic.vault.v1.Vault

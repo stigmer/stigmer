@@ -15,7 +15,7 @@
 // path computed at runtime would not be seen; nothing in the repo does that
 // today, and the shape (`resolve(here, "<literal>")`) is the one to keep.
 //
-// @stigmer/react runs two suites from one package: `test` (happy-dom) and
+// @stigmer/react-sdk runs two suites from one package: `test` (happy-dom) and
 // `test:a11y` (Chromium; sdk/react/vitest.a11y.config.ts collects the
 // *.a11y|layout|browser.test.* files and the default config excludes the same
 // globs). A read is checked against the task that actually runs the file that
@@ -120,11 +120,11 @@ test("the browser suite is scheduled for react alone and waits on react's own bu
   const a11y = [...tasksById.values()].filter((t) => t.task === "test:a11y");
   assert.deepEqual(
     a11y.map((t) => t.package),
-    ["@stigmer/react"],
+    ["@stigmer/react-sdk"],
     "only sdk/react declares a test:a11y script",
   );
   assert.ok(
-    a11y[0].dependencies.includes("@stigmer/react#build"),
+    a11y[0].dependencies.includes("@stigmer/react-sdk#build"),
     "the suite imports dist/styles.css, react's build output",
   );
 });

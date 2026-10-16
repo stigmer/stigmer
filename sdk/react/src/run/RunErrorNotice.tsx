@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 /**
  * Recognizes a recoverable *interruption* (worker reaped / heartbeat timeout /

@@ -1286,7 +1286,7 @@ const file_ai_stigmer_agentic_vault_v1_io_proto_rawDesc = "" +
 	"\x03web\x10\x01\x12\v\n" +
 	"\adesktop\x10\x02\x12\f\n" +
 	"\bloopback\x10\x03B\x8b\x02\n" +
-	"\x1fcom.ai.stigmer.agentic.vault.v1B\aIoProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/vault/v1;vaultv1\xa2\x02\x04ASAV\xaa\x02\x1bAi.Stigmer.Agentic.Vault.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Vault\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Vault::V1b\x06proto3"
+	"\x1fcom.ai.stigmer.agentic.vault.v1B\aIoProtoP\x01ZNgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/vault/v1;vaultv1\xa2\x02\x04ASAV\xaa\x02\x1bAi.Stigmer.Agentic.Vault.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Vault\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Vault::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_vault_v1_io_proto_rawDescOnce sync.Once

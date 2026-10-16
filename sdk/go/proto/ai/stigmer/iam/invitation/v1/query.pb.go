@@ -7,8 +7,8 @@
 package invitationv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -33,7 +33,7 @@ const file_ai_stigmer_iam_invitation_v1_query_proto_rawDesc = "" +
 	"\n" +
 	"getByToken\x122.ai.stigmer.iam.invitation.v1.InvitationTokenInput\x1a/.ai.stigmer.iam.invitation.v1.InvitationPreview\"\x04ȸ\x18\x01\x1a\x04\xa0\xff+\x14B\x99\x02\n" +
 	" com.ai.stigmer.iam.invitation.v1B\n" +
-	"QueryProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/invitation/v1;invitationv1\xa2\x02\x04ASII\xaa\x02\x1cAi.Stigmer.Iam.Invitation.V1\xca\x02\x1cAi\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3"
+	"QueryProtoP\x01ZTgo.stigmer.ai/sdk/proto/ai/stigmer/iam/invitation/v1;invitationv1\xa2\x02\x04ASII\xaa\x02\x1cAi.Stigmer.Iam.Invitation.V1\xca\x02\x1cAi\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3"
 
 var file_ai_stigmer_iam_invitation_v1_query_proto_goTypes = []any{
 	(*InvitationId)(nil),         // 0: ai.stigmer.iam.invitation.v1.InvitationId

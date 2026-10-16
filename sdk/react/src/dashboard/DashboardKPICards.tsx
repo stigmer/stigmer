@@ -8,7 +8,7 @@
  */
 
 import { memo } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { formatCompactCount } from "../usage/format.js";
 import type { DashboardSummary } from "./types.js";
 

@@ -14,8 +14,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   ChannelSchema,
   type Channel,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import { samples } from "@stigmer/react/test";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import { samples } from "@stigmer/react-sdk/test";
 import type { ScenarioStep } from "@scenar/react";
 import { DEMO_ORG } from "../_shared/fixtures";
 

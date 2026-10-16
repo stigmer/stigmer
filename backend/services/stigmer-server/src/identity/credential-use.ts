@@ -27,7 +27,7 @@
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
 
-import type { ApiResourceAudit } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+import type { ApiResourceAudit } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 
 import type { Logger } from "../boot/logger.js";
 import { bumpStatusAudit } from "../pipeline/steps/defaults.js";

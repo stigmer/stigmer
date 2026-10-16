@@ -13,10 +13,10 @@
  * settings, none of which is secret.
  */
 import { type FormEvent, type KeyboardEvent, useCallback, useId, useState } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage, type ResourceRef } from "@stigmer/client";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { useOrganization } from "./useOrganization.js";
 import {
   organizationEmbeddingOf,

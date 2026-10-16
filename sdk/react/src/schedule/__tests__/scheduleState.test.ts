@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { ScheduleSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
-import { ScheduleStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/status_pb";
+import { ScheduleSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/spec_pb";
+import { ScheduleStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/status_pb";
 import { deriveScheduleState, formatNextFire } from "../scheduleState";
 
 const enabledSpec = create(ScheduleSpecSchema, {

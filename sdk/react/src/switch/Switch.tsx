@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 /** Props for {@link Switch}. */
 export interface SwitchProps {
@@ -77,7 +77,7 @@ export function Switch({
         // `bg-muted`: muted matches the popover surface in dark presets, which
         // made the track invisible inside dialogs. Both track fills are
         // registered as surface pairs in the theme contrast contract
-        // (@stigmer/theme contract/pairs.ts), so every preset is audited.
+        // (@stigmer/design-tokens contract/pairs.ts), so every preset is audited.
         "stg:relative stg:inline-flex stg:h-5 stg:w-9 stg:shrink-0 stg:items-center stg:rounded-full stg:transition-colors",
         "stg:motion-reduce:transition-none",
         checked ? "stg:bg-primary" : "stg:bg-input",

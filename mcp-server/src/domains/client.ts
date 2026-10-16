@@ -14,7 +14,7 @@
 
 import { createClient, type Client, type CallOptions, type Transport } from "@connectrpc/connect";
 import type { DescService } from "@bufbuild/protobuf";
-import { createNodeTransport, normalizeEndpoint } from "@stigmer/sdk/node";
+import { createNodeTransport, normalizeEndpoint } from "@stigmer/client/node";
 
 /**
  * Per-call RPC timeout. Mirrors Go's DefaultRPCTimeout: generous for both

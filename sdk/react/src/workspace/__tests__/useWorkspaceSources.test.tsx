@@ -5,7 +5,7 @@ import { ExecutionTargetContext } from "../../execution-target-context";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { useWorkspaceSources } from "../useWorkspaceSources";
 import type { ExecutionTargetOption } from "../../session/execution-target";
-import type { DeploymentMode } from "@stigmer/sdk";
+import type { DeploymentMode } from "@stigmer/client";
 
 function wrapper({
   executionTarget,

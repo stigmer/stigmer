@@ -7,12 +7,12 @@ import {
   FileChangeProgressEntrySchema,
   FileChangeSetSchema,
   type FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   FileCaptureClass,
   FileChangeKind,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { FileReviewSet } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { FileReviewSet } from "@stigmer/client";
 
 // ---------------------------------------------------------------------------
 // Wiring-contract tests for the file-review surfaces on SessionViewer:

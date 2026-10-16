@@ -13,16 +13,16 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { createRouterTransport } from "@connectrpc/connect";
 import type { ConnectRouter } from "@connectrpc/connect";
-import { Stigmer } from "@stigmer/sdk";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { Stigmer } from "@stigmer/client";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   GetServerInfoOutputSchema,
   PlatformQueryController,
   ServerEdition,
-} from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { OrganizationsSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
-import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
+} from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { OrganizationsSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
+import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import { StigmerContext } from "../../context";
 import { OrgProvider } from "../../organization/OrgProvider";
 import { useSingleOrg } from "../../server-info";

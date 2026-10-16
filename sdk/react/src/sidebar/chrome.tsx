@@ -2,8 +2,8 @@
 
 import { useId, type ReactNode } from "react";
 import { PanelLeft } from "lucide-react";
-import { cn } from "@stigmer/theme";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrgSwitcher } from "../organization/OrgSwitcher.js";
 import { useSingleOrg } from "../server-info.js";
 

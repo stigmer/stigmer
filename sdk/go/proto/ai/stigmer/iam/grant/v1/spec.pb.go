@@ -199,7 +199,7 @@ const file_ai_stigmer_iam_grant_v1_spec_proto_rawDesc = "" +
 	"\x02id\x18\x02 \x01(\tB\r\xbaH\n" +
 	"\xc8\x01\x01r\x05\x10\x01\x18\x80\x02R\x02id\x12$\n" +
 	"\brelation\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\brelationB\xf5\x01\n" +
-	"\x1bcom.ai.stigmer.iam.grant.v1B\tSpecProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/grant/v1;grantv1\xa2\x02\x04ASIG\xaa\x02\x17Ai.Stigmer.Iam.Grant.V1\xca\x02\x17Ai\\Stigmer\\Iam\\Grant\\V1\xe2\x02#Ai\\Stigmer\\Iam\\Grant\\V1\\GPBMetadata\xea\x02\x1bAi::Stigmer::Iam::Grant::V1b\x06proto3"
+	"\x1bcom.ai.stigmer.iam.grant.v1B\tSpecProtoP\x01ZJgo.stigmer.ai/sdk/proto/ai/stigmer/iam/grant/v1;grantv1\xa2\x02\x04ASIG\xaa\x02\x17Ai.Stigmer.Iam.Grant.V1\xca\x02\x17Ai\\Stigmer\\Iam\\Grant\\V1\xe2\x02#Ai\\Stigmer\\Iam\\Grant\\V1\\GPBMetadata\xea\x02\x1bAi::Stigmer::Iam::Grant::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_grant_v1_spec_proto_rawDescOnce sync.Once

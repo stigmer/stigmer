@@ -35,8 +35,8 @@
  * `ConsoleSignInPosture` in transport/console/handler.ts); the
  * composition root computes the value once and hands it down.
  */
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
 import type { ResourceRowReader } from "../extensions/resource-row-reader.js";
 import { kindServedByEdition } from "../pipeline/apiresource-meta.js";

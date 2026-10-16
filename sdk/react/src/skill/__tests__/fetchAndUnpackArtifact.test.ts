@@ -4,7 +4,7 @@
 // missing bucket CORS policy takes in a browser).
 import { describe, expect, it, vi } from "vitest";
 import { strToU8, zipSync } from "fflate";
-import { StigmerError, type Stigmer } from "@stigmer/sdk";
+import { StigmerError, type Stigmer } from "@stigmer/client";
 import { fetchAndUnpackArtifact } from "../internal/fetchAndUnpackArtifact.js";
 
 const CODE_UNIMPLEMENTED = 12;

@@ -17,15 +17,15 @@
  * metric, up as passed and down as failed. Pinned by
  * `__tests__/quality-view.test.ts`.
  */
-import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import { CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunPhase } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import { CriterionResult } from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
 import type {
   AgentQualityReport,
   MetricTally,
   QualitySummary,
-} from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
 import { comparedPluginOf, evalRunVersionOf } from "../eval-run/eval-view.js";
 import type { TrendPoint } from "../charts/trend-layout.js";
 import { FEEDBACK_METRIC, JUDGE_METRIC, RUN_HEALTH_METRIC } from "./score-view.js";

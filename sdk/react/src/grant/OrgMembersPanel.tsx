@@ -2,21 +2,21 @@
 
 import { useCallback, useId, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import type { PrincipalAccess, RoleGrant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import type { PrincipalAccess, RoleGrant } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import {
   GrantSpecSchema,
   ApiResourceRefSchema,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
-import { cn } from "@stigmer/theme";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
+import { cn } from "@stigmer/design-tokens";
 import {
   getUserMessage,
   iamRoleFromString,
   iamRoleToString,
   isAppUserAccount,
   isServiceAccount,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useOwnerAssignment } from "./useOwnerAssignment.js";
 import { useResourceAccess } from "./useResourceAccess.js";

@@ -11,9 +11,9 @@ import {
   type ReactNode,
 } from "react";
 import { create } from "@bufbuild/protobuf";
-import { isNotFound, isPermissionDenied } from "@stigmer/sdk";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { ListMyOrganizationsInputSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
+import { isNotFound, isPermissionDenied } from "@stigmer/client";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { ListMyOrganizationsInputSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetchCache } from "../internal/FetchCacheProvider.js";
 import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
@@ -302,7 +302,7 @@ export function useOrg(): OrgContextValue {
  * The org context from the nearest {@link OrgProvider}, or `null` when none
  * is mounted. For SDK helpers that work with or without the provider.
  *
- * @internal Not part of the public `@stigmer/react` API.
+ * @internal Not part of the public `@stigmer/react-sdk` API.
  */
 export function useOptionalOrg(): OrgContextValue | null {
   return useContext(OrgContext);
@@ -315,7 +315,7 @@ export function useOptionalOrg(): OrgContextValue | null {
  * neither changes. Read `orgs` instead where the person's own list is
  * meant (the switcher, the gate).
  *
- * @internal Not part of the public `@stigmer/react` API.
+ * @internal Not part of the public `@stigmer/react-sdk` API.
  */
 export function useKnownOrgs(): readonly Organization[] | undefined {
   const ctx = useOptionalOrg();

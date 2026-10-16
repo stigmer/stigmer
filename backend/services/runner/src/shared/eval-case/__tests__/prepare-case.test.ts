@@ -16,7 +16,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { EvalCaseContextSchema, type EvalCaseContext } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
+import { EvalCaseContextSchema, type EvalCaseContext } from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
 
 import { AgentExecError } from "../../agent-fs.js";
 import { getPlatformDir } from "../../workspace/platform-dir.js";

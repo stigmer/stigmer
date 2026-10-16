@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { ChatLinkDialog } from "@stigmer/react";
+import { ChatLinkDialog } from "@stigmer/react-sdk";
 import { BrowserView } from "@scenar/react";
 import { DEMO_ORG } from "../_shared/fixtures";
 import { DEMO_SLUG, buildDemoAgent, buildDemoShare, type ShareAgentTourStep } from "./steps";

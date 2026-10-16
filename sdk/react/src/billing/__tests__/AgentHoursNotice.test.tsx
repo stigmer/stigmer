@@ -5,7 +5,7 @@
 
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import { StigmerError } from "@stigmer/sdk";
+import { StigmerError } from "@stigmer/client";
 import { AgentHoursNotice, agentHoursUsedUp } from "../AgentHoursNotice";
 import { refusal } from "./fixtures";
 

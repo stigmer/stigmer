@@ -7,7 +7,7 @@
  * (store.ts), and the contract states the pair (`expected_audience` is
  * required, and no two providers share an issuer and audience).
  */
-import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
 
 /** One route: an issuer the provider names, with the provider's audience. */
 export interface IssuerRoute {

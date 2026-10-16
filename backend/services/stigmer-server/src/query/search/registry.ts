@@ -16,7 +16,7 @@
  * table, so a kind with no extractor here is a kind whose rows vanish from
  * search on the next boot; a domain and its extractor land together.
  */
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { agentSearchExtractor } from "../../domain/agent/search-extractor.js";
 import { agentExecutionSearchExtractor } from "../../domain/run/search-extractor.js";

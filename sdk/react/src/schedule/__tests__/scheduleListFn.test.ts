@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleListSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import { ScheduleSchema, type Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleListSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
 import { createScheduleListFn, listSchedulesPage } from "../scheduleListFn";
 
 function schedules(count: number): Schedule[] {

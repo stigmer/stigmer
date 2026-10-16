@@ -1,6 +1,6 @@
 # Agent guide: sdk
 
-The published client surface: `typescript` (`@stigmer/sdk`), `react`, `theme`,
+The published client surface: `typescript` (`@stigmer/client`), `react`, `theme`,
 `ink` and `embed` in TypeScript, and the `go`, `python` and `java` SDKs. The
 TypeScript packages are the product the web console and the desktop app are thin
 shells over; a platform builder embedding Stigmer consumes the same packages.
@@ -38,9 +38,9 @@ This guide is an index; the READMEs and headers it names are the truth.
 ## Laws, the TypeScript SDKs
 
 - SDK first. A feature is a data hook, then a behaviour hook, then a styled
-  component in `@stigmer/react`; each layer imports independently. If a platform
+  component in `@stigmer/react-sdk`; each layer imports independently. If a platform
   builder could need it, it does not go in a client app.
-- Zero framework dependencies in `@stigmer/react`: no `next/*`, no
+- Zero framework dependencies in `@stigmer/react-sdk`: no `next/*`, no
   `@tauri-apps/*`, no client-app imports; navigation and image handling are
   callback props.
 - One provider. `StigmerProvider` and `useStigmer()` are the only injection
@@ -73,7 +73,7 @@ This guide is an index; the READMEs and headers it names are the truth.
 ## Verify
 
 The root map's rows for `sdk/typescript`, `sdk/react` and `sdk/ink`, plus
-`npm run typecheck -w @stigmer/theme && npm run test -w @stigmer/theme`,
+`npm run typecheck -w @stigmer/design-tokens && npm run test -w @stigmer/design-tokens`,
 `npm run typecheck -w @stigmer/embed && npm run test -w @stigmer/embed`,
 `make gen-sdk-docs-check` when an exported symbol or a token changes,
 `make -C sdk/go verify`, `make -C sdk/python codegen-verify`,

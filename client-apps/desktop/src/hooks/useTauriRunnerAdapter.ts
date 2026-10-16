@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { createRunnerAdapter, type RunnerAdapter } from "@stigmer/react";
+import { createRunnerAdapter, type RunnerAdapter } from "@stigmer/react-sdk";
 import { useRunner } from "./EmbeddedRunnerContext";
 
 /**

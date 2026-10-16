@@ -10,7 +10,7 @@
  * organization's slug. A
  * row's Delete on the agents list confirms in the words of
  * that resource's detail page, the same confirmation for the same act. The
- * workbench, the action menu and the dialogs are pinned in @stigmer/react.
+ * workbench, the action menu and the dialogs are pinned in @stigmer/react-sdk.
  */
 import type { ComponentType, ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -64,7 +64,7 @@ const page = vi.hoisted(() => ({
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 
-vi.mock("@stigmer/react", () => {
+vi.mock("@stigmer/react-sdk", () => {
   const ActionMenu = Object.assign(
     ({ children }: { children: ReactNode }) => <>{children}</>,
     {

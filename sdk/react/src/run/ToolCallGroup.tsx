@@ -1,8 +1,8 @@
 "use client";
 
 import { memo, useMemo } from "react";
-import type { ToolUse } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+import type { ToolUse } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { ToolCallItem } from "./ToolCallItem.js";
 import { ToolRunGroup } from "./ToolRunGroup.js";

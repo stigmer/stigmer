@@ -8,7 +8,7 @@ import {
   serializeManifest,
   type AppliedManifest,
   type ManifestDocument,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

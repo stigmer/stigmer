@@ -15,8 +15,8 @@
  * `__tests__/ServedByLine.test.tsx` pins each shape without rendering.
  */
 
-import { cn } from "@stigmer/theme";
-import { ProviderKeySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
+import { cn } from "@stigmer/design-tokens";
+import { ProviderKeySource } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import { formatTokens, sharePercent } from "./format.js";
 
 /** One served-by row, from the wire (`ServedByUsage`) or the session hook. */

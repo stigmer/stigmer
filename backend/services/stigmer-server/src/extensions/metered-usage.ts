@@ -30,7 +30,7 @@
  *   - A throw fails the report: a partial answer would show a metered run
  *     as an estimate with no sign that anything went wrong.
  */
-import type { ProviderKeySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
+import type { ProviderKeySource } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 
 /** One run's metered calls for one (model, provider, harness, key source). */
 export interface MeteredUsageRow {

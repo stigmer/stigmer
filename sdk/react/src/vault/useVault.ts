@@ -3,8 +3,8 @@
 /**
  * One vault by its organization and slug, values blanked as every read is.
  */
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import type { ResourceRef } from "@stigmer/sdk";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import type { ResourceRef } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 

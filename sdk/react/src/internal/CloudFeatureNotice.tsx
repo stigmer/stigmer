@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 /** Props for {@link CloudFeatureNotice}. */
 export interface CloudFeatureNoticeProps {

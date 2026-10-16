@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ResourceRef } from "@stigmer/sdk";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { ResourceRef } from "@stigmer/client";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { AgentResolution } from "../agent/index.js";
 import { useApprovalDefaults } from "../approval-defaults-context.js";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
@@ -10,14 +10,14 @@ import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspac
 import type { SessionComposerSubmitContext, InteractionModeOption } from "../composer/index.js";
 import { fromProtoInteractionMode } from "../composer/index.js";
 import { fromProtoHarness, type HarnessOption } from "../models/harness.js";
-import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { Harness, ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { fromProtoExecutionTarget, type ExecutionTargetOption } from "./execution-target.js";
 import { useSessionConversation, type UseSessionConversationReturn } from "./useSessionConversation.js";
 
 import { agentRefOfSession, isSameAgent } from "./agentRefOfSession.js";
 import { useSessionAgentVersion, type UseSessionAgentVersionReturn } from "./useSessionAgentVersion.js";
 import { usePersistedModel, type UsePersistedModelReturn } from "./usePersistedModel.js";
-import { toResourceRefInputs } from "@stigmer/sdk";
+import { toResourceRefInputs } from "@stigmer/client";
 import type { SessionAudience } from "./audience.js";
 import { isChannelOriginSession } from "./channelOrigin.js";
 import { assertValidRunConfig, type SessionRunConfig } from "./run-config.js";

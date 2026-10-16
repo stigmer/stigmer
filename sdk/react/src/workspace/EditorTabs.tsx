@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, type KeyboardEvent, type MouseEvent } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { editorKey, type OpenEditor } from "../internal/store/index.js";
 import {
   Tooltip,

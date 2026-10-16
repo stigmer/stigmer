@@ -20,7 +20,7 @@
 
 import { create } from "@bufbuild/protobuf";
 import { afterEach, describe, expect, it } from "vitest";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
 import { resolveCursorConfig } from "../../activities/execute-cursor/adapter.js";
 import { DEEP_AGENT_CAPABILITIES } from "../../activities/execute-deep-agent/deep-agent-capabilities.js";

@@ -14,15 +14,15 @@
 // declaration carries no person's value; a secret is found in a vault by its
 // name when a run starts, and a plain setting may carry a default `value`.
 import type { InitShape } from "./init-shape";
-import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import type { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
+import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import type { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import type {
   RemoveVaultConnectionsInputSchema,
   RemoveVaultSecretsInputSchema,
   SetVaultConnectionInputSchema,
   SetVaultSecretsInputSchema,
   VaultTargetSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 
 export const VAULT_API_VERSION = "agentic.stigmer.ai/v1";
 export const VAULT_KIND = "Vault";

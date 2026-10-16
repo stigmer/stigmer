@@ -2,7 +2,7 @@
  * Add MCP server tour — tour-local chrome: the replica of the console's
  * "Add MCP server" dialog over the dimmed Plugins page. Layout in plain CSS,
  * colors from the Stigmer `--stgm-*` design tokens, so every surface flips
- * light/dark with the embed. The real @stigmer/react components (the
+ * light/dark with the embed. The real @stigmer/react-sdk components (the
  * workbench, the plugin page) carry their own compiled styles.
  */
 

@@ -6,7 +6,7 @@
  * its own, so agents run on the customer's own provider keys, the provider
  * bills every token, and Stigmer charges only for the platform.
  *
- * A plan feature is named through @stigmer/react's plan vocabulary, the
+ * A plan feature is named through @stigmer/react-sdk's plan vocabulary, the
  * words the console's plan cards use, and Enterprise Cloud is rendered from
  * the console's own description of it, so a visitor reads the same words
  * before and after signing up. Prices are hand-kept: the catalog needs a
@@ -15,8 +15,8 @@
  */
 import * as React from "react";
 import Link from "next/link";
-import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
-import { ENTERPRISE_CLOUD_PLAN, FEATURE_COPY, type NamedFeature } from "@stigmer/react";
+import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
+import { ENTERPRISE_CLOUD_PLAN, FEATURE_COPY, type NamedFeature } from "@stigmer/react-sdk";
 import { cn } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
 import { Header } from "@/components/layout/Header";

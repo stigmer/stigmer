@@ -7,8 +7,8 @@
 package channelv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -30,7 +30,7 @@ const file_ai_stigmer_agentic_channel_v1_message_query_proto_rawDesc = "" +
 	"\x1dChannelMessageQueryController\x12\x80\x01\n" +
 	"\rlistTemplates\x128.ai.stigmer.agentic.channel.v1.ListChannelTemplatesInput\x1a/.ai.stigmer.agentic.channel.v1.ChannelTemplates\"\x04и\x18\x01\x12\x8a\x01\n" +
 	"\x15listMessagingChannels\x129.ai.stigmer.agentic.channel.v1.ListMessagingChannelsInput\x1a0.ai.stigmer.agentic.channel.v1.MessagingChannels\"\x04и\x18\x01\x1a\x04\xa0\xff+/B\xa3\x02\n" +
-	"!com.ai.stigmer.agentic.channel.v1B\x11MessageQueryProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
+	"!com.ai.stigmer.agentic.channel.v1B\x11MessageQueryProtoP\x01ZRgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_channel_v1_message_query_proto_goTypes = []any{
 	(*ListChannelTemplatesInput)(nil),  // 0: ai.stigmer.agentic.channel.v1.ListChannelTemplatesInput

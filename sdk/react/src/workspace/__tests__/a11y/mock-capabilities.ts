@@ -8,8 +8,8 @@
 // every class in the audited DOM.
 
 import { create } from "@bufbuild/protobuf";
-import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { DisplayFileChange } from "@stigmer/sdk";
+import { FileContentSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
+import type { DisplayFileChange } from "@stigmer/client";
 import type { WorkspaceEntry } from "../../useWorkspaceEntries.js";
 import type {
   WorkspaceFileEntry,

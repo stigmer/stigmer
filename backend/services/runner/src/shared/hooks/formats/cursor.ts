@@ -42,7 +42,7 @@
  * gets Cursor's default, {@link CURSOR_DEFAULT_TIMEOUT_SECONDS}.
  */
 
-import type { HookHandler } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import type { HookHandler } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { parsePreToolUse, HOOK_TEXT_CAP, type PostToolUseAnswer, type PreToolUseAnswer } from "../answer.js";
 import type { CursorHookEvent, HookSource } from "../hook-set.js";
 import type { HookRunResult } from "../run.js";

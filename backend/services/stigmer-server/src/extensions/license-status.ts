@@ -28,8 +28,8 @@
  * `invalid` report cannot carry the claims that did not verify, a `valid`
  * one cannot omit them, and `unspecified` cannot be reported at all.
  */
-import type { LicenseClaims } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
-import { LicenseState } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+import type { LicenseClaims } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
+import { LicenseState } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 
 /**
  * The states in which a ticket's signature verified and its claims are

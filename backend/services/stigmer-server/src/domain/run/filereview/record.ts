@@ -35,12 +35,12 @@
  * autokeep.test.ts and ../../session/filereview/__tests__/decide.test.ts.
  */
 import { equals } from "@bufbuild/protobuf";
-import { DiffCompleteness } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { DiffCompleteness } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   FileChangeSetSchema,
   type CapturedFileChange,
   type FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 
 import type { ScopeWord } from "../../session/filereview/words.js";
 

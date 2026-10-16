@@ -2,7 +2,7 @@
 
 import { memo, useMemo } from "react";
 import { Streamdown } from "streamdown";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import {
   PLAN_DOCUMENT_MARKDOWN_COMPONENTS,
   extractLeadingH1,

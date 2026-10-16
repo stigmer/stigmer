@@ -1,6 +1,6 @@
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { Turn } from "@stigmer/sdk";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Turn } from "@stigmer/client";
 
 /**
  * A plan being written by a live Plan-mode turn, detected mid-stream so

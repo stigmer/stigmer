@@ -1,7 +1,7 @@
 import { isValidElement, type ComponentProps, type JSX, type ReactNode } from "react";
 import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { highlightToReact } from "./code-highlight.js";
 import { MermaidDiagram } from "./MermaidDiagram.js";
 

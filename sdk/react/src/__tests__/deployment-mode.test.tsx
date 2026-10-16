@@ -3,13 +3,13 @@
  * the provider's context (default "cloud"), and `useResourceAvailable`
  * answers the tier question for the third edition — an enterprise-tier
  * kind is served, a cloud_only kind is not. The rank logic itself is pinned
- * in @stigmer/sdk (`resource-availability.test.ts`); this proves the hook
+ * in @stigmer/client (`resource-availability.test.ts`); this proves the hook
  * threads the context value through without narrowing it.
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { cleanup, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { DeploymentMode } from "@stigmer/sdk";
+import type { DeploymentMode } from "@stigmer/client";
 import {
   ApiResourceKind,
   DeploymentModeContext,

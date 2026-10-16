@@ -122,7 +122,7 @@ describe("transcriptRowWrites (the checker itself)", () => {
     ["a message built through its schema", 'const m = create(AgentMessageSchema, { content: "x" });', "names AgentMessageSchema"],
     ["a tool call built through its schema", "const tc = create(ToolCallSchema, { id });", "names ToolCallSchema"],
     ["a sub-agent row built through its schema", "const row = create(SubAgentExecutionSchema, { id });", "names SubAgentExecutionSchema"],
-    ["a schema merely imported", 'import { AgentMessageSchema } from "@stigmer/protos/x_pb";', "names AgentMessageSchema"],
+    ["a schema merely imported", 'import { AgentMessageSchema } from "@stigmer/apis/x_pb";', "names AgentMessageSchema"],
     ["a push onto the root transcript", "status.messages.push(msg);", "pushes onto .messages"],
     ["a push onto a nested transcript", "scope.row.messages.push(msg);", "pushes onto .messages"],
     ["a spread push", "sink.status.messages.push(...seed.messages);", "pushes onto .messages"],
@@ -138,7 +138,7 @@ describe("transcriptRowWrites (the checker itself)", () => {
     ["a read of the transcript", "const last = status.messages.at(-1);"],
     ["a push onto an unrelated array", "status.artifacts.push(artifact);"],
     ["a push onto a bare `messages` local", "messages.push(m);"],
-    ["the message TYPE, not its schema", 'import type { AgentMessage } from "@stigmer/protos/x_pb";'],
+    ["the message TYPE, not its schema", 'import type { AgentMessage } from "@stigmer/apis/x_pb";'],
     ["an in-place amendment of a row", "row.status = ToolCallStatus.TOOL_CALL_SKIPPED;"],
   ])("does not flag %s", (_label, source) => {
     expect(transcriptRowWrites(file, source)).toEqual([]);

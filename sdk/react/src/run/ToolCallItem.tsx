@@ -1,8 +1,8 @@
 "use client";
 
 import { memo } from "react";
-import type { ToolUse } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+import type { ToolUse } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
 import { useIsTextTruncated } from "../internal/useIsTextTruncated.js";

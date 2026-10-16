@@ -44,12 +44,12 @@
  */
 
 import { useId, useState } from "react";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import type { PluginEvalSuite } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { cn } from "@stigmer/theme";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunPhase } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { PluginEvalSuite } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { cn } from "@stigmer/design-tokens";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";

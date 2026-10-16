@@ -8,9 +8,9 @@ import {
   RunSchema,
   RunStatusSchema,
   type Run,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { Todo } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Todo } from "@stigmer/client";
 
 import { RunProgress } from "../RunProgress";
 
