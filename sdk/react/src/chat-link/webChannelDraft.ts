@@ -1,5 +1,5 @@
 /**
- * The Share dialog's draft of a web channel (an agent's hosted chat link
+ * The chat-link dialog's draft of a web channel (an agent's hosted chat link
  * and website widget), and the SDK inputs a save sends: a create of a new
  * web channel ({@link webChannelCreateInput}, through `useCreateChannel`)
  * or an edit of one as loaded ({@link webChannelPatch}, through
@@ -20,17 +20,17 @@ import type {
 } from "@stigmer/sdk";
 
 /**
- * Who can chat with a shared agent over its hosted link.
+ * Who can chat with an agent over its hosted chat link.
  *
  * - `"public"` — anyone with the link; visitors are anonymous guests.
  * - `"org"` — signed-in members of the owning organization only.
  *   Membership is checked on every conversation turn, so access ends the
  *   moment a member leaves the org.
  */
-export type SharingAudience = "public" | "org";
+export type ChatLinkAudience = "public" | "org";
 
 /**
- * A complete web channel configuration, as the Share dialog edits it.
+ * A complete web channel configuration, as the chat-link dialog edits it.
  *
  * Every field is required so a create carries a whole configuration. An
  * edit of an existing channel names only the fields it saves (all of them
@@ -43,9 +43,9 @@ export interface WebChannelDraft {
   /** Whether hosted-chat access for the configured audience is enabled. */
   readonly enabled: boolean;
   /** Who can chat: anyone with the link, or org members only. */
-  readonly audience: SharingAudience;
+  readonly audience: ChatLinkAudience;
   /**
-   * Exact web origins allowed to embed the shared agent
+   * Exact web origins allowed to embed the agent's chat
    * (e.g. `https://example.com`). Empty list = embeddable anywhere.
    * Embedding is public-audience only.
    */
@@ -83,13 +83,13 @@ export interface WebChannelDraft {
  * organization's members by contract, so a chat link reaches the internet
  * only when someone chose "Anyone with the link".
  */
-export function sharingAudienceFromProto(
+export function chatLinkAudienceFromProto(
   audience: ChannelAudience | undefined,
-): SharingAudience {
+): ChatLinkAudience {
   return audience === ChannelAudience.public ? "public" : "org";
 }
 
-function sharingAudienceToProto(audience: SharingAudience): ChannelAudience {
+function chatLinkAudienceToProto(audience: ChatLinkAudience): ChannelAudience {
   return audience === "org" ? ChannelAudience.org : ChannelAudience.public;
 }
 
@@ -115,14 +115,14 @@ export function webLinkTokenOf(channel: Channel | null | undefined): string {
  * `null` (no channel yet) seeds the same defaults the server would apply
  * on first create.
  *
- * Shared by the Share dialog (draft seeding) and the chat-link list.
+ * Shared by the chat-link dialog (draft seeding) and the chat-link card.
  */
 export function draftFromWebChannel(channel: Channel | null): WebChannelDraft {
   const spec = channel?.spec;
   const web = webConfigOf(channel);
   return {
     enabled: spec?.enabled ?? false,
-    audience: sharingAudienceFromProto(web?.audience),
+    audience: chatLinkAudienceFromProto(web?.audience),
     allowedOrigins: web?.allowedOrigins ?? [],
     messages: {
       rateLimited: web?.messages?.rateLimited ?? "",
@@ -165,9 +165,9 @@ export interface WebChannelCreateIdentity {
  * The SDK input that creates `agent`'s web channel from a draft. The
  * channel lives in the agent's own organization: its URL, billing and
  * credential bindings all belong to the organization that owns the agent,
- * and the server refuses an `agent_ref` in any other. To share another
- * organization's agent, install the plugin that carries it and share the
- * installed copy.
+ * and the server refuses an `agent_ref` in any other. To give people a chat
+ * link to another organization's agent, install the plugin that carries
+ * it and make the link on the installed copy.
  *
  * Without an identity the server names the channel: slug
  * `<agent slug>-web`, name `<agent name> (Web)`.
@@ -241,7 +241,7 @@ function webSettingsOf(draft: WebChannelDraft): Required<WebChannelConfigInput> 
     // Written as the explicit enum value, never left unspecified — a
     // channel persisted as "public" can't be silently downgraded by
     // tooling that relies on the unspecified-means-org rule.
-    audience: sharingAudienceToProto(draft.audience),
+    audience: chatLinkAudienceToProto(draft.audience),
     allowedOrigins: [...draft.allowedOrigins],
     messages: {
       rateLimited: draft.messages.rateLimited,

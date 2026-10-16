@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 
 // ---------------------------------------------------------------------------
-// SharedAgentChatPage audience routing.
+// ChatLinkPage audience routing.
 //
 // The page probes the anonymous getAgentProfile once and branches:
-// public share -> guest chat (zero login); NOT_FOUND -> the member path,
+// public chat link -> guest chat (zero login); NOT_FOUND -> the member path,
 // which offers "sign in if you have access" to anonymous visitors and
 // renders the org-audience chat with the member's own client once signed
 // in. These tests pin that routing; the chat organism itself is covered
-// by the SDK's SharedAgentChat tests. The link (`/chat/<channel id>`) names
+// by the SDK's VisitorChat tests. The link (`/chat/<channel id>`) names
 // only the web channel, by its id: the probe, the guest mint and the chat all
 // receive that id, never an organization or slug.
 // ---------------------------------------------------------------------------
@@ -40,7 +40,7 @@ const route = vi.hoisted(() => ({
 vi.mock("@/domain/_shared/hooks/useStaticRouteParam", () => ({
   useStaticRouteParam: (name: string, depth: number) => {
     route.reads.push([name, depth]);
-    return name === "share" ? route.channelId : null;
+    return name === "channel" ? route.channelId : null;
   },
 }));
 
@@ -76,19 +76,19 @@ vi.mock("@stigmer/sdk", async (importOriginal) => {
   };
 });
 
-const sharedAgentChatProps: Record<string, unknown>[] = [];
+const visitorChatProps: Record<string, unknown>[] = [];
 vi.mock("@stigmer/react", () => ({
   StigmerProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="provider">{children}</div>
   ),
-  SharedAgentChat: (props: Record<string, unknown>) => {
-    sharedAgentChatProps.push(props);
+  VisitorChat: (props: Record<string, unknown>) => {
+    visitorChatProps.push(props);
     return <div data-testid="chat-probe" />;
   },
 }));
 
 import { StigmerError } from "@stigmer/sdk";
-import SharedAgentChatPage from "../SharedAgentChatPage";
+import ChatLinkPage from "../ChatLinkPage";
 
 // A real StigmerError so the page's (unmocked) isNotFound helper matches it,
 // exactly as the transport would produce for a NOT_FOUND status.
@@ -101,7 +101,7 @@ function setAuth(overrides: Partial<(typeof authState)["current"]>) {
 }
 
 beforeEach(() => {
-  sharedAgentChatProps.length = 0;
+  visitorChatProps.length = 0;
   stigmerConfigs.length = 0;
   guestAuthConfigs.length = 0;
   route.reads.length = 0;
@@ -118,36 +118,36 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-describe("SharedAgentChatPage audience routing", () => {
-  it("renders nothing and asks nothing while the route has no share id (the static-export placeholder pass)", () => {
+describe("ChatLinkPage audience routing", () => {
+  it("renders nothing and asks nothing while the route has no channel id (the static-export placeholder pass)", () => {
     route.channelId = null;
 
-    const { container } = render(<SharedAgentChatPage />);
+    const { container } = render(<ChatLinkPage />);
 
     expect(container.innerHTML).toBe("");
     expect(getAgentProfileMock).not.toHaveBeenCalled();
     expect(guestAuthConfigs).toEqual([]);
-    expect(sharedAgentChatProps).toEqual([]);
+    expect(visitorChatProps).toEqual([]);
   });
 
-  it("public share: probe resolves -> guest chat with the default (public) audience", async () => {
+  it("public chat link: probe resolves -> guest chat with the default (public) audience", async () => {
     getAgentProfileMock.mockResolvedValue({ org: "acme", slug: "support-bot" });
 
-    render(<SharedAgentChatPage />);
+    render(<ChatLinkPage />);
 
-    await waitFor(() => expect(sharedAgentChatProps.length).toBeGreaterThan(0));
-    expect(sharedAgentChatProps[0].sharingAudience).toBeUndefined();
+    await waitFor(() => expect(visitorChatProps.length).toBeGreaterThan(0));
+    expect(visitorChatProps[0].linkAudience).toBeUndefined();
     expect(screen.getByTestId("chat-probe")).toBeTruthy();
   });
 
-  it("names the share by the link's one segment, its id, everywhere", async () => {
+  it("names the chat link by the link's one segment, its id, everywhere", async () => {
     getAgentProfileMock.mockResolvedValue({ org: "acme", slug: "support-bot" });
 
-    render(<SharedAgentChatPage />);
+    render(<ChatLinkPage />);
 
-    await waitFor(() => expect(sharedAgentChatProps.length).toBeGreaterThan(0));
-    // The route has one dynamic segment: `/chat/[share]`.
-    expect(route.reads).toContainEqual(["share", 1]);
+    await waitFor(() => expect(visitorChatProps.length).toBeGreaterThan(0));
+    // The route has one dynamic segment: `/chat/[channel]`.
+    expect(route.reads).toContainEqual(["channel", 1]);
     expect(route.reads.map(([name]) => name)).not.toContain("org");
     expect(route.reads.map(([name]) => name)).not.toContain("slug");
     // Probe, guest mint and chat all carry the channel id and nothing else.
@@ -161,17 +161,17 @@ describe("SharedAgentChatPage audience routing", () => {
     });
     expect(guestAuthConfigs[0]).not.toHaveProperty("org");
     expect(guestAuthConfigs[0]).not.toHaveProperty("slug");
-    expect(sharedAgentChatProps[0].channelId).toBe(route.channelId);
-    expect(sharedAgentChatProps[0]).not.toHaveProperty("org");
-    expect(sharedAgentChatProps[0]).not.toHaveProperty("slug");
+    expect(visitorChatProps[0].channelId).toBe(route.channelId);
+    expect(visitorChatProps[0]).not.toHaveProperty("org");
+    expect(visitorChatProps[0]).not.toHaveProperty("slug");
   });
 
-  it("org share, anonymous visitor: NOT_FOUND -> sign-in-if-you-have-access surface", async () => {
+  it("org chat link, anonymous visitor: NOT_FOUND -> sign-in-if-you-have-access surface", async () => {
     getAgentProfileMock.mockRejectedValue(notFoundError());
     const login = vi.fn();
     setAuth({ isAuthenticated: false, login });
 
-    render(<SharedAgentChatPage />);
+    render(<ChatLinkPage />);
 
     const signIn = await screen.findByRole("button", {
       name: /Sign in if you have access/,
@@ -179,37 +179,37 @@ describe("SharedAgentChatPage audience routing", () => {
     // The surface must stay generic — it must not reveal that the agent
     // exists or that it is members-only specifically.
     expect(screen.getByText(/isn't available/)).toBeTruthy();
-    expect(sharedAgentChatProps).toHaveLength(0);
+    expect(visitorChatProps).toHaveLength(0);
 
     fireEvent.click(signIn);
     expect(login).toHaveBeenCalledTimes(1);
   });
 
-  it("org share, signed-in member: NOT_FOUND -> org-audience chat with the member's token", async () => {
+  it("org chat link, signed-in member: NOT_FOUND -> org-audience chat with the member's token", async () => {
     getAgentProfileMock.mockRejectedValue(notFoundError());
     setAuth({ isAuthenticated: true, accessToken: "member-token" });
 
-    render(<SharedAgentChatPage />);
+    render(<ChatLinkPage />);
 
-    await waitFor(() => expect(sharedAgentChatProps.length).toBeGreaterThan(0));
-    expect(sharedAgentChatProps[0].sharingAudience).toBe("org");
-    expect(sharedAgentChatProps[0].channelId).toBe(route.channelId);
+    await waitFor(() => expect(visitorChatProps.length).toBeGreaterThan(0));
+    expect(visitorChatProps[0].linkAudience).toBe("org");
+    expect(visitorChatProps[0].channelId).toBe(route.channelId);
   });
 
   it("transient probe failure falls back to the guest path (retry surface lives there)", async () => {
     getAgentProfileMock.mockRejectedValue(new Error("network down"));
 
-    render(<SharedAgentChatPage />);
+    render(<ChatLinkPage />);
 
-    await waitFor(() => expect(sharedAgentChatProps.length).toBeGreaterThan(0));
-    expect(sharedAgentChatProps[0].sharingAudience).toBeUndefined();
+    await waitFor(() => expect(visitorChatProps.length).toBeGreaterThan(0));
+    expect(visitorChatProps[0].linkAudience).toBeUndefined();
   });
 
   it("waits for auth resolution before choosing sign-in vs member", async () => {
     getAgentProfileMock.mockRejectedValue(notFoundError());
     setAuth({ isAuthenticated: false, isLoading: true });
 
-    const { container } = render(<SharedAgentChatPage />);
+    const { container } = render(<ChatLinkPage />);
 
     // While the OIDC session restore is in flight the page must not
     // flash the sign-in card at a member who is about to be recognized.
@@ -218,14 +218,14 @@ describe("SharedAgentChatPage audience routing", () => {
   });
 });
 
-describe("SharedAgentChatPage locked links (?k= token)", () => {
+describe("ChatLinkPage locked links (?k= token)", () => {
   it("threads the ?k= token through the probe, the guest mint, and the chat", async () => {
     window.history.replaceState(null, "", `/chat/${route.channelId}?k=tok123`);
     getAgentProfileMock.mockResolvedValue({ org: "acme", slug: "support-bot" });
 
-    render(<SharedAgentChatPage />);
+    render(<ChatLinkPage />);
 
-    await waitFor(() => expect(sharedAgentChatProps.length).toBeGreaterThan(0));
+    await waitFor(() => expect(visitorChatProps.length).toBeGreaterThan(0));
     // Probe: the request message carries the token so a locked link
     // resolves as public instead of falling to the member path.
     expect(getAgentProfileMock.mock.calls[0][0]).toMatchObject({
@@ -235,18 +235,18 @@ describe("SharedAgentChatPage locked links (?k= token)", () => {
     // Guest mint: the same token rides mintGuestToken, where the server
     // validates it against the web channel's live link token.
     expect(guestAuthConfigs[0]).toMatchObject({ linkToken: "tok123" });
-    // Chat: the profile fetch inside SharedAgentChat needs it too.
-    expect(sharedAgentChatProps[0].linkToken).toBe("tok123");
+    // Chat: the profile fetch inside VisitorChat needs it too.
+    expect(visitorChatProps[0].linkToken).toBe("tok123");
   });
 
   it("plain links carry no token anywhere", async () => {
     getAgentProfileMock.mockResolvedValue({ org: "acme", slug: "support-bot" });
 
-    render(<SharedAgentChatPage />);
+    render(<ChatLinkPage />);
 
-    await waitFor(() => expect(sharedAgentChatProps.length).toBeGreaterThan(0));
+    await waitFor(() => expect(visitorChatProps.length).toBeGreaterThan(0));
     expect(getAgentProfileMock.mock.calls[0][0]).toMatchObject({ linkToken: "" });
     expect(guestAuthConfigs[0]).not.toHaveProperty("linkToken");
-    expect(sharedAgentChatProps[0].linkToken).toBe("");
+    expect(visitorChatProps[0].linkToken).toBe("");
   });
 });

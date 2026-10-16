@@ -59,7 +59,7 @@ interface DetailProps {
   onSkillClick: (ref: { org: string; slug: string }) => void;
   onPluginClick: (ref: { org: string; slug: string }) => void;
   onAgentClick: (ref: { org: string; slug: string }) => void;
-  buildShareUrl: (channelId: string) => string;
+  buildChatLinkUrl: (channelId: string) => string;
   onNavigateToRun: (runId: string) => void;
   onRenamed: (agent: { metadata?: { slug: string } }) => void;
 }
@@ -223,7 +223,7 @@ describe("desktop AgentDetailPage — organizations", () => {
     page.agent = AGENT;
     renderAgent();
 
-    expect(page.detail.at(-1)?.buildShareUrl("ash_01j9z3k8f2q4m6n7p8r9s0t1v2")).toBe(
+    expect(page.detail.at(-1)?.buildChatLinkUrl("ash_01j9z3k8f2q4m6n7p8r9s0t1v2")).toBe(
       `${CONSOLE_URL}/chat/ash_01j9z3k8f2q4m6n7p8r9s0t1v2`,
     );
   });

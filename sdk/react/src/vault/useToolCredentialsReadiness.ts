@@ -42,7 +42,7 @@ const NEEDS_CREDENTIALS: ToolCredentialsReadiness = { status: "needs-credentials
  * Data hook that checks a surface's named vaults. `applicable` is the
  * caller's predicate (shares add an audience arm; channels do not).
  *
- * Surface wrappers: {@link useShareToolReadiness}, {@link useChannelToolReadiness}.
+ * Surface wrappers: {@link useChatLinkToolReadiness}, {@link useChannelToolReadiness}.
  */
 export function useToolCredentialsReadiness(
   applicable: boolean,

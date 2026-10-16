@@ -1,4 +1,4 @@
-// The Share dialog's web channel draft and the inputs a save sends: the
+// The chat-link dialog's web channel draft and the inputs a save sends: the
 // create input for a new web channel (identity, agent_ref, the web arm and
 // its bindings) and the edit a draft makes through useSaveChannel, which
 // names the web settings one by one so a field the edit does not name
@@ -18,7 +18,7 @@ import { StigmerContext } from "../../context";
 import { useSaveChannel } from "../../channel/useSaveChannel";
 import {
   draftFromWebChannel,
-  sharingAudienceFromProto,
+  chatLinkAudienceFromProto,
   webChannelCreateInput,
   webChannelPatch,
   webLinkTokenOf,
@@ -35,7 +35,7 @@ function createMockStigmer(overrides: {
   } as never;
 }
 
-/** Every field the share dialog saves, by its path. */
+/** Every field the chat-link dialog saves, by its path. */
 const DRAFT_PATHS = [
   "spec.enabled",
   "spec.web.audience",
@@ -297,16 +297,16 @@ describe("webLinkTokenOf", () => {
   });
 });
 
-describe("sharingAudienceFromProto", () => {
+describe("chatLinkAudienceFromProto", () => {
   it("maps unspecified to org (a link reaches the internet only by an explicit choice)", () => {
-    expect(sharingAudienceFromProto(undefined)).toBe("org");
-    expect(sharingAudienceFromProto(ChannelAudience.unspecified)).toBe(
+    expect(chatLinkAudienceFromProto(undefined)).toBe("org");
+    expect(chatLinkAudienceFromProto(ChannelAudience.unspecified)).toBe(
       "org",
     );
   });
 
   it("maps the explicit values", () => {
-    expect(sharingAudienceFromProto(ChannelAudience.public)).toBe("public");
-    expect(sharingAudienceFromProto(ChannelAudience.org)).toBe("org");
+    expect(chatLinkAudienceFromProto(ChannelAudience.public)).toBe("public");
+    expect(chatLinkAudienceFromProto(ChannelAudience.org)).toBe("org");
   });
 });

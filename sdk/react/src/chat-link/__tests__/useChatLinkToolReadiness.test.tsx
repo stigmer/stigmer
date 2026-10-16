@@ -7,8 +7,8 @@ import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
-import { useShareToolReadiness } from "../useShareToolReadiness";
-import type { WebChannelDraft, SharingAudience } from "../webChannelDraft";
+import { useChatLinkToolReadiness } from "../useChatLinkToolReadiness";
+import type { WebChannelDraft, ChatLinkAudience } from "../webChannelDraft";
 
 function toolAgent(overrides?: { plugins?: boolean; mcpServers?: boolean }): Agent {
   return create(AgentSchema, {
@@ -28,7 +28,7 @@ function toolAgent(overrides?: { plugins?: boolean; mcpServers?: boolean }): Age
 
 function makeDraft(overrides?: {
   enabled?: boolean;
-  audience?: SharingAudience;
+  audience?: ChatLinkAudience;
   vaults?: { org: string; slug: string }[];
 }): WebChannelDraft {
   return {
@@ -85,17 +85,17 @@ function envLookup(client: unknown) {
   ).vault.getByReference;
 }
 
-describe("useShareToolReadiness", () => {
-  it("reports needs-credentials when a tool-using share has no bindings — no lookups fire", async () => {
+describe("useChatLinkToolReadiness", () => {
+  it("reports needs-credentials when a tool-using chat link has no bindings — no lookups fire", async () => {
     const client = mockStigmer({});
     const { result } = renderHook(
-      () => useShareToolReadiness(toolAgent(), makeDraft()),
+      () => useChatLinkToolReadiness(toolAgent(), makeDraft()),
       { wrapper: wrapper(client) },
     );
 
     // A tool-using agent with zero named vaults is broken for
     // visitors BY CONSTRUCTION (guests receive credentials only from the
-    // share's bindings) — the hook says so instead of staying silent,
+    // chat link's bindings) — the hook says so instead of staying silent,
     // and needs no server round-trip to know it.
     expect(result.current).toEqual({ status: "needs-credentials" });
     await waitFor(() => expect(envLookup(client)).not.toHaveBeenCalled());
@@ -110,7 +110,7 @@ describe("useShareToolReadiness", () => {
 
     const { result } = renderHook(
       () =>
-        useShareToolReadiness(
+        useChatLinkToolReadiness(
           toolAgent(),
           makeDraft({
             vaults: [
@@ -139,7 +139,7 @@ describe("useShareToolReadiness", () => {
 
     const { result } = renderHook(
       () =>
-        useShareToolReadiness(
+        useChatLinkToolReadiness(
           toolAgent(),
           makeDraft({
             vaults: [{ org: "acme", slug: "shared-creds" }],
@@ -156,7 +156,7 @@ describe("useShareToolReadiness", () => {
 
     const { result } = renderHook(
       () =>
-        useShareToolReadiness(
+        useChatLinkToolReadiness(
           toolAgent(),
           makeDraft({
             vaults: [{ org: "acme", slug: "deleted-env" }],
@@ -175,7 +175,7 @@ describe("useShareToolReadiness", () => {
 
   it("reports needs-credentials for an agent whose only tools are its own MCP servers", () => {
     const { result } = renderHook(
-      () => useShareToolReadiness(toolAgent({ plugins: false, mcpServers: true }), makeDraft()),
+      () => useChatLinkToolReadiness(toolAgent({ plugins: false, mcpServers: true }), makeDraft()),
       { wrapper: wrapper(mockStigmer({})) },
     );
     expect(result.current).toEqual({ status: "needs-credentials" });
@@ -185,7 +185,7 @@ describe("useShareToolReadiness", () => {
     const client = mockStigmer({});
     const { result } = renderHook(
       () =>
-        useShareToolReadiness(
+        useChatLinkToolReadiness(
           toolAgent({ plugins: false }),
           makeDraft({
             vaults: [{ org: "acme", slug: "shared-creds" }],
@@ -198,24 +198,24 @@ describe("useShareToolReadiness", () => {
     await waitFor(() => expect(envLookup(client)).not.toHaveBeenCalled());
   });
 
-  it("is n/a when sharing is disabled", () => {
+  it("is n/a when the chat link is off", () => {
     const client = mockStigmer({});
     const { result } = renderHook(
-      () => useShareToolReadiness(toolAgent(), makeDraft({ enabled: false })),
+      () => useChatLinkToolReadiness(toolAgent(), makeDraft({ enabled: false })),
       { wrapper: wrapper(client) },
     );
 
     expect(result.current).toEqual({ status: "na" });
   });
 
-  it("is n/a for org-audience shares — bindings are public-audience only", () => {
+  it("is n/a for org-audience chat links — bindings are public-audience only", () => {
     const client = mockStigmer({});
     const { result } = renderHook(
-      () => useShareToolReadiness(toolAgent(), makeDraft({ audience: "org" })),
+      () => useChatLinkToolReadiness(toolAgent(), makeDraft({ audience: "org" })),
       { wrapper: wrapper(client) },
     );
 
-    // Org-audience shares reject vaults at the proto boundary
+    // Org-audience chat links reject vaults at the proto boundary
     // (members run on their own keys), so there is
     // no credential state to advise on.
     expect(result.current).toEqual({ status: "na" });
@@ -224,7 +224,7 @@ describe("useShareToolReadiness", () => {
   it("is n/a in local mode — no guest runtime, no secret gating", () => {
     const client = mockStigmer({});
     const { result } = renderHook(
-      () => useShareToolReadiness(toolAgent(), makeDraft()),
+      () => useChatLinkToolReadiness(toolAgent(), makeDraft()),
       { wrapper: wrapper(client, "local") },
     );
 

@@ -162,7 +162,7 @@ function withShares(...shares: unknown[]) {
 }
 
 // A link names the channel by its id alone — never its organization or slug.
-const buildShareUrl = (channelId: string) =>
+const buildChatLinkUrl = (channelId: string) =>
   `https://app.example.com/chat/${channelId}`;
 
 async function renderList(
@@ -173,7 +173,7 @@ async function renderList(
     <Providers client={client}>
       <WebChannelList
         agent={AGENT}
-        buildShareUrl={buildShareUrl}
+        buildChatLinkUrl={buildChatLinkUrl}
         {...props}
       />
     </Providers>,
@@ -352,7 +352,7 @@ describe("WebChannelList", () => {
     const client = createMockStigmer({
       listByAgent: withShares(makeShare({ linkToken: "tok123" })),
     });
-    await renderList(client, { buildShareUrl: undefined });
+    await renderList(client, { buildChatLinkUrl: undefined });
 
     fireEvent.click(
       screen.getByRole("button", { name: "Copy link for Support Agent" }),

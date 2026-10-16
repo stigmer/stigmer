@@ -3,11 +3,11 @@ export type {
   UseChannelAgentProfileOptions,
   UseChannelAgentProfileReturn,
 } from "./useChannelAgentProfile.js";
-export { SharedAgentChat } from "./SharedAgentChat.js";
-export type { SharedAgentChatProps } from "./SharedAgentChat.js";
+export { VisitorChat } from "./VisitorChat.js";
+export type { VisitorChatProps } from "./VisitorChat.js";
 export {
   draftFromWebChannel,
-  sharingAudienceFromProto,
+  chatLinkAudienceFromProto,
   webChannelCreateInput,
   webChannelPatch,
   webConfigOf,
@@ -16,16 +16,14 @@ export {
 export type {
   WebChannelCreateIdentity,
   WebChannelDraft,
-  SharingAudience,
+  ChatLinkAudience,
 } from "./webChannelDraft.js";
 export { useRotateChannelLink } from "./useRotateChannelLink.js";
 export type { UseRotateChannelLinkReturn } from "./useRotateChannelLink.js";
-export { ShareAgentDialog } from "./ShareAgentDialog.js";
-export type { ShareAgentDialogProps } from "./ShareAgentDialog.js";
-export { WebChannelList } from "./WebChannelList.js";
-export type { WebChannelListProps } from "./WebChannelList.js";
-export { useShareToolReadiness } from "./useShareToolReadiness.js";
-export type { ShareToolReadiness } from "./useShareToolReadiness.js";
+export { ChatLinkDialog } from "./ChatLinkDialog.js";
+export type { ChatLinkDialogProps } from "./ChatLinkDialog.js";
+export { useChatLinkToolReadiness } from "./useChatLinkToolReadiness.js";
+export type { ChatLinkToolReadiness } from "./useChatLinkToolReadiness.js";
 // Origin validation moved to @stigmer/sdk (framework-free, shared with the
 // CLI); re-exported here so existing @stigmer/react importers keep working.
 export { validateOrigin, MAX_ALLOWED_ORIGINS } from "@stigmer/sdk";

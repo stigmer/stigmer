@@ -12,15 +12,15 @@ import {
   isPermissionDenied,
 } from "@stigmer/sdk";
 import { isEmbedded, notifyParent, resolveParentOrigin } from "@stigmer/embed";
-import { StigmerProvider, SharedAgentChat } from "@stigmer/react";
+import { StigmerProvider, VisitorChat } from "@stigmer/react";
 import type { ResolvedColorMode } from "@stigmer/react";
 import { useAuth } from "@/auth";
 import { getApiBaseUrl } from "@/config/env";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 
 /**
- * Hosted chat page for a shared agent —
- * `/chat/<channel id>` (a web channel's id), the URL behind an agent's Share toggle and the
+ * Hosted chat page for an agent's chat link —
+ * `/chat/<channel id>` (a web channel's id), the URL behind an agent's chat link and the
  * page the `<stigmer-agent>` embed widget frames.
  *
  * Renders on an auth-OPTIONAL route (see `Providers.tsx`
@@ -35,7 +35,7 @@ import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam"
  *   an iframe it discovers the embedding page's origin from
  *   browser-authentic sources and reports `ready`/`refused` to the
  *   loader.
- * - `SharedAgentChat` (`@stigmer/react`) resolves the profile and
+ * - `VisitorChat` (`@stigmer/react`) resolves the profile and
  *   renders the pure-chat surface, including the unavailable state.
  *
  * Audience routing (standalone page): the page probes the anonymous
@@ -43,7 +43,7 @@ import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam"
  * guest flow, zero login. A NOT_FOUND is deliberately ambiguous (no such
  * agent, unshared, org-members-only, or a token-locked link without its
  * `?k=` token), so the page offers "sign in if you have access": a
- * signed-in member's `SharedAgentChat sharingAudience="org"` resolves
+ * signed-in member's `VisitorChat linkAudience="org"` resolves
  * through the authenticated `getAgentProfileForMember` and chats with
  * the member's own token — membership is re-checked server-side on
  * every turn.
@@ -52,7 +52,7 @@ import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam"
  * the link), the token rides the probe, the guest mint, and the profile
  * fetch. The server validates it everywhere; the page just forwards it.
  *
- * Embedded flow (public shares only — org shares refuse the guest mint):
+ * Embedded flow (public chat links only — org links refuse the guest mint):
  * the discovered parent origin rides the mint request, where the server
  * validates it against the web channel's `allowed_origins` and stamps it into
  * the guest JWT. The mint is eager (unlike the standalone page's lazy
@@ -75,11 +75,10 @@ type EmbedPhase =
  */
 type AccessPath = "probing" | "guest" | "member";
 
-export default function SharedAgentChatPage() {
-  // The link names only the web channel, by its permanent id (the route
-  // segment keeps its `share` name: the URL is unchanged); its
+export default function ChatLinkPage() {
+  // The link names only the web channel, by its permanent id; its
   // organization comes from the resolved profile.
-  const channelId = useStaticRouteParam("share", 1);
+  const channelId = useStaticRouteParam("channel", 1);
   const linkToken = useLinkTokenParam();
   const colorMode = usePageColorMode();
   const auth = useAuth();
@@ -124,7 +123,7 @@ export default function SharedAgentChatPage() {
           // NOT_FOUND is deliberately ambiguous server-side (missing,
           // unshared, org-members-only, or a locked link without its
           // token); the member path resolves it for anyone with access.
-          // Transient errors take the guest path so SharedAgentChat's
+          // Transient errors take the guest path so VisitorChat's
           // retry surface handles them.
           setAccessPath(isNotFound(error) ? "member" : "guest");
         },
@@ -171,7 +170,7 @@ export default function SharedAgentChatPage() {
 
   // Embedded pages mint eagerly: a refusal must hide the widget before
   // the visitor invests in it. PERMISSION_DENIED is an origin refusal;
-  // NOT_FOUND means no publicly shared agent lives at this address
+  // NOT_FOUND means no public chat link lives at this address
   // (missing, revoked, or org-members-only — embeds cannot serve any of
   // them). Any other failure (network blip, editions without guest
   // minting) keeps the widget up and lets the lazy error paths surface
@@ -230,14 +229,14 @@ export default function SharedAgentChatPage() {
         preset="monochrome"
       >
         <div className="h-screen bg-background text-foreground">
-          <SharedAgentChat channelId={channelId} sharingAudience="org" />
+          <VisitorChat channelId={channelId} linkAudience="org" />
         </div>
       </StigmerProvider>
     );
   }
 
-  // Guest branch: public shares (and embeds). While the standalone probe
-  // is still in flight, SharedAgentChat's own loading skeleton covers it —
+  // Guest branch: public chat links (and embeds). While the standalone probe
+  // is still in flight, VisitorChat's own loading skeleton covers it —
   // its profile fetch races the probe harmlessly (both are the same RPC).
   if (phase.kind === "standalone" && accessPath === "probing") {
     return null;
@@ -250,14 +249,14 @@ export default function SharedAgentChatPage() {
       preset="monochrome"
     >
       <div className="h-screen bg-background text-foreground">
-        <SharedAgentChat channelId={channelId} linkToken={linkToken} />
+        <VisitorChat channelId={channelId} linkToken={linkToken} />
       </div>
     </StigmerProvider>
   );
 }
 
 /**
- * The share-link token from the URL's `?k=` parameter, or empty for plain
+ * The chat link's token from the URL's `?k=` parameter, or empty for plain
  * links. Read once on mount (like the theme param): the token is part of
  * the link's identity, and a mid-session change is not a supported flow.
  */
@@ -272,7 +271,7 @@ function useLinkTokenParam(): string {
 }
 
 /**
- * The anonymous face of an org-members-only (or nonexistent) share: a
+ * The anonymous face of an org-members-only (or nonexistent) chat link: a
  * generic not-found surface with a sign-in affordance — the GitHub
  * private-repo pattern. It must not reveal whether the agent exists;
  * signing in and retrying is the only way to learn more, and only for

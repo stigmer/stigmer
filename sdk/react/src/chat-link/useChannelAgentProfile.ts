@@ -8,7 +8,7 @@ import {
 import { isNotFound } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
-import type { SharingAudience } from "./webChannelDraft.js";
+import type { ChatLinkAudience } from "./webChannelDraft.js";
 
 /** Options for {@link useChannelAgentProfile}. */
 export interface UseChannelAgentProfileOptions {
@@ -22,7 +22,7 @@ export interface UseChannelAgentProfileOptions {
    *   owning organization (and public ones too). Requires a
    *   `StigmerProvider` whose client carries the member's token.
    */
-  readonly audience?: SharingAudience;
+  readonly audience?: ChatLinkAudience;
 
   /**
    * Chat-link token from the URL's `?k=` parameter (public path only).
@@ -38,8 +38,8 @@ export interface UseChannelAgentProfileOptions {
 /** Return value of {@link useChannelAgentProfile}. */
 export interface UseChannelAgentProfileReturn {
   /**
-   * The shared agent's public profile, or `null` while loading, on
-   * error, or when the agent is not shared.
+   * The agent's public profile behind the chat link, or `null` while
+   * loading, on error, or when the link does not answer.
    */
   readonly profile: ChannelAgentProfile | null;
   /** `true` while the initial fetch or a refetch is in flight. */
@@ -53,7 +53,7 @@ export interface UseChannelAgentProfileReturn {
 }
 
 /**
- * Data hook that fetches a shared agent's public profile by the web
+ * Data hook that fetches a chat link's agent profile by the web
  * channel's id, the one identity a hosted chat link carries
  * (`/chat/<channel id>`). The profile names the agent's organization
  * (`org`) and slug.
@@ -68,8 +68,8 @@ export interface UseChannelAgentProfileReturn {
  * `getAgentProfileForMember` endpoint instead, which resolves
  * org-members-only web channels for a signed-in member.
  *
- * **Not-shared handling:** the server answers NOT_FOUND for "this
- * agent does not exist", "this agent is not shared", and (on the
+ * **Unanswered-link handling:** the server answers NOT_FOUND for "this
+ * agent does not exist", "this chat link is off", and (on the
  * member path) "you are not a member of this organization" — all
  * indistinguishable by design so a chat URL leaks nothing. The hook
  * maps that to `profile === null` without raising an error, matching

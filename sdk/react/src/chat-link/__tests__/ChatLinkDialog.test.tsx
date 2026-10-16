@@ -1,4 +1,4 @@
-// ShareAgentDialog: create a web channel (name, slug, audience) and edit it
+// ChatLinkDialog: create a web channel (name, slug, audience) and edit it
 // (serving switch, link, embed, origins, credentials, messages, link reset),
 // every edit naming the dialog's fields on the channel as loaded.
 
@@ -14,7 +14,7 @@ import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { PublicBaseUrlContext } from "../../public-base-url-context";
-import { ShareAgentDialog } from "../ShareAgentDialog";
+import { ChatLinkDialog } from "../ChatLinkDialog";
 
 // Toasts are visual feedback owned by the feedback module; keep them inert.
 vi.mock("../../feedback/toast", () => ({
@@ -45,7 +45,7 @@ interface MockOverrides {
 const CLOUD_API_BASE_URL = "https://api.stigmer.ai";
 
 /** The web channel an edit's update sent: the id it named, its paths, and the dialog's fields. */
-function sentShare(update: { mock: { calls: unknown[][] } }) {
+function sentChatLink(update: { mock: { calls: unknown[][] } }) {
   const sent = sentUpdate<Channel>(update);
   const spec = sent.resource.spec;
   const web = spec?.type.case === "web" ? spec.type.value : undefined;
@@ -152,7 +152,7 @@ function webSpec(spec?: {
   };
 }
 
-function makeShare(
+function makeChatLink(
   spec?: {
     enabled?: boolean;
     audience?: ChannelAudience;
@@ -191,13 +191,13 @@ function sharedVault(slug: string, name?: string) {
 }
 
 // A link names the channel by its id alone — never its organization or slug.
-const buildShareUrl = (channelId: string) =>
+const buildChatLinkUrl = (channelId: string) =>
   `https://app.example.com/chat/${channelId}`;
 
-/** Render the dialog open. Pass `share` for edit mode; omit for create mode. */
+/** Render the dialog open. Pass `channel` for edit mode; omit for create mode. */
 function renderOpenDialog(
   client: unknown,
-  props?: Partial<Parameters<typeof ShareAgentDialog>[0]> & {
+  props?: Partial<Parameters<typeof ChatLinkDialog>[0]> & {
     mode?: "cloud" | "local";
     publicBaseUrl?: string;
   },
@@ -205,40 +205,40 @@ function renderOpenDialog(
   const { mode, publicBaseUrl, ...dialogProps } = props ?? {};
   render(
     <Providers client={client} mode={mode} publicBaseUrl={publicBaseUrl}>
-      <ShareAgentDialog
+      <ChatLinkDialog
         open
         onOpenChange={() => {}}
         agent={makeAgent()}
-        buildShareUrl={buildShareUrl}
+        buildChatLinkUrl={buildChatLinkUrl}
         {...dialogProps}
       />
     </Providers>,
   );
 }
 
-describe("ShareAgentDialog", () => {
+describe("ChatLinkDialog", () => {
   it("mounts no body while closed", () => {
     render(
       <Providers client={createMockStigmer()}>
-        <ShareAgentDialog
+        <ChatLinkDialog
           open={false}
           onOpenChange={() => {}}
           agent={makeAgent()}
-          share={makeShare({ enabled: true })}
-          buildShareUrl={buildShareUrl}
+          channel={makeChatLink({ enabled: true })}
+          buildChatLinkUrl={buildChatLinkUrl}
         />
       </Providers>,
     );
 
-    expect(screen.queryByText("Share")).toBeNull();
+    expect(screen.queryByText("Chat link")).toBeNull();
   });
 
-  it("renders header, toggle, and the share link from buildShareUrl", () => {
+  it("renders header, toggle, and the chat link link from buildChatLinkUrl", () => {
     renderOpenDialog(createMockStigmer(), {
-      share: makeShare({ enabled: true }),
+      channel: makeChatLink({ enabled: true }),
     });
 
-    expect(screen.getByText("Share")).toBeTruthy();
+    expect(screen.getByText("Chat link")).toBeTruthy();
     expect(screen.getByText("Support Agent")).toBeTruthy();
     expect(screen.getByRole("switch", { hidden: true }).getAttribute("aria-checked")).toBe("true");
     expect(
@@ -246,39 +246,39 @@ describe("ShareAgentDialog", () => {
     ).toBeTruthy();
   });
 
-  it("builds the link from the SHARE's id, never its slug or organization", () => {
-    // A share whose slug differs from the agent's: the hosted URL still
-    // names only the share's id, so neither name reaches the link.
-    const buildShareUrlSpy = vi.fn(buildShareUrl);
+  it("builds the link from the CHANNEL's id, never its slug or organization", () => {
+    // A chat link whose slug differs from the agent's: the hosted URL still
+    // names only the chat link's id, so neither name reaches the link.
+    const buildChatLinkUrlSpy = vi.fn(buildChatLinkUrl);
     const renamed = {
-      ...(makeShare({ enabled: true }) as Record<string, unknown>),
+      ...(makeChatLink({ enabled: true }) as Record<string, unknown>),
       metadata: { id: "ash_9", org: "acme", slug: "help-desk", name: "Help Desk" },
     } as never;
     renderOpenDialog(createMockStigmer(), {
-      share: renamed,
-      buildShareUrl: buildShareUrlSpy,
+      channel: renamed,
+      buildChatLinkUrl: buildChatLinkUrlSpy,
     });
 
     expect(screen.getByText("https://app.example.com/chat/ash_9")).toBeTruthy();
-    expect(buildShareUrlSpy).toHaveBeenCalledWith("ash_9");
+    expect(buildChatLinkUrlSpy).toHaveBeenCalledWith("ash_9");
     expect(screen.queryByText(/chat\/acme|help-desk/)).toBeNull();
   });
 
-  it("falls back to the relative /chat path when buildShareUrl is omitted", () => {
+  it("falls back to the relative /chat path when buildChatLinkUrl is omitted", () => {
     renderOpenDialog(createMockStigmer(), {
-      share: makeShare({ enabled: true }),
-      buildShareUrl: undefined,
+      channel: makeChatLink({ enabled: true }),
+      buildChatLinkUrl: undefined,
     });
 
     expect(screen.getByText("/chat/ash_1")).toBeTruthy();
   });
 
-  describe("create mode (no share prop)", () => {
+  describe("create mode (no channel prop)", () => {
     it("renders the create step with identity prefilled from the agent", () => {
       renderOpenDialog(createMockStigmer());
 
       expect(
-        screen.getByRole("heading", { name: "Create share", hidden: true }),
+        screen.getByRole("heading", { name: "Create a chat link", hidden: true }),
       ).toBeTruthy();
       expect(
         (screen.getByLabelText("Name", { selector: "input" }) as HTMLInputElement).value,
@@ -290,11 +290,11 @@ describe("ShareAgentDialog", () => {
       // Cancel rather than Done.
       expect(screen.queryByRole("switch", { hidden: true })).toBeNull();
       expect(screen.getByText("Cancel")).toBeTruthy();
-      // The slug names the share, not its link: the link names the share's
-      // id, which exists only once the share does, so none is previewed.
+      // The slug names the chat link, not its link: the link names the chat link's
+      // id, which exists only once the chat link does, so none is previewed.
       expect(
         screen.getByText(
-          "Names this share in the CLI and API. The link is made when you create the share. Can't be changed later.",
+          "Names this chat link in the CLI and API. The link itself is made when you create it.",
         ),
       ).toBeTruthy();
       expect(screen.queryByText(/\/chat\//)).toBeNull();
@@ -315,11 +315,11 @@ describe("ShareAgentDialog", () => {
       expect(slug.value).toBe("docs-widget");
     });
 
-    it("creates the share live with the chosen identity, then becomes its editor", async () => {
-      const create = vi.fn().mockResolvedValue(makeShare({ enabled: true }));
+    it("creates the chat link live with the chosen identity, then becomes its editor", async () => {
+      const create = vi.fn().mockResolvedValue(makeChatLink({ enabled: true }));
       renderOpenDialog(createMockStigmer({ create }));
 
-      fireEvent.click(screen.getByRole("button", { name: "Create share", hidden: true }));
+      fireEvent.click(screen.getByRole("button", { name: "Create chat link", hidden: true }));
 
       await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
       const input = create.mock.calls[0][0] as ChannelInput;
@@ -332,7 +332,7 @@ describe("ShareAgentDialog", () => {
       expect(input.enabled).toBe(true);
       expect(input.web?.audience).toBe(ChannelAudience.org);
 
-      // The dialog transitions to the editor on the created share.
+      // The dialog transitions to the editor on the created chat link.
       await waitFor(() =>
         expect(
           screen.getByText("https://app.example.com/chat/ash_1"),
@@ -342,13 +342,13 @@ describe("ShareAgentDialog", () => {
     });
 
     it("asks who can chat, with organization members preselected, and creates a public link only when chosen", async () => {
-      const create = vi.fn().mockResolvedValue(makeShare({ enabled: true }));
+      const create = vi.fn().mockResolvedValue(makeChatLink({ enabled: true }));
       renderOpenDialog(createMockStigmer({ create }));
 
       const org = screen.getByRole("radio", { name: "Organization members", hidden: true });
       expect(org.getAttribute("aria-checked")).toBe("true");
       fireEvent.click(screen.getByRole("radio", { name: "Anyone with the link", hidden: true }));
-      fireEvent.click(screen.getByRole("button", { name: "Create share", hidden: true }));
+      fireEvent.click(screen.getByRole("button", { name: "Create chat link", hidden: true }));
 
       await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
       const input = create.mock.calls[0][0] as ChannelInput;
@@ -363,7 +363,7 @@ describe("ShareAgentDialog", () => {
         );
       renderOpenDialog(createMockStigmer({ create }));
 
-      fireEvent.click(screen.getByRole("button", { name: "Create share", hidden: true }));
+      fireEvent.click(screen.getByRole("button", { name: "Create chat link", hidden: true }));
 
       expect(
         await screen.findByText(/pick a different slug/i),
@@ -384,20 +384,20 @@ describe("ShareAgentDialog", () => {
         .mockRejectedValue(
           new StigmerError(
             "permission-denied",
-            "creating a share needs can_create_channel on organization acme",
+            "creating a channel needs can_create_channel on organization acme",
             Code.PermissionDenied,
           ),
         );
       renderOpenDialog(createMockStigmer({ create }));
 
-      fireEvent.click(screen.getByRole("button", { name: "Create share", hidden: true }));
+      fireEvent.click(screen.getByRole("button", { name: "Create chat link", hidden: true }));
 
       expect(
         await screen.findByText(/needs can_create_channel/i),
       ).toBeTruthy();
     });
 
-    it("creates the share in the agent's own organization and names it as the paying org", async () => {
+    it("creates the chat link in the agent's own organization and names it as the paying org", async () => {
       const create = vi.fn().mockResolvedValue({
         metadata: {
           id: "ash_new",
@@ -415,14 +415,14 @@ describe("ShareAgentDialog", () => {
       // The create copy names the org whose own provider keys serve the channel.
       expect(screen.getByText(/own provider keys/)).toBeTruthy();
 
-      fireEvent.click(screen.getByRole("button", { name: "Create share", hidden: true }));
+      fireEvent.click(screen.getByRole("button", { name: "Create chat link", hidden: true }));
 
       await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
       const input = create.mock.calls[0][0] as ChannelInput;
       expect(input.org).toBe("acme");
       expect(input.agentRef).toEqual({ org: "acme", slug: "support-agent" });
 
-      // The editor shows the created share's link, by the id the server
+      // The editor shows the created chat link's link, by the id the server
       // minted, and offers the audience choice.
       await waitFor(() =>
         expect(
@@ -433,10 +433,10 @@ describe("ShareAgentDialog", () => {
     });
   });
 
-  describe("paused share (enabled: false)", () => {
+  describe("paused chat link (enabled: false)", () => {
     it("renders the off state with disabled copy affordances", () => {
       renderOpenDialog(createMockStigmer(), {
-        share: makeShare({ enabled: false }),
+        channel: makeChatLink({ enabled: false }),
       });
 
       expect(
@@ -448,24 +448,24 @@ describe("ShareAgentDialog", () => {
       }) as HTMLButtonElement;
       expect(copy.disabled).toBe(true);
       expect(
-        screen.getByText(/sharing is off, so this link doesn't work yet/i),
+        screen.getByText(/this chat link is paused, so this link doesn't work yet/i),
       ).toBeTruthy();
     });
 
     it("shows the reason on the Embed tab too", () => {
       renderOpenDialog(createMockStigmer(), {
-        share: makeShare({ enabled: false }),
+        channel: makeChatLink({ enabled: false }),
       });
 
       fireEvent.click(screen.getByRole("tab", { name: /Embed/, hidden: true }));
       expect(
-        screen.getByText(/sharing is off, so this embed doesn't work yet/i),
+        screen.getByText(/this chat link is paused, so this embed doesn't work yet/i),
       ).toBeTruthy();
     });
 
-    it("drops the hint and enables copy once sharing is on", () => {
+    it("drops the hint and enables copy once the link is on", () => {
       renderOpenDialog(createMockStigmer(), {
-        share: makeShare({ enabled: true }),
+        channel: makeChatLink({ enabled: true }),
       });
 
       const copy = screen.getByRole("button", {
@@ -473,13 +473,13 @@ describe("ShareAgentDialog", () => {
         hidden: true,
       }) as HTMLButtonElement;
       expect(copy.disabled).toBe(false);
-      expect(screen.queryByText(/sharing is off/i)).toBeNull();
+      expect(screen.queryByText(/this chat link is paused/i)).toBeNull();
     });
   });
 
   it("shows the indexability warning", () => {
     renderOpenDialog(createMockStigmer(), {
-      share: makeShare({ enabled: true }),
+      channel: makeChatLink({ enabled: true }),
     });
 
     expect(
@@ -490,7 +490,7 @@ describe("ShareAgentDialog", () => {
   describe("Audience", () => {
     it("reads an omitted audience as organization members, never public", () => {
       renderOpenDialog(createMockStigmer(), {
-        share: makeShare({ enabled: true, audience: undefined }),
+        channel: makeChatLink({ enabled: true, audience: undefined }),
       });
 
       expect(
@@ -506,10 +506,10 @@ describe("ShareAgentDialog", () => {
       expect(screen.getByText("Member chat link")).toBeTruthy();
     });
 
-    it("switching to Organization members saves the dialog's fields on the share's id", async () => {
+    it("switching to Organization members saves the dialog's fields on the chat link's id", async () => {
       const update = vi.fn().mockResolvedValue({});
       renderOpenDialog(createMockStigmer({ update }), {
-        share: makeShare({
+        channel: makeChatLink({
           enabled: true,
           allowedOrigins: ["https://example.com"],
           messages: { rateLimited: "Easy there." },
@@ -527,17 +527,17 @@ describe("ShareAgentDialog", () => {
       );
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-      const input = sentShare(update);
+      const input = sentChatLink(update);
       expect(input.audience).toBe(ChannelAudience.org);
       // The dialog's fields travel with the switch, from the edit state.
       expect(input.enabled).toBe(true);
       expect(input.allowedOrigins).toEqual(["https://example.com"]);
       expect(input.messages?.rateLimited).toBe("Easy there.");
-      // The edit addresses the existing share by its id — never a new row.
+      // The edit addresses the existing chat link by its id — never a new row.
       expect(input.id).toBe("ash_1");
     });
 
-    it("switching to Organization members drops the share's vaults (public-audience only)", async () => {
+    it("switching to Organization members drops the chat link's vaults (public-audience only)", async () => {
       const update = vi.fn().mockResolvedValue({});
       renderOpenDialog(
         createMockStigmer({
@@ -545,7 +545,7 @@ describe("ShareAgentDialog", () => {
           vaults: [sharedVault("github-creds")],
         }),
         {
-          share: makeShare({
+          channel: makeChatLink({
             enabled: true,
             vaults: [{ org: "acme", slug: "github-creds" }],
           }),
@@ -557,16 +557,16 @@ describe("ShareAgentDialog", () => {
       );
 
       // The proto CEL rule rejects vaults on org-audience
-      // shares — carrying them would fail the whole apply.
+      // chat links — carrying them would fail the whole apply.
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-      const input = sentShare(update);
+      const input = sentChatLink(update);
       expect(input.audience).toBe(ChannelAudience.org);
       expect(input.vaults).toEqual([]);
     });
 
     it("renders org-audience copy: member link, revocation note, no indexability warning", () => {
       renderOpenDialog(createMockStigmer(), {
-        share: makeShare({ enabled: true, audience: ChannelAudience.org }),
+        channel: makeChatLink({ enabled: true, audience: ChannelAudience.org }),
       });
 
       expect(screen.getByText("Organization members can chat")).toBeTruthy();
@@ -581,7 +581,7 @@ describe("ShareAgentDialog", () => {
 
     it("replaces the Embed tab with a public-only explanation for the org audience", () => {
       renderOpenDialog(createMockStigmer(), {
-        share: makeShare({ enabled: true, audience: ChannelAudience.org }),
+        channel: makeChatLink({ enabled: true, audience: ChannelAudience.org }),
       });
 
       fireEvent.click(screen.getByRole("tab", { name: /Embed/, hidden: true }));
@@ -593,9 +593,9 @@ describe("ShareAgentDialog", () => {
   });
 
   describe("edit mode identity", () => {
-    it("names the agent in the header, offers the audience choice, and builds the link from the share's own id", () => {
+    it("names the agent in the header, offers the audience choice, and builds the link from the chat link's own id", () => {
       renderOpenDialog(createMockStigmer(), {
-        share: makeShare({ enabled: true }),
+        channel: makeChatLink({ enabled: true }),
       });
 
       expect(screen.getByText("Support Agent")).toBeTruthy();
@@ -605,11 +605,11 @@ describe("ShareAgentDialog", () => {
       ).toBeTruthy();
     });
 
-    it("edits a share written in another organization before the retirement by its own identity", () => {
+    it("edits a chat link written in another organization before the retirement by its own identity", () => {
       // Such a row no longer serves, but an edit must still address the
       // row that exists rather than re-home it under the agent's org: its
       // link names that row's own id.
-      const legacyShare = {
+      const legacyChannel = {
         metadata: {
           id: "ash_ext",
           org: "consumer-org",
@@ -621,7 +621,7 @@ describe("ShareAgentDialog", () => {
           enabled: true,
         },
       } as never;
-      renderOpenDialog(createMockStigmer(), { share: legacyShare });
+      renderOpenDialog(createMockStigmer(), { channel: legacyChannel });
 
       expect(
         screen.getByText("https://app.example.com/chat/ash_ext"),
@@ -631,10 +631,10 @@ describe("ShareAgentDialog", () => {
 
   it("enabling saves the dialog's fields and notifies the host", async () => {
     const update = vi.fn().mockResolvedValue({});
-    const onSharingChanged = vi.fn();
+    const onChannelsChanged = vi.fn();
     renderOpenDialog(createMockStigmer({ update }), {
-      onSharingChanged,
-      share: makeShare({
+      onChannelsChanged,
+      channel: makeChatLink({
         enabled: false,
         allowedOrigins: ["https://example.com"],
         messages: { rateLimited: "Easy there." },
@@ -644,24 +644,24 @@ describe("ShareAgentDialog", () => {
     fireEvent.click(screen.getByRole("switch", { hidden: true }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    const input = sentShare(update);
+    const input = sentChatLink(update);
     expect(input.enabled).toBe(true);
     // The dialog's fields travel with the toggle, from the edit state.
     expect(input.allowedOrigins).toEqual(["https://example.com"]);
     expect(input.messages?.rateLimited).toBe("Easy there.");
-    await waitFor(() => expect(onSharingChanged).toHaveBeenCalled());
+    await waitFor(() => expect(onChannelsChanged).toHaveBeenCalled());
   });
 
-  it("adopts the server's returned share state after a commit", async () => {
+  it("adopts the server's returned chat link state after a commit", async () => {
     // Server echoes the apply but with a normalized origin list.
     const update = vi.fn().mockResolvedValue(
-      makeShare({
+      makeChatLink({
         enabled: true,
         allowedOrigins: ["https://normalized.example.com"],
       }),
     );
     renderOpenDialog(createMockStigmer({ update }), {
-      share: makeShare({ enabled: false }),
+      channel: makeChatLink({ enabled: false }),
     });
 
     fireEvent.click(screen.getByRole("switch", { hidden: true }));
@@ -676,10 +676,10 @@ describe("ShareAgentDialog", () => {
   });
 
   describe("Tool credentials", () => {
-    it("names the vaults that cannot serve the share's runs", async () => {
+    it("names the vaults that cannot serve the chat link's runs", async () => {
       renderOpenDialog(createMockStigmer(), {
         agent: makeAgent({ plugins: true }),
-        share: makeShare({
+        channel: makeChatLink({
           enabled: true,
           vaults: [
             { org: "acme", slug: "gone-one" },
@@ -691,14 +691,14 @@ describe("ShareAgentDialog", () => {
       expect(screen.getByText(/not a shared vault you can read/i).textContent).toMatch(/vaults/);
     });
 
-    it("warns needs-credentials for a tool-using share naming no vault", () => {
+    it("warns needs-credentials for a tool-using chat link naming no vault", () => {
       renderOpenDialog(createMockStigmer(), {
         agent: makeAgent({ plugins: true }),
-        share: makeShare({ enabled: true }),
+        channel: makeChatLink({ enabled: true }),
       });
 
       expect(
-        screen.getByText(/this\s+share names no vault/i),
+        screen.getByText(/this\s+chat\s+link names no vault/i),
       ).toBeTruthy();
     });
 
@@ -711,7 +711,7 @@ describe("ShareAgentDialog", () => {
         }),
         {
           agent: makeAgent({ plugins: true }),
-          share: makeShare({ enabled: true }),
+          channel: makeChatLink({ enabled: true }),
         },
       );
 
@@ -723,7 +723,7 @@ describe("ShareAgentDialog", () => {
       fireEvent.change(picker, { target: { value: "github-creds" } });
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-      const input = sentShare(update);
+      const input = sentChatLink(update);
       expect(input.vaults).toEqual([
         { org: "acme", slug: "github-creds" },
       ]);
@@ -742,21 +742,21 @@ describe("ShareAgentDialog", () => {
         }),
         {
           agent: makeAgent({ plugins: true }),
-          share: makeShare({ enabled: true }),
+          channel: makeChatLink({ enabled: true }),
         },
       );
 
       await screen.findByLabelText("Add vault", { selector: "select" });
       // A guest's runs have no person, and the server refuses a My vault on
-      // a share, so the picker never offers it.
+      // a chat link, so the picker never offers it.
       expect(screen.getByText("GitHub Creds")).toBeTruthy();
       expect(screen.queryByText("My vault")).toBeNull();
     });
 
-    it("hides the section entirely for org-audience shares", () => {
+    it("hides the section entirely for org-audience chat links", () => {
       renderOpenDialog(createMockStigmer(), {
         agent: makeAgent({ plugins: true }),
-        share: makeShare({ enabled: true, audience: ChannelAudience.org }),
+        channel: makeChatLink({ enabled: true, audience: ChannelAudience.org }),
       });
 
       expect(screen.queryByText("Tool credentials")).toBeNull();
@@ -764,13 +764,13 @@ describe("ShareAgentDialog", () => {
   });
 
   describe("Embed tab", () => {
-    it("shows the one-line script snippet: loader from the app origin + <stigmer-agent> naming the share", () => {
+    it("shows the one-line script snippet: loader from the app origin + <stigmer-agent> naming the chat link", () => {
       renderOpenDialog(createMockStigmer(), {
-        share: makeShare({ enabled: true }),
+        channel: makeChatLink({ enabled: true }),
       });
 
       fireEvent.click(screen.getByRole("tab", { name: /Embed/, hidden: true }));
-      // The loader must be served from the SAME origin as the share URL —
+      // The loader must be served from the SAME origin as the chat link URL —
       // embed.js derives the chat-page origin from its own script URL.
       expect(
         screen.getByText(
@@ -779,14 +779,14 @@ describe("ShareAgentDialog", () => {
       ).toBeTruthy();
       expect(
         screen.getByText(
-          /<stigmer-agent share="ash_1"><\/stigmer-agent>/,
+          /<stigmer-agent channel="ash_1"><\/stigmer-agent>/,
         ),
       ).toBeTruthy();
     });
 
     it("keeps the iframe snippet available as the collapsed no-JavaScript alternative", () => {
       renderOpenDialog(createMockStigmer(), {
-        share: makeShare({ enabled: true }),
+        channel: makeChatLink({ enabled: true }),
       });
 
       fireEvent.click(screen.getByRole("tab", { name: /Embed/, hidden: true }));
@@ -809,7 +809,7 @@ describe("ShareAgentDialog", () => {
     it("rejects an invalid origin without calling the RPC", async () => {
       const update = vi.fn();
       renderOpenDialog(createMockStigmer({ update }), {
-        share: makeShare({ enabled: true }),
+        channel: makeChatLink({ enabled: true }),
       });
 
       fireEvent.click(screen.getByRole("tab", { name: /Embed/, hidden: true }));
@@ -826,7 +826,7 @@ describe("ShareAgentDialog", () => {
     it("adds a valid origin by saving the appended list", async () => {
       const update = vi.fn().mockResolvedValue({});
       renderOpenDialog(createMockStigmer({ update }), {
-        share: makeShare({
+        channel: makeChatLink({
           enabled: true,
           allowedOrigins: ["https://existing.example.com"],
         }),
@@ -839,7 +839,7 @@ describe("ShareAgentDialog", () => {
       fireEvent.click(screen.getByText("Add"));
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-      const input = sentShare(update);
+      const input = sentChatLink(update);
       expect(input.allowedOrigins).toEqual([
         "https://existing.example.com",
         "https://new.example.com",
@@ -851,7 +851,7 @@ describe("ShareAgentDialog", () => {
     it("rejects a duplicate origin", async () => {
       const update = vi.fn();
       renderOpenDialog(createMockStigmer({ update }), {
-        share: makeShare({
+        channel: makeChatLink({
           enabled: true,
           allowedOrigins: ["https://example.com"],
         }),
@@ -870,7 +870,7 @@ describe("ShareAgentDialog", () => {
     it("removes an origin by saving the filtered list", async () => {
       const update = vi.fn().mockResolvedValue({});
       renderOpenDialog(createMockStigmer({ update }), {
-        share: makeShare({
+        channel: makeChatLink({
           enabled: true,
           allowedOrigins: ["https://a.example.com", "https://b.example.com"],
         }),
@@ -880,7 +880,7 @@ describe("ShareAgentDialog", () => {
       fireEvent.click(screen.getByLabelText("Remove https://a.example.com"));
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-      const input = sentShare(update);
+      const input = sentChatLink(update);
       expect(input.allowedOrigins).toEqual(["https://b.example.com"]);
     });
   });
@@ -889,7 +889,7 @@ describe("ShareAgentDialog", () => {
     it("saves edited messages with the dialog's other fields", async () => {
       const update = vi.fn().mockResolvedValue({});
       renderOpenDialog(createMockStigmer({ update }), {
-        share: makeShare({
+        channel: makeChatLink({
           enabled: true,
           allowedOrigins: ["https://example.com"],
         }),
@@ -902,7 +902,7 @@ describe("ShareAgentDialog", () => {
       fireEvent.click(screen.getByText("Save messages"));
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-      const input = sentShare(update);
+      const input = sentChatLink(update);
       expect(input.messages?.rateLimited).toBe("Please slow down.");
       expect(input.enabled).toBe(true);
       expect(input.allowedOrigins).toEqual(["https://example.com"]);
@@ -910,7 +910,7 @@ describe("ShareAgentDialog", () => {
 
     it("caps each message at 300 characters", () => {
       renderOpenDialog(createMockStigmer(), {
-        share: makeShare({ enabled: true }),
+        channel: makeChatLink({ enabled: true }),
       });
 
       fireEvent.click(screen.getByText("Customize visitor messages"));
@@ -927,7 +927,7 @@ describe("ShareAgentDialog", () => {
         const getOrCreateBillingAccount = vi.fn();
         renderOpenDialog(createMockStigmer({ getOrCreateBillingAccount }), {
           mode,
-          share: makeShare({ enabled: true }),
+          channel: makeChatLink({ enabled: true }),
         });
 
         expect(screen.getByText(/Visitors chat on/).textContent).toMatch(/own provider keys\.$/);
@@ -939,7 +939,7 @@ describe("ShareAgentDialog", () => {
   describe("Developer tab", () => {
     it("shows the user-token snippet and docs link", () => {
       renderOpenDialog(createMockStigmer(), {
-        share: makeShare({ enabled: true }),
+        channel: makeChatLink({ enabled: true }),
       });
 
       fireEvent.click(screen.getByRole("tab", { name: /Developer/, hidden: true }));
@@ -950,7 +950,7 @@ describe("ShareAgentDialog", () => {
 
     function openDeveloperSnippet(baseUrl?: string): string {
       renderOpenDialog(createMockStigmer({ baseUrl }), {
-        share: makeShare({ enabled: true }),
+        channel: makeChatLink({ enabled: true }),
       });
       fireEvent.click(screen.getByRole("tab", { name: /Developer/, hidden: true }));
       return screen.getByText(/mintUserToken/).textContent ?? "";
@@ -974,7 +974,7 @@ describe("ShareAgentDialog", () => {
     // absolute one the host named, and says so when there is none.
     it("says the code is unavailable for a relative baseUrl, instead of printing baseUrl: \"\"", () => {
       renderOpenDialog(createMockStigmer({ baseUrl: "/" }), {
-        share: makeShare({ enabled: true }),
+        channel: makeChatLink({ enabled: true }),
       });
       fireEvent.click(screen.getByRole("tab", { name: /Developer/, hidden: true }));
 
@@ -987,7 +987,7 @@ describe("ShareAgentDialog", () => {
 
     it("builds the snippet from the host's public base URL behind a relative baseUrl", () => {
       renderOpenDialog(createMockStigmer({ baseUrl: "/" }), {
-        share: makeShare({ enabled: true }),
+        channel: makeChatLink({ enabled: true }),
         publicBaseUrl: "https://api.acme.example/",
       });
       fireEvent.click(screen.getByRole("tab", { name: /Developer/, hidden: true }));
@@ -1002,10 +1002,10 @@ describe("ShareAgentDialog", () => {
     const showModal = vi.spyOn(HTMLDialogElement.prototype, "showModal");
     renderOpenDialog(createMockStigmer(), {
       modal: false,
-      share: makeShare({ enabled: true }),
+      channel: makeChatLink({ enabled: true }),
     });
 
-    expect(screen.getByText("Share")).toBeTruthy();
+    expect(screen.getByText("Chat link")).toBeTruthy();
     expect(showModal).not.toHaveBeenCalled();
     showModal.mockRestore();
   });
@@ -1014,7 +1014,7 @@ describe("ShareAgentDialog", () => {
     const onOpenChange = vi.fn();
     renderOpenDialog(createMockStigmer(), {
       onOpenChange,
-      share: makeShare({ enabled: true }),
+      channel: makeChatLink({ enabled: true }),
     });
 
     screen.getByText("Done").click();
@@ -1025,10 +1025,10 @@ describe("ShareAgentDialog", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  describe("Reset link (rotatable share token)", () => {
+  describe("Reset link (rotatable chat link token)", () => {
     it("appends the status token to the shown link and embed snippet", () => {
       renderOpenDialog(createMockStigmer(), {
-        share: makeShare({ enabled: true }, "tok123"),
+        channel: makeChatLink({ enabled: true }, "tok123"),
       });
 
       expect(
@@ -1037,18 +1037,18 @@ describe("ShareAgentDialog", () => {
 
       fireEvent.click(screen.getByRole("tab", { name: /Embed/, hidden: true }));
       expect(
-        screen.getByText(/<stigmer-agent share="ash_1" token="tok123"><\/stigmer-agent>/),
+        screen.getByText(/<stigmer-agent channel="ash_1" token="tok123"><\/stigmer-agent>/),
       ).toBeTruthy();
     });
 
     it("rotates on Reset link, adopts the fresh token, and notifies the host", async () => {
       const rotateLink = vi
         .fn()
-        .mockResolvedValue(makeShare({ enabled: true }, "fresh-token"));
-      const onSharingChanged = vi.fn();
+        .mockResolvedValue(makeChatLink({ enabled: true }, "fresh-token"));
+      const onChannelsChanged = vi.fn();
       renderOpenDialog(createMockStigmer({ rotateLink }), {
-        onSharingChanged,
-        share: makeShare({ enabled: true }),
+        onChannelsChanged,
+        channel: makeChatLink({ enabled: true }),
       });
 
       // A plain link shows no token before the reset.
@@ -1066,16 +1066,16 @@ describe("ShareAgentDialog", () => {
         ).toBeTruthy(),
       );
       expect(rotateLink).toHaveBeenCalledTimes(1);
-      // The rotation targets the given share by its own id.
+      // The rotation targets the given chat link by its own id.
       expect(
         (rotateLink.mock.calls[0][0] as { resourceId: string }).resourceId,
       ).toBe("ash_1");
-      expect(onSharingChanged).toHaveBeenCalled();
+      expect(onChannelsChanged).toHaveBeenCalled();
     });
 
-    it("hides the Reset control and the token for org-members-only shares", () => {
+    it("hides the Reset control and the token for org-members-only chat links", () => {
       renderOpenDialog(createMockStigmer(), {
-        share: makeShare(
+        channel: makeChatLink(
           { enabled: true, audience: ChannelAudience.org },
           "tok123",
         ),

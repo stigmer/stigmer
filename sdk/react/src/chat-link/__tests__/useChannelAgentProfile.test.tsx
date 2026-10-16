@@ -150,7 +150,7 @@ describe("useChannelAgentProfile", () => {
     expect(getAgentProfileForMember).not.toHaveBeenCalled();
   });
 
-  it("maps NOT_FOUND (unshared or nonexistent) to null without error", async () => {
+  it("maps NOT_FOUND (link off or nonexistent) to null without error", async () => {
     // The generated client rethrows every failure wrapped as a
     // StigmerError — reject with the same shape the hook really sees.
     const getAgentProfile = vi

@@ -7,15 +7,15 @@ import type { ChannelAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/cha
 import { NewSessionViewer } from "../session/NewSessionViewer.js";
 import { SessionViewer } from "../session/SessionViewer.js";
 import { useChannelAgentProfile } from "./useChannelAgentProfile.js";
-import type { SharingAudience } from "./webChannelDraft.js";
+import type { ChatLinkAudience } from "./webChannelDraft.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
-/** Props for {@link SharedAgentChat}. */
-export interface SharedAgentChatProps {
+/** Props for {@link VisitorChat}. */
+export interface VisitorChatProps {
   /**
    * Id of the web channel, from the hosted chat link (`/chat/<channel id>`).
    * The agent's organization and slug come from the channel's resolved
@@ -41,7 +41,7 @@ export interface SharedAgentChatProps {
    */
   readonly onSessionCreated?: (sessionId: string) => void;
   /**
-   * Which sharing audience this surface serves. Selects the profile
+   * Which chat-link audience this surface serves. Selects the profile
    * resolution path: `"public"` uses the anonymous `getAgentProfile`
    * RPC (pair with `createGuestAuth`); `"org"` uses the authenticated
    * `getAgentProfileForMember` RPC and requires a `StigmerProvider`
@@ -53,7 +53,7 @@ export interface SharedAgentChatProps {
    *
    * @default "public"
    */
-  readonly sharingAudience?: SharingAudience;
+  readonly linkAudience?: ChatLinkAudience;
   /**
    * Chat-link token from the URL's `?k=` parameter (public audience
    * only). Required when the chat link has been locked with a
@@ -67,8 +67,8 @@ export interface SharedAgentChatProps {
 }
 
 /**
- * The complete shared-agent chat experience for anonymous visitors —
- * the organism behind a shared agent's hosted page and embeds.
+ * The complete chat experience for a chat link's visitors —
+ * the organism behind an agent's hosted chat page and embeds.
  *
  * Resolves the agent's public profile (name, description, icon, and
  * the channel's agent reference) via {@link useChannelAgentProfile}, then
@@ -79,7 +79,7 @@ export interface SharedAgentChatProps {
  * names.
  *
  * Handles all states: loading, unavailable (the agent does not exist
- * or is not shared — indistinguishable by design), transient errors
+ * or its link is off — indistinguishable by design), transient errors
  * (with retry), and the live chat.
  *
  * **Auth contract:** requires a `StigmerProvider` whose client can
@@ -87,7 +87,7 @@ export interface SharedAgentChatProps {
  * `createGuestAuth({ baseUrl, channelId })` from `@stigmer/sdk` —
  * the profile fetch is public and sessions use the guest token the
  * provider mints on demand. For org-members-only chat links, pass
- * `sharingAudience="org"` and a client carrying the signed-in
+ * `linkAudience="org"` and a client carrying the signed-in
  * member's own token; the presentation stays the same pure chat.
  *
  * @example
@@ -99,22 +99,22 @@ export interface SharedAgentChatProps {
  * );
  *
  * <StigmerProvider client={client} colorMode="system">
- *   <SharedAgentChat channelId={channelId} />
+ *   <VisitorChat channelId={channelId} />
  * </StigmerProvider>
  * ```
  */
-export function SharedAgentChat({
+export function VisitorChat({
   channelId,
   heading,
   placeholder,
   showPoweredBy = true,
   onSessionCreated,
-  sharingAudience = "public",
+  linkAudience = "public",
   linkToken,
   className,
-}: SharedAgentChatProps) {
+}: VisitorChatProps) {
   const { profile, isLoading, error, refetch } = useChannelAgentProfile(channelId, {
-    audience: sharingAudience,
+    audience: linkAudience,
     linkToken,
   });
   // Memoized so the launcher's mount-time pin sees one stable reference.
@@ -157,7 +157,7 @@ export function SharedAgentChat({
     );
   }
 
-  // NOT_FOUND covers both "no such agent" and "sharing disabled" — the
+  // NOT_FOUND covers both "no such agent" and "chat link turned off" — the
   // server keeps them indistinguishable so a revoked link leaks nothing.
   // A profile that names no agent is equally unusable: there is nothing
   // to chat with, so it presents as the same state.
@@ -166,7 +166,7 @@ export function SharedAgentChat({
       <div className={cn("stg:flex stg:h-full stg:w-full stg:items-center stg:justify-center", className)}>
         <StateCard
           title="This agent isn't available"
-          message="The link may be incorrect, or sharing may have been turned off."
+          message="The link may be incorrect, or it may have been turned off."
         />
       </div>
     );
@@ -217,7 +217,7 @@ export function SharedAgentChat({
           <NewSessionViewer
             org={org}
             audience="guest"
-            includeMyVault={sharingAudience === "org"}
+            includeMyVault={linkAudience === "org"}
             initialAgentRef={agentRef}
             enableGitHub={false}
             heading={heading ?? `Chat with ${profile.name || slug}`}

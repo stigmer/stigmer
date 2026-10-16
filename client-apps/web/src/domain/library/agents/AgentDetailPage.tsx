@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ChannelsPanel,
   AgentDetailView,
   EditResourceYamlDialog,
   useAgent,
@@ -13,7 +12,6 @@ import {
   useExportResource,
   ConfirmDialog,
   useBreadcrumbOverride,
-  type AdditionalTab,
   type DetailAction,
 } from "@stigmer/react";
 import {
@@ -23,7 +21,7 @@ import {
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 import { useRunNavigation } from "@/domain/runs/run-navigation";
 import { getAgentSessionUrl } from "@/domain/session/session-url";
-import { shareUrlFor } from "@/domain/sharing/share-url";
+import { chatLinkUrlFor } from "@/domain/chat-link/chat-link-url";
 import { AGENT_DELETE_DESCRIPTION } from "@/domain/library/agents/agent-delete-confirmation";
 
 /**
@@ -64,30 +62,6 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
   // handoffs land on the right tab.
   const [activeTab, setActiveTab] = useState<string>(
     () => initialTabFromUrl() ?? "overview",
-  );
-
-  // The Channels tab needs the loaded Agent; until then the tab is absent
-  // and a ?tab=channels deep link shows Overview, upgrading on load.
-  const additionalTabs: AdditionalTab[] = useMemo(
-    () =>
-      agent
-        ? [
-            {
-              id: "channels",
-              label: "Channels",
-              content: (
-                <ChannelsPanel
-                  agent={agent}
-                  channelAppsHref="/settings/channel-apps"
-                  // Channel conversations open in the standard session route;
-                  // SessionViewer renders them read-only (observer audience).
-                  sessionHref={(id) => `/sessions/${id}`}
-                />
-              ),
-            },
-          ]
-        : [],
-    [agent],
   );
 
   useEffect(() => () => setLabel(null), [setLabel]);
@@ -212,8 +186,11 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         editable
         primaryAction={primaryAction}
         actions={actions}
-        buildShareUrl={shareUrlFor}
-        additionalTabs={additionalTabs}
+        buildChatLinkUrl={chatLinkUrlFor}
+        channelAppsHref="/settings/channel-apps"
+        // Channel conversations open in the standard session route;
+        // SessionViewer renders them read-only (observer audience).
+        sessionHref={(id) => `/sessions/${id}`}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />

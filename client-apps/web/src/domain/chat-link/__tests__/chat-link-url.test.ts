@@ -1,16 +1,16 @@
-// Pins the console's share link (share-url.ts): the configured public
-// origin plus the share's id, the one identity a hosted chat link carries.
+// Pins the console's chat link (chat-link-url.ts): the configured public
+// origin plus the channel's id, the one identity a hosted chat link carries.
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/config/env", () => ({
   getAppBaseUrl: () => "https://app.example.com",
 }));
 
-import { shareUrlFor } from "../share-url";
+import { chatLinkUrlFor } from "../chat-link-url";
 
-describe("shareUrlFor", () => {
-  it("builds /chat/<share id> on the console's public origin", () => {
-    expect(shareUrlFor("ash_01j9z3k8f2q4m6n7p8r9s0t1v2")).toBe(
+describe("chatLinkUrlFor", () => {
+  it("builds /chat/<channel id> on the console's public origin", () => {
+    expect(chatLinkUrlFor("ash_01j9z3k8f2q4m6n7p8r9s0t1v2")).toBe(
       "https://app.example.com/chat/ash_01j9z3k8f2q4m6n7p8r9s0t1v2",
     );
   });

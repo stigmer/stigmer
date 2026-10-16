@@ -10,7 +10,7 @@ import { agentUsesTools } from "../../agent/runServers.js";
 
 /**
  * Collapsible vault section for the connect dialogs' create mode (the
- * ShareAgentDialog ToolCredentialsSection pattern). Expanded by default
+ * ChatLinkDialog ToolCredentialsSection pattern). Expanded by default
  * when the agent dials MCP servers, its own or its plugins' — for those agents this is essential
  * configuration, not an advanced option: without a vault, every channel
  * message that needs a tool is refused.

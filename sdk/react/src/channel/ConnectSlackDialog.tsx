@@ -11,6 +11,7 @@ import { ChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/channel/
 import { Button } from "../button/Button.js";
 import { useChannelAppList } from "../channel-app/useChannelAppList.js";
 import { useDeploymentMode } from "../deployment-mode.js";
+import { channelInstallsAvailable } from "./providers.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import {
   RegisterChannelAppAffordance,
@@ -77,7 +78,7 @@ export interface ConnectSlackDialogProps {
  * vocabulary.
  *
  * Built on the native `<dialog>` element for focus trapping and escape
- * handling, matching the SDK's modal convention ({@link ShareAgentDialog}).
+ * handling, matching the SDK's modal convention ({@link ChatLinkDialog}).
  * All visual properties flow through `--stgm-*` design tokens.
  *
  * Most hosts mount it via {@link ChannelsPanel} (the Channels tab).
@@ -149,7 +150,7 @@ function ConnectSlackDialogBody({
   titleId,
 }: ConnectSlackDialogBodyProps) {
   const slugForOrg = useOrgSlugForId();
-  const deploymentMode = useDeploymentMode();
+  const installsAvailable = channelInstallsAvailable(useDeploymentMode());
   const agentName = agent.metadata?.name || agent.metadata?.slug || "this agent";
   const org = agent.metadata?.org ?? "";
 
@@ -204,7 +205,7 @@ function ConnectSlackDialogBody({
   // same key the database enforces uniqueness on: (team, channel app).
   // Advisory only — the list is permission-bounded, and other orgs'
   // holds are invisible; completeInstall stays the arbiter.
-  const advisoryActive = deploymentMode === "cloud" && !channel && !installed;
+  const advisoryActive = installsAvailable && !channel && !installed;
   const { channels: orgChannels } = useOrgChannelList(
     advisoryActive && org ? org : null,
   );
@@ -287,11 +288,12 @@ function ConnectSlackDialogBody({
       </div>
 
       <div className="stg:space-y-4 stg:px-5 stg:py-4">
-        {deploymentMode === "local" ? (
-          // Preempt the doomed flow: the OSS backend answers every install
-          // with FAILED_PRECONDITION, so don't open a popup destined to fail.
+        {!installsAvailable ? (
+          // Preempt the doomed flow: an edition without the delivery
+          // runtime answers every install with FAILED_PRECONDITION, so
+          // don't open a popup destined to fail.
           <CloudFeatureNotice>
-            Channel installs require Stigmer Cloud. The local backend
+            Channel installs require Stigmer Cloud. This server
             manages channel configuration, but connecting to Slack uses the
             platform&apos;s hosted Slack app.
           </CloudFeatureNotice>
@@ -398,7 +400,7 @@ function ConnectSlackDialogBody({
 
       {/* Footer */}
       <div className="stg:flex stg:justify-end stg:gap-2 stg:border-t stg:border-border stg:px-5 stg:py-3">
-        {installed || deploymentMode === "local" ? (
+        {installed || !installsAvailable ? (
           <Button variant="outline" size="sm" onClick={onClose}>
             {installed ? "Done" : "Close"}
           </Button>

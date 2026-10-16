@@ -61,7 +61,7 @@ describe("useRotateChannelLink", () => {
     expect(result.current.isPending).toBe(false);
   });
 
-  it("is a stable no-op while channelId is null (agent never shared)", async () => {
+  it("is a stable no-op while channelId is null (no chat link yet)", async () => {
     const rotateLink = vi.fn();
     const client = createMockStigmer({ rotateLink });
 

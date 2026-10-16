@@ -10,28 +10,28 @@ import type { WebChannelDraft } from "./webChannelDraft.js";
 import { agentUsesTools } from "../agent/runServers.js";
 
 /**
- * Readiness of a share's tool credentials for visitor runs.
+ * Readiness of a chat link's tool credentials for visitor runs.
  *
  * The shared vocabulary lives on {@link ToolCredentialsReadiness}; this
- * alias preserves the original share-scoped export.
+ * alias names it for chat links.
  */
-export type ShareToolReadiness = ToolCredentialsReadiness;
+export type ChatLinkToolReadiness = ToolCredentialsReadiness;
 
 /**
- * Share-scoped wrapper over {@link useToolCredentialsReadiness}: checks
- * whether a tool-using shared agent's credentials will work for
- * visitors — i.e. whether the share names vaults (`vaults`) and each
+ * Chat-link wrapper over {@link useToolCredentialsReadiness}: checks
+ * whether a tool-using agent's credentials will work for a chat link's
+ * visitors — i.e. whether the link names vaults (`vaults`) and each
  * one is a shared vault.
  *
- * The check runs only when the share is enabled with a public audience
- * (org-audience shares reject bindings at the proto boundary), the
+ * The check runs only when the link is enabled with a public audience
+ * (org-audience links reject bindings at the proto boundary), the
  * deployment is cloud (local mode has no guest runtime or secret
  * gating), and the agent dials MCP servers (its own or its plugins', which read keys).
  */
-export function useShareToolReadiness(
+export function useChatLinkToolReadiness(
   agent: Agent,
   draft: WebChannelDraft,
-): ShareToolReadiness {
+): ChatLinkToolReadiness {
   const deploymentMode = useDeploymentMode();
   const usesTools = agentUsesTools(agent.spec);
   const applicable =

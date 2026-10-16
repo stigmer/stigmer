@@ -10,6 +10,7 @@ import { ChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/channel/
 import { Button } from "../button/Button.js";
 import { useChannelAppList } from "../channel-app/useChannelAppList.js";
 import { useDeploymentMode } from "../deployment-mode.js";
+import { channelInstallsAvailable } from "./providers.js";
 import { useStigmer } from "../hooks.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import {
@@ -160,7 +161,7 @@ function ConnectWhatsAppDialogBody({
 }: ConnectWhatsAppDialogBodyProps) {
   const slugForOrg = useOrgSlugForId();
   const stigmer = useStigmer();
-  const deploymentMode = useDeploymentMode();
+  const installsAvailable = channelInstallsAvailable(useDeploymentMode());
   const agentName = agent.metadata?.name || agent.metadata?.slug || "this agent";
   const org = agent.metadata?.org ?? "";
 
@@ -219,7 +220,7 @@ function ConnectWhatsAppDialogBody({
   // key the database enforces uniqueness on: (phone number, channel app).
   // Advisory only — the list is permission-bounded; the install stays
   // the arbiter.
-  const advisoryActive = deploymentMode === "cloud" && !installed;
+  const advisoryActive = installsAvailable && !installed;
   const { channels: orgChannels } = useOrgChannelList(
     advisoryActive && org ? org : null,
   );
@@ -327,11 +328,11 @@ function ConnectWhatsAppDialogBody({
       </div>
 
       <div className="stg:space-y-4 stg:px-5 stg:py-4">
-        {deploymentMode === "local" ? (
-          // Preempt the doomed flow: the OSS backend answers every
-          // install with FAILED_PRECONDITION.
+        {!installsAvailable ? (
+          // Preempt the doomed flow: an edition without the delivery
+          // runtime answers every install with FAILED_PRECONDITION.
           <CloudFeatureNotice>
-            Channel installs require Stigmer Cloud. The local backend
+            Channel installs require Stigmer Cloud. This server
             manages channel configuration, but connecting to WhatsApp
             verifies your number through Stigmer&apos;s hosted webhook
             infrastructure.
@@ -451,7 +452,7 @@ function ConnectWhatsAppDialogBody({
 
       {/* Footer */}
       <div className="stg:flex stg:justify-end stg:gap-2 stg:border-t stg:border-border stg:px-5 stg:py-3">
-        {installed || deploymentMode === "local" ? (
+        {installed || !installsAvailable ? (
           <Button variant="outline" size="sm" onClick={onClose}>
             {installed ? "Done" : "Close"}
           </Button>

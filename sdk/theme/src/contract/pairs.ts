@@ -198,11 +198,11 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
 export const SURFACE_PAIRS: readonly ContrastPair[] = [
   pair("--stgm-muted-subtle", "--stgm-background", "surface", "user message bubble on thread background (borderless)", ["dark"]),
   pair("--stgm-muted", "--stgm-background", "surface", "code blocks, muted panels on the page (borderless)", ["dark"]),
-  pair("--stgm-input", "--stgm-popover", "surface", "Switch off-state track on dialog surface (ShareAgentDialog)", ["dark"]),
+  pair("--stgm-input", "--stgm-popover", "surface", "Switch off-state track on dialog surface (ChatLinkDialog)", ["dark"]),
   pair("--stgm-avatar", "--stgm-popover", "surface", "grantee avatar in the Manage access dialog and the share picker (GranteeAvatar)", ["dark"]),
   pair("--stgm-avatar", "--stgm-card", "surface", "grantee avatar on a settings card (team members)", ["dark"]),
   pair("--stgm-avatar", "--stgm-background", "surface", "grantee avatar on the page", ["dark"]),
-  pair("--stgm-primary", "--stgm-popover", "surface", "Switch on-state track on dialog surface (ShareAgentDialog)", ["dark"]),
+  pair("--stgm-primary", "--stgm-popover", "surface", "Switch on-state track on dialog surface (ChatLinkDialog)", ["dark"]),
   ...STATUSES.flatMap((status) =>
     PILL_SURFACES.map(({ surface, where }) =>
       pair(`--stgm-status-${status}-subtle`, surface, "surface", `StatusBadge "${status}" pill fill ${where} (borderless)`, ["dark"]),

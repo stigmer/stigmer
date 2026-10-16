@@ -36,10 +36,10 @@ import {
   webChannelPatch,
   webLinkTokenOf,
   type WebChannelDraft,
-  type SharingAudience,
+  type ChatLinkAudience,
 } from "./webChannelDraft.js";
 import { useRotateChannelLink } from "./useRotateChannelLink.js";
-import { useShareToolReadiness } from "./useShareToolReadiness.js";
+import { useChatLinkToolReadiness } from "./useChatLinkToolReadiness.js";
 import { trimTrailing } from "../internal/trim.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { agentUsesTools } from "../agent/runServers.js";
@@ -47,7 +47,7 @@ import { agentUsesTools } from "../agent/runServers.js";
 /** Maximum length of each visitor message (proto: `string.max_len = 300`). */
 const MAX_MESSAGE_LENGTH = 300;
 
-const SHARE_TABS: readonly TabItem[] = [
+const CHAT_LINK_TABS: readonly TabItem[] = [
   { id: "link", label: "Link" },
   { id: "embed", label: "Embed" },
   { id: "developer", label: "Developer" },
@@ -56,37 +56,36 @@ const SHARE_TABS: readonly TabItem[] = [
 const PRODUCT_USERS_DOCS_URL =
   "https://stigmer.ai/docs/guides/authentication/product-users";
 
-/** Props for {@link ShareAgentDialog}. */
-export interface ShareAgentDialogProps {
+/** Props for {@link ChatLinkDialog}. */
+export interface ChatLinkDialogProps {
   /** Whether the dialog is open. */
   readonly open: boolean;
   /** Called when the dialog should open or close. */
   readonly onOpenChange: (open: boolean) => void;
-  /** The agent whose sharing is managed. */
+  /** The agent the chat link reaches. */
   readonly agent: Agent;
   /**
-   * The exact share to edit. When omitted, the dialog opens in **create
-   * mode**: a name/slug step creates a new share in the agent's own
-   * organization (its URL, billing and credentials belong to that
-   * organization), then the dialog becomes its editor. The share's
-   * identity is immutable once created — edit mode
-   * never renames.
+   * The exact chat link (a web channel) to edit. When omitted, the dialog
+   * opens in **create mode**: a name/slug step creates a new chat link in
+   * the agent's own organization (its URL, billing and credentials belong
+   * to that organization), then the dialog becomes its editor. Edit mode
+   * never renames; a rename is the Channel kind's own act.
    */
-  readonly share?: Channel | null;
+  readonly channel?: Channel | null;
   /**
-   * Builds the absolute public chat URL for the shared agent. The host
+   * Builds the absolute public chat URL for the chat link. The host
    * application owns URL construction (its configured public origin may
    * differ from the rendering origin — e.g. the desktop app). It receives
    * the web channel's id (`metadata.id`), the one identity a link
    * carries. When omitted, falls back to the relative path
    * `/chat/<channel id>`.
    */
-  readonly buildShareUrl?: (channelId: string) => string;
+  readonly buildChatLinkUrl?: (channelId: string) => string;
   /**
-   * Called after any sharing change is persisted. Hosts typically pass
-   * the share list's `refetch`.
+   * Called after any change to the chat link is persisted. Hosts
+   * typically pass the channel list's `refetch`.
    */
-  readonly onSharingChanged?: () => void;
+  readonly onChannelsChanged?: () => void;
   /**
    * When `false`, renders as an in-flow open dialog instead of a
    * top-layer modal — no `showModal()`, no backdrop, no focus trap.
@@ -98,22 +97,22 @@ export interface ShareAgentDialogProps {
 }
 
 /**
- * The Share dialog for one agent share: create it (name/slug step), then
+ * The dialog for one chat link of an agent: create it (name/slug step), then
  * toggle serving, copy the hosted chat link, copy an embeddable snippet,
  * manage allowed embed origins, bind tool credentials for visitors,
  * customize visitor refusal messages, and discover how to sign a
  * product's own users in through the SDK.
  *
- * Sharing is a distinct consent from marketplace visibility: visibility
- * governs who can *read* the blueprint; sharing governs who can *chat*
- * with the running agent — billed to the org that owns the share. The
- * dialog states who pays before creation and next to the toggle, so
- * sharing never surprises.
+ * A chat link is a distinct consent from marketplace visibility:
+ * visibility governs who can *read* the blueprint; a chat link governs who
+ * can *chat* with the running agent — billed to the org that owns the
+ * link. The dialog states who pays before creation and next to the
+ * toggle, so a link never surprises.
  *
- * A share is a **web Channel** (the `web` type of the Channel kind), and
+ * A chat link is a **web Channel** (the `web` type of the Channel kind), and
  * an agent can carry N of them — each with its own URL, audience,
  * origins, credentials, and link token. The dialog edits exactly the
- * channel it is given; it never resolves "the" share of an agent. A
+ * channel it is given; it never resolves "the" chat link of an agent. A
  * create is a strict create (`useCreateChannel`); every later save names
  * the complete draft on the channel as loaded (`useSaveChannel`), and
  * the local draft is refreshed from every returned channel, so the
@@ -123,18 +122,18 @@ export interface ShareAgentDialogProps {
  * handling, matching the SDK's modal convention ({@link ManageAccessDialog}).
  * All visual properties flow through `--stgm-*` design tokens.
  *
- * Most hosts mount it via {@link WebChannelList} (the Shares tab).
+ * Most hosts mount it via {@link ChannelsPanel} (the agent's Channels tab).
  * Render it directly only when you own the open-state.
  */
-export function ShareAgentDialog({
+export function ChatLinkDialog({
   open,
   onOpenChange,
   agent,
-  share,
-  buildShareUrl,
-  onSharingChanged,
+  channel,
+  buildChatLinkUrl,
+  onChannelsChanged,
   modal = true,
-}: ShareAgentDialogProps) {
+}: ChatLinkDialogProps) {
   // Instance-scoped title id (oss#593): a reusable component must not
   // hardcode DOM ids — hosts legitimately mount this dialog more than once
   // per page (e.g. zone-cached detail pages), and duplicate ids break the
@@ -156,11 +155,11 @@ export function ShareAgentDialog({
       {/* Body mounts only while open so its draft state resets per
           session — reopening the dialog never shows a stale draft. */}
       {open && (
-        <ShareAgentDialogBody
+        <ChatLinkDialogBody
           agent={agent}
-          share={share ?? null}
-          buildShareUrl={buildShareUrl}
-          onSharingChanged={onSharingChanged}
+          channel={channel ?? null}
+          buildChatLinkUrl={buildChatLinkUrl}
+          onChannelsChanged={onChannelsChanged}
           onClose={handleClose}
           titleId={titleId}
         />
@@ -170,36 +169,36 @@ export function ShareAgentDialog({
 }
 
 // ---------------------------------------------------------------------------
-// Dialog body — create step or editor, depending on the share it was given
+// Dialog body — create step or editor, depending on the channel it was given
 // ---------------------------------------------------------------------------
 
 /**
- * Renders the create step (no share yet) or the editor (share in hand).
- * A share persisted by the create step is adopted locally, so one dialog
+ * Renders the create step (no chat link yet) or the editor (link in hand).
+ * A chat link persisted by the create step is adopted locally, so one dialog
  * session flows create → edit without remounting — and the editor's
  * draft seeding stays synchronous (`useState` initializer from the
- * share): no hydrate-on-effect, no window where the switch shows a state
+ * channel): no hydrate-on-effect, no window where the switch shows a state
  * the server never had.
  */
-function ShareAgentDialogBody({
+function ChatLinkDialogBody({
   agent,
-  share,
-  buildShareUrl,
-  onSharingChanged,
+  channel,
+  buildChatLinkUrl,
+  onChannelsChanged,
   onClose,
   titleId,
 }: {
   readonly agent: Agent;
-  readonly share: Channel | null;
-  readonly buildShareUrl?: (channelId: string) => string;
-  readonly onSharingChanged?: () => void;
+  readonly channel: Channel | null;
+  readonly buildChatLinkUrl?: (channelId: string) => string;
+  readonly onChannelsChanged?: () => void;
   readonly onClose: () => void;
   /** Heading id minted by the outer dialog for its aria-labelledby. */
   readonly titleId: string;
 }) {
   const [created, setCreated] = useState<Channel | null>(null);
-  const activeShare = share ?? created;
-  const isCreating = activeShare === null;
+  const activeChannel = channel ?? created;
+  const isCreating = activeChannel === null;
 
   return (
     <div className="stg:flex stg:flex-col">
@@ -210,7 +209,7 @@ function ShareAgentDialogBody({
             id={titleId}
             className="stg:text-base stg:font-semibold stg:text-foreground"
           >
-            {isCreating ? "Create share" : "Share"}
+            {isCreating ? "Create a chat link" : "Chat link"}
           </h2>
           <p className="stg:mt-0.5 stg:truncate stg:text-xs stg:text-muted-foreground">
             {agent.metadata?.name || agent.metadata?.slug}
@@ -231,19 +230,19 @@ function ShareAgentDialogBody({
       </div>
 
       {isCreating ? (
-        <CreateShareForm
+        <CreateChatLinkForm
           agent={agent}
           onCreated={(persisted) => {
             setCreated(persisted);
-            onSharingChanged?.();
+            onChannelsChanged?.();
           }}
         />
       ) : (
-        <ShareAgentForm
+        <ChatLinkForm
           agent={agent}
-          initialShare={activeShare}
-          buildShareUrl={buildShareUrl}
-          onSharingChanged={onSharingChanged}
+          initialChannel={activeChannel}
+          buildChatLinkUrl={buildChatLinkUrl}
+          onChannelsChanged={onChannelsChanged}
         />
       )}
 
@@ -268,17 +267,17 @@ function ShareAgentDialogBody({
 }
 
 // ---------------------------------------------------------------------------
-// Create step — the new share's identity and cost, before any channel exists
+// Create step — the new chat link's identity and cost, before any channel exists
 // ---------------------------------------------------------------------------
 
 /**
- * Names the new share, asks who can chat, and creates it live
+ * Names the new chat link, asks who can chat, and creates it live
  * (`enabled: true`). The audience starts at "Organization members", the
  * server's own default: a link reaches the internet only when the owner
- * picks "Anyone with the link". Identity is set here because it
- * is immutable afterward: the slug names the share in the agent's
- * organization for the CLI and API. The hosted link names the share by
- * its id, so it exists only once the share does.
+ * picks "Anyone with the link". Identity is set here: the slug names the
+ * chat link in the agent's organization for the CLI and API. The hosted
+ * link names the channel by its id, so it exists only once the channel
+ * does.
  *
  * The slug auto-derives from the name until the user edits it (the
  * {@link CreateOrganizationForm} pattern), validated by the same
@@ -286,15 +285,15 @@ function ShareAgentDialogBody({
  * the server's ALREADY_EXISTS — surfaces inline on the slug field with a
  * pick-another-slug remedy instead of a generic failure toast.
  */
-function CreateShareForm({
+function CreateChatLinkForm({
   agent,
   onCreated,
 }: {
   readonly agent: Agent;
-  readonly onCreated: (share: Channel) => void;
+  readonly onCreated: (channel: Channel) => void;
 }) {
   const agentName = agent.metadata?.name || (agent.metadata?.slug ?? "");
-  const shareOrg = agent.metadata?.org ?? "";
+  const linkOrg = agent.metadata?.org ?? "";
 
   // Instance-scoped field ids (oss#593) — see the outer dialog's titleId.
   const baseId = useId();
@@ -303,7 +302,7 @@ function CreateShareForm({
 
   const [name, setName] = useState(agentName);
   const [slug, setSlug] = useState(agent.metadata?.slug ?? "");
-  const [audience, setAudience] = useState<SharingAudience>("org");
+  const [audience, setAudience] = useState<ChatLinkAudience>("org");
   // Once the user manually edits the slug field, stop auto-deriving.
   const slugTouchedRef = useRef(false);
   // A server-side (org, slug) collision pins to the slug field until the
@@ -359,19 +358,19 @@ function CreateShareForm({
         const persisted = await createChannel(
           webChannelCreateInput(
             agent,
-            // Live from the start (the user's one intent-click is "share
-            // it"), for the audience chosen above, nothing else configured
+            // Live from the start (the user's one intent-click is "make a
+            // link"), for the audience chosen above, nothing else configured
             // yet.
             { ...draftFromWebChannel(null), enabled: true, audience },
             { name: trimmedName, slug },
           ),
         );
-        toast.success("Share created — the link is live");
+        toast.success("Chat link created — the link is live");
         onCreated(persisted);
       } catch (err) {
         if (err instanceof StigmerError && err.code === "already-exists") {
           setCollisionError(
-            `"${slug}" is already used by another share or resource in ${shareOrg} — pick a different slug`,
+            `"${slug}" is already used by another channel in ${linkOrg} — pick a different slug`,
           );
         } else {
           // Any other refusal (a permission the caller lacks, a
@@ -380,16 +379,16 @@ function CreateShareForm({
         }
       }
     },
-    [canSubmit, createChannel, agent, trimmedName, slug, audience, shareOrg, onCreated],
+    [canSubmit, createChannel, agent, trimmedName, slug, audience, linkOrg, onCreated],
   );
 
   return (
     <form onSubmit={handleSubmit} className="stg:flex stg:flex-col stg:gap-4 stg:px-6 stg:py-4">
       <p className="stg:text-xs stg:text-muted-foreground">
-        A share is its own channel to this agent: a hosted chat link with
+        A chat link is its own channel to this agent: a hosted link with
         its own audience, embed origins, tool credentials, and visitor
         messages. Visitors chat on{" "}
-        <span className="stg:font-medium">{shareOrg}</span>&apos;s own provider keys.
+        <span className="stg:font-medium">{linkOrg}</span>&apos;s own provider keys.
       </p>
 
       {/* ---- Name ---- */}
@@ -422,7 +421,7 @@ function CreateShareForm({
           </p>
         ) : (
           <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-            A display name for this share — e.g. the site or campaign it
+            A display name for this chat link — e.g. the site or campaign it
             serves.
           </p>
         )}
@@ -457,8 +456,8 @@ function CreateShareForm({
           </p>
         ) : (
           <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-            Names this share in the CLI and API. The link is made when you
-            create the share. Can&apos;t be changed later.
+            Names this chat link in the CLI and API. The link itself is made
+            when you create it.
           </p>
         )}
       </div>
@@ -493,7 +492,7 @@ function CreateShareForm({
             "stg:disabled:pointer-events-none stg:disabled:opacity-50",
           )}
         >
-          {isPending ? "Creating…" : "Create share"}
+          {isPending ? "Creating…" : "Create chat link"}
         </button>
       </div>
     </form>
@@ -501,44 +500,44 @@ function CreateShareForm({
 }
 
 // ---------------------------------------------------------------------------
-// Form — owns the share draft for the session
+// Form — owns the chat link's draft for the session
 // ---------------------------------------------------------------------------
 
-function ShareAgentForm({
+function ChatLinkForm({
   agent,
-  initialShare,
-  buildShareUrl,
-  onSharingChanged,
+  initialChannel,
+  buildChatLinkUrl,
+  onChannelsChanged,
 }: {
   readonly agent: Agent;
-  readonly initialShare: Channel;
-  readonly buildShareUrl?: (channelId: string) => string;
-  readonly onSharingChanged?: () => void;
+  readonly initialChannel: Channel;
+  readonly buildChatLinkUrl?: (channelId: string) => string;
+  readonly onChannelsChanged?: () => void;
 }) {
   const agentName = agent.metadata?.name || (agent.metadata?.slug ?? "");
 
   // Instance-scoped label id (oss#593) — see the outer dialog's titleId.
   const enabledLabelId = useId();
 
-  // The latest server share is the single baseline: the draft, the link
-  // token, and the share id for rotation all derive from it.
-  const [share, setShare] = useState<Channel>(initialShare);
+  // The latest server channel is the single baseline: the draft, the link
+  // token, and the channel id for rotation all derive from it.
+  const [channel, setChannel] = useState<Channel>(initialChannel);
   const [draft, setDraft] = useState<WebChannelDraft>(() =>
-    draftFromWebChannel(initialShare),
+    draftFromWebChannel(initialChannel),
   );
   const [activeTab, setActiveTab] = useState("link");
 
   const { update, isPending } = useSaveChannel();
   const { rotateLink, isPending: isRotating } = useRotateChannelLink(
-    share.metadata?.id ?? null,
+    channel.metadata?.id ?? null,
   );
 
   // The hosted link names the channel by its id; org and slug are its
   // billing organization and its name there.
-  const channelId = share.metadata?.id ?? "";
-  const org = share.metadata?.org ?? "";
-  const slug = share.metadata?.slug ?? "";
-  const linkToken = webLinkTokenOf(share);
+  const channelId = channel.metadata?.id ?? "";
+  const org = channel.metadata?.org ?? "";
+  const slug = channel.metadata?.slug ?? "";
+  const linkToken = webLinkTokenOf(channel);
 
   // Single commit path: save every draft field on the channel as loaded,
   // adopt the server's returned channel as the new baseline, notify the
@@ -546,48 +545,48 @@ function ShareAgentForm({
   const commit = useCallback(
     async (next: WebChannelDraft, successMessage: string): Promise<boolean> => {
       try {
-        const persisted = await update(share, webChannelPatch(next));
-        setShare(persisted);
+        const persisted = await update(channel, webChannelPatch(next));
+        setChannel(persisted);
         setDraft(draftFromWebChannel(persisted));
         toast.success(successMessage);
-        onSharingChanged?.();
+        onChannelsChanged?.();
         return true;
       } catch (err) {
         toast.error(getUserMessage(err));
         return false;
       }
     },
-    [update, share, onSharingChanged],
+    [update, channel, onChannelsChanged],
   );
 
   const handleRotateLink = useCallback(async () => {
     try {
       const updated = await rotateLink();
       if (updated) {
-        setShare(updated);
+        setChannel(updated);
       }
       toast.success("Link reset — the old link no longer works");
-      onSharingChanged?.();
+      onChannelsChanged?.();
     } catch (err) {
       toast.error(getUserMessage(err));
     }
-  }, [rotateLink, onSharingChanged]);
+  }, [rotateLink, onChannelsChanged]);
 
   const handleToggle = useCallback(
     (enabled: boolean) => {
       void commit(
         { ...draft, enabled },
-        enabled ? "Sharing enabled" : "Sharing disabled",
+        enabled ? "Chat link resumed" : "Chat link paused",
       );
     },
     [commit, draft],
   );
 
   const handleAudienceChange = useCallback(
-    (audience: SharingAudience) => {
+    (audience: ChatLinkAudience) => {
       if (audience === draft.audience) return;
       // Credential bindings are public-audience only (the proto CEL rule
-      // rejects them on org shares), so switching
+      // rejects them on org chat links), so switching
       // to org drops them, and the toast says so: silent config loss is
       // worse than a wordier confirmation.
       const dropsBindings =
@@ -609,18 +608,18 @@ function ShareAgentForm({
   );
 
   const isOrgAudience = draft.audience === "org";
-  // Hosts build the base URL; the token rides it only on public shares
+  // Hosts build the base URL; the token rides it only on public chat links
   // (org-audience access is gated by membership, not the link token).
-  const baseShareUrl = buildShareUrl
-    ? buildShareUrl(channelId)
+  const baseLinkUrl = buildChatLinkUrl
+    ? buildChatLinkUrl(channelId)
     : chatPath(channelId);
-  const shareUrl = isOrgAudience
-    ? baseShareUrl
-    : appendLinkToken(baseShareUrl, linkToken);
+  const linkUrl = isOrgAudience
+    ? baseLinkUrl
+    : appendLinkToken(baseLinkUrl, linkToken);
 
   return (
     <>
-      {/* Sharing master switch — governs every tab, so it sits above them. */}
+      {/* The link's on/off switch — governs every tab, so it sits above them. */}
       <div className="stg:border-b stg:border-border stg:px-6 stg:py-4">
         <div className="stg:flex stg:items-start stg:justify-between stg:gap-4">
           <div className="stg:min-w-0">
@@ -653,15 +652,15 @@ function ShareAgentForm({
       {/* Tabs */}
       <div className="stg:px-6 stg:pb-2 stg:pt-3">
         <Tabs
-          tabs={SHARE_TABS}
+          tabs={CHAT_LINK_TABS}
           activeTab={activeTab}
           onTabChange={setActiveTab}
-          aria-label="Sharing options"
+          aria-label="Chat link options"
         >
           <div className="stg:pt-4">
             {activeTab === "link" && (
               <LinkTab
-                shareUrl={shareUrl}
+                linkUrl={linkUrl}
                 org={org}
                 agent={agent}
                 enabled={draft.enabled}
@@ -675,7 +674,7 @@ function ShareAgentForm({
             )}
             {activeTab === "embed" && (
               <EmbedTab
-                shareUrl={shareUrl}
+                linkUrl={linkUrl}
                 channelId={channelId}
                 agentName={agentName}
                 linkToken={linkToken}
@@ -694,15 +693,15 @@ function ShareAgentForm({
 }
 
 // ---------------------------------------------------------------------------
-// Tool readiness — visitors' tool use needs a vault named on the share
+// Tool readiness — visitors' tool use needs a vault named on the chat link
 // ---------------------------------------------------------------------------
 
 /**
  * Pre-flight hint for tool-using agents: visitors' chats use only the
- * share's own vaults, so a tool-using agent naming none
+ * chat link's own vaults, so a tool-using agent naming none
  * (`needs-credentials`) or naming one that cannot serve (`blocked`) will
- * fail at the visitor's first message. Renders nothing when there is nothing to fix — sharing stays
- * one toggle; this only catches the misconfiguration at share time.
+ * fail at the visitor's first message. Renders nothing when there is nothing to fix — a chat link stays
+ * one toggle; this only catches the misconfiguration when the link is made.
  */
 function ToolReadinessHint({
   agent,
@@ -711,13 +710,13 @@ function ToolReadinessHint({
   readonly agent: Agent;
   readonly draft: WebChannelDraft;
 }) {
-  const readiness = useShareToolReadiness(agent, draft);
+  const readiness = useChatLinkToolReadiness(agent, draft);
 
   if (readiness.status === "needs-credentials") {
     return (
       <p className="stg:mt-2 stg:text-xs stg:text-warning" role="status">
         Visitors&apos; chats can&apos;t use this agent&apos;s tools yet: this
-        share names no vault. Name a shared vault under{" "}
+        chat link names no vault. Name a shared vault under{" "}
         <span className="stg:font-medium">Tool credentials</span> in the Link
         tab below.
       </p>
@@ -746,7 +745,7 @@ function ToolReadinessHint({
 // ---------------------------------------------------------------------------
 
 const AUDIENCE_OPTIONS: readonly {
-  readonly value: SharingAudience;
+  readonly value: ChatLinkAudience;
   readonly label: string;
 }[] = [
   { value: "org", label: "Organization members" },
@@ -754,7 +753,7 @@ const AUDIENCE_OPTIONS: readonly {
 ];
 
 /**
- * Segmented control choosing between the two sharing audiences. Mutually
+ * Segmented control choosing between the two chat-link audiences. Mutually
  * exclusive by nature, so a radio group (not toggles); the master switch
  * above stays the single on/off.
  */
@@ -764,8 +763,8 @@ function AudienceSelector({
   disabled,
   className,
 }: {
-  readonly audience: SharingAudience;
-  readonly onChange: (audience: SharingAudience) => void;
+  readonly audience: ChatLinkAudience;
+  readonly onChange: (audience: ChatLinkAudience) => void;
   readonly disabled: boolean;
   readonly className?: string;
 }) {
@@ -806,7 +805,7 @@ function AudienceSelector({
 }
 
 // ---------------------------------------------------------------------------
-// Who pays — the share's own org (metadata.org), whose provider keys serve
+// Who pays — the chat link's own org (metadata.org), whose provider keys serve
 // every chat
 // ---------------------------------------------------------------------------
 
@@ -815,7 +814,7 @@ function WhoPaysLine({
   audience,
 }: {
   readonly org: string;
-  readonly audience: SharingAudience;
+  readonly audience: ChatLinkAudience;
 }) {
   const slugForOrg = useOrgSlugForId();
 
@@ -832,22 +831,22 @@ function WhoPaysLine({
 // ---------------------------------------------------------------------------
 
 /**
- * Names the reason the copy fields above are grayed out: sharing is off, so
+ * Names the reason the copy fields above are grayed out: the link is paused, so
  * the link/embed would lead to NOT_FOUND (the fields stay disabled — handing
  * out a dead link is worse than a disabled button). Points at the master
  * switch as the remedy.
  */
-function SharingOffHint({ subject }: { readonly subject: string }) {
+function PausedLinkHint({ subject }: { readonly subject: string }) {
   return (
     <p className="stg:text-xs stg:text-muted-foreground" role="status">
-      Sharing is off, so {subject} doesn&apos;t work yet — turn on the switch
-      above to activate it.
+      This chat link is paused, so {subject} doesn&apos;t work yet — turn on
+      the switch above to resume it.
     </p>
   );
 }
 
 function LinkTab({
-  shareUrl,
+  linkUrl,
   org,
   agent,
   enabled,
@@ -858,7 +857,7 @@ function LinkTab({
   isRotating,
   onResetLink,
 }: {
-  readonly shareUrl: string;
+  readonly linkUrl: string;
   readonly org: string;
   readonly agent: Agent;
   readonly enabled: boolean;
@@ -879,12 +878,12 @@ function LinkTab({
     <div className="stg:flex stg:flex-col stg:gap-4">
       <CopyField
         label={isOrgAudience ? "Member chat link" : "Public chat link"}
-        value={shareUrl}
+        value={linkUrl}
         copyLabel="Link"
         disabled={!enabled}
-        openHref={enabled ? shareUrl : undefined}
+        openHref={enabled ? linkUrl : undefined}
       />
-      {!enabled && <SharingOffHint subject="this link" />}
+      {!enabled && <PausedLinkHint subject="this link" />}
 
       {isOrgAudience ? (
         <p className="stg:text-xs stg:text-muted-foreground">
@@ -896,7 +895,7 @@ function LinkTab({
       ) : (
         <p className="stg:text-xs stg:text-warning">
           Public links can be forwarded and indexed by search engines.
-          Don&apos;t share agents that know internal or confidential
+          Don&apos;t make public links to agents that know internal or confidential
           information — or switch the audience to organization members.
         </p>
       )}
@@ -927,8 +926,8 @@ function LinkTab({
 
 /**
  * The "kill a leaked link" lever: rotating generates a fresh `?k=` token
- * so the old URL stops working immediately — sharing stays on, the agent
- * keeps its name. Public audience only; org shares revoke via membership.
+ * so the old URL stops working immediately — the link stays on, the agent
+ * keeps its name. Public audience only; org chat links revoke via membership.
  */
 function ResetLinkControl({
   enabled,
@@ -950,7 +949,7 @@ function ResetLinkControl({
           </h3>
           <p className="stg:mt-0.5 stg:text-[0.65rem] stg:text-muted-foreground">
             {hasLinkToken
-              ? "Generates a new link and kills the current one immediately — even mid-conversation. Re-share the new link with the people who should keep access."
+              ? "Generates a new link and kills the current one immediately — even mid-conversation. Send the new link to the people who should keep access."
               : "Got forwarded further than you wanted? Resetting locks the link behind a secret and kills the plain address immediately."}
           </p>
         </div>
@@ -973,15 +972,15 @@ function ResetLinkControl({
 }
 
 // ---------------------------------------------------------------------------
-// Tool credentials — shared vaults named on the share for visitors
+// Tool credentials — shared vaults named on the chat link for visitors
 // ---------------------------------------------------------------------------
 
 /**
- * Names shared vaults on the share's `vaults` — the consent act that makes
- * a tool-using agent work for visitors (credentials belong to the share,
+ * Names shared vaults on the chat link's `vaults` — the consent act that makes
+ * a tool-using agent work for visitors (credentials belong to the chat link,
  * never to the agent itself; a visitor brings none of their own).
  * Public audience only; the section disappears for
- * org shares, whose members run on their own keys.
+ * org chat links, whose members run on their own keys.
  *
  * Expanded by default when the agent dials MCP servers, its own or its plugins' — for those agents
  * this is essential configuration, not an advanced option.
@@ -1061,24 +1060,24 @@ function ToolCredentialsSection({
 // ---------------------------------------------------------------------------
 
 /**
- * The app origin the loader is served from — derived from the share URL
- * the host built. Empty when the host never wired `buildShareUrl` (a
- * relative share URL), which degrades {@link buildEmbedSnippet} to a
+ * The app origin the loader is served from — derived from the chat link URL
+ * the host built. Empty when the host never wired `buildChatLinkUrl` (a
+ * relative chat link URL), which degrades {@link buildEmbedSnippet} to a
  * relative `/embed.js` — same degradation as the relative link itself.
  */
-function appOriginFrom(shareUrl: string): string {
+function appOriginFrom(linkUrl: string): string {
   try {
-    return new URL(shareUrl).origin;
+    return new URL(linkUrl).origin;
   } catch {
     return "";
   }
 }
 
 /** The no-JavaScript alternative: a plain iframe onto the hosted page. */
-function buildIframeSnippet(shareUrl: string, agentName: string): string {
+function buildIframeSnippet(linkUrl: string, agentName: string): string {
   return [
     `<iframe`,
-    `  src="${shareUrl}"`,
+    `  src="${linkUrl}"`,
     `  title="${agentName}"`,
     `  width="400"`,
     `  height="600"`,
@@ -1088,7 +1087,7 @@ function buildIframeSnippet(shareUrl: string, agentName: string): string {
 }
 
 function EmbedTab({
-  shareUrl,
+  linkUrl,
   channelId,
   agentName,
   linkToken,
@@ -1097,7 +1096,7 @@ function EmbedTab({
   isPending,
   commit,
 }: {
-  readonly shareUrl: string;
+  readonly linkUrl: string;
   readonly channelId: string;
   readonly agentName: string;
   readonly linkToken: string;
@@ -1111,12 +1110,12 @@ function EmbedTab({
 }) {
   const scriptSnippet = useMemo(
     () =>
-      buildEmbedSnippet(appOriginFrom(shareUrl), channelId, linkToken || undefined),
-    [shareUrl, channelId, linkToken],
+      buildEmbedSnippet(appOriginFrom(linkUrl), channelId, linkToken || undefined),
+    [linkUrl, channelId, linkToken],
   );
 
   // Embedding serves anonymous visitors via guest tokens, which an
-  // org-audience share refuses by design — a sign-in flow inside a
+  // org-audience chat link refuses by design — a sign-in flow inside a
   // third-party iframe is its own project. Say so instead of showing
   // snippets that would render nothing.
   if (draft.audience === "org") {
@@ -1140,7 +1139,7 @@ function EmbedTab({
         disabled={!enabled}
         multiline
       />
-      {!enabled && <SharingOffHint subject="this embed" />}
+      {!enabled && <PausedLinkHint subject="this embed" />}
       <p className="stg:text-xs stg:text-muted-foreground">
         The widget hides itself on sites that aren&apos;t allowed to embed
         this agent. Free embeds show a &quot;Powered by Stigmer&quot; badge.
@@ -1149,7 +1148,7 @@ function EmbedTab({
       <OriginsEditor draft={draft} isPending={isPending} commit={commit} />
 
       <IframeAlternative
-        shareUrl={shareUrl}
+        linkUrl={linkUrl}
         agentName={agentName}
         enabled={enabled}
       />
@@ -1163,18 +1162,18 @@ function EmbedTab({
  * hide-on-refusal behavior the loader provides.
  */
 function IframeAlternative({
-  shareUrl,
+  linkUrl,
   agentName,
   enabled,
 }: {
-  readonly shareUrl: string;
+  readonly linkUrl: string;
   readonly agentName: string;
   readonly enabled: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const snippet = useMemo(
-    () => buildIframeSnippet(shareUrl, agentName),
-    [shareUrl, agentName],
+    () => buildIframeSnippet(linkUrl, agentName),
+    [linkUrl, agentName],
   );
 
   return (

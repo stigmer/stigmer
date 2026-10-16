@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import {
-  ChannelsPanel,
   AgentDetailView,
   EditResourceYamlDialog,
   useAgent,
@@ -12,7 +11,6 @@ import {
   useExportResource,
   ConfirmDialog,
   useBreadcrumbOverride,
-  type AdditionalTab,
   type DetailAction,
   useOrgSlugForId,
   useResolveRunSession,
@@ -23,10 +21,10 @@ import { AGENT_DELETE_DESCRIPTION } from "./agent-delete-confirmation";
 import { useCanonicalDetailSlug } from "./canonical-slug";
 
 /**
- * Share links must be reachable by anyone, so they point at the public
+ * Chat links must be reachable by anyone, so they point at the public
  * web console — never the desktop app's own Tauri origin.
  */
-function buildShareUrl(channelId: string): string {
+function buildChatLinkUrl(channelId: string): string {
   return buildChatUrl(CONSOLE_URL, channelId);
 }
 
@@ -85,34 +83,6 @@ export default function AgentDetailPage() {
       authUrl: `${CONSOLE_URL}/library/agents/${org}/${slug}?tab=channels`,
     });
   }, [org, slug]);
-
-  // The Channels tab needs the loaded Agent; until then the tab is absent.
-  const additionalTabs: AdditionalTab[] = useMemo(
-    () =>
-      agent
-        ? [
-            {
-              id: "channels",
-              label: "Channels",
-              content: (
-                <ChannelsPanel
-                  agent={agent}
-                  onConnectExternal={handleConnectExternal}
-                  // A plain-anchor hash URL: the in-app WhatsApp connect
-                  // dialog links here, and the hash router picks it up
-                  // without a reload (parity with the web's
-                  // /settings/channel-apps).
-                  channelAppsHref="#/settings/channel-apps"
-                  // Channel conversations open in the standard session route;
-                  // SessionViewer renders them read-only (observer audience).
-                  sessionHref={(id) => `#/sessions/${id}`}
-                />
-              ),
-            },
-          ]
-        : [],
-    [agent, handleConnectExternal],
-  );
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -244,8 +214,15 @@ export default function AgentDetailPage() {
         onRenamed={(renamed) => moveToSlug(renamed.metadata?.slug ?? "")}
         primaryAction={primaryAction}
         actions={actions}
-        buildShareUrl={buildShareUrl}
-        additionalTabs={additionalTabs}
+        buildChatLinkUrl={buildChatLinkUrl}
+        onConnectExternal={handleConnectExternal}
+        // A plain-anchor hash URL: the in-app WhatsApp connect dialog links
+        // here, and the hash router picks it up without a reload (parity
+        // with the web's /settings/channel-apps).
+        channelAppsHref="#/settings/channel-apps"
+        // Channel conversations open in the standard session route;
+        // SessionViewer renders them read-only (observer audience).
+        sessionHref={(id) => `#/sessions/${id}`}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />

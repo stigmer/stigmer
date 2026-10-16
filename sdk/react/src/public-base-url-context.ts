@@ -25,7 +25,7 @@ export const PublicBaseUrlContext = createContext<string | undefined>(
  * backend), or `null` when it cannot be known.
  *
  * The host owns public addresses, and the SDK never guesses one (the
- * `buildShareUrl` precedent in `ShareAgentDialog`): the provider's
+ * `buildChatLinkUrl` precedent in `ChatLinkDialog`): the provider's
  * `publicBaseUrl` wins, the client's `baseUrl` stands in for it, and only
  * an absolute `http(s)` URL counts. A relative `baseUrl` (a same-origin
  * proxy, the documentation tours) with no `publicBaseUrl` answers `null`,

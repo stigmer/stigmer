@@ -17,7 +17,8 @@ import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";
-import { WebChannelList } from "../sharing/WebChannelList.js";
+import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelsPanel } from "../channel/ChannelsPanel.js";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell.js";
 import { Section } from "../resource-detail/Section.js";
 import { useDetailTabs } from "../resource-detail/useDetailTabs.js";
@@ -52,7 +53,7 @@ import type { RenamedResource } from "../resource-detail/useRenameResource.js";
 const INSTRUCTIONS_COLLAPSED_HEIGHT = "12rem";
 
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
-const SHARES_TAB: TabItem = { id: "shares", label: "Shares" };
+const CHANNELS_TAB: TabItem = { id: "channels", label: "Channels" };
 const QUALITY_TAB: TabItem = { id: "quality", label: "Quality" };
 const EVALS_TAB: TabItem = { id: "evals", label: "Evals" };
 const DEPENDENCIES_TAB: TabItem = { id: "dependencies", label: "Dependencies" };
@@ -159,14 +160,33 @@ export interface AgentDetailViewProps {
    */
   readonly onRenamed?: (agent: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb").Agent) => void;
   /**
-   * Builds the absolute public chat URL for shares (web channels) in the
-   * Shares tab. The host application owns URL construction — its
+   * Builds the absolute public chat URL for the chat links in the
+   * Channels tab. The host application owns URL construction — its
    * configured public origin may differ from the rendering origin (e.g.
    * the desktop app). It receives the channel's id (`metadata.id`), the
-   * one identity a link carries. When omitted, share links fall back to
+   * one identity a link carries. When omitted, chat links fall back to
    * the relative `/chat/<channel id>` path.
    */
-  readonly buildShareUrl?: (channelId: string) => string;
+  readonly buildChatLinkUrl?: (channelId: string) => string;
+  /**
+   * Where the host manages Channel Apps (the console passes
+   * `/settings/channel-apps`), for the Channels tab's Slack and WhatsApp
+   * connect dialogs. Absent, their "Register a channel app" affordance
+   * degrades to plain guidance text.
+   */
+  readonly channelAppsHref?: string;
+  /**
+   * Maps a session id to the host's session route, for the Channels tab's
+   * Sessions dialog. Absent, its rows render without links.
+   */
+  readonly sessionHref?: (sessionId: string) => string;
+  /**
+   * The host's hand-off for redirect-style installs (Slack) from the
+   * Channels tab, for a host whose webview cannot open the OAuth popup
+   * (the desktop app opens the web console in the system browser). Called
+   * with the channel being reconnected, or `null` for a new connection.
+   */
+  readonly onConnectExternal?: (channel: Channel | null) => void;
   /**
    * Called with a run id when the user opens one of an eval's tries from
    * the Evals tab, or a flagged run from the Quality tab; the host owns the
@@ -235,7 +255,10 @@ export function AgentDetailView({
   editable: editableProp = false,
   onResourceUpdated,
   onRenamed,
-  buildShareUrl,
+  buildChatLinkUrl,
+  channelAppsHref,
+  sessionHref,
+  onConnectExternal,
   onPluginClick,
   onAgentClick,
   onNavigateToRun,
@@ -326,7 +349,7 @@ export function AgentDetailView({
   const builtInTabs = useMemo<readonly TabItem[]>(
     () => [
       OVERVIEW_TAB,
-      SHARES_TAB,
+      CHANNELS_TAB,
       QUALITY_TAB,
       EVALS_TAB,
       ...(noDeps ? [] : [DEPENDENCIES_TAB]),
@@ -445,20 +468,10 @@ export function AgentDetailView({
     />
   ) : undefined;
 
-  // Share — the sibling consent to Manage access: visibility governs who
-  // can read the blueprint; sharing governs who can chat with the running
-  // agent (billed to the org that owns each share). Pure navigation to
-  // the Shares tab, so it renders unconditionally (like the tab itself);
-  // all capability gating lives in the tab, next to its affordances.
-  const shareAction: DetailAction = {
-    id: "share",
-    label: "Share",
-    group: "sharing",
-    onAction: () => effectiveOnTabChange(SHARES_TAB.id),
-  };
-
-  // Share precedes Manage access within the "sharing" group.
-  const injectedActions = [shareAction, access.action].filter(
+  // Manage access is the menu's one sharing item, as on every other kind:
+  // "share" means giving people access. Chat links, Slack and WhatsApp are
+  // the Channels tab's, reached by the tab itself.
+  const injectedActions = [access.action].filter(
     (a): a is NonNullable<typeof a> => a != null,
   );
   const mergedActions = [...(actions ?? []), ...injectedActions];
@@ -466,11 +479,14 @@ export function AgentDetailView({
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {
     tabContent = activeAdditionalTab.content;
-  } else if (effectiveActiveTab === "shares") {
+  } else if (effectiveActiveTab === CHANNELS_TAB.id) {
     tabContent = (
-      <WebChannelList
+      <ChannelsPanel
         agent={agent}
-        buildShareUrl={buildShareUrl}
+        buildChatLinkUrl={buildChatLinkUrl}
+        channelAppsHref={channelAppsHref}
+        sessionHref={sessionHref}
+        onConnectExternal={onConnectExternal}
       />
     );
   } else if (effectiveActiveTab === "quality") {
