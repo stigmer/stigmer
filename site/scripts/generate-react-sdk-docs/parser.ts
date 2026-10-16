@@ -113,10 +113,10 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "The unified Manage access experience — one dialog composing visibility and explicit people-grants, with a kebab hook and a button trigger.",
   },
-  sharing: {
-    title: "Sharing",
+  "chat-link": {
+    title: "Chat Links",
     description:
-      "Hooks and components for turning an agent into a hosted, shareable chat link and embed.",
+      "Hooks and components for an agent's chat links: the chat-link dialog, the chat a link's visitors see, and the web channel draft behind both.",
   },
   "federation-issuer": {
     title: "Federation Issuer",

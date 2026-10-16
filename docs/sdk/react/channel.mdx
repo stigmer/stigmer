@@ -6,11 +6,49 @@ title: channel
 
 ## Hooks
 
+### useAddChannelOptions
+
+Behaviour hook for adding a channel to an agent: one option per channel
+type (a chat link, Slack, WhatsApp), each saying whether this viewer can
+add it here and why not.
+
+- A chat link needs only the create bar; it works in every edition.
+- A vendor channel also needs the hosted delivery runtime
+  ([`channelInstallsAvailable`](#channelinstallsavailable)), unless the host hands a
+  redirect-style install off through `onConnectExternal`.
+
+Pass `null` for `agent` while it loads; every option stays unavailable
+so no affordance flashes before the bar is evaluated.
+
+**Signature**
+
+```tsx
+function useAddChannelOptions(agent: Agent | null, options: UseAddChannelOptionsOptions): UseAddChannelOptionsReturn
+```
+
+<TypeTable
+  type={{
+    agent: { type: "Agent | null", description: "The agent to add a channel to, or `null` while loading.", required: true },
+    options: { type: "UseAddChannelOptionsOptions", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseAddChannelOptionsReturn`
+
+<TypeTable
+  type={{
+    canAdd: { type: "boolean", description: "Whether the viewer may add any channel to this agent: the server's create bar. When `false`, hosts hide the Add affordance entirely." },
+    options: { type: "readonly AddChannelOption[]", description: "Every channel type, in display order, with its availability." },
+  }}
+/>
+
+
 ### useCanCreateChannel
 
 Mirrors the server's Channel create bar so create affordances never
 appear to a user whose create would be refused. One bar for every
-type: the Shares tab and the Channels panel both ask it.
+type: the Channels tab asks it for a chat link, Slack and WhatsApp
+alike (through [`useAddChannelOptions`](#useaddchanneloptions)).
 
 A channel lives in its agent's organization (to share another
 organization's agent, install the plugin that carries it and share the
@@ -101,9 +139,8 @@ const { channel, isLoading, refetch } = useChannel(channelId);
 
 Data hook that loads an agent's `Channel` resources of every type —
 its chat links (`web`), its Slack workspaces and its WhatsApp numbers.
-One list for the one kind: each surface filters it by `spec.type.case`
-(the Shares tab shows the `web` channels, the Channels panel the `slack`
-and `whatsapp` ones).
+One list for the one kind: the Channels tab renders every type in it,
+and a surface that needs one type filters it by `spec.type.case`.
 
 A Slack or WhatsApp channel serves traffic only when its provider install
 completed (`status.installState === installed`) AND the owner's serving
@@ -642,25 +679,30 @@ channel card action.
 
 ### ChannelsPanel
 
-Management surface for an agent's Slack and WhatsApp `Channel`s —
-rendered in the agent detail view's Channels tab.
+Every channel of an agent in one list — its chat links, Slack
+workspaces and WhatsApp numbers — rendered as the agent detail view's
+Channels tab.
 
-One card per channel showing the two serving axes side by side: the
-observed provider install state (`pending_install` / `installed` /
-`revoked`) and the owner's serving switch (`spec.enabled`). Traffic
-flows only when installed AND enabled. Channels always live in the
-agent's own org (no cross-org arm), so no org selector
-is needed.
+One card per channel, in the frame every type shares: the type's mark
+and label, the channel's name, its state, its on/off switch where it can
+serve, and its menu. A chat link (`ChatLinkCard`) shows its link,
+audience and Active/Paused; a Slack or WhatsApp channel
+(`VendorChannelCard`) shows its install state and serving app, and
+serves only when installed and on.
 
-Connecting runs the provider's own dialog — [`ConnectSlackDialog`](#connectslackdialog)
-(OAuth popup) or [`ConnectWhatsAppDialog`](#connectwhatsappdialog) (direct install). On a
-`local` (OSS) backend, channel CRUD works but installs are cloud-only —
-connect affordances are replaced by a cloud-feature notice, matching
-the server's FAILED_PRECONDITION posture.
+Adding runs through one affordance for every type
+([`useAddChannelOptions`](#useaddchanneloptions)): with channels listed, one "Add channel"
+menu; on an empty tab, one visible button per type, where a newcomer
+chooses. A chat link opens the chat-link dialog ([`ChatLinkDialog`](/docs/sdk/react/chat-link#chatlinkdialog));
+Slack and WhatsApp open their connect dialogs. Vendor installs need
+Stigmer Cloud ([`channelInstallsAvailable`](#channelinstallsavailable)); elsewhere those options
+say so, and a notice explains only when the list holds a vendor channel
+this edition cannot connect. Channels always live in the agent's own
+org, so no org selector is needed.
 
-Self-contained: owns its dialog, its confirmation prompts, and its
-refetch-after-mutation — hosts render it with just the agent (plus the
-external-connect delegate where popups are unavailable).
+Self-contained: owns its dialogs, its confirmation prompts, and its
+refetch-after-mutation — hosts render it with the agent plus their
+routing seams.
 
 This is an SDK component — embeddable by platform builders.
 
@@ -669,10 +711,11 @@ This is an SDK component — embeddable by platform builders.
 <TypeTable
   type={{
     agent: { type: "Agent", description: "The agent whose channels are managed.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
+    buildChatLinkUrl: { type: "(channelId: string) => string", description: "Builds the absolute public chat URL for a chat link from its channel id (`metadata.id`, the one identity a link carries). The host owns URL construction: its configured public origin may differ from the rendering origin (e.g. the desktop app). When omitted, links fall back to the relative `/chat/<channel id>`." },
     channelAppsHref: { type: "string", description: "Where the host manages Channel Apps (the console passes `/settings/channel-apps`). Threaded to the connect dialog's \"Register a channel app\" affordance; absent, the affordance degrades to plain guidance text." },
     className: { type: "string", description: "Additional CSS class names." },
     onConnectExternal: { type: "(channel: Channel | null) => void", description: "When provided, connect actions for redirect-style providers (Slack) delegate to the host instead of running the in-app popup flow. For hosts whose webview cannot open popups (the desktop app): the delegate typically opens the web console in the system browser. Called with the channel being (re)connected, or `null` for a brand-new connection. Direct-install providers (WhatsApp) always connect in-app — their flow is a plain API call with nothing for a popup to do — so they never invoke the delegate." },
-    sessionHref: { type: "(sessionId: string) => string", description: "Maps a session id to the host's session route (the console passes `` (id) => `/sessions/${id}` ``). Threaded to each card's Conversations dialog so rows link to the read-only transcript; absent, the rows render without links (the SDK never assumes a routing scheme)." },
+    sessionHref: { type: "(sessionId: string) => string", description: "Maps a session id to the host's session route (the console passes `` (id) => `/sessions/${id}` ``). Threaded to each vendor card's Sessions dialog so rows link to the read-only transcript; absent, the rows render without links (the SDK never assumes a routing scheme)." },
   }}
 />
 
@@ -749,7 +792,7 @@ Grid) render the server's copy verbatim — the server owns that
 vocabulary.
 
 Built on the native `<dialog>` element for focus trapping and escape
-handling, matching the SDK's modal convention ([`ShareAgentDialog`](/docs/sdk/react/sharing#shareagentdialog)).
+handling, matching the SDK's modal convention ([`ChatLinkDialog`](/docs/sdk/react/chat-link#chatlinkdialog)).
 All visual properties flow through `--stgm-*` design tokens.
 
 Most hosts mount it via [`ChannelsPanel`](#channelspanel) (the Channels tab).
@@ -815,6 +858,36 @@ Render it directly only when you own the open-state.
 
 ## Types
 
+### AddChannelOption
+
+One channel type the viewer may (or may not) add to the agent.
+
+<TypeTable
+  type={{
+    available: { type: "boolean", description: "Whether adding this type here would be accepted.", required: true },
+    reason: { type: "string | null", description: "Why not, in a sentence a UI can show; `null` when available.", required: true },
+    type: { type: "ChannelTypeDescriptor", description: "The channel type.", required: true, typeDescriptionLink: "#channeltypedescriptor" },
+    via: { type: "\"dialog\" | \"external\" | null", description: "How adding starts when available: `\"dialog\"` runs in this surface (the chat-link dialog, or the vendor's connect dialog); `\"external\"` hands the install to the host's `onConnectExternal`. `null` when unavailable.", required: true },
+  }}
+/>
+
+
+### channelInstallsAvailable
+
+Whether the connected edition can install a channel into a vendor
+(Slack, WhatsApp): the facility is the hosted webhook and delivery
+runtime that receives the vendor's events and sends the agent's
+replies, and only Stigmer Cloud composes one. Every channel surface
+asks this one predicate, so the panel and the connect dialogs never
+disagree. Channel configuration (create, edit, the on/off switch,
+delete) needs no runtime and works in every edition, chat links
+included.
+
+```tsx
+function channelInstallsAvailable(mode: DeploymentMode): boolean
+```
+
+
 ### ChannelTemplateReadiness
 
 Whether a channel can answer a template-registry read
@@ -830,6 +903,29 @@ Whether a channel can answer a template-registry read
   business-initiated messaging (and with it the template surface)
   is not granted on this channel.
 - `ready` — the read can be made.
+
+
+### ChannelTypeDescriptor
+
+Display descriptor for one channel type.
+
+<TypeTable
+  type={{
+    addCursorTarget: { type: "string", description: "The stable `data-cursor-target` of this type's add affordance, the same on the empty state's button and the Add menu's item, so the docs demos find it either way.", required: true },
+    addLabel: { type: "string", description: "The empty state's button text for adding one (\"Create a chat link\", \"Connect to Slack\").", required: true },
+    deleteLabel: { type: "string", description: "The word the card's destructive action uses: a chat link is deleted; a vendor channel is disconnected, which also removes its stored install.", required: true },
+    Icon: { type: "ComponentType<{ className?: string }>", description: "The type's mark; consumers size it via className.", required: true },
+    id: { type: "ChannelTypeId", description: "", required: true, typeDescriptionLink: "#channeltypeid" },
+    label: { type: "string", description: "The type's name on a card and in the Add menu (\"Chat link\", \"Slack\").", required: true },
+    provider: { type: "ChannelProviderDescriptor | null", description: "The vendor behind this type, or `null` for a chat link.", required: true },
+  }}
+/>
+
+
+### ChannelTypeId
+
+Identifier of a channel type — the `type` oneof case name on
+`ChannelSpec`, the wire discriminator every channel surface switches on.
 
 
 ### InstallChannelPhase
@@ -891,6 +987,17 @@ the provider's word without claiming to understand it.
 ```tsx
 function templateStatusPhase(status: string): StatusPhase
 ```
+
+
+### UseAddChannelOptionsOptions
+
+Options for [`useAddChannelOptions`](#useaddchanneloptions).
+
+<TypeTable
+  type={{
+    onConnectExternal: { type: "(channel: Channel | null) => void", description: "The host's hand-off for redirect-style installs (Slack), as on `ChannelsPanel`. When given, a Slack connect runs through it on every edition, because the host's other surface has the runtime." },
+  }}
+/>
 
 
 ### UseChannelTemplateListOptions
