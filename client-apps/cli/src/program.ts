@@ -10,6 +10,7 @@ import { Command } from "commander";
 import { registerApiKey } from "./commands/apikey/index.js";
 import { registerAgent } from "./commands/agent.js";
 import { registerApply } from "./commands/apply.js";
+import { registerChannel } from "./commands/channel.js";
 import { registerAuth } from "./commands/auth/index.js";
 import { registerCompletion } from "./commands/completion.js";
 import { registerConfig } from "./commands/config/index.js";
@@ -36,7 +37,6 @@ import { registerServiceAccount } from "./commands/service-account/index.js";
 import { registerAccessHistory } from "./commands/access-history/index.js";
 import { registerSearch } from "./commands/search.js";
 import { registerSetup } from "./commands/setup.js";
-import { registerShare } from "./commands/share.js";
 import { registerStatus } from "./commands/status.js";
 import { registerTag } from "./commands/tag.js";
 import { registerUp } from "./commands/up.js";
@@ -62,6 +62,10 @@ export const RETIRED_COMMANDS: ReadonlyMap<string, string> = new Map([
     "An agent lists its own MCP servers under `mcp_servers`, written by an organization's admins, or uses a plugin that carries one: `stigmer connect plugin <plugin>` lists a plugin's tools, and `stigmer mcp add <name> <url>` installs a one-off server as a plugin.",
   ],
   ["plugin", "`stigmer plugin eval <plugin>` is now `stigmer eval run --plugin <plugin>`; cancel with `stigmer eval cancel`."],
+  [
+    "share",
+    "`stigmer share agent` is now `stigmer channel link`. To give people access to an agent, use Manage access in the console.",
+  ],
 ]);
 
 /**
@@ -176,7 +180,7 @@ export function buildProgram(): Command {
   registerValidate(program);
   registerDelete(program);
   registerTag(program);
-  registerShare(program);
+  registerChannel(program);
   registerSchedule(program);
   registerVault(program);
   registerUsage(program);

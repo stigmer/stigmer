@@ -13,8 +13,8 @@ This is the TypeScript CLI that replaced the Go CLI. Its shape, in brief:
   `version` and `completion`;
 - streaming runs (`run`, `resume`) rendered with in-process Ink;
 - local orchestration (`up`, `down`, `status`, `logs`);
-- the plugin, skill and sharing commands (`install`, `push`, `marketplace`,
-  `share`);
+- the plugin and skill commands (`install`, `push`, `marketplace`), and
+  `channel` for an agent's chat link and switching a channel on or off;
 - the automation commands: `service-account` for an organization's own account
   and `apikey` (with `--service-account`) for its keys;
 - and the rest of the tree `stigmer --help` lists.

@@ -42,7 +42,8 @@ there. This guide is an index; the READMEs and headers it names are the truth.
 - The CLI is verb-first: a resource kind is an argument to a verb (`push skill`,
   `get agent`, `validate -f`), never a noun group. Noun groups exist only for
   account and infrastructure nouns (`auth`, `apikey`, `service-account`,
-  `config`, `runs`), `vault`, `plugin`, `agent`; each header says why.
+  `config`, `runs`), `vault`, `agent`, and a kind's operational verbs beside the
+  generic matrix (`schedule`, `channel`); each header says why.
 
 ## Laws, web and desktop
 

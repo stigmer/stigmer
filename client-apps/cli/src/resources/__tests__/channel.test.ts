@@ -1,26 +1,32 @@
-// Unit tests for the share-agent resource layer. The critical contract is
-// merge-preservation: `channel.apply` replaces the web channel's spec
-// wholesale, so a CLI toggle must never wipe console-configured origins,
+// Unit tests for the `channel` resource layer. `linkAgent`'s critical
+// contract is merge-preservation: `channel.apply` replaces the web channel's
+// spec wholesale, so a CLI toggle must never wipe console-configured origins,
 // visitor messages, credential bindings, run settings, or the audience. The
 // command edits the agent's canonical web channel (`<agent slug>-web`, then
-// the agent's own slug, then the first web channel), never a Slack or
-// WhatsApp channel, and a never-shared agent gets a nameless web channel the
-// server names. A share from another organization's context is refused
+// the agent's own slug, then the first web channel) or the one `--name`
+// names, never a Slack or WhatsApp channel. A new link is a strict create
+// (nameless, so the server names it, or under `--name`), never an apply: a
+// slug another channel holds is refused naming the holder's type and agent
+// (its id when the caller cannot read it, the 30-day hold for a slug a
+// rename left behind) and `--name`, and nothing is written over
+// (stigmer#2360). A link from another organization's context is refused
 // naming both organizations by slug, and only when the server says they
 // differ: a lookup that fails for another reason is reported as itself. The
 // printed chat link and embed name the channel by its id alone
-// (`/chat/<channel id>`, `share="<channel id>"`), never its organization or
-// slug.
+// (`/chat/<channel id>`, `channel="<channel id>"`), never its organization or
+// slug. `setChannelEnabled` flips `spec.enabled` alone by a masked update,
+// on any channel type, and a disabled channel is reported as paused.
 
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
-import { buildEmbedSnippet, type ChannelInput, type Stigmer } from "@stigmer/sdk";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { buildEmbedSnippet, StigmerError, type ChannelInput, type Stigmer } from "@stigmer/sdk";
 import { describe, expect, it } from "vitest";
 import { classify, ExitCode, UsageError } from "../../errors/index.js";
-import { shareAgent } from "../share.js";
+import { linkAgent, setChannelEnabled } from "../channel.js";
 
 const CLOUD = { appOrigin: "https://app.stigmer.ai", isLocal: false };
 const LOCAL = { appOrigin: "http://localhost:7234", isLocal: true };
@@ -77,12 +83,20 @@ function makeShare(fixture: ShareFixture = {}) {
   };
 }
 
-// A Slack channel on the same agent: never the row `share agent` edits.
-function makeSlackChannel() {
+// A Slack channel, by default on the same agent: never the row `channel link`
+// edits.
+const SLACK_ID = "chn_01ARZ3NDEKTSV4RRFFQ69G5SLK";
+
+function makeSlackChannel(fixture: { slug?: string; agentSlug?: string } = {}) {
   return {
-    metadata: { id: "chn_01ARZ3NDEKTSV4RRFFQ69G5SLK", org: "acme", slug: "support-agent-slack", name: "Support Agent (Slack)" },
+    metadata: {
+      id: SLACK_ID,
+      org: "acme",
+      slug: fixture.slug ?? "support-agent-slack",
+      name: "Support Agent (Slack)",
+    },
     spec: {
-      agentRef: { org: "acme", slug: "support-agent" },
+      agentRef: { org: "acme", slug: fixture.agentSlug ?? "support-agent" },
       enabled: true,
       vaults: [],
       type: { case: "slack" as const, value: {} },
@@ -92,7 +106,7 @@ function makeSlackChannel() {
 
 type ChannelFixture = ReturnType<typeof makeShare> | ReturnType<typeof makeSlackChannel>;
 
-// A minimal fake of the SDK surface shareAgent touches: agent resolution +
+// A minimal fake of the SDK surface linkAgent touches: agent resolution +
 // call-recording channel listByAgentAll/apply/rotateLink (skill.test.ts
 // convention). Apply answers with the applied input merged over the existing
 // channel (id assigned), mirroring the server's upsert, and names a nameless
@@ -111,9 +125,20 @@ const ORGANIZATIONS: Record<string, { id: string; slug: string }> = {
 function fakeClient(
   agent: Agent,
   share: ChannelFixture | ChannelFixture[] | null,
-  opts: { failWith?: Error; rotatedToken?: string; organizationFault?: Error } = {},
+  opts: {
+    failWith?: Error;
+    rotatedToken?: string;
+    organizationFault?: Error;
+    // Slugs another resource was renamed away from within the hold, which
+    // a create refuses with SLUG_RESERVED.
+    reservedSlugs?: string[];
+    // Channel ids the caller may not read.
+    unreadable?: string[];
+  } = {},
 ) {
   const applies: ChannelInput[] = [];
+  const creates: ChannelInput[] = [];
+  const updates: { resource: unknown; paths: string[] }[] = [];
   let rotations = 0;
   const channels: ChannelFixture[] = share === null ? [] : Array.isArray(share) ? [...share] : [share];
   let applied: ReturnType<typeof makeShare> | null = null;
@@ -151,33 +176,70 @@ function fakeClient(
           if (!input.org || channel.metadata.org === input.org) yield channel;
         }
       },
+      // The server's upsert: a channel the input names (by id, else by the
+      // slug its name gives, else `<agent slug>-web` for a nameless web
+      // channel) is updated, which refuses a change of type or agent;
+      // anything else is created.
       async apply(input: ChannelInput) {
         if (opts.failWith) throw opts.failWith;
         applies.push(input);
-        const existing = channels.find((c) => c.metadata.id === input.id) as ReturnType<typeof makeShare> | undefined;
-        applied = {
-          metadata: {
-            id: input.id ?? "chn_01ARZ3NDEKTSV4RRFFQ69G5NEW",
-            org: input.org,
-            slug: input.slug ?? `${input.agentRef.slug}-web`,
-            name: input.name || "Support Agent (Web)",
-          },
-          spec: {
-            agentRef: { org: input.agentRef.org, slug: input.agentRef.slug },
-            enabled: input.enabled ?? false,
-            vaults: input.vaults ?? [],
-            type: {
-              case: "web",
-              value: {
-                audience: input.web?.audience ?? ChannelAudience.unspecified,
-                allowedOrigins: input.web?.allowedOrigins ?? [],
-                messages: input.web?.messages as never,
-              },
-            },
-          },
-          ...(existing && "status" in existing ? { status: existing.status } : {}),
-        } as ReturnType<typeof makeShare>;
+        const slug = slugOf(input);
+        const existing =
+          input.id !== undefined
+            ? channels.find((c) => c.metadata.id === input.id)
+            : channels.find((c) => c.metadata.slug === slug);
+        if (existing !== undefined && existing.spec.type.case !== "web") {
+          throw refusal(
+            Code.FailedPrecondition,
+            `spec type is immutable (channel type is ${existing.spec.type.case}) — create a new channel of a different type`,
+          );
+        }
+        applied = written(input, slug, existing);
         return applied;
+      },
+      // The strict create: a slug another channel holds, or one renamed
+      // away from within its hold, is refused as AlreadyExists, never
+      // updated.
+      async create(input: ChannelInput) {
+        if (opts.failWith) throw opts.failWith;
+        creates.push(input);
+        const slug = slugOf(input);
+        if (opts.reservedSlugs?.includes(slug)) {
+          throw refusal(
+            Code.AlreadyExists,
+            `Channel slug '${slug}' was recently another channel's, and still leads to it`,
+            { reason: "SLUG_RESERVED", metadata: { slug } },
+          );
+        }
+        const holder = channels.find((c) => c.metadata.slug === slug);
+        if (holder !== undefined) {
+          throw refusal(
+            Code.AlreadyExists,
+            `Channel already exists: slug '${slug}' in org 'acme' (id: ${holder.metadata.id})`,
+          );
+        }
+        applied = written(input, slug, undefined);
+        return applied;
+      },
+      async getByReference(ref: { org: string; slug: string }) {
+        const found = channels.find((c) => c.metadata.org === ref.org && c.metadata.slug === ref.slug);
+        if (found === undefined) throw refusal(Code.NotFound, `channel not found: ${ref.org}/${ref.slug}`);
+        return found;
+      },
+      // The masked update: only the paths named change on the stored row.
+      async update(resource: { metadata: { id: string }; spec: { enabled: boolean } }, paths: string[]) {
+        updates.push({ resource, paths });
+        const found = channels.find((c) => c.metadata.id === resource.metadata.id);
+        if (found === undefined) throw refusal(Code.NotFound, `channel not found: ${resource.metadata.id}`);
+        return { ...found, spec: { ...found.spec, enabled: resource.spec.enabled } };
+      },
+      async get(id: string) {
+        if (opts.unreadable?.includes(id)) {
+          throw refusal(Code.PermissionDenied, "permission denied: can_view required");
+        }
+        const found = channels.find((c) => c.metadata.id === id);
+        if (found === undefined) throw refusal(Code.NotFound, `channel not found: ${id}`);
+        return found;
       },
       async rotateLink() {
         rotations += 1;
@@ -189,10 +251,66 @@ function fakeClient(
       },
     },
   } as unknown as Stigmer;
-  return { client, applies, rotationCount: () => rotations };
+  return { client, applies, creates, updates, rotationCount: () => rotations };
 }
 
-describe("shareAgent merge-preservation (fails closed)", () => {
+// The slug the server gives a written channel: the one it carries, else its
+// name's, else `<agent slug>-web` for a nameless web channel.
+function slugOf(input: ChannelInput): string {
+  return input.slug ?? (input.name !== "" ? input.name : `${input.agentRef.slug}-web`);
+}
+
+// The channel the server stores for a write: the input over the existing
+// row (whose id and link token it keeps), or a new row with a minted id.
+function written(
+  input: ChannelInput,
+  slug: string,
+  existing: ChannelFixture | undefined,
+): ReturnType<typeof makeShare> {
+  return {
+    metadata: {
+      id: input.id ?? existing?.metadata.id ?? "chn_01ARZ3NDEKTSV4RRFFQ69G5NEW",
+      org: input.org,
+      slug,
+      name: input.name || "Support Agent (Web)",
+    },
+    spec: {
+      agentRef: { org: input.agentRef.org, slug: input.agentRef.slug },
+      enabled: input.enabled ?? false,
+      vaults: input.vaults ?? [],
+      type: {
+        case: "web",
+        value: {
+          audience: input.web?.audience ?? ChannelAudience.unspecified,
+          allowedOrigins: input.web?.allowedOrigins ?? [],
+          messages: input.web?.messages as never,
+        },
+      },
+    },
+    ...(existing && "status" in existing ? { status: existing.status } : {}),
+  } as ReturnType<typeof makeShare>;
+}
+
+// A refusal as the SDK throws it: the server's ConnectError (with its
+// ErrorInfo, when it carries a reason) chained under a StigmerError.
+function refusal(
+  code: Code,
+  message: string,
+  reason?: { reason: string; metadata: Record<string, string> },
+): StigmerError {
+  const cause = new ConnectError(
+    message,
+    code,
+    undefined,
+    reason === undefined
+      ? undefined
+      : [{ desc: ErrorInfoSchema, value: create(ErrorInfoSchema, { ...reason, domain: "stigmer.ai" }) }],
+  );
+  const name = code === Code.AlreadyExists ? "already-exists" : code === Code.NotFound ? "not-found" : code === Code.PermissionDenied ? "permission-denied" : "failed-precondition";
+  return new StigmerError(name, message, code, { cause });
+}
+
+describe("linkAgent merge-preservation (fails closed)", () => {
   it("enabling preserves console-configured origins, messages, and bindings verbatim", async () => {
     const share = makeShare({
       enabled: false,
@@ -202,7 +320,7 @@ describe("shareAgent merge-preservation (fails closed)", () => {
     });
     const { client, applies } = fakeClient(makeAgent(), share);
 
-    await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
+    await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
 
     expect(applies).toHaveLength(1);
     // The existing channel is restated by its own identity.
@@ -227,65 +345,67 @@ describe("shareAgent merge-preservation (fails closed)", () => {
     });
     const { client, applies } = fakeClient(makeAgent(), share);
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: false, ...CLOUD });
+    const result = await linkAgent(client, "acme/support-agent", "acme", { enabled: false, ...CLOUD });
 
     expect(applies).toHaveLength(1);
     expect(applies[0].enabled).toBe(false);
     expect(applies[0].web?.allowedOrigins).toEqual(["https://example.com"]);
     expect(applies[0].web?.messages?.rateLimited).toBe("Slow down!");
-    expect(result.message).toContain("Sharing disabled");
+    expect(result.message).toContain("Chat link turned off");
     // No link/snippet on disable — the URL no longer works.
     expect(result.sections).toHaveLength(0);
   });
 
-  it("enabling a never-shared agent creates a nameless web channel, organization-only", async () => {
-    const { client, applies } = fakeClient(makeAgent(), null);
+  it("a new link is a strict create of a nameless web channel, organization-only", async () => {
+    const { client, applies, creates } = fakeClient(makeAgent(), null);
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
+    const result = await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
 
-    expect(applies).toHaveLength(1);
+    // Never an apply: an apply under a taken slug would update its holder.
+    expect(applies).toHaveLength(0);
+    expect(creates).toHaveLength(1);
     // A link reaches the internet only by an explicit --audience public.
-    expect(applies[0].web?.audience).toBe(ChannelAudience.org);
+    expect(creates[0].web?.audience).toBe(ChannelAudience.org);
     expect(result.sections.find((s) => s.title === "Member chat link")).toBeDefined();
     expect(result.sections.find((s) => s.title === "Embed on your site")).toBeUndefined();
     // Create identity: no name and no slug, so the server names the channel
     // `<agent slug>-web`; the agent's org, the agent reference and empty
     // config.
-    expect(applies[0].org).toBe("acme");
-    expect(applies[0].name).toBe("");
-    expect(applies[0].slug).toBeUndefined();
-    expect(applies[0].id).toBeUndefined();
+    expect(creates[0].org).toBe("acme");
+    expect(creates[0].name).toBe("");
+    expect(creates[0].slug).toBeUndefined();
+    expect(creates[0].id).toBeUndefined();
     expect(result.sections.find((s) => s.title === "Member chat link")?.items).toEqual([
       "https://app.stigmer.ai/chat/chn_01ARZ3NDEKTSV4RRFFQ69G5NEW",
     ]);
-    expect(applies[0].agentRef).toEqual({ org: "acme", slug: "support-agent" });
-    expect(applies[0].enabled).toBe(true);
-    expect(applies[0].web?.allowedOrigins).toEqual([]);
-    expect(applies[0].web?.messages?.rateLimited).toBe("");
-    expect(applies[0].vaults).toEqual([]);
+    expect(creates[0].agentRef).toEqual({ org: "acme", slug: "support-agent" });
+    expect(creates[0].enabled).toBe(true);
+    expect(creates[0].web?.allowedOrigins).toEqual([]);
+    expect(creates[0].web?.messages?.rateLimited).toBe("");
+    expect(creates[0].vaults).toEqual([]);
   });
 
   it("preserves the channel's run settings across a toggle", async () => {
     const share = makeShare({ enabled: false, runConfig: { maxCostUsd: 0.5, maxToolRounds: 4 } });
     const { client, applies } = fakeClient(makeAgent(), share);
 
-    await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
+    await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
 
     expect(applies).toHaveLength(1);
     expect(applies[0].runConfig).toMatchObject({ maxCostUsd: 0.5, maxToolRounds: 4 });
   });
 
-  it("edits a renamed share under its own slug (never forks a second share)", async () => {
+  it("edits a renamed link under its own slug (never forks a second link)", async () => {
     const share = makeShare({ slug: "help-desk", enabled: false });
     const { client, applies } = fakeClient(makeAgent(), share);
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
+    const result = await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
 
     expect(applies).toHaveLength(1);
-    // Applying with the agent's slug would CREATE a second share; the
+    // Applying with the agent's slug would CREATE a second link; the
     // toggle must target the existing row's identity.
     expect(applies[0].slug).toBe("help-desk");
-    // The link names the share by its id, so the rename never reaches it.
+    // The link names the channel by its id, so the rename never reaches it.
     const link = result.sections.find((s) => s.title === "Public chat link");
     expect(link?.items).toEqual([CLOUD_LINK]);
   });
@@ -298,7 +418,7 @@ describe("shareAgent merge-preservation (fails closed)", () => {
     });
     const { client, applies } = fakeClient(makeAgent(), share);
 
-    await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
+    await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
 
     expect(applies).toHaveLength(1);
     // A re-enable without --audience must keep the org restriction: writing
@@ -307,13 +427,13 @@ describe("shareAgent merge-preservation (fails closed)", () => {
   });
 });
 
-describe("shareAgent canonical web channel", () => {
+describe("linkAgent canonical web channel", () => {
   it("edits the channel named `<agent slug>-web` before one carrying the agent's slug", async () => {
     const converted = makeShare({ id: "ash_01ARZ3NDEKTSV4RRFFQ69G5OLD", slug: "support-agent", enabled: false });
     const named = makeShare({ id: "chn_01ARZ3NDEKTSV4RRFFQ69G5WEB", slug: "support-agent-web", enabled: false });
     const { client, applies } = fakeClient(makeAgent(), [converted, named]);
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
+    const result = await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
 
     expect(applies).toHaveLength(1);
     expect(applies[0].slug).toBe("support-agent-web");
@@ -327,7 +447,7 @@ describe("shareAgent canonical web channel", () => {
     const converted = makeShare({ slug: "support-agent", enabled: false });
     const { client, applies } = fakeClient(makeAgent(), [other, converted]);
 
-    await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
+    await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
 
     expect(applies).toHaveLength(1);
     expect(applies[0].id).toBe(SHARE_ID);
@@ -335,28 +455,29 @@ describe("shareAgent canonical web channel", () => {
   });
 
   it("never edits a Slack channel: an agent with only one gets a new web channel", async () => {
-    const { client, applies } = fakeClient(makeAgent(), [makeSlackChannel()]);
+    const { client, applies, creates } = fakeClient(makeAgent(), [makeSlackChannel()]);
 
-    await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
+    await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
 
-    expect(applies).toHaveLength(1);
-    expect(applies[0].id).toBeUndefined();
-    expect(applies[0].slug).toBeUndefined();
-    expect(applies[0].slack).toBeUndefined();
-    expect(applies[0].web?.audience).toBe(ChannelAudience.org);
+    expect(applies).toHaveLength(0);
+    expect(creates).toHaveLength(1);
+    expect(creates[0].id).toBeUndefined();
+    expect(creates[0].slug).toBeUndefined();
+    expect(creates[0].slack).toBeUndefined();
+    expect(creates[0].web?.audience).toBe(ChannelAudience.org);
   });
 
   it("names the agent, never the channel's slug, in the re-enable hint", async () => {
     const named = makeShare({ slug: "support-agent-web", enabled: true });
     const { client } = fakeClient(makeAgent(), named);
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: false, ...CLOUD });
+    const result = await linkAgent(client, "acme/support-agent", "acme", { enabled: false, ...CLOUD });
 
-    expect(result.hints).toContain("  stigmer share agent acme/support-agent");
+    expect(result.hints).toContain("  stigmer channel link acme/support-agent");
   });
 });
 
-describe("shareAgent audience", () => {
+describe("linkAgent audience", () => {
   it("--audience org sets the audience and applies the full spec", async () => {
     const share = makeShare({
       enabled: true,
@@ -365,7 +486,7 @@ describe("shareAgent audience", () => {
     });
     const { client, applies } = fakeClient(makeAgent(), share);
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", {
+    const result = await linkAgent(client, "acme/support-agent", "acme", {
       enabled: true,
       audience: "org",
       ...CLOUD,
@@ -377,8 +498,8 @@ describe("shareAgent audience", () => {
     expect(applies[0].web?.allowedOrigins).toEqual(["https://example.com"]);
     expect(applies[0].web?.messages?.rateLimited).toBe("Slow down!");
 
-    // Org shares print the member link and NO embed snippet (embeds serve
-    // anonymous guests, which org shares refuse).
+    // Org links print the member link and NO embed snippet (embeds serve
+    // anonymous guests, which org links refuse).
     const link = result.sections.find((s) => s.title === "Member chat link");
     expect(link?.items).toEqual([CLOUD_LINK]);
     expect(result.sections.find((s) => s.title === "Embed on your site")).toBeUndefined();
@@ -386,11 +507,11 @@ describe("shareAgent audience", () => {
     expect(result.hints.some((h) => h.includes("search engines"))).toBe(false);
   });
 
-  it("--audience public converts an org share back to an explicit public one", async () => {
+  it("--audience public converts an org link back to an explicit public one", async () => {
     const share = makeShare({ enabled: true, audience: ChannelAudience.org });
     const { client, applies } = fakeClient(makeAgent(), share);
 
-    await shareAgent(client, "acme/support-agent", "acme", {
+    await linkAgent(client, "acme/support-agent", "acme", {
       enabled: true,
       audience: "public",
       ...CLOUD,
@@ -405,21 +526,21 @@ describe("shareAgent audience", () => {
     const share = makeShare({ enabled: true });
     const { client, applies } = fakeClient(makeAgent(), share);
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", {
+    const result = await linkAgent(client, "acme/support-agent", "acme", {
       enabled: true,
       audience: "org",
       ...CLOUD,
     });
 
     expect(applies).toHaveLength(1);
-    expect(result.message).toContain("Sharing enabled");
+    expect(result.message).toContain("Chat link turned on");
   });
 
   it("matching enabled AND audience stays idempotent (no write)", async () => {
     const share = makeShare({ enabled: true, audience: ChannelAudience.org });
     const { client, applies } = fakeClient(makeAgent(), share);
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", {
+    const result = await linkAgent(client, "acme/support-agent", "acme", {
       enabled: true,
       audience: "org",
       ...CLOUD,
@@ -430,11 +551,11 @@ describe("shareAgent audience", () => {
   });
 });
 
-describe("shareAgent idempotency", () => {
-  it("skips the write when sharing is already enabled, still reporting the link", async () => {
+describe("linkAgent idempotency", () => {
+  it("skips the write when the link is already on, still reporting it", async () => {
     const { client, applies } = fakeClient(makeAgent(), makeShare({ enabled: true }));
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
+    const result = await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
 
     expect(applies).toHaveLength(0);
     expect(result.message).toContain("already on");
@@ -442,42 +563,42 @@ describe("shareAgent idempotency", () => {
     expect(link?.items).toEqual([CLOUD_LINK]);
   });
 
-  it("skips the write when sharing is already disabled", async () => {
+  it("skips the write when the link is already off", async () => {
     const { client, applies } = fakeClient(makeAgent(), makeShare({ enabled: false }));
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: false, ...CLOUD });
+    const result = await linkAgent(client, "acme/support-agent", "acme", { enabled: false, ...CLOUD });
 
     expect(applies).toHaveLength(0);
     expect(result.message).toContain("already off");
   });
 
-  it("disabling a never-shared agent creates nothing", async () => {
+  it("turning off a never-linked agent creates nothing", async () => {
     const { client, applies } = fakeClient(makeAgent(), null);
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: false, ...CLOUD });
+    const result = await linkAgent(client, "acme/support-agent", "acme", { enabled: false, ...CLOUD });
 
-    // Materializing a share row just to mark it disabled would create a
+    // Materializing a channel just to mark it disabled would create a
     // resource the owner never asked for, though a new link's audience is
     // the organization by default.
     expect(applies).toHaveLength(0);
     expect(result.message).toContain("already off");
   });
 
-  it("disabling a never-shared agent with an explicit --audience org stores a paused share", async () => {
-    const { client, applies } = fakeClient(makeAgent(), null);
+  it("turning off a never-linked agent with an explicit --audience org creates a paused link", async () => {
+    const { client, creates } = fakeClient(makeAgent(), null);
 
-    await shareAgent(client, "acme/support-agent", "acme", { enabled: false, audience: "org", ...CLOUD });
+    await linkAgent(client, "acme/support-agent", "acme", { enabled: false, audience: "org", ...CLOUD });
 
-    expect(applies).toHaveLength(1);
-    expect(applies[0].enabled).toBe(false);
-    expect(applies[0].web?.audience).toBe(ChannelAudience.org);
+    expect(creates).toHaveLength(1);
+    expect(creates[0].enabled).toBe(false);
+    expect(creates[0].web?.audience).toBe(ChannelAudience.org);
   });
 
   it("reads a stored unspecified audience as the organization (it only narrows)", async () => {
     const share = makeShare({ enabled: true, audience: ChannelAudience.unspecified });
     const { client, applies } = fakeClient(makeAgent(), share);
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
+    const result = await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
 
     expect(applies).toHaveLength(0);
     expect(result.sections.find((s) => s.title === "Member chat link")?.items).toEqual([CLOUD_LINK]);
@@ -485,36 +606,36 @@ describe("shareAgent idempotency", () => {
   });
 });
 
-describe("shareAgent output", () => {
-  it("builds the link and snippet from the RESOLVED share's id (ID refs included)", async () => {
+describe("linkAgent output", () => {
+  it("builds the link and snippet from the RESOLVED channel's id (ID refs included)", async () => {
     const { client } = fakeClient(makeAgent(), makeShare({ enabled: false }));
 
-    const result = await shareAgent(client, "agt_01ARZ3NDEKTSV4RRFFQ69G5FAV", "", { enabled: true, ...CLOUD });
+    const result = await linkAgent(client, "agt_01ARZ3NDEKTSV4RRFFQ69G5FAV", "", { enabled: true, ...CLOUD });
 
     const link = result.sections.find((s) => s.title === "Public chat link");
     expect(link?.items).toEqual([CLOUD_LINK]);
   });
 
-  it("emits the exact embed snippet the web share dialog emits", async () => {
+  it("emits the exact embed snippet the web chat link dialog emits", async () => {
     const { client } = fakeClient(makeAgent(), makeShare({ enabled: false }));
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
+    const result = await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
 
     const embed = result.sections.find((s) => s.title === "Embed on your site");
     expect(embed?.items.join("\n")).toBe(buildEmbedSnippet("https://app.stigmer.ai", SHARE_ID));
-    expect(embed?.items).toContain(`<stigmer-agent share="${SHARE_ID}"></stigmer-agent>`);
+    expect(embed?.items).toContain(`<stigmer-agent channel="${SHARE_ID}"></stigmer-agent>`);
   });
 
   it("includes the who-pays and indexability hints", async () => {
     const { client } = fakeClient(makeAgent(), makeShare({ enabled: false }));
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
+    const result = await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
 
     expect(result.hints.some((h) => h.includes("acme's own provider keys"))).toBe(true);
     expect(result.hints.some((h) => h.includes("search engines"))).toBe(true);
   });
 
-  it("names the organization by its slug in what a person reads, while the link names only the share", async () => {
+  it("names the organization by its slug in what a person reads, while the link names only the channel", async () => {
     const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
     const agent = makeAgent();
     agent.metadata!.org = ACME_ID;
@@ -528,21 +649,21 @@ describe("shareAgent output", () => {
       },
     };
 
-    const enabled = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
+    const enabled = await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
     expect(enabled.hints.some((h) => h.includes("acme's own provider keys"))).toBe(true);
     expect(enabled.hints.some((h) => h.includes(ACME_ID))).toBe(false);
     const link = enabled.sections.find((s) => s.title === "Public chat link");
     expect(link?.items).toEqual([CLOUD_LINK]);
     expect(link?.items[0]).not.toContain(ACME_ID);
 
-    const disabled = await shareAgent(client, "acme/support-agent", "acme", { enabled: false, ...CLOUD });
-    expect(disabled.hints).toContain("  stigmer share agent acme/support-agent");
+    const disabled = await linkAgent(client, "acme/support-agent", "acme", { enabled: false, ...CLOUD });
+    expect(disabled.hints).toContain("  stigmer channel link acme/support-agent");
   });
 
   it("warns that a local link won't serve visitors (guest chat is Cloud-only)", async () => {
     const { client } = fakeClient(makeAgent(), makeShare({ enabled: false }));
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...LOCAL });
+    const result = await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...LOCAL });
 
     const link = result.sections.find((s) => s.title === "Public chat link");
     expect(link?.items).toEqual([`http://localhost:7234/chat/${SHARE_ID}`]);
@@ -555,7 +676,7 @@ describe("shareAgent output", () => {
       makeShare({ enabled: false, audience: ChannelAudience.org }),
     );
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...LOCAL });
+    const result = await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...LOCAL });
 
     expect(result.sections.find((s) => s.title === "Member chat link")?.items).toEqual([
       `http://localhost:7234/chat/${SHARE_ID}`,
@@ -566,13 +687,13 @@ describe("shareAgent output", () => {
   it("omits the local warning on a cloud backend", async () => {
     const { client } = fakeClient(makeAgent(), makeShare({ enabled: false }));
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
+    const result = await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
 
     expect(result.hints.some((h) => h.includes("Stigmer Cloud"))).toBe(false);
   });
 });
 
-describe("shareAgent --reset-link (rotatable share token)", () => {
+describe("linkAgent --reset-link (rotatable link token)", () => {
   it("rotates and prints the fresh tokened link and snippet", async () => {
     const { client, applies, rotationCount } = fakeClient(
       makeAgent(),
@@ -580,7 +701,7 @@ describe("shareAgent --reset-link (rotatable share token)", () => {
       { rotatedToken: "fresh-token" },
     );
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", {
+    const result = await linkAgent(client, "acme/support-agent", "acme", {
       enabled: true,
       resetLink: true,
       ...CLOUD,
@@ -589,7 +710,7 @@ describe("shareAgent --reset-link (rotatable share token)", () => {
     // Already enabled: no spec write, exactly one rotation.
     expect(applies).toHaveLength(0);
     expect(rotationCount()).toBe(1);
-    expect(result.message).toContain("Share link reset");
+    expect(result.message).toContain("Chat link reset");
 
     const link = result.sections.find((s) => s.title === "Public chat link");
     expect(link?.items).toEqual([
@@ -602,12 +723,12 @@ describe("shareAgent --reset-link (rotatable share token)", () => {
     expect(result.hints.some((h) => h.includes("Re-share the new link"))).toBe(true);
   });
 
-  it("enable + reset on a never-shared agent creates the public share, then rotates it", async () => {
-    const { client, applies, rotationCount } = fakeClient(makeAgent(), null, {
+  it("enable + reset on a never-linked agent creates the public link, then rotates it", async () => {
+    const { client, creates, rotationCount } = fakeClient(makeAgent(), null, {
       rotatedToken: "fresh-token",
     });
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", {
+    const result = await linkAgent(client, "acme/support-agent", "acme", {
       enabled: true,
       audience: "public",
       resetLink: true,
@@ -615,7 +736,7 @@ describe("shareAgent --reset-link (rotatable share token)", () => {
     });
 
     // The rotation needs a channel id, which only exists after the create.
-    expect(applies).toHaveLength(1);
+    expect(creates).toHaveLength(1);
     expect(rotationCount()).toBe(1);
     const link = result.sections.find((s) => s.title === "Public chat link");
     expect(link?.items).toEqual([
@@ -629,7 +750,7 @@ describe("shareAgent --reset-link (rotatable share token)", () => {
       makeShare({ enabled: true, linkToken: "existing-token" }),
     );
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", {
+    const result = await linkAgent(client, "acme/support-agent", "acme", {
       enabled: true,
       ...CLOUD,
     });
@@ -643,13 +764,13 @@ describe("shareAgent --reset-link (rotatable share token)", () => {
     ]);
   });
 
-  it("refuses --reset-link for an org-members-only share with actionable guidance", async () => {
+  it("refuses --reset-link for an org-members-only link with actionable guidance", async () => {
     const { client, rotationCount } = fakeClient(
       makeAgent(),
       makeShare({ enabled: true, audience: ChannelAudience.org }),
     );
 
-    const err = await shareAgent(client, "acme/support-agent", "acme", {
+    const err = await linkAgent(client, "acme/support-agent", "acme", {
       enabled: true,
       resetLink: true,
       ...CLOUD,
@@ -672,7 +793,7 @@ describe("shareAgent --reset-link (rotatable share token)", () => {
       }),
     );
 
-    const result = await shareAgent(client, "acme/support-agent", "acme", {
+    const result = await linkAgent(client, "acme/support-agent", "acme", {
       enabled: true,
       ...CLOUD,
     });
@@ -682,13 +803,13 @@ describe("shareAgent --reset-link (rotatable share token)", () => {
   });
 });
 
-describe("shareAgent from another organization's context", () => {
-  it("refuses before any write, naming where the share lives and the plugin remedy", async () => {
+describe("linkAgent from another organization's context", () => {
+  it("refuses before any write, naming where the link lives and the plugin remedy", async () => {
     // The server would refuse the agent_ref too; the CLI refuses first so
     // the caller reads the remedy rather than a bare FAILED_PRECONDITION.
     const { client, applies } = fakeClient(makeAgent(), null);
 
-    const err = await shareAgent(client, "acme/support-agent", "consumer-org", {
+    const err = await linkAgent(client, "acme/support-agent", "consumer-org", {
       enabled: true,
       ...CLOUD,
     }).catch((e: unknown) => e);
@@ -704,7 +825,7 @@ describe("shareAgent from another organization's context", () => {
   it("names the requested organization by slug when the context gives its id", async () => {
     const { client } = fakeClient(makeAgent(), null);
 
-    const err = await shareAgent(client, "acme/support-agent", CONSUMER_ID, {
+    const err = await linkAgent(client, "acme/support-agent", CONSUMER_ID, {
       enabled: true,
       ...CLOUD,
     }).catch((e: unknown) => e);
@@ -713,12 +834,12 @@ describe("shareAgent from another organization's context", () => {
     expect((err as Error).message).not.toContain(CONSUMER_ID);
   });
 
-  it("reports a failed organization lookup as itself, never as a share in another organization", async () => {
+  it("reports a failed organization lookup as itself, never as a link in another organization", async () => {
     const { client, applies } = fakeClient(makeAgent(), makeShare({ enabled: false }), {
       organizationFault: new ConnectError("backend unavailable", Code.Unavailable),
     });
 
-    const err = await shareAgent(client, "acme/support-agent", "acme-by-another-name", {
+    const err = await linkAgent(client, "acme/support-agent", "acme-by-another-name", {
       enabled: true,
       ...CLOUD,
     }).catch((e: unknown) => e);
@@ -730,11 +851,108 @@ describe("shareAgent from another organization's context", () => {
   });
 });
 
-describe("shareAgent errors", () => {
+describe("linkAgent when the link's name is taken (stigmer#2360)", () => {
+  it("refuses a new link whose default name a Slack channel holds, naming the holder and --name", async () => {
+    const slack = makeSlackChannel({ slug: "support-agent-web", agentSlug: "triage" });
+    const { client, applies } = fakeClient(makeAgent(), [slack]);
+
+    const err = await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD }).catch(
+      (e: unknown) => e,
+    );
+
+    expect(err).toBeInstanceOf(UsageError);
+    const message = (err as Error).message;
+    expect(message).toContain("the name `support-agent-web` is held by a Slack channel of agent `triage`");
+    expect(message).toContain("--name <slug>");
+    expect(message).not.toContain("immutable");
+    expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
+    // Never written over: the Slack channel is not updated.
+    expect(applies.filter((a) => a.id === SLACK_ID || a.slug === "support-agent-web")).toHaveLength(0);
+  });
+
+  it("creates the link under --name when the default name is taken", async () => {
+    const slack = makeSlackChannel({ slug: "support-agent-web" });
+    const { client, applies, creates } = fakeClient(makeAgent(), [slack]);
+
+    const result = await linkAgent(client, "acme/support-agent", "acme", {
+      enabled: true,
+      name: "support-agent-chat",
+      ...CLOUD,
+    });
+
+    expect(applies).toHaveLength(0);
+    expect(creates).toHaveLength(1);
+    expect(creates[0].name).toBe("support-agent-chat");
+    expect(creates[0].id).toBeUndefined();
+    expect(creates[0].web?.audience).toBe(ChannelAudience.org);
+    expect(result.sections.find((s) => s.title === "Member chat link")?.items).toEqual([
+      "https://app.stigmer.ai/chat/chn_01ARZ3NDEKTSV4RRFFQ69G5NEW",
+    ]);
+  });
+
+  it("names the holder by its id when the caller cannot read it", async () => {
+    const slack = makeSlackChannel({ slug: "support-agent-web", agentSlug: "triage" });
+    const { client } = fakeClient(makeAgent(), [slack], { unreadable: [SLACK_ID] });
+
+    const err = await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD }).catch(
+      (e: unknown) => e,
+    );
+
+    expect(err).toBeInstanceOf(UsageError);
+    expect((err as Error).message).toContain(`the name \`support-agent-web\` is held by channel ${SLACK_ID}`);
+    expect((err as Error).message).toContain("--name <slug>");
+  });
+
+  it("explains a name another channel was renamed away from within 30 days", async () => {
+    const { client } = fakeClient(makeAgent(), null, { reservedSlugs: ["support-agent-web"] });
+
+    const err = await linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD }).catch(
+      (e: unknown) => e,
+    );
+
+    expect(err).toBeInstanceOf(UsageError);
+    expect((err as Error).message).toContain("the name `support-agent-web` was another channel's");
+    expect((err as Error).message).toContain("30 days");
+    expect((err as Error).message).toContain("--name <slug>");
+  });
+
+  it("refuses --name naming another kind of channel of the agent, never editing it", async () => {
+    const slack = makeSlackChannel();
+    const { client, applies, creates } = fakeClient(makeAgent(), [slack]);
+
+    const err = await linkAgent(client, "acme/support-agent", "acme", {
+      enabled: true,
+      name: "support-agent-slack",
+      ...CLOUD,
+    }).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(UsageError);
+    expect((err as Error).message).toContain(
+      "the name `support-agent-slack` is held by a Slack channel of agent `support-agent`",
+    );
+    expect(applies).toHaveLength(0);
+    expect(creates).toHaveLength(0);
+  });
+
+  it("--name edits that web channel of the agent, not the canonical one", async () => {
+    const canonical = makeShare({ id: "chn_01ARZ3NDEKTSV4RRFFQ69G5WEB", slug: "support-agent-web", enabled: false });
+    const docs = makeShare({ id: "chn_01ARZ3NDEKTSV4RRFFQ69G5DOC", slug: "docs-chat", enabled: false });
+    const { client, applies, creates } = fakeClient(makeAgent(), [canonical, docs]);
+
+    await linkAgent(client, "acme/support-agent", "acme", { enabled: true, name: "docs-chat", ...CLOUD });
+
+    expect(creates).toHaveLength(0);
+    expect(applies).toHaveLength(1);
+    expect(applies[0].id).toBe("chn_01ARZ3NDEKTSV4RRFFQ69G5DOC");
+    expect(applies[0].slug).toBe("docs-chat");
+  });
+});
+
+describe("linkAgent errors", () => {
   it("fails fast with org guidance for a bare slug and no org", async () => {
     const { client, applies } = fakeClient(makeAgent(), null);
 
-    const err = await shareAgent(client, "support-agent", "", { enabled: true, ...CLOUD }).catch((e: unknown) => e);
+    const err = await linkAgent(client, "support-agent", "", { enabled: true, ...CLOUD }).catch((e: unknown) => e);
 
     expect(err).toBeInstanceOf(UsageError);
     expect((err as Error).message).toContain("organization not set");
@@ -745,7 +963,7 @@ describe("shareAgent errors", () => {
   it("does not apply the org guard to an ID reference", async () => {
     const { client, applies } = fakeClient(makeAgent(), makeShare({ enabled: false }));
 
-    await shareAgent(client, "agt_01ARZ3NDEKTSV4RRFFQ69G5FAV", "", { enabled: true, ...CLOUD });
+    await linkAgent(client, "agt_01ARZ3NDEKTSV4RRFFQ69G5FAV", "", { enabled: true, ...CLOUD });
 
     expect(applies).toHaveLength(1);
   });
@@ -754,8 +972,63 @@ describe("shareAgent errors", () => {
     const denied = new Error("permission denied: can_edit required");
     const { client } = fakeClient(makeAgent(), makeShare({ enabled: false }), { failWith: denied });
 
-    await expect(shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD })).rejects.toThrow(
+    await expect(linkAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD })).rejects.toThrow(
       /permission denied/,
     );
+  });
+});
+
+describe("setChannelEnabled", () => {
+  it("disables a Slack channel by a masked update of spec.enabled alone, reporting it paused", async () => {
+    const { client, updates } = fakeClient(makeAgent(), [makeSlackChannel()]);
+
+    const result = await setChannelEnabled(client, "acme/support-agent-slack", "acme", false);
+
+    expect(updates).toHaveLength(1);
+    expect(updates[0].paths).toEqual(["spec.enabled"]);
+    expect(updates[0].resource).toEqual({ metadata: { id: SLACK_ID, org: "acme" }, spec: { enabled: false } });
+    expect(result.status).toBe("success");
+    expect(result.message).toBe("Channel 'Support Agent (Slack)' disabled");
+    expect(result.sections[0].fields).toContainEqual({ key: "Enabled", value: "false" });
+    expect(result.hints.some((h) => h.includes("paused, not torn down"))).toBe(true);
+    expect(result.hints).toContain("  stigmer channel enable acme/support-agent-slack");
+  });
+
+  it("enables a web channel named by its id", async () => {
+    const { client, updates } = fakeClient(makeAgent(), makeShare({ enabled: false }));
+
+    const result = await setChannelEnabled(client, SHARE_ID, "", true);
+
+    expect(updates).toHaveLength(1);
+    expect(updates[0].resource).toEqual({ metadata: { id: SHARE_ID, org: "acme" }, spec: { enabled: true } });
+    expect(result.message).toBe("Channel 'Support Agent' enabled");
+    expect(result.hints).toHaveLength(0);
+  });
+
+  it("writes nothing when the channel is already in the state", async () => {
+    const { client, updates } = fakeClient(makeAgent(), makeShare({ enabled: true }));
+
+    const result = await setChannelEnabled(client, "acme/support-agent", "acme", true);
+
+    expect(updates).toHaveLength(0);
+    expect(result.message).toBe("Channel 'Support Agent' is already enabled");
+  });
+
+  it("fails fast with org guidance for a bare slug and no org", async () => {
+    const { client, updates } = fakeClient(makeAgent(), [makeSlackChannel()]);
+
+    const err = await setChannelEnabled(client, "support-agent-slack", "", false).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(UsageError);
+    expect((err as Error).message).toContain("stigmer channel disable support-agent-slack --org <org>");
+    expect(updates).toHaveLength(0);
+  });
+
+  it("reports a channel that is not there as not found", async () => {
+    const { client } = fakeClient(makeAgent(), null);
+
+    const err = await setChannelEnabled(client, "acme/nope", "acme", false).catch((e: unknown) => e);
+
+    expect(classify(err)?.exitCode).toBe(ExitCode.NotFound);
   });
 });

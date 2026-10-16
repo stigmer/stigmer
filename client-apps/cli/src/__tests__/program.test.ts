@@ -2,7 +2,8 @@
 // or a retired run or connect option is answered (commander's error plus one pointer line, never an
 // alias that still works, and never a retired option's value), that the
 // retired `connect mcp-server` points at `connect plugin` and `mcp add`, that
-// the retired `plugin eval` and `agent eval` point at `eval run`, and
+// the retired `plugin eval` and `agent eval` point at `eval run`, that the
+// retired `share` points at `channel link` and the console's Manage access, and
 // that the run command's vault and plugin flags reach the wire: My vault
 // unless --no-my-vault, and each --plugin as a plugin reference.
 
@@ -67,11 +68,34 @@ describe("buildProgram", () => {
     expect(names).not.toContain("draft");
   });
 
-  it("exposes the share subcommands", () => {
+  it("exposes the channel subcommands, link taking --name", () => {
     const program = buildProgram();
-    const share = program.commands.find((command) => command.name() === "share");
-    const subs = share?.commands.map((command) => command.name());
-    expect(subs).toEqual(["agent"]);
+    const channel = program.commands.find((command) => command.name() === "channel");
+    const subs = channel?.commands.map((command) => command.name());
+    expect(subs).toEqual(["link", "enable", "disable"]);
+    const link = channel?.commands.find((command) => command.name() === "link");
+    expect(link?.options.map((option) => option.long)).toEqual(
+      expect.arrayContaining(["--off", "--audience", "--reset-link", "--name", "--open", "--json", "--quiet"]),
+    );
+  });
+
+  it("has no share group: channel link replaced it, and the old word is not an alias", () => {
+    const program = buildProgram();
+    const names = program.commands.flatMap((command) => [command.name(), ...command.aliases()]);
+    expect(names).not.toContain("share");
+  });
+
+  it("answers the retired share with channel link and Manage access", async () => {
+    const program = buildProgram();
+    let stderr = "";
+    program.exitOverride().configureOutput({ writeErr: (text) => void (stderr += text) });
+    await expect(program.parseAsync(["share", "agent", "support"], { from: "user" })).rejects.toMatchObject({
+      code: "commander.unknownCommand",
+    });
+    expect(stderr).toContain("unknown command 'share'");
+    expect(stderr).toContain(`${RETIRED_COMMANDS.get("share")}\n`);
+    expect(stderr).toContain("stigmer channel link");
+    expect(stderr).toContain("Manage access");
   });
 
   it("exposes the usage subcommands", () => {
