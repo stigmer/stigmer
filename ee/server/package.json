@@ -52,8 +52,8 @@
     "@bufbuild/protobuf": "2.12.0",
     "@bufbuild/protovalidate": "^1.1.1",
     "@connectrpc/connect": "^2.0.0",
-    "@stigmer/outbound": "file:../../backend/libs/ts/outbound",
     "@stigmer/apis": "file:../../apis/stubs/ts",
+    "@stigmer/outbound": "file:../../backend/libs/ts/outbound",
     "@stigmer/server": "file:../../backend/services/stigmer-server",
     "pg": "8.23.0"
   },

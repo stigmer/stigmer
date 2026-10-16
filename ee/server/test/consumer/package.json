@@ -8,8 +8,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@stigmer/enterprise": "file:../..",
     "@stigmer/apis": "file:../../../../apis/stubs/ts",
+    "@stigmer/enterprise": "file:../..",
     "@stigmer/server": "file:../../../../backend/services/stigmer-server"
   },
   "devDependencies": {

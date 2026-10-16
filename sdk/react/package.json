@@ -66,8 +66,8 @@
   },
   "dependencies": {
     "@bufbuild/protovalidate": "^1.1.1",
-    "@stigmer/plugin-package": "*",
     "@stigmer/design-tokens": "*",
+    "@stigmer/plugin-package": "*",
     "@stigmer/tool-vocabulary": "*",
     "diff": "^8.0.3",
     "fflate": "^0.8.2",
