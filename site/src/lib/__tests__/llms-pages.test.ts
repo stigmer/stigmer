@@ -332,14 +332,14 @@ describe("collectDocsPages", () => {
   it("collects folder refs listed under a separator into that group", async () => {
     const dir = await setup({
       "index.mdx": mdx("Home"),
-      "meta.json": meta({ pages: ["---Agents---", "guides/sharing"] }),
-      "guides/sharing/meta.json": meta({ title: "Sharing", pages: ["share-an-agent"] }),
-      "guides/sharing/share-an-agent.mdx": mdx("Share an Agent"),
+      "meta.json": meta({ pages: ["---Agents---", "guides/channels"] }),
+      "guides/channels/meta.json": meta({ title: "Channels", pages: ["create-a-chat-link"] }),
+      "guides/channels/create-a-chat-link.mdx": mdx("Create a chat link"),
     });
 
     const pages = await collectDocsPages(dir, SITE_URL);
     expect(
-      pages.find((p) => p.relativePath === "guides/sharing/share-an-agent")
+      pages.find((p) => p.relativePath === "guides/channels/create-a-chat-link")
         ?.topSectionTitle,
     ).toBe("Agents");
   });

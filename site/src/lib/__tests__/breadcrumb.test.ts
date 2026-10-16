@@ -24,9 +24,9 @@ const tree: PageTree.Root = {
     page("/docs/concepts/agents", "Agents"),
     {
       type: "folder",
-      name: "Sharing",
-      index: page("/docs/guides/sharing", "Sharing overview"),
-      children: [page("/docs/guides/sharing/share-links", "Share links")],
+      name: "Channels",
+      index: page("/docs/guides/channels", "Channels overview"),
+      children: [page("/docs/guides/channels/create-a-chat-link", "Create a chat link")],
     },
     {
       type: "folder",
@@ -71,18 +71,18 @@ describe("buildBreadcrumbItems", () => {
 
   it("includes collapsible folders with their index URL", () => {
     expect(
-      buildBreadcrumbItems(tree, "/docs/guides/sharing/share-links"),
+      buildBreadcrumbItems(tree, "/docs/guides/channels/create-a-chat-link"),
     ).toEqual([
       { name: "Docs", url: "/docs" },
-      { name: "Sharing", url: "/docs/guides/sharing" },
-      { name: "Share links", url: "/docs/guides/sharing/share-links" },
+      { name: "Channels", url: "/docs/guides/channels" },
+      { name: "Create a chat link", url: "/docs/guides/channels/create-a-chat-link" },
     ]);
   });
 
   it("collapses a folder into its own index page", () => {
-    expect(buildBreadcrumbItems(tree, "/docs/guides/sharing")).toEqual([
+    expect(buildBreadcrumbItems(tree, "/docs/guides/channels")).toEqual([
       { name: "Docs", url: "/docs" },
-      { name: "Sharing overview", url: "/docs/guides/sharing" },
+      { name: "Channels overview", url: "/docs/guides/channels" },
     ]);
   });
 

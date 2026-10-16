@@ -46,8 +46,8 @@ The docs are organized by capability. Stable anchor pages, by area:
 - Skills: https://stigmer.ai/docs/concepts/skills
 - Sessions: https://stigmer.ai/docs/concepts/sessions
 - Approval flows: https://stigmer.ai/docs/concepts/approval-flows
-- Sharing (hosted link + embed): https://stigmer.ai/docs/guides/sharing/share-an-agent
-  and https://stigmer.ai/docs/guides/sharing/embed-an-agent
+- Sharing (hosted link + embed): https://stigmer.ai/docs/guides/channels/create-a-chat-link
+  and https://stigmer.ai/docs/guides/channels/embed-an-agent
 - Channels (Slack, WhatsApp): https://stigmer.ai/docs/guides/channels/connect-slack
   and https://stigmer.ai/docs/guides/channels/connect-whatsapp
 

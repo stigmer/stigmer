@@ -12,7 +12,7 @@ import {
   buildEmbedSnippet,
   chatPath,
   validateOrigin,
-} from "../sharing";
+} from "../chat-link";
 
 describe("validateOrigin", () => {
   it("accepts exact web origins", () => {

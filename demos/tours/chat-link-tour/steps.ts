@@ -1,6 +1,6 @@
 /**
  * Share Agent tour — a single beat of the real `ChatLinkDialog` in its
- * editor state, scene-setting for `docs/guides/sharing/share-an-agent.mdx`.
+ * editor state, scene-setting for `docs/guides/channels/create-a-chat-link.mdx`.
  *
  * The dialog is handed an already-created share, so it opens as that share's
  * editor — audience, hosted link, embed snippet, allowed origins, and the

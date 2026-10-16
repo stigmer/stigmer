@@ -1352,7 +1352,7 @@ credentials.
   grants a role on the Agent.
 - **Note**: Creating one is an Organization admin's act, because it runs the
   Agent on the Organization's provider keys for everyone who holds the link. See
-  [Share an Agent](/docs/guides/sharing/share-an-agent).
+  [Share an Agent](/docs/guides/channels/create-a-chat-link).
 
 ---
 

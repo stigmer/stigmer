@@ -289,7 +289,7 @@ pages:
       and turn a conversation that went wrong into a case.
     medium: none
 
-  guides/sharing/share-an-agent:
+  guides/channels/create-a-chat-link:
     fate: keep
     diataxis: how-to
     teaches:
@@ -301,9 +301,9 @@ pages:
       depicts an existing share where the prose teaches creating one (inherited
       drift a re-authored journey fixes).
     embeds:
-      share-agent-tour: replace
+      chat-link-tour: replace
 
-  guides/sharing/embed-an-agent:
+  guides/channels/embed-an-agent:
     fate: keep
     diataxis: how-to
     teaches:
