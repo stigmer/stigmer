@@ -1,5 +1,5 @@
 # Hosted-chat web channel for traveler-assist — scene 4's "same agent,
-# everywhere" beat: the share link (S4e) and the Meridian page embed
+# everywhere" beat: the chat link (S4e) and the Meridian page embed
 # (S4d) both ride this channel. The embed page is served by
 # embed/serve.mjs on localhost:4173.
 apiVersion: agentic.stigmer.ai/v1

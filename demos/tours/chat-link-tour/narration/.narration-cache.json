@@ -1,9 +1,10 @@
 {
+  "fingerprint": "edge-tts/en-US-AndrewMultilingualNeural",
   "voice": "",
   "steps": [
     {
-      "hash": "7c6f710d16ddd87c91b2dfe9b0b924d6e9882dc4ad67a088f3a01c51bc565aa6",
-      "durationMs": 10813
+      "hash": "519b0dc0847f7f8ede0ee91a9edcc95d4d55c71a7f4a636e2e8500e1c3343f0a",
+      "durationMs": 11400
     }
   ]
 }

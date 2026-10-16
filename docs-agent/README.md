@@ -3,7 +3,7 @@
 The first-party agent behind **Ask AI** on [stigmer.ai/docs](https://stigmer.ai/docs).
 It answers questions about Stigmer from the official documentation — grounded,
 cited, and always current — and reaches readers through Stigmer's own
-share/embed capability. This directory is the complete, declarative definition
+chat link and embed. This directory is the complete, declarative definition
 of that experience: the agent, its skill, and its public web channel.
 
 ## Design in one paragraph

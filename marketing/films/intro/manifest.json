@@ -96,9 +96,9 @@
     {
       "id": "s4-put-to-work",
       "mode": "vo",
-      "narration": "Now, let's put it to work. Here's our agent in the console. I ask it to move my flight to tomorrow morning. It reads the policy, finds options — and when it's ready to actually rebook, it stops, and asks. I can see exactly what it's about to do. I approve, and it finishes the job. The agent does the work. You keep the authority. And the console is just one surface. This is Meridian's own website — the product their travelers already use. Add one component, and the same assistant is live inside their product, talking to their customers. This is what you ship to your users. Or share it as a hosted link, and it's live for anyone you choose. Same agent. Same skills. Same guardrails. Everywhere.",
+      "narration": "Now, let's put it to work. Here's our agent in the console. I ask it to move my flight to tomorrow morning. It reads the policy, finds options — and when it's ready to actually rebook, it stops, and asks. I can see exactly what it's about to do. I approve, and it finishes the job. The agent does the work. You keep the authority. And the console is just one surface. This is Meridian's own website — the product their travelers already use. Add one component, and the same assistant is live inside their product, talking to their customers. This is what you ship to your users. Or give it a chat link, and it's live for anyone you choose. Same agent. Same skills. Same guardrails. Everywhere.",
       "plannedDurationSec": 47,
-      "shots": "S4a console chat; S4b approval hero (push-in + spotlight, uncut through approve → confirmation); S4d bare Meridian page → JSX snippet → live assistant answering (the payoff beat); S4e share link",
+      "shots": "S4a console chat; S4b approval hero (push-in + spotlight, uncut through approve → confirmation); S4d bare Meridian page → JSX snippet → live assistant answering (the payoff beat); S4e chat link",
       "holdSec": 0.6,
       "cuts": [
         { "shot": "s4-chat", "kind": "recording", "atSec": 0, "srcStartSec": 9.5 },
