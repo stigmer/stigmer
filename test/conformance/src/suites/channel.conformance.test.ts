@@ -179,7 +179,7 @@ function channelNotFoundMessage(channelId: string): string {
 // The open-source edition's answer to a guest mint (no unit composes the
 // capability).
 const GUEST_MINT_UNIMPLEMENTED =
-  "TokenService.mintGuestToken is not implemented: guest tokens for shared agents are served by the Cloud edition";
+  "TokenService.mintGuestToken is not implemented: guest tokens for chat links are served by the Cloud edition";
 
 // The FailedPrecondition copy of the type-shaped lanes.
 const ROTATE_LINK_NOT_APPLICABLE = "only a web channel has a link to rotate";

@@ -118,7 +118,7 @@ export interface StigmerProviderProps {
   /**
    * The address the Stigmer API is reached at from outside this page, for
    * the URLs the SDK shows a user to copy (the Slack and WhatsApp webhook
-   * URLs a channel app registers, and the SDK snippet in the Share
+   * URLs a channel app registers, and the SDK snippet in the chat link
    * dialog). A session's MCP servers get their
    * `STIGMER_SERVER_ADDRESS` from the platform, never from this value.
    *

@@ -4,7 +4,7 @@
  *
  * ```html
  * <script src="https://app.stigmer.ai/embed.js" async></script>
- * <stigmer-agent channel="ash_01j9z3k8f2q4m6n7p8r9s0t1v2"></stigmer-agent>
+ * <stigmer-agent channel="chn_01j9z3k8f2q4m6n7p8r9s0t1v2"></stigmer-agent>
  * ```
  *
  * `channel` is the web channel's id (a chat link minted before the Channel
@@ -123,7 +123,7 @@ export class StigmerAgentElement extends BaseElement {
     // host names it with the element's own title attribute. Read once, when
     // the frame is built: title is deliberately not observed, because a
     // rebuild would wipe the visitor's conversation.
-    iframe.title = this.getAttribute("title") || "Chat with a shared agent";
+    iframe.title = this.getAttribute("title") || "Chat with an agent";
     iframe.setAttribute("loading", "lazy");
     iframe.style.cssText =
       "width:100%;height:100%;border:0;border-radius:12px";

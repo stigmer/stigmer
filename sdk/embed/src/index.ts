@@ -1,5 +1,5 @@
 /**
- * @stigmer/embed — the one-line script embed for shared Stigmer agents.
+ * @stigmer/embed — the one-line script embed for a Stigmer agent's chat link.
  *
  * Three consumption forms:
  * - `<script src=".../embed.js">` — the IIFE loader (`./loader` export),

@@ -79,10 +79,11 @@ myVault.secretNames.has("OPENAI_API_KEY"); // true after the refetch
 
 ### useToolCredentialsReadiness
 
-Data hook that checks a surface's named vaults. `applicable` is the
-caller's predicate (shares add an audience arm; channels do not).
+Data hook that checks a channel's named vaults. `applicable` is the
+caller's predicate (chat links add an audience arm; Slack and WhatsApp
+channels do not).
 
-Surface wrappers: [`useChatLinkToolReadiness`](/docs/sdk/react/chat-link#usechatlinktoolreadiness), [`useChannelToolReadiness`](/docs/sdk/react/channel#usechanneltoolreadiness).
+Wrappers: [`useChatLinkToolReadiness`](/docs/sdk/react/chat-link#usechatlinktoolreadiness), [`useChannelToolReadiness`](/docs/sdk/react/channel#usechanneltoolreadiness).
 
 **Signature**
 

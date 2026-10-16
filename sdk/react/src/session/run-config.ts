@@ -18,12 +18,12 @@ import type { ThinkingModeOption } from "../models/thinking-mode.js";
  *
  * This is presentation-level pinning for product-embedded sessions,
  * not a security boundary — a caller with the session's credentials
- * can still create runs directly. Share/channel surfaces, where
+ * can still create runs directly. Channels (chat links among them), where
  * the audience is untrusted, get the server-enforced `RunConfig` on
  * their specs instead.
  *
  * Ignored entirely for the `"guest"` audience: guest run config
- * is owned by the server-side share policy, and guest sends carrying
+ * is owned by the server-side chat-link policy, and guest sends carrying
  * no `modelName` is a pinned invariant.
  */
 export interface SessionRunConfig {

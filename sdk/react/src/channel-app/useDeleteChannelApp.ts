@@ -22,7 +22,7 @@ export interface UseDeleteChannelAppReturn {
  * state.
  *
  * Deletes a channel app by its resource ID. The server refuses
- * (`FAILED_PRECONDITION`) while any agent channel still references the
+ * (`FAILED_PRECONDITION`) while any channel still references the
  * app via `spec.app_ref` — the error message names the fix; surface it
  * to the user rather than retrying.
  *

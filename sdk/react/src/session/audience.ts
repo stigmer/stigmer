@@ -12,7 +12,7 @@
  *   Agent/Plan mode, and attaches workspaces, but never reconfigures
  *   the agent. The organisms lock the agent and hide the integrator
  *   pickers, in both the composer and the inspector's Setup tab.
- * - `"guest"` — an anonymous visitor of a shared agent's public page or
+ * - `"guest"` — an anonymous visitor of an agent's public chat link or
  *   embed, authenticated by a guest token. Pure chat: everything
  *   `"endUser"` hides plus the model, harness, and Agent/Plan pickers,
  *   attachments, the workspace picker, and the session panel. Guest is

@@ -28,7 +28,7 @@ references, updates and lists, the same in every language:
 | `@stigmer/react` | The provider, hooks and components of the Console, embeddable in any React app | [react/README.md](./react/README.md) |
 | `@stigmer/theme` | Design tokens, color presets and utilities for those components                | [theme/README.md](./theme/README.md) |
 | `@stigmer/ink`   | Ink (React for terminals) components that render agent sessions                | [`ink/`](./ink/)                     |
-| `@stigmer/embed` | A one-line `<stigmer-agent>` script embed for a shared Agent                   | [`embed/`](./embed/)                 |
+| `@stigmer/embed` | A one-line `<stigmer-agent>` script embed for an Agent's chat link             | [`embed/`](./embed/)                 |
 
 ## Reference docs
 

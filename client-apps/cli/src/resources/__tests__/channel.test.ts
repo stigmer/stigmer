@@ -720,7 +720,7 @@ describe("linkAgent --reset-link (rotatable link token)", () => {
     expect(embed?.items.join("\n")).toBe(
       buildEmbedSnippet("https://app.stigmer.ai", SHARE_ID, "fresh-token"),
     );
-    expect(result.hints.some((h) => h.includes("Re-share the new link"))).toBe(true);
+    expect(result.hints.some((h) => h.includes("Send the new link"))).toBe(true);
   });
 
   it("enable + reset on a never-linked agent creates the public link, then rotates it", async () => {
