@@ -12,7 +12,7 @@
  *     the resource kind accepts a team grant.
  *
  * The data and mutation hooks under it are stubbed; the access list is the
- * one a server returns for an agent channel shared with a team as both
+ * one a server returns for a channel shared with a team as both
  * participant and viewer, beside a person.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";

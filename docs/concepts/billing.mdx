@@ -22,8 +22,8 @@ Self-hosted Stigmer (open source) has no billing; see
 
 | Plan             | Monthly fee                                          | Includes                                                                     |
 | ---------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Free             | $0                                                   | Channels, sharing and unlimited members                                      |
-| Team             | $99                                                  | Teams, channels and sharing, with email support                              |
+| Free             | $0                                                   | Chat links, Slack and WhatsApp, and unlimited members                        |
+| Team             | $99                                                  | Teams, chat links, Slack and WhatsApp, with email support                    |
 | Business         | $499, plus $25 for each child organization past five | Everything in Team, child organizations for your customers, priority support |
 | Enterprise Cloud | Quoted, annual contract                              | Everything in Business, plus the access history                              |
 
@@ -225,9 +225,8 @@ Every run spends on your own provider accounts (Anthropic, OpenAI or Cursor), so
 set budgets there too. Within Stigmer, a cost cap on each run (`max_cost_usd` in
 an Agent's [run settings](/docs/concepts/agents#run-settings)) stops a message
 once its estimated cost, at the catalog's list prices, reaches the cap. A
-channel or a share can lower that cap for the conversations it carries, never
-raise it, and an eval takes a spending limit of its own (`max_cost_usd` on the
-eval).
+channel can lower that cap for the conversations it carries, never raise it, and
+an eval takes a spending limit of its own (`max_cost_usd` on the eval).
 
 ## Self-hosting
 

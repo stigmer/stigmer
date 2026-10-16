@@ -49,8 +49,9 @@ public enum RunValueOrigin
   RUN_VALUE_ORIGIN_VAULT(3),
   /**
    * <pre>
-   * A vault of the surface a turn with no person came through (its
-   * schedule, share, channel or its organization's embedding settings).
+   * A vault of the schedule, channel or embedding settings a turn with no
+   * person came through. The value's name is older than this wording and
+   * stays: an enum value is a wire identifier.
    * </pre>
    *
    * <code>RUN_VALUE_ORIGIN_SURFACE_VAULT = 4;</code>
@@ -110,8 +111,9 @@ public enum RunValueOrigin
   public static final int RUN_VALUE_ORIGIN_VAULT_VALUE = 3;
   /**
    * <pre>
-   * A vault of the surface a turn with no person came through (its
-   * schedule, share, channel or its organization's embedding settings).
+   * A vault of the schedule, channel or embedding settings a turn with no
+   * person came through. The value's name is older than this wording and
+   * stays: an enum value is a wire identifier.
    * </pre>
    *
    * <code>RUN_VALUE_ORIGIN_SURFACE_VAULT = 4;</code>

@@ -11,14 +11,15 @@ package ai.stigmer.agentic.run.v1;
  * thinking, and run bounds.
  *
  * The same message is a message's request (RunSpec.run_config),
- * a surface's saved settings (a schedule's invocation, a channel, a share),
+ * the saved settings of a schedule (its invocation) or a channel,
  * an agent author's defaults (AgentSpec.run_config,
  * versioned with the agent), and the settings a turn ran with
  * (RunStatus.run_config). Zero or empty means "not set at this
  * layer".
  *
  * The server resolves a turn's settings once, at create, from three layers,
- * most specific first: the message (or the surface it came through), the
+ * most specific first: the message (or the schedule or channel it came
+ * through), the
  * agent's defaults, and the lane's operator profile.
  *
  * - Choices. model_name comes from the first layer that names one. When no
@@ -30,13 +31,13 @@ package ai.stigmer.agentic.run.v1;
  * come only from the message.
  * - Bounds. max_cost_usd, max_tool_rounds and max_tool_result_chars each take
  * the smallest positive value any layer sets. An operator profile is a
- * ceiling the message, the surface and the agent can lower but never
- * raise.
+ * ceiling the message, the schedule or channel, and the agent can lower
+ * but never raise.
  * - The agent's choices apply only on the engine its defaults name
  * (AgentSpec.harness). On a conversation running the other engine the
  * agent layer gives its bounds alone.
  *
- * Saved settings are self-contained: a surface or an agent that sets
+ * Saved settings are self-contained: a schedule, channel or agent that sets
  * service_tier FAST or thinking_mode ENABLED names the model it is for. Only a
  * message may set them alone, to adjust the model it is given.
  * </pre>
@@ -509,14 +510,15 @@ private static final long serialVersionUID = 0L;
    * thinking, and run bounds.
    *
    * The same message is a message's request (RunSpec.run_config),
-   * a surface's saved settings (a schedule's invocation, a channel, a share),
+   * the saved settings of a schedule (its invocation) or a channel,
    * an agent author's defaults (AgentSpec.run_config,
    * versioned with the agent), and the settings a turn ran with
    * (RunStatus.run_config). Zero or empty means "not set at this
    * layer".
    *
    * The server resolves a turn's settings once, at create, from three layers,
-   * most specific first: the message (or the surface it came through), the
+   * most specific first: the message (or the schedule or channel it came
+   * through), the
    * agent's defaults, and the lane's operator profile.
    *
    * - Choices. model_name comes from the first layer that names one. When no
@@ -528,13 +530,13 @@ private static final long serialVersionUID = 0L;
    * come only from the message.
    * - Bounds. max_cost_usd, max_tool_rounds and max_tool_result_chars each take
    * the smallest positive value any layer sets. An operator profile is a
-   * ceiling the message, the surface and the agent can lower but never
-   * raise.
+   * ceiling the message, the schedule or channel, and the agent can lower
+   * but never raise.
    * - The agent's choices apply only on the engine its defaults name
    * (AgentSpec.harness). On a conversation running the other engine the
    * agent layer gives its bounds alone.
    *
-   * Saved settings are self-contained: a surface or an agent that sets
+   * Saved settings are self-contained: a schedule, channel or agent that sets
    * service_tier FAST or thinking_mode ENABLED names the model it is for. Only a
    * message may set them alone, to adjust the model it is given.
    * </pre>

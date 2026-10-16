@@ -640,7 +640,7 @@ public interface RunStatusOrBuilder extends
   /**
    * <pre>
    * The settings this turn runs with: spec.run_config (or the saved settings
-   * of the surface it came through), the defaults of the agent version the
+   * of the schedule or channel it came through), the defaults of the agent version the
    * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
    *
    * An empty model_name means no layer named one and the engine chose (the
@@ -654,7 +654,7 @@ public interface RunStatusOrBuilder extends
   /**
    * <pre>
    * The settings this turn runs with: spec.run_config (or the saved settings
-   * of the surface it came through), the defaults of the agent version the
+   * of the schedule or channel it came through), the defaults of the agent version the
    * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
    *
    * An empty model_name means no layer named one and the engine chose (the
@@ -668,7 +668,7 @@ public interface RunStatusOrBuilder extends
   /**
    * <pre>
    * The settings this turn runs with: spec.run_config (or the saved settings
-   * of the surface it came through), the defaults of the agent version the
+   * of the schedule or channel it came through), the defaults of the agent version the
    * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
    *
    * An empty model_name means no layer named one and the engine chose (the

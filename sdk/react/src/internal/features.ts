@@ -23,7 +23,7 @@ export type NamedFeature = Exclude<
 
 /**
  * Label and one-line explanation per named feature, and whether the label
- * reads as a plural ("Teams are", "Sharing is").
+ * reads as a plural ("Teams are", "Access history is").
  */
 export const FEATURE_COPY: Readonly<
   Record<
@@ -32,14 +32,14 @@ export const FEATURE_COPY: Readonly<
   >
 > = {
   [Feature.channels]: {
-    label: "Channels",
-    description: "Deliver agents over messaging channels through a channel runtime.",
+    label: "Slack and WhatsApp",
+    description: "Reach people in Slack and WhatsApp through the hosted channel runtime.",
     plural: true,
   },
   [Feature.sharing]: {
-    label: "Sharing",
-    description: "Share agents through hosted links, with your organization or with anyone who has the link.",
-    plural: false,
+    label: "Chat links",
+    description: "Hosted chat links and embeds, for your organization or for anyone with the link.",
+    plural: true,
   },
   [Feature.teams]: {
     label: "Teams",

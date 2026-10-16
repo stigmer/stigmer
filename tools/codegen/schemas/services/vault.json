@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "Vault",
           "outputFullType": "ai.stigmer.agentic.vault.v1.Vault",
-          "description": "Delete a vault and every value it holds.\n\n Sessions, schedules, shares, channels and embedding settings that name\n the vault are refused at their next run, naming it."
+          "description": "Delete a vault and every value it holds.\n\n Sessions, schedules, channels and embedding settings that name\n the vault are refused at their next run, naming it."
         },
         {
           "name": "SetSecrets",

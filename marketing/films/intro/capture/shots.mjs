@@ -114,9 +114,9 @@ export const SHOTS = {
     await human.beat(5);
   },
 
-  /** S4e — the hosted share link, live for anyone you choose. */
+  /** S4e — the hosted chat link, live for anyone you choose. */
   "s4e-share": async (page, human) => {
-    // The link names the share by the id the seed recorded.
+    // The link names the channel by the id the seed recorded.
     await page.goto(`${CONSOLE_ORIGIN}/chat/${readChannelId()}`, { waitUntil: "networkidle" });
     await dismissBanner(page);
     await human.beat(2);

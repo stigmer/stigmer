@@ -162,7 +162,7 @@ describe("LicensesConsole detail", () => {
     // them any more, so the detail names none of them.
     expect(screen.queryByText("Features")).toBeNull();
     expect(screen.queryByText("SSO enforcement")).toBeNull();
-    expect(screen.queryByText("Channels")).toBeNull();
+    expect(screen.queryByText("Slack and WhatsApp")).toBeNull();
     expect(screen.queryByText(/eyJhbGciOiJFZERTQSJ9/)).toBeNull();
 
     const copy = await screen.findByRole("button", { name: /Copy ticket/ });

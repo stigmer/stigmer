@@ -35,8 +35,8 @@ describe("offeredFeatures", () => {
   it("lists what Cloud offers, leaving out what names nothing, in contract order", () => {
     const listed = create(EntitlementsSchema, { features: [Feature.teams, Feature.platform_client, ...BUSINESS.features] });
     expect(offeredFeatures(listed).map((f) => f.label)).toEqual([
-      "Channels",
-      "Sharing",
+      "Slack and WhatsApp",
+      "Chat links",
       "Teams",
       "Child organizations",
     ]);

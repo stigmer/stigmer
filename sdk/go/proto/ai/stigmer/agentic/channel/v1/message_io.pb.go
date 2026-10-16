@@ -513,8 +513,7 @@ func (x *ListChannelTemplatesInput) GetApprovedOnly() bool {
 	return false
 }
 
-// ChannelTemplates contains the message templates available on an agent
-// channel.
+// ChannelTemplates contains the message templates available on a channel.
 type ChannelTemplates struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Template entries, one per (name, language) pair.

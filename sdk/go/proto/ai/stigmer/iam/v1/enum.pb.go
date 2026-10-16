@@ -47,7 +47,8 @@ const (
 	// organization: only its owners hold it.
 	IamPermission_can_assign_roles IamPermission = 47
 	// Whether the caller may change who reaches the resource: its visibility,
-	// who observes its runs, a share link to it, or a channel it answers on.
+	// who observes its runs, or a channel it answers on (a chat link among
+	// them).
 	IamPermission_can_manage_audience IamPermission = 48
 	// Organization-level create permissions.
 	IamPermission_can_create_agent             IamPermission = 6
@@ -297,7 +298,7 @@ const (
 	IamRole_participant IamRole = 5
 	// Editor of a blueprint (an agent): may change
 	// its definition and do whatever a viewer can, and may not delete it,
-	// change its visibility, publish it on a share link or a channel, or decide
+	// change its visibility, give it a chat link or another channel, or decide
 	// who else has access.
 	IamRole_editor IamRole = 6
 	// May use a shared vault: the runs of a person who holds it use the

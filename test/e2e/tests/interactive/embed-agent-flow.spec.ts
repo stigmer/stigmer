@@ -8,7 +8,7 @@ import { ensureDefaultOrg } from "../../fixtures/seed-helpers";
 /**
  * One-line script embed against the real stack: a genuinely cross-origin
  * host page (127.0.0.1:<random> vs the app's localhost:3000) pastes the
- * exact snippet the Share dialog emits, and the loader must upgrade
+ * exact snippet the chat link's dialog emits, and the loader must upgrade
  * `<stigmer-agent>` into an iframe onto the hosted chat page.
  *
  * Scope note: the guest experience inside the frame is cloud-only —

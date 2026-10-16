@@ -1,6 +1,8 @@
 {
   "title": "Channels",
   "pages": [
+    "create-a-chat-link",
+    "embed-an-agent",
     "connect-slack",
     "bring-your-own-slack-app",
     "connect-whatsapp",

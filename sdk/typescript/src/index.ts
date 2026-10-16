@@ -21,7 +21,7 @@ export {
   type GuestIdStorage,
 } from "./guest-auth.js";
 
-// Agent sharing (hosted link + embed snippet; framework-free)
+// Chat links (hosted link + embed snippet; framework-free)
 export {
   MAX_ALLOWED_ORIGINS,
   LINK_TOKEN_PARAM,
@@ -31,7 +31,7 @@ export {
   appendLinkToken,
   buildEmbedLoaderUrl,
   buildEmbedSnippet,
-} from "./sharing.js";
+} from "./chat-link.js";
 
 // References the server returned (a deleted target has an id and no slug)
 export {

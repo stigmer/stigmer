@@ -111,7 +111,7 @@ export const VaultCommandController = {
     /**
      * Delete a vault and every value it holds.
      *
-     * Sessions, schedules, shares, channels and embedding settings that name
+     * Sessions, schedules, channels and embedding settings that name
      * the vault are refused at their next run, naming it.
      *
      * @generated from rpc ai.stigmer.agentic.vault.v1.VaultCommandController.delete

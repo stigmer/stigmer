@@ -8,7 +8,7 @@
  * The page is authored against the local console origin; APP_ORIGIN swaps
  * it at serve time for the S4d cloud take (see cloud/README.md):
  *   APP_ORIGIN=https://app.stigmer.ai npm run demo:embed
- * The embed names the share by its id, which the last seed recorded
+ * The embed names the channel by its id, which the last seed recorded
  * (../channel-id.mjs); it is filled in at serve time too.
  */
 import { createServer } from "node:http";

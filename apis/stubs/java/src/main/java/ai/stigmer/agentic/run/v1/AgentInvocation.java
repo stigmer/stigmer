@@ -11,10 +11,10 @@ package ai.stigmer.agentic.run.v1;
  *
  * It is the owner-settable subset of a run — the interactive
  * composer's vocabulary (agent, message, harness, workspace,
- * vaults, run bounds) minus what an unattended surface makes
- * structurally impossible. Surfaces that trigger agents on someone's
- * behalf embed this message instead of re-deriving the shape:
- * schedules embed it whole; channels and shares embed RunConfig.
+ * vaults, run bounds) minus what an unattended run makes structurally
+ * impossible. A schedule or a channel that starts an agent on someone's
+ * behalf embeds this shape instead of re-deriving it: a schedule embeds
+ * it whole; a channel embeds RunConfig.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.run.v1.AgentInvocation}
@@ -619,10 +619,10 @@ private static final long serialVersionUID = 0L;
    *
    * It is the owner-settable subset of a run — the interactive
    * composer's vocabulary (agent, message, harness, workspace,
-   * vaults, run bounds) minus what an unattended surface makes
-   * structurally impossible. Surfaces that trigger agents on someone's
-   * behalf embed this message instead of re-deriving the shape:
-   * schedules embed it whole; channels and shares embed RunConfig.
+   * vaults, run bounds) minus what an unattended run makes structurally
+   * impossible. A schedule or a channel that starts an agent on someone's
+   * behalf embeds this shape instead of re-deriving it: a schedule embeds
+   * it whole; a channel embeds RunConfig.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.run.v1.AgentInvocation}

@@ -1,9 +1,9 @@
 /**
- * Agent-sharing helpers — the single source of truth for the hosted chat
+ * Chat-link helpers — the single source of truth for the hosted chat
  * URL shape, the embed snippet, and client-side `allowed_origins`
  * validation. Framework-free by design: consumed by the web console and
  * desktop app (via `@stigmer/react`), the `stigmer` CLI, and any platform
- * builder that wants to construct share links or embed snippets itself.
+ * builder that wants to construct chat links or embed snippets itself.
  *
  * The canonical URL shape is `<app-origin>/chat/<channel id>`, and
  * `embed.js` is served from the root of that same
@@ -54,7 +54,7 @@ export function validateOrigin(value: string): string | null {
 export const LINK_TOKEN_PARAM = "k";
 
 /**
- * The hosted chat page path for a shared agent: `/chat/<channel id>` (the
+ * The hosted chat page path for an agent's chat link: `/chat/<channel id>` (the
  * web Channel's `metadata.id`), plus `?k=<token>` when the chat link is
  * locked with a rotatable token (`WebChannelStatus.link_token`).
  *
@@ -69,13 +69,13 @@ export function chatPath(channelId: string, linkToken?: string): string {
 }
 
 /**
- * The absolute hosted chat URL for a shared agent:
+ * The absolute hosted chat URL for an agent's chat link:
  * `<appOrigin>/chat/<channel id>[?k=<token>]`.
  *
  * A trailing slash on `appOrigin` is tolerated so callers can pass
  * user-configured values verbatim. An empty `appOrigin` degrades to the
  * relative {@link chatPath} — the same graceful fallback a host without a
- * configured public origin gets in the share dialog.
+ * configured public origin gets in the chat link's dialog.
  */
 export function buildChatUrl(
   appOrigin: string,
@@ -114,8 +114,8 @@ export function buildEmbedLoaderUrl(appOrigin: string): string {
  * The two-line embed snippet an owner pastes into any website: the
  * loader script plus the `<stigmer-agent>` element where the widget
  * renders, naming the web channel by its id. A locked chat link adds the `token` attribute, which the
- * widget forwards as `?k=` on its iframe URL. Every surface (share
- * dialog, CLI, docs) emits exactly this.
+ * widget forwards as `?k=` on its iframe URL. Every surface (the chat
+ * link's dialog, CLI, docs) emits exactly this.
  */
 export function buildEmbedSnippet(
   appOrigin: string,

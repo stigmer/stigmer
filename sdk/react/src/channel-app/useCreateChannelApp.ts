@@ -23,7 +23,7 @@ export interface UseCreateChannelAppReturn {
  * state.
  *
  * Creates a channel app — a customer-owned messaging-platform app whose
- * credentials agent channels can install through instead of the shared
+ * credentials Slack and WhatsApp channels can install through instead of the shared
  * Stigmer app. The secret fields (`clientSecret`, `signingSecret`) are
  * encrypted server-side and come back redacted in the response.
  *

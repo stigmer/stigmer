@@ -7,8 +7,7 @@ package ai.stigmer.agentic.channel.v1;
 
 /**
  * <pre>
- * ChannelTemplates contains the message templates available on an agent
- * channel.
+ * ChannelTemplates contains the message templates available on a channel.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.channel.v1.ChannelTemplates}
@@ -281,8 +280,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ChannelTemplates contains the message templates available on an agent
-   * channel.
+   * ChannelTemplates contains the message templates available on a channel.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.channel.v1.ChannelTemplates}

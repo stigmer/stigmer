@@ -6,10 +6,10 @@
  *   - mintUserToken: a service account's key mints a user token for one of
  *     its organization's people (mint.ts), authorized by the method's
  *     annotation like any other RPC.
- *   - mintGuestToken: the credential-free mint for anonymous visitors of a
- *     shared agent's hosted page, dispatched to the composed guest-token
+ *   - mintGuestToken: the credential-free mint for anonymous visitors of an
+ *     agent's chat link, dispatched to the composed guest-token
  *     capability (extensions/guest-token-minting.ts). Without one (open
- *     source hosts no shared-agent pages) it answers UNIMPLEMENTED with
+ *     source serves no chat links to guests) it answers UNIMPLEMENTED with
  *     the edition sentence.
  */
 import { Code, ConnectError } from "@connectrpc/connect";

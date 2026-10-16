@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/embed",
   "version": "0.0.0-dev",
-  "description": "One-line script embed for shared Stigmer agents — a framework-free <stigmer-agent> web component that bootstraps the hosted chat page in an iframe",
+  "description": "One-line script embed for a Stigmer agent's chat link — a framework-free <stigmer-agent> web component that bootstraps the hosted chat page in an iframe",
   "license": "Apache-2.0",
   "type": "module",
   "sideEffects": [

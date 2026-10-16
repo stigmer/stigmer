@@ -43,8 +43,8 @@ const output = execSync(`${JSON.stringify(bin)} --org meridian-travel apply -f $
   encoding: "utf8",
 });
 
-// The share pins the agent by id (slug-reuse protection); recreating the
-// agent above changed that id, so re-apply the share to re-pin it.
+// The chat link pins the agent by id (slug-reuse protection); recreating the
+// agent above changed that id, so re-apply the chat link to re-pin it.
 execFileSync(bin, ["apply", "-f", join(here, "../demo/resources/traveler-assist-share.yaml")], { stdio: "ignore" });
 
 mkdirSync(outDir, { recursive: true });

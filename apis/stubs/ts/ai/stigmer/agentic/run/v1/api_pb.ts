@@ -267,7 +267,7 @@ export type RunStatus = Message<"ai.stigmer.agentic.run.v1.RunStatus"> & {
 
   /**
    * The settings this turn runs with: spec.run_config (or the saved settings
-   * of the surface it came through), the defaults of the agent version the
+   * of the schedule or channel it came through), the defaults of the agent version the
    * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
    *
    * An empty model_name means no layer named one and the engine chose (the
@@ -366,9 +366,10 @@ export const LoadedVersionsSchema: GenMessage<LoadedVersions> = /*@__PURE__*/
 export type RunCredentials = Message<"ai.stigmer.agentic.run.v1.RunCredentials"> & {
   /**
    * The person whose turn this is, by identity account id. Absent for a
-   * turn no person sent: a schedule's, a channel's, a share link guest's, an
-   * app user's or a machine account's, which use only the vaults their
-   * session and surface name.
+   * turn no person sent: a schedule's, a channel's (a chat-link guest's
+   * included), an app user's or a machine account's, which use only the
+   * vaults their session and their schedule, channel or embedding settings
+   * name.
    *
    * @generated from field: optional string person = 1;
    */

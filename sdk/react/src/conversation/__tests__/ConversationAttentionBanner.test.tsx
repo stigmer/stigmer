@@ -75,12 +75,12 @@ describe("ConversationAttentionBanner", () => {
         conversation={conversation({ needsAttention: true })}
         participation={participation({
           commandErrors: new Map([
-            ["clearAttention", new Error("agent channel ach_1 not found")],
+            ["clearAttention", new Error("Channel not found: chn_1")],
           ]),
         })}
       />,
     );
-    expect(screen.getByText("agent channel ach_1 not found")).toBeDefined();
+    expect(screen.getByText("Channel not found: chn_1")).toBeDefined();
   });
 
   it("offers Take over beside Dismiss while the agent holds it — the escalation's answer lives where the escalation speaks", async () => {

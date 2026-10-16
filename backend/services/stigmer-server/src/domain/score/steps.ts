@@ -456,8 +456,7 @@ function creatorOf(score: Score): string {
  * index keys an agent's scores and leaves tries out by these facts, so an
  * agent's quality report never reads a run.
  *
- * Runs after GuardReservedLabels, as the agent share's StampAgentPin does:
- * the label is the server's, never the caller's, and a person's thumbs on
+ * Runs after GuardReservedLabels, so the label is the server's, never the caller's, and a person's thumbs on
  * a try (allowed: create asks only can_view on the run) is labelled rather
  * than refused for introducing it. After BuildNewState, whose status wipe
  * would otherwise undo the stamp; InitializeScoreState, which follows,

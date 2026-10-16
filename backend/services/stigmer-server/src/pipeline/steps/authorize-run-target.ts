@@ -34,8 +34,8 @@
  *
  * Admission has one owner per lane. This step asks for EVERY caller but the
  * `internal` class (authorizeResolvedResource's contract): a direct
- * principal is admitted by the Authorizer; a runtime lane (a guest share, a
- * channel, a schedule fire) is admitted by
+ * principal is admitted by the Authorizer; a runtime lane (a chat-link
+ * guest, a Slack or WhatsApp sender, a schedule fire) is admitted by
  * the gate step that vouches for it, and the edition's Authorizer says so
  * for the lanes it mints — the OSS chain stays policy-free. RUN_GATE_CHECKS
  * is the one definition of "the run-gate checks" that such an Authorizer

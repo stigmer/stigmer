@@ -12,7 +12,7 @@
  *   Agent/Plan mode, and attaches workspaces, but never reconfigures
  *   the agent. The organisms lock the agent and hide the integrator
  *   pickers, in both the composer and the inspector's Setup tab.
- * - `"guest"` — an anonymous visitor of a shared agent's public page or
+ * - `"guest"` — an anonymous visitor of an agent's public chat link or
  *   embed, authenticated by a guest token. Pure chat: everything
  *   `"endUser"` hides plus the model, harness, and Agent/Plan pickers,
  *   attachments, the workspace picker, and the session panel. Guest is
@@ -68,7 +68,7 @@ export function includesMyVaultByDefault(audience: SessionAudience): boolean {
  * Whether a thread presented to this audience shows run scores: thumbs on
  * a completed run's final answer and the run-health flags. The Console's
  * people and a conversation's reviewers grade runs; that is part of what
- * reviewing is for. An embedding product's end users and a share-link's
+ * reviewing is for. An embedding product's end users and a chat link's
  * visitors see neither: the server admits no rating from either (a
  * minted user token's person or a visitor is not a first-party person who can own
  * one). Hiding the health flags from them is a display choice of this

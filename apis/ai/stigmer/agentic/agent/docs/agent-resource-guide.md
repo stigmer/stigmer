@@ -177,11 +177,11 @@ spec:
 | `optional` | `false` (default): a run whose vaults hold no value is refused before it starts, naming the key and who must add it. `true`: the run starts without it. |
 | `value` | A plain setting's own value. A vault secret with the same name takes its place. |
 
-Which vaults a run reads: the My vault of the person sending the turn when the conversation includes it (`include_my_vault`), then the vaults the conversation lists, in order. An agent carries no vaults: it is a blueprint, and each conversation names its own. A run no person sent (a schedule, a share link, a channel, an app user) uses only the vaults its conversation and that surface name. The console names the keys an agent reads before the first message.
+Which vaults a run reads: the My vault of the person sending the turn when the conversation includes it (`include_my_vault`), then the vaults the conversation lists, in order. An agent carries no vaults: it is a blueprint, and each conversation names its own. A run no person sent (a schedule, a channel, an app user) uses only the vaults its conversation and that schedule, channel or embedding setting name. The console names the keys an agent reads before the first message.
 
 ## Run Defaults
 
-`spec.run_config` is a `RunConfig` (`ai/stigmer/agentic/run/v1/invocation.proto`), the same settings message a message, a schedule, a channel and a share carry. A turn uses the agent's defaults wherever the message or the surface it came through sets nothing; the field table and the full precedence rule are in [RunConfig Fields](../../run/docs/run-resource-guide.md#runconfig-fields).
+`spec.run_config` is a `RunConfig` (`ai/stigmer/agentic/run/v1/invocation.proto`), the same settings message a message, a schedule and a channel carry. A turn uses the agent's defaults wherever the message, or the schedule or channel it came through, sets nothing; the field table and the full precedence rule are in [RunConfig Fields](../../run/docs/run-resource-guide.md#runconfig-fields).
 
 ```yaml
 spec:
@@ -192,7 +192,7 @@ spec:
     max_cost_usd: 2
 ```
 
-- **Choices are defaults; limits are caps.** A message or a surface that names a model replaces the agent's model (and the tier and thinking that came with it). The agent's `max_cost_usd`, `max_tool_rounds` and `max_tool_result_chars` are caps a message or a surface can lower, never raise.
+- **Choices are defaults; limits are caps.** A message, schedule or channel that names a model replaces the agent's model (and the tier and thinking that came with it). The agent's `max_cost_usd`, `max_tool_rounds` and `max_tool_result_chars` are caps a message, schedule or channel can lower, never raise.
 - **Engine-bound.** `model_name`, `service_tier` and `thinking_mode` apply only on the engine `spec.harness` names. On a conversation running the other engine, only the limits apply.
 - **Versioned.** The defaults are part of the agent's content hash, so a conversation pinned to a version keeps that version's model. A conversation keeps the engine it started on; a later version naming another engine changes only new conversations.
 - **Checked at save** (create and update are refused with `INVALID_ARGUMENT`):

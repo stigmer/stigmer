@@ -289,7 +289,7 @@ pages:
       and turn a conversation that went wrong into a case.
     medium: none
 
-  guides/sharing/share-an-agent:
+  guides/channels/create-a-chat-link:
     fate: keep
     diataxis: how-to
     teaches:
@@ -297,13 +297,13 @@ pages:
       visitor messages, embedding, and credentials.
     medium: screenshot-journey
     why:
-      A console procedure across the share dialog's tabs; the current tour also
-      depicts an existing share where the prose teaches creating one (inherited
+      A console procedure across the chat link dialog's tabs; the current tour
+      also depicts an existing chat link where the prose teaches creating one (inherited
       drift a re-authored journey fixes).
     embeds:
-      share-agent-tour: replace
+      chat-link-tour: replace
 
-  guides/sharing/embed-an-agent:
+  guides/channels/embed-an-agent:
     fate: keep
     diataxis: how-to
     teaches:
@@ -577,8 +577,18 @@ pages:
     teaches:
       Who reaches a resource — general access, the Viewer, Editor and Owner
       roles with Participant and Can use, what an Organization's roles allow and
-      how they combine with a resource's, conversations, chat links, service
-      accounts, and what each edition grants.
+      how they combine with a resource's, conversations, that a chat link is a
+      channel and never a grant, service accounts, and what each edition grants.
+    medium: none
+
+  concepts/channels:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      A channel is one way people reach one Agent (a chat link, Slack or
+      WhatsApp); what every channel carries, who creates one and who reads its
+      conversations, why a channel is not sharing, and how it compares with
+      Azure Bot Service.
     medium: none
 
   concepts/identity:
