@@ -25,7 +25,6 @@ const KNOWN_DIFFERENCES: ReadonlyArray<string> = [
   "Agent",
   "Session",
   "Skill",
-  "Agent Channel",
 ];
 
 /**

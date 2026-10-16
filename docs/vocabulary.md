@@ -82,7 +82,7 @@ definitions, API names, and examples follow below.
 | **App user**           | ---              | ---                                    | app user               | `provisioning_mode: app_user`                       | app user           |
 | **Run**                | ---              | run                                    | run                    | Run, `kind: Run`                                    | Run                |
 | **Subagent**           | ---              | ---                                    | subagent               | subagent, `subagents`, `<plugin>:<agent>`           | subagent           |
-| **Agent Channel**      | ---              | ---                                    | channel, Agent Channel | Channel, `kind: Channel`                            | Agent Channel      |
+| **Channel**            | chat link, Slack, WhatsApp | chat link                      | channel, Channel       | Channel, `kind: Channel`                            | Channel            |
 | **Channel App**        | ---              | ---                                    | Channel App            | ChannelApp, `kind: ChannelApp`                      | Channel App        |
 | **Schedule**           | ---              | ---                                    | schedule, Schedule     | Schedule, `kind: Schedule`                          | Schedule           |
 | **Label**              | ---              | label                                  | label                  | `metadata.labels`, `labels` filter                  | label              |
@@ -448,6 +448,64 @@ answer, or a change in what the Session is doing.
 
 ---
 
+#### Channel
+
+A way people reach an Agent: a hosted chat link, a Slack workspace or a WhatsApp
+number. Each Channel has one type, and an Agent can have several.
+
+- **Types**: `web`, the **chat link** (a hosted page at `/chat/<id>`, and the
+  widget sites embed); `slack`; and `whatsapp`.
+- **User-facing alternative**: "chat link" for the `web` type everywhere, never
+  "share". On the sales site, "connect your Agent to Slack" without naming the
+  resource. In how-to docs, introduce "channel" with a gloss, then use
+  "channel".
+- **Capitalize**: Yes, when referring to the Stigmer resource ("the Channel
+  kind"). Lowercase "channel" is fine in prose once the concept is established
+  ("add a channel", "the channel card").
+- **API surface**: `kind: Channel`, prefix `chn`; a chat link made before chat
+  links became channels keeps its `ash_` id, and a Slack or WhatsApp connection
+  made before keeps its `ach_` id. proto: `channel/v1/spec.proto`. CLI:
+  `stigmer channel link|enable|disable`.
+- **Key fields**: `agent_ref`, `enabled`, `vaults`, `run_config`, and the type's
+  own fields: `web.audience` (`org` or `public`) and `allowed_origins`; the
+  `app_ref` of a `slack` or `whatsapp` channel (optional for Slack, required for
+  WhatsApp).
+- **Context rule**: A chat link's omitted audience means the Organization: only
+  its signed-in members chat. Say "Anyone with the link can chat" only for the
+  `public` audience, an explicit choice. A channel lets people chat; it never
+  grants a role on the Agent ([Share (the word)](#share-the-word)).
+- **Note**: Do not confuse with a Slack channel (a room inside a workspace). A
+  Slack channel of an Agent connects it to a whole workspace, and a WhatsApp one
+  to a Business phone number; people then reach it from any conversation.
+  Provider identity facts and credentials live in `status`, written by the
+  install flow---applying a manifest never touches them.
+- **Roles**: A channel's **Participant** reads its conversations and replies to
+  customers as the business; its **Viewer** reads them and cannot reply.
+  Creating a channel is an Organization admin's act, because it runs the Agent
+  on the Organization's provider keys for everyone who reaches it. See
+  [Channels](/docs/concepts/channels) and
+  [Create a chat link](/docs/guides/channels/create-a-chat-link).
+- **Former names**: `AgentShare` (`Agent Share`) for the chat link and
+  `AgentChannel` (`Agent Channel`) for Slack and WhatsApp. Do not use them in
+  new writing.
+
+**Good examples**:
+
+| Context    | Copy                                                                                         |
+| ---------- | -------------------------------------------------------------------------------------------- |
+| Sales site | "Give your Agent a chat link, or connect it to Slack and WhatsApp."                          |
+| How-to     | "Open the **Channels** tab and click **Add channel → Chat link**."                           |
+| Reference  | "`Channel`---one way people reach one Agent; `spec.web`, `spec.slack` or `spec.whatsapp`."   |
+
+**Bad examples**:
+
+| Context | Copy                           | Problem                                                                    |
+| ------- | ------------------------------ | -------------------------------------------------------------------------- |
+| How-to  | "Create a share of the Agent." | A chat link is a channel; "share" means giving people access to something. |
+| Any     | "Shared Agent"                 | Say "an Agent's chat link"; sharing an Agent is granting a role on it.     |
+
+---
+
 #### Runner
 
 A process that connects to Stigmer and executes your Agents.
@@ -724,6 +782,21 @@ Stigmer has no concept called a tenant.
 
 ---
 
+#### "Share" (the word)
+
+"Share" means giving people access to a resource, as in Google Drive.
+
+- **Use it for**: **Manage access** and the Grants it writes ("share the Agent
+  with the Support Team"), a conversation's share dialog, and plain English
+  that keeps its sense: a **shared vault**, "the share of runs that passed".
+- **Say instead**: a hosted link or widget people chat with an Agent through is
+  a **chat link**, a [Channel](#channel) of type `web`. Never "a share", `share
+  link` or "a shared Agent".
+- **Context rule**: If people can chat through it, it is a channel. If people
+  gain a role on it, it is shared.
+
+---
+
 #### Parent organization, child organization
 
 An Organization that manages others is a **parent organization**; each of the
@@ -866,14 +939,15 @@ and decide who may use them.
 - **API surface**: `kind: Vault`, prefix `vlt`. proto: `vault/v1/spec.proto`.
   CLI: `stigmer vault`, `stigmer get vault`, `stigmer list vaults`.
 - **Key fields**: `secrets` (by name), `connections` (by address),
-  `external_id`. Values are write-only: no read returns one. Surfaces name
-  vaults in an ordered `vaults` list; a Session also sets `include_my_vault` to
+  `external_id`. Values are write-only: no read returns one. Each place that
+  names vaults holds them in an ordered `vaults` list; a Session also sets `include_my_vault` to
   use each sender's own My vault first. An Agent names no vaults.
-- **Surfaces**: a Session, a Schedule (`agent.vaults`), an Agent Channel, an
-  Agent Share (a public-audience share only: members' runs use their own) and an
-  Organization's embedding settings each carry `vaults`. A run with no person (a
-  schedule fire, a channel or guest message) and an app user's turn use the
-  surface's vaults after the conversation's.
+- **Where vaults are named**: a Session, a Schedule (`agent.vaults`), a Channel
+  (a chat link only when its audience is public: members' runs use their own)
+  and an Organization's embedding settings each carry `vaults`. A run with no
+  person (a schedule fire, a Slack, WhatsApp or chat-link guest message) and an
+  app user's turn use the vaults of that Schedule, channel or embedding setting
+  after the conversation's.
 - **Related terms**: a **secret** is a vault entry matched by its name
   (`OPENAI_API_KEY`). A **connection** (in the console, a **login**) is a vault
   entry matched by the address of the tool or Git host it is for
@@ -1141,7 +1215,7 @@ Organization takes it away.
   avoid unless the tutorial covers access management.
 - **Note**: A Team's members are always members of its Organization; removing
   someone from the Organization removes them from every Team at once. Slack
-  calls a workspace a "team", so an Agent Channel's `status.slack.team_id` names
+  calls a workspace a "team", so a Slack channel's `status.slack.team_id` names
   a Slack workspace; it is never a Stigmer Team.
 
 ---
@@ -1176,7 +1250,7 @@ Organization.
 
 - **The words**: **Viewer** sees it and changes nothing; **Editor** changes it
   and never deletes it or decides who has access; **Owner** does everything. Two
-  kinds keep their own word: **Participant** on a Session or an Agent Channel
+  kinds keep their own word: **Participant** on a Session or a Channel
   (reads and sends messages) and **Can use** on a shared vault (its logins and
   secrets reach the person's runs). An Organization's roles are Owner, Admin,
   Member and Viewer.
@@ -1297,7 +1371,7 @@ engine.
 #### Run
 
 One run of an Agent from start to finish: what a user starts when they send a
-message, fire a schedule or open a share link.
+message, fire a schedule or open a chat link.
 
 - **Capitalize**: As the resource name in labels and reference pages
   (`kind: Run`, the console's "Run" page). In prose say "run" in lower case: the
@@ -1330,63 +1404,14 @@ message, fire a schedule or open a share link.
   `TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE` keep that word. Do not rename
   them in docs; say "run" for what the user started.
 - **Former names**: `AgentExecution` (`kind: AgentExecution`), then `AgentRun`
-  (`kind: AgentRun`, "Agent Run"). Do not use them in new writing.
-
----
-
-#### Agent Share
-
-A hosted chat link for one Agent, with its own audience, origins and
-credentials.
-
-- **User-facing alternative**: "chat link" in the console, guides and sales
-  copy; "share" for the resource in how-to steps ("create a share").
-- **Capitalize**: Yes, when referring to the Stigmer resource.
-- **API surface**: `kind: Channel` with `spec.web`, prefix `chn` (a chat link
-  made before chat links became channels keeps its `ash_` id). proto:
-  `channel/v1/spec.proto`. CLI: `stigmer channel link`.
-- **Key fields**: `agent_ref`, `enabled`, `web.audience` (`org` or `public`).
-- **Context rule**: An omitted audience means the Organization: only its
-  signed-in members chat. Say "Anyone with the link can chat" only for the
-  `public` audience, an explicit choice. A chat link lets people chat; it never
-  grants a role on the Agent.
-- **Note**: Creating one is an Organization admin's act, because it runs the
-  Agent on the Organization's provider keys for everyone who holds the link. See
-  [Share an Agent](/docs/guides/channels/create-a-chat-link).
-
----
-
-#### Agent Channel
-
-A connection that puts an Agent into an external messaging platform---Slack or
-WhatsApp---so people can chat with it where they already work.
-
-- **Capitalize**: Yes, when referring to the Stigmer resource. Lowercase
-  "channel" is fine in prose once the concept is established ("connect a
-  channel," "the channel card").
-- **API surface**: `kind: Channel` with `spec.slack` or `spec.whatsapp`, prefix
-  `chn` (a connection made before connections became channels keeps its `ach_`
-  id). proto: `channel/v1/spec.proto`.
-- **Key fields**: `agent_ref`, `enabled`, `slack` or `whatsapp` (the type),
-  `vaults`, the type's `app_ref` (optional for Slack, required for WhatsApp).
-- **Context rule**: On the sales site, say "connect your Agent to Slack" without
-  naming the resource. In how-to docs, introduce as "channel" with a gloss, then
-  use "channel." In reference, use `Channel`.
-- **Note**: Do not confuse with a Slack channel (a room inside a workspace). An
-  Agent Channel connects an Agent to a whole workspace (Slack) or a Business
-  phone number (WhatsApp); people then reach it from any conversation. Provider
-  identity facts and credentials live in `status`, written by the install
-  flow---applying a manifest never touches them.
-- **Roles**: A channel's **Participant** reads its conversations and replies to
-  customers as the business; its **Viewer** reads them and cannot reply.
-  Connecting an Agent to a channel is an Organization admin's act.
+  (`kind: AgentRun`, `Agent Run`). Do not use them in new writing.
 
 ---
 
 #### Channel App
 
 A customer-owned messaging-platform app (your own Slack app, or your Meta app
-with WhatsApp Business access) that Agent Channels install through.
+with WhatsApp Business access) that Slack and WhatsApp channels install through.
 
 - **Capitalize**: Yes, two words: "Channel App."
 - **API surface**: `kind: ChannelApp`, prefix `chapp`. proto:
@@ -1974,8 +1999,8 @@ moves every row that carried it to Organization visibility.
 
 - **Capitalize**: Yes, when naming the retired level in an upgrade note.
 - **Context rule**: Do not use for a resource level in new writing. "Public"
-  stays ordinary English for a share's audience ("anyone with the link", the
-  `public` audience of a share) and for a public website or API. A doc
+  stays ordinary English for a chat link's audience ("anyone with the link", the
+  `public` audience of a chat link) and for a public website or API. A doc
   describing "publishing to the marketplace" or "a public Skill another
   Organization can reference" is describing the retired level; point it at
   Plugin, or at Child organizations when one Organization is the other's parent.
@@ -1988,8 +2013,8 @@ Retired term. A `kind: AgentInstance` (prefix `ain`) was a deployed copy of an
 Agent bound to its own settings, and a Session named an instance rather than its
 Agent; every Agent carried a default one. The kind and its CLI verbs were
 removed: a Session names its Agent directly (`agent_ref`) and runs the version
-it started on, and a run's keys come from vaults (the conversation's, the
-surface that started it, or the sending person's own).
+it started on, and a run's keys come from vaults (the conversation's, those of
+the Schedule or channel that started it, or the sending person's own).
 
 - **Capitalize**: Yes, when naming the retired kind in an upgrade note.
 - **Context rule**: Do not use in new writing. A reader still meets the word in
@@ -2153,3 +2178,23 @@ names, references, writes and lists in words that no longer hold.
   a `next_page_token` (Page).
 - `annotations` in metadata: retired and reserved; use labels to filter and tags
   to find (Label, Tag).
+
+---
+
+### 8. Chat-link and channel words---RESOLVED
+
+**What**: A hosted chat link was an `Agent Share` ("a share", `share link`, "a
+shared Agent"), and a Slack or WhatsApp connection was an `Agent Channel`, two
+kinds with different pages, permissions and commands. "Share" meant both a chat
+link and giving access, and "surface" named whatever started a run.
+
+**Resolution**: One `Channel` kind with a type replaced both kinds. Each retired
+word has a replacement, defined in its entry:
+
+- `Agent Share`, `share`, `share link` and `shared Agent` for a hosted chat: a
+  **chat link**, a channel of type `web` (Channel).
+- `Agent Channel` for Slack or WhatsApp: a **channel** (Channel).
+- `share` for anything but giving access: "share" means giving access only
+  (Share (the word)).
+- `surface` for what started a run: name it, a Session, a Schedule or a
+  channel (Vault).
