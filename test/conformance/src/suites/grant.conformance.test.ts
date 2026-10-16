@@ -802,7 +802,7 @@ describe.skipIf(capabilities.perResourceGrants)(
 
 describe("Grant conformance — the audience permission, in every edition", () => {
   it("[rpc:GrantQueryController.checkMyPermission] checkMyPermission(can_manage_audience) on an agent the caller owns is true, whatever the edition grants per resource (stigmer#1495)", async () => {
-    // The console's visibility picker, Create share and Connect channel
+    // The console's visibility picker and its Add channel affordances
     // mirror the server's can_manage_audience bar. Unlike can_grant_access,
     // the self-check never overrides it, so the owner is offered them in
     // every edition.

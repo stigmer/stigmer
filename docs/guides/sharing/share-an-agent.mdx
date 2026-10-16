@@ -27,13 +27,13 @@ or change it is a separate setting, **Manage access** on the Agent:
 You must be an admin of the Agent's Organization to create a share. A share runs
 the Agent on the Organization's provider keys for anyone who holds the link, so
 it is an admin-level decision; members who can edit the Agent but are not admins
-do not see the **Create share** button.
+do not see **Add channel** or **Create a chat link**.
 
 1. Open your Agent in the web console under **Library → Agents**.
-2. Open the **Shares** tab — or choose **Share** from the actions menu (⋯),
-   which takes you there.
-3. Click **Create share**, keep the suggested name and slug (or pick your own),
-   and confirm.
+2. Open the **Channels** tab.
+3. Click **Add channel → Chat link** (on a tab with no channels yet, **Create a
+   chat link**), keep the suggested name and slug (or pick your own), and
+   confirm.
 
 The link is live the moment the share is created. It names the share by its
 permanent ID:
@@ -45,22 +45,22 @@ https://app.stigmer.ai/chat/ash_01j9z3k8f2q4m6n7p8r9s0t1v2
 Because the link carries only the share's ID, renaming your Organization never
 breaks it, and nobody who later takes your Organization's old name can take the
 link over. The slug names the share inside your Organization — in its manifest
-and the API — and is not part of the link. It defaults to the Agent's slug and
-can't be changed after creation. Click **Copy** to copy the link, or **Open** to
-try it yourself.
+and the API — and is not part of the link. It defaults to the Agent's slug.
+Click **Copy** to copy the link, or **Open** to try it yourself.
 
 ## Manage your shares
 
-The **Shares** tab lists every share of the Agent you can see, with its link,
-audience, and status. An Agent can carry several shares — say, one for your docs
-site and one for a partner — and each is its own channel with its own link,
-audience, embed origins, visitor messages, and tool credentials. Every share of
-an Agent lives in the Agent's own Organization.
+The **Channels** tab lists every share of the Agent you can see, with its link,
+audience, and status, beside the Agent's Slack and WhatsApp channels. An Agent
+can carry several shares — say, one for your docs site and one for a partner —
+and each is its own channel with its own link, audience, embed origins, visitor
+messages, and tool credentials. Every share of an Agent lives in the Agent's own
+Organization.
 
-From the row you can copy the link, **Edit** the share (the dialog), **Pause**
-or **Resume** it, **Reset link** on public shares, and **Delete** it. Pausing
-stops the link immediately while keeping the configuration; deleting removes the
-share and its configuration for good.
+On its card you can copy the link and turn it off or on with the switch; its
+menu has **Edit** (the dialog), **Reset link** on public shares, and **Delete**.
+Turning it off stops the link immediately while keeping the configuration;
+deleting removes the share and its configuration for good.
 
 ## Choose who can chat
 
@@ -122,7 +122,7 @@ The **Embed** tab gives you a two-line snippet you can paste into any web page:
 
 ```html
 <script src="https://app.stigmer.ai/embed.js" async></script>
-<stigmer-agent share="ash_01j9z3k8f2q4m6n7p8r9s0t1v2"></stigmer-agent>
+<stigmer-agent channel="ash_01j9z3k8f2q4m6n7p8r9s0t1v2"></stigmer-agent>
 ```
 
 Under **Allowed embed origins**, list the websites that may embed your Agent
@@ -145,8 +145,8 @@ a public share:
    under **Settings → Vaults**, or, on Stigmer Cloud, grant **Can use** to that
    person or their Team. A new shared vault is usable only by the Organization's
    admins until then.
-3. Attach it to the share in the Share dialog. You can attach a vault only if
-   you may use it, and each visitor message checks again that you still may.
+3. Attach it to the share in the chat link's dialog. You can attach a vault only
+   if you may use it, and each visitor message checks again that you still may.
 
 A run that needs a key no attached vault holds is refused before it starts,
 naming the key. Your own vault and your sign-ins are never used by a share.
@@ -204,11 +204,11 @@ share needs no reset, because access ends with membership.
 
 ## Turn off sharing
 
-Turn the switch off in the dialog — or click **Pause** in the **Shares** tab —
-to revoke the link. The public page stops working immediately — visitors see the
-same "not found" page as for an Agent that never existed. Pausing keeps the
-share's configuration for when you resume; **Delete** in the Shares tab removes
-the share entirely.
+Turn the switch off in the dialog — or on the link's card in the **Channels**
+tab — to revoke the link. The public page stops working immediately — visitors
+see the same "not found" page as for an Agent that never existed. Pausing keeps
+the share's configuration for when you turn it back on; **Delete** in the card's
+menu removes the share entirely.
 
 ## Share an Agent another Organization built
 
@@ -232,23 +232,23 @@ You can also toggle sharing from the terminal:
 
 ```bash
 # Share with your organization's members only (the default for a new link)
-stigmer share agent acme-corp/internal-helper
+stigmer channel link acme-corp/internal-helper
 
 # Share publicly and print the chat link + embed snippet
-stigmer share agent acme-corp/support-agent --audience public
+stigmer channel link acme-corp/support-agent --audience public
 
 # Reset the public link (the old link stops working immediately)
-stigmer share agent acme-corp/support-agent --reset-link
+stigmer channel link acme-corp/support-agent --reset-link
 
 # Revoke the link
-stigmer share agent acme-corp/support-agent --off
+stigmer channel link acme-corp/support-agent --off
 ```
 
 The CLI changes only what you ask it to — your allowed origins, visitor
 messages, and audience stay as you set them here. A plain toggle never turns an
 org-members-only share back into a public one. Visitor chat is served by Stigmer
 Cloud, so a link from a local backend won't serve visitors. See the
-[`stigmer share` reference](/docs/cli/commands/share) for all flags.
+[`stigmer channel` reference](/docs/cli/commands/channel) for all flags.
 
 ## Manage sharing declaratively
 
