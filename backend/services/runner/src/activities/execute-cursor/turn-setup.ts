@@ -533,8 +533,8 @@ export async function installGate(
   // absent a git tree keeps gating gitignored writes and a non-git workspace
   // falls back to the deny-gate entirely (no regression).
   const captureIgnored = captureMode && !!artifactStorage;
-  // Unattended approval mode: approver-less surfaces (channels,
-  // guest shares) stamp APPROVAL_MODE_UNATTENDED; the hook then records
+  // Unattended approval mode: approver-less lanes (Slack and WhatsApp
+  // channels, chat-link guests) stamp APPROVAL_MODE_UNATTENDED; the hook then records
   // approval denials with the non-pausing "unattended" kind, so the
   // first-denial stop never fires and the turn boundary settles the denied
   // calls as SKIPPED instead of pausing a turn nobody can approve.
