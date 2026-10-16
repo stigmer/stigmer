@@ -1,4 +1,4 @@
-# Store tests for conversation participation on agent channels (the
+# Store tests for conversation participation on Slack and WhatsApp channels (the
 # `participant` relation and `can_participate` permission,
 # added 2026-08-06).
 #

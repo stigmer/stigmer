@@ -4,7 +4,7 @@ module agentic
 # CHANNEL APP TYPE (Organization-scoped)
 # ========================================
 # Customer-owned messaging-platform apps (a Slack app, a Meta app for
-# WhatsApp) that agent channels install through instead of the shared
+# WhatsApp) that Slack and WhatsApp channels install through instead of the shared
 # platform app (bring your own app, since 2026-07-15). Holds the provider's
 # credentials: a Slack app's OAuth client secret and webhook signing
 # secret, a Meta app's app secret, access token and verify token.
@@ -22,8 +22,8 @@ module agentic
 # unsupported to prevent credential leakage.
 #
 # An app keeps delivering when its creator leaves: inbound webhooks and
-# outbound delivery read the app's secrets as the server, and binding an
-# agent channel to an app asks only that both are the organization's.
+# outbound delivery read the app's secrets as the server, and binding a
+# channel to an app asks only that both are the organization's.
 #
 # Permission pattern:
 # - Org Admin (and org owner, through admin): full management, secret
