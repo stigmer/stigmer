@@ -1,5 +1,6 @@
-# prod's overlay for the console: production's namespace, its hostnames while it is proven before the relaunch
-# (app.prod.stigmer.ai; app.stigmer.ai joins at the relaunch), and production's own sign-in tenant.
+# prod's overlay for the console: production's namespace, its public names (app.stigmer.ai for the console,
+# api.stigmer.ai for the API it calls, the names the website and published SDKs already use), and production's own
+# sign-in tenant.
 apiVersion: kubernetes.planton.dev/v1alpha1
 kind: KubernetesDeployment
 metadata:
@@ -13,9 +14,9 @@ spec:
       env:
         variables:
         - name: NEXT_PUBLIC_API_URL
-          value: https://api.prod.stigmer.ai # production's API door
+          value: https://api.stigmer.ai # production's API door
         - name: NEXT_PUBLIC_APP_URL
-          value: https://app.prod.stigmer.ai # this console's own origin
+          value: https://app.stigmer.ai # this console's own origin
         - name: NEXT_PUBLIC_OIDC_ISSUER
           value: https://id.stigmer.ai/ # production's tenant's sign-in domain; tokens name the host they were requested from as issuer, so this matches stigmer-server's STIGMER_IDP_URL. Auth0's issuer carries the trailing slash
         - name: NEXT_PUBLIC_OIDC_AUDIENCE
@@ -37,4 +38,4 @@ spec:
   namespace:
     value: stigmer-prod
   hostnames:
-  - app.prod.stigmer.ai
+  - app.stigmer.ai
