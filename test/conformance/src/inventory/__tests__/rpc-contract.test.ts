@@ -1,8 +1,9 @@
 // Unit arms for the RPC contract: the tag grammar, the waiver schema, each of
-// the contract's problem kinds, and the declared set (as keys and as method
-// descriptors) read from the committed stub sources. Pure but for the last
-// group, which reads the real sources and the real waiver file (no target,
-// no network).
+// the contract's problem kinds, the stubs root's two refusals (stubs unbuilt,
+// stubs resolved outside dist/), and the declared set (as keys and as method
+// descriptors) read from the committed stub sources. Pure but for the
+// declared-set group, which reads the real sources and the real waiver file
+// (no target, no network).
 // Domain: conformance inventory (the RPC contract).
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -15,6 +16,7 @@ import {
   declaredRpcs,
   formatRpcSummary,
   parseRpcWaivers,
+  stubsRoot,
   type DeclaredRpc,
   type RpcContractInput,
   type RpcTagOccurrence,
@@ -216,5 +218,26 @@ describe("the declared set and the waiver file, as committed", () => {
   it("parses the committed waiver file with no problem", async () => {
     const text = await readFile(new URL("../../../inventory/rpc-waivers.yaml", import.meta.url), "utf8");
     expect(parseRpcWaivers(text).problems).toEqual([]);
+  });
+});
+
+describe("the stubs root", () => {
+  it("is the package root above the anchor module's dist/", () => {
+    const root = stubsRoot((specifier) => `/pkg/node_modules/${specifier.replace("@stigmer/apis/", "apis/dist/")}.js`);
+    expect(root).toBe("/pkg/node_modules/apis/");
+  });
+
+  it("names the build step when the stubs cannot be resolved", () => {
+    expect(() =>
+      stubsRoot(() => {
+        throw new Error("Cannot find module");
+      }),
+    ).toThrow("cannot locate @stigmer/apis (build the stubs: make build-ts-stubs): Cannot find module");
+  });
+
+  it("refuses an anchor that resolves outside dist/", () => {
+    expect(() => stubsRoot(() => "/pkg/src/ai/stigmer/iam/v1/enum_pb.ts")).toThrow(
+      "@stigmer/apis resolved ai/stigmer/iam/v1/enum_pb to /pkg/src/ai/stigmer/iam/v1/enum_pb.ts, not under its dist/",
+    );
   });
 });

@@ -46,13 +46,14 @@ export interface DeclaredRpc {
 
 // The stubs package's root, found through its own specifier (the anchor idiom
 // of the server's wire-permissions test): an anchor module resolves into
-// `<root>/dist/`, and the committed sources sit beside `dist`.
-function stubsRoot(): string {
+// `<root>/dist/`, and the committed sources sit beside `dist`. `resolve` is
+// the module resolver, a parameter so a test can stand in for a checkout
+// whose stubs are unbuilt or resolve somewhere else.
+export function stubsRoot(resolve: (specifier: string) => string = createRequire(import.meta.url).resolve): string {
   const anchor = "ai/stigmer/iam/v1/enum_pb";
-  const require = createRequire(import.meta.url);
   let resolved: string;
   try {
-    resolved = require.resolve(`@stigmer/apis/${anchor}`);
+    resolved = resolve(`@stigmer/apis/${anchor}`);
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(`cannot locate @stigmer/apis (build the stubs: make build-ts-stubs): ${reason}`);
