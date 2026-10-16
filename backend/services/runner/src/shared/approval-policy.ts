@@ -178,7 +178,7 @@ export function deriveActiveLeases(grants: Iterable<LeaseGrant>, autoApproveAll:
 /**
  * Whether this execution runs in UNATTENDED approval mode
  * (`status.approval_mode`): the lane the turn came through — a schedule, a
- * messaging channel, a guest share — has no approver, so a gated tool is
+ * Slack or WhatsApp channel, a chat link's guest — has no approver, so a gated tool is
  * resolved as an automatic skip (the model is told to adapt) instead of
  * pausing the execution for a decision that can never arrive.
  *

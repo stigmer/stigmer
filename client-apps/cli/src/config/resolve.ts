@@ -105,7 +105,7 @@ export function resolveOrganization(config: Config, flagOrg?: string): string {
  *
  * The console origin is also the app origin that serves the hosted chat
  * page (`/chat/<share id>`) and the embed loader (`/embed.js`), so
- * share-link builders use this same resolver — both routes live in the
+ * chat-link builders use this same resolver — both routes live in the
  * same static export the server serves.
  */
 export function resolveConsoleURL(

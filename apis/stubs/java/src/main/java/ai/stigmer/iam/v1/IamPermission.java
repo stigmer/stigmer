@@ -68,7 +68,8 @@ public enum IamPermission
   /**
    * <pre>
    * Whether the caller may change who reaches the resource: its visibility,
-   * who observes its runs, a share link to it, or a channel it answers on.
+   * who observes its runs, or a channel it answers on (a chat link among
+   * them).
    * </pre>
    *
    * <code>can_manage_audience = 48;</code>
@@ -385,7 +386,8 @@ public enum IamPermission
   /**
    * <pre>
    * Whether the caller may change who reaches the resource: its visibility,
-   * who observes its runs, a share link to it, or a channel it answers on.
+   * who observes its runs, or a channel it answers on (a chat link among
+   * them).
    * </pre>
    *
    * <code>can_manage_audience = 48;</code>

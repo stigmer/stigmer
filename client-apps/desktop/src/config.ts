@@ -4,7 +4,7 @@ import type { DeploymentMode } from "@stigmer/client";
  * Public Stigmer web console URL (no trailing slash).
  *
  * The desktop app renders from a Tauri origin, so anything that must be
- * reachable by other people or by the system browser — shared agent chat
+ * reachable by other people or by the system browser — an agent's chat
  * links, OAuth callback pages — points at the web console instead.
  * Overridable per environment via `VITE_STIGMER_CONSOLE_URL`.
  */

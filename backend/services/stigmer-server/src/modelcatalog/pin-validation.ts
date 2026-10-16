@@ -50,7 +50,7 @@ export function harnessName(h: Harness): string {
  *
  * `harness` names the registry section the pin's runs would use
  * (harnessName of the surface's effective harness). Pass "" for surfaces
- * with NO serving harness in this edition (agent channels — this edition
+ * with NO serving harness in this edition (Slack and WhatsApp channels — this edition
  * stores their spec without a serving runtime): the pin then validates
  * against EVERY harness section and is refused only when no section knows
  * it, which catches the typo class without falsely refusing a model that

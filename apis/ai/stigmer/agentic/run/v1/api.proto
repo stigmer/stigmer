@@ -301,7 +301,7 @@ message RunStatus {
   // ─────────────────────────────────────────────────────────────────────────────
 
   // The settings this turn runs with: spec.run_config (or the saved settings
-  // of the surface it came through), the defaults of the agent version the
+  // of the schedule or channel it came through), the defaults of the agent version the
   // turn runs, and the lane's operator profile, resolved by RunConfig's rule.
   //
   // An empty model_name means no layer named one and the engine chose (the
@@ -388,9 +388,10 @@ message LoadedVersions {
 // RunCredentials records whose logins and secrets a turn uses.
 message RunCredentials {
   // The person whose turn this is, by identity account id. Absent for a
-  // turn no person sent: a schedule's, a channel's, a share link guest's, an
-  // app user's or a machine account's, which use only the vaults their
-  // session and surface name.
+  // turn no person sent: a schedule's, a channel's (a chat-link guest's
+  // included), an app user's or a machine account's, which use only the
+  // vaults their session and their schedule, channel or embedding settings
+  // name.
   //
   // @internal
   // Set at create by the platform's one rule for a first-party human
@@ -412,7 +413,7 @@ message RunCredentials {
   // rule (domain/vault/resolve.ts); server-only like person: a client-sent
   // value is discarded at create and status writes never change it. Vault
   // ids, not names: a run's status is read by everyone who may view the
-  // conversation, a share link's visitor included.
+  // conversation, a chat link's visitor included.
   repeated RunValueSource sources = 2;
 }
 

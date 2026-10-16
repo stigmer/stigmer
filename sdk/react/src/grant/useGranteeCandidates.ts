@@ -10,7 +10,7 @@
  * People are the organization's own access list, the member list the
  * caller can already see, so choosing someone introduces no new account
  * enumeration. That list holds only the organization's roles (owner,
- * admin, member, viewer); the cloud's share-link guests are never on it,
+ * admin, member, viewer); the cloud's chat-link guests are never on it,
  * so every person offered here is an organization viewer and a valid team
  * member too. Accounts a mint created for a product's users are split out of the
  * people (`isAppUserAccount`), so a picker labels them rather than

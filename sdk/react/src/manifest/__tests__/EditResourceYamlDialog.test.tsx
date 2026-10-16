@@ -129,13 +129,13 @@ describe("EditResourceYamlDialog — what applying will do", () => {
     editState = {
       validation: {
         status: "valid",
-        document: { handler: { displayName: "Agent Share" } } as never,
+        document: { handler: { displayName: "Session" } } as never,
       },
-      target: { action: "update", slug: "test-share", slugKept: true },
+      target: { action: "update", slug: "test-session", slugKept: true },
     };
     renderDialog();
     expect(
-      screen.getByText("Applying will update test-share. Agent Share slugs do not change, so it keeps this slug."),
+      screen.getByText("Applying will update test-session. Session slugs do not change, so it keeps this slug."),
     ).toBeTruthy();
   });
 

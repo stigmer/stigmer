@@ -61,8 +61,8 @@ public enum Feature
   byo_provider_keys(3),
   /**
    * <pre>
-   * Delivering agents over messaging channels (Slack, WhatsApp) through a
-   * channel runtime. The channel kinds themselves are open source; this
+   * Serving an agent's Slack and WhatsApp channels through the Cloud's
+   * hosted channel runtime. The Channel kind itself is open source; this
    * feature tiers the Cloud's hosted runtime inside Cloud plans. It is not
    * an edition gate, and a license never lists it: the open-source server
    * stores channels freely, and whether a self-hosted server delivers them
@@ -74,13 +74,14 @@ public enum Feature
   channels(4),
   /**
    * <pre>
-   * Sharing an agent through hosted share links, with the sharing
-   * organization's members or with anyone who has the link. The agent-share
-   * kind itself is open source; this feature tiers the Cloud's hosted
-   * sharing lane inside Cloud plans. It is not an edition gate, and a
-   * license never lists it: the open-source server stores shares freely,
-   * and whether a self-hosted server serves its links to guests is its
-   * edition's to decide, never its license's.
+   * Serving an agent's chat links (web channels) through the Cloud's hosted
+   * lane, to the organization's members or to anyone who has the link. The
+   * Channel kind itself is open source; this feature tiers the Cloud's
+   * hosted lane inside Cloud plans. It is not an edition gate, and a
+   * license never lists it: the open-source server stores chat links
+   * freely, and whether a self-hosted server serves them to guests is its
+   * edition's to decide, never its license's. The name is older than chat
+   * links becoming channels and stays: an enum value is a wire identifier.
    * </pre>
    *
    * <code>sharing = 5;</code>
@@ -178,8 +179,8 @@ public enum Feature
   public static final int byo_provider_keys_VALUE = 3;
   /**
    * <pre>
-   * Delivering agents over messaging channels (Slack, WhatsApp) through a
-   * channel runtime. The channel kinds themselves are open source; this
+   * Serving an agent's Slack and WhatsApp channels through the Cloud's
+   * hosted channel runtime. The Channel kind itself is open source; this
    * feature tiers the Cloud's hosted runtime inside Cloud plans. It is not
    * an edition gate, and a license never lists it: the open-source server
    * stores channels freely, and whether a self-hosted server delivers them
@@ -191,13 +192,14 @@ public enum Feature
   public static final int channels_VALUE = 4;
   /**
    * <pre>
-   * Sharing an agent through hosted share links, with the sharing
-   * organization's members or with anyone who has the link. The agent-share
-   * kind itself is open source; this feature tiers the Cloud's hosted
-   * sharing lane inside Cloud plans. It is not an edition gate, and a
-   * license never lists it: the open-source server stores shares freely,
-   * and whether a self-hosted server serves its links to guests is its
-   * edition's to decide, never its license's.
+   * Serving an agent's chat links (web channels) through the Cloud's hosted
+   * lane, to the organization's members or to anyone who has the link. The
+   * Channel kind itself is open source; this feature tiers the Cloud's
+   * hosted lane inside Cloud plans. It is not an edition gate, and a
+   * license never lists it: the open-source server stores chat links
+   * freely, and whether a self-hosted server serves them to guests is its
+   * edition's to decide, never its license's. The name is older than chat
+   * links becoming channels and stays: an enum value is a wire identifier.
    * </pre>
    *
    * <code>sharing = 5;</code>

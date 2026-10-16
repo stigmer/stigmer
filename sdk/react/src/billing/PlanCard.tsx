@@ -118,7 +118,7 @@ function StandingDetail({ standing }: { standing: PlanStanding }) {
     case "free":
       return (
         <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
-          Channels, sharing and unlimited members.
+          Chat links, Slack and WhatsApp, and unlimited members.
         </p>
       );
     case "past-due":

@@ -165,8 +165,7 @@ message ListChannelTemplatesInput {
   bool approved_only = 3;
 }
 
-// ChannelTemplates contains the message templates available on an agent
-// channel.
+// ChannelTemplates contains the message templates available on a channel.
 message ChannelTemplates {
   // Template entries, one per (name, language) pair.
   repeated ChannelTemplate entries = 1;

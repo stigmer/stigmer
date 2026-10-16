@@ -203,7 +203,7 @@ type RunStatus struct {
 	// create time: the candidate set the prompt was built from.
 	RecalledMemories *RecalledMemories `protobuf:"bytes,30,opt,name=recalled_memories,json=recalledMemories,proto3" json:"recalled_memories,omitempty"`
 	// The settings this turn runs with: spec.run_config (or the saved settings
-	// of the surface it came through), the defaults of the agent version the
+	// of the schedule or channel it came through), the defaults of the agent version the
 	// turn runs, and the lane's operator profile, resolved by RunConfig's rule.
 	//
 	// An empty model_name means no layer named one and the engine chose (the
@@ -474,9 +474,10 @@ func (x *LoadedVersions) GetPlugins() []*apiresource.ApiResourceReference {
 type RunCredentials struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The person whose turn this is, by identity account id. Absent for a
-	// turn no person sent: a schedule's, a channel's, a share link guest's, an
-	// app user's or a machine account's, which use only the vaults their
-	// session and surface name.
+	// turn no person sent: a schedule's, a channel's (a chat-link guest's
+	// included), an app user's or a machine account's, which use only the
+	// vaults their session and their schedule, channel or embedding settings
+	// name.
 	Person *string `protobuf:"bytes,1,opt,name=person,proto3,oneof" json:"person,omitempty"`
 	// Where each value the turn uses lives: one entry per key and declarer,
 	// naming a vault and an entry, never a value. A runner fetches the

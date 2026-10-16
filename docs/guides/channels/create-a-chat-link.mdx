@@ -1,33 +1,35 @@
 ---
-title: Share an Agent
+title: Create a chat link
 description:
-  Turn an Agent into a hosted chat page — for your Organization's members, or
-  for anyone with the link — and embed it on your own site.
+  Give an Agent a hosted chat page — for your Organization's members, or for
+  anyone with the link — and embed it on your own site.
 ---
 
-Sharing gives your Agent a hosted chat link. You choose who can use it: only
-signed-in members of your Organization, the default, or anyone with the link (no
-Stigmer account needed). This guide shows you how to turn sharing on, pick the
-audience, send the link, and embed the chat on your own website.
+A chat link gives your Agent a hosted chat page. It is one of the Agent's
+[channels](/docs/concepts/channels), beside Slack and WhatsApp. You choose who
+can use it: only signed-in members of your Organization, the default, or anyone
+with the link (no Stigmer account needed). This guide shows you how to create a
+chat link, pick the audience, send the link, and embed the chat on your own
+website.
 
 A chat link lets people chat with the Agent. Who may see how the Agent is set up
 or change it is a separate setting, **Manage access** on the Agent:
 [Sharing and access](/docs/concepts/sharing-and-access) explains both.
 
 <Callout type="warn">
-  Public links can be forwarded and indexed by search engines. Only share Agents
-  publicly when their knowledge is safe to show to anyone on the internet — for
-  internal knowledge, use the **Organization members** audience.
+  Public links can be forwarded and indexed by search engines. Only give an
+  Agent a public link when its knowledge is safe to show to anyone on the
+  internet — for internal knowledge, use the **Organization members** audience.
 </Callout>
 
-<ScenarEmbed id="share-agent-tour" title="Share dialog walkthrough" />
+<ScenarEmbed id="chat-link-tour" title="Chat link dialog walkthrough" />
 
-## Create a share
+## Create a chat link
 
-You must be an admin of the Agent's Organization to create a share. A share runs
-the Agent on the Organization's provider keys for anyone who holds the link, so
-it is an admin-level decision; members who can edit the Agent but are not admins
-do not see **Add channel** or **Create a chat link**.
+You must be an admin of the Agent's Organization to create a chat link. A chat
+link runs the Agent on the Organization's provider keys for anyone who holds it,
+so it is an admin-level decision; members who can edit the Agent but are not
+admins do not see **Add channel** or **Create a chat link**.
 
 1. Open your Agent in the web console under **Library → Agents**.
 2. Open the **Channels** tab.
@@ -35,36 +37,37 @@ do not see **Add channel** or **Create a chat link**.
    chat link**), keep the suggested name and slug (or pick your own), and
    confirm.
 
-The link is live the moment the share is created. It names the share by its
+The link is live the moment you create it. It names the chat link by its
 permanent ID:
 
 ```
-https://app.stigmer.ai/chat/ash_01j9z3k8f2q4m6n7p8r9s0t1v2
+https://app.stigmer.ai/chat/chn_01j9z3k8f2q4m6n7p8r9s0t1v2
 ```
 
-Because the link carries only the share's ID, renaming your Organization never
-breaks it, and nobody who later takes your Organization's old name can take the
-link over. The slug names the share inside your Organization — in its manifest
-and the API — and is not part of the link. It defaults to the Agent's slug.
-Click **Copy** to copy the link, or **Open** to try it yourself.
+A link made before chat links became channels carries an `ash_` ID instead, and
+keeps working. Because the link carries only the ID, renaming your Organization
+never breaks it, and nobody who later takes your Organization's old name can
+take the link over. The slug names the chat link inside your Organization — in
+its manifest and the API — and is not part of the link. It defaults to the
+Agent's slug. Click **Copy** to copy the link, or **Open** to try it yourself.
 
-## Manage your shares
+## Manage chat links
 
-The **Channels** tab lists every share of the Agent you can see, with its link,
-audience, and status, beside the Agent's Slack and WhatsApp channels. An Agent
-can carry several shares — say, one for your docs site and one for a partner —
-and each is its own channel with its own link, audience, embed origins, visitor
-messages, and tool credentials. Every share of an Agent lives in the Agent's own
-Organization.
+The **Channels** tab lists every chat link of the Agent you can see, with its
+link, audience, and status, beside the Agent's Slack and WhatsApp channels. An
+Agent can carry several chat links — say, one for your docs site and one for a
+partner — and each is its own channel with its own link, audience, embed
+origins, visitor messages, and tool credentials. Every chat link of an Agent
+lives in the Agent's own Organization.
 
 On its card you can copy the link and turn it off or on with the switch; its
-menu has **Edit** (the dialog), **Reset link** on public shares, and **Delete**.
+menu has **Edit** (the dialog), **Reset link** on public links, and **Delete**.
 Turning it off stops the link immediately while keeping the configuration;
-deleting removes the share and its configuration for good.
+deleting removes the chat link and its configuration for good.
 
 ## Choose who can chat
 
-Below the sharing switch, pick the audience:
+Below the chat link's on/off switch, pick the audience:
 
 - **Organization members** — only signed-in members of your Organization can
   chat. Anyone else — including someone the link was forwarded to — sees the
@@ -86,9 +89,9 @@ chat.
 Embedding is available for the public audience only: embeds serve anonymous
 visitors, and an org-members-only Agent requires a signed-in member.
 
-## Who pays for shared chats
+## Who pays for chat-link conversations
 
-Conversations over the shared link run on your Organization's own
+Conversations over the chat link run on your Organization's own
 [provider keys](/docs/guides/integrations/model-provider-keys), for visitors on
 a public link and for members on an org-members-only one, and your model
 provider bills them to you.
@@ -122,22 +125,22 @@ The **Embed** tab gives you a two-line snippet you can paste into any web page:
 
 ```html
 <script src="https://app.stigmer.ai/embed.js" async></script>
-<stigmer-agent channel="ash_01j9z3k8f2q4m6n7p8r9s0t1v2"></stigmer-agent>
+<stigmer-agent channel="chn_01j9z3k8f2q4m6n7p8r9s0t1v2"></stigmer-agent>
 ```
 
 Under **Allowed embed origins**, list the websites that may embed your Agent
 (for example `https://acme.com`). An empty list allows any site; adding origins
 restricts embedding to those sites. See
-[Embed an Agent](/docs/guides/sharing/embed-an-agent) for sizing, theming, and
+[Embed an Agent](/docs/guides/channels/embed-an-agent) for sizing, theming, and
 how origin restrictions behave.
 
-## Share an Agent that uses tools
+## Give the chat link its tool credentials
 
 If your Agent uses MCP servers, its tools need credentials — API keys and logins
 kept in a [vault](/docs/concepts/vaults). A visitor's chat has no person behind
-it, so it uses only the vaults attached to the share, never anyone's own vault,
-and a visitor brings no keys of their own. Attach the vaults the Agent needs to
-a public share:
+it, so it uses only the vaults attached to the chat link, never anyone's own
+vault, and a visitor brings no keys of their own. Attach the vaults the Agent
+needs to a public chat link:
 
 1. Have an Organization admin create a shared vault with only the credentials
    the Agent needs.
@@ -145,12 +148,13 @@ a public share:
    under **Settings → Vaults**, or, on Stigmer Cloud, grant **Can use** to that
    person or their Team. A new shared vault is usable only by the Organization's
    admins until then.
-3. Attach it to the share in the chat link's dialog. You can attach a vault only
-   if you may use it, and each visitor message checks again that you still may.
+3. Attach it under **Tool credentials** in the chat link's dialog. You can
+   attach a vault only if you may use it, and each visitor message checks again
+   that you still may.
 
 A run that needs a key no attached vault holds is refused before it starts,
-naming the key. Your own vault and your sign-ins are never used by a share.
-Organization-audience shares take no vaults: members' chats use their own.
+naming the key. Your own vault and your sign-ins are never used by a chat link.
+Organization-audience chat links take no vaults: members' chats use their own.
 
 ### Tool approvals never reach visitors
 
@@ -175,12 +179,12 @@ Agent away from a tool entirely, leave it out of the Agent's `tools` list.
 A public link sometimes travels further than you meant it to — a forwarded
 email, a message pasted into the wrong channel, a page a search engine picked
 up. **Reset link** in the **Link** tab kills the current link and gives you a
-new one, without turning sharing off or deleting the share.
+new one, without turning the chat link off or deleting it.
 
 After a reset, the link carries a secret key:
 
 ```
-https://app.stigmer.ai/chat/ash_01j9z3k8f2q4m6n7p8r9s0t1v2?k=<key>
+https://app.stigmer.ai/chat/chn_01j9z3k8f2q4m6n7p8r9s0t1v2?k=<key>
 ```
 
 - The old link — including the plain one without a key — stops working
@@ -192,9 +196,9 @@ https://app.stigmer.ai/chat/ash_01j9z3k8f2q4m6n7p8r9s0t1v2?k=<key>
   so your website keeps working.
 
 Stigmer stores the key on the server side, outside anything a YAML manifest
-carries — applying a manifest, whether the Agent's or the share's, never removes
-or changes it. Resetting is only offered for public links; an org-members-only
-share needs no reset, because access ends with membership.
+carries — applying a manifest, whether the Agent's or the chat link's, never
+removes or changes it. Resetting is only offered for public links; an
+org-members-only link needs no reset, because access ends with membership.
 
 <Callout>
   A reset link is still a public link: anyone who has the new URL can chat.
@@ -202,39 +206,39 @@ share needs no reset, because access ends with membership.
   authentication. For that, switch the audience to **Organization members**.
 </Callout>
 
-## Turn off sharing
+## Turn a chat link off
 
 Turn the switch off in the dialog — or on the link's card in the **Channels**
 tab — to revoke the link. The public page stops working immediately — visitors
 see the same "not found" page as for an Agent that never existed. Pausing keeps
-the share's configuration for when you turn it back on; **Delete** in the card's
-menu removes the share entirely.
+the chat link's configuration for when you turn it back on; **Delete** in the
+card's menu removes the chat link entirely.
 
-## Share an Agent another Organization built
+## A chat link to another Organization's Agent
 
-A share always lives in the Agent's own Organization: its link, the provider
+A chat link always lives in the Agent's own Organization: its link, the provider
 keys it runs on and its credentials are that Organization's. To offer another
 Organization's Agent from yours, install the Plugin that carries it — the
 installed Agent is your Organization's copy, upgrades with the Plugin, and can
-be shared like any Agent you built. See
+have a chat link like any Agent you built. See
 [Install from a marketplace](/docs/guides/plugins/install-from-a-marketplace).
 
 <Callout>
-  Shares of another Organization's Agent created before this rule no longer
+  Chat links to another Organization's Agent created before this rule no longer
   serve visitors; their links show the same "not found" page as an Agent that
   never existed. Remove them through the API or the CLI, or leave them: they
   cost nothing.
 </Callout>
 
-## Share from the CLI
+## From the CLI
 
-You can also toggle sharing from the terminal:
+You can also manage a chat link from the terminal:
 
 ```bash
-# Share with your organization's members only (the default for a new link)
+# A chat link for your organization's members only (the default for a new link)
 stigmer channel link acme-corp/internal-helper
 
-# Share publicly and print the chat link + embed snippet
+# A public chat link; prints the link and the embed snippet
 stigmer channel link acme-corp/support-agent --audience public
 
 # Reset the public link (the old link stops working immediately)
@@ -246,11 +250,11 @@ stigmer channel link acme-corp/support-agent --off
 
 The CLI changes only what you ask it to — your allowed origins, visitor
 messages, and audience stay as you set them here. A plain toggle never turns an
-org-members-only share back into a public one. Visitor chat is served by Stigmer
+org-members-only link back into a public one. Visitor chat is served by Stigmer
 Cloud, so a link from a local backend won't serve visitors. See the
 [`stigmer channel` reference](/docs/cli/commands/channel) for all flags.
 
-## Manage sharing declaratively
+## Manage the chat link declaratively
 
 The chat link lives in its own resource — a `Channel` of type `web` — separate
 from the Agent it points at. If you manage resources with YAML manifests, manage
@@ -272,10 +276,10 @@ spec:
     audience: channel_audience_org
 ```
 
-Apply it with `stigmer apply -f share.yaml`. Because the link is a separate
-resource, applying your Agent's manifest never changes sharing — and applying
-the link never changes the Agent. `metadata.org` and `agent_ref.org` name the
-same Organization: a link lives where its Agent lives.
+Apply it with `stigmer apply -f chat-link.yaml`. Because the link is a separate
+resource, applying your Agent's manifest never changes the chat link — and
+applying the link never changes the Agent. `metadata.org` and `agent_ref.org`
+name the same Organization: a link lives where its Agent lives.
 
 <Callout type="warn">
   An apply replaces the link's settings as a whole, and a missing `audience`

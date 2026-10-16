@@ -26,7 +26,7 @@ export interface UseChannelAppListReturn {
  * organization.
  *
  * These are the customer-owned messaging-platform apps (bring-your-own
- * Slack apps) that agent channels can install through instead of the
+ * Slack apps) that Slack and WhatsApp channels can install through instead of the
  * shared Stigmer app. Secret fields arrive redacted. The connect dialogs
  * pick from them, so the hook walks every page of the list and answers
  * the whole set (an organization holds a handful).

@@ -39,10 +39,11 @@ const NA: ToolCredentialsReadiness = { status: "na" };
 const NEEDS_CREDENTIALS: ToolCredentialsReadiness = { status: "needs-credentials" };
 
 /**
- * Data hook that checks a surface's named vaults. `applicable` is the
- * caller's predicate (shares add an audience arm; channels do not).
+ * Data hook that checks a channel's named vaults. `applicable` is the
+ * caller's predicate (chat links add an audience arm; Slack and WhatsApp
+ * channels do not).
  *
- * Surface wrappers: {@link useChatLinkToolReadiness}, {@link useChannelToolReadiness}.
+ * Wrappers: {@link useChatLinkToolReadiness}, {@link useChannelToolReadiness}.
  */
 export function useToolCredentialsReadiness(
   applicable: boolean,

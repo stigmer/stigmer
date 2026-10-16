@@ -148,8 +148,8 @@ function SharedVaultsCard({ org }: { org: string }) {
       </div>
       <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
         Your organization&apos;s team keys. Admins create them and choose who
-        may use them; an agent, a schedule, a share link or a channel can name
-        one so its runs use it.
+        may use them; a conversation, a schedule or a channel can name one so
+        its runs use it.
       </p>
 
       {showCreate && (

@@ -135,7 +135,7 @@ export class ModelRegistryStore implements ModelCatalogProvider {
   /**
    * Whether a model reference is executable on AT LEAST ONE harness. The
    * existence check for surfaces with no serving harness in this edition
-   * (agent channels): a pin no section knows is certainly a typo, while a
+   * (Slack and WhatsApp channels): a pin no section knows is certainly a typo, while a
    * pin valid anywhere may be right where the spec actually serves.
    */
   isValidModelOnAnyHarness(model: string): boolean {

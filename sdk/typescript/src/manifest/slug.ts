@@ -49,7 +49,7 @@ import type { ServiceClientFn } from "./registry.js";
  */
 export interface SlugRulesHandler {
   readonly kind: ApiResourceKind;
-  /** Human-facing name for messages, e.g. `"Agent Share"`. */
+  /** Human-facing name for messages, e.g. `"Session"`. */
   readonly displayName: string;
   apply(clientFor: ServiceClientFn, message: Message): Promise<Message>;
   rename?(clientFor: ServiceClientFn, input: RenameInput): Promise<Message>;

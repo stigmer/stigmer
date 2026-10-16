@@ -310,8 +310,8 @@ export const InteractionModeSchema: GenEnum<InteractionMode> = /*@__PURE__*/
  * The approval default (shell commands, file writes and deletes, and MCP tools
  * their server marks destructive) decides WHICH tools are gated; this mode
  * decides WHAT HAPPENS when a gate fires. It exists for lanes where no
- * approver is present at the conversation — a schedule's fire, messaging
- * channels (Slack/WhatsApp) and guest shares — where an interactive pause
+ * approver is present at the conversation — a schedule's fire, Slack and
+ * WhatsApp channels, and chat links' guests — where an interactive pause
  * would park the run in RUN_WAITING_FOR_APPROVAL forever.
  *
  * The mode is a fact of the lane the run came through, recorded by
@@ -348,7 +348,8 @@ export enum ApprovalMode {
   INTERACTIVE = 1,
 
   /**
-   * Unattended: no approver exists on the creating surface. A gated tool is
+   * Unattended: no approver exists where the run came from (a schedule, a
+   * channel). A gated tool is
    * resolved as an automatic SKIP — the tool does NOT run, the model is told
    * the action requires an approval that is not available in this
    * conversation and to adapt and explain in plain language, and the turn
@@ -837,8 +838,9 @@ export enum RunValueOrigin {
   VAULT = 3,
 
   /**
-   * A vault of the surface a turn with no person came through (its
-   * schedule, share, channel or its organization's embedding settings).
+   * A vault of the schedule, channel or embedding settings a turn with no
+   * person came through. The value's name is older than this wording and
+   * stays: an enum value is a wire identifier.
    *
    * @generated from enum value: RUN_VALUE_ORIGIN_SURFACE_VAULT = 4;
    */

@@ -51,8 +51,11 @@ describe("UpgradeNotice", () => {
   });
 
   it("agrees its verb with a singular feature and with a feature it does not name", () => {
+    render(<UpgradeNotice feature={Feature.access_history} unlockingPlanName="Enterprise Cloud" />);
+    expect(screen.getByText("Access history needs the Enterprise Cloud plan or above.")).toBeTruthy();
+    cleanup();
     render(<UpgradeNotice feature={Feature.sharing} unlockingPlanName="Team" />);
-    expect(screen.getByText("Sharing needs the Team plan or above.")).toBeTruthy();
+    expect(screen.getByText("Chat links need the Team plan or above.")).toBeTruthy();
     cleanup();
     render(<UpgradeNotice feature={Feature.sso_enforcement} />);
     expect(screen.getByText("This feature is not included in this organization's plan.")).toBeTruthy();

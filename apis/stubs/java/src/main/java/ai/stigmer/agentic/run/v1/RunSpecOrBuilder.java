@@ -163,15 +163,15 @@ public interface RunSpecOrBuilder extends
    * tightest one any layer sets, so a message can lower an agent's cap but
    * never raise it. RunConfig's own comment has the full rule.
    *
-   * Unlike a saved surface's settings, a message may set service_tier or
+   * Unlike a schedule's or channel's saved settings, a message may set service_tier or
    * thinking_mode without a model: it then adjusts the model a less
    * specific layer chose (for example, thinking off for one message on an
    * agent whose default turns it on).
    *
-   * A lane that composes the turn for a surface (a schedule, a channel)
-   * writes that surface's saved settings here. On a lane where the
-   * caller is a visitor (the hosted edition's shared-agent guests and
-   * channel senders), the surface's saved settings replace this field; the
+   * A lane that composes the turn for a schedule or a channel writes its
+   * saved settings here. On a lane where the caller is a visitor (the
+   * hosted edition's chat-link guests and Slack and WhatsApp senders), the
+   * channel's saved settings replace this field; the
    * per-message intents below are the edition's to allow or clear for a
    * visitor, not replaced with this field.
    * </pre>
@@ -193,15 +193,15 @@ public interface RunSpecOrBuilder extends
    * tightest one any layer sets, so a message can lower an agent's cap but
    * never raise it. RunConfig's own comment has the full rule.
    *
-   * Unlike a saved surface's settings, a message may set service_tier or
+   * Unlike a schedule's or channel's saved settings, a message may set service_tier or
    * thinking_mode without a model: it then adjusts the model a less
    * specific layer chose (for example, thinking off for one message on an
    * agent whose default turns it on).
    *
-   * A lane that composes the turn for a surface (a schedule, a channel)
-   * writes that surface's saved settings here. On a lane where the
-   * caller is a visitor (the hosted edition's shared-agent guests and
-   * channel senders), the surface's saved settings replace this field; the
+   * A lane that composes the turn for a schedule or a channel writes its
+   * saved settings here. On a lane where the caller is a visitor (the
+   * hosted edition's chat-link guests and Slack and WhatsApp senders), the
+   * channel's saved settings replace this field; the
    * per-message intents below are the edition's to allow or clear for a
    * visitor, not replaced with this field.
    * </pre>
@@ -223,15 +223,15 @@ public interface RunSpecOrBuilder extends
    * tightest one any layer sets, so a message can lower an agent's cap but
    * never raise it. RunConfig's own comment has the full rule.
    *
-   * Unlike a saved surface's settings, a message may set service_tier or
+   * Unlike a schedule's or channel's saved settings, a message may set service_tier or
    * thinking_mode without a model: it then adjusts the model a less
    * specific layer chose (for example, thinking off for one message on an
    * agent whose default turns it on).
    *
-   * A lane that composes the turn for a surface (a schedule, a channel)
-   * writes that surface's saved settings here. On a lane where the
-   * caller is a visitor (the hosted edition's shared-agent guests and
-   * channel senders), the surface's saved settings replace this field; the
+   * A lane that composes the turn for a schedule or a channel writes its
+   * saved settings here. On a lane where the caller is a visitor (the
+   * hosted edition's chat-link guests and Slack and WhatsApp senders), the
+   * channel's saved settings replace this field; the
    * per-message intents below are the edition's to allow or clear for a
    * visitor, not replaced with this field.
    * </pre>
@@ -469,7 +469,7 @@ public interface RunSpecOrBuilder extends
    * --append-system-prompt.
    *
    * A person who may create a run in the session may set it; a visitor (a
-   * share-link guest, a channel sender) may not, as the agent's system
+   * chat-link guest, a Slack or WhatsApp sender) may not, as the agent's system
    * prompt is its owner's to steer. On the native engine it lands after
    * the agent's instructions and the platform's sections, for this turn
    * only. On the Cursor engine it is sent with the turn's message, before
@@ -488,7 +488,7 @@ public interface RunSpecOrBuilder extends
    * --append-system-prompt.
    *
    * A person who may create a run in the session may set it; a visitor (a
-   * share-link guest, a channel sender) may not, as the agent's system
+   * chat-link guest, a Slack or WhatsApp sender) may not, as the agent's system
    * prompt is its owner's to steer. On the native engine it lands after
    * the agent's instructions and the platform's sections, for this turn
    * only. On the Cursor engine it is sent with the turn's message, before

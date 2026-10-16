@@ -142,7 +142,7 @@ describe("useUpdateChannelApp", () => {
 describe("useDeleteChannelApp", () => {
   it("deletes by id and surfaces the referencing-channels refusal", async () => {
     const del = vi.fn().mockRejectedValue(
-      new Error("Cannot delete channel app: 1 agent channel(s) still reference it via spec.app_ref."),
+      new Error("Cannot delete channel app: 1 channel(s) still reference it via spec.app_ref."),
     );
     const client = createMockStigmer({ delete: del });
 

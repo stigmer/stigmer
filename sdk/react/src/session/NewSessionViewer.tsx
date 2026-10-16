@@ -330,7 +330,7 @@ export function NewSessionViewer({
   // Guest agent binding is host configuration, not a picker interaction:
   // the composer's agent machinery (picker, env-collection, vaults —
   // all org reads a guest token cannot make) stays fully
-  // unwired, and the launcher pins the flow to the shared agent's
+  // unwired, and the launcher pins the flow to the chat link's agent's
   // reference directly. Without the pin, submission fails closed in
   // useNewSessionFlow rather than falling back to the built-in assistant.
   const { setAgentRef, setResolution } = flow;

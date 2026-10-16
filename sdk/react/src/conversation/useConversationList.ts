@@ -16,7 +16,7 @@ import { CONVERSATION_LIST_POLL_INTERVAL_MS } from "./polling.js";
 export interface UseConversationListOptions {
   /** Organization whose conversations to list. `null` skips fetching. */
   readonly org: string | null;
-  /** Optional filter: only conversations on this agent channel. */
+  /** Optional filter: only conversations on this channel. */
   readonly channelId?: string;
   /**
    * Optional server-evaluated predicate filter. The generated enum is

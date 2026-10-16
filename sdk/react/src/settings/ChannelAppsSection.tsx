@@ -30,8 +30,8 @@ type FlowState =
 
 /**
  * Settings section for the organization's channel apps — customer-owned
- * provider apps (Slack apps, Meta WhatsApp apps) that agent channels
- * install through. For Slack that replaces the shared Stigmer app (bring
+ * provider apps (Slack apps, Meta WhatsApp apps) that Slack and WhatsApp
+ * channels install through. For Slack that replaces the shared Stigmer app (bring
  * your own app: your bot name and icon, and one agent per app per
  * workspace, so multiple agents can serve one workspace); for WhatsApp a
  * channel app is the only way — there is no platform Meta app.
@@ -108,7 +108,7 @@ export function ChannelAppsSection() {
         )}
       </div>
       <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        Your own provider apps for serving agent channels. A Slack app
+        Your own provider apps for your Slack and WhatsApp channels. A Slack app
         gives the bot your name and icon, and lets multiple agents serve
         the same workspace — one per app. A Meta app is how WhatsApp
         channels connect — every WhatsApp channel installs through one.

@@ -189,8 +189,8 @@ export const APPROVAL_REQUIRED_AGENT_MESSAGE =
   "automatically after the user responds — continue with the rest of the task.";
 
 // Shown to the model when the gate denies a tool call under UNATTENDED
-// approval mode: the creating surface (a messaging channel, a guest
-// share) has no approver, so — unlike APPROVAL_REQUIRED_AGENT_MESSAGE — this
+// approval mode: the lane the run came through (a Slack or WhatsApp
+// channel, a chat link's guest) has no approver, so — unlike APPROVAL_REQUIRED_AGENT_MESSAGE — this
 // must NOT promise a resume: the deny is final for this turn and the model
 // must adapt. It also enforces the anti-leak posture: the end user hears a
 // plain-language explanation, never tool/approval vocabulary. Same embedding

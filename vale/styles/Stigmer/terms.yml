@@ -4,17 +4,11 @@ level: warning
 ignorecase: false
 action:
   name: replace
+# Capitalization and the edition names. Former names live in FormerNames.yml,
+# at error level, so a former name fails the build instead of warning.
 swap:
   # --- Agentic pillar ---
   '\bagent\b': Agent
-  # Former names of a run; the engine's own words stay in code spans. A bare
-  # "run" gets no rule of its own: it is also a verb ("let the agent run").
-  '\bAgent Run\b': run
-  '\bAgent Runs\b': runs
-  '\bagent execution\b': run
-  '\bagent executions\b': runs
-  '\bAgent Execution\b': run
-  '\bAgent Executions\b': runs
   agent instance: Agent Instance
   agent runner: Agent Runner
   mcp server: MCP server
@@ -33,13 +27,6 @@ swap:
   api keys: API Keys
   federation issuer: Federation Issuer
   federation issuers: Federation Issuers
-  # Former name of a Federation Issuer. Lowercase "identity provider" keeps its
-  # everyday sense (the outside provider: Auth0, Okta), so it gets no rule.
-  '\bIdentity Provider\b': Federation Issuer
-  '\bIdentity Providers\b': Federation Issuers
-  # Former name of a Grant.
-  '\bIAM [Pp]olicy\b': Grant
-  '\bIAM [Pp]olicies\b': Grants
   identity account: Identity Account
   '\borganization\b': Organization
   '\borganizations\b': Organizations

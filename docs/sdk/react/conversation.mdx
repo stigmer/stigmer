@@ -800,7 +800,7 @@ Options for [`useConversationList`](#useconversationlist).
 
 <TypeTable
   type={{
-    channelId: { type: "string", description: "Optional filter: only conversations on this agent channel." },
+    channelId: { type: "string", description: "Optional filter: only conversations on this channel." },
     filter: { type: "ChannelConversationListFilter", description: "Optional server-evaluated predicate filter. The generated enum is the vocabulary on purpose — the predicate lives in ONE place, the server, and the hook never re-expresses it. Defaults to unspecified (no filter)." },
     org: { type: "string | null", description: "Organization whose conversations to list. `null` skips fetching.", required: true },
     pageSize: { type: "number", description: "Page size for the head page and each loadMore page. Default 50." },

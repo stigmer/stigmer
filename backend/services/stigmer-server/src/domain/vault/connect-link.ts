@@ -14,7 +14,7 @@
  * is stored.
  *
  * `ConnectLinkController` serves the page, every method public with the
- * link's secret as the authority (the share link's `getSharedProfile`
+ * link's secret as the authority (the chat link's `getAgentProfile`
  * precedent), kept in its own service so the anonymous surface is one file
  * to audit. An unknown, expired or used link answers NOT_FOUND, the same for
  * all three. The link's creator must still be able to edit the vault when

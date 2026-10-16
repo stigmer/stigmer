@@ -48,7 +48,7 @@ message SessionSpec {
   // organization's parent's, shared at visibility_child_orgs
   // (the reference rule). The reference holds the agent's id, which every
   // turn reads by point read, so a slug deleted and taken by another agent
-  // never redirects a live conversation (the share's pin).
+  // never redirects a live conversation (as a channel's agent_ref does).
   ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 14 [(ai.stigmer.commons.apiresource.reference_kind) = agent];
 
   // Conversation title for UI display.

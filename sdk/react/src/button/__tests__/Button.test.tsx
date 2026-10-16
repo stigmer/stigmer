@@ -7,9 +7,9 @@ afterEach(cleanup);
 describe("Button", () => {
   it("renders a native button with the label and fires onClick", () => {
     const onClick = vi.fn();
-    render(<Button onClick={onClick}>Create share</Button>);
+    render(<Button onClick={onClick}>Add channel</Button>);
 
-    const el = screen.getByRole("button", { name: "Create share" });
+    const el = screen.getByRole("button", { name: "Add channel" });
     expect(el.tagName).toBe("BUTTON");
     el.click();
     expect(onClick).toHaveBeenCalledTimes(1);

@@ -38,7 +38,8 @@ enum IamPermission {
   can_assign_roles = 47;
 
   // Whether the caller may change who reaches the resource: its visibility,
-  // who observes its runs, a share link to it, or a channel it answers on.
+  // who observes its runs, or a channel it answers on (a chat link among
+  // them).
   //
   // @internal
   // Its own permission, apart from can_grant_access, because the self-check
@@ -277,7 +278,7 @@ enum IamPermission {
   // Whether a person's runs may use a vault's logins and secrets.
   //
   // @internal
-  // Asked at save, when a session, schedule, share, channel, agent or
+  // Asked at save, when a session, schedule, channel, agent or
   // organization's embedding settings name a vault, and again when each run
   // starts: of the run's person, or of the account that attached the vault
   // when the run has no person.
@@ -400,7 +401,7 @@ enum IamRole {
 
   // Editor of a blueprint (an agent): may change
   // its definition and do whatever a viewer can, and may not delete it,
-  // change its visibility, publish it on a share link or a channel, or decide
+  // change its visibility, give it a chat link or another channel, or decide
   // who else has access.
   //
   // @internal

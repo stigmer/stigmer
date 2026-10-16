@@ -472,7 +472,7 @@ function describeOutcome(
     result.hint(`Visitors chat on ${orgLabel}'s own provider keys.`);
     result.hint("Public links can be forwarded and indexed by search engines.");
     if (options.resetLink === true) {
-      result.hint("Re-share the new link with the people who should keep access.");
+      result.hint("Send the new link to the people who should keep chatting.");
     }
   }
   // Only a public link needs guest sign-in; an organization link is the one

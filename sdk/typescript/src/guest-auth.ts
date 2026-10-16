@@ -65,7 +65,7 @@ export interface GuestAuthConfig {
   readonly storage?: GuestIdStorage;
 
   /**
-   * Web origin of the page embedding the shared agent.
+   * Web origin of the page embedding the agent's chat link.
    *
    * Set this when the chat runs embedded — inside an iframe (the
    * embedding page's origin, discovered via `@stigmer/embed`'s
@@ -288,7 +288,7 @@ function safeSetItem(storage: GuestIdStorage, key: string, value: string): void 
 }
 
 /**
- * Create a guest token-minting helper for a shared agent's hosted page
+ * Create a guest token-minting helper for an agent's chat link
  * or embed.
  *
  * This is the browser-side counterpart of `stigmer.tokens.mintUserToken`:

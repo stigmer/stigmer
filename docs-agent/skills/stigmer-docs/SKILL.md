@@ -46,9 +46,10 @@ The docs are organized by capability. Stable anchor pages, by area:
 - Skills: https://stigmer.ai/docs/concepts/skills
 - Sessions: https://stigmer.ai/docs/concepts/sessions
 - Approval flows: https://stigmer.ai/docs/concepts/approval-flows
-- Sharing (hosted link + embed): https://stigmer.ai/docs/guides/sharing/share-an-agent
-  and https://stigmer.ai/docs/guides/sharing/embed-an-agent
-- Channels (Slack, WhatsApp): https://stigmer.ai/docs/guides/channels/connect-slack
+- Channels (chat link, embed, Slack, WhatsApp): https://stigmer.ai/docs/concepts/channels,
+  then https://stigmer.ai/docs/guides/channels/create-a-chat-link,
+  https://stigmer.ai/docs/guides/channels/embed-an-agent,
+  https://stigmer.ai/docs/guides/channels/connect-slack
   and https://stigmer.ai/docs/guides/channels/connect-whatsapp
 
 **Tools & MCP** — how agents touch external systems.

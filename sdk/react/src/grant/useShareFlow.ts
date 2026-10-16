@@ -8,7 +8,7 @@
  * through `granteeRef`, so a team is always `team:<id>#member` and no caller
  * spells the qualifier. Removing a grantee revokes EVERY role it holds
  * directly on the resource, read from the access list this hook already
- * holds: a grantee listed once can hold two roles (a team on an agent
+ * holds: a grantee listed once can hold two roles (a team on a
  * channel is `participant` and `viewer`), and a remove that revoked one of
  * them would leave the row standing.
  *

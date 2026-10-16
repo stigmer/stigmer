@@ -52,7 +52,7 @@ const CLOUD_PLANS: readonly Plan[] = [
     price: "$0",
     period: "/month",
     description: "Build agents and put them in front of people.",
-    features: [Feature.channels, Feature.sharing, "Unlimited members"],
+    features: [Feature.sharing, Feature.channels, "Unlimited members"],
     cta: { label: "Start Free", href: SITE_CONFIG.cloudSignupUrl },
   },
   {

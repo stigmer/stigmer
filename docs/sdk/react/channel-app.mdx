@@ -12,7 +12,7 @@ Data hook that fetches all `ChannelApp` entries for an
 organization.
 
 These are the customer-owned messaging-platform apps (bring-your-own
-Slack apps) that agent channels can install through instead of the
+Slack apps) that Slack and WhatsApp channels can install through instead of the
 shared Stigmer app. Secret fields arrive redacted. The connect dialogs
 pick from them, so the hook walks every page of the list and answers
 the whole set (an organization holds a handful).
@@ -58,7 +58,7 @@ Mutation hook that wraps `channelapp.create()` with loading and error
 state.
 
 Creates a channel app — a customer-owned messaging-platform app whose
-credentials agent channels can install through instead of the shared
+credentials Slack and WhatsApp channels can install through instead of the shared
 Stigmer app. The secret fields (`clientSecret`, `signingSecret`) are
 encrypted server-side and come back redacted in the response.
 
@@ -100,7 +100,7 @@ Mutation hook that wraps `channelapp.delete()` with loading and error
 state.
 
 Deletes a channel app by its resource ID. The server refuses
-(`FAILED_PRECONDITION`) while any agent channel still references the
+(`FAILED_PRECONDITION`) while any channel still references the
 app via `spec.app_ref` — the error message names the fix; surface it
 to the user rather than retrying.
 
@@ -192,7 +192,7 @@ manifest — Meta has no equivalent, so the guidance is a checklist).
 Secret fields are prefilled with the redaction marker; leaving them
 untouched preserves the stored values (rotate one secret without
 re-entering the others). Deletion is refused server-side while any
-agent channel still installs through this app.
+channel still installs through this app.
 
 The credentials form is offered to a caller who may edit the app
 (`can_edit`), and the slug field (rename) and the deletion section to
@@ -220,7 +220,7 @@ app sees its setup values with no actions.
 
 Displays the `ChannelApp` resources of an organization that the
 caller may view — the customer's own provider apps (Slack,
-Meta/WhatsApp) that agent channels can install through.
+Meta/WhatsApp) that Slack and WhatsApp channels can install through.
 
 Each row shows the app name, provider, the provider's non-secret app
 identifier, and creation date. Secret fields never appear (they

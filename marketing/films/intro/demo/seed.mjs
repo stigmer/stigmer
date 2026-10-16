@@ -68,13 +68,13 @@ stigmer("apply", "-f", join(here, "resources/traveler-assist.yaml"));
 // 5. The daily digest schedule.
 stigmer("apply", "-f", join(here, "resources/disruption-digest-schedule.yaml"));
 
-// 6. The hosted-chat share (share link + embed origins for the Meridian page).
+// 6. The chat link (hosted link + embed origins for the Meridian page).
 stigmer("apply", "-f", join(here, "resources/traveler-assist-share.yaml"));
-// A share link names the share by its id; record it for the embed page
+// A chat link names its channel by id; record it for the embed page
 // and the capture script (channel-id.mjs).
 const channelId = recordChannelId(bin, ORG, "traveler-assist");
 
 console.log("\nMeridian Travel demo world seeded.");
 console.log("Console:    http://localhost:7234");
-console.log(`Share link: http://localhost:7234/chat/${channelId}`);
+console.log(`Chat link:  http://localhost:7234/chat/${channelId}`);
 console.log("Embed page: npm run demo:embed  →  http://localhost:4173");

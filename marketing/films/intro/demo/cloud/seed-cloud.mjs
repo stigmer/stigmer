@@ -9,8 +9,8 @@
  * (and spend) every day after the camera stops. The meridian-ops plugin
  * stays off too: its server is a local program (stdio), which runs only in
  * the desktop app or the CLI, and a conversation hosted in a cloud sandbox
- * is refused at session create when a plugin it lists has one. The share's
- * guests are hosted there, so the cloud agents (traveler-assist and the
+ * is refused at session create when a plugin it lists has one. The chat
+ * link's guests are hosted there, so the cloud agents (traveler-assist and the
  * fare-search agent it lists as a subagent) carry no plugin at all; the
  * embed shot never exercises tools, so nothing on screen changes.
  *
@@ -81,9 +81,9 @@ try {
   rmSync(rendered, { recursive: true, force: true });
 }
 
-// 4. The public-audience share (the guest path the embed rides).
+// 4. The public chat link (the guest path the embed rides).
 stigmer("apply", "-f", join(here, "traveler-assist-share.yaml"));
-// The embed names the share by its id; record the cloud share's id for the
+// The embed names the channel by its id; record the cloud channel's id for the
 // embed page (../channel-id.mjs).
 recordChannelId(bin, ORG, "traveler-assist");
 

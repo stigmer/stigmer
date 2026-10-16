@@ -2,7 +2,7 @@
 // Domain: conformance support.
 //
 // A ChannelApp is a customer-owned messaging-platform app (a Slack app or a
-// Meta/WhatsApp app) that agent channels install through instead of the
+// Meta/WhatsApp app) that Slack and WhatsApp channels install through instead of the
 // shared platform app. Its spec is a required provider oneof whose arms
 // carry real secrets — encrypted at rest, redacted to the platform marker on
 // every read, rotated per field via the marker convention (the OAuthApp

@@ -40,8 +40,8 @@ describe("PricingPage", () => {
     expect(screen.getByText("$499")).toBeTruthy();
     expect(screen.getAllByText("Custom")).toHaveLength(2);
 
-    expect(within(card("Free")).getByText("Channels")).toBeTruthy();
-    expect(within(card("Free")).getByText("Sharing")).toBeTruthy();
+    expect(within(card("Free")).getByText("Chat links")).toBeTruthy();
+    expect(within(card("Free")).getByText("Slack and WhatsApp")).toBeTruthy();
     expect(within(card("Free")).getByText("Unlimited members")).toBeTruthy();
     expect(within(card("Team")).getByText("Teams")).toBeTruthy();
     expect(within(card("Business")).getByText("Child organizations")).toBeTruthy();

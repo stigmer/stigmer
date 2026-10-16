@@ -102,7 +102,8 @@ export enum IamPermission {
 
   /**
    * Whether the caller may change who reaches the resource: its visibility,
-   * who observes its runs, a share link to it, or a channel it answers on.
+   * who observes its runs, or a channel it answers on (a chat link among
+   * them).
    *
    * @generated from enum value: can_manage_audience = 48;
    */
@@ -426,7 +427,7 @@ export enum IamRole {
   /**
    * Editor of a blueprint (an agent): may change
    * its definition and do whatever a viewer can, and may not delete it,
-   * change its visibility, publish it on a share link or a channel, or decide
+   * change its visibility, give it a chat link or another channel, or decide
    * who else has access.
    *
    * @generated from enum value: editor = 6;

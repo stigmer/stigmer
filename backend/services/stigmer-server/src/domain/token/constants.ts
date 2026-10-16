@@ -87,7 +87,7 @@ export const MINTING_DISABLED_MESSAGE =
   "mintUserToken is disabled: this server's platform-token key ring holds no signing key";
 
 export const GUEST_MINT_UNIMPLEMENTED_MESSAGE =
-  "TokenService.mintGuestToken is not implemented: guest tokens for shared agents are served by the Cloud edition";
+  "TokenService.mintGuestToken is not implemented: guest tokens for chat links are served by the Cloud edition";
 
 export const TOKEN_NAMES_NO_MINTER_MESSAGE =
   "user token names no minting service account";

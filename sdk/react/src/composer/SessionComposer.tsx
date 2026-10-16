@@ -452,7 +452,7 @@ export interface SessionComposerProps {
    * Offer a Vaults entry in the Configure menu, where the person picks the
    * vaults this conversation uses: My vault, a fixed first row they tick
    * or untick, then the shared vaults in order. The conversation uses
-   * exactly these. Never for a guest: a share link's visitor brings no
+   * exactly these. Never for a guest: a chat link's visitor brings no
    * vaults.
    *
    * @default false
@@ -967,7 +967,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   //
   // Adoption of the harness default is gated on `showModelSelector`: with
   // no pill there is no displayed promise, and whoever hid the picker owns
-  // the model (the guest share profile server-side, a host pin) — the
+  // the model (the chat link's guest profile server-side, a host pin) — the
   // guest no-modelName invariant depends on this gate staying put.
   //
   // The agent's run defaults come before that adoption: while nothing

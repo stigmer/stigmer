@@ -1,7 +1,7 @@
 /**
  * The guest-token capability: `TokenService.mintGuestToken`,
- * the credential-free mint for anonymous visitors of a shared agent's
- * hosted page. Single instance, registered as `drivers.guestTokenMinting`
+ * the credential-free mint for anonymous visitors of an agent's chat
+ * link. Single instance, registered as `drivers.guestTokenMinting`
  * (the identityFederation shape: a driver point whose absence is a
  * refusal, never a silent no-op).
  *

@@ -146,7 +146,7 @@ type agent
     # ========================================
     # AUDIENCE
     # ========================================
-    # Who reaches this agent (visibility, a share link to it, a channel it answers on) is its owner's to change.
+    # Who reaches this agent (visibility, a channel it answers on, chat links included) is its owner's to change.
     # Kept apart from can_grant_access, which the self-check answers false
     # wherever the edition grants no roles on the kind: the audience is the
     # owner's in every edition. An editor never holds it.

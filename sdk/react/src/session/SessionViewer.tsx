@@ -467,7 +467,7 @@ export function SessionViewer({
   const isCurated = audience !== "integrator" || isObserver;
   // Thumbs and run-health flags are the audience's call: the Console's
   // people and a conversation's reviewers grade runs, an embedded end user
-  // and a share-link visitor see neither.
+  // and a chat-link visitor see neither.
   const runScores = showsRunScores(isObserver ? "observer" : audience);
   // The one flag every panel affordance keys on: the host opted out
   // (`panel="none"`) or the audience forbids it (guests have no business

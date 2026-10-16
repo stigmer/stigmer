@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { ChatLinkDialog } from "@stigmer/react-sdk";
 import { BrowserView } from "@scenar/react";
 import { DEMO_ORG } from "../_shared/fixtures";
-import { DEMO_SLUG, buildDemoAgent, buildDemoShare, type ShareAgentTourStep } from "./steps";
+import { DEMO_SLUG, buildDemoAgent, buildDemoChatLink, type ChatLinkTourStep } from "./steps";
 
 /** The console's address as the depicted browser shows it. */
 const CONSOLE_URL = "app.stigmer.ai";
@@ -32,20 +32,20 @@ const noop = () => {};
  * must not drive mid-playback — the beat depicts the state, the narration
  * tells the story.
  */
-export function renderStep(data: ShareAgentTourStep): ReactNode {
+export function renderStep(data: ChatLinkTourStep): ReactNode {
   switch (data.view) {
-    case "share-dialog":
+    case "chat-link-dialog":
       return (
         <BrowserView
           url={`${CONSOLE_URL}/library/agents/${DEMO_SLUG}`}
-          contentKey="share"
+          contentKey="chat-link"
         >
           <div style={DIALOG_PAGE} inert>
             <ChatLinkDialog
               open
               onOpenChange={noop}
               agent={buildDemoAgent()}
-              channel={buildDemoShare()}
+              channel={buildDemoChatLink()}
               buildChatLinkUrl={(channelId) => `https://app.stigmer.ai/chat/${channelId}`}
               modal={false}
             />

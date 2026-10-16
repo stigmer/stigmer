@@ -45,7 +45,7 @@ export interface RuntimeConfig {
    * Public web app URL used when generating externally shareable links
    * (e.g. the hosted agent chat page). Empty means "use the browser's
    * own origin" — correct whenever the app is served at its public URL.
-   * Set it when share links must point somewhere other than where the
+   * Set it when chat links must point somewhere other than where the
    * console is rendered (e.g. a dedicated chat domain).
    */
   readonly appUrl: string;

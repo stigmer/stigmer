@@ -44,7 +44,7 @@ describe("<stigmer-agent>", () => {
     const iframe = iframeOf(element);
     expect(iframe).not.toBeNull();
     expect(iframe!.src).toBe(`${APP_ORIGIN}/chat/ash_support`);
-    expect(iframe!.title).toBe("Chat with a shared agent");
+    expect(iframe!.title).toBe("Chat with an agent");
   });
 
   it("reads the deprecated share attribute when channel is absent", () => {

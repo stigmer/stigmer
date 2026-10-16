@@ -39,7 +39,7 @@ export interface ChannelAppListPanelProps {
 /**
  * Displays the {@link ChannelApp} resources of an organization that the
  * caller may view — the customer's own provider apps (Slack,
- * Meta/WhatsApp) that agent channels can install through.
+ * Meta/WhatsApp) that Slack and WhatsApp channels can install through.
  *
  * Each row shows the app name, provider, the provider's non-secret app
  * identifier, and creation date. Secret fields never appear (they

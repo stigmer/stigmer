@@ -68,7 +68,7 @@ export interface ChannelAppDetailPanelProps {
  * Secret fields are prefilled with the redaction marker; leaving them
  * untouched preserves the stored values (rotate one secret without
  * re-entering the others). Deletion is refused server-side while any
- * agent channel still installs through this app.
+ * channel still installs through this app.
  *
  * The credentials form is offered to a caller who may edit the app
  * (`can_edit`), and the slug field (rename) and the deletion section to
