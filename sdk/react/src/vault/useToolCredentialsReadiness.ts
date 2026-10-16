@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Whether a surface whose runs have no person (a share's guests, a
+ * Whether a surface whose runs have no person (a chat link's guests, a
  * channel's conversations) will find the keys its agent's tools need.
  *
  * Such runs use only the vaults the surface names, never anyone's My vault,

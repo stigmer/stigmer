@@ -1,6 +1,13 @@
-// ChannelsPanel: the Channels tab — an agent's Slack and WhatsApp channels
-// (never its chat links), their install and serving axes, and the connect,
-// pause, disconnect and per-card dialogs.
+// ChannelsPanel: the Channels tab — every channel of an agent (its chat
+// links, Slack workspaces and WhatsApp numbers) in one list, in the order
+// listByAgent answers. Pins the count heading and the empty state, the one
+// Add affordance per edition (an "Add channel" menu once channels are
+// listed, one visible button per type on an empty tab, the unavailable
+// types named with what they need), the cloud notice only for a listed
+// vendor channel this edition cannot connect, the chat link's create, edit
+// and delete flows, and the vendor cards' install and serving axes with
+// their connect, pause, disconnect and per-card dialogs. The chat link's
+// own card is pinned in ChatLinkCard.test.tsx.
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
@@ -16,6 +23,7 @@ import { ChannelsPanel } from "../ChannelsPanel";
 import { toast } from "../../feedback/toast";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
 
 // Toasts are visual feedback owned by the feedback module; keep them inert.
 vi.mock("../../feedback/toast", () => ({
@@ -46,6 +54,7 @@ afterEach(cleanup);
 
 interface MockOverrides {
   channels?: unknown[];
+  listByAgent?: (input: unknown) => Promise<unknown>;
   update?: (resource: Channel, paths: string[]) => Promise<unknown>;
   delete?: (id: string) => Promise<unknown>;
   checkMyPermission?: (input: unknown) => Promise<unknown>;
@@ -71,7 +80,9 @@ function createMockStigmer(overrides: MockOverrides = {}) {
       list: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
     },
     channel: {
-      listByAgent: vi.fn().mockResolvedValue({ entries: overrides.channels ?? [], nextPageToken: "" }),
+      listByAgent:
+        overrides.listByAgent ??
+        vi.fn().mockResolvedValue({ entries: overrides.channels ?? [], nextPageToken: "" }),
       apply: vi.fn().mockResolvedValue({}),
       update: overrides.update ?? vi.fn().mockResolvedValue({}),
       create: vi.fn().mockResolvedValue({ metadata: { id: "ach_new" } }),
@@ -81,6 +92,10 @@ function createMockStigmer(overrides: MockOverrides = {}) {
         state: "s",
       }),
       completeInstall: vi.fn().mockResolvedValue({}),
+      rotateLink: vi.fn().mockResolvedValue({}),
+    },
+    billing: {
+      getOrCreateBillingAccount: vi.fn().mockResolvedValue(null),
     },
     vault: {
       list: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
@@ -100,7 +115,7 @@ function Providers({
   children,
 }: {
   client: unknown;
-  mode?: "cloud" | "local";
+  mode?: "cloud" | "local" | "enterprise";
   children: ReactNode;
 }) {
   return (
@@ -197,6 +212,41 @@ function makeWhatsAppChannel(overrides: {
   };
 }
 
+function makeChatLink(overrides: {
+  id?: string;
+  name?: string;
+  enabled?: boolean;
+  audience?: ChannelAudience;
+} = {}) {
+  const { id = "ash_1", name = "Website chat", enabled = true, audience = ChannelAudience.public } =
+    overrides;
+  return {
+    metadata: { id, org: "acme", slug: `chat-${id}`, name, labels: {} },
+    spec: {
+      agentRef: { org: "acme", slug: "support-agent" },
+      enabled,
+      type: { case: "web", value: { audience } },
+    },
+    status: { typeStatus: { case: "web", value: { linkToken: "tok" } } },
+  };
+}
+
+// A link names the channel by its id alone — never its organization or slug.
+const buildChatLinkUrl = (channelId: string) =>
+  `https://app.example.com/chat/${channelId}`;
+
+/** The cards in the list, by their frame's accessible name, in DOM order. */
+function cardNames(): string[] {
+  return screen
+    .getAllByRole("group")
+    .map((card) => card.getAttribute("aria-label") ?? "");
+}
+
+/** The Add channel menu's item for a type, by the label it starts with. */
+function addItem(label: string): HTMLElement {
+  return screen.getByRole("menuitem", { name: new RegExp(`^${label}`) });
+}
+
 describe("ChannelsPanel", () => {
   it("renders the empty state with a connect call to action", async () => {
     const client = createMockStigmer();
@@ -229,28 +279,63 @@ describe("ChannelsPanel", () => {
     expect(screen.getByRole("switch")).toBeTruthy();
   });
 
-  it("lists the Slack and WhatsApp channels and leaves the chat links to the Shares tab", async () => {
-    const chatLink = {
-      metadata: { id: "ash_1", org: "acme", slug: "support-agent", name: "Website chat", labels: {} },
-      spec: {
-        agentRef: { org: "acme", slug: "support-agent" },
-        enabled: true,
-        type: { case: "web", value: {} },
-      },
-      status: { typeStatus: { case: "web", value: { linkToken: "" } } },
-    };
+  it("lists every channel of the agent in one list — chat links beside Slack and WhatsApp, in listByAgent order", async () => {
     const client = createMockStigmer({
-      channels: [chatLink, makeChannel({ teamName: "Acme HQ" })],
+      channels: [
+        makeChannel({ teamName: "Acme HQ" }),
+        makeChatLink(),
+        makeWhatsAppChannel(),
+      ],
     });
+    render(
+      <Providers client={client}>
+        <ChannelsPanel agent={makeAgent()} buildChatLinkUrl={buildChatLinkUrl} />
+      </Providers>,
+    );
+
+    await waitFor(() => expect(screen.getByText("3 channels")).toBeTruthy());
+    // One frame per channel, every type, in the order the server answered.
+    expect(cardNames()).toEqual([
+      "Slack: Support Slack",
+      "Chat link: Website chat",
+      "WhatsApp: Support WhatsApp",
+    ]);
+    // The chat link's card shows its link and audience; the vendor cards
+    // their install state, beside it.
+    const chatCard = screen.getByRole("group", { name: "Chat link: Website chat" });
+    expect(within(chatCard).getByText("/chat/ash_1")).toBeTruthy();
+    expect(within(chatCard).getByText("Anyone with the link")).toBeTruthy();
+    expect(
+      within(screen.getByRole("group", { name: "Slack: Support Slack" })).getByText("Installed"),
+    ).toBeTruthy();
+  });
+
+  it("counts a single channel in the singular", async () => {
+    const client = createMockStigmer({ channels: [makeChatLink()] });
     render(
       <Providers client={client}>
         <ChannelsPanel agent={makeAgent()} />
       </Providers>,
     );
 
-    await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
-    expect(screen.queryByText("Website chat")).toBeNull();
-    expect(screen.getByText("1 channel")).toBeTruthy();
+    expect(await screen.findByText("1 channel")).toBeTruthy();
+  });
+
+  it("scopes the list to the agent's own organization — a channel lives where its agent lives", async () => {
+    const listByAgent = vi
+      .fn()
+      .mockResolvedValue({ entries: [makeChatLink()], nextPageToken: "" });
+    const client = createMockStigmer({ listByAgent });
+    render(
+      <Providers client={client}>
+        <ChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    await screen.findByText("1 channel");
+    expect(listByAgent).toHaveBeenCalledWith(
+      expect.objectContaining({ agentId: "agt_1", org: "acme" }),
+    );
   });
 
   it("shows Connect for pending installs and Reconnect for revoked ones", async () => {
@@ -437,6 +522,26 @@ describe("ChannelsPanel", () => {
   });
 
   it("replaces connect affordances with the cloud notice in local mode", async () => {
+    const client = createMockStigmer({
+      channels: [makeChannel({ installState: 1, name: "Pending Slack" })],
+    });
+    render(
+      <Providers client={client} mode="local">
+        <ChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    // A listed vendor channel this edition cannot connect is what the
+    // notice explains.
+    await waitFor(() =>
+      expect(screen.getByText(/require Stigmer Cloud/i)).toBeTruthy(),
+    );
+    // No doomed Connect on the card (no external delegate).
+    expect(screen.getByText("Pending Slack")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Connect" })).toBeNull();
+  });
+
+  it("offers only the chat link on an empty tab in local mode, and names what Slack and WhatsApp need", async () => {
     const client = createMockStigmer();
     render(
       <Providers client={client} mode="local">
@@ -444,11 +549,39 @@ describe("ChannelsPanel", () => {
       </Providers>,
     );
 
-    await waitFor(() =>
-      expect(screen.getByText(/require Stigmer Cloud/i)).toBeTruthy(),
-    );
-    // No doomed connect button in local mode (no external delegate).
+    const create = await screen.findByRole("button", { name: /create a chat link/i });
+    expect(create.getAttribute("data-cursor-target")).toBe("add-chat-link");
     expect(screen.queryByRole("button", { name: /connect to slack/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /connect to whatsapp/i })).toBeNull();
+    expect(screen.getByText("Slack and WhatsApp need Stigmer Cloud.")).toBeTruthy();
+    // An empty tab lists no vendor channel, so no banner explains one.
+    expect(screen.queryByText(/require Stigmer Cloud/i)).toBeNull();
+  });
+
+  it("treats enterprise like local: the chat link only, Slack and WhatsApp named as needing Stigmer Cloud", async () => {
+    const client = createMockStigmer();
+    render(
+      <Providers client={client} mode="enterprise">
+        <ChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    expect(await screen.findByRole("button", { name: /create a chat link/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /connect to slack/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /connect to whatsapp/i })).toBeNull();
+    expect(screen.getByText("Slack and WhatsApp need Stigmer Cloud.")).toBeTruthy();
+  });
+
+  it("shows no cloud notice on a tab of chat links in local mode", async () => {
+    const client = createMockStigmer({ channels: [makeChatLink()] });
+    render(
+      <Providers client={client} mode="local">
+        <ChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    await screen.findByText("1 channel");
+    expect(screen.queryByText(/require Stigmer Cloud/i)).toBeNull();
   });
 
   it("keeps CRUD available in local mode: the serving switch still renders", async () => {
@@ -759,17 +892,18 @@ describe("ChannelsPanel", () => {
     );
 
     // Slack can still hand off to the host's browser; WhatsApp installs
-    // are in-app-only and doomed on a local backend, so its button
-    // yields to the cloud notice.
+    // are in-app-only and doomed on a local backend, so its button yields
+    // to a note naming what it needs.
     await waitFor(() =>
       expect(
         screen.getByRole("button", { name: /connect to slack/i }),
       ).toBeTruthy(),
     );
+    expect(screen.getByRole("button", { name: /create a chat link/i })).toBeTruthy();
     expect(
       screen.queryByRole("button", { name: /connect to whatsapp/i }),
     ).toBeNull();
-    expect(screen.getByText(/require Stigmer Cloud/i)).toBeTruthy();
+    expect(screen.getByText("WhatsApp needs Stigmer Cloud.")).toBeTruthy();
   });
 
   it("scopes the disconnect prompt to the channel's provider", async () => {
@@ -889,5 +1023,297 @@ describe("ChannelsPanel", () => {
     await waitFor(() =>
       expect(screen.getByText(/failed to load channels/i)).toBeTruthy(),
     );
+  });
+
+  describe("adding a channel", () => {
+    it("offers one visible button per type on an empty tab in cloud, with no unavailable note", async () => {
+      const client = createMockStigmer();
+      render(
+        <Providers client={client}>
+          <ChannelsPanel agent={makeAgent()} />
+        </Providers>,
+      );
+
+      const create = await screen.findByRole("button", { name: /create a chat link/i });
+      expect(create.getAttribute("data-cursor-target")).toBe("add-chat-link");
+      expect(
+        screen.getByRole("button", { name: /connect to slack/i }).getAttribute("data-cursor-target"),
+      ).toBe("connect-slack");
+      expect(
+        screen
+          .getByRole("button", { name: /connect to whatsapp/i })
+          .getAttribute("data-cursor-target"),
+      ).toBe("connect-whatsapp");
+      expect(screen.queryByText(/need(s)? Stigmer Cloud/)).toBeNull();
+      // The empty tab chooses with buttons, never the menu.
+      expect(screen.queryByRole("button", { name: /add channel/i })).toBeNull();
+    });
+
+    it("offers every type from one Add channel menu once channels are listed (cloud)", async () => {
+      const client = createMockStigmer({ channels: [makeChatLink()] });
+      render(
+        <Providers client={client}>
+          <ChannelsPanel agent={makeAgent()} />
+        </Providers>,
+      );
+
+      const trigger = await screen.findByRole("button", { name: /add channel/i });
+      expect(trigger.getAttribute("data-cursor-target")).toBe("add-channel");
+      // The listed tab offers no per-type buttons beside the menu.
+      expect(screen.queryByRole("button", { name: /create a chat link/i })).toBeNull();
+      expect(screen.queryByRole("button", { name: /connect to slack/i })).toBeNull();
+
+      await openMenu(trigger);
+      const items = screen.getAllByRole("menuitem");
+      expect(items.map((i) => i.getAttribute("data-cursor-target"))).toEqual([
+        "add-chat-link",
+        "connect-slack",
+        "connect-whatsapp",
+      ]);
+      for (const item of items) {
+        expect(item.getAttribute("aria-disabled")).not.toBe("true");
+      }
+      expect(screen.queryByText("Needs Stigmer Cloud")).toBeNull();
+    });
+
+    it("disables Slack and WhatsApp in the Add menu in local mode, each saying it needs Stigmer Cloud", async () => {
+      const client = createMockStigmer({ channels: [makeChatLink()] });
+      render(
+        <Providers client={client} mode="local">
+          <ChannelsPanel agent={makeAgent()} />
+        </Providers>,
+      );
+
+      await openMenu(await screen.findByRole("button", { name: /add channel/i }));
+      expect(addItem("Chat link").getAttribute("aria-disabled")).not.toBe("true");
+      for (const label of ["Slack", "WhatsApp"]) {
+        const item = addItem(label);
+        expect(item.getAttribute("aria-disabled")).toBe("true");
+        expect(within(item).getByText("Needs Stigmer Cloud")).toBeTruthy();
+      }
+    });
+
+    it("keeps Slack in the Add menu in local mode when the host hands it off, and WhatsApp disabled", async () => {
+      const client = createMockStigmer({ channels: [makeChatLink()] });
+      render(
+        <Providers client={client} mode="local">
+          <ChannelsPanel agent={makeAgent()} onConnectExternal={vi.fn()} />
+        </Providers>,
+      );
+
+      await openMenu(await screen.findByRole("button", { name: /add channel/i }));
+      expect(addItem("Chat link").getAttribute("aria-disabled")).not.toBe("true");
+      expect(addItem("Slack").getAttribute("aria-disabled")).not.toBe("true");
+      const whatsapp = addItem("WhatsApp");
+      expect(whatsapp.getAttribute("aria-disabled")).toBe("true");
+      expect(within(whatsapp).getByText("Needs Stigmer Cloud")).toBeTruthy();
+    });
+
+    it("treats enterprise like local in the Add menu", async () => {
+      const client = createMockStigmer({ channels: [makeChatLink()] });
+      render(
+        <Providers client={client} mode="enterprise">
+          <ChannelsPanel agent={makeAgent()} />
+        </Providers>,
+      );
+
+      await openMenu(await screen.findByRole("button", { name: /add channel/i }));
+      expect(addItem("Chat link").getAttribute("aria-disabled")).not.toBe("true");
+      expect(addItem("Slack").getAttribute("aria-disabled")).toBe("true");
+      expect(addItem("WhatsApp").getAttribute("aria-disabled")).toBe("true");
+    });
+
+    it("offers no add affordance at all to a viewer who fails the create bar", async () => {
+      const checkMyPermission = vi.fn((input: unknown) => {
+        const { relation } = input as { relation: string };
+        return Promise.resolve({ isAuthorized: relation !== "can_create_channel" });
+      });
+      const client = createMockStigmer({ channels: [makeChatLink()], checkMyPermission });
+      render(
+        <Providers client={client}>
+          <ChannelsPanel agent={makeAgent()} />
+        </Providers>,
+      );
+
+      await screen.findByText("1 channel");
+      await waitFor(() =>
+        expect(checkMyPermission).toHaveBeenCalledWith(
+          expect.objectContaining({ relation: "can_create_channel" }),
+        ),
+      );
+      await waitFor(() =>
+        expect(screen.queryByRole("button", { name: /add channel/i })).toBeNull(),
+      );
+    });
+
+    it("names no unavailable type on an empty tab the viewer cannot add to", async () => {
+      const checkMyPermission = vi.fn((input: unknown) => {
+        const { relation } = input as { relation: string };
+        return Promise.resolve({ isAuthorized: relation !== "can_create_channel" });
+      });
+      const client = createMockStigmer({ checkMyPermission });
+      render(
+        <Providers client={client} mode="local">
+          <ChannelsPanel agent={makeAgent()} />
+        </Providers>,
+      );
+
+      await screen.findByText("No channels yet");
+      await waitFor(() =>
+        expect(screen.queryByRole("button", { name: /create a chat link/i })).toBeNull(),
+      );
+      // A viewer with nothing to add reads no reasons about what they cannot.
+      expect(screen.queryByText(/need(s)? Stigmer Cloud/)).toBeNull();
+      expect(screen.queryByText(/organization admin/)).toBeNull();
+    });
+
+    it("opens the chat-link dialog in create mode from the Add menu's Chat link", async () => {
+      const client = createMockStigmer({ channels: [makeChannel({ teamName: "Acme HQ" })] });
+      render(
+        <Providers client={client}>
+          <ChannelsPanel agent={makeAgent()} />
+        </Providers>,
+      );
+
+      await openMenu(await screen.findByRole("button", { name: /add channel/i }));
+      fireEvent.click(addItem("Chat link"));
+
+      expect(await screen.findByRole("heading", { name: "Create a chat link" })).toBeTruthy();
+      expect(screen.getByLabelText("Name", { selector: "input" })).toBeTruthy();
+    });
+
+    it("opens the chat-link dialog in create mode from the empty state", async () => {
+      const client = createMockStigmer();
+      render(
+        <Providers client={client}>
+          <ChannelsPanel agent={makeAgent()} />
+        </Providers>,
+      );
+
+      fireEvent.click(await screen.findByRole("button", { name: /create a chat link/i }));
+
+      expect(await screen.findByRole("heading", { name: "Create a chat link" })).toBeTruthy();
+    });
+
+    it("opens the WhatsApp connect dialog from the Add menu", async () => {
+      const client = createMockStigmer({ channels: [makeChatLink()] });
+      render(
+        <Providers client={client}>
+          <ChannelsPanel agent={makeAgent()} />
+        </Providers>,
+      );
+
+      await openMenu(await screen.findByRole("button", { name: /add channel/i }));
+      fireEvent.click(addItem("WhatsApp"));
+      expect(await screen.findByRole("heading", { name: "Connect to WhatsApp" })).toBeTruthy();
+    });
+
+    it("opens the Slack connect dialog from the Add menu when the host gives no delegate", async () => {
+      const client = createMockStigmer({ channels: [makeChatLink()] });
+      render(
+        <Providers client={client}>
+          <ChannelsPanel agent={makeAgent()} />
+        </Providers>,
+      );
+
+      await openMenu(await screen.findByRole("button", { name: /add channel/i }));
+      fireEvent.click(addItem("Slack"));
+      expect(await screen.findByRole("heading", { name: "Connect to Slack" })).toBeTruthy();
+    });
+
+    it("hands a new Slack connection from the Add menu to the host's delegate, with no channel yet", async () => {
+      const onConnectExternal = vi.fn();
+      const client = createMockStigmer({ channels: [makeChatLink()] });
+      render(
+        <Providers client={client}>
+          <ChannelsPanel agent={makeAgent()} onConnectExternal={onConnectExternal} />
+        </Providers>,
+      );
+
+      await openMenu(await screen.findByRole("button", { name: /add channel/i }));
+      fireEvent.click(addItem("Slack"));
+
+      expect(onConnectExternal).toHaveBeenCalledWith(null);
+      expect(screen.queryByRole("heading", { name: "Connect to Slack" })).toBeNull();
+    });
+  });
+
+  describe("a chat link in the list", () => {
+    it("opens the chat-link dialog on the EXACT chat link whose card's Edit was chosen", async () => {
+      const client = createMockStigmer({
+        channels: [
+          makeChatLink(),
+          makeChatLink({ id: "ash_2", name: "Help Desk" }),
+        ],
+      });
+      render(
+        <Providers client={client}>
+          <ChannelsPanel agent={makeAgent()} buildChatLinkUrl={buildChatLinkUrl} />
+        </Providers>,
+      );
+
+      const card = await screen.findByRole("group", { name: "Chat link: Help Desk" });
+      await openMenu(within(card).getByRole("button", { name: /^Actions for/ }));
+      fireEvent.click(screen.getByRole("menuitem", { name: "Edit" }));
+
+      // The editor shows the chosen link's URL — not the first card's.
+      expect(
+        (await screen.findAllByText(/https:\/\/app\.example\.com\/chat\/ash_2/)).length,
+      ).toBeGreaterThan(0);
+      expect(screen.queryAllByText(/https:\/\/app\.example\.com\/chat\/ash_1/)).toEqual([]);
+    });
+
+    it("confirms Delete chat link? before deleting, then deletes and refetches", async () => {
+      const del = vi.fn().mockResolvedValue({});
+      const listByAgent = vi
+        .fn()
+        .mockResolvedValue({ entries: [makeChatLink()], nextPageToken: "" });
+      const client = createMockStigmer({ listByAgent, delete: del });
+      render(
+        <Providers client={client}>
+          <ChannelsPanel agent={makeAgent()} />
+        </Providers>,
+      );
+
+      await screen.findByText("1 channel");
+      await openMenu(screen.getByRole("button", { name: /^Actions for/ }));
+      fireEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
+
+      // The confirmation names the link that stops working (by the
+      // channel's id, the one identity a link carries) and the
+      // config-preserving alternative (turning it off).
+      expect(del).not.toHaveBeenCalled();
+      const title = await screen.findByText("Delete chat link?");
+      expect(screen.getByText(/The link \/chat\/ash_1 stops working/)).toBeTruthy();
+      expect(screen.getByText(/turn it off instead/i)).toBeTruthy();
+      expect(screen.queryByText("Disconnect channel?")).toBeNull();
+
+      const confirmDialog = title.closest("dialog") as HTMLElement;
+      fireEvent.click(
+        within(confirmDialog).getByRole("button", { name: "Delete", hidden: true }),
+      );
+
+      await waitFor(() => expect(del).toHaveBeenCalledWith("ash_1"));
+      await waitFor(() => expect(listByAgent).toHaveBeenCalledTimes(2));
+      expect(toast.success).toHaveBeenCalledWith("Chat link deleted");
+    });
+
+    it("does nothing when the chat link's delete is cancelled", async () => {
+      const del = vi.fn();
+      const client = createMockStigmer({ channels: [makeChatLink()], delete: del });
+      render(
+        <Providers client={client}>
+          <ChannelsPanel agent={makeAgent()} />
+        </Providers>,
+      );
+
+      await screen.findByText("1 channel");
+      await openMenu(screen.getByRole("button", { name: /^Actions for/ }));
+      fireEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
+      expect(await screen.findByText("Delete chat link?")).toBeTruthy();
+
+      fireEvent.click(screen.getByRole("button", { name: "Cancel", hidden: true }));
+      expect(del).not.toHaveBeenCalled();
+    });
   });
 });

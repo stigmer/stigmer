@@ -55,9 +55,9 @@ export type SessionAudience = "integrator" | "endUser" | "guest" | "observer";
  * Whether a conversation started for this audience includes its sender's
  * own My vault when the host says nothing. A person chatting in the
  * Console or in an app that embeds Stigmer for its signed-in users brings
- * their own keys; a share-link guest brings none, so the share's vaults
+ * their own keys; a chat-link guest brings none, so the link's vaults
  * are all its runs use. A host overrides it (`includeMyVault`), as the
- * shared-agent page does for a member chatting through an
+ * chat-link page does for a member chatting through an
  * organization-audience link.
  */
 export function includesMyVaultByDefault(audience: SessionAudience): boolean {

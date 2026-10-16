@@ -1,3 +1,10 @@
+// ConnectSlackDialog: connecting an agent to a Slack workspace. Pins the
+// create-then-install flow through the OAuth popup, the serving-app picker
+// (platform or the org's own Slack app), the tool-credential section, the
+// guided and verbatim refusals, a reconnect that skips the create step, and
+// the cloud notice that preempts the flow on every edition without vendor
+// installs (open source and Enterprise).
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -112,7 +119,7 @@ function Providers({
   children,
 }: {
   client: unknown;
-  mode?: "cloud" | "local";
+  mode?: "cloud" | "local" | "enterprise";
   children: ReactNode;
 }) {
   return (
@@ -617,6 +624,17 @@ describe("ConnectSlackDialog", () => {
 
     expect(screen.getByText(/require Stigmer Cloud/i)).toBeTruthy();
     // No connect button at all — the flow is preempted, not just failing.
+    expect(screen.queryByRole("button", { name: /connect to slack/i })).toBeNull();
+  });
+
+  it("preempts the flow with the cloud notice on enterprise too — vendor installs are Stigmer Cloud's", () => {
+    render(
+      <Providers client={createMockStigmer()} mode="enterprise">
+        <ConnectSlackDialog open onOpenChange={() => {}} agent={makeAgent()} />
+      </Providers>,
+    );
+
+    expect(screen.getByText(/require Stigmer Cloud/i)).toBeTruthy();
     expect(screen.queryByRole("button", { name: /connect to slack/i })).toBeNull();
   });
 

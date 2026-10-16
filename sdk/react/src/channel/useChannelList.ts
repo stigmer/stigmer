@@ -29,9 +29,8 @@ export interface UseChannelListReturn {
 /**
  * Data hook that loads an agent's {@link Channel} resources of every type —
  * its chat links (`web`), its Slack workspaces and its WhatsApp numbers.
- * One list for the one kind: each surface filters it by `spec.type.case`
- * (the Shares tab shows the `web` channels, the Channels panel the `slack`
- * and `whatsapp` ones).
+ * One list for the one kind: the Channels tab renders every type in it,
+ * and a surface that needs one type filters it by `spec.type.case`.
  *
  * A Slack or WhatsApp channel serves traffic only when its provider install
  * completed (`status.installState === installed`) AND the owner's serving

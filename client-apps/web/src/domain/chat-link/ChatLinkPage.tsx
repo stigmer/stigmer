@@ -285,7 +285,7 @@ function SignInIfYouHaveAccess({ onSignIn }: { readonly onSignIn: () => void }) 
           This agent isn&apos;t available
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          The link may be incorrect, sharing may have been turned off, or the
+          The link may be incorrect, it may have been turned off, or the
           agent may be restricted to members of its organization.
         </p>
         <button
