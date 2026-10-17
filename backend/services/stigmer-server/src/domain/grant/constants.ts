@@ -335,6 +335,15 @@ export const OWNER_ASSIGNMENT_DENIED_MESSAGE =
   "only an owner of the organization can grant, revoke or remove the owner role";
 
 /**
+ * A grant of Participant on a routine by anyone but the person who created
+ * it (PERMISSION_DENIED): a Participant fires the routine, and every run
+ * acts as its creator, so only the creator chooses who may. Taking
+ * Participant away is anyone's who manages the routine.
+ */
+export const PARTICIPANT_ASSIGNMENT_DENIED_MESSAGE =
+  "only the person who created this routine may choose who starts it";
+
+/**
  * A grant of the organization's `affiliated` relation (INVALID_ARGUMENT, on
  * every lane): it is derived from a person's organization roles, never
  * granted (fga/model/tenancy/organization.fga).

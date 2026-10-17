@@ -196,8 +196,11 @@ import {
   newRevokeOrgAccessStep,
   newRevokeStep,
   newValidateGrantableRoleStep,
+  orgAccessOwnerAssignment,
   orgAccessOwnerRoleChange,
+  specOwnerAssignment,
   specOwnerRoleChange,
+  specRoleAssignment,
 } from "./steps.js";
 import type { Store } from "../../store/interface.js";
 import type { GrantStore } from "./store.js";
@@ -393,7 +396,7 @@ async function grantThroughChain(
     pipeline.addStep(newValidateGrantableRoleStep(deps.grantScope));
     pipeline.addStep(newRefuseServiceAccountOwnerStep(deps.accounts));
     pipeline.addStep(
-      newAuthorizeOwnerAssignmentStep(deps.authorizer, specOwnerRoleChange),
+      newAuthorizeOwnerAssignmentStep(deps.authorizer, specRoleAssignment),
     );
     for (const step of stepsForSlot<typeof GrantSpecSchema>(
       deps.gateSteps,
@@ -433,7 +436,7 @@ async function deleteGrant(
     .addStep(newRefuseServiceAccountMembershipChangeStep(deps.accounts))
     .addStep(newValidateProtoStep())
     .addStep(
-      newAuthorizeOwnerAssignmentStep(deps.authorizer, specOwnerRoleChange),
+      newAuthorizeOwnerAssignmentStep(deps.authorizer, specOwnerAssignment),
     )
     .addStep(newKeepOneOwnerStep(deps.grants, specOwnerRoleChange))
     .addStep(newRevokeStep(deps.grantPath))
@@ -470,10 +473,9 @@ async function revokeOrgAccess(
     .addStep(newRefuseServiceAccountOrgAccessStep(deps.accounts))
     .addStep(newValidateProtoStep());
   if (guardOwners) {
-    const ownerRoleChange = orgAccessOwnerRoleChange(deps.grants);
     pipeline
-      .addStep(newAuthorizeOwnerAssignmentStep(deps.authorizer, ownerRoleChange))
-      .addStep(newKeepOneOwnerStep(deps.grants, ownerRoleChange));
+      .addStep(newAuthorizeOwnerAssignmentStep(deps.authorizer, orgAccessOwnerAssignment(deps.grants)))
+      .addStep(newKeepOneOwnerStep(deps.grants, orgAccessOwnerRoleChange(deps.grants)));
   }
   await pipeline
     .addStep(newRevokeOrgAccessStep(deps.grantPath))
