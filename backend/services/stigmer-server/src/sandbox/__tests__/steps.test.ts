@@ -7,7 +7,8 @@
  *     first-non-empty-wins — the 2026-07 quota-outage contract;
  *   - a disabled mint lane launches token-less rather than failing;
  *   - the caller class reaches the driver's environment unchanged (a
- *     composed lane such as `guest` included);
+ *     composed lane such as `guest` included), and so does a routine's
+ *     fire's routine, under the owner's own class;
  *   - the credential mint names the session's creator, whoever's turn
  *     creates or restores the sandbox (stigmer#2075): a person the
  *     conversation is shared with never takes the runner over, and a
@@ -265,9 +266,29 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
       GUEST_CALLER,
     );
     expect(provisioner.ensured[0]?.env.callerClass).toBe("guest");
+    expect(provisioner.ensured[0]?.env.routineId).toBeUndefined();
     expect(credentials.minted[0]?.callerIdentityId).toBe(
       GUEST_CALLER.identityId,
     );
+  });
+
+  it("hands a routine's fire to the driver under its owner's own class, with the routine it fired", async () => {
+    const provisioner = fakeProvisioner();
+    const credentials = capabilityCredentials();
+    const { execution } = await seed(ExecutionTarget.CLOUD);
+    await ensureSessionSandboxForExecution(
+      {
+        store,
+        logger: silentLogger,
+        lane: lane(provisioner, credentials),
+        temporalConfig: sessionRoutingCloudDefault,
+        accounts: undefined,
+      },
+      execution,
+      { ...TEST_CALLER, routineId: "rtn_oncall" },
+    );
+    expect(provisioner.ensured[0]?.env.callerClass).toBe("user");
+    expect(provisioner.ensured[0]?.env.routineId).toBe("rtn_oncall");
   });
 
   it("delegates the mint to the capability provider with the full provisioning context", async () => {
