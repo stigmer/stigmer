@@ -705,7 +705,7 @@ describe("which vaults a run uses", () => {
       RoutineSchema,
       create(RoutineSchema, {
         metadata: { id: "sch_nightly", name: "nightly", org: ORG },
-        spec: { target: { case: "agent", value: { vaults: [] } } },
+        spec: { agent: { vaults: [] } },
       }),
     );
     const failure = await refusal(
@@ -729,7 +729,7 @@ describe("which vaults a run uses", () => {
       RoutineSchema,
       create(RoutineSchema, {
         metadata: { id: "sch_own", name: "own", org: ORG },
-        spec: { target: { case: "agent", value: { vaults: [vaultRef(slug)] } } },
+        spec: { agent: { vaults: [vaultRef(slug)] } },
         status: { vaultAttachers: { [mine]: ANA } },
       }),
     );
@@ -1179,7 +1179,7 @@ describe("what reaches an agent or a surface of another organization", () => {
       RoutineSchema,
       create(RoutineSchema, {
         metadata: { id: "sch_foreign", name: "foreign", org: "globex" },
-        spec: { target: { case: "agent", value: { vaults: [vaultRef("team")] } } },
+        spec: { agent: { vaults: [vaultRef("team")] } },
         status: { vaultAttachers: attached },
       }),
     );

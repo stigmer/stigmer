@@ -1,19 +1,21 @@
 /**
- * Pins what a schedule update does to its vaults, end to end over a real
+ * Pins what a routine update does to its vaults, end to end over a real
  * store: the update chain's own steps (BuildUpdateState, NormalizeReferences,
- * the vault attachments step with the schedule's options, PersistScheduleUpdate)
- * write the row, and the run's credential resolver plans and opens a fire's
- * values from it.
+ * the owner's lock, the vault attachments step with the routine's options,
+ * PersistRoutineUpdate) write the row, and the run's credential resolver
+ * plans and opens a fire's values from it.
  *
- *   - who attached each vault survives the update's persist: a vault an
- *     update adds is recorded as the updater's, and a fire uses it checked
- *     against them; a change of agent re-attributes every kept vault to the
- *     updater, so a fire stops when the updater may no longer use it; an
- *     unrelated edit keeps the stored attachers;
- *   - while a schedule names its creator's My vault, only that person may
- *     change what it runs: anyone else's update is refused unless it also
- *     removes that vault, and their stopping it (enabled to false), a
- *     re-apply that changes nothing and a rename stay admitted.
+ *   - the attachments step's own contract, without the lock in front of it
+ *     (as the internal caller meets it): a vault an update adds is recorded
+ *     as the updater's, and a fire uses it checked against them; a change
+ *     of agent re-attributes every kept vault to the updater, so a fire
+ *     stops when the updater may no longer use it; an unrelated edit keeps
+ *     the stored attachers;
+ *   - with the lock, as every other caller meets it: a routine that names
+ *     its creator's My vault is that person's to change; anyone else's
+ *     change to what it runs is refused, even one that removes the vault,
+ *     and their stopping it (enabled to false), a re-apply that changes
+ *     nothing and a rename stay admitted.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -37,7 +39,7 @@ import {
   EXISTING_RESOURCE_BYTES_KEY,
   EXISTING_RESOURCE_KEY,
 } from "../../../pipeline/steps/load-existing.js";
-import { myVaultLockRefusal, newVaultAttachmentsStep } from "../../vault/attachments.js";
+import { newVaultAttachmentsStep } from "../../vault/attachments.js";
 import { ROUTINE_ID_LABEL_KEY, newVaultResolver } from "../../vault/resolve.js";
 import type { VaultResolver } from "../../vault/resolve.js";
 import type { VaultRig } from "../../vault/__tests__/support.js";
@@ -47,6 +49,7 @@ import {
   seedSharedVault,
   silentLogger,
 } from "../../vault/__tests__/support.js";
+import { newOwnersLockStep, OWNERS_LOCK_MESSAGE } from "../owners-lock.js";
 import { newPersistRoutineUpdateStep } from "../persist-update.js";
 import { ROUTINE_VAULT_ATTACHMENTS } from "../vault-attachments.js";
 
@@ -118,20 +121,17 @@ interface RoutineInit {
 function routineInput(init: RoutineInit = {}): Routine {
   return create(RoutineSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
-    kind: "Schedule",
+    kind: "Routine",
     metadata: { id: ROUTINE_ID, name: init.name ?? "nightly", slug: "nightly", org: ORG },
     spec: {
       cron: init.cron ?? "0 9 * * *",
       timeZone: "UTC",
       enabled: init.enabled ?? true,
-      target: {
-        case: "agent",
-        value: {
+      agent: {
           agentRef: { kind: ApiResourceKind.agent, org: ORG, slug: init.agent ?? "helper" },
           message: init.message ?? "Send the nightly digest.",
           vaults: (init.vaults ?? []).map(vaultRef),
         },
-      },
     },
   });
 }
@@ -156,8 +156,15 @@ async function storedRoutine(): Promise<Routine> {
   return rig.store.getResource(ApiResourceKind.routine, ROUTINE_ID, RoutineSchema);
 }
 
-/** Runs the update chain's vault-bearing steps as `writer`, persisting the result. */
-async function updateAs(writer: string, input: Routine): Promise<Routine> {
+/** No account resolves: the owner is the principal the creator stamp names. */
+const NO_ACCOUNTS = { findById: async () => undefined, findDirectByIdpId: async () => undefined };
+
+/**
+ * Runs the update chain's vault-bearing steps as `writer`, persisting the
+ * result; `locked` puts the owner's lock in front, as the chain does for
+ * every caller but the internal one.
+ */
+async function updateAs(writer: string, input: Routine, locked = false): Promise<Routine> {
   const ctx = new RequestContext(
     RoutineSchema,
     input,
@@ -174,6 +181,7 @@ async function updateAs(writer: string, input: Routine): Promise<Routine> {
   for (const step of [
     newBuildUpdateStateStep<typeof RoutineSchema>(),
     newNormalizeReferencesStep<typeof RoutineSchema>(rig.store),
+    ...(locked ? [newOwnersLockStep(NO_ACCOUNTS)] : []),
     newVaultAttachmentsStep(rig.store, useTable, ROUTINE_VAULT_ATTACHMENTS),
     newPersistRoutineUpdateStep(rig.store),
   ]) {
@@ -255,7 +263,7 @@ describe("who attached each vault, across an update", () => {
   });
 });
 
-describe("a schedule that names its creator's My vault", () => {
+describe("a routine that names its creator's My vault, behind the owner's lock", () => {
   async function anasRoutine(enabled = true): Promise<void> {
     await storeRoutine(ANA, { [anasId]: ANA }, { vaults: [anasSlug], enabled });
     mayUse.add(`${ANA}:${anasId}`).add(`${BEN}:${teamId}`);
@@ -268,45 +276,35 @@ describe("a schedule that names its creator's My vault", () => {
       ["the cron", routineInput({ cron: "* * * * *", vaults: [anasSlug] })],
       ["the agent", routineInput({ agent: "other-agent", vaults: [anasSlug] })],
       ["the vaults it keeps alongside", routineInput({ vaults: [anasSlug, "team-keys"] })],
+      ["the vaults, removing the My vault", routineInput({ message: "Post the digest.", vaults: ["team-keys"] })],
     ];
     for (const [what, input] of changes) {
-      const refused = await refusalOf(updateAs(BEN, input));
+      const refused = await refusalOf(updateAs(BEN, input, true));
       expect(refused.code, what).toBe(Code.PermissionDenied);
-      expect(refused.rawMessage, what).toBe(myVaultLockRefusal());
+      expect(refused.rawMessage, what).toBe(OWNERS_LOCK_MESSAGE);
     }
     const unchanged = await storedRoutine();
-    expect(
-      unchanged.spec?.target.case === "agent" ? unchanged.spec.target.value.message : "",
-    ).toBe("Send the nightly digest.");
+    expect(unchanged.spec?.agent?.message ?? "").toBe("Send the nightly digest.");
     expect(unchanged.status?.vaultAttachers).toEqual({ [anasId]: ANA });
   });
 
   it("refuses anyone else switching it back on", async () => {
     await anasRoutine(false);
-    const refused = await refusalOf(updateAs(BEN, routineInput({ vaults: [anasSlug] })));
+    const refused = await refusalOf(updateAs(BEN, routineInput({ vaults: [anasSlug] }), true));
     expect(refused.code).toBe(Code.PermissionDenied);
     expect((await storedRoutine()).spec?.enabled).toBe(false);
   });
 
-  it("admits anyone else's change that also removes the My vault, and drops its attacher", async () => {
-    await anasRoutine();
-    const updated = await updateAs(
-      BEN,
-      routineInput({ message: "Post the digest.", vaults: ["team-keys"] }),
-    );
-    expect(updated.status?.vaultAttachers).toEqual({ [teamId]: BEN });
-    expect(await fire("A")).toEqual({ A: "team" });
-  });
-
   it("admits anyone else stopping it, re-applying it unchanged, or renaming it", async () => {
     await anasRoutine();
-    const stopped = await updateAs(BEN, routineInput({ enabled: false, vaults: [anasSlug] }));
+    const stopped = await updateAs(BEN, routineInput({ enabled: false, vaults: [anasSlug] }), true);
     expect(stopped.spec?.enabled).toBe(false);
-    const reapplied = await updateAs(BEN, routineInput({ enabled: false, vaults: [anasSlug] }));
+    const reapplied = await updateAs(BEN, routineInput({ enabled: false, vaults: [anasSlug] }), true);
     expect(reapplied.status?.vaultAttachers).toEqual({ [anasId]: ANA });
     const renamed = await updateAs(
       BEN,
       routineInput({ name: "Nightly digest", enabled: false, vaults: [anasSlug] }),
+      true,
     );
     expect(renamed.metadata?.name).toBe("Nightly digest");
     expect(renamed.status?.vaultAttachers).toEqual({ [anasId]: ANA });
@@ -317,6 +315,7 @@ describe("a schedule that names its creator's My vault", () => {
     const updated = await updateAs(
       ANA,
       routineInput({ message: "Send the weekly digest.", vaults: [anasSlug] }),
+      true,
     );
     expect(updated.status?.vaultAttachers).toEqual({ [anasId]: ANA });
     expect(await fire("M")).toEqual({ M: "ana-mine" });

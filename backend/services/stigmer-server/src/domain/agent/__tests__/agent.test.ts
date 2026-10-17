@@ -16,7 +16,8 @@
  *   - hooks at apply: an inline block is stored with Claude Code's format
  *     filled, and a malformed one is refused on the create and on the
  *     update an apply delegates to (ValidateHooks runs on both chains);
- *   - cascade delete (oss#611): same-org channels of every type are
+ *   - cascade delete (oss#611): same-org channels of every type, and the
+ *     agent's routines with their fire history, are
  *     deleted, a stored cross-org channel of the same agent SURVIVES, and
  *     a bystander agent's channel is untouched; the agent's purge (an
  *     organization's delete) removes its channels the same way;
@@ -44,6 +45,7 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -457,6 +459,65 @@ describe("agent cascade delete (oss#611)", () => {
     expect(await channelExists("chn_bystander")).toBe(true);
   });
 
+  async function seedRoutine(id: string, agentId: string, cron: string | undefined): Promise<void> {
+    await namingSaves(server.store).saveResource(
+      ApiResourceKind.routine,
+      id,
+      RoutineSchema,
+      create(RoutineSchema, {
+        metadata: { id, name: id.replaceAll("_", "-"), slug: id.replaceAll("_", "-"), org: ORG_ID },
+        spec: {
+          cron,
+          timeZone: "UTC",
+          enabled: true,
+          agent: { agentRef: { kind: ApiResourceKind.agent, org: ORG_ID, id: agentId }, message: "Go." },
+        },
+      }),
+    );
+    await server.store.upsertRoutineFire({
+      routineId: id,
+      fireId: `${id.replaceAll("_", "-")}-20260820t000000z`,
+      org: ORG_ID,
+      nominalFireTime: "2026-08-20T00:00:00Z",
+      origin: "schedule",
+      outcome: "completed",
+      reason: "",
+      runId: "",
+      recordedAt: "2026-08-20T00:00:01Z",
+      completedAt: "2026-08-20T00:00:05Z",
+    });
+  }
+
+  async function routineExists(id: string): Promise<boolean> {
+    return server.store.getResource(ApiResourceKind.routine, id, RoutineSchema).then(
+      () => true,
+      (error: unknown) => {
+        if (error instanceof ResourceNotFoundError) {
+          return false;
+        }
+        throw error;
+      },
+    );
+  }
+
+  it("deletes the agent's routines, scheduled or not, with their fire history, and leaves a bystander agent's", async () => {
+    const agent = await command.create(agentInput({ name: "Routine Target" }));
+    const agentId = agent.metadata!.id;
+    const bystander = await command.create(agentInput({ name: "Routine Bystander" }));
+
+    await seedRoutine("rtn_scheduled", agentId, "0 9 * * *");
+    await seedRoutine("rtn_on_demand", agentId, undefined);
+    await seedRoutine("rtn_bystander", bystander.metadata!.id, "0 9 * * *");
+
+    await command.delete({ value: agentId });
+
+    expect(await routineExists("rtn_scheduled")).toBe(false);
+    expect(await routineExists("rtn_on_demand")).toBe(false);
+    expect(await server.store.listRoutineFires("rtn_scheduled", undefined, 10)).toEqual([]);
+    expect(await routineExists("rtn_bystander")).toBe(true);
+    expect(await server.store.listRoutineFires("rtn_bystander", undefined, 10)).toHaveLength(1);
+  });
+
   it("the agent purge removes the agent's channels too", async () => {
     const created = await command.create(
       agentInput({ name: "Purged Agent", org: PURGED_ORG }),
@@ -471,6 +532,7 @@ describe("agent cascade delete (oss#611)", () => {
       grantPath: { cleanupResource: () => Promise.resolve() },
       authorizationLifecycle: undefined,
       channelRuntime: undefined,
+      routineClock: () => undefined,
     });
     const target = { id: PURGED_ORG_ID, parentOrg: "" };
     await purge.purge(target, serverActingFor("organization-purge"));

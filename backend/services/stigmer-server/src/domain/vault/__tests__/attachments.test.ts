@@ -41,7 +41,7 @@ import { EMBEDDING_VAULT_ATTACHMENTS } from "../../organization/embedding.js";
 import { EVAL_RUN_VAULT_ATTACHMENTS } from "../../eval-run/vault-attachments.js";
 import { ROUTINE_VAULT_ATTACHMENTS } from "../../routine/vault-attachments.js";
 import { resolveReferences } from "../../../pipeline/steps/references.js";
-import { myVaultLockRefusal, myVaultRefusal, newVaultAttachmentsStep } from "../attachments.js";
+import { myVaultRefusal, newVaultAttachmentsStep } from "../attachments.js";
 import type { VaultAttachmentOptions } from "../attachments.js";
 import type { VaultRig } from "./support.js";
 import { openVaultRig, seedMyVaultRow, seedSharedVault } from "./support.js";
@@ -101,7 +101,7 @@ const SCHEDULE: VaultAttachmentOptions<typeof RoutineSchema> = {
   allowsOwnersMyVault: true,
   rejudgeAllWhen: (existing, next) => {
     const agentOf = (row: Routine) => {
-      const ref = row.spec?.target.case === "agent" ? row.spec.target.value.agentRef : undefined;
+      const ref = row.spec?.agent?.agentRef;
       return `${ref?.id ?? ""}/${ref?.slug ?? ""}`;
     };
     return agentOf(existing) !== agentOf(next);
@@ -156,10 +156,7 @@ function schedule(agent: string, createdBy: string, ...slugs: string[]): Routine
   return create(RoutineSchema, {
     metadata: { id: "sch_1", org: ORG },
     spec: {
-      target: {
-        case: "agent",
-        value: { agentRef: { org: ORG, slug: agent }, vaults: slugs.map(ref) },
-      },
+      agent: { agentRef: { org: ORG, slug: agent }, vaults: slugs.map(ref) },
     },
     status: { audit: { specAudit: { createdBy: { id: createdBy } } } },
   });
@@ -375,7 +372,7 @@ describe("a schedule whose agent changes", () => {
   });
 });
 
-describe("a schedule that keeps its creator's My vault", () => {
+describe("a routine that keeps its creator's My vault", () => {
   async function anasRoutine(): Promise<Routine> {
     const mine = (await rig.vaults.findById(anasId))!.metadata!.slug;
     return run(
@@ -389,8 +386,8 @@ describe("a schedule that keeps its creator's My vault", () => {
 
   function withAgent(row: Routine, agent: string): Routine {
     const next = clone(RoutineSchema, row);
-    if (next.spec?.target.case === "agent") {
-      next.spec.target.value.agentRef = create(ApiResourceReferenceSchema, {
+    if (next.spec?.agent !== undefined) {
+      next.spec.agent.agentRef = create(ApiResourceReferenceSchema, {
         kind: ApiResourceKind.agent,
         org: ORG,
         slug: agent,
@@ -399,22 +396,7 @@ describe("a schedule that keeps its creator's My vault", () => {
     return next;
   }
 
-  it("refuses anyone else's change with the lock, before any vault is re-judged", async () => {
-    const stored = await anasRoutine();
-    const asked: string[] = [];
-    const refused = await refusalOf(
-      run(RoutineSchema, ApiResourceKind.routine, withAgent(stored, "other-agent"), ROUTINE_VAULT_ATTACHMENTS, {
-        writer: "ida_admin",
-        existing: stored,
-        authorizer: useTable(teamId, asked),
-      }),
-    );
-    expect(refused.code).toBe(Code.PermissionDenied);
-    expect(refused.rawMessage).toBe(myVaultLockRefusal());
-    expect(asked).toEqual([]);
-  });
-
-  it("does not lock the platform's own internal writes", async () => {
+  it("keeps every attacher through the platform's own internal write", async () => {
     const stored = await anasRoutine();
     const next = clone(RoutineSchema, stored);
     next.spec!.cron = "0 10 * * *";

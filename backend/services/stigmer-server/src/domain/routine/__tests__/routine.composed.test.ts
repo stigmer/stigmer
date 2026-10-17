@@ -49,7 +49,7 @@ import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { writeLandsMidUpdate } from "../../../pipeline/__tests__/race-support.js";
-import { TRIGGER_DISABLED_MESSAGE } from "../fire.js";
+import { FIRE_DISABLED_MESSAGE } from "../fire.js";
 import {
   organizationId,
   seedOrganizations,
@@ -142,7 +142,7 @@ function routineInput(overrides?: {
 }) {
   return {
     apiVersion: "agentic.stigmer.ai/v1",
-    kind: "Schedule",
+    kind: "Routine",
     metadata: {
       name: overrides?.name ?? "Daily Rounds",
       org: overrides?.org ?? "acme",
@@ -153,16 +153,13 @@ function routineInput(overrides?: {
       cron: overrides?.cron ?? "0 9 * * *",
       timeZone: overrides?.timeZone ?? "Asia/Kolkata",
       enabled: overrides?.enabled ?? true,
-      target: {
-        case: "agent" as const,
-        value: {
-          agentRef: {
-            kind: ApiResourceKind.agent,
-            slug: overrides?.agentSlug ?? "helper",
-            org: overrides?.agentOrg ?? "",
-          },
-          message: overrides?.message ?? "Do the rounds",
+      agent: {
+        agentRef: {
+          kind: ApiResourceKind.agent,
+          slug: overrides?.agentSlug ?? "helper",
+          org: overrides?.agentOrg ?? "",
         },
+        message: overrides?.message ?? "Do the rounds",
       },
     },
   };
@@ -190,9 +187,7 @@ describe("create — the defaults resolver through the real chain", () => {
     expect(created.status?.nextFireAt).toBeUndefined();
     // The ref org normalized to the schedule's own.
     expect(
-      created.spec?.target.case === "agent"
-        ? created.spec.target.value.agentRef?.org
-        : "",
+      created.spec?.agent?.agentRef?.org ?? "",
     ).toBe(acmeId);
   });
 
@@ -226,10 +221,7 @@ describe("create — the defaults resolver through the real chain", () => {
         ...input,
         spec: {
           ...input.spec,
-          target: {
-            case: "agent" as const,
-            value: { ...input.spec.target.value, runConfig: { serviceTier: ServiceTier.FAST } },
-          },
+          agent: { ...input.spec.agent, runConfig: { serviceTier: ServiceTier.FAST } },
         },
       }),
     );
@@ -391,7 +383,7 @@ describe("resume — the one clearing path", () => {
 
 describe("trigger — the two-level contract", () => {
   it("refuses a missing schedule with NOT_FOUND (level one)", async () => {
-    const err = await refusal(() => command.fire({ value: "sch_missing" }));
+    const err = await refusal(() => command.fire({ id: "sch_missing" }));
     expect(err.code).toBe(Code.NotFound);
   });
 
@@ -402,9 +394,9 @@ describe("trigger — the two-level contract", () => {
       org: "acme",
       slug: "disabled",
     });
-    const err = await refusal(() => command.fire({ value: row.metadata?.id ?? "" }));
+    const err = await refusal(() => command.fire({ id: row.metadata?.id ?? "" }));
     expect(err.code).toBe(Code.FailedPrecondition);
-    expect(err.rawMessage).toBe(TRIGGER_DISABLED_MESSAGE);
+    expect(err.rawMessage).toBe(FIRE_DISABLED_MESSAGE);
   });
 
   it("relays an infrastructure failure as a CLEAN gRPC error (the engine gate's UNAVAILABLE, re-minted — never NGHTTP2 corruption)", async () => {
@@ -416,7 +408,7 @@ describe("trigger — the two-level contract", () => {
     // trigger's OWN error (Go: "Manual trigger's run start failed on
     // infrastructure"). The re-mint matters: echoing the in-process error
     // corrupts HTTP/2 trailers.
-    const err = await refusal(() => command.fire({ value: id }));
+    const err = await refusal(() => command.fire({ id }));
     expect(err.code).toBe(Code.Unavailable);
     // No fire happened: no ledger row, no last_fire_at.
     const runs = await query.listFires({ routineId: id });
@@ -443,7 +435,7 @@ describe("trigger — the two-level contract", () => {
     // The fire happened (level two): the deterministic dangling-reference
     // outcome is a SUCCESSFUL trigger honestly reported, never an
     // exception (no cascade by contract).
-    const result = await command.fire({ value: id });
+    const result = await command.fire({ id });
     expect(result.outcome).toBe(RoutineFireOutcome.TARGET_MISSING);
     expect(result.refusalReason).toBe(`target agent ${acmeId}/${deletedId} not found`);
     expect(result.runId).toBe("");
@@ -468,7 +460,7 @@ describe("trigger — the two-level contract", () => {
 
     // Past ValidateTriggerable (paused ≠ disabled), the fire runs and
     // reports its target-missing outcome.
-    const result = await command.fire({ value: id });
+    const result = await command.fire({ id });
     expect(result.outcome).toBe(RoutineFireOutcome.TARGET_MISSING);
     const after = await query.get({ value: id });
     // The streak is untouched by the manual fire's outcome.
@@ -517,7 +509,7 @@ describe("queries — list, listByAgent, listFires", () => {
     expect(result.entries.length).toBeGreaterThan(0);
     for (const item of result.entries) {
       expect(
-        item.spec?.target.case === "agent" ? item.spec.target.value.agentRef?.slug : "",
+        item.spec?.agent?.agentRef?.slug ?? "",
       ).toBe("helper");
     }
   });
@@ -536,12 +528,13 @@ describe("queries — list, listByAgent, listFires", () => {
     for (const hour of ["09", "10", "11"]) {
       await server.store.upsertRoutineFire({
         routineId: id,
+        fireId: `fire-${hour}`,
         org: "acme",
         nominalFireTime: `2026-08-25T${hour}:00:00Z`,
-        origin: "cron",
+        origin: "schedule",
         outcome: "completed",
         reason: "",
-        executionId: "aex_paged",
+        runId: "run_paged",
         recordedAt: `2026-08-25T${hour}:00:00Z`,
         completedAt: `2026-08-25T${hour}:30:00Z`,
       });
@@ -603,12 +596,13 @@ describe("listFires — an in-flight row reads its run's live phase", () => {
     for (const [index, runId] of runIds.entries()) {
       await server.store.upsertRoutineFire({
         routineId: id,
+        fireId: `fire-${index}`,
         org: "acme",
         nominalFireTime: `2026-08-26T${String(10 + index).padStart(2, "0")}:00:00Z`,
         origin: "manual",
         outcome: "started",
         reason: "",
-        executionId: runId,
+        runId,
         recordedAt: "",
         completedAt: "",
       });
@@ -647,7 +641,7 @@ describe("delete — teardown posture and the ledger cascade", () => {
     );
     const id = created.metadata?.id ?? "";
     await deleteAgent("ephemeral-3");
-    await command.fire({ value: id }); // leaves a manual TARGET_MISSING row
+    await command.fire({ id }); // leaves a manual TARGET_MISSING row
 
     const deleted = await command.delete({ value: id });
     expect(deleted.metadata?.id).toBe(id);

@@ -1,33 +1,33 @@
 /**
- * Schedule controller — ports pkg/domain/schedule/controller (command +
- * query sides): the recurring trigger that runs an agent on a cron
- * schedule.
+ * Routine controller (command + query sides): a saved agent invocation,
+ * run on its optional schedule or fired by its owner and Participants.
  *
- * A schedule declares a target (an agent and the prompt each run starts
- * from), a cron expression with an IANA time zone, and the owner's
- * enablement switch. Everything the platform observes about firing (next
- * fire time, failure streak, platform pause) lives in status, written only
- * by the scheduling runtime and by the explicit resume command — a
- * declarative apply preserves status verbatim, so a routine manifest apply
- * can never reset a failure streak or un-pause a platform-paused schedule.
+ * A routine declares the agent and message each run starts from, an
+ * optional cron with the routine's IANA time zone, and the owner's
+ * enablement switch. Every run acts as the routine's owner (owner.ts).
+ * Everything the platform observes about firing (next fire time, failure
+ * streak, platform pause) lives in status, written only by the scheduling
+ * runtime and by the explicit resume command — a declarative apply
+ * preserves status verbatim, so a routine manifest apply can never reset a
+ * failure streak or un-pause a platform-paused routine.
  *
- * Vocabulary: "disabled" is the owner's switch (spec.enabled
- * = false); "paused" is the platform's failure-streak latch
- * (status.paused_reason). Two words, two levers, two writers.
+ * Vocabulary: "disabled" is the owner's switch (spec.enabled = false);
+ * "paused" is the platform's failure-streak latch (status.paused_reason).
+ * Two words, two levers, two writers.
  *
  * The clock (per-resource Temporal Schedules) and the run starter arrive
  * through PROVIDERS wired by the compose root after the Temporal stage;
  * both may stay undefined forever when Temporal was never configured —
- * every consumer degrades instead of refusing, because a
- * declarative resource must be writable offline.
+ * every consumer degrades instead of refusing, because a declarative
+ * resource must be writable offline. A routine with no cron needs no clock
+ * at all: it is created, updated and fired with the engine away.
  *
- * Authorization posture (OSS): single-user and local, so handlers perform
- * no authorization — a documented no-op, not a silent divergence. The
- * cloud edition enforces the same contracts via FGA.
+ * Authorization rides the composed Authorizer at position 1 of every
+ * chain, from the contract's annotations (can_fire for fire); the owner's
+ * lock (owners-lock.ts) adds the one rule the model cannot state.
  *
- * Pipeline per RPC mirrors the Go step chains character-for-character.
- * Proven by schedule.conformance.test.ts (local), the firing suite
- * (local-execution), and __tests__/schedule.composed.test.ts.
+ * Proven by routine.conformance.test.ts (local), the firing suite
+ * (local-execution), and __tests__/routine.composed.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
@@ -38,6 +38,7 @@ import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api
 import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
 import { RoutineListSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
 import type {
+  FireRoutineInput,
   ListRoutineFiresRequest,
   ListRoutinesByAgentRequest,
   ListRoutinesRequest,
@@ -124,6 +125,7 @@ import type { Store } from "../../store/interface.js";
 import type { ListIndexQuery } from "../../store/list-index.js";
 import { routineListIndex } from "./list-index.js";
 import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
+import type { AccountsByCaller } from "../identityaccount/resolve.js";
 import {
   newArmResumedRoutineStep,
   newArmRoutineStep,
@@ -143,12 +145,15 @@ import {
   newValidateRoutineUpdateStep,
   resolveRoutineCreateTargets,
 } from "./steps.js";
+import { newEnsureRoutineAgentStillExistsStep } from "./cascade.js";
 import {
-  TRIGGER_RESULT_KEY,
+  FIRE_RESULT_KEY,
+  newExtractFireRoutineIdStep,
   newFireDirectRunStep,
-  newValidateTriggerableStep,
+  newValidateFireableStep,
   type RunnerProvider,
 } from "./fire.js";
+import { newOwnersLockStep } from "./owners-lock.js";
 import { newVaultAttachmentsStep } from "../vault/attachments.js";
 import { ROUTINE_VAULT_ATTACHMENTS } from "./vault-attachments.js";
 
@@ -173,17 +178,22 @@ export interface RoutineControllerDeps {
    */
   readonly clock: ClockProvider;
   /**
-   * The run starter (trigger.ts), resolved at call time — Go's SetRunner.
-   * The trigger command is its one consumer: a manual fire needs no
-   * Temporal artifact, so it works even while Temporal is
-   * away.
+   * The run starter (fire.ts), resolved at call time. The fire command is
+   * its one consumer here: a fire needs no Temporal artifact, so it works
+   * even while Temporal is away.
    */
   readonly runner: RunnerProvider;
+  /**
+   * The account port the owner's lock resolves a routine's owner through,
+   * or undefined where the composition signs nobody in (the trusted-local
+   * laptop's one person changes what their routines run).
+   */
+  readonly ownerAccounts: AccountsByCaller | undefined;
   /** The composed list read scope — list/listByAgent narrow through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
 }
 
-/** Registers both schedule services on the router (routes stage). */
+/** Registers both routine services on the router (routes stage). */
 
 export function registerRoutineServices(
   router: ConnectRouter,
@@ -196,7 +206,7 @@ export function registerRoutineServices(
     rename: (input, ctx) => rename(deps, input, ctx),
     delete: (routineId, ctx) => deleteRoutine(deps, routineId, ctx),
     resume: (routineId, ctx) => resume(deps, routineId, ctx),
-    fire: (routineId, ctx) => trigger(deps, routineId, ctx),
+    fire: (input, ctx) => fire(deps, input, ctx),
   });
   router.service(RoutineQueryController, {
     get: (routineId, ctx) => get(deps, routineId, ctx),
@@ -212,11 +222,11 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 }
 
 /**
- * Rename — the only writer of a schedule's slug (pipeline/steps/rename.ts):
+ * Rename — the only writer of a routine's slug (pipeline/steps/rename.ts):
  * the name moves, then the live row's slug, and nothing else, so a fire
  * the tick records meanwhile stays. The Temporal schedule is named by the
- * schedule's id and keeps firing; the old slug keeps leading to the
- * schedule for reading for 30 days.
+ * routine's id and keeps firing; the old slug keeps leading to the
+ * routine for reading for 30 days.
  */
 async function rename(
   deps: RoutineControllerDeps,
@@ -239,9 +249,9 @@ async function rename(
 }
 
 /**
- * Create — chain per Go buildCreatePipeline (create.go:51-60). No
- * IndexSearch tail: the schedule kind is deliberately not search-indexed
- * (no Go extractor exists; the kind registry carries no index flag).
+ * Create. No IndexSearch tail: the routine kind is deliberately not
+ * search-indexed. After the write, the agent is read again, so a routine
+ * created while its agent is deleted goes with it (cascade.ts).
  */
 async function createRoutine(
   deps: RoutineControllerDeps,
@@ -254,7 +264,7 @@ async function createRoutine(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof RoutineSchema>("schedule-create", deps.logger)
+  await newPipeline<typeof RoutineSchema>("routine-create", deps.logger)
     .addStep(
       newAuthorizeStep(
         RoutineCommandController.method.create,
@@ -265,9 +275,9 @@ async function createRoutine(
     .addStep(newNormalizeReferencesStep(deps.store))
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveRoutineDefaultsStep(deps))
-    // Before the duplicate check and before ArmSchedule: a refused caller
+    // Before the duplicate check and before ArmRoutineArtifact: a refused caller
     // learns nothing about existing slugs and costs no Temporal schedule
-    // (steps.ts, resolveScheduleCreateTargets).
+    // (steps.ts, resolveRoutineCreateTargets).
     .addStep(
       newAuthorizeResolvedTargetStep(
         deps.authorizer,
@@ -289,13 +299,25 @@ async function createRoutine(
       ),
     )
     .addStep(newArmRoutineStep(deps.clock, deps.logger))
+    .addStep(
+      newEnsureRoutineAgentStillExistsStep({
+        store: deps.store,
+        logger: deps.logger,
+        authorizationLifecycle: deps.authorizationLifecycle,
+        clock: deps.clock,
+      }),
+    )
     .build()
     .execute(reqCtx)
     .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
   return reqCtx.newState;
 }
 
-/** Update — chain per Go buildUpdatePipeline (update.go:59-67). */
+/**
+ * Update. The owner's lock runs right after the routine's own validation,
+ * before any reference or vault is judged, so a refused change names the
+ * lock, not a vault.
+ */
 async function update(
   deps: RoutineControllerDeps,
   input: UpdateRoutineInput,
@@ -308,7 +330,7 @@ async function update(
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
-    await newPipeline<typeof RoutineSchema>("schedule-update", deps.logger)
+    await newPipeline<typeof RoutineSchema>("routine-update", deps.logger)
       .addStep(
         newAuthorizeStep(
           RoutineCommandController.method.update,
@@ -322,6 +344,7 @@ async function update(
       .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newNormalizeReferencesStep(deps.store))
       .addStep(newValidateRoutineUpdateStep(deps))
+      .addStep(newOwnersLockStep(deps.ownerAccounts))
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
       .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, ROUTINE_VAULT_ATTACHMENTS))
@@ -334,7 +357,7 @@ async function update(
 }
 
 /**
- * Apply — declarative create-or-update (apply.go): schedule defaults
+ * Apply — declarative create-or-update: routine defaults
  * resolve FIRST — matching the cloud edition, which runs its defaults
  * resolver before routing so the existence check sees the normalized
  * agent_ref and the same-org invariant fails loudly before any routing —
@@ -343,7 +366,7 @@ async function update(
  * the normalized agent_ref and the populated id (from LoadForApply) live
  * on the clone. Status is preserved verbatim across apply-as-update
  * (BuildUpdateState), so a routine manifest apply can never reset the
- * failure streak or un-pause an auto-paused schedule.
+ * failure streak or un-pause an auto-paused routine.
  */
 async function apply(
   deps: RoutineControllerDeps,
@@ -356,7 +379,7 @@ async function apply(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<typeof RoutineSchema>("schedule-apply", deps.logger)
+  await newPipeline<typeof RoutineSchema>("routine-apply", deps.logger)
     .addStep(
       newAuthorizeStep(RoutineCommandController.method.apply, deps.authorizer),
     )
@@ -377,19 +400,19 @@ async function apply(
   }
   const resolved = reqCtx.newState;
   if (shouldCreate) {
-    deps.logger.info("Schedule does not exist - delegating to CREATE", {
+    deps.logger.info("Routine does not exist - delegating to CREATE", {
       slug: resolved.metadata?.slug ?? "",
     });
     return createRoutine(deps, resolved, ctx);
   }
-  deps.logger.info("Schedule exists - delegating to UPDATE", {
+  deps.logger.info("Routine exists - delegating to UPDATE", {
     slug: resolved.metadata?.slug ?? "",
     id: resolved.metadata?.id ?? "",
   });
   return update(deps, everyPathUpdate(UpdateRoutineInputSchema, resolved), ctx);
 }
 
-/** Delete — chain per Go buildDeletePipeline (delete.go:57-63). */
+/** Delete: the row, its names and access, then its artifact and fire ledger. */
 async function deleteRoutine(
   deps: RoutineControllerDeps,
   routineId: RoutineId,
@@ -402,7 +425,7 @@ async function deleteRoutine(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<DeleteInput>("schedule-delete", deps.logger)
+  await newPipeline<DeleteInput>("routine-delete", deps.logger)
     .addStep(
       newAuthorizeStep(
         RoutineCommandController.method.delete,
@@ -425,14 +448,14 @@ async function deleteRoutine(
   const deleted = reqCtx.get(EXISTING_RESOURCE_KEY);
   if (deleted === undefined) {
     throw internalError(
-      new Error("deleted schedule not found in context"),
-      "deleted schedule not found in context",
+      new Error("deleted routine not found in context"),
+      "deleted routine not found in context",
     );
   }
   return deleted as Routine;
 }
 
-/** Resume — chain per Go buildResumePipeline (resume.go:60-68). */
+/** Resume: clears the platform's pause and re-arms the schedule. */
 async function resume(
   deps: RoutineControllerDeps,
   routineId: RoutineId,
@@ -445,7 +468,7 @@ async function resume(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<ResumeInput>("schedule-resume", deps.logger)
+  await newPipeline<ResumeInput>("routine-resume", deps.logger)
     .addStep(
       newAuthorizeStep(
         RoutineCommandController.method.resume,
@@ -463,37 +486,32 @@ async function resume(
   const resumed = reqCtx.get(EXISTING_RESOURCE_KEY);
   if (resumed === undefined) {
     throw internalError(
-      new Error("resumed schedule not found in context"),
-      "resumed schedule not found in context",
+      new Error("resumed routine not found in context"),
+      "resumed routine not found in context",
     );
   }
   return resumed as Routine;
 }
 
-/** Trigger — chain per Go Trigger (trigger.go:96-115). */
-async function trigger(
+/** Fire: one run now, acting as the owner, optionally with text (fire.ts). */
+async function fire(
   deps: RoutineControllerDeps,
-  routineId: RoutineId,
+  input: FireRoutineInput,
   ctx: HandlerContext,
 ): Promise<RoutineFireResult> {
-  type TriggerInput = typeof RoutineCommandController.method.fire.input;
+  type FireInput = typeof RoutineCommandController.method.fire.input;
   const reqCtx = new RequestContext(
     RoutineCommandController.method.fire.input,
-    routineId,
+    input,
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<TriggerInput>("schedule-trigger", deps.logger)
-    .addStep(
-      newAuthorizeStep(
-        RoutineCommandController.method.fire,
-        deps.authorizer,
-      ),
-    )
+  await newPipeline<FireInput>("routine-fire", deps.logger)
+    .addStep(newAuthorizeStep(RoutineCommandController.method.fire, deps.authorizer))
     .addStep(newValidateProtoStep())
-    .addStep(newExtractResourceIdStep())
+    .addStep(newExtractFireRoutineIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, RoutineSchema))
-    .addStep(newValidateTriggerableStep())
+    .addStep(newValidateFireableStep())
     .addStep(
       newFireDirectRunStep({
         store: deps.store,
@@ -504,11 +522,11 @@ async function trigger(
     .build()
     .execute(reqCtx);
 
-  const result = reqCtx.get(TRIGGER_RESULT_KEY);
+  const result = reqCtx.get(FIRE_RESULT_KEY);
   if (result === undefined) {
     throw internalError(
-      new Error("trigger result not found in context"),
-      "trigger result not found in context",
+      new Error("fire result not found in context"),
+      "fire result not found in context",
     );
   }
   return result as RoutineFireResult;
@@ -527,7 +545,7 @@ async function get(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<GetInput>("schedule-get", deps.logger)
+  await newPipeline<GetInput>("routine-get", deps.logger)
     .addStep(
       newAuthorizeStep(RoutineQueryController.method.get, deps.authorizer),
     )
@@ -551,7 +569,7 @@ async function getByReference(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<RefInput>("schedule-get-by-reference", deps.logger)
+  await newPipeline<RefInput>("routine-get-by-reference", deps.logger)
     .addStep(
       newAuthorizeStep(
         RoutineQueryController.method.getByReference,
@@ -571,12 +589,12 @@ async function getByReference(
   return reqCtx.get(TARGET_RESOURCE_KEY) as Routine;
 }
 
-const ROUTINE_LIST_KEY = "scheduleList";
+const ROUTINE_LIST_KEY = "routineList";
 
 /**
- * ListByAgent — one page of the schedules whose agent target holds the
+ * ListByAgent — one page of the routines whose agent_ref holds the
  * agent's id. A nonexistent agent yields an EMPTY LIST, not an error: "no
- * schedules" is the useful answer for the operational surface either way.
+ * routines" is the useful answer for the operational surface either way.
  * The org filter is contract parity, not authorization: both editions
  * must answer an org-scoped request identically.
  */
@@ -592,7 +610,7 @@ async function listByAgent(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<ByAgentInput>("schedule-get-by-agent", deps.logger)
+  await newPipeline<ByAgentInput>("routine-get-by-agent", deps.logger)
     .addStep(
       newAuthorizeStep(
         RoutineQueryController.method.listByAgent,
@@ -607,8 +625,8 @@ async function listByAgent(
   const result = reqCtx.get(ROUTINE_LIST_KEY);
   if (result === undefined) {
     throw internalError(
-      new Error("schedule list not found in context"),
-      "schedule list not found in context",
+      new Error("routine list not found in context"),
+      "routine list not found in context",
     );
   }
   return result as RoutineList;
@@ -619,7 +637,7 @@ function newLoadRoutinesByAgentStep(
   listReadScope: ListReadScope | undefined,
 ): PipelineStep<typeof RoutineQueryController.method.listByAgent.input> {
   return {
-    name: "LoadSchedulesByAgent",
+    name: "LoadRoutinesByAgent",
     async execute(
       ctx: RequestContext<
         typeof RoutineQueryController.method.listByAgent.input
@@ -627,16 +645,16 @@ function newLoadRoutinesByAgentStep(
     ): Promise<void> {
       const req = ctx.input;
 
-      // A schedule's agent_ref holds its agent's id (the index's `agent`
-      // key), so a schedule of an agent since deleted never lists under a
+      // A routine's agent_ref holds its agent's id (the index's `agent`
+      // key), so a routine of an agent since deleted never lists under a
       // new agent of the same name.
       //
-      // Org scope: a multi-org caller asking for one org's schedules must
-      // not see another org's schedules of the same agent. (Schedules are
+      // Org scope: a multi-org caller asking for one org's routines must
+      // not see another org's routines of the same agent. (Routines are
       // same-org by invariant, so today this only excludes rows when the
       // requested org differs from the agent's — kept anyway for contract
       // parity with the sibling RPCs.) Both filters are indexed
-      // predicates; the scope narrows the agent's schedules last (the
+      // predicates; the scope narrows the agent's routines last (the
       // scope is the last per-row predicate).
       ctx.set(
         ROUTINE_LIST_KEY,
@@ -646,7 +664,7 @@ function newLoadRoutinesByAgentStep(
             anyKey: [{ name: "agent", value: req.agentId }],
           },
           fingerprint: {
-            lane: "schedule.listByAgent",
+            lane: "routine.listByAgent",
             agentId: req.agentId,
             org: req.org,
           },
@@ -657,7 +675,7 @@ function newLoadRoutinesByAgentStep(
 }
 
 /**
- * List — one page of the schedules of an organization, filtered by
+ * List — one page of the routines of an organization, filtered by
  * optional labels (AND semantics), newest first.
  */
 async function list(
@@ -672,7 +690,7 @@ async function list(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<ListInput>("schedule-list", deps.logger)
+  await newPipeline<ListInput>("routine-list", deps.logger)
     .addStep(
       newAuthorizeStep(RoutineQueryController.method.list, deps.authorizer),
     )
@@ -684,8 +702,8 @@ async function list(
   const result = reqCtx.get(ROUTINE_LIST_KEY);
   if (result === undefined) {
     throw internalError(
-      new Error("schedule list not found in context"),
-      "schedule list not found in context",
+      new Error("routine list not found in context"),
+      "routine list not found in context",
     );
   }
   return result as RoutineList;
@@ -708,7 +726,7 @@ function newListByOrgAndLabelsStep(
         ROUTINE_LIST_KEY,
         await readRoutinePage(store, listReadScope, ctx.callerIdentity, req, {
           query: { org: req.org },
-          fingerprint: { lane: "schedule.list", org: req.org },
+          fingerprint: { lane: "routine.list", org: req.org },
         }),
       );
     },
@@ -716,8 +734,8 @@ function newListByOrgAndLabelsStep(
 }
 
 /**
- * The two schedule lanes' shared read: one page, the request's labels as
- * each row's keep (an exact AND match), the scope last, as a ScheduleList.
+ * The two routine lanes' shared read: one page, the request's labels as
+ * each row's keep (an exact AND match), the scope last, as a RoutineList.
  */
 async function readRoutinePage(
   store: Store,
@@ -749,7 +767,7 @@ async function readRoutinePage(
         routines,
         "",
       ),
-    failure: "failed to list schedules",
+    failure: "failed to list routines",
   });
   return create(RoutineListSchema, {
     entries: page.entries,
@@ -770,7 +788,7 @@ async function listFires(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<ListFiresInput>("schedule-list-runs", deps.logger)
+  await newPipeline<ListFiresInput>("routine-list-fires", deps.logger)
     .addStep(
       newAuthorizeStep(
         RoutineQueryController.method.listFires,
@@ -786,8 +804,8 @@ async function listFires(
   const result = reqCtx.get(LIST_FIRES_RESULT_KEY);
   if (result === undefined) {
     throw internalError(
-      new Error("schedule run list not found in context"),
-      "schedule run list not found in context",
+      new Error("routine fire list not found in context"),
+      "routine fire list not found in context",
     );
   }
   return result as RoutineFireList;

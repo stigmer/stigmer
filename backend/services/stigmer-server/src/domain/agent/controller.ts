@@ -158,6 +158,8 @@ import {
   newValidatePluginListStep,
 } from "./steps.js";
 import { newCascadeDeleteScoringRulesStep } from "../scoring-rule/cascade.js";
+import type { ClockProvider } from "../routine/clock.js";
+import { newCascadeDeleteRoutinesStep } from "../routine/cascade.js";
 import { newCascadeDeleteChannelsStep } from "../channel/cascade.js";
 import type { ChannelRuntime } from "../channel/channel-runtime.js";
 import { newCascadeDeleteEvalRunsStep } from "../eval-run/cascade.js";
@@ -211,6 +213,8 @@ export interface AgentControllerDeps {
    * `| undefined` (the storing edition has none).
    */
   readonly channelRuntime: ChannelRuntime | undefined;
+  /** The routine clock the delete tears the agent's routines' artifacts down through. */
+  readonly routineClock: ClockProvider;
 }
 
 /** Registers both agent services on the router (routes stage). */
@@ -469,6 +473,14 @@ async function deleteAgent(
         logger: deps.logger,
         authorizationLifecycle: deps.authorizationLifecycle,
         channelRuntime: deps.channelRuntime,
+      }),
+    )
+    .addStep(
+      newCascadeDeleteRoutinesStep<typeof AgentCommandController.method.delete.input>({
+        store: deps.store,
+        logger: deps.logger,
+        authorizationLifecycle: deps.authorizationLifecycle,
+        clock: deps.routineClock,
       }),
     )
     .addStep(

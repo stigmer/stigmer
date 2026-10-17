@@ -348,13 +348,14 @@ export function describeOrganizationPurge(
         expiresAt: now + 600,
       });
       await store.upsertRoutineFire({
-        routineId: `schedule_${slug}`,
+        routineId: `routine_${slug}`,
+        fireId: `routine-${slug}-fire`,
         org,
         nominalFireTime: new Date().toISOString(),
-        origin: "CRON",
+        origin: "schedule",
         outcome: "",
         reason: "",
-        executionId: "",
+        runId: "",
         recordedAt: new Date().toISOString(),
         completedAt: "",
       });

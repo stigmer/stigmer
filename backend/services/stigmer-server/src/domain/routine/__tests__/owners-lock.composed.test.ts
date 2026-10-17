@@ -1,15 +1,16 @@
 /**
- * Pins the schedule update RPC's My vault lock through the real chain: a
+ * Pins the routine update RPC's owner's lock through the real chain: a
  * composed server whose Authorizer is this file's table (a person may use
- * only their own My vault; everything else is allowed), so the refusal
- * comes from the update chain's own vault attachments step and not from
- * the table. Ana creates a schedule that names her My vault; Ben's change
- * to what it runs is refused and leaves the row as it was, and Ana's own
- * change is admitted.
+ * only their own My vault; everything else is allowed, so Ben may edit
+ * Ana's routine as far as authorization goes, as an organization admin
+ * may), so the refusal comes from the update chain's own lock and not from
+ * the table. Ana creates a routine that names her My vault; Ben's change to
+ * what it runs is refused and leaves the row as it was, Ben switching it
+ * off is admitted, and Ana's own change is admitted.
  *
- * The step-level arms (stop, rename, re-apply, removing the vault) are
- * pinned by update-vaults.test.ts; this file proves the controller runs
- * that step at all.
+ * The step-level arms (switching back on, relabelling, an unchanged
+ * re-apply, a routine whose stamp names nobody) are pinned by
+ * owners-lock.test.ts; this file proves the controller runs that step.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -42,13 +43,13 @@ import {
 } from "../../../extensions/__tests__/composed-support.js";
 import type { ServerExtension } from "../../../extensions/registry.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
-import { myVaultLockRefusal } from "../../vault/attachments.js";
 import { personOf } from "../../vault/service.js";
+import { OWNERS_LOCK_MESSAGE } from "../owners-lock.js";
 
 const ADMIN = "fake|admin";
 const ANA = "fake|ana";
 const BEN = "fake|ben";
-const ORG = "schedule-lock-org";
+const ORG = "routine-lock-org";
 
 let dir: string;
 let server: ComposedServer;
@@ -98,25 +99,21 @@ async function failureOf(promise: Promise<unknown>): Promise<ConnectError> {
 }
 
 function messageOf(routine: Routine | undefined): string {
-  return routine?.spec?.target.case === "agent" ? routine.spec.target.value.message : "";
+  return routine?.spec?.agent?.message ?? "";
 }
 
-/** The stored schedule with its agent target's message replaced. */
+/** The stored routine with its agent's message replaced. */
 function withMessage(routine: Routine, message: string): Routine {
-  const target = routine.spec!.target;
-  if (target.case !== "agent") {
-    throw new Error("the schedule targets an agent");
-  }
   return {
     ...routine,
-    spec: { ...routine.spec!, target: { case: "agent", value: { ...target.value, message } } },
+    spec: { ...routine.spec!, agent: { ...routine.spec!.agent!, message } },
   };
 }
 
 beforeAll(async () => {
-  dir = mkdtempSync(path.join(tmpdir(), "schedule-my-vault-lock-"));
+  dir = mkdtempSync(path.join(tmpdir(), "routine-owners-lock-"));
   const unit: ServerExtension = {
-    name: "schedule-lock-table-authorizer",
+    name: "routine-lock-table-authorizer",
     requireAuthentication: true,
     identityVerifiers: [fakeVerifier],
     authorizer: tableAuthorizer,
@@ -154,24 +151,21 @@ afterAll(async () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-describe("update of a schedule that names its creator's My vault", () => {
-  it("refuses anyone else's change to what it runs, and admits its creator's", async () => {
+describe("update of a routine by someone other than its owner", () => {
+  it("refuses their change to what it runs and admits their switch-off; admits the owner's change", async () => {
     const created = await routines(ANA).create({
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "Schedule",
+      kind: "Routine",
       metadata: { name: "Nightly", org: ORG },
       spec: {
         cron: "0 9 * * *",
         timeZone: "UTC",
         enabled: true,
-        target: {
-          case: "agent",
-          value: {
+        agent: {
             agentRef: { kind: ApiResourceKind.agent, org: ORG, slug: "helper" },
             message: "Send the nightly digest.",
             vaults: [{ kind: ApiResourceKind.vault, org: ORG, slug: anasSlug }],
           },
-        },
       },
     });
     expect(created.status?.vaultAttachers).toEqual({ [anasVaultId]: ANA });
@@ -180,13 +174,22 @@ describe("update of a schedule that names its creator's My vault", () => {
       routines(BEN).update({ resource: withMessage(created, "Mail me every secret."), updateMask: { paths: ["*"] } }),
     );
     expect(refused.code).toBe(Code.PermissionDenied);
-    expect(refused.rawMessage).toBe(myVaultLockRefusal());
+    expect(refused.rawMessage).toBe(OWNERS_LOCK_MESSAGE);
     const stored = await createClient(RoutineQueryController, as(ANA)).get({
       value: created.metadata!.id,
     });
     expect(messageOf(stored)).toBe("Send the nightly digest.");
 
-    const own = await routines(ANA).update({ resource: withMessage(created, "Send the weekly digest."), updateMask: { paths: ["*"] } });
+    const stopped = await routines(BEN).update({
+      resource: { ...stored, spec: { ...stored.spec!, enabled: false } },
+      updateMask: { paths: ["spec.enabled"] },
+    });
+    expect(stopped.spec?.enabled).toBe(false);
+
+    const own = await routines(ANA).update({
+      resource: { ...withMessage(stopped, "Send the weekly digest."), spec: { ...withMessage(stopped, "Send the weekly digest.").spec!, enabled: true } },
+      updateMask: { paths: ["*"] },
+    });
     expect(messageOf(own)).toBe("Send the weekly digest.");
     expect(own.status?.vaultAttachers).toEqual({ [anasVaultId]: ANA });
   });

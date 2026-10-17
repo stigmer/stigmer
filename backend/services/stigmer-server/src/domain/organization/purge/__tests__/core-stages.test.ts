@@ -371,13 +371,14 @@ describe("the final stage", () => {
       createdAt: 1_700_000_000,
     });
     await store.upsertRoutineFire({
-      routineId: "sch_left",
+      routineId: "rtn_left",
+      fireId: "rtn-left-20260820t000000z",
       org: ORG,
       nominalFireTime: "2026-08-20T00:00:00Z",
-      origin: "cron",
+      origin: "schedule",
       outcome: "started",
       reason: "",
-      executionId: "",
+      runId: "",
       recordedAt: "2026-08-20T00:00:01Z",
       completedAt: "",
     });
