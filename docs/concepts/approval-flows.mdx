@@ -16,15 +16,11 @@ indefinitely without losing state.
 
 ## How it works
 
-Here's an approval flow in action. A customer requests a return, and the Agent
-pauses before processing it because the server marks the `process_return` tool
-destructive:
-
-<DemoApprovalFlowPlayback />
-
-The approval request shows the tool name, the arguments the Agent wants to pass,
-and a human-readable message. The human sees exactly what the Agent is about to
-do and can make an informed decision.
+Take a customer who requests a return: the Agent pauses before processing it
+because the server marks the `process_return` tool destructive. The approval
+request shows the tool name, the arguments the Agent wants to pass, and a
+human-readable message. The human sees exactly what the Agent is about to do and
+can make an informed decision.
 
 ## What asks for approval
 

@@ -643,37 +643,42 @@ test("a composite action's steps are read too", () => {
   assert.match(findings[0], /fixture\/action\.yml: step "browsers"/);
 });
 
+// No real file is exempt today, so the mechanism is proven over a fixture map.
+const FIXTURE_EXEMPT = new Map([
+  [".github/workflows/fixture.yaml", "a fixture's reason"],
+]);
+
 test("the exemption covers its own file only, and states its reason", () => {
-  assert.deepEqual(
-    [...EXEMPT.keys()],
-    [".github/workflows/build.website.yaml"],
-  );
-  for (const reason of EXEMPT.values())
-    assert.match(reason, /two Playwright versions/);
+  for (const reason of EXEMPT.values()) assert.match(reason, /\S/);
   const install = "npx playwright install --with-deps chromium";
   assert.deepEqual(
-    installFindings([
-      workflow(".github/workflows/build.website.yaml", install),
-    ]),
+    installFindings(
+      [workflow(".github/workflows/fixture.yaml", install)],
+      FIXTURE_EXEMPT,
+    ),
     [],
   );
-  const elsewhere = installFindings([
-    workflow(".github/workflows/build.website.yaml", install),
-    workflow(".github/workflows/release.web.yaml", install),
-  ]);
+  const elsewhere = installFindings(
+    [
+      workflow(".github/workflows/fixture.yaml", install),
+      workflow(".github/workflows/release.web.yaml", install),
+    ],
+    FIXTURE_EXEMPT,
+  );
   assert.equal(elsewhere.length, 1);
   assert.match(elsewhere[0], /^\.github\/workflows\/release\.web\.yaml:/);
 });
 
 test("an exemption whose file no longer installs anything fails, so it cannot outlive its reason", () => {
-  const stale = installFindings([
-    workflow(".github/workflows/build.website.yaml", "npm run build"),
-  ]);
+  const stale = installFindings(
+    [workflow(".github/workflows/fixture.yaml", "npm run build")],
+    FIXTURE_EXEMPT,
+  );
   assert.equal(stale.length, 1);
   assert.match(
     stale[0],
-    /build\.website\.yaml is exempt .* but installs no Playwright browser; remove its exemption/,
+    /fixture\.yaml is exempt .* but installs no Playwright browser; remove its exemption/,
   );
-  const missing = installFindings([]);
+  const missing = installFindings([], FIXTURE_EXEMPT);
   assert.equal(missing.length, 1, "an exempt file that is gone is stale too");
 });

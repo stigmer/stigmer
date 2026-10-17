@@ -11,11 +11,8 @@
 // asserts that for every publishable package, every @stigmer/* it names in any
 // dependency field is a `#build` it waits on.
 //
-// It also pins the one edge the root's own suites need: `//#test:root` (the
-// suite behind `npm run test:scripts`) waits on @stigmer/apis#build, because
-// verify-docs-tour-parity imports the tour fixtures, which import the protos
-// dist. That edge once lived as a step order in the CI lane, where
-// `npm test` on a fresh clone could not see it.
+// It also pins that `//#test:root` (the suite behind `npm run test:scripts`)
+// is never cached: those suites read files across the whole repository.
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -98,14 +95,10 @@ test("every build task caches dist/** and runs in strict env mode", () => {
   }
 });
 
-test("the root suites wait on the protos build they import", () => {
+test("the root suites are never cached", () => {
   const root = dryRun("root", ["test:root"]);
   const suite = root.tasks.find((t) => t.taskId === "//#test:root");
   assert.ok(suite, "//#test:root is registered in turbo.json");
-  assert.ok(
-    suite.dependencies.includes("@stigmer/apis#build"),
-    "//#test:root must wait on @stigmer/apis#build (verify-docs-tour-parity imports its dist)",
-  );
   assert.equal(
     suite.resolvedTaskDefinition.cache,
     false,

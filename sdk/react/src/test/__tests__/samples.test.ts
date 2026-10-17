@@ -274,9 +274,8 @@ describe("samples", () => {
 
 // ---------------------------------------------------------------------------
 // Determinism — the reason these factories exist. A `samples.*` value is
-// rendered into Scenar tours that replay in the browser and export to video
-// frame by frame, so any live-clock read paints a pixel that changes between
-// runs. These tests are the regression lock: each one
+// rendered into tests and stories that must give the same result on every
+// run, so any live-clock read paints a pixel that changes between runs. These tests are the regression lock: each one
 // FAILS if a factory is reverted to reading the clock.
 // ---------------------------------------------------------------------------
 
@@ -383,10 +382,6 @@ describe("samples determinism", () => {
 // through UTC+12:45 (Chatham, southern winter): every inhabited zone except
 // Tongatapu (+13) and Kiritimati (+14). Local date is monotonic in offset,
 // so agreement at the two boundaries proves agreement throughout.
-//
-// `scripts/verify-scenar-tours.mjs` exports the same boundaries as
-// READER_OFFSET_WINDOW (its own test locks those values); this suite locks
-// the anchor's side of the contract.
 // ---------------------------------------------------------------------------
 
 describe("SAMPLE_INSTANT reader offset window", () => {

@@ -55,23 +55,12 @@ spec:
       description: API key for the order management service
 ```
 
-Here's the same Agent in the Stigmer web console. The console adds nothing of
-its own — each section of the detail page is one of the YAML fields above,
-rendered for reading:
-
-<Still
-  id="agent-detail-tour/agent-detail"
-  alt="The Agent detail page in the Stigmer console: the support-agent
-definition with its description, its full instructions, the
-order-management-api plugin, its tool list of Read, Grep and that plugin's
-server, and its two Skills."
-/>
-
-Check the frame against the YAML: the description at the top is
-`spec.description`, the instructions section carries the system prompt verbatim,
-the plugins section lists `order-management-api`, the tool list shows `tools`,
-and the two `skill_refs` appear under Skills. Each of those fields serves a
-purpose:
+The Stigmer web console adds nothing of its own: each section of an Agent's
+detail page is one of the YAML fields above, rendered for reading. The
+description at the top is `spec.description`, the instructions section carries
+the system prompt verbatim, the plugins section lists `order-management-api`,
+the tool list shows `tools`, and the two `skill_refs` appear under Skills. Each
+of those fields serves a purpose:
 
 | Field          | What it does                                                                                                                            |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------- |

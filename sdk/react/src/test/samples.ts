@@ -89,17 +89,16 @@ import {
 
 /**
  * The frozen instant every timestamped `samples.*` factory defaults to — the
- * tour world's single clock. Anything in a demo that needs an instant derives
- * from this one via {@link sampleInstant} / {@link sampleDate}; nothing
- * authors a second instant of its own (`scripts/verify-scenar-tours.mjs`
- * enforces that under `demos/tours/`).
+ * samples' single clock. Anything that needs an instant derives from this one
+ * via {@link sampleInstant} / {@link sampleDate}; nothing authors a second
+ * instant of its own.
  *
  * These factories must never read the live clock. A `samples.*` value is
- * rendered into Scenar tours that replay in the browser and export to video
- * frame by frame; a clock read paints a pixel that changes between runs, which
- * breaks the "same source, same result" guarantee.
+ * rendered into tests and stories that must give the same result on every
+ * run; a clock read paints a pixel that changes between runs, which breaks the
+ * "same source, same result" guarantee.
  *
- * The date is `2026-07-20`, the tour world's demo day. The time is 11:00 UTC,
+ * The date is `2026-07-20`, the samples' day. The time is 11:00 UTC,
  * chosen by the *reader offset window*: components format dates in the
  * reader's local time (e.g. `ApiKeyListPanel` via `toLocaleDateString`), and
  * real UTC offsets span −11:00 (Midway) to +14:00 (Kiritimati) — a 25-hour
@@ -131,8 +130,8 @@ const SAMPLE_INSTANT_MS = Date.parse(SAMPLE_INSTANT);
  * a second instant. `sampleInstant()` with no argument is the anchor itself.
  *
  * Prefer this over a hand-written literal even for values that never render:
- * derivation keeps the whole fixture world moving together if the demo day is
- * ever refreshed, and the tour gate rejects authored instant literals anyway.
+ * derivation keeps the whole fixture world moving together if the samples' day
+ * is ever refreshed.
  */
 export function sampleInstant(deltaMs = 0): string {
   return new Date(SAMPLE_INSTANT_MS + deltaMs).toISOString();
@@ -566,8 +565,7 @@ export const samples = {
 
   /**
    * An organization resource with metadata and spec.
-   * Default: team org `Acme Corp` (slug `acme`) — the tour world's
-   * depicted organization, matching `DEMO_ORG` in the demos workspace.
+   * Default: team org `Acme Corp` (slug `acme`), the samples' organization.
    */
   organization(o?: OrganizationOverrides): Organization {
     return create(OrganizationSchema, {

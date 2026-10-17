@@ -11,11 +11,6 @@ isolated set of Agents, Skills, Sessions and access controls, you create one
 child organization is a full tenant boundary: what one child holds is invisible
 to the people of another child.
 
-<ScenarEmbed
-  id="multi-tenant-setup-playback"
-  title="Child organizations walkthrough"
-/>
-
 ## When you need this
 
 You already have a working
@@ -620,11 +615,6 @@ With `createAccountsOnSignIn` and `signInRole` beside `externalIdClaim`, you can
 drop per-user provisioning code. You still create the child organizations, but
 Stigmer creates each user's account the first time they sign in and grants the
 sign-in role the first time they sign in to each child.
-
-<ScenarEmbed
-  id="multi-tenant-jit-playback"
-  title="Child organization sign-in walkthrough"
-/>
 
 ```typescript
 const issuer = await stigmer.federationIssuer.create({

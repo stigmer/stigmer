@@ -11,27 +11,12 @@
 # It holds no key and runs the website's own dependencies, so a caller may be
 # a fork's pull request. The jobs that hold a Cloudflare key never run this
 # build; they download its artifact and upload files.
-#
-# `demos_base` is the one difference a caller can ask for: where the packed
-# tour bundles and their stills are served from. Production leaves it empty
-# and the site keeps its own default (site/src/lib/demos-base.ts); a review
-# site passes its own address, so a pull request that changes a tour shows
-# that tour. The variable is exported only when given: the site reads it with
-# `??`, so an empty value would count as set and break every tour link.
 # =============================================================================
 
 name: build.website
 
 on:
   workflow_call:
-    inputs:
-      demos_base:
-        description: >-
-          Base URL the site embeds tour bundles and stills from, e.g.
-          https://review-12.stigmer.ai/demos. Empty keeps the site's default.
-        required: false
-        type: string
-        default: ""
 
 permissions:
   contents: read
@@ -62,55 +47,15 @@ jobs:
       - name: Build SDK libraries
         run: npm run build:libs
 
-      # scenar shoot renders docs stills from the packed bundles in a real
-      # Chromium (pack-all shoots only the tours that declare a `shot`).
-      # --with-deps pulls the system libraries headless Chromium needs on
-      # the runner. The npm packages themselves arrived with `npm ci` above.
-      #
-      # BOTH playwright installations are provisioned on purpose. The repo
-      # carries two versions — the root's (for e2e) and demos' — and each
-      # pins a DIFFERENT Chromium build (1.60 -> 1223, 1.62 -> 1234). The
-      # build that must exist is the one belonging to whichever playwright
-      # `@scenar/cli` imports, and that is decided by npm's hoisting, not by
-      # us: @scenar/cli sat in demos/node_modules at 0.9.0 and hoisted to the
-      # root at 0.9.1, silently flipping the answer and breaking this step
-      # (2026-07-29). Installing both makes the step correct under either
-      # layout. The real fix is to run one playwright version repo-wide;
-      # until then, do not "optimize" this back to a single install.
-      - name: Install Playwright Chromium (demos)
-        run: npm exec --workspace @stigmer/demos -- playwright install --with-deps chromium
-
-      - name: Install Playwright Chromium (root)
-        run: npx playwright install --with-deps chromium
-
-      # Scenar product tours ship with the site: pack every tour in demos/
-      # into a static embed bundle, served below at stigmer.ai/demos/<tour>/,
-      # then shoot stills for shot-declaring tours (served from
-      # stigmer.ai/demos/<tour>/stills/, referenced by docs <Still> tags).
-      # Tours consume the in-repo @stigmer/* source, so the embeds always
-      # depict the components this build ships.
-      - name: Pack demo tours and shoot stills
-        run: npm run pack-all -w @stigmer/demos
-
       - name: Install Vale
         run: make install-vale
 
       - name: Build site
-        env:
-          DEMOS_BASE: ${{ inputs.demos_base }}
         run: |
-          if [ -n "$DEMOS_BASE" ]; then
-            export NEXT_PUBLIC_SCENAR_EMBED_BASE="$DEMOS_BASE"
-          fi
           make build-site
           if [ -f site/out/index.html ] && [ ! -f site/out/404.html ]; then
             cp site/out/index.html site/out/404.html
           fi
-
-      - name: Add demo tour bundles to the site
-        run: |
-          mkdir -p site/out/demos
-          cp -R demos/.bundles/. site/out/demos/
 
       # Each caller's deploy job downloads this by name, from its own run.
       - name: Upload the export

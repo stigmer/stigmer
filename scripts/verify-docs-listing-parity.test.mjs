@@ -1,23 +1,13 @@
 /**
- * Drift-locks between a docs listing and the tour fixture that depicts it,
- * or the repository file it quotes.
- *
- * Some tour depictions — stills and embeds — sit directly under a docs code
- * fence with the promise "here's how this looks in the console"; the
- * depiction is only honest while the fixture and the listing agree. This
- * suite pins each such pair, the same class of lock as
- * `verify-scenar-tours.mjs` invariant 7 (replica CSS ↔ real console layout):
- * edit one side and the root test suite (`npm test` → `node --test
- * scripts/*.test.mjs`) fails until the other side moves with it.
- *
- * A tour fixture the docs print in full is locked byte for byte: the fence
- * and the fixture are the same text (skills.mdx ↔ SKILL_MD).
+ * Drift-locks between a docs listing and the repository file it quotes.
  *
  * A guide that prints a file for the reader to save and build quotes the
  * file in the repository that a release lane builds, byte for byte
  * (runners.mdx ↔ deploy/runner-layer/Dockerfile, which
  * release.sandbox-cloud joins onto foreign bases on every change), so the
- * command the guide prints is the one proven to work.
+ * command the guide prints is the one proven to work. Edit one side and the
+ * root test suite (`npm test` → `node --test scripts/*.test.mjs`) fails until
+ * the other side moves with it.
  *
  * Pairs are keyed on fence *content* (a marker string), never fence position,
  * so docs restructuring cannot silently re-point a lock at the wrong listing.
@@ -26,7 +16,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 
@@ -49,25 +39,6 @@ function extractFence(mdxPath, marker) {
   );
   return matches[0];
 }
-
-test("skills.mdx SKILL.md listing matches skill-detail-tour's SKILL_MD byte for byte", async () => {
-  // Import the tour timeline exactly the way the verify gate and `scenar
-  // narrate` do — plain Node with the tsx loader.
-  const { register } = await import("tsx/esm/api");
-  register();
-  const steps = await import(
-    pathToFileURL(join(root, "demos/tours/skill-detail-tour/steps.ts")).href
-  );
-
-  const listing = extractFence("docs/concepts/skills.mdx", "name: return-policy");
-  assert.equal(
-    steps.SKILL_MD,
-    listing,
-    "docs/concepts/skills.mdx's SKILL.md fence and skill-detail-tour's SKILL_MD " +
-      "have drifted — the tour's still sits directly under the listing, so they " +
-      "must stay byte-identical. Update both together.",
-  );
-});
 
 test("runners.mdx's runner layer Dockerfile is deploy/runner-layer/Dockerfile byte for byte", () => {
   const listing = extractFence(

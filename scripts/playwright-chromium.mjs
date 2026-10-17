@@ -52,9 +52,10 @@
  *
  * The guard half: installFindings reads every workflow and every composite
  * action and refuses a `run:` that installs Playwright's browsers any other
- * way, so the gate cannot drift back to the mirror. EXEMPT names the one file
- * that keeps its own install, with the reason, and an exemption whose file no
- * longer installs anything is refused too.
+ * way, so the gate cannot drift back to the mirror. EXEMPT is where a file
+ * that must keep its own install is named, with the reason; no file is exempt
+ * today, and an exemption whose file no longer installs anything is refused
+ * too.
  *
  * .github/actions/playwright-chromium runs this file after the root `npm ci`.
  * scripts/playwright-chromium.test.mjs pins both halves: the installer
@@ -81,15 +82,7 @@ export const DEADLINE_MS = 5 * 60 * 1000;
 export const ACTION = "./.github/actions/playwright-chromium";
 
 /** Files that may install Playwright's browsers their own way, each with its reason. */
-export const EXEMPT = new Map([
-  [
-    ".github/workflows/build.website.yaml",
-    "it provisions two Playwright versions on purpose, the root's and demos', each with its own Chromium " +
-      "build (its comment above the two steps says why); it is the website's build, which only the release " +
-      "and the review sites call, not a gate lane; and the stills it renders ship, so the fonts it installs " +
-      "are its own decision",
-  ],
-]);
+export const EXEMPT = new Map();
 
 const PREFIX = "playwright-chromium:";
 

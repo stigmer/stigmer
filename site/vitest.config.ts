@@ -23,9 +23,9 @@ export default defineConfig({
       deps: {
         // fumadocs-ui components import their own .css; Node's ESM loader
         // (which vitest uses for externalized deps) cannot load CSS, so let
-        // Vite transform the package instead. Needed by the <Still> tests,
-        // which render the real ImageZoom. The .css alias below then keeps
-        // those imports out of PostCSS entirely.
+        // Vite transform the package instead. Needed by the docs layout and
+        // sidebar tests, which render real fumadocs-ui components. The .css
+        // alias below then keeps those imports out of PostCSS entirely.
         inline: ["fumadocs-ui"],
       },
     },

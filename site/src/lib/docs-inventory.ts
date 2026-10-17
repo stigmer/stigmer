@@ -9,7 +9,7 @@
  * covered by directory-prefix cohort rules instead of per-page entries,
  * because their classification belongs to the generator, not the page.
  *
- * Three invariants keep the record honest:
+ * Two invariants keep the record honest:
  *
  *   1. Completeness — every hand-authored page ON DISK has an entry, and
  *      every generated page is covered by a cohort. The universe is a disk
@@ -18,9 +18,6 @@
  *   2. Existence — every entry resolves to a page on disk. Executing a
  *      fate (delete/move/merge) must remove or re-key the entry in the
  *      same commit; git history is the decision record.
- *   3. Embed agreement — the embeds a page actually renders (ScenarEmbed
- *      ids and legacy <Demo*> components) match the entry's per-embed
- *      fate map, in both directions.
  *
  * Layering mirrors llms-pages.ts: this module is pure logic with unit
  * tests; scripts/generate-docs-inventory/index.ts is the thin CLI wrapper.
@@ -30,7 +27,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import matter from "gray-matter";
 import { load as loadYaml, YAMLException } from "js-yaml";
-import { cleanContent, collectDocsPages } from "./llms-pages";
+import { collectDocsPages } from "./llms-pages";
 
 // ---------------------------------------------------------------------------
 // Classification schema
@@ -59,9 +56,6 @@ export const MEDIUMS = [
 ] as const;
 export type Medium = (typeof MEDIUMS)[number];
 
-export const EMBED_FATES = ["keep", "replace", "drop"] as const;
-export type EmbedFate = (typeof EMBED_FATES)[number];
-
 /** Standalone fates; `move:<path>` and `merge:<path>` carry a target. */
 export const SIMPLE_FATES = ["keep", "split", "archive", "delete"] as const;
 
@@ -80,13 +74,6 @@ export interface PageClassification {
    * to prevent.
    */
   why?: string;
-  /**
-   * Per-embed fate map, keyed by ScenarEmbed id (e.g. "quickstart-tour")
-   * or legacy component name (e.g. "DemoToolCallsPlayback"). Scalar was
-   * rejected on purpose: pages carry up to three embeds, and one page
-   * carries an embed from each system.
-   */
-  embeds?: Record<string, EmbedFate>;
 }
 
 export interface CohortRule {
@@ -149,7 +136,7 @@ export function parseClassification(raw: string): {
         errors.push(`${where}: must be a mapping`);
         continue;
       }
-      const { fate, diataxis, teaches, medium, why, embeds } = value;
+      const { fate, diataxis, teaches, medium, why } = value;
       if (typeof fate !== "string" || !isValidFate(fate)) {
         errors.push(
           `${where}: fate must be one of ${SIMPLE_FATES.join(" | ")} | move:<path> | merge:<path>`,
@@ -176,19 +163,6 @@ export function parseClassification(raw: string): {
         errors.push(
           `${where}: a non-"none" medium and a non-"keep" fate each require a "why" rationale`,
         );
-      }
-      if (embeds !== undefined) {
-        if (!isRecord(embeds)) {
-          errors.push(`${where}: embeds must be a mapping of embed id to fate`);
-        } else {
-          for (const [embedId, embedFate] of Object.entries(embeds)) {
-            if (!(EMBED_FATES as readonly unknown[]).includes(embedFate)) {
-              errors.push(
-                `${where}: embeds["${embedId}"] must be one of ${EMBED_FATES.join(" | ")}`,
-              );
-            }
-          }
-        }
       }
       pages[key] = value as unknown as PageClassification;
     }
@@ -241,23 +215,6 @@ export function isGeneratedContent(raw: string): boolean {
   return GENERATED_MARKER.test(raw);
 }
 
-/**
- * Extracts the embeds a page renders: ScenarEmbed ids plus legacy
- * <Demo*> component names, one key space (the two never collide — tour
- * ids are kebab-case, legacy components are PascalCase "Demo" names).
- * Callers pass comment-stripped content (cleanContent) so a commented-out
- * embed does not count.
- */
-export function extractEmbeds(content: string): string[] {
-  const embeds: string[] = [];
-  // [^>]* deliberately spans newlines — multi-line ScenarEmbed tags exist.
-  const scenarPattern = /<ScenarEmbed\b[^>]*\bid=["']([^"']+)["']/g;
-  for (const match of content.matchAll(scenarPattern)) embeds.push(match[1]);
-  const legacyPattern = /<(Demo[A-Z][A-Za-z0-9]*)\b/g;
-  for (const match of content.matchAll(legacyPattern)) embeds.push(match[1]);
-  return [...new Set(embeds)];
-}
-
 export interface InventoryPage {
   /** Extension-less docs-relative path; "index" for the docs root. */
   key: string;
@@ -265,8 +222,6 @@ export interface InventoryPage {
   generated: boolean;
   /** Cohort prefix covering this page, when generated. */
   cohort?: string;
-  /** Embeds the page actually renders. */
-  embeds: string[];
   /** Sidebar section title from the nav walk; undefined if not in nav. */
   section?: string;
   classification?: PageClassification;
@@ -278,8 +233,7 @@ export interface Violation {
     | "unclassified-page"
     | "generated-page-classified"
     | "uncovered-generated-page"
-    | "unknown-page"
-    | "embed-drift";
+    | "unknown-page";
   /** Classification key (or file path for schema problems). */
   key: string;
   message: string;
@@ -372,7 +326,7 @@ export async function buildInventory(
     const mdxRel = await resolveKey(docsDir, key);
     // walkDocsKeys only emits keys it found on disk, so this cannot miss.
     const raw = await fs.readFile(path.join(docsDir, mdxRel as string), "utf-8");
-    const { data, content } = matter(raw);
+    const { data } = matter(raw);
     const generated = isGeneratedContent(raw);
     // A cohort prefix "x/" covers "x/..." AND the folder's own index page,
     // whose key strips to exactly "x" — generated folder indexes belong to
@@ -380,7 +334,6 @@ export async function buildInventory(
     const cohort = cohortPrefixes.find(
       (prefix) => key.startsWith(prefix) || `${key}/` === prefix,
     );
-    const embeds = extractEmbeds(cleanContent(content));
     const entry = pagesRecord[key];
 
     pages.push({
@@ -388,7 +341,6 @@ export async function buildInventory(
       title: typeof data.title === "string" ? data.title : path.basename(key),
       generated,
       cohort: generated ? cohort : undefined,
-      embeds,
       section: sectionByKey.get(key),
       classification: entry,
     });
@@ -420,30 +372,6 @@ export async function buildInventory(
           "hand-authored page has no classification entry — add it to " +
           "docs/_inventory/classification.yaml (fate, diataxis, teaches, medium)",
       });
-    }
-
-    // Invariant 3 — embed agreement, both directions.
-    if (entry) {
-      const declared = Object.keys(entry.embeds ?? {});
-      const actual = new Set(embeds);
-      for (const id of embeds) {
-        if (!declared.includes(id)) {
-          violations.push({
-            kind: "embed-drift",
-            key,
-            message: `page renders embed "${id}" but the entry does not declare it`,
-          });
-        }
-      }
-      for (const id of declared) {
-        if (!actual.has(id)) {
-          violations.push({
-            kind: "embed-drift",
-            key,
-            message: `entry declares embed "${id}" but the page does not render it`,
-          });
-        }
-      }
     }
   }
 
@@ -522,15 +450,6 @@ export function renderReport(inventory: Inventory): string {
     lines.push(`- **diataxis**: ${byClass((c) => c.diataxis)}`);
     lines.push(`- **medium**: ${byClass((c) => c.medium)}`);
     lines.push(`- **fate**: ${byClass((c) => c.fate.split(":")[0])}`);
-    const embedFates = classified.flatMap((page) =>
-      Object.entries(page.classification?.embeds ?? {}),
-    );
-    if (embedFates.length > 0) {
-      lines.push(
-        `- **embed fates** (${embedFates.length} embeds): ` +
-          formatCounts(count(embedFates, ([, fate]) => fate)),
-      );
-    }
     lines.push("");
   }
 
@@ -563,12 +482,8 @@ export function renderReport(inventory: Inventory): string {
         lines.push(`- \`${page.key}\` — **UNCLASSIFIED**`);
         continue;
       }
-      const embeds = Object.entries(c.embeds ?? {})
-        .map(([id, fate]) => `${id}→${fate}`)
-        .join(", ");
-      const embedNote = embeds ? ` — embeds: ${embeds}` : "";
       lines.push(
-        `- \`${page.key}\` — ${c.diataxis} · ${c.medium} · ${c.fate}${embedNote}`,
+        `- \`${page.key}\` — ${c.diataxis} · ${c.medium} · ${c.fate}`,
         `  - ${c.teaches}${c.why ? ` *(${c.why})*` : ""}`,
       );
     }

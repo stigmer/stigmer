@@ -60,8 +60,8 @@ async function main(): Promise<void> {
       console.error(
         "\nEvery hand-authored docs page needs an entry in " +
           "docs/_inventory/classification.yaml (fate, diataxis, teaches, " +
-          "medium, per-embed fates); generated pages are covered by cohort " +
-          "rules. See docs/STYLE.md.",
+          "medium); generated pages are covered by cohort rules. See " +
+          "docs/STYLE.md.",
       );
       process.exit(1);
     }
@@ -93,7 +93,8 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err: unknown) => {
+/** The CLI's run, exported so a test can await it in-process. */
+export const run = main().catch((err: unknown) => {
   console.error("[docs-inventory] Fatal error:", err);
   process.exit(1);
 });

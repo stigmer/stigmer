@@ -4,13 +4,11 @@ import * as os from "node:os";
 import * as path from "node:path";
 import {
   buildInventory,
-  extractEmbeds,
   isGeneratedContent,
   isValidFate,
   parseClassification,
   renderReport,
 } from "../docs-inventory";
-import { cleanContent } from "../llms-pages";
 
 /** Materializes a docs tree from a { relativePath: contents } map. */
 async function makeDocsDir(files: Record<string, string>): Promise<string> {
@@ -100,7 +98,6 @@ describe("parseClassification", () => {
             medium: "hologram",
           },
           "needs-why": entry({ medium: "animated-tour" }),
-          "bad-embed": entry({ embeds: { "some-tour": "maybe" } }),
         },
         cohorts: {
           "no-slash": { generator: "", diataxis: "reference", medium: "none" },
@@ -116,7 +113,6 @@ describe("parseClassification", () => {
     expect(text).toContain(
       'pages["needs-why"]: a non-"none" medium and a non-"keep" fate each require',
     );
-    expect(text).toContain('pages["bad-embed"]: embeds["some-tour"]');
     expect(text).toContain('cohorts["no-slash"]: cohort prefixes must end with "/"');
     expect(text).toContain('cohorts["no-slash"]: generator');
     // "bad" has an invalid fate AND an invalid medium — each already has
@@ -185,38 +181,10 @@ describe("isGeneratedContent", () => {
   });
 });
 
-describe("extractEmbeds", () => {
-  it("extracts ScenarEmbed ids including multi-line tags, and legacy Demo components", () => {
-    const content = [
-      '<ScenarEmbed id="quickstart-tour" />',
-      "<ScenarEmbed",
-      '  id="api-key-setup"',
-      '  title="Set up an API key"',
-      "/>",
-      "<DemoToolCallsPlayback />",
-    ].join("\n");
-    expect(extractEmbeds(content)).toEqual([
-      "quickstart-tour",
-      "api-key-setup",
-      "DemoToolCallsPlayback",
-    ]);
-  });
-
-  it("dedupes repeated embeds", () => {
-    const content = '<ScenarEmbed id="a-tour" />\n<ScenarEmbed id="a-tour" />';
-    expect(extractEmbeds(content)).toEqual(["a-tour"]);
-  });
-
-  it("ignores commented-out embeds when composed with cleanContent", () => {
-    const body = '{/* <ScenarEmbed id="retired-tour" /> */}\n<DemoOAuthConnectFlow />';
-    expect(extractEmbeds(cleanContent(body))).toEqual(["DemoOAuthConnectFlow"]);
-  });
-});
-
 describe("buildInventory", () => {
   it("passes a fully classified tree with zero violations", async () => {
     const dir = await setup({
-      "index.mdx": mdx("Home", '<ScenarEmbed id="create-agent-tour" />'),
+      "index.mdx": mdx("Home"),
       "meta.json": meta({ pages: ["---Agents---", "concepts/agents"] }),
       "concepts/agents.mdx": mdx("Agents"),
       "sdk/react/button.mdx": generatedMdx("button"),
@@ -229,7 +197,6 @@ describe("buildInventory", () => {
             diataxis: "landing",
             medium: "animated-tour",
             why: "The homepage sells the product moving.",
-            embeds: { "create-agent-tour": "keep" },
           }),
           "concepts/agents": entry(),
         },
@@ -319,36 +286,6 @@ describe("buildInventory", () => {
     expect(violations).toEqual([
       expect.objectContaining({ kind: "unknown-page", key: "concepts/deleted-page" }),
     ]);
-  });
-
-  it("flags embed drift in both directions", async () => {
-    const dir = await setup({
-      "index.mdx": mdx("Home"),
-      "meta.json": meta({ pages: ["concepts/tools"] }),
-      "concepts/tools.mdx": mdx("Tools", "<DemoToolCallsPlayback />"),
-    });
-    const { violations } = await buildInventory(
-      dir,
-      yamlOf({
-        pages: {
-          index: entry({ diataxis: "landing" }),
-          "concepts/tools": entry({
-            medium: "animated-tour",
-            why: "Sequenced tool calls must be seen firing.",
-            embeds: { "some-other-tour": "replace" },
-          }),
-        },
-        cohorts: {},
-      }),
-    );
-    const drift = violations.filter((violation) => violation.kind === "embed-drift");
-    expect(drift).toHaveLength(2);
-    expect(drift.map((violation) => violation.message).join("\n")).toContain(
-      'renders embed "DemoToolCallsPlayback"',
-    );
-    expect(drift.map((violation) => violation.message).join("\n")).toContain(
-      'declares embed "some-other-tour"',
-    );
   });
 
   it("covers a generated folder index page with its own cohort prefix", async () => {

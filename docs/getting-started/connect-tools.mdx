@@ -27,8 +27,6 @@ Here is where this tutorial ends up: your order management API in a plugin,
 signed in, a chat started with it, then the same plugin listed on a Session from
 code, an order lookup, and an approval before a return.
 
-<ScenarEmbed id="connect-tools-tour" title="Connect your tools overview" />
-
 ## The problem
 
 Your Agent knows your return policy — it answers domain questions accurately.
@@ -70,13 +68,6 @@ Your order management service answers MCP at an address, say
    builds a plugin holding that one server, named after it, installs it in your
    Organization, and opens the plugin's page.
 
-Here is what that flow looks like:
-
-<ScenarEmbed
-  id="mcp-server-creation-tour"
-  title="Add an MCP server walkthrough"
-/>
-
 The CLI does the same in one line:
 
 ```bash
@@ -109,11 +100,6 @@ address once, and it answered with an OAuth challenge.
    in your [My vault](/docs/concepts/vaults), and the row reads **Signed in**.
 2. Click **Check tools**. Stigmer asks the server for its tools right now, as
    you, and stores nothing.
-
-<ScenarEmbed
-  id="mcp-server-connect-tour"
-  title="Sign in and check tools walkthrough"
-/>
 
 From the CLI, `stigmer connect plugin order-management-api` signs in when the
 server needs it and prints the same list. To try the tools before writing any
