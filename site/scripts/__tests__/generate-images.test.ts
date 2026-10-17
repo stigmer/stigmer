@@ -44,6 +44,38 @@ describe("website brand exports", () => {
       const info = await sharp(join(publicDir, file)).metadata();
       expect([info.width, info.height]).toEqual([width, height]);
     }
+    const {
+      BRAND_DARK,
+      BRAND_LIGHT,
+      brandShadedSvg,
+      brandSvg: flat,
+    } = await import("../../../brand/assets.mjs");
+    const pixels = async (input: string | Buffer) =>
+      sharp(input).ensureAlpha().raw().toBuffer();
+    expect(await pixels(join(publicDir, "icon-512.png"))).toEqual(
+      await pixels(
+        Buffer.from(
+          await brandShadedSvg({
+            size: 512,
+            on: "dark",
+            background: BRAND_DARK,
+            rounded: true,
+          }),
+        ),
+      ),
+    );
+    expect(await pixels(join(publicDir, "favicon-32x32.png"))).toEqual(
+      await pixels(
+        Buffer.from(
+          await flat({
+            size: 32,
+            color: BRAND_LIGHT,
+            background: BRAND_DARK,
+            tight: true,
+          }),
+        ),
+      ),
+    );
     const ico = await readFile(join(publicDir, "favicon.ico"));
     expect([...ico.subarray(0, 6)]).toEqual([0, 0, 1, 0, 2, 0]);
     expect(await readFile(join(root!, "docs/banner_dark.png"))).toEqual(

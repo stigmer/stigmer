@@ -21,10 +21,12 @@ import sharp from "sharp";
 const run = promisify(execFile);
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const source = await readFile(join(root, "brand/logo.svg"), "utf8");
+const shaded = await readFile(join(root, "brand/source/shaded.svg"), "utf8");
 
 async function fixture(
   svg: string,
   check: (directory: string) => Promise<void>,
+  shadedSvg = shaded,
 ) {
   const directory = await mkdtemp(join(tmpdir(), "stigmer-brand-generator-"));
   try {
@@ -41,6 +43,7 @@ async function fixture(
       "dir",
     );
     await writeFile(join(directory, "brand/logo.svg"), svg);
+    await writeFile(join(directory, "brand/source/shaded.svg"), shadedSvg);
     await check(directory);
   } finally {
     await rm(directory, { recursive: true, force: true });
@@ -176,5 +179,41 @@ for (const [name, invalid] of [
         "source",
       ]);
     });
+  });
+}
+
+for (const [name, invalid] of [
+  ["missing face", shaded.replace(/<path data-face="bars"[^>]*\/>/, "")],
+  [
+    "reordered face",
+    shaded.replace('data-face="inner-top"', 'data-face="ring-top"'),
+  ],
+  [
+    "unnamed path",
+    shaded.replace("</svg>", '<path fill="#000000" d="M0 0L1 1Z"/></svg>'),
+  ],
+]) {
+  test(`the generator rejects a shaded source with a ${name} before writing derived files`, async () => {
+    await fixture(
+      source,
+      async (directory) => {
+        await assert.rejects(generate(directory), (error: unknown) => {
+          assert.ok(error instanceof Error && "stderr" in error);
+          assert.match(
+            String(error.stderr),
+            /The shaded source must draw the faces/,
+          );
+          return true;
+        });
+        assert.deepEqual((await readdir(join(directory, "brand"))).sort(), [
+          "assets.mts",
+          "generate.ts",
+          "logo.svg",
+          "package.json",
+          "source",
+        ]);
+      },
+      invalid,
+    );
   });
 }

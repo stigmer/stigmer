@@ -1,8 +1,14 @@
 # Stigmer logo
 
 Use **avatar.png** for GitHub, organization profiles, and other square or
-circular avatar uploads. It is a 1024 × 1024 PNG with a light mark on a graphite
-background.
+circular avatar uploads. It is a 1024 × 1024 PNG of the shaded mark on a
+graphite background.
+
+The mark comes in two forms. The **shaded** mark lights each face of the hexagon
+and of the inner cube in its own gray, so it reads as a solid object; use it at
+48 px and larger: avatars, app icons, touch icons and social images. The
+**flat** mark is one color; use it below 48 px, for favicons and the menu bar
+icon, inside the product UI, and anywhere a single ink is required.
 
 The logo uses two tones, never pure black or white: graphite `#1c1c1e` for the
 dark mark and dark backgrounds, and light gray `#ededed` for the light mark and
@@ -10,13 +16,17 @@ light backgrounds. "White" in the file names below means this light tone.
 `assets.mts` exports them as `BRAND_DARK` and `BRAND_LIGHT`; every generator
 reads those names.
 
-| File             | Use                                             |
-| ---------------- | ----------------------------------------------- |
-| `avatar.png`     | Default profile image; background included      |
-| `logo.png`       | Dark mark, transparent background, 1024 × 1024  |
-| `logo-white.png` | White mark, transparent background, 1024 × 1024 |
-| `logo.svg`       | Dark vector mark; the canonical artwork         |
-| `logo-white.svg` | White vector mark for dark backgrounds          |
+| File                    | Use                                                         |
+| ----------------------- | ----------------------------------------------------------- |
+| `avatar.png`            | Default profile image; shaded, background included          |
+| `logo-shaded.png`       | Shaded mark for light backgrounds, transparent, 1024 × 1024 |
+| `logo-shaded-white.png` | Shaded mark for dark backgrounds, transparent, 1024 × 1024  |
+| `logo-shaded.svg`       | Shaded vector mark for light backgrounds                    |
+| `logo-shaded-white.svg` | Shaded vector mark for dark backgrounds                     |
+| `logo.png`              | Flat dark mark, transparent background, 1024 × 1024         |
+| `logo-white.png`        | Flat white mark, transparent background, 1024 × 1024        |
+| `logo.svg`              | Flat dark vector mark; the canonical outline                |
+| `logo-white.svg`        | Flat white vector mark for dark backgrounds                 |
 
 Use **logo-lockup.svg** when the name should appear beside the symbol, such as a
 website header, presentation or sponsorship listing. The horizontal pairing uses
@@ -41,10 +51,20 @@ avatar services can crop the square into a circle without clipping the mark.
 
 Edit `logo.svg`, then run `npm run generate:brand` from the repository root. The
 three-fin mark is a closed hexagonal enclosure with three broad, angled fins
-joined to its lower-right wall. The inner negative space gives the impression of
-a cube. It is one filled outline with a transparent interior; no strokes, masks,
-gradients or separate dots are needed. `geometry.ts` is generated for the inline
-UI marks; do not edit it directly.
+joined to its lower-right wall, each rising the full height of the inner cube's
+side. The inner negative space gives the impression of a cube. It is one filled
+outline with a transparent interior; no strokes, masks, gradients or separate
+dots are needed. `geometry.ts` is generated for the inline UI marks; do not edit
+it directly.
+
+`source/shaded.svg` draws the shaded mark over the same outline as seven filled
+faces, in this order: the inner cube's top, left and right, then the hexagon's
+top, left and right, then the fins. Its fills are the tones for a dark
+background; `SHADED_TONES` in `assets.mts` holds both lightings, and each face
+is named by `data-face`. Where two faces meet, the face drawn first extends a
+little under the next, so no background shows through the join. A change to the
+outline in `logo.svg` must be made in `source/shaded.svg` too; the brand tests
+fail when the two outlines drift apart.
 
 The horizontal exports combine this same symbol with `source/wordmark.svg`, the
 outlined lettering in a 260 × 96 frame. The lettering uses a 48-unit capital
@@ -60,7 +80,7 @@ The Instrument Sans Project Authors, available under the
 [SIL Open Font License 1.1](https://github.com/google/fonts/blob/main/ofl/instrumentsans/OFL.txt).
 Only the outlined product name is included here, not the font software.
 
-The website, web console and desktop icon generators read this same source.
+The website, web console and desktop icon generators read these same sources.
 Their favicon, touch-icon, PWA, ICO and ICNS sizes are platform outputs, not
 additional logo choices. Regenerate them with:
 
