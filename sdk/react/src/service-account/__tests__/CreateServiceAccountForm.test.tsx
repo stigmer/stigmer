@@ -4,6 +4,8 @@
  *   - the role picker offers Admin, Member and Viewer, never Owner, with
  *     Member preselected, and the create sends the organization, the trimmed
  *     name and the chosen role;
+ *   - a host's `defaultRole` (a routine's caller preset to Viewer) is the
+ *     preselected role and the one sent when left alone;
  *   - the account exists from the first answer: `onCreated` fires before any
  *     key is offered, and declining the key ("Not now") ends the flow with
  *     no key request sent;
@@ -82,6 +84,16 @@ describe("CreateServiceAccountForm", () => {
       expect.stringMatching(/^Viewer/),
     ]);
     expect((screen.getByRole("radio", { name: /^Member/ }) as HTMLInputElement).checked).toBe(true);
+  });
+
+  it("preselects the host's default role and sends it when left alone", async () => {
+    render(<CreateServiceAccountForm org="org_acme" defaultRole={IamRole.viewer} />, { wrapper });
+    expect((screen.getByRole("radio", { name: /^Viewer/ }) as HTMLInputElement).checked).toBe(true);
+    fillName("alerting");
+    fireEvent.click(screen.getByRole("button", { name: "Create service account" }));
+
+    await screen.findByText("alerting created with the Viewer role");
+    expect(sent.accounts.map((a) => a.role)).toEqual([IamRole.viewer]);
   });
 
   it("creates the account with the organization, the trimmed name and the chosen role, then offers a key", async () => {

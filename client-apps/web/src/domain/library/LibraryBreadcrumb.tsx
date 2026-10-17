@@ -7,7 +7,7 @@ import { useBreadcrumbLabel } from "@stigmer/react-sdk";
 const SEGMENT_LABELS: Record<string, string> = {
   agents: "Agents",
   skills: "Skills",
-  schedules: "Schedules",
+  routines: "Routines",
 };
 
 export function LibraryBreadcrumb() {

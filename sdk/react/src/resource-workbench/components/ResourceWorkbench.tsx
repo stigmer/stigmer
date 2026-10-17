@@ -41,7 +41,7 @@ export interface ResourceWorkbenchProps<TData = SearchResult> {
    * the organization, the search box's text, the page size and the page's
    * token. Pass `null` to disable fetching. `createLibraryListFn` builds
    * one for agents, skills and plugins; `createRoutineListFn` for
-   * schedules.
+   * routines.
    */
   readonly listFn: WorkbenchListFn<TData> | null;
   /** Organization id (a slug is also accepted). Pass `null` to disable fetching. */
@@ -158,7 +158,7 @@ export interface ResourceWorkbenchProps<TData = SearchResult> {
 
   /**
    * Whether the toolbar renders the text-search input. Set `false` for
-   * kinds whose list backend has no text search (e.g. schedules, which
+   * kinds whose list backend has no text search (e.g. routines, which
    * use the direct query instead of the search service) — a search box
    * that silently matches nothing is worse than none. Opt-in, so
    * existing consumers keep the search box.

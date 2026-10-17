@@ -28,7 +28,7 @@ export interface UseResolveRunSessionReturn {
  *
  * This hook fetches the Run resource and extracts
  * `spec.sessionId`. Use it when navigating from a context that
- * knows only the run ID (a schedule's run history, a run
+ * knows only the run ID (a routine's run history, a run
  * link) to the session page (which requires the session ID).
  *
  * Pass `null` to skip fetching (stable no-op).

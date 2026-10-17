@@ -565,6 +565,10 @@ const myId = account?.metadata?.id;
 
 ### GrantAccessForm
 
+Form for granting a person or a team access to a resource.
+
+All visual properties flow through `--stgm-*` design tokens.
+
 **Props** — `GrantAccessFormProps`
 
 <TypeTable
@@ -580,6 +584,18 @@ const myId = account?.metadata?.id;
     resourceKindString: { type: "string", description: "Resource kind string (e.g. \"organization\") for the API resource ref.", required: true },
   }}
 />
+
+```tsx
+<GrantAccessForm
+  resourceKind={ApiResourceKind.agent}
+  resourceKindString="agent"
+  resourceId={agentId}
+  org={org}
+  includeTeams={share.canShareWithTeams}
+  onGranted={() => share.refetch()}
+  onCancel={() => setShowForm(false)}
+/>
+```
 
 
 ### OrgMembersPanel

@@ -62,6 +62,30 @@ export interface GrantAccessFormProps {
 }
 
 /**
+ * What sharing a conversation as Participant means beyond the role's own
+ * sentence: whose workspace and logins a participant's message runs with,
+ * and which decisions stay with the conversation's owner.
+ */
+const SESSION_PARTICIPANT_NOTE =
+  "Participants send messages. The agent answers in this conversation's workspace, using only the vaults the conversation names; stopping and approving stay with its owner.";
+
+/**
+ * What granting Participant on a routine lends: every run a participant
+ * starts acts as the routine's creator, and the note they send reaches the
+ * agent fenced as information, never as instructions.
+ */
+const ROUTINE_PARTICIPANT_NOTE =
+  "Participants start this routine, with a note, and see its runs. Every run acts as the person who created it; the note reaches the agent as information, not instructions.";
+
+/** The note under the role picker for a role on a kind, or `null`. */
+function participantNote(kind: ApiResourceKind, role: IamRole | null): string | null {
+  if (role !== IamRole.participant) return null;
+  if (kind === ApiResourceKind.session) return SESSION_PARTICIPANT_NOTE;
+  if (kind === ApiResourceKind.routine) return ROUTINE_PARTICIPANT_NOTE;
+  return null;
+}
+
+/**
  * Form for granting a person or a team access to a resource.
  *
  * All visual properties flow through `--stgm-*` design tokens.
@@ -79,14 +103,6 @@ export interface GrantAccessFormProps {
  * />
  * ```
  */
-/**
- * What sharing a conversation as Participant means beyond the role's own
- * sentence: whose workspace and logins a participant's message runs with,
- * and which decisions stay with the conversation's owner.
- */
-const SESSION_PARTICIPANT_NOTE =
-  "Participants send messages. The agent answers in this conversation's workspace, using only the vaults the conversation names; stopping and approving stay with its owner.";
-
 export function GrantAccessForm({
   resourceKind,
   resourceKindString,
@@ -154,6 +170,8 @@ export function GrantAccessForm({
     ],
   );
 
+  const roleNote = participantNote(resourceKind, selectedRole);
+
   return (
     <form onSubmit={handleSubmit} className={cn("stg:space-y-3", className)}>
       <div className="stg:space-y-3">
@@ -174,9 +192,9 @@ export function GrantAccessForm({
           disabled={isCreating}
         />
 
-        {resourceKind === ApiResourceKind.session && selectedRole === IamRole.participant && (
+        {roleNote && (
           <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-            {SESSION_PARTICIPANT_NOTE}
+            {roleNote}
           </p>
         )}
       </div>

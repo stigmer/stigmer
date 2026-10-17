@@ -15,7 +15,8 @@ import {
   slackChannelAppRedirectUrl,
 } from "./slackAppSetup.js";
 import { generateWhatsAppVerifyToken } from "./whatsappAppSetup.js";
-import { CopyBlock, FormField } from "./internal.js";
+import { CopyBlock } from "../internal/CopyBlock.js";
+import { FormField } from "./internal.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 // ---------------------------------------------------------------------------

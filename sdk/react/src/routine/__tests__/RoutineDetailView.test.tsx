@@ -1,12 +1,14 @@
 /**
- * The schedule detail view: read state, the banners and their remedies,
- * the run history, and the inline editors' saves. A save is an update
- * naming the spec fields its editor changed, on the schedule's id, and it
+ * The routine detail view: read state, the banners and their remedies,
+ * Run now with its note and its `can_fire` gate (absent, not disabled, for
+ * someone who may not fire), the run history with who started each fire,
+ * the API tab, and the inline editors' saves. A save is an update
+ * naming the spec fields its editor changed, on the routine's id, and it
  * changes only what its editor owns: the budget editor
  * the cost cap, the engine editor the engine, model, tier and thinking,
  * and a stored tier or thinking (an explicit standard or disabled among
  * them) survives any save that leaves it alone. The vaults editor offers
- * My vault only to the schedule's creator, the one person the server
+ * My vault only to the routine's creator, the one person the server
  * accepts it from.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
@@ -29,6 +31,7 @@ import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { RoutineDetailView } from "../RoutineDetailView";
+import { fireStartedBy } from "../RoutineFiresTable";
 import { openMenu } from "../../__tests__/helpers/open-menu";
 
 vi.mock("../../feedback/toast", () => ({
@@ -119,16 +122,17 @@ interface MockClient {
     rename: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
   };
-  // The slug field asks can_delete (whoever may delete may rename);
-  // denied unless a test grants it.
+  // Run now asks can_fire, allowed by default; the slug field asks
+  // can_delete (whoever may delete may rename), denied unless a test
+  // grants it, as is every other permission.
   grant: { checkMyPermission: ReturnType<typeof vi.fn> };
   // The vaults inline editor's picker lists the org's vaults, and offers
-  // My vault only when the viewer is the schedule's creator.
+  // My vault only when the viewer is the routine's creator.
   vault: { list: ReturnType<typeof vi.fn> };
   identityAccount: { whoAmI: ReturnType<typeof vi.fn> };
 }
 
-/** The identity every test views the schedule as. */
+/** The identity every test views the routine as. */
 const VIEWER_ID = "ida_viewer";
 
 function makeClient(routine: Routine): MockClient {
@@ -154,7 +158,7 @@ function makeClient(routine: Routine): MockClient {
         renamed.metadata!.slug = slug;
         return renamed;
       }),
-      // The update answers the stored schedule with the sent spec fields
+      // The update answers the stored routine with the sent spec fields
       // on it: a whole spec (an inline edit) or the one flag (the toggle).
       update: vi.fn(async (resource: Routine) => {
         const stored = clone(RoutineSchema, routine);
@@ -168,7 +172,9 @@ function makeClient(routine: Routine): MockClient {
       }),
     },
     grant: {
-      checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: false }),
+      checkMyPermission: vi.fn(async (input: { relation: string }) => ({
+        isAuthorized: input.relation === "can_fire",
+      })),
     },
     vault: {
       list: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
@@ -225,7 +231,7 @@ function pagedFires(total: number) {
 }
 
 describe("RoutineDetailView", () => {
-  it("renders definition and status for an active schedule", async () => {
+  it("renders definition and status for an active routine", async () => {
     renderView(makeClient(makeRoutine()));
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
@@ -239,8 +245,8 @@ describe("RoutineDetailView", () => {
     expect(screen.getByText("5m")).toBeTruthy();
     expect(screen.getByText("aex_01run")).toBeTruthy();
     expect(screen.getByText("Active")).toBeTruthy();
-    // Active schedules show no state banner.
-    expect(screen.queryByText("Schedule is disabled")).toBeNull();
+    // Active routines show no state banner.
+    expect(screen.queryByText("Routine is disabled")).toBeNull();
     expect(screen.queryByText("Paused by the platform")).toBeNull();
   });
 
@@ -248,12 +254,12 @@ describe("RoutineDetailView", () => {
     const client = makeClient(makeRoutine({ enabled: false }));
     renderView(client);
 
-    await screen.findByText("Schedule is disabled");
+    await screen.findByText("Routine is disabled");
     expect(screen.getByText("Disabled")).toBeTruthy();
-    // Owner-disabled schedules have no meaningful countdown.
+    // Owner-disabled routines have no meaningful countdown.
     expect(screen.queryByText("in 3h")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Enable schedule" }));
+    fireEvent.click(screen.getByRole("button", { name: "Enable routine" }));
 
     await waitFor(() => expect(client.routine.update).toHaveBeenCalledOnce());
     const doc = { message: sentUpdate<Routine>(client.routine.update).resource };
@@ -268,7 +274,7 @@ describe("RoutineDetailView", () => {
     expect(screen.getByText(/5 consecutive failures — resuming clears/)).toBeTruthy();
     expect(screen.getByText("Paused")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Resume schedule" }));
+    fireEvent.click(screen.getByRole("button", { name: "Resume routine" }));
 
     await waitFor(() =>
       expect(client.routine.resume).toHaveBeenCalledWith("sch_01example"),
@@ -281,22 +287,22 @@ describe("RoutineDetailView", () => {
     );
     renderView(client);
 
-    await screen.findByText("Schedule is disabled");
+    await screen.findByText("Routine is disabled");
     expect(screen.queryByText("Paused by the platform")).toBeNull();
     // The badge says Disabled, but the platform pause is still explained.
     expect(screen.getByText("Disabled")).toBeTruthy();
     expect(screen.getByText(/also paused by the platform/)).toBeTruthy();
   });
 
-  it("gates Run now behind a confirmation and refetches after", async () => {
+  it("starts Run now from its dialog and refetches after", async () => {
     const client = makeClient(makeRoutine());
     renderView(client);
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
     fireEvent.click(screen.getByRole("button", { name: "Run now" }));
 
-    // Confirmation first — nothing fired yet.
-    await screen.findByText("Run this schedule now?");
+    // The dialog first — nothing fired yet.
+    await screen.findByText("Run this routine now?");
     expect(client.routine.fire).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByText("Start run"));
@@ -309,19 +315,19 @@ describe("RoutineDetailView", () => {
     );
   });
 
-  it("offers 'Enable & run now' on a disabled schedule", async () => {
+  it("offers 'Enable & run now' on a disabled routine", async () => {
     const client = makeClient(makeRoutine({ enabled: false }));
     renderView(client);
 
-    await screen.findByText("Schedule is disabled");
-    // No plain "Run now": a disabled schedule cannot fire server-side, so
+    await screen.findByText("Routine is disabled");
+    // No plain "Run now": a disabled routine cannot fire server-side, so
     // the staged-test flow is one click that enables THEN fires.
     expect(screen.queryByRole("button", { name: "Run now" })).toBeNull();
     const enableAndRun = screen.getByRole("button", { name: "Enable & run now" });
     expect((enableAndRun as HTMLButtonElement).disabled).toBe(false);
 
     fireEvent.click(enableAndRun);
-    await screen.findByText("Enable and run this schedule now?");
+    await screen.findByText("Enable and run this routine now?");
     fireEvent.click(screen.getByText("Enable & run"));
 
     // Enable (an update naming spec.enabled) THEN fire.
@@ -340,7 +346,7 @@ describe("RoutineDetailView", () => {
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
     fireEvent.click(screen.getByRole("button", { name: "Run now" }));
-    await screen.findByText("Run this schedule now?");
+    await screen.findByText("Run this routine now?");
     fireEvent.click(screen.getByText("Start run"));
 
     await waitFor(() =>
@@ -463,7 +469,7 @@ describe("RoutineDetailView", () => {
     await openMenu(screen.getByRole("button", { name: "More actions" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
 
-    await screen.findByText("Delete this schedule?");
+    await screen.findByText("Delete this routine?");
     expect(
       screen.getByText(
         '"daily-fee-reminders" will stop firing and be permanently removed. Past runs are not affected. This cannot be undone.',
@@ -496,24 +502,24 @@ describe("RoutineDetailView", () => {
     expect(screen.getByText("isc/fee-reminder")).toBeTruthy();
   });
 
-  it("shows the not-found state for a missing schedule", async () => {
+  it("shows the not-found state for a missing routine", async () => {
     const client = makeClient(makeRoutine());
     // NOT_FOUND resolves to null via useRoutine's isNotFound handling —
     // simulate the resolved-null directly.
     client.routine.getByReference.mockResolvedValue(null);
     renderView(client);
 
-    await screen.findByText("Schedule not found");
+    await screen.findByText("Routine not found");
   });
 
-  it("keeps the caller's schedule untouched when toggling (immutability)", async () => {
+  it("keeps the caller's routine untouched when toggling (immutability)", async () => {
     const routine = makeRoutine({ enabled: false });
     const original = clone(RoutineSchema, routine);
     const client = makeClient(routine);
     renderView(client);
 
-    await screen.findByText("Schedule is disabled");
-    fireEvent.click(screen.getByRole("button", { name: "Enable schedule" }));
+    await screen.findByText("Routine is disabled");
+    fireEvent.click(screen.getByRole("button", { name: "Enable routine" }));
     await waitFor(() => expect(client.routine.update).toHaveBeenCalledOnce());
 
     expect(routine.spec?.enabled).toBe(original.spec?.enabled);
@@ -555,7 +561,7 @@ describe("RoutineDetailView", () => {
     // The copy stays qualitative: the pause threshold is server config
     // the API does not expose, so no hardcoded denominator.
     expect(
-      screen.getByText(/pauses the schedule automatically/),
+      screen.getByText(/pauses the routine automatically/),
     ).toBeTruthy();
     expect(screen.getByText(/Manual runs never count/)).toBeTruthy();
   });
@@ -585,7 +591,7 @@ describe("RoutineDetailView", () => {
     // The badge fills in once the (separate) fires fetch resolves.
     await waitFor(() => {
       const tabs = screen.getAllByRole("tab");
-      expect(tabs.map((t) => t.textContent)).toEqual(["Overview", "History1"]);
+      expect(tabs.map((t) => t.textContent)).toEqual(["Overview", "History1", "API"]);
     });
     // Overview is the default: definition on screen, no full table.
     expect(screen.getByText("Target agent")).toBeTruthy();
@@ -643,7 +649,7 @@ describe("RoutineDetailView", () => {
     expect(screen.queryByRole("button", { name: "Edit cadence" })).toBeNull();
   });
 
-  it("renames the schedule from its slug field, for whoever may delete it, and reports the new slug", async () => {
+  it("renames the routine from its slug field, for whoever may delete it, and reports the new slug", async () => {
     const client = makeClient(makeRoutine());
     client.grant.checkMyPermission.mockResolvedValue({ isAuthorized: true });
     const onRenamed = vi.fn();
@@ -664,7 +670,7 @@ describe("RoutineDetailView", () => {
     expect(onRenamed.mock.calls[0]![0].metadata.slug).toBe("weekly-fee-reminders");
   });
 
-  it("offers no slug field to a caller who may not delete the schedule", async () => {
+  it("offers no slug field to a caller who may not delete the routine", async () => {
     renderView(makeClient(makeRoutine()), { editable: true });
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
     expect(screen.queryByRole("button", { name: "Rename" })).toBeNull();
@@ -681,7 +687,7 @@ describe("RoutineDetailView", () => {
     ).toBeNull();
   });
 
-  it("saves an edited message by naming the target it changed, on the schedule's id", async () => {
+  it("saves an edited message by naming the target it changed, on the routine's id", async () => {
     const client = makeClient(makeRoutine());
     renderView(client, { editable: true });
 
@@ -698,7 +704,7 @@ describe("RoutineDetailView", () => {
     const target =
       doc.message.spec?.agent;
     expect(target?.message).toBe("Send this week's fee reminders.");
-    // The one changed field by its path, on the schedule's id; the rest of
+    // The one changed field by its path, on the routine's id; the rest of
     // the edited spec is sent as loaded.
     expect(sentUpdate<Routine>(client.routine.update).paths).toEqual(["spec.agent"]);
     expect(doc.message.metadata?.id).toBe("sch_01example");
@@ -901,7 +907,7 @@ describe("RoutineDetailView", () => {
     expect(target?.vaults?.[0].kind).toBe(ApiResourceKind.vault);
   });
 
-  it("offers My vault in the vaults editor to the schedule's creator only", async () => {
+  it("offers My vault in the vaults editor to the routine's creator only", async () => {
     const vaults = {
       entries: [
         {
@@ -957,5 +963,150 @@ describe("RoutineDetailView", () => {
     // open so the draft is not lost.
     await screen.findByText(/must have exactly 5 fields/);
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
+  });
+});
+
+describe("RoutineDetailView: starting it, who started it, and its API", () => {
+  it("sends the note written in the run dialog, and none when it is blank", async () => {
+    const client = makeClient(makeRoutine());
+    renderView(client);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Run now" }));
+    fireEvent.change(await screen.findByLabelText(/Note for this run/), {
+      target: { value: "Sentry alert SEN-4521 fired" },
+    });
+    fireEvent.click(screen.getByText("Start run"));
+    await waitFor(() =>
+      expect(client.routine.fire).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "sch_01example", text: "Sentry alert SEN-4521 fired" }),
+      ),
+    );
+    await waitFor(() => expect(screen.queryByText("Run this routine now?")).toBeNull());
+
+    fireEvent.click(screen.getByRole("button", { name: "Run now" }));
+    fireEvent.change(await screen.findByLabelText(/Note for this run/), {
+      target: { value: "   " },
+    });
+    fireEvent.click(screen.getByText("Start run"));
+    await waitFor(() => expect(client.routine.fire).toHaveBeenCalledTimes(2));
+    expect(client.routine.fire.mock.calls[1]![0].text).toBe("");
+  });
+
+  it("bounds the note at the contract's 65,536 characters", async () => {
+    const client = makeClient(makeRoutine());
+    renderView(client);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Run now" }));
+    const note = (await screen.findByLabelText(/Note for this run/)) as HTMLTextAreaElement;
+    expect(note.maxLength).toBe(65536);
+  });
+
+  it("offers neither Run now nor Enable & run to someone who may not fire", async () => {
+    const active = makeClient(makeRoutine());
+    active.grant.checkMyPermission.mockResolvedValue({ isAuthorized: false });
+    renderView(active);
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    await waitFor(() =>
+      expect(active.grant.checkMyPermission).toHaveBeenCalledWith(
+        expect.objectContaining({ relation: "can_fire" }),
+      ),
+    );
+    await act(async () => {});
+    expect(screen.queryByRole("button", { name: "Run now" })).toBeNull();
+    cleanup();
+
+    const disabled = makeClient(makeRoutine({ enabled: false }));
+    disabled.grant.checkMyPermission.mockResolvedValue({ isAuthorized: false });
+    renderView(disabled);
+    await screen.findByText("Routine is disabled");
+    await act(async () => {});
+    expect(screen.queryByRole("button", { name: "Enable & run now" })).toBeNull();
+    expect(screen.queryByText(/Enable &amp; run now|to enable it and start one test run/)).toBeNull();
+  });
+
+  it("says who started each fire in the history", async () => {
+    const client = makeClient(makeRoutine());
+    client.routine.listFires.mockResolvedValue(
+      create(RoutineFireListSchema, {
+        entries: [
+          create(RoutineFireSchema, {
+            routineId: "sch_01example",
+            origin: RoutineFireOrigin.MANUAL,
+            outcome: RoutineFireOutcome.STARTED,
+            firedBy: { id: "ida_alerting", displayName: "alerting", mintedBy: "ida_sa_gateway" },
+            nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
+          }),
+          create(RoutineFireSchema, {
+            routineId: "sch_01example",
+            origin: RoutineFireOrigin.MANUAL,
+            outcome: RoutineFireOutcome.STARTED,
+            firedBy: { id: "ida_ana", email: "ana@example.com" },
+            nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 120_000)),
+          }),
+          create(RoutineFireSchema, {
+            routineId: "sch_01example",
+            origin: RoutineFireOrigin.SCHEDULE,
+            outcome: RoutineFireOutcome.COMPLETED,
+            nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 180_000)),
+          }),
+        ],
+        nextPageToken: "",
+      }),
+    );
+    renderView(client, { defaultTab: "history" });
+
+    const table = await screen.findByRole("table", { name: "Fire history" });
+    expect(within(table).getByRole("columnheader", { name: "Started by" })).toBeTruthy();
+    const rows = within(table).getAllByRole("row").slice(1);
+    const startedBy = rows.map((row) => within(row).getAllByRole("cell")[2]!);
+    expect(startedBy.map((cell) => cell.textContent)).toEqual(["alerting", "ana@example.com", "—"]);
+  });
+
+  it("names the service account behind an app user's token, and nobody for a schedule fire", () => {
+    const fire = (firedBy?: { id: string; displayName?: string; email?: string; mintedBy?: string }) =>
+      create(RoutineFireSchema, { origin: RoutineFireOrigin.MANUAL, ...(firedBy ? { firedBy } : {}) });
+    expect(fireStartedBy(fire({ id: "ida_u", displayName: "alerting", mintedBy: "ida_sa_gw" }))).toEqual({
+      label: "alerting",
+      detail: "through service account ida_sa_gw",
+    });
+    expect(fireStartedBy(fire({ id: "ida_ana", email: "ana@example.com" }))).toEqual({ label: "ana@example.com" });
+    expect(fireStartedBy(fire({ id: "ida_raw" }))).toEqual({ label: "ida_raw" });
+    expect(fireStartedBy(fire())).toBeNull();
+  });
+
+  it("shows the curl that starts it on the API tab, deep-linked by id", async () => {
+    const client = makeClient(makeRoutine());
+    const withPlatform = {
+      ...client,
+      baseUrl: "https://api.example.com",
+      platform: { getServerInfo: vi.fn().mockResolvedValue({ authenticationRequired: true }) },
+    };
+    renderView(withPlatform as unknown as MockClient, { defaultTab: "api" });
+
+    await screen.findByText(/Another system starts this routine with one HTTP call/);
+    const curl = await screen.findByText(
+      /https:\/\/api\.example\.com\/ai\.stigmer\.agentic\.routine\.v1\.RoutineCommandController\/fire/,
+    );
+    expect(curl.textContent).toContain('"id":"sch_01example"');
+    // Open source answers can_grant_access false: the creator's own key, no setup steps.
+    await screen.findByText("Use an API key of the person who created this routine.");
+    expect(screen.queryByText("Who may call it")).toBeNull();
+  });
+
+  it("offers Manage access from the menu to someone who may view access", async () => {
+    const client = makeClient(makeRoutine());
+    client.grant.checkMyPermission.mockImplementation(async (input: { relation: string }) => ({
+      isAuthorized: input.relation === "can_fire" || input.relation === "can_view_access",
+    }));
+    renderView(client);
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    await waitFor(() =>
+      expect(client.grant.checkMyPermission).toHaveBeenCalledWith(
+        expect.objectContaining({ relation: "can_view_access", resource: expect.objectContaining({ kind: "routine" }) }),
+      ),
+    );
+    await openMenu(screen.getByRole("button", { name: "More actions" }));
+    expect(await screen.findByRole("menuitem", { name: "Manage access" })).toBeTruthy();
   });
 });

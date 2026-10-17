@@ -2,11 +2,11 @@
 
 /**
  * The ordered vault picker every surface that names vaults uses: a share, a
- * channel, a schedule, an organization's embedding settings, an agent and
+ * channel, a routine, an organization's embedding settings, an agent and
  * a conversation.
  *
  * Order matters: the first vault holding a match wins. My vault is named
- * two ways, as the server takes it: a schedule its owner sets up lists it
+ * two ways, as the server takes it: a routine its owner sets up lists it
  * by reference (`allowMyVault`), and a conversation includes it with a flag
  * (`myVault`), shown as a fixed first row that is never reordered, because
  * each person who sends a turn uses their own and it is always read first.
@@ -44,7 +44,7 @@ export interface VaultPickerProps {
   /** Disable all interactions. */
   readonly disabled?: boolean;
   /**
-   * Offer the caller's own My vault. Only a schedule its owner sets up may
+   * Offer the caller's own My vault. Only a routine its owner sets up may
    * name it; every other surface leaves this off.
    */
   readonly allowMyVault?: boolean;

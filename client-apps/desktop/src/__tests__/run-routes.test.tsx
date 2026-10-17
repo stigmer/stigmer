@@ -1,6 +1,6 @@
 /**
  * Pins the desktop router's run address: /runs/<id> (where the dashboard
- * and a schedule's runs send a person) renders the run page. The page loads
+ * and a routine's runs send a person) renders the run page. The page loads
  * lazily, so the test renders the matched route's element and waits for
  * the page; the page itself is stubbed and pinned by its own suite. The
  * route saved at the last launch is reopened only while the app still

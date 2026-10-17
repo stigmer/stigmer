@@ -35,12 +35,12 @@ import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 /** Props for {@link RoutineForm}. */
 export interface RoutineFormProps {
   /**
-   * Organization id (a slug is also accepted). Schedules are org-local: the server requires the
+   * Organization id (a slug is also accepted). Routines are org-local: the server requires the
    * target agent to live in this same org, which is the org the agent
    * picker searches.
    */
   readonly org: string;
-  /** Fired with the created schedule after a successful submit. */
+  /** Fired with the created routine after a successful submit. */
   readonly onComplete?: (routine: Routine) => void;
   /** Fired when the user cancels. */
   readonly onCancel?: () => void;
@@ -56,7 +56,7 @@ const MESSAGE_COUNTER_THRESHOLD = 500;
 /**
  * Single-page form for creating a {@link Routine}.
  *
- * The form speaks the composer's vocabulary: a schedule is
+ * The form speaks the composer's vocabulary: a routine is
  * a saved run — which agent, what message, what workspace, which
  * engine and model, what budget — plus a cadence. It reuses the
  * composer's own pickers ({@link ModelSelector}, {@link WorkspaceEditor})
@@ -69,10 +69,10 @@ const MESSAGE_COUNTER_THRESHOLD = 500;
  * recommended practice — create staged-disabled, validate with
  * "Run now" on the detail page, then enable.
  *
- * Creation only. Editing an existing schedule must not flow through
+ * Creation only. Editing an existing routine must not flow through
  * this form's curated input — see the note on {@link useCreateRoutine}.
  *
- * The created schedule names its organization by id; the console URL
+ * The created routine names its organization by id; the console URL
  * carries the slug.
  *
  * @example
@@ -82,9 +82,9 @@ const MESSAGE_COUNTER_THRESHOLD = 500;
  * <RoutineForm
  *   org="acme"
  *   onComplete={(s) =>
- *     navigate(`/library/schedules/${slugForOrg(s.metadata?.org ?? "")}/${s.metadata?.slug}`)
+ *     navigate(`/library/routines/${slugForOrg(s.metadata?.org ?? "")}/${s.metadata?.slug}`)
  *   }
- *   onCancel={() => navigate("/library/schedules")}
+ *   onCancel={() => navigate("/library/routines")}
  * />
  * ```
  */
@@ -110,7 +110,7 @@ export function RoutineForm({
   const [timeZone, setTimeZone] = useState(browserTimeZone);
   const [enabled, setEnabled] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  // A fire has no person, so the schedule uses only the vaults it names.
+  // A fire uses only the vaults the routine names.
   // Its creator's own My vault is named by default (the one surface that
   // may name it), until the creator edits the list.
   const myVault = useMyVault(org);
@@ -229,7 +229,7 @@ export function RoutineForm({
     <form
       onSubmit={handleSubmit}
       className={cn("stg:max-w-2xl stg:space-y-5", className)}
-      aria-label="New schedule"
+      aria-label="New routine"
     >
       {/* Name */}
       <div className="stg:space-y-1">
@@ -329,7 +329,7 @@ export function RoutineForm({
         <p className={hintClasses}>
           Each run clones these repositories fresh. Private repositories need
           a <code className="stg:font-mono">github.com</code> login in one of
-          this schedule&rsquo;s vaults; public ones need nothing.
+          this routine&rsquo;s vaults; public ones need nothing.
         </p>
       </div>
 
@@ -468,8 +468,8 @@ export function RoutineForm({
             Enabled
           </label>
           <p className={hintClasses}>
-            Leave off to create the schedule staged: validate it with
-            &ldquo;Run now&rdquo; on the schedule page, then enable it there.
+            Leave off to create the routine staged: validate it with
+            &ldquo;Run now&rdquo; on the routine page, then enable it there.
           </p>
         </div>
       </div>
@@ -492,7 +492,7 @@ export function RoutineForm({
           )}
         >
           {isCreating && <SpinnerIcon size={14} />}
-          Create schedule
+          Create routine
         </button>
 
         {onCancel && (
@@ -524,7 +524,7 @@ const hintClasses = "stg:text-[0.65rem] stg:text-muted-foreground";
 /**
  * Assemble a {@link RunConfigInput} from the model choice and budget, or
  * `undefined` when both are unset — an all-empty run_config carries no meaning,
- * and omitting it keeps the schedule on the platform defaults (the server's own
+ * and omitting it keeps the routine on the platform defaults (the server's own
  * "empty = inherit" contract). Non-numeric or negative budgets are dropped
  * rather than sent; the proto's `gte = 0` constraint would reject them anyway,
  * and a blank field must not become a zero override. `max_tool_rounds` is

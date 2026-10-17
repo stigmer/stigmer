@@ -1,10 +1,7 @@
-"use client";
-
 import { useMemo, useReducer, useState } from "react";
-import Link from "next/link";
+import { Link, useNavigate } from "react-router-dom";
 import { CalendarClock, Plus, Upload } from "lucide-react";
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
-import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import {
   ResourceWorkbench,
   ApplyManifestDialog,
@@ -13,12 +10,14 @@ import {
   createRoutineListFn,
   useStigmer,
   useActiveOrgId,
+  useOrgSlugForId,
 } from "@stigmer/react-sdk";
 
-export function ScheduleListPage() {
+export default function RoutineListPage() {
   const org = useActiveOrgId();
+  const slugForOrg = useOrgSlugForId();
   const stigmer = useStigmer();
-  const { navigateToDetail } = useLibraryNavigation();
+  const navigate = useNavigate();
 
   const [importOpen, setImportOpen] = useState(false);
   // Bumped after Apply YAML or a row action (trigger/resume) so the list
@@ -32,11 +31,11 @@ export function ScheduleListPage() {
   // secondary, declarative/GitOps path.
   const newRoutineButton = (
     <Link
-      href="/library/schedules/new"
+      to="/library/routines/new"
       className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <Plus className="size-3.5" aria-hidden="true" />
-      New schedule
+      New routine
     </Link>
   );
 
@@ -61,16 +60,17 @@ export function ScheduleListPage() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-foreground text-xl font-semibold">Schedules</h1>
+        <h1 className="text-foreground text-xl font-semibold">Routines</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Run agents on a cron cadence and see when each schedule fires next.
+          Start an agent on a routine, by hand, or from another system.
         </p>
       </div>
 
       {/*
-        Schedules are the one Library kind listed via the direct query
+        Routines are the one Library kind listed via the direct query
         (full protos with live status), not the search service — hence
-        searchable={false} (no server text search).
+        searchable={false} (no server text search). Wired identically to
+        the web Library.
       */}
       <ResourceWorkbench<Routine>
         refetchToken={refetchToken}
@@ -82,21 +82,19 @@ export function ScheduleListPage() {
         defaultViewMode="table"
         viewModes={["table"]}
         renderItemAction={(item) => (
-          <RoutineRowActions schedule={item} onChanged={refreshList} />
+          <RoutineRowActions routine={item} onChanged={refreshList} />
         )}
         emptyIcon={<CalendarClock className="size-10" aria-hidden="true" />}
-        emptyTitle="No schedules yet"
-        emptyDescription="Create a schedule to run an agent on a cadence — daily, weekly, or any cron expression."
+        emptyTitle="No routines yet"
+        emptyDescription="Create a routine to start an agent on a routine, by hand, or from another system."
         headerAction={headerActions}
         emptyAction={newRoutineButton}
         onItemClick={(item) =>
-          navigateToDetail(
-            "schedules",
-            item.metadata?.org ?? "",
-            item.metadata?.slug ?? "",
+          navigate(
+            `/library/routines/${slugForOrg(item.metadata?.org ?? "")}/${item.metadata?.slug ?? ""}`,
           )
         }
-        aria-label="Schedule workbench"
+        aria-label="Routine workbench"
       />
 
       <ApplyManifestDialog

@@ -47,8 +47,8 @@ vi.mock("@/domain/library/agents/AgentDetailPage", async () => {
 vi.mock("@/domain/library/skills/SkillDetailPage", () => ({
   SkillDetailPageInner: () => <div data-testid="skill-detail" />,
 }));
-vi.mock("@/domain/library/schedules/ScheduleDetailPage", () => ({
-  ScheduleDetailPageInner: () => <div data-testid="schedule-detail" />,
+vi.mock("@/domain/library/routines/RoutineDetailPage", () => ({
+  RoutineDetailPageInner: () => <div data-testid="routine-detail" />,
 }));
 
 // The organizations the person belongs to, as the SDK's OrgProvider would

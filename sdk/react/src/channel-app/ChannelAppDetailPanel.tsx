@@ -18,7 +18,8 @@ import {
   WHATSAPP_CHANNEL_APP_WEBHOOK_FIELDS,
   whatsappChannelAppWebhookUrl,
 } from "./whatsappAppSetup.js";
-import { CopyBlock, CopyRow, FormField, UnknownAddressRow } from "./internal.js";
+import { CopyBlock } from "../internal/CopyBlock.js";
+import { CopyRow, FormField, UnknownAddressRow } from "./internal.js";
 import { PermissionGate } from "../grant/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";

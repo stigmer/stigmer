@@ -1,8 +1,8 @@
 /**
- * Pins the web schedule page's seams around the SDK's RoutineDetailView: a
- * run picked on the schedule opens through run navigation, the agent it
- * targets opens as a library detail, a deleted schedule lands on the
- * schedules list, the loaded schedule names the breadcrumb, and a `?tab=`
+ * Pins the web routine page's seams around the SDK's RoutineDetailView: a
+ * run picked on the routine opens through run navigation, the agent it
+ * targets opens as a library detail, a deleted routine lands on the
+ * routines list, the loaded routine names the breadcrumb, and a `?tab=`
  * deep link picks the first tab. The detail view itself is pinned in
  * @stigmer/react-sdk; here it is stubbed to capture its props.
  */
@@ -55,7 +55,7 @@ vi.mock("@/domain/runs/run-navigation", () => ({
   useRunNavigation: () => ({ navigateToRun: (id: string) => page.openedRuns.push(id) }),
 }));
 
-import { ScheduleDetailPageInner } from "../ScheduleDetailPage";
+import { RoutineDetailPageInner } from "../RoutineDetailPage";
 
 function view(): ViewProps | undefined {
   return page.view.at(-1);
@@ -74,22 +74,22 @@ afterEach(() => {
   window.history.replaceState(null, "", "/");
 });
 
-describe("web ScheduleDetailPageInner", () => {
-  it("shows the schedule where it lives, on the overview tab by default", () => {
-    render(<ScheduleDetailPageInner org="acme" slug="nightly" />);
+describe("web RoutineDetailPageInner", () => {
+  it("shows the routine where it lives, on the overview tab by default", () => {
+    render(<RoutineDetailPageInner org="acme" slug="nightly" />);
 
     expect(view()).toMatchObject({ org: "acme", slug: "nightly", activeTab: "overview" });
   });
 
   it("lands on the tab a ?tab= deep link names", () => {
-    window.history.replaceState(null, "", "/library/schedules/acme/nightly?tab=history");
-    render(<ScheduleDetailPageInner org="acme" slug="nightly" />);
+    window.history.replaceState(null, "", "/library/routines/acme/nightly?tab=history");
+    render(<RoutineDetailPageInner org="acme" slug="nightly" />);
 
     expect(view()?.activeTab).toBe("history");
   });
 
-  it("opens a run picked on the schedule through run navigation", () => {
-    render(<ScheduleDetailPageInner org="acme" slug="nightly" />);
+  it("opens a run picked on the routine through run navigation", () => {
+    render(<RoutineDetailPageInner org="acme" slug="nightly" />);
 
     act(() => view()?.onNavigateToRun("aex_1"));
 
@@ -97,17 +97,17 @@ describe("web ScheduleDetailPageInner", () => {
   });
 
   it("opens the targeted agent as a library detail and lands on the list after a delete", () => {
-    render(<ScheduleDetailPageInner org="acme" slug="nightly" />);
+    render(<RoutineDetailPageInner org="acme" slug="nightly" />);
 
     act(() => view()?.onNavigateToAgent("acme", "digest-bot"));
     act(() => view()?.onDeleted());
 
     expect(page.openedDetails).toEqual([["agents", "acme", "digest-bot"]]);
-    expect(page.pushed).toEqual(["/library/schedules"]);
+    expect(page.pushed).toEqual(["/library/routines"]);
   });
 
-  it("names the breadcrumb after the loaded schedule, falling back to its slug", () => {
-    render(<ScheduleDetailPageInner org="acme" slug="nightly" />);
+  it("names the breadcrumb after the loaded routine, falling back to its slug", () => {
+    render(<RoutineDetailPageInner org="acme" slug="nightly" />);
 
     act(() => view()?.onResourceLoad({ metadata: { name: "Nightly digest" } } as Routine));
     act(() => view()?.onResourceLoad({ metadata: { name: "", slug: "nightly" } } as Routine));
@@ -115,8 +115,8 @@ describe("web ScheduleDetailPageInner", () => {
     expect(page.labels.slice(-2)).toEqual(["Nightly digest", "nightly"]);
   });
 
-  it("moves the address to the slug the schedule answers to now, and to the one a rename gave it", () => {
-    render(<ScheduleDetailPageInner org="acme" slug="nightly" />);
+  it("moves the address to the slug the routine answers to now, and to the one a rename gave it", () => {
+    render(<RoutineDetailPageInner org="acme" slug="nightly" />);
 
     act(() => view()?.onResourceLoad({ metadata: { name: "Nightly", slug: "nightly-digest" } } as Routine));
     act(() => view()?.onRenamed?.({ metadata: { name: "Nightly", slug: "digest" } } as Routine));

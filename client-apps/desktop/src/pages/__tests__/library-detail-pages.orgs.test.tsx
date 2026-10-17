@@ -1,7 +1,7 @@
 /**
- * Pins how the desktop detail pages for plugins, skills and schedules name
+ * Pins how the desktop detail pages for plugins, skills and routines name
  * organizations. A resource a page links to (a plugin that installed it,
- * the agent a plugin was added to, a schedule's agent) names its
+ * the agent a plugin was added to, a routine's agent) names its
  * organization by id; the page opens it at a URL carrying that
  * organization's slug. A plugin's "Start a chat" opens the launcher with
  * the plugin named. The views are pinned in @stigmer/react-sdk.
@@ -48,7 +48,7 @@ vi.mock("@stigmer/react-sdk", () => {
 
 import PluginDetailPage from "../library/PluginDetailPage";
 import SkillDetailPage from "../library/SkillDetailPage";
-import ScheduleDetailPage from "../library/ScheduleDetailPage";
+import RoutineDetailPage from "../library/RoutineDetailPage";
 
 function LocationProbe() {
   const { pathname, search } = useLocation();
@@ -120,9 +120,9 @@ describe("desktop SkillDetailPage — organizations", () => {
   });
 });
 
-describe("desktop ScheduleDetailPage — organizations", () => {
-  it("opens the scheduled agent at its org's slug", () => {
-    renderDetail(ScheduleDetailPage);
+describe("desktop RoutineDetailPage — organizations", () => {
+  it("opens the routine's agent at its org's slug", () => {
+    renderDetail(RoutineDetailPage);
 
     act(() =>
       last<{ onNavigateToAgent: (org: string, slug: string) => void }>("RoutineDetailView").onNavigateToAgent(
@@ -135,19 +135,19 @@ describe("desktop ScheduleDetailPage — organizations", () => {
   });
 });
 
-describe("desktop ScheduleDetailPage — its own slug", () => {
+describe("desktop RoutineDetailPage — its own slug", () => {
   type RoutineView = {
-    onResourceLoad: (schedule: { metadata: { name: string; slug: string } }) => void;
-    onRenamed: (schedule: { metadata?: { slug: string } }) => void;
+    onResourceLoad: (routine: { metadata: { name: string; slug: string } }) => void;
+    onRenamed: (routine: { metadata?: { slug: string } }) => void;
   };
 
-  it("moves the route to the slug the loaded schedule answers to now, and to the one a rename gave it", () => {
-    renderDetail(ScheduleDetailPage);
+  it("moves the route to the slug the loaded routine answers to now, and to the one a rename gave it", () => {
+    renderDetail(RoutineDetailPage);
 
     act(() => last<RoutineView>("RoutineDetailView").onResourceLoad({ metadata: { name: "Nightly", slug: "nightly" } }));
-    expect(location()).toBe("/library/schedules/acme/nightly");
+    expect(location()).toBe("/library/routines/acme/nightly");
 
     act(() => last<RoutineView>("RoutineDetailView").onRenamed({ metadata: { slug: "nightly-digest" } }));
-    expect(location()).toBe("/library/schedules/acme/nightly-digest");
+    expect(location()).toBe("/library/routines/acme/nightly-digest");
   });
 });

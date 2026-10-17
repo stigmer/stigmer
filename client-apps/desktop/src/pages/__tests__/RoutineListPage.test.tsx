@@ -1,7 +1,7 @@
 /**
- * Pins the desktop schedule list's wiring: schedules are listed through the
+ * Pins the desktop routine list's wiring: routines are listed through the
  * direct query (full protos with live status), so the workbench offers no
- * server text search; a row opens its schedule; and Apply YAML or a row
+ * server text search; a row opens its routine; and Apply YAML or a row
  * action refetches the list in place. The workbench is pinned in
  * @stigmer/react-sdk.
  */
@@ -22,7 +22,7 @@ interface WorkbenchProps {
   defaultViewMode: string;
   viewModes: string[];
   getItemId: (item: Item) => string;
-  renderItemAction: (item: Item) => ReactElement<{ schedule: Item; onChanged: () => void }>;
+  renderItemAction: (item: Item) => ReactElement<{ routine: Item; onChanged: () => void }>;
   onItemClick: (item: Item) => void;
   headerAction: ReactNode;
 }
@@ -38,7 +38,7 @@ const page = vi.hoisted(() => ({
   dialog: [] as DialogProps[],
 }));
 
-const LIST_FN = vi.hoisted(() => ({ marker: "schedule-list-fn" }));
+const LIST_FN = vi.hoisted(() => ({ marker: "routine-list-fn" }));
 
 vi.mock("@stigmer/react-sdk", () => ({
   ResourceWorkbench: (props: WorkbenchProps) => {
@@ -58,7 +58,7 @@ vi.mock("@stigmer/react-sdk", () => ({
   useOrgSlugForId: () => (id: string) => (id === "org_acme" ? "acme" : id),
 }));
 
-import ScheduleListPage from "../library/ScheduleListPage";
+import RoutineListPage from "../library/RoutineListPage";
 
 function LocationProbe() {
   return <span data-testid="location">{useLocation().pathname}</span>;
@@ -66,9 +66,9 @@ function LocationProbe() {
 
 function renderList() {
   return render(
-    <MemoryRouter initialEntries={["/library/schedules"]}>
+    <MemoryRouter initialEntries={["/library/routines"]}>
       <Routes>
-        <Route path="*" element={<ScheduleListPage />} />
+        <Route path="*" element={<RoutineListPage />} />
       </Routes>
       <LocationProbe />
     </MemoryRouter>,
@@ -80,7 +80,7 @@ beforeEach(() => {
   page.dialog.length = 0;
 });
 
-describe("desktop ScheduleListPage", () => {
+describe("desktop RoutineListPage", () => {
   it("lists through the direct query, as a table, with no server text search", () => {
     renderList();
 
@@ -96,12 +96,12 @@ describe("desktop ScheduleListPage", () => {
     expect(page.workbench.at(-1)?.getItemId({})).toBe("");
   });
 
-  it("opens a schedule from its row", () => {
+  it("opens a routine from its row", () => {
     renderList();
 
-    // A listed schedule names its org by id; the URL carries the slug.
+    // A listed routine names its org by id; the URL carries the slug.
     act(() => page.workbench.at(-1)?.onItemClick({ metadata: { org: "org_acme", slug: "nightly" } }));
-    expect(screen.getByTestId("location").textContent).toBe("/library/schedules/acme/nightly");
+    expect(screen.getByTestId("location").textContent).toBe("/library/routines/acme/nightly");
   });
 
   it("refetches in place after Apply YAML and after a row action", () => {
@@ -113,7 +113,7 @@ describe("desktop ScheduleListPage", () => {
     expect(page.workbench.at(-1)?.refetchToken).toBe(1);
 
     const action = page.workbench.at(-1)!.renderItemAction({ metadata: { id: "sch_1" } });
-    expect(action.props.schedule).toEqual({ metadata: { id: "sch_1" } });
+    expect(action.props.routine).toEqual({ metadata: { id: "sch_1" } });
     act(() => action.props.onChanged());
     expect(page.workbench.at(-1)?.refetchToken).toBe(2);
   });

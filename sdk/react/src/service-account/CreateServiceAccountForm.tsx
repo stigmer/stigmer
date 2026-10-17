@@ -2,8 +2,8 @@
 
 /**
  * Creating a service account, then its first key, in one flow: the name and
- * the role first (Member preselected; Admin, Member and Viewer offered, never
- * Owner), then the offer of a first key, then that key shown once with copy.
+ * the role first (Member preselected unless the host names another; Admin,
+ * Member and Viewer offered, never Owner), then the offer of a first key, then that key shown once with copy.
  * Most service accounts exist to hold a key, so the key is offered while the
  * admin is still here, and declining it leaves a service account that gets
  * its keys later from its detail panel.
@@ -38,6 +38,13 @@ export interface CreateServiceAccountFormProps {
   readonly onDone?: () => void;
   /** Fired when the user cancels before the account is created. */
   readonly onCancel?: () => void;
+  /**
+   * The role preselected in the picker; the person may still choose another.
+   * A host that knows the account's purpose presets the least role it needs
+   * (a routine's caller needs only Viewer, its reach coming from a grant).
+   * @default IamRole.member
+   */
+  readonly defaultRole?: IamRole;
   readonly className?: string;
 }
 
@@ -74,6 +81,7 @@ export function CreateServiceAccountForm({
   onCreated,
   onDone,
   onCancel,
+  defaultRole = DEFAULT_SERVICE_ACCOUNT_ROLE,
   className,
 }: CreateServiceAccountFormProps) {
   const [step, setStep] = useState<Step>({ phase: "account" });
@@ -82,6 +90,7 @@ export function CreateServiceAccountForm({
     return (
       <AccountStep
         org={org}
+        defaultRole={defaultRole}
         className={className}
         onCancel={onCancel}
         onCreated={(account, role) => {
@@ -139,11 +148,13 @@ export function CreateServiceAccountForm({
 
 function AccountStep({
   org,
+  defaultRole,
   onCreated,
   onCancel,
   className,
 }: {
   readonly org: string;
+  readonly defaultRole: IamRole;
   readonly onCreated: (account: IdentityAccount, role: IamRole) => void;
   readonly onCancel?: () => void;
   readonly className?: string;
@@ -151,7 +162,7 @@ function AccountStep({
   const { create, isCreating, error, clearError } = useCreateServiceAccount();
   const baseId = useId();
   const [name, setName] = useState("");
-  const [role, setRole] = useState<IamRole>(DEFAULT_SERVICE_ACCOUNT_ROLE);
+  const [role, setRole] = useState<IamRole>(defaultRole);
 
   const trimmedName = name.trim();
   const canSubmit = trimmedName !== "" && org !== "" && !isCreating;

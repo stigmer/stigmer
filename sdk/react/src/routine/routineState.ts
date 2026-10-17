@@ -1,7 +1,7 @@
-// Pure schedule-state derivation — the disabled-vs-paused vocabulary,
+// Pure routine-state derivation — the disabled-vs-paused vocabulary,
 // computed on read.
 //
-// A schedule that is not firing is stopped by one of two levers with two
+// A routine that is not firing is stopped by one of two levers with two
 // different writers and two different remedies (the backend pins this
 // vocabulary in its controller docs):
 //
@@ -19,7 +19,7 @@ import type { RoutineSpec } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/sp
 import type { RoutineStatus } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/status_pb";
 import type { StatusPhase } from "../resource-workbench/types.js";
 
-/** The three mutually-exclusive display states of a schedule. */
+/** The three mutually-exclusive display states of a routine. */
 export type RoutineState = "active" | "disabled" | "paused";
 
 /** Derived display state: the tri-state plus its shared-badge rendering. */
@@ -32,14 +32,14 @@ export interface RoutineStateInfo {
   readonly label: string;
   /**
    * `true` when the platform pause latch is set — independent of the
-   * display state, so a disabled-AND-paused schedule can still surface
+   * display state, so a disabled-AND-paused routine can still surface
    * its `status.pausedReason`.
    */
   readonly isPaused: boolean;
 }
 
 /**
- * Derive a schedule's display state from its spec and status.
+ * Derive a routine's display state from its spec and status.
  *
  * A missing spec derives as "disabled" — the same fail-closed reading the
  * server applies to a manifest that omits `enabled`.
@@ -60,11 +60,11 @@ export function deriveRoutineState(
 }
 
 /**
- * Compact future-instant formatter for a schedule's next fire time:
+ * Compact future-instant formatter for a routine's next fire time:
  * `now`, `in 5m`, `in 3h`, `in 6d`, then a short date once "days from
  * now" stops being how people think about it.
  *
- * The schedule-local sibling of the activity module's past-only
+ * The routine-local sibling of the activity module's past-only
  * `formatRelativeTime` (same compact units, same date tail) — kept
  * separate because that util's contract is deliberately past-only.
  * A fire time slightly in the past (a tick mid-flight, clock skew)

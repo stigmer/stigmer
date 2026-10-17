@@ -45,9 +45,9 @@ function wrapper(client: unknown) {
   };
 }
 
-// Shaped like a server-returned schedule, including metadata the curated
+// Shaped like a server-returned routine, including metadata the curated
 // RoutineInput cannot express (tags) — the round-trip canary.
-const SCHEDULE = create(RoutineSchema, {
+const ROUTINE = create(RoutineSchema, {
   apiVersion: "agentic.stigmer.ai/v1",
   kind: "Routine",
   metadata: {
@@ -77,8 +77,8 @@ beforeEach(() => vi.clearAllMocks());
 // ---------------------------------------------------------------------------
 
 describe("useRoutine", () => {
-  it("fetches a schedule by org/slug reference", async () => {
-    const getByReference = vi.fn().mockResolvedValue(SCHEDULE);
+  it("fetches a routine by org/slug reference", async () => {
+    const getByReference = vi.fn().mockResolvedValue(ROUTINE);
     const client = { routine: { getByReference } };
 
     const { result } = renderHook(() => useRoutine("isc", "daily-fee-reminders"), {
@@ -86,7 +86,7 @@ describe("useRoutine", () => {
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.schedule).toBe(SCHEDULE);
+    expect(result.current.routine).toBe(ROUTINE);
     expect(result.current.error).toBeNull();
     expect(getByReference).toHaveBeenCalledWith({
       org: "isc",
@@ -96,7 +96,7 @@ describe("useRoutine", () => {
 
   it("treats NOT_FOUND as null, not an error", async () => {
     // Positional ctor: (code, message, connectCode) — 5 is Connect NotFound.
-    const notFound = new StigmerError("not-found", "Schedule 'x' not found", 5);
+    const notFound = new StigmerError("not-found", "Routine 'x' not found", 5);
     const client = {
       routine: { getByReference: vi.fn().mockRejectedValue(notFound) },
     };
@@ -106,7 +106,7 @@ describe("useRoutine", () => {
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.schedule).toBeNull();
+    expect(result.current.routine).toBeNull();
     expect(result.current.error).toBeNull();
   });
 
@@ -124,9 +124,9 @@ describe("useRoutine", () => {
 });
 
 describe("useRoutineList", () => {
-  it("fetches a page of full Schedule protos", async () => {
+  it("fetches a page of full Routine protos", async () => {
     const list = vi.fn().mockResolvedValue(
-      create(RoutineListSchema, { entries: [SCHEDULE]}),
+      create(RoutineListSchema, { entries: [ROUTINE]}),
     );
     const client = { routine: { list } };
 
@@ -156,7 +156,7 @@ describe("useRoutineList", () => {
 describe("useRoutineCount", () => {
   it("counts the largest first page and says whether more follow", async () => {
     const list = vi.fn().mockResolvedValue(
-      create(RoutineListSchema, { entries: [SCHEDULE], nextPageToken: "tok_2" }),
+      create(RoutineListSchema, { entries: [ROUTINE], nextPageToken: "tok_2" }),
     );
     const client = { routine: { list } };
 
@@ -177,7 +177,7 @@ describe("useRoutineCount", () => {
 
 describe("useResumeRoutine", () => {
   it("resumes by id and toasts success", async () => {
-    const resume = vi.fn().mockResolvedValue(SCHEDULE);
+    const resume = vi.fn().mockResolvedValue(ROUTINE);
     const client = { routine: { resume } };
 
     const { result } = renderHook(() => useResumeRoutine(), {
@@ -186,9 +186,9 @@ describe("useResumeRoutine", () => {
 
     const resumed = await result.current.resumeRoutine("sch_01example");
 
-    expect(resumed).toBe(SCHEDULE);
+    expect(resumed).toBe(ROUTINE);
     expect(resume).toHaveBeenCalledWith("sch_01example");
-    expect(toast.success).toHaveBeenCalledWith("Schedule resumed");
+    expect(toast.success).toHaveBeenCalledWith("Routine resumed");
   });
 
   it("relays a failure and sets error state", async () => {
@@ -210,7 +210,7 @@ describe("useFireRoutine", () => {
     const started = create(RoutineFireResultSchema, {
       outcome: RoutineFireOutcome.STARTED,
       runId: "aex_01run",
-      routine: SCHEDULE,
+      routine: ROUTINE,
     });
     const trigger = vi.fn().mockResolvedValue(started);
     const client = { routine: { fire: trigger } };
@@ -235,7 +235,7 @@ describe("useFireRoutine", () => {
       outcome: RoutineFireOutcome.REFUSED,
       refusalReason:
         "run refused: The organization cannot fund a scheduled run right now.",
-      routine: SCHEDULE,
+      routine: ROUTINE,
     });
     const trigger = vi.fn().mockResolvedValue(refused);
     const client = { routine: { fire: trigger } };
@@ -254,7 +254,7 @@ describe("useFireRoutine", () => {
   });
 
   it("relays a trigger-level gRPC refusal (disabled) verbatim and rejects", async () => {
-    // A disabled schedule is refused at the trigger itself — a gRPC
+    // A disabled routine is refused at the trigger itself — a gRPC
     // error, not a result. Copy is byte-identical across editions.
     const refusal = new StigmerError(
       "failed-precondition",
@@ -275,7 +275,7 @@ describe("useFireRoutine", () => {
 });
 
 describe("useRoutineFires", () => {
-  it("fetches a schedule's run history, newest first", async () => {
+  it("fetches a routine's run history, newest first", async () => {
     const listFires = vi.fn().mockResolvedValue(
       create(RoutineFireListSchema, {
         entries: [
@@ -353,11 +353,11 @@ describe("useRoutineFires", () => {
 });
 
 describe("useSetRoutineEnabled", () => {
-  it("names spec.enabled alone, on the schedule's id and the etag it was loaded at", async () => {
-    const loaded = clone(RoutineSchema, SCHEDULE);
+  it("names spec.enabled alone, on the routine's id and the etag it was loaded at", async () => {
+    const loaded = clone(RoutineSchema, ROUTINE);
     loaded.metadata!.etag = "etag-at-load";
     const update = vi.fn(async (resource: Routine, _paths: string[]) => {
-      const stored = clone(RoutineSchema, SCHEDULE);
+      const stored = clone(RoutineSchema, ROUTINE);
       stored.spec!.enabled = resource.spec?.enabled ?? false;
       return stored;
     });
@@ -381,13 +381,13 @@ describe("useSetRoutineEnabled", () => {
     expect(loaded.spec?.enabled).toBe(true);
 
     expect(updated.spec?.enabled).toBe(false);
-    expect(toast.success).toHaveBeenCalledWith("Schedule disabled");
+    expect(toast.success).toHaveBeenCalledWith("Routine disabled");
   });
 
-  it("toasts 'enabled' when turning the schedule on", async () => {
-    const disabled = clone(RoutineSchema, SCHEDULE);
+  it("toasts 'enabled' when turning the routine on", async () => {
+    const disabled = clone(RoutineSchema, ROUTINE);
     disabled.spec!.enabled = false;
-    const update = vi.fn(async () => SCHEDULE);
+    const update = vi.fn(async () => ROUTINE);
     const client = { routine: { update } };
 
     const { result } = renderHook(() => useSetRoutineEnabled(), {
@@ -395,11 +395,11 @@ describe("useSetRoutineEnabled", () => {
     });
 
     await result.current.setEnabled(disabled, true);
-    expect(toast.success).toHaveBeenCalledWith("Schedule enabled");
+    expect(toast.success).toHaveBeenCalledWith("Routine enabled");
   });
 
-  it("says to reload a schedule changed since it was loaded", async () => {
-    const changed = new ConnectError("Schedule 'isc/daily-fee-reminders' changed since you read it", Code.Aborted, undefined, [
+  it("says to reload a routine changed since it was loaded", async () => {
+    const changed = new ConnectError("Routine 'isc/daily-fee-reminders' changed since you read it", Code.Aborted, undefined, [
       { desc: ErrorInfoSchema, value: { domain: "stigmer.ai", reason: "ETAG_MISMATCH", metadata: {} } },
     ]);
     const client = { routine: { update: vi.fn().mockRejectedValue(changed) } };
@@ -408,25 +408,25 @@ describe("useSetRoutineEnabled", () => {
       wrapper: wrapper(client),
     });
 
-    await expect(result.current.setEnabled(SCHEDULE, false)).rejects.toThrow();
-    expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/^This schedule changed since you opened it/));
+    await expect(result.current.setEnabled(ROUTINE, false)).rejects.toThrow();
+    expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/^This routine changed since you opened it/));
   });
 });
 
 describe("useUpdateRoutineSpec", () => {
-  it("names only the spec field the edit changed, sends nothing for no change, and says to reload a schedule changed since", async () => {
-    const update = vi.fn(async () => SCHEDULE);
+  it("names only the spec field the edit changed, sends nothing for no change, and says to reload a routine changed since", async () => {
+    const update = vi.fn(async () => ROUTINE);
     const client = { routine: { update } };
     const { result } = renderHook(() => useUpdateRoutineSpec(), { wrapper: wrapper(client) });
 
-    await result.current.updateSpec(SCHEDULE, (spec) => {
+    await result.current.updateSpec(ROUTINE, (spec) => {
       spec.cron = "0 10 * * *";
     });
     const sent = sentUpdate<Routine>(update);
     expect(sent.paths).toEqual(["spec.cron"]);
     expect(sent.resource.metadata?.id).toBe("sch_01example");
 
-    await result.current.updateSpec(SCHEDULE, () => {});
+    await result.current.updateSpec(ROUTINE, () => {});
     expect(update).toHaveBeenCalledTimes(1);
 
     update.mockRejectedValueOnce(
@@ -435,9 +435,9 @@ describe("useUpdateRoutineSpec", () => {
       ]),
     );
     await expect(
-      result.current.updateSpec(SCHEDULE, (spec) => {
+      result.current.updateSpec(ROUTINE, (spec) => {
         spec.timeZone = "UTC";
       }),
-    ).rejects.toThrow(/^This schedule changed since you opened it/);
+    ).rejects.toThrow(/^This routine changed since you opened it/);
   });
 });

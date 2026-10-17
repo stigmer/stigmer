@@ -1,6 +1,6 @@
 /**
  * The page at /runs/<id>, the address of a run (the dashboard's failed runs
- * and a schedule's runs open it). A run is viewed in the session it ran in:
+ * and a routine's runs open it). A run is viewed in the session it ran in:
  * the page resolves the run's session and replaces its own history entry
  * with /sessions/<id>, rendering nothing meanwhile. When no run resolves (an
  * unknown id, a run the caller cannot see, or a run without a session) it

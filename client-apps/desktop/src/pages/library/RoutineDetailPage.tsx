@@ -17,13 +17,13 @@ import { useCanonicalDetailSlug } from "./canonical-slug";
  * with React Router in place of Next navigation; tabs stay uncontrolled
  * because desktop routes carry no `?tab=` deep-link convention.
  */
-export default function ScheduleDetailPage() {
+export default function RoutineDetailPage() {
   const { org, slug } = useParams<{ org: string; slug: string }>();
   const navigate = useNavigate();
   const slugForOrg = useOrgSlugForId();
   const { setLabel } = useBreadcrumbOverride();
 
-  // A schedule's last run is a run (run_…); on
+  // A routine's last run is a run (run_…); on
   // desktop it is viewed through its parent session — the same
   // resolve-then-navigate pattern as the run page (pages/runs/RunPage).
   const [pendingExecutionId, setPendingExecutionId] = useState<string | null>(null);
@@ -38,11 +38,11 @@ export default function ScheduleDetailPage() {
   useEffect(() => () => setLabel(null), [setLabel]);
 
   const [loadedSlug, setLoadedSlug] = useState<string | undefined>(undefined);
-  const moveToSlug = useCanonicalDetailSlug("schedules", org, slug, loadedSlug);
+  const moveToSlug = useCanonicalDetailSlug("routines", org, slug, loadedSlug);
 
   const handleResourceLoad = useCallback(
     (loaded: Routine) => {
-      setLabel(loaded.metadata?.name || loaded.metadata?.slug || "Schedule");
+      setLabel(loaded.metadata?.name || loaded.metadata?.slug || "Routine");
       setLoadedSlug(loaded.metadata?.slug);
     },
     [setLabel],
@@ -60,8 +60,9 @@ export default function ScheduleDetailPage() {
         navigate(`/library/agents/${slugForOrg(agentOrg)}/${agentSlug}`)
       }
       onNavigateToRun={setPendingExecutionId}
-      onDeleted={() => navigate("/library/schedules")}
+      onDeleted={() => navigate("/library/routines")}
       onRenamed={(renamed) => moveToSlug(renamed.metadata?.slug ?? "")}
+      serviceAccountsHref="#/settings/service-accounts"
     />
   );
 }

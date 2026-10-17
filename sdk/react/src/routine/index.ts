@@ -49,6 +49,12 @@ export type { RoutineDetailViewProps } from "./RoutineDetailView.js";
 export { RoutineFiresTable } from "./RoutineFiresTable.js";
 export type { RoutineFiresTableProps } from "./RoutineFiresTable.js";
 
+export { RunRoutineDialog, FIRE_TEXT_MAX_LEN } from "./RunRoutineDialog.js";
+export type { RunRoutineDialogProps } from "./RunRoutineDialog.js";
+
+export { RoutineApiPanel, buildRoutineFireCurl } from "./RoutineApiPanel.js";
+export type { RoutineApiPanelProps, BuildRoutineFireCurlArgs } from "./RoutineApiPanel.js";
+
 export {
   cadenceToCron,
   cronToCadence,

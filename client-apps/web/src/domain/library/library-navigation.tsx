@@ -29,7 +29,7 @@ import { useCanonicalOrgSlug, useOrgSlugForId } from "@stigmer/react-sdk";
 export const LIBRARY_RESOURCE_TYPES = [
   "agents",
   "skills",
-  "schedules",
+  "routines",
   "plugins",
 ] as const;
 

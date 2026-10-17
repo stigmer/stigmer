@@ -13,6 +13,8 @@ import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea.js";
 import { EditResourceYamlDialog } from "../manifest/EditResourceYamlDialog.js";
+import { useManageAccess } from "../access/useManageAccess.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell.js";
 import { Section } from "../resource-detail/Section.js";
@@ -76,6 +78,8 @@ import { useResumeRoutine } from "./useResumeRoutine.js";
 import { useSetRoutineEnabled } from "./useSetRoutineEnabled.js";
 import { useFireRoutine } from "./useFireRoutine.js";
 import { useUpdateRoutineSpec } from "./useUpdateRoutineSpec.js";
+import { RoutineApiPanel } from "./RoutineApiPanel.js";
+import { RunRoutineDialog } from "./RunRoutineDialog.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
@@ -86,7 +90,7 @@ import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 export interface RoutineDetailViewProps {
   /** Organization id (a slug is also accepted). */
   readonly org: string;
-  /** Schedule slug. */
+  /** Routine slug. */
   readonly slug: string;
   /**
    * Called when the user activates the target-agent reference.
@@ -102,25 +106,31 @@ export interface RoutineDetailViewProps {
   readonly onNavigateToRun?: (executionId: string) => void;
   /** Called after a successful delete (navigate back to the list). */
   readonly onDeleted?: () => void;
-  /** Called when the schedule loads or reloads (e.g. breadcrumb label sync). */
+  /** Called when the routine loads or reloads (e.g. breadcrumb label sync). */
   readonly onResourceLoad?: (routine: Routine) => void;
   /**
-   * Fired with the renamed schedule after a rename from the slug field. A
+   * Fired with the renamed routine after a rename from the slug field. A
    * host whose address names the slug moves it to the new one.
    */
   readonly onRenamed?: (routine: Routine) => void;
   /**
-   * Enable inline editing of the schedule's mutable spec fields
+   * Enable inline editing of the routine's mutable spec fields
    * (cadence, message, vaults, engine & model, budget). Each
    * field saves independently via a lossless full-resource re-apply
    * ({@link useUpdateRoutineSpec}). The slug is renamed on its own,
-   * from the Overview's slug field, by whoever may delete the schedule
+   * from the Overview's slug field, by whoever may delete the routine
    * (the old slug keeps leading to it for 30 days). The server-immutable
    * fields — target agent, target type — never gain an edit affordance;
    * workspace edits go through Edit YAML for now.
    * @default false
    */
   readonly editable?: boolean;
+  /**
+   * Where the API tab links to manage service accounts, for someone who may
+   * not create one (a hash route in the desktop app).
+   * @default SERVICE_ACCOUNTS_SETTINGS_HREF
+   */
+  readonly serviceAccountsHref?: string;
   /** Consumer-provided extension tabs, appended after the built-ins. */
   readonly additionalTabs?: readonly AdditionalTab[];
   /** Controlled active tab (pair with `onTabChange`). */
@@ -141,6 +151,7 @@ export interface RoutineDetailViewProps {
 
 const OVERVIEW_TAB_ID = "overview";
 const HISTORY_TAB_ID = "history";
+const API_TAB_ID = "api";
 
 // The Overview strip shows the newest handful of fires; the History tab
 // owns the full paginated history.
@@ -150,9 +161,10 @@ const RECENT_FIRES_OPTIONS = { pageSize: 5 } as const;
 const MESSAGE_MAX_LEN = 8192;
 
 /**
- * Self-contained detail view for a Schedule (stigmer/stigmer#352),
- * split into an Overview tab (definition + status + recent fires) and a
- * History tab (the full paginated fire ledger).
+ * Self-contained detail view for a Routine (stigmer/stigmer#352),
+ * split into an Overview tab (definition + status + recent fires), a
+ * History tab (the full paginated fire ledger, with who started each
+ * fire) and an API tab (how another system starts it).
  *
  * The view's one non-negotiable is rendering the two stop-levers
  * distinctly, each with its inline remedy:
@@ -163,11 +175,12 @@ const MESSAGE_MAX_LEN = 8192;
  *   `status.paused_reason`) — banner showing the reason with a Resume
  *   action (the one path that clears the pause).
  *
- * Trigger ("Run now") starts a real, billable run and is gated
- * behind a confirmation; it is disabled while the schedule cannot fire
- * (the banner names the remedy). With `editable`, the mutable spec
- * fields edit inline; Edit YAML, Export, and Delete round out the
- * action set.
+ * Run now starts a real, billable run from a dialog that takes an
+ * optional note for the agent. It shows only to those who may fire the
+ * routine (`can_fire`, its creator and its Participants); an
+ * organization admin who is neither sees the routine without it. With
+ * `editable`, the mutable spec fields edit inline; Manage access, Edit
+ * YAML, Export, and Delete round out the action set.
  *
  * Handles loading, error, and not-found states automatically.
  * Zero Console dependencies — safe for platform builder embedding.
@@ -187,10 +200,36 @@ export function RoutineDetailView({
   onTabChange,
   defaultTab,
   now,
+  serviceAccountsHref,
   className,
 }: RoutineDetailViewProps) {
   const slugForOrg = useOrgSlugForId();
-  const { schedule: routine, isLoading, error, refetch } = useRoutine(org, slug);
+  const { routine, isLoading, error, refetch } = useRoutine(org, slug);
+  const loadedId = routine?.metadata?.id ?? null;
+
+  // Run now shows only to those the server lets fire. Nothing renders
+  // while the check is in flight, so the button never flashes for an
+  // admin it would refuse; after that the hook's fail-open answer holds,
+  // so an outage of the check never hides it.
+  const fireCheck = useCheckPermission(
+    loadedId ? { kind: "routine", id: loadedId } : null,
+    "can_fire",
+  );
+  const canFire = !fireCheck.isLoading && fireCheck.allowed;
+
+  // A routine has no visibility; its access is the grants alone, Participant
+  // and Viewer, which its creator gives.
+  const access = useManageAccess({
+    resource: routine?.metadata
+      ? {
+          kind: ApiResourceKind.routine,
+          kindString: "routine",
+          id: routine.metadata.id,
+          org: routine.metadata.org,
+          name: routine.metadata.name,
+        }
+      : null,
+  });
 
   // The recent-fires fetch stays mounted regardless of the active tab:
   // it feeds the History tab badge (its length, "+" when older fires
@@ -202,7 +241,7 @@ export function RoutineDetailView({
     hasNext: olderFiresFollow,
     isLoading: recentFiresLoading,
     refetch: refetchRecentFires,
-  } = useRoutineFires(routine?.metadata?.id ?? null, RECENT_FIRES_OPTIONS);
+  } = useRoutineFires(loadedId, RECENT_FIRES_OPTIONS);
 
   const { resumeRoutine, isResuming } = useResumeRoutine();
   const { fireRoutine, isFiring } = useFireRoutine();
@@ -210,13 +249,15 @@ export function RoutineDetailView({
   const { updateSpec, isUpdating } = useUpdateRoutineSpec();
   const { deleteResource, isDeleting } = useDeleteResource(
     "routine",
-    routine?.metadata?.id ?? null,
+    loadedId,
     routine?.metadata?.name,
   );
   const { confirmState, confirm, handleConfirm, handleCancel } =
     useConfirmAction();
   const { copyId, copyQualifiedSlug } = useCopyResource();
   const [editOpen, setEditOpen] = useState(false);
+  // The Run now dialog: closed, or open to run, or to enable then run.
+  const [runDialog, setRunDialog] = useState<{ readonly enableFirst: boolean } | null>(null);
 
   // Remount key for the History tab's table: a manual trigger bumps it so
   // the table refetches and returns to page 1, where the new fire
@@ -265,6 +306,7 @@ export function RoutineDetailView({
           ? { badge: recentFires.length, badgeIsLowerBound: olderFiresFollow }
           : {}),
       },
+      { id: API_TAB_ID, label: "API" },
     ],
     [recentFires.length, olderFiresFollow],
   );
@@ -316,13 +358,13 @@ export function RoutineDetailView({
     refetch();
   };
 
-  // One fire: trigger, refresh the schedule and its run history, and — on
+  // One fire: trigger, refresh the routine and its run history, and — on
   // a started run — hand the run to the host so it can navigate
   // straight to it (the whole point of the synchronous trigger). A
   // refused run resolves too; its reason is toasted by the hook
   // and lands in the run history below.
-  const fireNow = async () => {
-    const result = await fireRoutine(routineId);
+  const fireNow = async (text: string | undefined) => {
+    const result = await fireRoutine(routineId, text);
     refetch();
     refetchRecentFires();
     setFiresVersion((v) => v + 1);
@@ -335,42 +377,17 @@ export function RoutineDetailView({
     }
   };
 
-  const handleTrigger = async () => {
-    const confirmed = await confirm({
-      title: "Run this schedule now?",
-      description:
-        "This starts a real run immediately, outside the cron " +
-        "cadence. The run is recorded in this schedule's run history.",
-      confirmLabel: "Start run",
-      variant: "default",
-    });
-    if (!confirmed) return;
-    await fireNow();
-  };
-
-  // A disabled schedule refuses to fire at the server — ScheduleBlueprintAccess
-  // requires spec.enabled at the create gate AND the mid-run read, so a
-  // disabled run would die mid-execution after billing. The
-  // staged-disabled test flow the creation form promises is therefore
-  // "enable, then fire", and this makes it one click.
-  const handleEnableAndRun = async () => {
-    const confirmed = await confirm({
-      title: "Enable and run this schedule now?",
-      description:
-        "This schedule is staged disabled. Enabling it lets it fire on its " +
-        "cron cadence going forward, and starts one real run immediately so " +
-        "you can see the result. You can disable it again afterwards.",
-      confirmLabel: "Enable & run",
-      variant: "default",
-    });
-    if (!confirmed) return;
-    await setEnabled(routine, true);
-    await fireNow();
+  // A disabled routine refuses to fire at the server, so the
+  // staged-disabled test flow the creation form promises is "enable, then
+  // fire", and the dialog makes it one step.
+  const handleStartRun = async (text: string | undefined) => {
+    if (runDialog?.enableFirst) await setEnabled(routine, true);
+    await fireNow(text);
   };
 
   const handleDelete = async () => {
     const confirmed = await confirm({
-      title: "Delete this schedule?",
+      title: "Delete this routine?",
       description:
         `"${meta?.name ?? slug}" will stop firing and be permanently ` +
         "removed. Past runs are not affected. This cannot be undone.",
@@ -382,21 +399,22 @@ export function RoutineDetailView({
     onDeleted?.();
   };
 
-  // Disabled → "Enable & run now" (the one-click staged-test flow);
-  // active and paused → "Run now" (a paused schedule's owner needs a
-  // test fire to verify a fix before resuming).
-  const primaryAction: DetailAction =
-    stateInfo.state === "disabled"
+  // Disabled → "Enable & run now" (the staged-test flow); active and
+  // paused → "Run now" (a paused routine's owner needs a test fire to
+  // verify a fix before resuming). Neither for someone who may not fire.
+  const primaryAction: DetailAction | undefined = !canFire
+    ? undefined
+    : stateInfo.state === "disabled"
       ? {
           id: "enable-and-run",
           label: "Enable & run now",
-          onAction: () => void handleEnableAndRun(),
+          onAction: () => setRunDialog({ enableFirst: true }),
           disabled: isFiring || isToggling,
         }
       : {
           id: "trigger",
           label: "Run now",
-          onAction: () => void handleTrigger(),
+          onAction: () => setRunDialog({ enableFirst: false }),
           disabled: isFiring,
         };
 
@@ -405,7 +423,7 @@ export function RoutineDetailView({
       ? [
           {
             id: "resume",
-            label: "Resume schedule",
+            label: "Resume routine",
             onAction: () => void handleResume(),
             disabled: isResuming,
             group: "state",
@@ -414,11 +432,12 @@ export function RoutineDetailView({
       : []),
     {
       id: "toggle-enabled",
-      label: spec?.enabled ? "Disable schedule" : "Enable schedule",
+      label: spec?.enabled ? "Disable routine" : "Enable routine",
       onAction: () => void handleToggleEnabled(),
       disabled: isToggling,
       group: "state",
     },
+    ...(access.action ? [access.action] : []),
     {
       id: "copy-id",
       label: "Copy ID",
@@ -474,17 +493,22 @@ export function RoutineDetailView({
   const headerBanner =
     stateInfo.state === "disabled" ? (
       <StateBanner
-        title="Schedule is disabled"
+        title="Routine is disabled"
         onAction={() => void handleToggleEnabled()}
-        actionLabel="Enable schedule"
+        actionLabel="Enable routine"
         actionBusy={isToggling}
       >
-        This schedule is staged disabled (
+        This routine is staged disabled (
         <code className="stg:font-mono">spec.enabled</code> is off) — it will not
-        fire on its cron cadence. Use{" "}
-        <span className="stg:font-medium stg:text-foreground">Enable &amp; run now</span>{" "}
-        to enable it and start one test run, or Enable it here to hand it to
-        the cadence.
+        fire on its schedule or start by hand.
+        {canFire && (
+          <>
+            {" "}Use{" "}
+            <span className="stg:font-medium stg:text-foreground">Enable &amp; run now</span>{" "}
+            to enable it and start one test run, or Enable it here to hand it to
+            its schedule.
+          </>
+        )}
         {stateInfo.isPaused && (
           <>
             {" "}
@@ -497,7 +521,7 @@ export function RoutineDetailView({
       <StateBanner
         title="Paused by the platform"
         onAction={() => void handleResume()}
-        actionLabel="Resume schedule"
+        actionLabel="Resume routine"
         actionBusy={isResuming}
       >
         {status?.pausedReason} — resuming clears the pause and the failure
@@ -549,7 +573,7 @@ export function RoutineDetailView({
               prevention over error handling. */}
           <DetailRow label="Target agent">
             {target?.agentRef && isDeletedReference(target.agentRef) ? (
-              // Its agent was deleted: the schedule's fires refuse, and
+              // Its agent was deleted: the routine's fires refuse, and
               // there is no page to link to.
               <span className="stg:text-sm stg:text-muted-foreground">deleted agent</span>
             ) : target?.agentRef ? (
@@ -747,6 +771,14 @@ export function RoutineDetailView({
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {
     tabContent = activeAdditionalTab.content;
+  } else if (effectiveActiveTab === API_TAB_ID) {
+    tabContent = (
+      <RoutineApiPanel
+        routine={routine}
+        onManageAccess={access.action ? access.open : undefined}
+        serviceAccountsHref={serviceAccountsHref}
+      />
+    );
   } else if (effectiveActiveTab === HISTORY_TAB_ID) {
     tabContent = (
       <RoutineFiresTable
@@ -770,7 +802,7 @@ export function RoutineDetailView({
         tabs={effectiveTabs}
         activeTab={effectiveTabs ? effectiveActiveTab : undefined}
         onTabChange={effectiveTabs ? effectiveOnTabChange : undefined}
-        tabsAriaLabel="Schedule detail sections"
+        tabsAriaLabel="Routine detail sections"
         className={className}
       >
         {tabContent}
@@ -781,6 +813,18 @@ export function RoutineDetailView({
         onConfirm={handleConfirm}
         onCancel={handleCancel}
       />
+
+      <RunRoutineDialog
+        open={runDialog !== null}
+        onOpenChange={(open) => {
+          if (!open) setRunDialog(null);
+        }}
+        routineName={meta?.name || meta?.slug || slug}
+        enableFirst={runDialog?.enableFirst ?? false}
+        onStart={handleStartRun}
+      />
+
+      {access.dialog}
 
       {/* Mounted on demand: the editor serializes the resource and pulls
           the CodeMirror chunk, neither of which should cost anything
@@ -848,7 +892,7 @@ function StateBanner({
 // ---------------------------------------------------------------------------
 
 /**
- * Render a schedule's cadence for reading: the plain-English sentence
+ * Render a routine's cadence for reading: the plain-English sentence
  * first ("Every day at 09:00 (Asia/Kolkata)"), the raw cron beneath it
  * in muted mono as the precise record.
  *
@@ -898,7 +942,7 @@ function CadenceSummary({
 // server's message rendered verbatim beneath it. The editors
 // stay in this file (the AgentDetailView single-organism precedent) and
 // reuse the creation form's field components — CadenceField,
-// TimeZoneField, VaultPicker — so creating and editing a schedule
+// TimeZoneField, VaultPicker — so creating and editing a routine
 // are the same experience.
 
 /** Cadence + time zone edit in one panel — they form one sentence. */
@@ -972,8 +1016,8 @@ function CadenceInlineEditor({
 }
 
 /**
- * The schedule's vaults: all a fire uses, since a fire has no person. Only
- * the schedule's creator may name their own My vault, so the picker offers
+ * The routine's vaults: all a fire uses, whoever starts it. Only
+ * the routine's creator may name their own My vault, so the picker offers
  * it to them alone; the server refuses it from anyone else.
  */
 function VaultsInlineEditor({
@@ -986,7 +1030,7 @@ function VaultsInlineEditor({
 }: {
   readonly org: string;
   readonly refs: readonly { org: string; slug: string; id?: string }[];
-  /** The identity that created the schedule; "" when unknown. */
+  /** The identity that created the routine; "" when unknown. */
   readonly creatorId: string;
   readonly onSave: (refs: readonly ResourceRef[]) => Promise<boolean>;
   readonly isSaving: boolean;
@@ -1462,7 +1506,7 @@ function VaultRefList({
 /**
  * The platform's failure streak: how many SCHEDULED runs in a row ended
  * badly. The server increments it per failed cron fire, resets it on a
- * successful run (or Resume), and auto-pauses the schedule when the
+ * successful run (or Resume), and auto-pauses the routine when the
  * streak crosses its threshold. Manual "Run now" fires never count.
  *
  * The threshold itself is server configuration not exposed through the
@@ -1480,7 +1524,7 @@ function FailureStreak({ count }: { readonly count: number }) {
       </span>
       <p className="stg:text-xs stg:text-muted-foreground">
         Failed scheduled runs raise this streak; too many in a row and the
-        platform pauses the schedule automatically. One successful run
+        platform pauses the routine automatically. One successful run
         resets it to 0. Manual runs never count.
       </p>
     </div>
@@ -1617,7 +1661,7 @@ function LoadingSkeleton({ className }: { readonly className?: string }) {
   return (
     <LoadingRegion
       className={cn("stg:flex stg:flex-col stg:gap-6", className)}
-      label="Loading schedule details"
+      label="Loading routine details"
     >
       <div className="stg:flex stg:items-start stg:gap-3">
         <div className="stg:mt-1 stg:size-6 stg:shrink-0 stg:animate-pulse stg:rounded stg:bg-muted" />
@@ -1652,10 +1696,10 @@ function NotFoundState({ className }: { readonly className?: string }) {
     >
       <RoutineIcon className="stg:size-10 stg:text-muted-foreground-faint" />
       <p className="stg:text-sm stg:font-medium stg:text-muted-foreground">
-        Schedule not found
+        Routine not found
       </p>
       <p className="stg:text-xs stg:text-muted-foreground-subtle">
-        This schedule doesn&apos;t exist or you don&apos;t have access to it.
+        This routine doesn&apos;t exist or you don&apos;t have access to it.
       </p>
     </div>
   );
@@ -1665,7 +1709,7 @@ function NotFoundState({ className }: { readonly className?: string }) {
 // Icons (inline SVG — no icon-library dependency)
 // ---------------------------------------------------------------------------
 
-/** Clock-with-arrow icon shared by the schedule views. */
+/** Clock-with-arrow icon shared by the routine views. */
 export function RoutineIcon({ className }: { readonly className?: string }) {
   return (
     <svg

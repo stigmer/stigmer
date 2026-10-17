@@ -43,11 +43,11 @@ export default function LibraryLanding() {
         />
         <ResourceCountCard
           icon={<CalendarClock className="size-5" aria-hidden="true" />}
-          label="Schedules"
+          label="Routines"
           count={routines.count}
           countIsLowerBound={routines.isLowerBound}
           isLoading={routines.isLoading}
-          onClick={() => navigate("/library/schedules")}
+          onClick={() => navigate("/library/routines")}
         />
         <ResourceCountCard
           icon={<Blocks className="size-5" aria-hidden="true" />}

@@ -3,7 +3,7 @@
 //
 // Pins how the breadcrumb reads the zone's current path: nothing at the
 // library root; a link back to Library, then each known category (Agents,
-// Skills, Schedules) as a link to its list; an intermediate segment that is
+// Skills, Routines) as a link to its list; an intermediate segment that is
 // no category (the org in /skills/<org>/<slug>) left out; and the last
 // segment as the current page, named by the label a detail page set
 // (useBreadcrumbLabel) when it is not a category, else by its own text.
@@ -74,15 +74,15 @@ describe("LibraryBreadcrumb", () => {
   });
 
   it("names the detail page by its segment when no label was set", () => {
-    zone.path = "/library/schedules/acme/nightly-report";
+    zone.path = "/library/routines/acme/nightly-report";
     render(<LibraryBreadcrumb />);
     expect(currentPage().textContent).toBe("nightly-report");
   });
 
   it("keeps a category's own label on its list page even when a label is set", () => {
-    zone.path = "/library/schedules";
+    zone.path = "/library/routines";
     zone.label = "Nightly report";
     render(<LibraryBreadcrumb />);
-    expect(currentPage().textContent).toBe("Schedules");
+    expect(currentPage().textContent).toBe("Routines");
   });
 });

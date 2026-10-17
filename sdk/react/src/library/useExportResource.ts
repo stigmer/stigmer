@@ -40,7 +40,7 @@ export interface UseExportResourceReturn {
 // ---------------------------------------------------------------------------
 
 /**
- * Headless export hook for Stigmer resources (Agent, Schedule).
+ * Headless export hook for Stigmer resources (Agent, Routine).
  *
  * Serializes the resource into YAML and JSON formats and provides
  * stable callbacks for copying to clipboard or triggering a file

@@ -46,7 +46,7 @@ vi.mock("@stigmer/react-sdk", () => {
 });
 
 import AgentNewPage from "../library/AgentNewPage";
-import ScheduleNewPage from "../library/ScheduleNewPage";
+import RoutineNewPage from "../library/RoutineNewPage";
 import SkillNewPage from "../library/SkillNewPage";
 import PluginUploadPage from "../library/PluginUploadPage";
 import MarketplacePage from "../marketplace/MarketplacePage";
@@ -105,16 +105,16 @@ describe("desktop AgentNewPage — organizations", () => {
   });
 });
 
-describe("desktop ScheduleNewPage — organizations", () => {
-  it("creates in the active org by id and opens the schedule at its org's slug", () => {
-    renderPage(ScheduleNewPage);
+describe("desktop RoutineNewPage — organizations", () => {
+  it("creates in the active org by id and opens the routine at its org's slug", () => {
+    renderPage(RoutineNewPage);
 
     const form = last<Creator<MetadataResult>>("RoutineForm");
     expect(form.org).toBe("org_acme");
 
     act(() => form.onComplete({ metadata: SHARED }));
 
-    expect(location()).toBe("/library/schedules/shared-team/made");
+    expect(location()).toBe("/library/routines/shared-team/made");
   });
 });
 

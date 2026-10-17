@@ -1,55 +1,57 @@
 "use client";
 
+import { useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
-import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
-import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
+import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { deriveRoutineState } from "./routineState.js";
+import { RunRoutineDialog } from "./RunRoutineDialog.js";
 import { useResumeRoutine } from "./useResumeRoutine.js";
 import { useFireRoutine } from "./useFireRoutine.js";
 
 /** Props for {@link RoutineRowActions}. */
 export interface RoutineRowActionsProps {
-  /** The schedule this row represents. */
-  readonly schedule: Routine;
+  /** The routine this row represents. */
+  readonly routine: Routine;
   /** Called after a successful action so the list can refetch. */
   readonly onChanged?: () => void;
 }
 
 /**
- * Compact per-row actions for a schedule list: **Run now** on an active
- * schedule (confirmation-gated — it starts a real, billable run)
- * and **Resume** on a platform-paused one. Exactly one action renders
- * at a time — the one that is currently meaningful; an owner-disabled
- * schedule renders neither (its remedy lives on the detail page).
+ * Compact per-row actions for a routine list: **Run now** on an active
+ * routine (through {@link RunRoutineDialog}, with an optional note — it
+ * starts a real, billable run) and **Resume** on a platform-paused one.
+ * Exactly one action renders at a time — the one that is currently
+ * meaningful; an owner-disabled routine renders neither (its remedy lives
+ * on the detail page).
  *
- * Shared by every console's schedule workbench via `renderItemAction`
+ * Run now shows only to those who may fire the routine (`can_fire`), as on
+ * the detail page: one cached check per active row, nothing rendered while
+ * it is in flight, and the hook's fail-open answer after that.
+ *
+ * Shared by every console's routine workbench via `renderItemAction`
  * so row behavior never diverges between apps.
  */
 export function RoutineRowActions({
-  schedule: routine,
+  routine,
   onChanged,
 }: RoutineRowActionsProps) {
   const { resumeRoutine, isResuming } = useResumeRoutine();
   const { fireRoutine, isFiring } = useFireRoutine();
-  const { confirmState, confirm, handleConfirm, handleCancel } =
-    useConfirmAction();
+  const [runOpen, setRunOpen] = useState(false);
 
   const info = deriveRoutineState(routine.spec, routine.status);
   const routineId = routine.metadata?.id ?? "";
-  const name = routine.metadata?.name || routine.metadata?.slug || "schedule";
+  const name = routine.metadata?.name || routine.metadata?.slug || "routine";
 
-  const handleTrigger = async () => {
-    const confirmed = await confirm({
-      title: "Run this schedule now?",
-      description:
-        `"${name}" starts a real run immediately, outside ` +
-        "the cron cadence.",
-      confirmLabel: "Start run",
-      variant: "default",
-    });
-    if (!confirmed) return;
-    await fireRoutine(routineId);
+  const fireCheck = useCheckPermission(
+    info.state === "active" && routineId ? { kind: "routine", id: routineId } : null,
+    "can_fire",
+  );
+  const canFire = !fireCheck.isLoading && fireCheck.allowed;
+
+  const handleStart = async (text: string | undefined) => {
+    await fireRoutine(routineId, text);
     onChanged?.();
   };
 
@@ -66,13 +68,15 @@ export function RoutineRowActions({
     // real interactive element (with keyboard support) is the button.
     <span onClick={(e) => e.stopPropagation()}>
       {info.state === "active" ? (
-        <RowActionButton
-          label={`Run ${name} now`}
-          busy={isFiring}
-          onClick={() => void handleTrigger()}
-        >
-          Run now
-        </RowActionButton>
+        canFire && (
+          <RowActionButton
+            label={`Run ${name} now`}
+            busy={isFiring}
+            onClick={() => setRunOpen(true)}
+          >
+            Run now
+          </RowActionButton>
+        )
       ) : (
         <RowActionButton
           label={`Resume ${name}`}
@@ -83,11 +87,12 @@ export function RoutineRowActions({
         </RowActionButton>
       )}
 
-      {confirmState && (
-        <ConfirmDialog
-          state={confirmState}
-          onConfirm={handleConfirm}
-          onCancel={handleCancel}
+      {runOpen && (
+        <RunRoutineDialog
+          open={runOpen}
+          onOpenChange={setRunOpen}
+          routineName={name}
+          onStart={handleStart}
         />
       )}
     </span>

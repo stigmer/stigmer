@@ -33,11 +33,11 @@ const AgentListPage = lazy(() => import("./pages/library/AgentListPage"));
 const AgentDetailPage = lazy(() => import("./pages/library/AgentDetailPage"));
 const SkillListPage = lazy(() => import("./pages/library/SkillListPage"));
 const SkillDetailPage = lazy(() => import("./pages/library/SkillDetailPage"));
-const ScheduleListPage = lazy(() => import("./pages/library/ScheduleListPage"));
-const ScheduleDetailPage = lazy(() => import("./pages/library/ScheduleDetailPage"));
+const RoutineListPage = lazy(() => import("./pages/library/RoutineListPage"));
+const RoutineDetailPage = lazy(() => import("./pages/library/RoutineDetailPage"));
 const AgentNewPage = lazy(() => import("./pages/library/AgentNewPage"));
 const SkillNewPage = lazy(() => import("./pages/library/SkillNewPage"));
-const ScheduleNewPage = lazy(() => import("./pages/library/ScheduleNewPage"));
+const RoutineNewPage = lazy(() => import("./pages/library/RoutineNewPage"));
 const PluginListPage = lazy(() => import("./pages/library/PluginListPage"));
 const PluginDetailPage = lazy(() => import("./pages/library/PluginDetailPage"));
 const PluginUploadPage = lazy(() => import("./pages/library/PluginUploadPage"));
@@ -204,26 +204,26 @@ const routes: RouteObject[] = [
             ),
           },
           {
-            path: "schedules",
+            path: "routines",
             element: (
               <LazyPage>
-                <ScheduleListPage />
+                <RoutineListPage />
               </LazyPage>
             ),
           },
           {
-            path: "schedules/new",
+            path: "routines/new",
             element: (
               <LazyPage>
-                <ScheduleNewPage />
+                <RoutineNewPage />
               </LazyPage>
             ),
           },
           {
-            path: "schedules/:org/:slug",
+            path: "routines/:org/:slug",
             element: (
               <LazyPage>
-                <ScheduleDetailPage />
+                <RoutineDetailPage />
               </LazyPage>
             ),
           },

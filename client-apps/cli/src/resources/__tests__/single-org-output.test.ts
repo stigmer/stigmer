@@ -125,7 +125,7 @@ describe("resumeRoutine by bare slug with no organization", () => {
     const { stigmer, getByReference } = serverHolding(false);
     const refusal = resumeRoutine(stigmer, "nightly", "");
     await expect(refusal).rejects.toBeInstanceOf(UsageError);
-    await expect(refusal).rejects.toThrow(/stigmer routine resume --org <org>/);
+    await expect(refusal).rejects.toThrow(/stigmer routine <command> --org <org>/);
     expect(getByReference).not.toHaveBeenCalled();
   });
 });

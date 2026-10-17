@@ -26,7 +26,7 @@ export interface ResourceCountCardProps {
   readonly count?: number;
   /**
    * `true` when `count` is what a first page holds and more follow (a list
-   * with no total, such as schedules): the card reads "100+".
+   * with no total, such as routines): the card reads "100+".
    */
   readonly countIsLowerBound?: boolean;
   /**

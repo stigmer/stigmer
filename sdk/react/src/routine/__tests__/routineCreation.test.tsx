@@ -73,7 +73,7 @@ afterEach(cleanup);
 // ---------------------------------------------------------------------------
 
 describe("useCreateRoutine", () => {
-  it("applies the input and returns the created schedule", async () => {
+  it("applies the input and returns the created routine", async () => {
     const apply = vi.fn().mockResolvedValue(CREATED);
     const client = { routine: { apply } };
 
@@ -258,7 +258,7 @@ describe("RoutineForm", () => {
     const client = createClient();
     render(<RoutineForm org="isc" />, { wrapper: wrapper(client) });
 
-    const submit = screen.getByRole("button", { name: "Create schedule" });
+    const submit = screen.getByRole("button", { name: "Create routine" });
     expect((submit as HTMLButtonElement).disabled).toBe(true);
 
     fireEvent.change(screen.getByLabelText("Name"), {
@@ -290,7 +290,7 @@ describe("RoutineForm", () => {
     });
     await pickAgent();
 
-    fireEvent.click(screen.getByRole("button", { name: "Create schedule" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create routine" }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
     expect(apply).toHaveBeenCalledWith({
@@ -328,7 +328,7 @@ describe("RoutineForm", () => {
       target: { value: "0.50" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Create schedule" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create routine" }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
     const input = apply.mock.calls[0][0];
@@ -365,7 +365,7 @@ describe("RoutineForm", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Create schedule" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create routine" }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
     const input = apply.mock.calls[0][0];
@@ -430,7 +430,7 @@ describe("RoutineForm", () => {
       await screen.findByRole("option", { name: /Claude Sonnet 4\.6/ }),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Create schedule" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create routine" }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
     const input = apply.mock.calls[0][0];
@@ -491,7 +491,7 @@ describe("RoutineForm", () => {
     fireEvent.click(screen.getByRole("button", { name: /Composer 2\.5/ }));
     fireEvent.click(await screen.findByRole("switch", { name: "Fast tier" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Create schedule" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create routine" }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
     const input = apply.mock.calls[0][0];
@@ -523,18 +523,18 @@ describe("RoutineForm", () => {
       target: { value: "Send today's reminders." },
     });
     await pickAgent();
-    fireEvent.click(screen.getByRole("button", { name: "Create schedule" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create routine" }));
 
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("@every intervals are not supported");
     expect(onComplete).not.toHaveBeenCalled();
     expect(
-      (screen.getByRole("button", { name: "Create schedule" }) as HTMLButtonElement)
+      (screen.getByRole("button", { name: "Create routine" }) as HTMLButtonElement)
         .disabled,
     ).toBe(false);
   });
 
-  it("names its creator's My vault by default, and sends it with the schedule", async () => {
+  it("names its creator's My vault by default, and sends it with the routine", async () => {
     const apply = vi.fn().mockResolvedValue(CREATED);
     const client = vaultClient(apply);
     const onComplete = vi.fn();
@@ -553,7 +553,7 @@ describe("RoutineForm", () => {
       target: { value: "Send today's reminders." },
     });
     await pickAgent();
-    fireEvent.click(screen.getByRole("button", { name: "Create schedule" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create routine" }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
     expect(apply.mock.calls[0][0].agent.vaults).toEqual([

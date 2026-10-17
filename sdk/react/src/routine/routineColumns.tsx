@@ -20,11 +20,11 @@ export interface RoutineColumnsOptions {
 }
 
 /**
- * Column set for a schedule workbench — shared by every console so the
+ * Column set for a routine workbench — shared by every console so the
  * list renders identically everywhere.
  *
- * The columns exist because schedules are listed via the direct query:
- * each row is a full `Schedule` proto, so the operational fields the
+ * The columns exist because routines are listed via the direct query:
+ * each row is a full `Routine` proto, so the operational fields the
  * issue calls for (next fire, last run, enabled/paused state) render
  * straight from the row — no generic `SearchResult` limitations.
  *

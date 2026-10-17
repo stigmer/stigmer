@@ -1,31 +1,44 @@
 // Unit tests for fireRoutine, the `routine fire` dispatch: the fire is sent
-// for the resolved routine's id, and the result names the run's real
-// outcome. A started run is a success naming the run, the command to watch it
-// and the next scheduled fire; a refused run (a launch gate, or a target
-// agent that is gone) is an error result relaying the server's reason
-// verbatim with a hint that the fire is recorded; a routine with no id is a
-// usage error and fires nothing. And for resumeRoutine, the `routine resume`
+// for the resolved routine's id, with the note when one is given and with no
+// text field at all when none is, and the result names the run's real
+// outcome. A started run is a success naming the run, the fire, the command
+// to watch it and the next scheduled fire; a refused run (a launch gate, or a
+// target agent that is gone) is an error result relaying the server's reason
+// verbatim with a hint naming the fire history; a routine with no id is a
+// usage error and fires nothing. For resumeRoutine, the `routine resume`
 // dispatch: a paused routine's resume names what it cleared, one that was not
 // paused says there was nothing to clear and when it next fires, a disabled
 // one is told it will not run until enabled, and a routine with no id is a
-// usage error that resumes nothing. The client is a double recording what it
-// was asked. The routine here keeps the `sch_` id a stored schedule was
-// minted with, which still names it.
+// usage error that resumes nothing. For showRoutineFires, the `routine
+// fires` view: the history is asked for by the resolved routine's id and
+// read up to the limit, one row per fire says when, how it began, who
+// started it (with the service account behind an app user's token), the
+// outcome, the run and the reason, a schedule fire shows no caller, a
+// caller's name and a reason from outside the CLI cannot break the table or
+// reach the terminal as escape codes, an empty history says so, and yaml and
+// json print the rows. The client is a double recording what it was asked.
+// The routine here keeps the `sch_` id a stored schedule was minted with,
+// which still names it.
 
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { RoutineSchema, type Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import {
   type FireRoutineInput,
+  type ListRoutineFiresRequest,
+  RoutineFireListSchema,
+  RoutineFireOrigin,
   RoutineFireOutcome,
   RoutineFireResultSchema,
+  RoutineFireSchema,
+  type RoutineFire,
   type RoutineFireResult,
 } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
 import type { Stigmer } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { UsageError } from "../../errors/index.js";
 import type { CommandResult } from "../../output/index.js";
-import { fireRoutine, resumeRoutine } from "../routine.js";
+import { fireRoutine, renderFiresTable, resumeRoutine, showRoutineFires } from "../routine.js";
 
 const NEXT_FIRE = new Date("2026-10-07T09:00:00.000Z");
 
@@ -35,18 +48,23 @@ const nightly = create(RoutineSchema, {
 });
 
 /** A client whose routine get answers `routine` and whose fire answers `result`. */
-function double(routine: Routine, result: RoutineFireResult): { client: Stigmer; fired: string[] } {
+function double(
+  routine: Routine,
+  result: RoutineFireResult,
+): { client: Stigmer; fired: string[]; inputs: FireRoutineInput[] } {
   const fired: string[] = [];
+  const inputs: FireRoutineInput[] = [];
   const client = {
     routine: {
       get: async () => routine,
       fire: async (input: FireRoutineInput) => {
         fired.push(input.id);
+        inputs.push(input);
         return result;
       },
     },
   } as unknown as Stigmer;
-  return { client, fired };
+  return { client, fired, inputs };
 }
 
 function fields(result: CommandResult): Record<string, string> {
@@ -54,10 +72,15 @@ function fields(result: CommandResult): Record<string, string> {
 }
 
 describe("fireRoutine", () => {
-  it("reports a started run with the command to watch it and the next scheduled fire", async () => {
+  it("reports a started run with its fire, the command to watch it and the next scheduled fire", async () => {
     const { client, fired } = double(
       nightly,
-      create(RoutineFireResultSchema, { routine: nightly, outcome: RoutineFireOutcome.STARTED, runId: "aex_7" }),
+      create(RoutineFireResultSchema, {
+        routine: nightly,
+        outcome: RoutineFireOutcome.STARTED,
+        runId: "aex_7",
+        fireId: "manual-20261018-a1b2",
+      }),
     );
 
     const result = await fireRoutine(client, "sch_1", "acme");
@@ -67,9 +90,35 @@ describe("fireRoutine", () => {
     expect(result.message).toBe("Routine 'Nightly digest' fired — run started");
     expect(fields(result)).toEqual({
       Run: "aex_7",
+      Fire: "manual-20261018-a1b2",
       "Watch it": "stigmer get run aex_7",
       "Next scheduled fire": NEXT_FIRE.toISOString(),
     });
+  });
+
+  it("sends the note as the fire's text", async () => {
+    const { client, inputs } = double(
+      nightly,
+      create(RoutineFireResultSchema, { routine: nightly, outcome: RoutineFireOutcome.STARTED, runId: "aex_7" }),
+    );
+
+    await fireRoutine(client, "sch_1", "acme", "Sentry alert SEN-4521 fired");
+
+    expect(inputs.map((input) => ({ id: input.id, text: input.text }))).toEqual([
+      { id: "sch_1", text: "Sentry alert SEN-4521 fired" },
+    ]);
+  });
+
+  it("sends no text when no note is given", async () => {
+    const { client, inputs } = double(
+      nightly,
+      create(RoutineFireResultSchema, { routine: nightly, outcome: RoutineFireOutcome.STARTED, runId: "aex_7" }),
+    );
+
+    await fireRoutine(client, "sch_1", "acme");
+
+    expect(inputs).toHaveLength(1);
+    expect(inputs[0]?.text).toBe("");
   });
 
   it("names the routine read before the fire when the result carries none, by slug when unnamed", async () => {
@@ -82,7 +131,7 @@ describe("fireRoutine", () => {
     const result = await fireRoutine(client, "sch_1", "acme");
 
     expect(result.message).toBe("Routine 'nightly' fired — run started");
-    expect(fields(result)).toEqual({ Run: "aex_8", "Watch it": "stigmer get run aex_8" });
+    expect(fields(result)).toEqual({ Run: "aex_8", Fire: "", "Watch it": "stigmer get run aex_8" });
   });
 
   it("reports a run a launch gate refused as an error, relaying the reason", async () => {
@@ -101,7 +150,7 @@ describe("fireRoutine", () => {
     expect(result.message).toBe("Routine 'Nightly digest' fired, but a launch gate refused the run");
     expect(fields(result)).toEqual({ Reason: "monthly spend cap reached" });
     expect(result.hints).toEqual([
-      "The fire is recorded in the routine's fire history; fix the cause and fire it again.",
+      "The fire is recorded in the routine's fire history (stigmer routine fires sch_1); fix the cause and fire it again.",
     ]);
   });
 
@@ -202,5 +251,138 @@ describe("resumeRoutine", () => {
       new UsageError("Routine 'sch_1' has no id — cannot resume"),
     );
     expect(resumed).toEqual([]);
+  });
+});
+
+describe("showRoutineFires", () => {
+  const RECORDED = new Date("2026-10-18T08:30:00.000Z");
+
+  const scheduled = create(RoutineFireSchema, {
+    routineId: "sch_1",
+    origin: RoutineFireOrigin.SCHEDULE,
+    outcome: RoutineFireOutcome.COMPLETED,
+    runId: "aex_1",
+    recordedAt: timestampFromDate(RECORDED),
+  });
+
+  const byPerson = create(RoutineFireSchema, {
+    routineId: "sch_1",
+    origin: RoutineFireOrigin.MANUAL,
+    outcome: RoutineFireOutcome.STARTED,
+    runId: "aex_2",
+    recordedAt: timestampFromDate(RECORDED),
+    firedBy: { id: "ida_ana", email: "ana@example.com", displayName: "Ana" },
+  });
+
+  const byAlerting = create(RoutineFireSchema, {
+    routineId: "sch_1",
+    origin: RoutineFireOrigin.MANUAL,
+    outcome: RoutineFireOutcome.REFUSED,
+    reason: "monthly spend cap reached",
+    recordedAt: timestampFromDate(RECORDED),
+    firedBy: { id: "ida_app", email: "pager@example.com", mintedBy: "ida_alerting" },
+  });
+
+  /** A client whose routine get answers `nightly` and whose fire history is `pages`, one read per page. */
+  function history(pages: RoutineFire[][]): { client: Stigmer; asked: ListRoutineFiresRequest[] } {
+    const asked: ListRoutineFiresRequest[] = [];
+    const client = {
+      routine: {
+        get: async () => nightly,
+        listFires: async (request: ListRoutineFiresRequest) => {
+          const index = asked.length;
+          asked.push(request);
+          return create(RoutineFireListSchema, {
+            entries: pages[index] ?? [],
+            nextPageToken: index + 1 < pages.length ? `page-${index + 1}` : "",
+          });
+        },
+      },
+    } as unknown as Stigmer;
+    return { client, asked };
+  }
+
+  function captured(): { write(text: string): void; text(): string } {
+    const out: string[] = [];
+    return { write: (text: string) => void out.push(text), text: () => out.join("") };
+  }
+
+  it("lists the resolved routine's fires with who started each", async () => {
+    const { client, asked } = history([[byPerson, byAlerting, scheduled]]);
+    const streams = captured();
+
+    await showRoutineFires(client, "sch_1", "acme", 50, "table", streams);
+
+    expect(asked.map((request) => request.routineId)).toEqual(["sch_1"]);
+    const lines = streams.text().trim().split("\n");
+    expect(lines[0]).toMatch(/^FIRED\s+ORIGIN\s+STARTED BY\s+OUTCOME\s+RUN\s+REASON$/);
+    expect(lines[2]).toMatch(/Manual\s+Ana\s+started\s+aex_2/);
+    expect(lines[3]).toMatch(
+      /Manual\s+pager@example\.com \(through service account ida_alerting\)\s+refused\s+monthly spend cap reached/,
+    );
+    expect(lines[4]).toMatch(/Scheduled\s+—\s+completed\s+aex_1/);
+    expect(lines[2]).toContain(RECORDED.toISOString());
+  });
+
+  it("reads no more than the limit, across pages", async () => {
+    const { client, asked } = history([[byPerson, byAlerting], [scheduled, byPerson]]);
+    const streams = captured();
+
+    await showRoutineFires(client, "sch_1", "acme", 3, "json", streams);
+
+    expect(asked.map((request) => [request.pageSize, request.pageToken])).toEqual([
+      [3, ""],
+      [1, "page-1"],
+    ]);
+    expect(JSON.parse(streams.text())).toHaveLength(3);
+  });
+
+  it("reads every page with a limit of zero", async () => {
+    const { client, asked } = history([[byPerson], [byAlerting], [scheduled]]);
+    const streams = captured();
+
+    await showRoutineFires(client, "sch_1", "acme", 0, "yaml", streams);
+
+    expect(asked).toHaveLength(3);
+    expect(streams.text()).toContain("monthly spend cap reached");
+  });
+
+  it("says so when the routine has never fired", () => {
+    expect(renderFiresTable([])).toBe("\nNo fires found\n\n");
+  });
+
+  it("keeps a caller's name and a reason on one line, with no escape codes", () => {
+    const hostile = create(RoutineFireSchema, {
+      origin: RoutineFireOrigin.MANUAL,
+      outcome: RoutineFireOutcome.REFUSED,
+      reason: "refused\n\u001b[31mFAKE ROW\u001b[0m\r\nmore",
+      firedBy: { displayName: "Mallory\n\u001b[2Jcleared" },
+    });
+
+    const table = renderFiresTable([hostile]);
+
+    expect(table).not.toContain("\u001b");
+    // The header, its rule, and one row.
+    expect(table.trim().split("\n")).toHaveLength(3);
+    expect(table).toContain("Mallory [2Jcleared");
+    expect(table).toContain("refused [31mFAKE ROW [0m more");
+  });
+
+  it("refuses a routine with no id and lists nothing", async () => {
+    const asked: ListRoutineFiresRequest[] = [];
+    const client = {
+      routine: {
+        get: async () => create(RoutineSchema, { metadata: { slug: "nightly" } }),
+        listFires: async (request: ListRoutineFiresRequest) => {
+          asked.push(request);
+          return create(RoutineFireListSchema, {});
+        },
+      },
+    } as unknown as Stigmer;
+
+    await expect(showRoutineFires(client, "sch_1", "acme", 50, "table", captured())).rejects.toThrow(
+      new UsageError("Routine 'sch_1' has no id — cannot list its fires"),
+    );
+    expect(asked).toEqual([]);
   });
 });

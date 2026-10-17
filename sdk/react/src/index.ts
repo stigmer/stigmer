@@ -867,14 +867,15 @@ export type {
   AgentWizardData,
 } from "./agent/index.js";
 
-// Schedule — the disabled-vs-paused state derivation, the direct-query
-// list core + workbench adapter (schedules are not search-backed), data
+// Routine — the disabled-vs-paused state derivation, the direct-query
+// list core + workbench adapter (routines are not search-backed), data
 // hooks (get by reference, paginated list, count), behavior hooks
 // (create via apply, resume, trigger once, owner enable/disable and
 // per-field spec edits via lossless manifest apply), the cadence model
 // (preset ⇄ cron, no cron parsing — recognition of builder-emitted
 // shapes only), the cadence builder, the creation form, the tabbed
-// detail view with inline editing, and the paginated run-history table
+// detail view with inline editing, the paginated run-history table, the
+// Run now dialog with its note, and the API panel with its curl
 export {
   deriveRoutineState,
   formatNextFire,
@@ -901,6 +902,10 @@ export {
   RoutineDetailView,
   RoutineIcon,
   RoutineFiresTable,
+  RunRoutineDialog,
+  FIRE_TEXT_MAX_LEN,
+  RoutineApiPanel,
+  buildRoutineFireCurl,
 } from "./routine/index.js";
 export type {
   RoutineState,
@@ -924,6 +929,9 @@ export type {
   RoutineRowActionsProps,
   RoutineDetailViewProps,
   RoutineFiresTableProps,
+  RunRoutineDialogProps,
+  RoutineApiPanelProps,
+  BuildRoutineFireCurlArgs,
   UseUpdateRoutineSpecReturn,
 } from "./routine/index.js";
 

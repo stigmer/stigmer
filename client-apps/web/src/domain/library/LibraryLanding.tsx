@@ -36,9 +36,9 @@ const RESOURCE_CARDS = [
     icon: <Sparkles className="size-5" aria-hidden="true" />,
   },
   {
-    key: "schedules",
-    label: "Schedules",
-    href: "/library/schedules",
+    key: "routines",
+    label: "Routines",
+    href: "/library/routines",
     icon: <CalendarClock className="size-5" aria-hidden="true" />,
   },
   {
@@ -74,9 +74,9 @@ const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
     href: ADD_MCP_SERVER_HREF,
   },
   {
-    label: "Schedule",
+    label: "Routine",
     icon: <CalendarClock className="size-4" aria-hidden="true" />,
-    href: "/library/schedules/new",
+    href: "/library/routines/new",
   },
   {
     label: "Upload plugin",
@@ -97,7 +97,7 @@ function useResourceCounts(org: string | null, refetchToken?: unknown) {
   return {
     agents,
     skills,
-    schedules: routines,
+    routines,
     plugins,
   } as const;
 }
@@ -131,7 +131,7 @@ export function LibraryLanding() {
         {RESOURCE_CARDS.map((card) => {
           const cardCount = counts[card.key];
           const { count, isLoading } = cardCount;
-          // Schedules have no search count: their card counts a first page
+          // Routines have no search count: their card counts a first page
           // and reads "100+" when more follow.
           const countIsLowerBound = "isLowerBound" in cardCount && cardCount.isLowerBound;
 

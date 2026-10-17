@@ -68,7 +68,7 @@ function isFailedPreconditionError(error: Error): boolean {
  *
  * Detects `FAILED_PRECONDITION` errors from run creation that name keys
  * none of the run's vaults holds, and renders each key with the server's
- * own instruction (add it to My vault, sign in, ask a schedule's owner).
+ * own instruction (add it to My vault, sign in, ask a routine's owner).
  *
  * When the error does not match a secret-flow pattern, renders nothing.
  * This makes the component composable: try `SecretFlowErrorGuide`
