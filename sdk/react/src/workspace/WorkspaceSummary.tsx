@@ -1,8 +1,8 @@
 "use client";
 
-import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import type { WorkspaceSource } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import { cn } from "@stigmer/theme";
+import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { WorkspaceSource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { TruncatedText } from "../internal/truncated-text.js";

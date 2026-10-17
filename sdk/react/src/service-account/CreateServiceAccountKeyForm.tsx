@@ -12,9 +12,9 @@
  * `spec.keyHash` this once.
  */
 import { useCallback, useId, useState, type FormEvent } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
-import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
+import type { ApiKey } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
 import {
   DEFAULT_KEY_EXPIRY,
   KeyExpiryFieldset,

@@ -11,7 +11,7 @@
 // Negative cases (missing secrets, ciphertext-shaped values, provider flips)
 // are written inline in the suite: this module is validity by construction.
 import type { InitShape } from "./init-shape";
-import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { ChannelAppSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 
 export const CHANNELAPP_API_VERSION = "agentic.stigmer.ai/v1";
 export const CHANNELAPP_KIND = "ChannelApp";

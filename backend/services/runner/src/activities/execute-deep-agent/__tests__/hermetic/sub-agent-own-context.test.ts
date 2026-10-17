@@ -22,11 +22,11 @@ import { readFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { HookSourceSchema, type HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import { InteractionMode, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ExecutionValuesSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
+import { HookSourceSchema, type HookSource } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { InteractionMode, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ExecutionValuesSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),

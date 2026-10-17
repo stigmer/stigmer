@@ -1,13 +1,13 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
 import {
   PeriodEstimateLineKind,
   type PeriodEstimate,
   type PeriodEstimateLine,
-} from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
-import type { AgentHours } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
+import type { AgentHours } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
 import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
 import { AgentHoursStanding } from "./AgentHoursStanding.js";
 import { formatUsd } from "./format.js";

@@ -1,5 +1,5 @@
 {
-  "name": "@stigmer/protos",
+  "name": "@stigmer/apis",
   "version": "0.0.0-dev",
   "description": "Generated TypeScript protobuf stubs for Stigmer APIs",
   "license": "Apache-2.0",

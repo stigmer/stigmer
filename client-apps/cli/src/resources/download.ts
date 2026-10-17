@@ -8,10 +8,10 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import { create } from "@bufbuild/protobuf";
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { GetArtifactDownloadUrlRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { GetArtifactDownloadUrlRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import type { Stigmer } from "@stigmer/client";
 import { CliExitError, ExitCode } from "../errors/index.js";
 import { formatBytes } from "./skill.js";
 

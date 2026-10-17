@@ -7,19 +7,19 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import {
   ListPluginVersionsResponseSchema,
   PluginVersionEntrySchema,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import type {
   ListPluginVersionsResponse,
   PluginVersionEntry,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
-import type { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import type { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 
 import { loadByReferenceWithVersion } from "../../pipeline/steps/version-history.js";
 import type { VersionHistoryBinding } from "../../pipeline/steps/version-history.js";

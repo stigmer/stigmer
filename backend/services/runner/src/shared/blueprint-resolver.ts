@@ -74,13 +74,13 @@
 
 import { ConnectError } from "@connectrpc/connect";
 import type { StigmerClient } from "../client/stigmer-client.js";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
-import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
+import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { builtInJudgeSpec, isJudgeRunLabels } from "./builtin-judge.js";
 
 export interface CloudRepo {

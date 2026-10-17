@@ -1,13 +1,13 @@
 "use client";
 
 import { type FormEvent, useCallback, useId, useState } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
-import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
+import type { OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
 import {
   TokenEndpointAuthMethod,
   VendorApprovalStatus,
-} from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import { useCreateOAuthApp } from "./useCreateOAuthApp.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { MAX_ADDRESSES, parseAddressList } from "./addresses.js";

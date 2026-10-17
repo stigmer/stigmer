@@ -18,9 +18,9 @@ import { DatabaseSync } from "node:sqlite";
 import { create } from "@bufbuild/protobuf";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
-import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { GrantSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
+import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";

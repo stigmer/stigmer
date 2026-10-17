@@ -5,13 +5,13 @@
 // field it never names is invisible to a person reading `get agent`.
 
 import { create } from "@bufbuild/protobuf";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ServiceTier,
   ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import { renderResource } from "../render.js";
 

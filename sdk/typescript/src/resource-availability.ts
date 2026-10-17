@@ -33,8 +33,8 @@
 import {
   ResourceTier,
   type ApiResourceKind,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { KIND_TIERS } from "./gen/resource-availability.js";
 
 /**

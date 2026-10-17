@@ -29,11 +29,11 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { toolServerSegment } from "@stigmer/plugin-package";
 
-import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 
 import { failedPreconditionError } from "../../pipeline/errors.js";
 import type { Store } from "../../store/interface.js";

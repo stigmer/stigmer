@@ -49,9 +49,9 @@
  * of both harnesses by __tests__/goldens.test.ts.
  */
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { ContentBlock } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_content_pb";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import type { StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import type { ContentBlock } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import type { StreamSessionEventsResponse } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
 import { applyTodoUpdate, isTodoTool } from "./todos.js";
 import {

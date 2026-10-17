@@ -25,21 +25,21 @@ import type { Interceptor, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import type { Pool } from "pg";
 
-import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
-import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { ApiKeyCommandController } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/command_pb";
+import { ApiKeySchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
+import { GrantSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
 import {
   ApiResourceRefSchema,
   GrantSpecSchema,
   type ApiResourceRef,
   type GrantSpec,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
-import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
-import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
-import type { FederationIssuer, FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
+import { IdentityAccountCommandController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/command_pb";
+import { FederationIssuerCommandController } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/command_pb";
+import type { FederationIssuer, FederationIssuerSchema } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { OrganizationCommandController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/command_pb";
 import {
   composeServer,
   createLogger,

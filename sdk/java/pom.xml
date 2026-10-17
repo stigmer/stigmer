@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>ai.stigmer</groupId>
-    <artifactId>stigmer-java</artifactId>
+    <artifactId>stigmer-sdk</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
@@ -70,7 +70,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>17</maven.compiler.release>
 
-        <stigmer-protos.version>0.0.1-SNAPSHOT</stigmer-protos.version>
+        <stigmer-apis.version>0.0.1-SNAPSHOT</stigmer-apis.version>
         <protobuf-java.version>4.34.0</protobuf-java.version>
         <grpc-java.version>1.79.0</grpc-java.version>
         <junit.version>5.11.4</junit.version>
@@ -80,8 +80,8 @@
         <!-- Generated protobuf and gRPC types for the Stigmer API -->
         <dependency>
             <groupId>ai.stigmer</groupId>
-            <artifactId>stigmer-java-protos</artifactId>
-            <version>${stigmer-protos.version}</version>
+            <artifactId>stigmer-apis</artifactId>
+            <version>${stigmer-apis.version}</version>
         </dependency>
 
         <!-- Protobuf runtime -->

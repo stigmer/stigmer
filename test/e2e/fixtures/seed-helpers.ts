@@ -1,7 +1,7 @@
 import { Buffer } from "node:buffer";
 import { crc32 } from "node:zlib";
 import { create } from "@bufbuild/protobuf";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 
 const DEFAULT_ORG = "default";
 

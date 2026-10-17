@@ -39,15 +39,15 @@ import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
 import type { EvalCase, EvalSuite, PluginFiles } from "@stigmer/plugin-package";
-import type { Eval } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
-import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import type { EvalRunSpec } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Eval } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
+import { EvalRunSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunAblation } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import type { EvalRunSpec } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { agentVersionBinding } from "../../domain/agent/versions.js";
 import { evalVersionBinding } from "../../domain/eval/versions.js";

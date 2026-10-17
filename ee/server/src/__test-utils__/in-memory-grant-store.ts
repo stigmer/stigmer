@@ -24,7 +24,7 @@
  * so the Enterprise identity unit's suites, which publish with it, can use
  * it.
  */
-import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import type { Grant } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
 import { DuplicateGrantError } from "@stigmer/server";
 import type {
   GrantStore,

@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { GLOBEX_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 
 const RESULTS = [

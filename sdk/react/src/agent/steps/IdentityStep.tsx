@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useId } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { generateSlug } from "../../internal/slug.js";
 import type { AgentWizardData } from "./types.js";
 

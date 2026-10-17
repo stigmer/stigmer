@@ -6,7 +6,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { ToolUse } from "@stigmer/sdk";
+import type { ToolUse } from "@stigmer/client";
 import { ToolCallGroup } from "../ToolCallGroup";
 import { thread, toolUse } from "./__fixtures__/fold-values";
 

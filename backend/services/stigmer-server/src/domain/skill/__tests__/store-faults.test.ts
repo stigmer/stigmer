@@ -17,8 +17,8 @@ import type { Client, ConnectError } from "@connectrpc/connect";
 import { Code, createClient, createRouterTransport } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { SkillCommandController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/command_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import { createApiResourceInterceptor } from "../../../pipeline/interceptors/apiresource.js";

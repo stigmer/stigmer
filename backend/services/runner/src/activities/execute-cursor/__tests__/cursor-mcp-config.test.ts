@@ -8,8 +8,8 @@
  */
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { PluginSchema, type Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { ResolvedMcpServer } from "../../../shared/mcp-resolver.js";
 import { declaredServerSlugs, toCursorMcpConfig, validateMcpServerEnv } from "../cursor-mcp-config.js";
 

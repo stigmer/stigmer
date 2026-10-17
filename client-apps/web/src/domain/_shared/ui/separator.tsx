@@ -2,7 +2,7 @@
 
 import { Separator as SeparatorPrimitive } from "@base-ui/react/separator";
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 function Separator({
   className,

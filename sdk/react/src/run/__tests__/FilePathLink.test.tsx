@@ -6,8 +6,8 @@ import {
   WorkspaceSourceSchema,
   LocalPathSourceSchema,
   GitRepoSourceSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
 import { FilePathLink } from "../FilePathLink";
 import { FilePathContext } from "../FilePathContext";
 

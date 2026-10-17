@@ -31,7 +31,7 @@
  * Proven by __tests__/person.test.ts, __tests__/faults.test.ts and the
  * sign-in conformance suite.
  */
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 
 import type { SecretService } from "../../../encryption/encryption.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";

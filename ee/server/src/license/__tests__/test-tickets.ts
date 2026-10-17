@@ -19,7 +19,7 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
   LicenseClaimsSchema,
   type LicenseClaims,
-} from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+} from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 
 export interface TestSigner {
   readonly keyId: string;

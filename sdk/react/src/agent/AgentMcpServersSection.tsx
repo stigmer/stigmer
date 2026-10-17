@@ -20,8 +20,8 @@
 // Pinned by `__tests__/AgentDetailView.mcpServers.test.tsx`.
 
 import { useCallback, useMemo, useState } from "react";
-import type { AgentMcpServer } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { AgentMcpServerInput } from "@stigmer/sdk";
+import type { AgentMcpServer } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { AgentMcpServerInput } from "@stigmer/client";
 import { Section } from "../resource-detail/Section.js";
 import { PluginServerSignIn } from "../plugin/PluginServerSignIn.js";
 import { useCanCreatePlugin } from "../plugin/useCanCreatePlugin.js";

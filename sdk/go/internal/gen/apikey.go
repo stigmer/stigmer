@@ -7,8 +7,8 @@ import (
 	"iter"
 	"time"
 
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	apikeyv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/apikey/v1"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	apikeyv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/apikey/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"

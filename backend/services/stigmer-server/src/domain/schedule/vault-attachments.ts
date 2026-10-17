@@ -23,9 +23,9 @@
  */
 import { clone, create, equals } from "@bufbuild/protobuf";
 
-import type { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
-import { ScheduleStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/status_pb";
+import type { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/spec_pb";
+import { ScheduleStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/status_pb";
 
 import type { VaultAttachmentOptions } from "../vault/attachments.js";
 

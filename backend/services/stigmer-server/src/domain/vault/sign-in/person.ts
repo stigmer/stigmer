@@ -15,20 +15,20 @@
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import {
   CompleteSignInOutputSchema,
   SignInReturn as SignInReturnChoice,
   StartSignInOutputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 import type {
   CompleteSignInInput,
   CompleteSignInOutput,
   StartSignInInput,
   StartSignInOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import type { Authorizer } from "../../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";

@@ -37,14 +37,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   CompleteConnectLinkInputSchema,
   ConnectLinkTokenInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/connect_link_pb";
 import {
   CompleteSignInInputSchema,
   CreateConnectLinkInputSchema,
   StartSignInInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 
-import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
+import { VendorApprovalStatus } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/spec_pb";
 
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import { oauthAppAddressKey } from "../login-app.js";

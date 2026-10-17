@@ -15,22 +15,22 @@
 import { create, toBinary } from "@bufbuild/protobuf";
 import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
-import { GrantSpecSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
-import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
-import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
-import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { GrantSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
+import { GrantSpecSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
+import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
+import type { SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
+import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
 import {
   ApiResourceMetadataSchema,
   type ApiResourceMetadata,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 
 import { canonicalTripleText } from "../../domain/grant/constants.js";
 import { derivedId } from "../../pipeline/steps/defaults.js";
 import { GRANT_ID_PREFIX_BEFORE_V34, GRANT_ID_PREFIX_V34 } from "../kind-rename.js";
-import { ApiResourceAuditStatusSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+import { ApiResourceAuditStatusSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 
 /** An AgentInstance row as an earlier release stored it. */
 export function retiredInstanceRow(options: {

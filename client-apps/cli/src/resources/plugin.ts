@@ -53,13 +53,13 @@ import {
 import {
   PluginSchema,
   type Plugin,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PushPluginRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
-import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { PluginDialect as PluginDialectProto } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
-import type { HookConfig } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { hookFormatName, hooksSummary, type Stigmer } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PushPluginRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { PluginDialect as PluginDialectProto } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/spec_pb";
+import type { HookConfig } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import type { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { hookFormatName, hooksSummary, type Stigmer } from "@stigmer/client";
 import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
 import { createMatcher } from "./ignore/index.js";

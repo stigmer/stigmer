@@ -41,8 +41,8 @@ import { startHeartbeat } from "../shared/heartbeat.js";
 import { listServerTools } from "../shared/mcp-tool-listing.js";
 import { filterEnvToDeclaredKeys } from "../shared/placeholder-resolver.js";
 import { fetchRunValues, RunValuesRefusedError, toolValuesKey, type ToolValueGroup } from "../shared/run-values.js";
-import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
+import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { EnvVarDeclaration } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import type { Config } from "../config.js";
 
 export interface ListPluginToolsInput {

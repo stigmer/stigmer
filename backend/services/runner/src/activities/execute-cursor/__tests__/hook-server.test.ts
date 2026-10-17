@@ -20,7 +20,7 @@ import { createConnection, createServer, Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { create } from "@bufbuild/protobuf";
-import { HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
 import { HookSet } from "../../../shared/hooks/hook-set.js";

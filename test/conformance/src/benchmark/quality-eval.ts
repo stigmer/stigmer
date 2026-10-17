@@ -9,7 +9,7 @@
 // for the AI-graded checks, one arm (no without-plugin comparison: the
 // benchmark compares engines, not the plugin's worth), and the tools a
 // working session uses granted beyond each case's read-only list. Its result
-// document (`@stigmer/sdk` `toResultDocument`, whose plugin block is the
+// document (`@stigmer/client` `toResultDocument`, whose plugin block is the
 // format's `schemaVersion: 1` file) becomes the report's `quality`, so the
 // quality numbers read the way any plugin author reads theirs. A failure to
 // push, create or follow the eval run is recorded by stage, never thrown:
@@ -19,10 +19,10 @@
 // and target, read from the document's plugin block as JSON.
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
-import { toResultDocument } from "@stigmer/sdk";
-import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import { EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { toResultDocument } from "@stigmer/client";
+import { EvalRunAblation } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { EvalRunPhase } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { createUniqueOrganization } from "../support/organizations";

@@ -15,9 +15,9 @@
  *
  * Pinned by __tests__/address.test.ts.
  */
-import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import type { VaultConnection } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
-import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
+import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { VaultConnection } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
+import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 
 /** The Git host every GitHub repository clones from. */
 export const GITHUB_HOST = "github.com";

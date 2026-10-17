@@ -4,10 +4,10 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { DiffCompleteness } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { file_ai_stigmer_agentic_run_v1_enum } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { CapturedFileChange, SnapshotRef, TurnCommandProvenance } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { file_ai_stigmer_agentic_run_v1_filereview } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { DiffCompleteness } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { file_ai_stigmer_agentic_run_v1_enum } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { CapturedFileChange, SnapshotRef, TurnCommandProvenance } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import { file_ai_stigmer_agentic_run_v1_filereview } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import type { FileDecisionAction, FileDecisionOrigin, FileDecisionScope, FileReviewEventType, FileReviewFailureKind } from "./enum_pb.js";
 import { file_ai_stigmer_runner_turn_v1_enum } from "./enum_pb.js";
 import type { Message } from "@bufbuild/protobuf";

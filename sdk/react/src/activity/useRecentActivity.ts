@@ -1,7 +1,7 @@
 "use client";
 
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { RecentActivityEntry as ProtoEntry } from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
+import type { RecentActivityEntry as ProtoEntry } from "@stigmer/apis/ai/stigmer/activity/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 import { useFetch } from "../internal/useFetch.js";

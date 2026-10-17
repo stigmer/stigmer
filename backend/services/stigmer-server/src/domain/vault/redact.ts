@@ -5,7 +5,7 @@
  * entries change only through their own RPCs, which take new values, and
  * update keeps stored entries whatever the request carries.
  */
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 
 /** Blanks every value, token and refresh token in place. */
 export function redactVault(vault: Vault | undefined): void {

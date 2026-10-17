@@ -11,7 +11,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   ModelCatalogConsole: () => <p>model catalog console</p>,
 }));
 

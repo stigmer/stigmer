@@ -5,7 +5,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   GetAgentHoursInputSchema,
   type AgentHours,
-} from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 

@@ -34,17 +34,17 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { claudePlugin } from "@stigmer/plugin-package/testing";
 import type { PluginFixture } from "@stigmer/plugin-package/testing";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { EvalRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/command_pb";
-import { EvalRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/query_pb";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
-import { EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
+import { EvalRunSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunCommandController } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/command_pb";
+import { EvalRunQueryController } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/query_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginCommandController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/command_pb";
+import { EvalRunPhase } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { writeArchive } from "../../../archive/write.js";
 import { loadConfig } from "../../../boot/config.js";

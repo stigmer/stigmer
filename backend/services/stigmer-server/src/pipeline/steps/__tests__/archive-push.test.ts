@@ -13,11 +13,11 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
-import type { Eval } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
-import { PushEvalRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { EvalSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
+import type { Eval } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
+import { PushEvalRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 
 import type { ContentAddressedArchiveStore } from "../../../archive/content-store.js";
 import { createLogger } from "../../../boot/logger.js";

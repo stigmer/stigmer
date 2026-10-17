@@ -10,7 +10,7 @@
 // and only then releases the organization's slug, so a slug that comes free
 // is the purge's proof that the run was stopped and removed.
 import { Code } from "@connectrpc/connect";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUses } from "@stigmer/test-support/mock-llm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";

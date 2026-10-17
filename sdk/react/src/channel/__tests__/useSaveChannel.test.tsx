@@ -4,9 +4,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import type { ChannelInput } from "@stigmer/sdk";
-import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import type { ChannelInput } from "@stigmer/client";
+import { ChannelAudience } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
 import { StigmerContext } from "../../context";
 import { useSaveChannel } from "../useSaveChannel";
 import { sentRefs, sentUpdate } from "../../internal/__tests__/sent-update";

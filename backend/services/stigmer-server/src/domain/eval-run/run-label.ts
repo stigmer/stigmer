@@ -16,8 +16,8 @@
  * and domain/score/__tests__/grading-observer.test.ts, and by
  * __tests__/run-label.test.ts.
  */
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { kindByIdPrefix } from "../../pipeline/apiresource-meta.js";
 import { EVAL_RUN_LABEL } from "./constants.js";

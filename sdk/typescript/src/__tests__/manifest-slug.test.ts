@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { create, type Message } from "@bufbuild/protobuf";
 import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
-import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceReference, RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { AgentSchema, type Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceReference, RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 import { getErrorReason, StigmerError } from "../errors";
 import { ManifestClient } from "../manifest/client";
 import type { ManifestDocument } from "../manifest/parse";

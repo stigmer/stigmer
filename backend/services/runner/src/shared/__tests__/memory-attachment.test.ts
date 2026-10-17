@@ -10,7 +10,7 @@
 
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
-import { RecalledMemoriesSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import { RecalledMemoriesSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 
 import { buildMcpApprovalDefault, type ActiveLeases } from "../approval-policy.js";
 import { listTurnTools } from "../mcp-tool-listing.js";

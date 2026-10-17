@@ -11,7 +11,7 @@
  *    pixels on every replay and every video-export frame, so tour fixtures
  *    must never read the live clock. `Date.now()`, `Math.random()`, bare
  *    `new Date()`, and `new Date(...)` with non-literal arguments are
- *    forbidden under `demos/tours/`. The `@stigmer/react/test` `samples.*`
+ *    forbidden under `demos/tours/`. The `@stigmer/react-sdk/test` `samples.*`
  *    factories need no denylist here: they are frozen at `SAMPLE_INSTANT` by
  *    construction and their own suite (`sdk/react/src/test/__tests__/
  *    samples.test.ts`) locks that in, so a tour can call any of them freely.
@@ -43,7 +43,7 @@
  *
  * 5. AUTHORED INSTANTS. Tours derive instants from the tour world's one
  *    clock — `SAMPLE_INSTANT` via `sampleInstant()`/`sampleDate()` from
- *    `@stigmer/react/test` — they never author their own. Components format
+ *    `@stigmer/react-sdk/test` — they never author their own. Components format
  *    dates in the reader's local time, and no UTC instant renders one
  *    calendar date in every zone (real offsets span 25 hours against a
  *    24-hour day), so which instants are safe to depict is decided once, at
@@ -165,7 +165,7 @@ export function findClockReads(sourceText, fileName = "module.ts") {
           line: lineOf(node),
           reason:
             "Date.now() reads the live clock — derive from the tour world's " +
-            "anchor instead: sampleInstant(deltaMs) from @stigmer/react/test",
+            "anchor instead: sampleInstant(deltaMs) from @stigmer/react-sdk/test",
         });
       } else if (obj === "Math" && method === "random") {
         violations.push({
@@ -190,7 +190,7 @@ export function findClockReads(sourceText, fileName = "module.ts") {
           reason:
             "new Date(...) without literal arguments reads the live clock — " +
             "derive from the tour world's anchor instead: sampleDate(deltaMs) " +
-            "from @stigmer/react/test",
+            "from @stigmer/react-sdk/test",
         });
       }
     }
@@ -271,7 +271,7 @@ const READER_WINDOW_LABEL = `${formatUtcOffset(READER_OFFSET_WINDOW.westOffsetMi
  *
  * The remedy is always the same and every message names it: derive from the
  * anchor with `sampleInstant(deltaMs)` / `sampleDate(deltaMs)` from
- * `@stigmer/react/test`.
+ * `@stigmer/react-sdk/test`.
  *
  * @param sourceText file contents
  * @param fileName used only to select TS vs TSX parsing
@@ -292,7 +292,7 @@ export function findAuthoredInstants(sourceText, fileName = "module.ts") {
 
   const derive = (helper) =>
     `derive from the tour world's anchor instead: ${helper}(deltaMs) from ` +
-    `@stigmer/react/test (date-stable across ${READER_WINDOW_LABEL})`;
+    `@stigmer/react-sdk/test (date-stable across ${READER_WINDOW_LABEL})`;
 
   const visit = (node) => {
     // new Date(<literals>) — the forms the determinism check permits.

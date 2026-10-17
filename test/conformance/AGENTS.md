@@ -28,7 +28,7 @@ index; `README.md` is the reference.
 
 ## Laws
 
-- Raw stubs, never `@stigmer/sdk`. The suite is a black box over the proto
+- Raw stubs, never `@stigmer/client`. The suite is a black box over the proto
   contract; a convenience layer under test would hide drift in the layer it
   wraps.
 - An edition difference is a `CapabilityFlags` entry with a rationale, gated

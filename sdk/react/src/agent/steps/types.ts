@@ -1,4 +1,4 @@
-import type { AgentMcpServerInput, ResourceRef } from "@stigmer/sdk";
+import type { AgentMcpServerInput, ResourceRef } from "@stigmer/client";
 import type { EnvVarEntry } from "../../resource-creation/types.js";
 
 export type { EnvVarEntry } from "../../resource-creation/types.js";

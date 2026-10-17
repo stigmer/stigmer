@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import type { Agent, AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Agent, AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

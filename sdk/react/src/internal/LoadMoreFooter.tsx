@@ -9,8 +9,8 @@
  * Internal (not barrel-exported): the public contract is each panel.
  */
 
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
 
 /** Props for {@link LoadMoreFooter}. */
 export interface LoadMoreFooterProps {

@@ -8,13 +8,13 @@
 
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleSchema, type Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
 import {
   ScheduleFireOutcome,
   ScheduleTriggerResultSchema,
   type ScheduleTriggerResult,
-} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
+import type { Stigmer } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { UsageError } from "../../errors/index.js";
 import type { CommandResult } from "../../output/index.js";

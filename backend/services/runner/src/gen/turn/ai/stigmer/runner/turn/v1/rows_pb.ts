@@ -4,8 +4,8 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ToolCallOutputRef } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { file_ai_stigmer_agentic_run_v1_message } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { ToolCallOutputRef } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
+import { file_ai_stigmer_agentic_run_v1_message } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
 import type { ApprovalAction, ApprovalPolicySource, MessageType, SubAgentStatus, TodoStatus, ToolCallStatus, ToolCallStreamingSource, ToolKind } from "./enum_pb.js";
 import { file_ai_stigmer_runner_turn_v1_enum } from "./enum_pb.js";
 import type { FileReviewEventStream } from "./ledger_pb.js";
@@ -169,7 +169,7 @@ export type ToolCall = Message<"ai.stigmer.runner.turn.v1.ToolCall"> & {
    * Redacted by the runner's transcript builder at creation (stigmer#1119, the
    * runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
    * before that may carry the values; clients hide them on display through
-   * @stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
+   * @stigmer/client's redactSecretArgs. The key set's cross-surface contract is
    * test/fixtures/tool-view/secret-args.json.
    *
    * @generated from field: google.protobuf.Struct args = 3;

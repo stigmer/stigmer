@@ -8,7 +8,7 @@
  * changing row re-renders.
  */
 import { describe, it, expect } from "vitest";
-import { SessionLog, type ToolUse } from "@stigmer/sdk";
+import { SessionLog, type ToolUse } from "@stigmer/client";
 import { toolCallGroupPropsEqual, type ToolCallGroupProps } from "../ToolCallGroup";
 import { buildThreadItems, type ThreadItem } from "../MessageThread";
 import { samples } from "../../test/samples";

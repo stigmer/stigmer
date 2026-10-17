@@ -3,8 +3,8 @@
 import { create } from "@bufbuild/protobuf";
 import {
   GetOrCreateBillingAccountInputSchema,
-} from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
-import type { BillingAccount } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
+} from "@stigmer/apis/ai/stigmer/billing/v1/io_pb";
+import type { BillingAccount } from "@stigmer/apis/ai/stigmer/billing/v1/billing_account_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 

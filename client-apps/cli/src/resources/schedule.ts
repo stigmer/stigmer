@@ -15,9 +15,9 @@
 // harmless re-arm of the schedule's clock.
 
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleFireOutcome } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
+import type { Stigmer } from "@stigmer/client";
 import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
 import { parseReference } from "./reference.js";

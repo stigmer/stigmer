@@ -42,10 +42,10 @@
 // error) goes through `oneLine`, so a suite cannot write a newline or an
 // escape sequence there.
 
-import { evalRunTargetLabel } from "@stigmer/sdk";
-import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import type { EvalRunTarget } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { evalRunTargetLabel } from "@stigmer/client";
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunAblation } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import type { EvalRunTarget } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import {
   EvalRunPartialReason,
   EvalRunPhase,
@@ -54,7 +54,7 @@ import {
   type EvalRunCase,
   type EvalRunCaseTarget,
   type EvalRunTry,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
 import { renderTable } from "../../output/index.js";
 
 /** The exit codes of `eval run`, as Claude Code's `claude plugin eval` has them. */

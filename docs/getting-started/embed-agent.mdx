@@ -1,14 +1,14 @@
 ---
 title: Add agent chat to your app
 description:
-  Embed your Agent as a chat panel inside your own React app with @stigmer/react
-  — two components and a provider.
+  Embed your Agent as a chat panel inside your own React app with
+  @stigmer/react-sdk — two components and a provider.
 ---
 
 ## What you'll build
 
 Your Agent, chatting with users inside your own React app. You'll install
-`@stigmer/react`, wrap your app in a provider, and drop in two components: a
+`@stigmer/react-sdk`, wrap your app in a provider, and drop in two components: a
 launcher that starts the conversation and a viewer that streams it. The same
 components power the Stigmer Console — your app gets the production chat
 experience, themed to match your product.
@@ -49,12 +49,12 @@ npm install
 ## Install the SDK packages
 
 ```bash
-npm install @stigmer/react @stigmer/sdk @stigmer/protos @bufbuild/protobuf
+npm install @stigmer/react-sdk @stigmer/client @stigmer/apis @bufbuild/protobuf
 ```
 
-`@stigmer/react` provides the components, `@stigmer/sdk` the API client, and
-`@stigmer/protos` (with its `@bufbuild/protobuf` runtime) the types. React 19 is
-required — the Vite template from the first step already uses it.
+`@stigmer/react-sdk` provides the components, `@stigmer/client` the API client,
+and `@stigmer/apis` (with its `@bufbuild/protobuf` runtime) the types. React 19
+is required — the Vite template from the first step already uses it.
 
 </Step>
 <Step>
@@ -65,13 +65,13 @@ Replace the contents of `src/App.tsx`:
 
 ```tsx
 import { useMemo, useState } from "react";
-import { Stigmer } from "@stigmer/sdk";
+import { Stigmer } from "@stigmer/client";
 import {
   NewSessionViewer,
   SessionViewer,
   StigmerProvider,
-} from "@stigmer/react";
-import "@stigmer/react/styles.css";
+} from "@stigmer/react-sdk";
+import "@stigmer/react-sdk/styles.css";
 
 export default function App() {
   const client = useMemo(

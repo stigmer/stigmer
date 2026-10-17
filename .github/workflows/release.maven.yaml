@@ -60,7 +60,7 @@ jobs:
         run: |
           VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
           mvn --batch-mode versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
-          echo "Set stigmer-java-protos version to $VERSION"
+          echo "Set stigmer-apis version to $VERSION"
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
@@ -74,9 +74,9 @@ jobs:
         id: central-check
         run: |
           VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
-          URL="https://repo1.maven.org/maven2/ai/stigmer/stigmer-java-protos/$VERSION/stigmer-java-protos-$VERSION.pom"
+          URL="https://repo1.maven.org/maven2/ai/stigmer/stigmer-apis/$VERSION/stigmer-apis-$VERSION.pom"
           if curl --silent --fail --output /dev/null "$URL"; then
-            echo "stigmer-java-protos:$VERSION is already on Central; skipping publish."
+            echo "stigmer-apis:$VERSION is already on Central; skipping publish."
             echo "published=true" >> "$GITHUB_OUTPUT"
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
@@ -147,8 +147,8 @@ jobs:
         run: |
           VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
           mvn --batch-mode versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
-          mvn --batch-mode versions:set-property -Dproperty=stigmer-protos.version -DnewVersion="$VERSION" -DgenerateBackupPoms=false
-          echo "Set stigmer-java version to $VERSION (protos dependency: $VERSION)"
+          mvn --batch-mode versions:set-property -Dproperty=stigmer-apis.version -DnewVersion="$VERSION" -DgenerateBackupPoms=false
+          echo "Set stigmer-sdk version to $VERSION (protos dependency: $VERSION)"
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
@@ -166,9 +166,9 @@ jobs:
         id: central-check
         run: |
           VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
-          URL="https://repo1.maven.org/maven2/ai/stigmer/stigmer-java/$VERSION/stigmer-java-$VERSION.pom"
+          URL="https://repo1.maven.org/maven2/ai/stigmer/stigmer-sdk/$VERSION/stigmer-sdk-$VERSION.pom"
           if curl --silent --fail --output /dev/null "$URL"; then
-            echo "stigmer-java:$VERSION is already on Central; skipping publish."
+            echo "stigmer-sdk:$VERSION is already on Central; skipping publish."
             echo "published=true" >> "$GITHUB_OUTPUT"
           else
             echo "published=false" >> "$GITHUB_OUTPUT"

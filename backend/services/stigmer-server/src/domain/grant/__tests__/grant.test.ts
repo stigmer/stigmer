@@ -37,11 +37,11 @@ import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
-import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
-import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
-import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
+import { IdentityAccountCommandController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/command_pb";
+import { GrantCommandController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/command_pb";
+import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
+import { ApiResourceRefSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
+import { OrganizationCommandController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/command_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";

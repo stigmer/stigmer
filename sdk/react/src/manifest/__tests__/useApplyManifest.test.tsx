@@ -6,7 +6,7 @@ import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { OrgProvider } from "../../organization/OrgProvider";
 import { useApplyManifest } from "../useApplyManifest";
 
-// The hook runs the real manifest engine (parseManifest from @stigmer/sdk);
+// The hook runs the real manifest engine (parseManifest from @stigmer/client);
 // only the network-facing manifest client is mocked. Its resolveTarget is
 // the SDK's preview of an apply (pinned in the SDK's manifest-slug tests);
 // here it answers each document's action.

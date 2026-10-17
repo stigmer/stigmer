@@ -14,7 +14,7 @@
  * This module was the first resident of the agentexecution domain
  * directory; the tree corresponds to Go's.
  */
-import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 /**
  * Routes all activities to the shared global queue (runnerQueue, default

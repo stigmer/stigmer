@@ -41,9 +41,9 @@
 // and the outputs are unit-tested without a server or a clock.
 
 import { Code } from "@connectrpc/connect";
-import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { EvalRunPartialReason, EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunPartialReason, EvalRunPhase } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import type { Stigmer } from "@stigmer/client";
 import { CliExitError, ExitCode, classify } from "../../errors/index.js";
 import type { JsonTarget } from "./options.js";
 import { EvalExit, finishedTries, isSettled, oneLine, type FinishedTry } from "./report.js";

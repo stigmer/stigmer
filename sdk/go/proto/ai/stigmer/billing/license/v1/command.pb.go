@@ -7,8 +7,8 @@
 package licensev1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -28,8 +28,8 @@ const file_ai_stigmer_billing_license_v1_command_proto_rawDesc = "" +
 	"\n" +
 	"+ai/stigmer/billing/license/v1/command.proto\x12\x1dai.stigmer.billing.license.v1\x1a'ai/stigmer/billing/license/v1/api.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xba\x01\n" +
 	"\x18LicenseCommandController\x12\x97\x01\n" +
-	"\x06create\x12&.ai.stigmer.billing.license.v1.License\x1a&.ai.stigmer.billing.license.v1.License\"=¸\x189\b*\x10\x1f**only platform operators can issue licenses2\astigmer\x1a\x04\xa0\xff+HB\x9e\x02\n" +
-	"!com.ai.stigmer.billing.license.v1B\fCommandProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/license/v1;licensev1\xa2\x02\x04ASBL\xaa\x02\x1dAi.Stigmer.Billing.License.V1\xca\x02\x1dAi\\Stigmer\\Billing\\License\\V1\xe2\x02)Ai\\Stigmer\\Billing\\License\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Billing::License::V1b\x06proto3"
+	"\x06create\x12&.ai.stigmer.billing.license.v1.License\x1a&.ai.stigmer.billing.license.v1.License\"=¸\x189\b*\x10\x1f**only platform operators can issue licenses2\astigmer\x1a\x04\xa0\xff+HB\x8b\x02\n" +
+	"!com.ai.stigmer.billing.license.v1B\fCommandProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/billing/license/v1;licensev1\xa2\x02\x04ASBL\xaa\x02\x1dAi.Stigmer.Billing.License.V1\xca\x02\x1dAi\\Stigmer\\Billing\\License\\V1\xe2\x02)Ai\\Stigmer\\Billing\\License\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Billing::License::V1b\x06proto3"
 
 var file_ai_stigmer_billing_license_v1_command_proto_goTypes = []any{
 	(*License)(nil), // 0: ai.stigmer.billing.license.v1.License

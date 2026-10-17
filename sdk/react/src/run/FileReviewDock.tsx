@@ -1,9 +1,9 @@
 "use client";
 
 import { memo, useCallback } from "react";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { FileReviewSet } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { FileReviewSet } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 import { FileReviewCard } from "./FileReviewCard.js";
 import type { FileReviewAction, ReviewFileChangesOptions } from "./useReviewFileChanges.js";
 

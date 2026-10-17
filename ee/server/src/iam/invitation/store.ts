@@ -40,7 +40,7 @@
  */
 import type { ListIndexCursor, ListIndexRow } from "@stigmer/server";
 
-import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
+import type { Invitation } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
 
 /** A redemption's record: the persisted post-image, or the guard's refusal. */
 export type RedemptionOutcome =

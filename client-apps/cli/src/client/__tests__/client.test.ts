@@ -1,11 +1,11 @@
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   GetServerInfoOutputSchema,
   PlatformQueryController,
   ServerEdition,
-} from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+} from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Config } from "../../config/index.js";
 import { createBackendClient } from "../client.js";

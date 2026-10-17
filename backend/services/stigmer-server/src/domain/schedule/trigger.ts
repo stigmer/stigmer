@@ -28,14 +28,14 @@ import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import type { Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
 import {
   ScheduleFireOutcome,
   ScheduleTriggerResultSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
-import { ScheduleStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/status_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
+import { ScheduleStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/status_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { ConnectError } from "@connectrpc/connect";
 

@@ -13,8 +13,8 @@
  * step's declarative `interactions` (the packed embed wires it — there is no
  * per-view hook).
  */
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { samples } from "@stigmer/react/test";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { samples } from "@stigmer/react-sdk/test";
 import type { ScenarioStep } from "@scenar/react";
 import { DEMO_ORG } from "../_shared/fixtures";
 

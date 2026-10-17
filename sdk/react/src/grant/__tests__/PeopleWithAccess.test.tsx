@@ -19,12 +19,12 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   PrincipalAccessSchema,
   type PrincipalAccess,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import { teamGrantee, type DeploymentMode, type Grantee } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import { teamGrantee, type DeploymentMode, type Grantee } from "@stigmer/client";
 import { DeploymentModeContext } from "../../deployment-mode";
 
 const share = vi.hoisted(() => ({

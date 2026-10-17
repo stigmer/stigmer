@@ -17,9 +17,9 @@
  * Pinned by `__tests__/agentRefOfSession.test.ts`.
  */
 
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ResourceRef } from "@stigmer/sdk";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ResourceRef } from "@stigmer/client";
 
 /**
  * The agent `session` names, or `null` when it names none (the built-in

@@ -17,7 +17,7 @@
  * approval. A paused run is not working (its session reads idle, and a
  * Stigmer client reads PAUSED from the run).
  */
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 export function isTerminalExecutionPhase(phase: RunPhase): boolean {
   switch (phase) {

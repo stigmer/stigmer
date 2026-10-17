@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { useIsOverflowing } from "./useIsOverflowing.js";
 import { RevealToggle } from "./RevealToggle.js";
 

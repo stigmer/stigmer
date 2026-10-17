@@ -62,12 +62,12 @@
  * the extension package, never a silent OSS refusal a live channel user
  * meets in production.
  */
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import type {
   CompleteChannelInstallInput,
   InitiateChannelInstallInput,
   InitiateChannelInstallOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
 import type {
   ChannelTemplates,
   ListChannelTemplatesInput,
@@ -75,7 +75,7 @@ import type {
   MessagingChannels,
   SendChannelMessageInput,
   SendChannelMessageOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
 import type {
   ChannelConversation,
   ChannelConversationCount,
@@ -90,7 +90,7 @@ import type {
   ListChannelConversationsInput,
   ListConversationTimelineInput,
   ReplyToConversationInput,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 
 import type { CallerIdentity } from "../../extensions/identity.js";
 

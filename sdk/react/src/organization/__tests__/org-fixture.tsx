@@ -8,7 +8,7 @@
  */
 import { vi } from "vitest";
 import type { ReactNode } from "react";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { OrgProvider, useOrg } from "../OrgProvider";
 

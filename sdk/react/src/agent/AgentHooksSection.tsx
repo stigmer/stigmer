@@ -9,8 +9,8 @@
 // subagent is an agent of its own whose page shows its hooks, so nothing
 // here reads one. Pinned by `__tests__/AgentDetailView.hooks.test.tsx`.
 
-import { cn } from "@stigmer/theme";
-import type { HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { cn } from "@stigmer/design-tokens";
+import type { HookSource } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { HookConfigList } from "../plugin/HookConfigList.js";
 import { Section } from "../resource-detail/Section.js";

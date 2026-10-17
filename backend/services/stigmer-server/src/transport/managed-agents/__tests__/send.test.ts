@@ -10,15 +10,15 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import {
   InterruptSessionResponseSchema,
   SessionEventListSchema,
   type ConfirmToolUseInput,
   type InterruptSessionInput,
   type ListSessionEventsRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
 import type { LaneResponse } from "../../lanes.js";
 import type { LaneCall, LaneClients } from "../call.js";

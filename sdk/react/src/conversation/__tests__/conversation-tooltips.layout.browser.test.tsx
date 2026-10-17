@@ -21,9 +21,9 @@ import {
   ConversationItemAuthor,
   ConversationLane,
   ConversationTimelineItemSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
-import { ChannelDeliveryStatus } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/delivery_pb";
-import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/outbound_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { ChannelDeliveryStatus } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/delivery_pb";
+import { ChannelReceiptState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/outbound_pb";
 import { ConversationListPane } from "../ConversationListPane.js";
 import { ConversationTimelineView } from "../ConversationTimelineView.js";
 

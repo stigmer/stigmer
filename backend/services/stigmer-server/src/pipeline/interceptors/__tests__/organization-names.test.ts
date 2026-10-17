@@ -38,18 +38,18 @@ import { createClient, createRouterTransport } from "@connectrpc/connect";
 import type { Interceptor } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
-import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
-import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
-import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { RpcAuthorizationConfigSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/authorization_config_pb";
-import { config as rpcAuthorizationConfig } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
+import { GrantCommandController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/command_pb";
+import { GrantSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
+import { SearchService } from "@stigmer/apis/ai/stigmer/search/v1/query_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { OrganizationCommandController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/command_pb";
+import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { RpcAuthorizationConfigSchema } from "@stigmer/apis/ai/stigmer/commons/rpc/authorization_config_pb";
+import { config as rpcAuthorizationConfig } from "@stigmer/apis/ai/stigmer/commons/rpc/method_options_pb";
 
 import {
   annotatedOrganizationPath,

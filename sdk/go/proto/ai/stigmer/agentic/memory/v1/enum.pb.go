@@ -88,8 +88,8 @@ const file_ai_stigmer_agentic_memory_v1_enum_proto_rawDesc = "" +
 	"\x1blifecycle_state_unspecified\x10\x00\x12\x1c\n" +
 	"\x18lifecycle_state_proposed\x10\x01\x12\x1d\n" +
 	"\x19lifecycle_state_confirmed\x10\x02\x12\x1c\n" +
-	"\x18lifecycle_state_rejected\x10\x03B\x94\x02\n" +
-	" com.ai.stigmer.agentic.memory.v1B\tEnumProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/memory/v1;memoryv1\xa2\x02\x04ASAM\xaa\x02\x1cAi.Stigmer.Agentic.Memory.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Memory\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Memory::V1b\x06proto3"
+	"\x18lifecycle_state_rejected\x10\x03B\x81\x02\n" +
+	" com.ai.stigmer.agentic.memory.v1B\tEnumProtoP\x01Z=go.stigmer.ai/sdk/proto/ai/stigmer/agentic/memory/v1;memoryv1\xa2\x02\x04ASAM\xaa\x02\x1cAi.Stigmer.Agentic.Memory.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Memory\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Memory::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_memory_v1_enum_proto_rawDescOnce sync.Once

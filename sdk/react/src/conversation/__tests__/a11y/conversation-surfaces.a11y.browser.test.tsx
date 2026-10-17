@@ -13,8 +13,8 @@ import { describe, it, afterEach, expect, vi } from "vitest";
 import { waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import type { Stigmer } from "@stigmer/sdk";
-import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import type { Stigmer } from "@stigmer/client";
+import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   ChannelConversationListFilter,
   ChannelConversationSchema,
@@ -22,9 +22,9 @@ import {
   ConversationItemAuthor,
   ConversationLane,
   ConversationTimelineItemSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
-import { ChannelDeliveryStatus } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/delivery_pb";
-import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/outbound_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { ChannelDeliveryStatus } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/delivery_pb";
+import { ChannelReceiptState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/outbound_pb";
 import { StigmerContext } from "../../../context.js";
 import { ConversationComposer } from "../../ConversationComposer.js";
 import { ConversationListPane } from "../../ConversationListPane.js";

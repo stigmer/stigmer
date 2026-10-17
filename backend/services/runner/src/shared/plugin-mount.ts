@@ -59,7 +59,7 @@
 import { createHash } from "node:crypto";
 import { agentFs, agentPathExists } from "./agent-fs.js";
 import { join, posix, relative } from "node:path";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import { archiveFileMode, downloadArchive, entryPathIn, resetDirectory, writeArchiveEntries } from "./archive-mount.js";
 import { extractZipFileEntries, type ZipFileEntry } from "./zip-extract.js";

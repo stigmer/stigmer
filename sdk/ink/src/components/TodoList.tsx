@@ -2,7 +2,7 @@
 // fold (`Turn.todos`), sorted by activity, with a completed count.
 import React, { useMemo } from "react";
 import { Box, Text } from "ink";
-import type { Todo } from "@stigmer/sdk";
+import type { Todo } from "@stigmer/client";
 
 /** Props for {@link TodoList}. */
 export interface TodoListProps {

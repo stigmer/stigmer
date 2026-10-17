@@ -125,9 +125,9 @@
  *     row the helper holds, and an optional field would let a driver
  *     silently skip the check.
  */
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import type { ApiResourceAudit } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import type { ApiResourceAudit } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 
 // The only VALUE imports from extensions/ into pipeline/ (every other
 // crossing is a type): three pure leaf modules that import nothing but

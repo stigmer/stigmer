@@ -12,10 +12,10 @@
  */
 import { fromBinary } from "@bufbuild/protobuf";
 
-import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import type { ApiKey } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { ApiKeySchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
 
 import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
 import type { Store } from "../../store/interface.js";

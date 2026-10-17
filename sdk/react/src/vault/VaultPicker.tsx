@@ -16,10 +16,10 @@
  * whether they may be used.
  */
 import { useCallback, useId, useMemo } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import type { ResourceRef } from "@stigmer/sdk";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import type { ResourceRef } from "@stigmer/client";
 import { isMyVault, useVaultList } from "./useVaultList.js";
 
 /** The name My vault is shown with. */

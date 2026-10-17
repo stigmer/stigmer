@@ -9,12 +9,12 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   SessionEventSchema,
   type SessionEvent,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Store } from "../../../../store/interface.js";
 import { draftOf } from "../../events/codec.js";

@@ -33,10 +33,10 @@
  */
 
 import { SpanKind, context, trace, type Span } from "@opentelemetry/api";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 
 import {
   GEN_AI_AGENT_ID,

@@ -6,7 +6,7 @@
  * without React or fake DOM (mirrors the codebase's extract-the-pure-core
  * convention, e.g. `computeFollowCenter` / `isRecoveryTransition`).
  *
- * @internal Not part of the public `@stigmer/react` API.
+ * @internal Not part of the public `@stigmer/react-sdk` API.
  */
 
 /** Tunable backoff schedule. All fields optional — sensible defaults apply. */

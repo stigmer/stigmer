@@ -6,7 +6,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   ChannelSendOutcome,
   SendChannelMessageOutputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ConversationTemplatePickerDialog } from "../ConversationTemplatePickerDialog";

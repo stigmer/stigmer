@@ -34,7 +34,7 @@
  */
 
 import type { AgentDefinition } from "@cursor/sdk";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { TurnInput } from "../../harness/types.js";
 import type { SkillMetadata } from "../../shared/skill-resolver.js";

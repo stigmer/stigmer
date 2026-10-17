@@ -5,8 +5,8 @@
 // deduplicated in contract order.
 
 import { describe, expect, it } from "vitest";
-import { PlanInstrument } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
-import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import { PlanInstrument } from "@stigmer/apis/ai/stigmer/billing/plan/v1/spec_pb";
+import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import { EMPTY_PLAN_DRAFT, parseLimit, parseUsd, planInputFromDraft } from "../plan-draft";
 
 describe("parsing", () => {

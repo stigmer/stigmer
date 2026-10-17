@@ -7,17 +7,17 @@
 // An eval run's row lists every check of its case with its verdict.
 
 import { clone, create } from "@bufbuild/protobuf";
-import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
+import { ScoreSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
 import {
   CriterionResult,
   ScoreSource,
   ScoreState,
-} from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
-import { ScoreListSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
-import type { ListScoresByRunRequest } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
+import { ScoreListSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
+import type { ListScoresByRunRequest } from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
+import type { Stigmer } from "@stigmer/client";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { describe, expect, it, vi } from "vitest";
 
 import { getterFor } from "../get-bindings.js";

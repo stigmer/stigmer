@@ -15,7 +15,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, waitFor } from "@testing-library/react";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 import { AuthContext } from "@/auth/context";
 import type { AuthState } from "@/auth/types";
 
@@ -38,9 +38,9 @@ const provider = vi.hoisted(() => ({
   clients: [] as Stigmer[],
 }));
 
-// The bridge takes only the provider from @stigmer/react; capture the client
+// The bridge takes only the provider from @stigmer/react-sdk; capture the client
 // it hands over instead of mounting the whole SDK tree.
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   StigmerProvider: ({
     client,
     children,

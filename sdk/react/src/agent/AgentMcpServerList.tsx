@@ -14,7 +14,7 @@
 // `steps/__tests__/CapabilitiesStep.test.tsx`.
 
 import { type ReactNode, useCallback, useId, useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { Button } from "../button/Button.js";
 import { INPUT_CLASS } from "../vault/styles.js";
 import { McpServerIcon } from "../plugin/McpServerIcon.js";

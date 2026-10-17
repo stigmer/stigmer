@@ -33,14 +33,14 @@
 // that a fired turn runs unattended within the schedule profile, and that
 // an unattended fire that would run Cursor with no model is refused.
 import { create } from "@bufbuild/protobuf";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ApprovalMode, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ApprovalMode, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import {
   ScheduleFireOrigin,
   ScheduleFireOutcome,
-} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";

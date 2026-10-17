@@ -29,7 +29,7 @@
 // Out of scope: the link's expiry by time (its clock is minutes long; the
 // server's unit suite pins it with a controlled clock).
 import { Code } from "@connectrpc/connect";
-import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
+import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";

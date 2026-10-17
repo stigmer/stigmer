@@ -19,7 +19,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   RunConfigSchema,
   type RunConfig,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 
 export class ScheduleTemporalConfig {
   constructor(

@@ -13,10 +13,10 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type { Authorizer, AuthzCheck, AuthzDecision, CallerIdentity } from "@stigmer/server";
 import { describe, expect, it } from "vitest";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { FederationIssuerQueryController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/query_pb";
-import { TeamQueryController } from "@stigmer/protos/ai/stigmer/iam/team/v1/query_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { FederationIssuerQueryController } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/query_pb";
+import { TeamQueryController } from "@stigmer/apis/ai/stigmer/iam/team/v1/query_pb";
+import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import { deniedCopyOf, refuseMissUnlessOrganizationBar } from "../reference-miss.js";
 

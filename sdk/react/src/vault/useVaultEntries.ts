@@ -10,14 +10,14 @@
  */
 import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import {
   RemoveVaultConnectionsInputSchema,
   RemoveVaultSecretsInputSchema,
   SetVaultConnectionInputSchema,
   SetVaultSecretsInputSchema,
   VaultSecretInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { vaultTargetById } from "./target.js";

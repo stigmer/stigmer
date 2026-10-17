@@ -80,7 +80,7 @@
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { accountForStamp } from "../domain/identityaccount/resolve.js";
 import type { AccountsByCaller } from "../domain/identityaccount/resolve.js";

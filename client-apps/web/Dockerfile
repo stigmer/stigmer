@@ -18,7 +18,7 @@ COPY sdk/theme/package.json sdk/theme/
 COPY sdk/react/package.json sdk/react/
 COPY sdk/embed/package.json sdk/embed/
 
-# Copy workspace packages the web app depends on. @stigmer/react reads
+# Copy workspace packages the web app depends on. @stigmer/react-sdk reads
 # marketplaces through @stigmer/plugin-package (its ./client entry), so the
 # library is part of the console's closure like the SDK packages are, and so
 # is @stigmer/eval-runtime, which its eval suite reader imports. The SDK
@@ -44,16 +44,16 @@ COPY brand/ brand/
 # @stigmer/session-log's exports maps point at dist/ (the published shape
 # every consumer resolves, the site's yarn link included);
 # @stigmer/embed's IIFE loader (copied to public/embed.js by the web build)
-# is a Vite bundle; @stigmer/react's stylesheet is imported by globals.css
+# is a Vite bundle; @stigmer/react-sdk's stylesheet is imported by globals.css
 # as ./dist/styles.css, compiled since the prefix-isolation change (#471).
 RUN npm ci && \
-    npm run build -w @stigmer/protos && \
+    npm run build -w @stigmer/apis && \
     npm run build -w @stigmer/eval-runtime && \
     npm run build -w @stigmer/plugin-package && \
     npm run build -w @stigmer/tool-vocabulary && \
     npm run build -w @stigmer/session-log && \
     npm run build -w @stigmer/embed && \
-    npm run build:css -w @stigmer/react && \
+    npm run build:css -w @stigmer/react-sdk && \
     npm run build -w client-apps/web
 
 # Runtime stage — nginx serves the static export + runtime config

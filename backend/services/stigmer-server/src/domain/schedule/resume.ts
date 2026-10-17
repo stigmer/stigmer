@@ -15,9 +15,9 @@
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import type { Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { internalError, notFoundError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";

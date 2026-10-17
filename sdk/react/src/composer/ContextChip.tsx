@@ -1,4 +1,4 @@
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { ChipSpinner, XIcon } from "./icons.js";
 

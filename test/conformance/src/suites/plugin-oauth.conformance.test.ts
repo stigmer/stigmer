@@ -26,7 +26,7 @@
 // login by a run and by a tools listing is the execution class's
 // (suites-execution/plugin-tools.conformance.test.ts).
 import { Code } from "@connectrpc/connect";
-import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
+import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import { MockOAuthAuthorizationServer } from "@stigmer/test-support/oauth-authorization-server";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";

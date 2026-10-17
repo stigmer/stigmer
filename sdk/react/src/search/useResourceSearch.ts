@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 import { createLibraryListFn, type LibraryKind } from "./librarySource.js";

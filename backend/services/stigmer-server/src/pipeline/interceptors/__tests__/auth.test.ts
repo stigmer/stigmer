@@ -18,9 +18,9 @@ import { Code, ConnectError, createContextValues } from "@connectrpc/connect";
 import type { Interceptor } from "@connectrpc/connect";
 import type { DescMethod } from "@bufbuild/protobuf";
 
-import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
-import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
-import { Health } from "@stigmer/protos/grpc/health/v1/health_pb";
+import { ApiKeyQueryController } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/query_pb";
+import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
+import { Health } from "@stigmer/apis/grpc/health/v1/health_pb";
 
 import type { CallerGuard } from "../../../extensions/caller-guards.js";
 import type {

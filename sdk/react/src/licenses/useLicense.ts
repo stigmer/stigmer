@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { License } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
+import type { License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 

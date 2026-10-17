@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
+import type { Invitation } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

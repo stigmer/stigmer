@@ -9,7 +9,7 @@
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import {
   EMPTY_SIGN_IN_SETTINGS,
   formatSignInRole,

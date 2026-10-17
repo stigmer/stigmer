@@ -10,8 +10,8 @@
 // followSession, folded by SessionLog; asks are answered through the
 // session's confirmToolUse / grantPermission.
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { followSession, type Stigmer } from "@stigmer/sdk";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { followSession, type Stigmer } from "@stigmer/client";
 import { runEpilogue } from "./epilogue.js";
 import { renderSessionHeader, type SessionHeaderInfo } from "./header.js";
 import type { RunMode } from "./prepare.js";

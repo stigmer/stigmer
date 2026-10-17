@@ -7,13 +7,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { Code, ConnectError, createRouterTransport, type Transport } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
-import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
-import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
+import { SkillCommandController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/command_pb";
+import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import {
   PushSkillRequestSchema,
   SkillArtifactUploadUrlSchema,
   type PushSkillRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 import { StigmerError } from "../gen/errors.js";
 import { MAX_INLINE_ARTIFACT_BYTES, RoutedSkillClient } from "../skill.js";
 

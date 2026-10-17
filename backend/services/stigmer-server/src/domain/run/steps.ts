@@ -13,12 +13,12 @@
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunListSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunListSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";

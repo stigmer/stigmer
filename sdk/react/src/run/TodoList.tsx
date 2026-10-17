@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, type ComponentType } from "react";
-import type { Todo } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+import type { Todo } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 
 /** Props for {@link TodoList}. */

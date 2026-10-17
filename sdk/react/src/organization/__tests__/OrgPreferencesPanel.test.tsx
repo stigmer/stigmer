@@ -4,7 +4,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   OrganizationSchema,
   type Organization,
-} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";

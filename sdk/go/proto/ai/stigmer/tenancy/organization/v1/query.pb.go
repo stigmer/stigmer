@@ -7,8 +7,8 @@
 package organizationv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,9 +32,9 @@ const file_ai_stigmer_tenancy_organization_v1_query_proto_rawDesc = "" +
 	"\blistMine\x12<.ai.stigmer.tenancy.organization.v1.ListMyOrganizationsInput\x1a1.ai.stigmer.tenancy.organization.v1.Organizations\"\x04и\x18\x01\x12\xd9\x01\n" +
 	"\x0fgetByExternalId\x12>.ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"T¸\x18P\b1\x10\x1e\"\n" +
 	"parent_org*>unauthorized to manage this organization's child organizations\x12\xc8\x01\n" +
-	"\rlistChildOrgs\x126.ai.stigmer.tenancy.organization.v1.ListChildOrgsInput\x1a0.ai.stigmer.tenancy.organization.v1.ChildOrgList\"M¸\x18I\b1\x10\x1e\"\x03org*>unauthorized to manage this organization's child organizations\x1a\x04\xa0\xff+\x1eB\xbf\x02\n" +
+	"\rlistChildOrgs\x126.ai.stigmer.tenancy.organization.v1.ListChildOrgsInput\x1a0.ai.stigmer.tenancy.organization.v1.ChildOrgList\"M¸\x18I\b1\x10\x1e\"\x03org*>unauthorized to manage this organization's child organizations\x1a\x04\xa0\xff+\x1eB\xac\x02\n" +
 	"&com.ai.stigmer.tenancy.organization.v1B\n" +
-	"QueryProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
+	"QueryProtoP\x01ZIgo.stigmer.ai/sdk/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
 
 var file_ai_stigmer_tenancy_organization_v1_query_proto_goTypes = []any{
 	(*OrganizationId)(nil),             // 0: ai.stigmer.tenancy.organization.v1.OrganizationId

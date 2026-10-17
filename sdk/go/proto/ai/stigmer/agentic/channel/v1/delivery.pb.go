@@ -584,8 +584,8 @@ const file_ai_stigmer_agentic_channel_v1_delivery_proto_rawDesc = "" +
 	"\x1battempt_failure_unspecified\x10\x00\x12\x13\n" +
 	"\x0fattempt_refused\x10\x01\x12\x13\n" +
 	"\x0fattempt_errored\x10\x02\x12\x15\n" +
-	"\x11attempt_withdrawn\x10\x03B\x9f\x02\n" +
-	"!com.ai.stigmer.agentic.channel.v1B\rDeliveryProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
+	"\x11attempt_withdrawn\x10\x03B\x8c\x02\n" +
+	"!com.ai.stigmer.agentic.channel.v1B\rDeliveryProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_channel_v1_delivery_proto_rawDescOnce sync.Once

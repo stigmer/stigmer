@@ -14,8 +14,8 @@
  */
 import { fromBinary } from "@bufbuild/protobuf";
 
-import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
+import { ScoreSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Store } from "../../store/interface.js";

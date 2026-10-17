@@ -27,7 +27,7 @@ import "../../dist/styles.css";
 
 import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 import { StigmerProvider } from "../provider";
 import { Button } from "../button/Button.js";
 import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";

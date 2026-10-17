@@ -67,22 +67,22 @@
 // subject, so no title call is made.
 import { clone, create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunAblation } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import {
   EvalRunPartialReason,
   EvalRunPhase,
   EvalRunTryState,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import {
   OrganizationPreferencesSchema,
   OrganizationSpecSchema,
-} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/spec_pb";
 import { readAnthropicRequest } from "@stigmer/test-support/llm-wire";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";

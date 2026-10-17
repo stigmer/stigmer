@@ -59,7 +59,7 @@
 
 import { agentFs } from "./agent-fs.js";
 import { join, basename, dirname, posix } from "node:path";
-import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import type { Attachment } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import type { ArtifactStorage } from "./artifact-storage.js";
 import { mintAttachmentDownloadUrl } from "./attachment-download-urls.js";
 import { allocateUniqueName } from "./attachment-naming.js";

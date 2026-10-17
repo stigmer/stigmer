@@ -1,6 +1,6 @@
 import React, { type ReactElement } from "react";
 import { render } from "ink-testing-library";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 import { InkStigmerProvider } from "../provider.js";
 
 /**

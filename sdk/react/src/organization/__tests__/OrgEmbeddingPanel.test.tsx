@@ -24,10 +24,10 @@ import type { ReactNode } from "react";
 import {
   OrganizationSchema,
   type Organization,
-} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import type { UpdateOrganizationEmbeddingInput } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { UpdateOrganizationEmbeddingInput } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { StigmerContext } from "../../context";
 import { OrgEmbeddingPanel, formatSignInRole } from "../OrgEmbeddingPanel";
 import {

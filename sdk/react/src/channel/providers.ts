@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import type { DeploymentMode } from "@stigmer/sdk";
+import type { DeploymentMode } from "@stigmer/client";
 import { SlackMarkIcon } from "./SlackMarkIcon.js";
 import { WhatsAppMarkIcon } from "./WhatsAppMarkIcon.js";
 

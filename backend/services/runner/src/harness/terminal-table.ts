@@ -47,8 +47,8 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { COST_LIMIT_USER_COPY, formatCostLimitError } from "../shared/cost-guard.js";
 import { TOOL_CALL_LIMIT_USER_COPY, formatToolCallLimitError } from "../shared/tool-rounds.js";

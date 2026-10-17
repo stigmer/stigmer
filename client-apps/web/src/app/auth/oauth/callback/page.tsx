@@ -3,14 +3,14 @@
 import { Suspense, useEffect, useMemo, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Stigmer } from "@stigmer/sdk";
+import { Stigmer } from "@stigmer/client";
 import {
   ConnectLinkCallback,
   OAuthCallbackHandler,
   StigmerProvider,
   pendingConnectLinkToken,
-} from "@stigmer/react";
-import type { ResolvedColorMode } from "@stigmer/react";
+} from "@stigmer/react-sdk";
+import type { ResolvedColorMode } from "@stigmer/react-sdk";
 import { getApiBaseUrl } from "@/config/env";
 
 /** The deep link Stigmer Desktop registers for a sign-in that returns through this page. */

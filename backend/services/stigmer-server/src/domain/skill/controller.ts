@@ -36,16 +36,16 @@ import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import type { DescMethod } from "@bufbuild/protobuf";
 import { create } from "@bufbuild/protobuf";
 
-import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
-import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
+import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import type { Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import { SkillCommandController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/command_pb";
+import { SkillQueryController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/query_pb";
 import {
   GetArtifactResponseSchema,
   PushSkillRequestSchema,
   SkillArtifactDownloadUrlSchema,
   SkillArtifactUploadUrlSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 import type {
   CreateSkillArtifactUploadUrlRequest,
   GetArtifactRequest,
@@ -57,19 +57,19 @@ import type {
   SkillArtifactDownloadUrl,
   SkillArtifactUploadUrl,
   SkillId,
-} from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 import type {
   ApiResourceReference,
   UpdateVisibilityInput,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { SkillStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/status_pb";
-import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import { SkillListSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { SkillStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/status_pb";
+import { ApiResourceAuditSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
+import { SkillListSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 import type {
   SkillList,
   ListSkillsRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import type { Logger } from "../../boot/logger.js";

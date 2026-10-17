@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 import { StigmerContext } from "../context";
 import { useStigmer } from "../hooks";
 import { ExecutionTargetContext, useExecutionTarget } from "../execution-target-context";

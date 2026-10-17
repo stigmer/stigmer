@@ -3,12 +3,12 @@
 // expanded, each tool use's row.
 import React, { useContext, useState } from "react";
 import { Box, Text, useInput } from "ink";
-import type { ToolUse } from "@stigmer/sdk";
+import type { ToolUse } from "@stigmer/client";
 import {
   FileReviewContext,
   fileReviewRowState,
   type FileReviewRowState,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 import { editedPath } from "../file-review.js";
 import { ToolCallItem } from "./ToolCallItem.js";
 

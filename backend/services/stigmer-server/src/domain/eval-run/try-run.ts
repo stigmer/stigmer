@@ -79,11 +79,11 @@ import type { JsonObject } from "@bufbuild/protobuf";
 
 import type { EvalCase, EvalMockServer as CaseMockServer } from "@stigmer/plugin-package";
 import { toolServerSegment } from "@stigmer/plugin-package";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import {
   EvalRunMockedServerSchema,
   type EvalRunMockedServer,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
 import {
   EvalCaseContextSchema,
   EvalMockKind,
@@ -93,18 +93,18 @@ import {
   EvalMockToolSchema,
   type EvalCaseContext,
   type EvalMockServer,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
 import { READ_ONLY_EVAL_TOOLS, isClaudeTool } from "@stigmer/tool-vocabulary";
-import type { EvalRunSpec } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import type { EvalRunSpec } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
+import { RunSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 import {
   GRADES_RUN_LABEL,

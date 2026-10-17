@@ -1,16 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useState, type FormEvent } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import {
   getUserMessage,
   iamRoleDisplayName,
-} from "@stigmer/sdk";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { InvitationState } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/enum_pb";
-import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
+} from "@stigmer/client";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { InvitationState } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/enum_pb";
+import type { Invitation } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useOrgInvitations } from "./useOrgInvitations.js";
 import { useCreateInvitation } from "./useCreateInvitation.js";

@@ -24,12 +24,12 @@ import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
   type ApiKey,
   ApiKeySchema,
-} from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
 import {
   ApiKeyHashSchema,
   CreateServiceAccountKeyInputSchema,
-} from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
-import type { ApiKeyInput, Stigmer } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/iam/apikey/v1/io_pb";
+import type { ApiKeyInput, Stigmer } from "@stigmer/client";
 import type { Command } from "commander";
 import {
   ensureAuthenticated,

@@ -29,19 +29,19 @@ import { Code, ConnectError, createClient, createRouterTransport } from "@connec
 import type { HandlerContext } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { RunCredentialsSchema, RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { RunCredentialsSchema, RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import {
   FetchExecutionValuesInputSchema,
   VaultValueController,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
-import type { ExecutionValues } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
+import type { ExecutionValues } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { createApiResourceInterceptor } from "../../../pipeline/interceptors/apiresource.js";

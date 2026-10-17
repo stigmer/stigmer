@@ -13,9 +13,9 @@
 // whoamiResult is the pure half (given the account and what the call learned,
 // the CommandResult a person reads); runWhoami is the I/O half.
 
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { ensureMyIdentityAccount, type Stigmer } from "@stigmer/sdk";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { ensureMyIdentityAccount, type Stigmer } from "@stigmer/client";
 import {
   type Config,
   ensureAuthenticated,

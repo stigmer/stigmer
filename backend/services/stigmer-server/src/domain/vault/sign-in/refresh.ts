@@ -41,7 +41,7 @@
  */
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 
 import type { Logger } from "../../../boot/logger.js";
 import type { SecretService } from "../../../encryption/encryption.js";

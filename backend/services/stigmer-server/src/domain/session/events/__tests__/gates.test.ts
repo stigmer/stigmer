@@ -9,7 +9,7 @@ import { create, toBinary } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import { eventTypeOf } from "@stigmer/session-log";
 import { SESSION_EVENT_GATES, gatesOfEvent } from "../gates.js";

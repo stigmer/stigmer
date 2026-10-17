@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { OrgProfileSection } from "@stigmer/react";
+import { OrgProfileSection } from "@stigmer/react-sdk";
 
 /**
  * Organization profile settings. Opening a child organization from the

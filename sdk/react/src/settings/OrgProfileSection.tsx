@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { ChildOrganizationsList } from "../organization/ChildOrganizationsList.js";
 import { OrgProfilePanel } from "../organization/OrgProfilePanel.js";
 import { useOrg } from "../organization/OrgProvider.js";

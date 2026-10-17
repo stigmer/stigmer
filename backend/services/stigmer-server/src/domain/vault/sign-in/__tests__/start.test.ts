@@ -26,8 +26,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   CompleteSignInInputSchema,
   StartSignInInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
-import type { StartSignInOutput } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
+import type { StartSignInOutput } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 
 import type { ConnectLinkDeps } from "../../connect-link.js";
 import { completePersonSignIn, startPersonSignIn } from "../person.js";

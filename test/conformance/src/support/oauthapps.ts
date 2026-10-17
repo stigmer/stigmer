@@ -11,11 +11,11 @@
 // ciphertext-shaped secrets) are written inline in the suite, matching the
 // support/agents.ts convention: this module is validity by construction.
 import type { InitShape } from "./init-shape";
-import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
+import { OAuthAppSchema } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
 import type {
   TokenEndpointAuthMethod,
   VendorApprovalStatus,
-} from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/spec_pb";
 
 export const OAUTHAPP_API_VERSION = "iam.stigmer.ai/v1";
 export const OAUTHAPP_KIND = "OAuthApp";

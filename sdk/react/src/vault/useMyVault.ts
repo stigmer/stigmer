@@ -12,8 +12,8 @@
  */
 import { useCallback, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { isNotFound } from "@stigmer/sdk";
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import { isNotFound } from "@stigmer/client";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import {
   GetMyVaultInputSchema,
   RemoveVaultConnectionsInputSchema,
@@ -21,7 +21,7 @@ import {
   SetVaultConnectionInputSchema,
   SetVaultSecretsInputSchema,
   VaultSecretInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 import { toError } from "../internal/toError.js";

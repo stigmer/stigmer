@@ -4,9 +4,9 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { normalizeToolResult } from "@stigmer/sdk";
-import type { ToolResultView } from "@stigmer/sdk";
-import type { Stigmer } from "@stigmer/sdk";
+import { normalizeToolResult } from "@stigmer/client";
+import type { ToolResultView } from "@stigmer/client";
+import type { Stigmer } from "@stigmer/client";
 import { StigmerContext } from "../../context";
 import { ResultView, summarizeResultView } from "../ResultView";
 import { toolUse } from "./__fixtures__/fold-values";

@@ -39,8 +39,8 @@
  * retried) and the per-kind races beside each domain.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 
 import type { GuardedWritePort } from "../store/guarded-port.js";
 import { kindNoun } from "./apiresource-meta.js";

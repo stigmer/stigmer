@@ -1,11 +1,11 @@
 ---
 title: Embed in your CLI
 description:
-  Spawn @stigmer/ink from a Go, Rust, or Python CLI to render agent sessions
+  Spawn @stigmer/ink-ui from a Go, Rust, or Python CLI to render agent sessions
   in the terminal.
 ---
 
-`@stigmer/ink` ships a standalone binary that renders a Stigmer agent session
+`@stigmer/ink-ui` ships a standalone binary that renders a Stigmer agent session
 in the terminal. Your CLI creates the session through the Stigmer API, then
 spawns this binary as a child process. The binary connects to the API on its
 own, streams execution updates, and renders the full conversation UI —
@@ -67,7 +67,7 @@ const inkVersion = "0.1.0"
 
 func renderSession(sessionID, org, baseURL, apiKey string) error {
 	args := []string{
-		"--yes", fmt.Sprintf("@stigmer/ink@%s", inkVersion),
+		"--yes", fmt.Sprintf("@stigmer/ink-ui@%s", inkVersion),
 		"--session", sessionID,
 		"--org", org,
 		"--base-url", baseURL,
@@ -128,7 +128,7 @@ fn render_session(
     base_url: &str,
     api_key: Option<&str>,
 ) -> std::io::Result<std::process::ExitStatus> {
-    let package = format!("@stigmer/ink@{INK_VERSION}");
+    let package = format!("@stigmer/ink-ui@{INK_VERSION}");
     let mut args = vec![
         "--yes", &package,
         "--session", session_id,
@@ -161,7 +161,7 @@ INK_VERSION = "0.1.0"
 
 def render_session(session_id, org, base_url, api_key=None):
     cmd = [
-        "npx", "--yes", f"@stigmer/ink@{INK_VERSION}",
+        "npx", "--yes", f"@stigmer/ink-ui@{INK_VERSION}",
         "--session", session_id,
         "--org", org,
         "--base-url", base_url,
@@ -177,12 +177,12 @@ configuration is needed for terminal passthrough.
 
 ## Version pinning
 
-Always pin the `@stigmer/ink` version in the `npx` command. Without a version,
+Always pin the `@stigmer/ink-ui` version in the `npx` command. Without a version,
 `npx` resolves `latest`, which can introduce breaking changes between CLI
 releases.
 
 ```
-npx --yes @stigmer/ink@0.1.0 --session ...
+npx --yes @stigmer/ink-ui@0.1.0 --session ...
 ```
 
 Store the version as a constant in your CLI source. Update it alongside CLI
@@ -200,7 +200,7 @@ invocation where you want to avoid passing secrets as command-line arguments
 
 ```bash
 echo '{"sessionId":"ses-abc","org":"my-org","baseUrl":"https://api.stigmer.ai","apiKey":"sk_..."}' \
-  | npx --yes @stigmer/ink@0.1.0
+  | npx --yes @stigmer/ink-ui@0.1.0
 ```
 
 In non-TTY mode, Ink disables `Ctrl+C` handling and suppresses the Ink debug

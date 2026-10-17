@@ -5,16 +5,16 @@ import { stripUndefined } from "./proto-utils.js";
 import { type DeleteResourceInput, type ResourceRef } from "./types.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { FederationIssuerSchema, type FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
-import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
-import { UpdateFederationIssuerInputSchema, ListFederationIssuersInputSchema, FederationIssuersSchema, type ListFederationIssuersInput, type FederationIssuers } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/io_pb";
-import { FederationIssuerQueryController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/query_pb";
-import { FederationIssuerSpecSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/spec_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { FederationIssuerSchema, type FederationIssuer } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerCommandController } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/command_pb";
+import { UpdateFederationIssuerInputSchema, ListFederationIssuersInputSchema, FederationIssuersSchema, type ListFederationIssuersInput, type FederationIssuers } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/io_pb";
+import { FederationIssuerQueryController } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/query_pb";
+import { FederationIssuerSpecSchema } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/spec_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 /** Provides operations on federationissuer resources. */
 export class FederationIssuerClient {

@@ -1,7 +1,7 @@
 // One tool use as a terminal row: its status glyph, the harness-agnostic
 // label (or a shell call's model-authored intent), its live file-review
 // badge when it edited a file, and, expanded, its result described from the
-// shared `@stigmer/sdk` view model.
+// shared `@stigmer/client` view model.
 import React from "react";
 import { Box, Text } from "ink";
 import {
@@ -9,13 +9,13 @@ import {
   resolveToolKind,
   normalizeToolResult,
   extractShellIntent,
-} from "@stigmer/sdk";
-import type { ToolResultView, ToolUse } from "@stigmer/sdk";
+} from "@stigmer/client";
+import type { ToolResultView, ToolUse } from "@stigmer/client";
 import {
   extractPrimaryArg,
   useFileReviewRowState,
   type FileReviewRowState,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 import { editedPath } from "../file-review.js";
 
 /** Props for {@link ToolCallItem}. */
@@ -40,7 +40,7 @@ const STATUS_INDICATOR: Record<ToolUse["state"], { symbol: string; color?: strin
 };
 
 // Harness-agnostic labels per kind. Classification is shared with the runner,
-// React, and the CLI's headless renderers via @stigmer/sdk's resolveToolKind,
+// React, and the CLI's headless renderers via @stigmer/client's resolveToolKind,
 // so Cursor's PascalCase tools render with the same labels as native tools
 // here.
 const KIND_LABEL: Partial<Record<ToolKind, string>> = {
@@ -73,7 +73,7 @@ const REVIEW_BADGE: Record<FileReviewRowState, { label: string; color: string }>
 
 /**
  * Renders a single tool use with a status indicator, label, and an optional
- * expanded result. Labels and results come from the shared `@stigmer/sdk` view
+ * expanded result. Labels and results come from the shared `@stigmer/client` view
  * model, so a terminal session shows the same semantics (diffs, exit codes,
  * match counts) as the web console.
  */
@@ -84,7 +84,7 @@ export function ToolCallItem({ toolUse, expanded = false }: ToolCallItemProps) {
   const label = toolLabel(toolUse, kind);
   // Model-authored intent titles the row when present (stigmer#276), with
   // the command demoted to dim secondary text — same convention as the web
-  // console, extraction shared via @stigmer/sdk.
+  // console, extraction shared via @stigmer/client.
   const intent = extractShellIntent(toolUse);
   const title = intent ?? label;
   const commandSubtitle = intent ? extractPrimaryArg(toolUse) : undefined;

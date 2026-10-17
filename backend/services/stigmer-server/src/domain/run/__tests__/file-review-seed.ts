@@ -11,21 +11,21 @@
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 
-import type { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   DiffCompleteness,
   RunPhase,
   FileChangeKind,
   SnapshotKind,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import type {
   CapturedFileChange,
   FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 
 import { aggregateDigest, fileDigest } from "../filereview/digest.js";
 

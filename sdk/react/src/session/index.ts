@@ -173,10 +173,10 @@ export type {
   SetupTabAutoApprove,
 } from "./facets/index.js";
 
-// Session utilities (re-exported from @stigmer/sdk)
+// Session utilities (re-exported from @stigmer/client)
 export {
   BUILT_IN_ASSISTANT_NAME,
   PENDING_SUBJECT,
   isBuiltInAssistant,
   resolvedSubject,
-} from "@stigmer/sdk";
+} from "@stigmer/client";

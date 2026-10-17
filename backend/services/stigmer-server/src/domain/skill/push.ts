@@ -34,22 +34,22 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import type { PushSkillRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
-import { SkillSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/spec_pb";
+import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import type { Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import type { PushSkillRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
+import { SkillSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/spec_pb";
 import {
   SkillState,
   SkillStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/skill/v1/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/skill/v1/status_pb";
 import {
   ApiResourceMetadataSchema,
   ApiResourceMetadataVersionSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceAuditSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";

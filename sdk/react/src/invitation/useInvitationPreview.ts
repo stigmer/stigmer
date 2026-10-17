@@ -1,8 +1,8 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import type { InvitationPreview } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/io_pb";
-import { InvitationTokenInputSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/io_pb";
+import type { InvitationPreview } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/io_pb";
+import { InvitationTokenInputSchema } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 

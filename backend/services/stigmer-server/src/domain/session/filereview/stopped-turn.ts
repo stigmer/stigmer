@@ -26,8 +26,8 @@
  *
  * Proven by __tests__/stopped-turn.test.ts.
  */
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { Logger } from "../../../boot/logger.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";

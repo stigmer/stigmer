@@ -6,16 +6,16 @@ import { type ResourceRef } from "./types.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { EmptySchema } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { type ApiResourceAuditActor } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import { IdentityAccountSchema, type IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
-import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { IdentityAccountIdSchema, UpdateIdentityAccountInputSchema, CreateFederatedAccountInputSchema, UpdateFederatedAccountInputSchema, DeprovisionFederatedAccountInputSchema, CreateServiceAccountInputSchema, IdentityAccountEmailSchema, IdpIdSchema, ExternalSubLookupSchema, ListServiceAccountsInputSchema, IdentityAccountsListSchema, type CreateFederatedAccountInput, type UpdateFederatedAccountInput, type DeprovisionFederatedAccountInput, type CreateServiceAccountInput, type IdentityAccountEmail, type ExternalSubLookup, type ListServiceAccountsInput, type IdentityAccountsList } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
-import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
-import { IdentityAccountSpecSchema, IdentityAccountPreferencesSchema, type IdentityAccountPreferences } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { type ApiResourceAuditActor } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
+import { IdentityAccountSchema, type IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountCommandController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/command_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { IdentityAccountIdSchema, UpdateIdentityAccountInputSchema, CreateFederatedAccountInputSchema, UpdateFederatedAccountInputSchema, DeprovisionFederatedAccountInputSchema, CreateServiceAccountInputSchema, IdentityAccountEmailSchema, IdpIdSchema, ExternalSubLookupSchema, ListServiceAccountsInputSchema, IdentityAccountsListSchema, type CreateFederatedAccountInput, type UpdateFederatedAccountInput, type DeprovisionFederatedAccountInput, type CreateServiceAccountInput, type IdentityAccountEmail, type ExternalSubLookup, type ListServiceAccountsInput, type IdentityAccountsList } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
+import { IdentityAccountQueryController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/query_pb";
+import { IdentityAccountSpecSchema, IdentityAccountPreferencesSchema, type IdentityAccountPreferences } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/spec_pb";
 
 /** Provides operations on identityaccount resources. */
 export class IdentityAccountClient {

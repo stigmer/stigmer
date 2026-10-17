@@ -1,10 +1,10 @@
 "use client";
 
 import { useId } from "react";
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import type { GranteeKind } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import type { GranteeKind } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { useRoleSelector } from "./useRoleSelector.js";
 

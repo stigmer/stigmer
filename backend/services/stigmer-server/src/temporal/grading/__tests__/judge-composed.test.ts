@@ -49,27 +49,27 @@ import {
   JUDGE_EVALUATOR_VERSION,
   MADE_NOTHING_UP,
 } from "@stigmer/eval-runtime/judge";
-import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
-import { ScoringRuleCommandController } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/command_pb";
-import { ScoringRuleQueryController } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/query_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import { ScoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/command_pb";
+import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
+import { ScoringRuleSchema } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import { ScoringRuleCommandController } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/command_pb";
+import { ScoringRuleQueryController } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/query_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { ScoreSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import { ScoreCommandController } from "@stigmer/apis/ai/stigmer/agentic/score/v1/command_pb";
 import {
   CriterionResult,
   ScoreSource,
   ScoreState,
-} from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
-import { ScoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/query_pb";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
-import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
+import { ScoreQueryController } from "@stigmer/apis/ai/stigmer/agentic/score/v1/query_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
+import { OrganizationCommandController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/command_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";

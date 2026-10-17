@@ -2,8 +2,8 @@ import { createContext, useContext } from "react";
 import type {
   CapturedFileChange,
   FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { FileReviewSet } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { FileReviewSet } from "@stigmer/client";
 import {
   fileForRowPath,
   fileReviewRowChange,

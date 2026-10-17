@@ -22,12 +22,12 @@ import { type ComponentProps, type ComponentType, type ReactNode, useEffect } fr
 import type { ScenarioStep } from "@scenar/core";
 import { fromJson, type JsonValue } from "@bufbuild/protobuf";
 import { getResponse, type HttpHandler } from "msw";
-import { ChannelListSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
-import { ChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/query_pb";
-import { ChannelAppsSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
-import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
-import { CheckAuthorizationResultSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
+import { ChannelListSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
+import { ChannelQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/query_pb";
+import { ChannelAppsSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/io_pb";
+import { ChannelAppQueryController } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/query_pb";
+import { CheckAuthorizationResultSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
 
 import { ConnectSlackChannel } from "../connect-slack-channel/index";
 import { ConnectWhatsAppChannel } from "../connect-whatsapp-channel/index";

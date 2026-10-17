@@ -10,8 +10,8 @@
 // machine credential (the apikey suite itself; the execution lane that keys
 // a runner with the operator's key) mint through this module so the shape
 // of a key request and the reading of its plaintext live in one place.
-import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import type { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import type { ApiKey } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
+import type { ApiKeySchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
 import type { InitShape } from "./init-shape";
 
 export const API_KEY_API_VERSION = "iam.stigmer.ai/v1";

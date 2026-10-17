@@ -23,17 +23,17 @@
  * Proven by __tests__/session-events.test.ts.
  */
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type {
   ListSessionEventsRequest,
   SessionEventList,
   StreamSessionEventsRequest,
   StreamSessionEventsResponse,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import {
   ListSessionEventsRequestSchema,
   StreamSessionEventsRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionLog, type ToolUse, type Turn, type TurnPhase } from "@stigmer/session-log";
 
 import { StigmerError, wrapError } from "./gen/errors.js";

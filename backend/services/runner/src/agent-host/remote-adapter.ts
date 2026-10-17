@@ -32,9 +32,9 @@
 
 import { randomBytes, randomUUID } from "node:crypto";
 import { posix } from "node:path";
-import { SessionSpecSchema, type SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import { SessionSpecSchema, type SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Config } from "../config.js";
 import type { HarnessName } from "../harness/registry.js";
 import type { FailureSurface, HarnessAdapter, TurnInput, TurnOutcome, TurnSink, UsageDelta } from "../harness/types.js";

@@ -13,7 +13,7 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { Code } from "@connectrpc/connect";
-import { StigmerError } from "@stigmer/sdk";
+import { StigmerError } from "@stigmer/client";
 import { samples } from "../../test/samples";
 import { openMenu } from "../../__tests__/helpers/open-menu";
 import { AgentDetailView } from "../AgentDetailView";

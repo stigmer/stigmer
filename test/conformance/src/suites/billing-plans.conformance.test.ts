@@ -30,16 +30,16 @@
 // lanes, which this suite has no clients for.
 import { timestampMs } from "@bufbuild/protobuf/wkt";
 import { Code } from "@connectrpc/connect";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { PlanCommandController } from "@stigmer/protos/ai/stigmer/billing/plan/v1/command_pb";
-import { PlanQueryController } from "@stigmer/protos/ai/stigmer/billing/plan/v1/query_pb";
-import { PlanInstrument } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
-import { PlanLifecycle } from "@stigmer/protos/ai/stigmer/billing/plan/v1/status_pb";
-import { SubscriptionCommandController } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/command_pb";
-import { AgentHoursWindow } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
-import { SubscriptionQueryController } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/query_pb";
-import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import { PlanCommandController } from "@stigmer/apis/ai/stigmer/billing/plan/v1/command_pb";
+import { PlanQueryController } from "@stigmer/apis/ai/stigmer/billing/plan/v1/query_pb";
+import { PlanInstrument } from "@stigmer/apis/ai/stigmer/billing/plan/v1/spec_pb";
+import { PlanLifecycle } from "@stigmer/apis/ai/stigmer/billing/plan/v1/status_pb";
+import { SubscriptionCommandController } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/command_pb";
+import { AgentHoursWindow } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
+import { SubscriptionQueryController } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/query_pb";
+import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import { FixtureTracker } from "../harness/fixtures";
 import type { ConformanceClients } from "../harness/clients";
 import { expectGrpcCode } from "../contract/errors";

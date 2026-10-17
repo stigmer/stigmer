@@ -12,12 +12,12 @@ import { create, toJson } from "@bufbuild/protobuf";
 import {
   RunStatusSchema,
   SetupProgressSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunControlSignal,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import {

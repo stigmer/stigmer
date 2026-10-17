@@ -2,7 +2,7 @@
  * Pins the web dashboard's wiring: the operational dashboard reads the
  * active organization by its id, the way the server names every org, never
  * by its slug; a failed run picked on the dashboard opens that run through
- * run navigation. The dashboard widgets are pinned in @stigmer/react.
+ * run navigation. The dashboard widgets are pinned in @stigmer/react-sdk.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render } from "@testing-library/react";
@@ -12,7 +12,7 @@ const page = vi.hoisted(() => ({
   openedRuns: [] as string[],
 }));
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   useOrg: () => ({ activeOrg: { metadata: { id: "org_acme", slug: "acme" } } }),
   OperationalDashboard: (props: Record<string, unknown>) => {
     page.dashboard.push(props);

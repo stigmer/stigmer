@@ -2,9 +2,9 @@
 
 import { useCallback, useMemo, type ReactNode } from "react";
 import { useTheme } from "next-themes";
-import { Stigmer } from "@stigmer/sdk";
-import { StigmerProvider } from "@stigmer/react";
-import type { ResolvedColorMode } from "@stigmer/react";
+import { Stigmer } from "@stigmer/client";
+import { StigmerProvider } from "@stigmer/react-sdk";
+import type { ResolvedColorMode } from "@stigmer/react-sdk";
 import { useAuth } from "@/auth/use-auth";
 import { getApiBaseUrl } from "@/config/env";
 import { useDeploymentMode } from "@/domain/_shared/hooks/useDeploymentMode";

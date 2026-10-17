@@ -5,8 +5,8 @@
 
 import React from "react";
 import { Box, Text } from "ink";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { useSessionUsage } from "@stigmer/react";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { useSessionUsage } from "@stigmer/react-sdk";
 
 /** Props for {@link UsageWidget}. */
 export interface UsageWidgetProps {
@@ -33,7 +33,7 @@ function formatCompactTokenCount(count: number): string {
  *
  * Renders nothing when the session has no usage yet.
  *
- * Uses the headless {@link useSessionUsage} hook from `@stigmer/react`.
+ * Uses the headless {@link useSessionUsage} hook from `@stigmer/react-sdk`.
  */
 export function UsageWidget({ runs }: UsageWidgetProps) {
   const usage = useSessionUsage(runs);

@@ -1,7 +1,7 @@
 "use client";
 
-import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import { cn } from "@stigmer/theme";
+import type { ApiResourceRefView } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import { cn } from "@stigmer/design-tokens";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
 /**

@@ -4,7 +4,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   ChannelConversationListFilter,
   CountChannelConversationsInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { useMemo } from "react";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";

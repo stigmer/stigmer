@@ -21,14 +21,14 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
-import { ApiKeysSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
-import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { ApiKeysSchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/io_pb";
+import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import {
   type CreateServiceAccountInput,
   IdentityAccountsListSchema,
   type ListServiceAccountsInput,
-} from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 

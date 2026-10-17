@@ -53,9 +53,9 @@ import { checkDirectCredentials } from "../shared/llm-backend.js";
 import { tryInferProvider } from "../shared/llm-proxy.js";
 import type { Config } from "../config.js";
 import { sessionIdOf } from "../shared/execution-target.js";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 
 /**
  * The sentinel written by the server on auto-created sessions — byte-identical

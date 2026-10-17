@@ -1,6 +1,6 @@
 /**
  * Pins the schema plugin's resource output over real descriptors from
- * @stigmer/protos: a resource's Spec message becomes one schema under its
+ * @stigmer/apis: a resource's Spec message becomes one schema under its
  * namespace and subdomain, named for the message less "Spec", every type it
  * reaches lands under that resource's `types/`, and the spec's fields are the
  * ones the committed schema tree (tools/codegen/schemas) holds. A resource's
@@ -16,10 +16,10 @@ import {
   FileDescriptorSetSchema,
   type FileDescriptorProto,
 } from "@bufbuild/protobuf/wkt";
-import { file_ai_stigmer_agentic_agent_v1_query } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { file_ai_stigmer_agentic_agent_v1_spec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_group } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_group_pb";
-import { file_ai_stigmer_search_v1_query } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
+import { file_ai_stigmer_agentic_agent_v1_query } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
+import { file_ai_stigmer_agentic_agent_v1_spec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_group } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_group_pb";
+import { file_ai_stigmer_search_v1_query } from "@stigmer/apis/ai/stigmer/search/v1/query_pb";
 import { describe, expect, it } from "vitest";
 
 import { CommentIndex } from "../comments.js";

@@ -11,7 +11,7 @@
 // and how to finish (`auth whoami` runs the same flow), never an error that
 // sends the person back to the browser.
 
-import { ensureMyIdentityAccount } from "@stigmer/sdk";
+import { ensureMyIdentityAccount } from "@stigmer/client";
 import { classify } from "../../errors/index.js";
 import { CommandResult } from "../../output/index.js";
 

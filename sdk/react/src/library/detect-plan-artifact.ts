@@ -1,6 +1,6 @@
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 /**
  * The session's current plan: the published plan artifact (a `*.plan.md` FILE)

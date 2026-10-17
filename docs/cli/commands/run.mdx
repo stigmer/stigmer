@@ -142,11 +142,11 @@ stigmer run my-agent --attach ./image.png --attach ./spec.pdf
 
 ### Output modes
 
-| Flag        | Behavior                                                                            |
-| ----------- | ----------------------------------------------------------------------------------- |
-| _(default)_ | Interactive terminal UI powered by [`@stigmer/ink`](/docs/sdk/ink/cli-integration)  |
-| `--json`    | One JSON line per session event (Claude Managed Agents events) for scripting and CI |
-| `--detach`  | Start the run and return immediately                                                |
+| Flag        | Behavior                                                                              |
+| ----------- | ------------------------------------------------------------------------------------- |
+| _(default)_ | Interactive terminal UI powered by [`@stigmer/ink-ui`](/docs/sdk/ink/cli-integration) |
+| `--json`    | One JSON line per session event (Claude Managed Agents events) for scripting and CI   |
+| `--detach`  | Start the run and return immediately                                                  |
 
 Use `--json` when piping output to other tools. Each line is one event of the
 session's log, in Claude Managed Agents' JSON (`type`, `id`, `processed_at` and

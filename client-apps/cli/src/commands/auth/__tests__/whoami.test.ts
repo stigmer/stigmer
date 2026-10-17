@@ -19,9 +19,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { load } from "../../../config/index.js";
@@ -171,8 +171,8 @@ vi.mock("../../../backend.js", async () => {
   };
 });
 
-vi.mock("@stigmer/sdk", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@stigmer/sdk")>();
+vi.mock("@stigmer/client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@stigmer/client")>();
   return {
     ...actual,
     ensureMyIdentityAccount: async () => ({ created: false, account: ACCOUNT }),

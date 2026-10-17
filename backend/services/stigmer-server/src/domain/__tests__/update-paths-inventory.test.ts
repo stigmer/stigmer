@@ -21,9 +21,9 @@ import { getOption, hasOption } from "@bufbuild/protobuf";
 import type { DescMessage, DescMethod } from "@bufbuild/protobuf";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { computed } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
-import { api_resource_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/rpc_service_options_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { computed } from "@stigmer/apis/ai/stigmer/commons/apiresource/field_options_pb";
+import { api_resource_kind } from "@stigmer/apis/ai/stigmer/commons/apiresource/rpc_service_options_pb";
 
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";

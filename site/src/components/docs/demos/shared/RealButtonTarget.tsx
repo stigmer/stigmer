@@ -2,7 +2,7 @@
 
 /**
  * Points a demo's cursor at, and optionally presses, a button a real
- * `@stigmer/react` component renders: the plugin page's "Check tools" and
+ * `@stigmer/react-sdk` component renders: the plugin page's "Check tools" and
  * "Sign in" carry no `data-cursor-target` of their own, and the state they
  * lead to (a server's tools, a sign-in in flight) lives in the component's
  * hooks, so no prop can paint it.

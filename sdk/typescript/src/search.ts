@@ -1,9 +1,9 @@
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
-import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
-import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import { SearchService } from "@stigmer/apis/ai/stigmer/search/v1/query_pb";
+import { SearchRequestSchema } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import { wrapError } from "./gen/errors.js";
 import { everyEntry } from "./pages.js";
 

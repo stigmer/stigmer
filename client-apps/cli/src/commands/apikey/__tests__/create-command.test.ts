@@ -13,8 +13,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
-import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import { IdentityAccountsListSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
+import { ApiKeySchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
+import { IdentityAccountsListSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 

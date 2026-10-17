@@ -25,9 +25,9 @@ import path from "node:path";
 import { createRouterTransport } from "@connectrpc/connect";
 import type { ConnectRouter, Transport } from "@connectrpc/connect";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
-import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
+import { HealthCheckResponse_ServingStatus as ServingStatus } from "@stigmer/apis/grpc/health/v1/health_pb";
 
 import { newBuiltInAuthorizer } from "../authorization/authorizer.js";
 import {

@@ -7,7 +7,7 @@ import {
   useActiveOrgId,
   useOrgSlugForId,
   useBreadcrumbOverride,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 
 /**
  * Console page for uploading a new skill package.

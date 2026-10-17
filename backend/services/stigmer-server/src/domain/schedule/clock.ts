@@ -18,9 +18,9 @@ import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/status_pb";
+import type { Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/status_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";

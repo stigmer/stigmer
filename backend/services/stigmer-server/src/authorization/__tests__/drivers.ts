@@ -10,7 +10,7 @@
  * (the store's own convention); `dropPostgresFixture` is the `afterAll`
  * each file registers so the database it created is dropped.
  */
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { LIST_INDEXES } from "../../boot/list-indexes.js";
 import type { Store } from "../../store/interface.js";

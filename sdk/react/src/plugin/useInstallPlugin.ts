@@ -2,9 +2,9 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PushPluginRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
-import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PushPluginRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import type { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import type { PreparedInstall } from "./sources/read.js";

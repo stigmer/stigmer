@@ -4,7 +4,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   MintGuestTokenRequestSchema,
   TokenService,
-} from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
+} from "@stigmer/apis/ai/stigmer/iam/token/v1/token_pb";
 import { wrapError } from "./gen/errors.js";
 import {
   rpcMetadataInterceptor,
@@ -34,7 +34,7 @@ export interface GuestIdStorage {
  *
  * @example
  * ```typescript
- * import { createGuestAuth } from "@stigmer/sdk";
+ * import { createGuestAuth } from "@stigmer/client";
  *
  * const guestAuth = createGuestAuth({
  *   baseUrl: "https://api.stigmer.ai",
@@ -299,7 +299,7 @@ function safeSetItem(storage: GuestIdStorage, key: string, value: string): void 
  *
  * @example
  * ```typescript
- * import { Stigmer, createGuestAuth } from "@stigmer/sdk";
+ * import { Stigmer, createGuestAuth } from "@stigmer/client";
  *
  * const guestAuth = createGuestAuth({
  *   baseUrl: "https://api.stigmer.ai",

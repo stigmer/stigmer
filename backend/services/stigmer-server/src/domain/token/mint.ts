@@ -71,22 +71,22 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { IdentityAccountSpecSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/spec_pb";
 import type {
   MintUserTokenRequest,
   MintUserTokenResponse,
-} from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
+} from "@stigmer/apis/ai/stigmer/iam/token/v1/token_pb";
 import {
   MintUserTokenResponseSchema,
   TokenService,
-} from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import type { OrganizationEmbedding } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/iam/token/v1/token_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { OrganizationEmbedding } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/spec_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";

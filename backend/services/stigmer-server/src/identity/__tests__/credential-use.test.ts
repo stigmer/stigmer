@@ -16,7 +16,7 @@ import {
   ApiResourceAuditActorSchema,
   ApiResourceAuditInfoSchema,
   ApiResourceAuditSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 
 import { createLogger } from "../../boot/logger.js";
 import { ResourceNotFoundError } from "../../store/interface.js";

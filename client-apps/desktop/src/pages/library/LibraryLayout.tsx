@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LibraryBreadcrumbProvider, useCanonicalOrgSlug } from "@stigmer/react";
+import { LibraryBreadcrumbProvider, useCanonicalOrgSlug } from "@stigmer/react-sdk";
 import { LibraryBreadcrumb } from "./LibraryBreadcrumb";
 
 export default function LibraryLayout() {

@@ -9,13 +9,13 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
-import { StigmerError } from "@stigmer/sdk";
+import { StigmerError } from "@stigmer/client";
 import {
   ModelPricingBaselineSchema,
   ModelPricingBaselineStatus,
   PricingBlockSchema,
   PricingVariantSchema,
-} from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
+} from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ModelCatalogConsole } from "../ModelCatalogConsole";

@@ -32,7 +32,7 @@ function getMarked(width?: number): Marked {
  *
  * @example
  * ```ts
- * import { renderMarkdown } from "@stigmer/ink";
+ * import { renderMarkdown } from "@stigmer/ink-ui";
  *
  * const ansi = renderMarkdown("**Hello** from the agent!");
  * process.stdout.write(ansi);

@@ -16,9 +16,9 @@ import {
 } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_query_pb";
-import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_command_pb";
-import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_query_pb";
+import { ChannelConversationQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_query_pb";
+import { ChannelMessageCommandController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_command_pb";
+import { ChannelMessageQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_query_pb";
 
 import { BOUND_ELSEWHERE_DENY_REASON } from "../../../authorization/credential-binding.js";
 import { createLogger } from "../../../boot/logger.js";

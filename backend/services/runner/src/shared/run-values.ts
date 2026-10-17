@@ -37,7 +37,7 @@
  */
 
 import { Code, ConnectError } from "@connectrpc/connect";
-import type { ExecutionValues } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
+import type { ExecutionValues } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
 
 import type { StigmerClient } from "../client/stigmer-client.js";
 

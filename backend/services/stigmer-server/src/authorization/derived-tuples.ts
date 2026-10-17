@@ -96,10 +96,10 @@
 import type { Message } from "@bufbuild/protobuf";
 import { fromBinary } from "@bufbuild/protobuf";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
-import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { OwnerAttributionType } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
+import type { Grant } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import { isPersonStamp } from "../domain/grant/membership.js";
 import type { GrantStore } from "../domain/grant/store.js";

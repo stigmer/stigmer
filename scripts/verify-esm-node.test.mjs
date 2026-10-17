@@ -18,7 +18,7 @@ test("packagesFor: no --only checks every publishable package", () => {
 
 test("packagesFor: --only narrows to the named libs in publish order; a client app is outside the set; a typo is refused", () => {
   assert.deepEqual(
-    packagesFor(["@stigmer/react", "@stigmer/protos", "web"]),
+    packagesFor(["@stigmer/react-sdk", "@stigmer/apis", "web"]),
     ["apis/stubs/ts", "sdk/react"],
     "protos before react (publish order), web dropped (not publishable)",
   );
@@ -37,7 +37,7 @@ test("extractRelativeSpecifiers finds static, re-export, and dynamic relative im
     'export * from "./d.js";',
     'const lazy = () => import("./e.js");',
     'import react from "react";', // bare — excluded
-    'import proto from "@stigmer/protos/x_pb.js";', // bare — excluded
+    'import proto from "@stigmer/apis/x_pb.js";', // bare — excluded
     'const s = "from \\"./not-an-import.js\\"";', // string literal — not an import
   ].join("\n");
 

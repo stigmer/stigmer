@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { Plan } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
-import { ListPlansInputSchema } from "@stigmer/protos/ai/stigmer/billing/plan/v1/io_pb";
+import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
+import { ListPlansInputSchema } from "@stigmer/apis/ai/stigmer/billing/plan/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";

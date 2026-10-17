@@ -50,7 +50,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import {
   startLocalOidcIssuer,
   type LocalOidcIssuer,

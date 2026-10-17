@@ -17,7 +17,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { Button } from "../button/Button.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { DialogShell } from "../internal/DialogShell.js";

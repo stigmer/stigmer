@@ -82,12 +82,12 @@
 import { afterAll, beforeAll, describe, it, expect } from "vitest";
 import { CancelledFailure } from "@temporalio/activity";
 import { clone, create } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AppendSessionEventsResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { AppendSessionEventsResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { eventTypeOf } from "@stigmer/session-log";
 
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { approvalAnswersOf, copyAnswersOntoRows } from "../../harness/approval-answers.js";
 import { terminalizeNonExecutingDecisions } from "../../harness/approval-decisions.js";
 import { answerEventsFor } from "../approval-log.js";

@@ -36,8 +36,8 @@
  * continue, and one kind's failed read is logged while the next kind
  * runs; the caller logs and boot proceeds.
  */
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Grant } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
 import type { Logger } from "@stigmer/server";
 
 import type { GrantPathClient } from "./grant/grant-path-client.js";

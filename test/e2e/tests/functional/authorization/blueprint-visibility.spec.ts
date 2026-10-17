@@ -1,4 +1,4 @@
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { test, expect } from "../../../fixtures";
 import { openManageAccessFromKebab, visibilityBadge } from "../../../helpers/access";
 

@@ -23,11 +23,11 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { isNotFound } from "@stigmer/sdk";
+import { isNotFound } from "@stigmer/client";
 import {
   ConnectLinkTokenInputSchema,
   type ConnectLinkInfo,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/connect_link_pb";
 import { useStigmer } from "../hooks.js";
 import { checkedLoginPageUrl } from "../internal/loginPageUrl.js";
 import { SESSION_REFUSED_MESSAGE, canKeepInSession } from "../internal/sessionKeeping.js";

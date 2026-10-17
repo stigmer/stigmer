@@ -1,8 +1,8 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { ListChildOrgsInputSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { ListChildOrgsInputSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useCursorPages } from "../internal/useCursorPages.js";
 

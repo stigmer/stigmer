@@ -9,8 +9,8 @@
 // writes for the same turn.
 
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { foldSession, toManagedAgentsJson, turnOf, type Stigmer, type Turn, type TurnItem } from "@stigmer/sdk";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { foldSession, toManagedAgentsJson, turnOf, type Stigmer, type Turn, type TurnItem } from "@stigmer/client";
 import { stringify as toYaml } from "yaml";
 import { shouldColorize, styler } from "../output/style.js";
 import { calculateDuration, truncateWithEllipsis } from "./run-format.js";

@@ -20,7 +20,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   MintUserTokenRequestSchema,
   TokenService,
-} from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
+} from "@stigmer/apis/ai/stigmer/iam/token/v1/token_pb";
 import { StigmerError, wrapError } from "./gen/errors.js";
 
 /** The person a user token is for. */
@@ -55,7 +55,7 @@ export interface MintUserTokenResult {
  *
  * @example
  * ```typescript
- * import { createNodeClient } from "@stigmer/sdk/node";
+ * import { createNodeClient } from "@stigmer/client/node";
  *
  * const stigmer = createNodeClient({
  *   baseUrl: "https://api.stigmer.ai",

@@ -24,17 +24,17 @@ import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import {
   ListRecentActivityResponseSchema,
   RecentActivityEntrySchema,
-} from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/activity/v1/io_pb";
 import type {
   ListRecentActivityRequest,
   ListRecentActivityResponse,
   RecentActivityEntry,
-} from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceAudit } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+} from "@stigmer/apis/ai/stigmer/activity/v1/io_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceAudit } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
+import type { ApiResourceMetadata } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";

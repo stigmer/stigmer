@@ -7,8 +7,8 @@
 package runv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -38,9 +38,9 @@ const file_ai_stigmer_agentic_run_v1_query_proto_rawDesc = "" +
 	"session_id*)unauthorized to view session usage report\x12\xb8\x01\n" +
 	"\x13getAgentUsageReport\x123.ai.stigmer.agentic.run.v1.GetAgentUsageReportInput\x1a4.ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput\"6¸\x182\b\x01\x10\x1e\"\x03org*'unauthorized to view agent usage report\x12\xb9\x01\n" +
 	"\x11getOrgUsageReport\x121.ai.stigmer.agentic.run.v1.GetOrgUsageReportInput\x1a2.ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput\"=¸\x189\b\x01\x10\x1e\"\x03org*.unauthorized to view organization usage report\x12m\n" +
-	"\rgetRunSummary\x12/.ai.stigmer.agentic.run.v1.GetRunSummaryRequest\x1a%.ai.stigmer.agentic.run.v1.RunSummary\"\x04и\x18\x01\x1a\x04\xa0\xff+)B\x80\x02\n" +
+	"\rgetRunSummary\x12/.ai.stigmer.agentic.run.v1.GetRunSummaryRequest\x1a%.ai.stigmer.agentic.run.v1.RunSummary\"\x04и\x18\x01\x1a\x04\xa0\xff+)B\xed\x01\n" +
 	"\x1dcom.ai.stigmer.agentic.run.v1B\n" +
-	"QueryProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
+	"QueryProtoP\x01Z7go.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_run_v1_query_proto_goTypes = []any{
 	(*RunId)(nil),                          // 0: ai.stigmer.agentic.run.v1.RunId

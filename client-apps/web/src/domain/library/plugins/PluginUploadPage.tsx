@@ -8,7 +8,7 @@ import {
   useActiveOrgSlug,
   useBreadcrumbOverride,
   useOrgSlugForId,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 
 /**
  * Console page for uploading a plugin from the user's computer: the

@@ -9,10 +9,10 @@
  * Proven by __tests__/methods.test.ts, and end to end by the run-approval
  * conformance suite.
  */
-import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import type { ConfirmToolUseInput } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import type { ConfirmToolUseInput } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Authorizer } from "../../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";

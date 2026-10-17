@@ -27,7 +27,7 @@
 import type { PipelineStep, RequestContext } from "@stigmer/server";
 import { failedPreconditionError } from "@stigmer/server";
 
-import type { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import type { TeamSchema } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 
 export interface TeamPlanGate {
   /** Whether `orgId`'s plan includes teams right now. */

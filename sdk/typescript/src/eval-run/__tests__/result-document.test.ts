@@ -10,14 +10,14 @@
 
 import { create } from "@bufbuild/protobuf";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
-import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
 import {
   EvalRunPartialReason,
   EvalRunPhase,
   EvalRunTrySchema,
   EvalRunTryState,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import { evalRunTargetLabel, toResultDocument } from "../result-document.js";
 import type { ResultDocumentOptions } from "../result-document.js";

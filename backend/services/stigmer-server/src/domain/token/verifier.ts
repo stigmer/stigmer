@@ -45,7 +45,7 @@
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
 import type {
   CallerIdentity,

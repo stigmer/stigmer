@@ -5,7 +5,7 @@
 // server is reached (spawned locally vs. an external endpoint), how tenancy is
 // provisioned, and which optional behaviors are available — behind one interface
 // so the suites stay implementation-agnostic.
-import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import type { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import type { ConformanceClients, PresentingOptions } from "../harness/clients";
 import type { FakeOtlpCollector } from "../harness/fake-otlp-collector";
 import type { McpToolFixture } from "../harness/mcp-server";

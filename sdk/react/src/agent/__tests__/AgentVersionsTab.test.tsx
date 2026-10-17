@@ -10,7 +10,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { AgentVersionEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
+import { AgentVersionEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import { samples } from "../../test/samples";
 import { AgentDetailView } from "../AgentDetailView";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";

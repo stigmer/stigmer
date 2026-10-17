@@ -3,7 +3,7 @@
  * to the session it ran in and replaces itself with that session's page,
  * showing nothing of its own while the run resolves; a run that resolves to
  * no session shows the not-found state, and a failed read says so and
- * retries on request. The resolving hook is pinned in @stigmer/react.
+ * retries on request. The resolving hook is pinned in @stigmer/react-sdk.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
@@ -17,7 +17,7 @@ const page = vi.hoisted(() => ({
   retries: 0,
 }));
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   useResolveRunSession: (id: string | null) => {
     page.resolving.push(id);
     return {

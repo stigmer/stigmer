@@ -68,12 +68,12 @@ The TypeScript SDK is one member of the npm workspace at the repository root, so
 npm ci                 # the whole workspace, from the lockfile
 npm run build:libs     # every publishable @stigmer/* package, in dependency order
 npm test               # the root checks, then each package's suite
-npm run typecheck -w @stigmer/sdk
+npm run typecheck -w @stigmer/client
 ```
 
 The root scripts run through [Turborepo](https://turborepo.dev) (`turbo.json` is the task graph). A build whose inputs have not changed is restored from the local cache in `.turbo/` instead of recompiled, and a test run is replayed from its log; pass `--force` to run anyway (`npm run build:libs -- --force`). Delete `.turbo/` to reclaim the space. Turborepo's anonymous telemetry is switched off by the wrapper the root scripts use (`scripts/turbo-set.mjs`).
 
-CI (`.github/workflows/ci.ts-workspace.yaml`) runs the same task graph over the packages your change reaches: its first job asks `turbo query affected` which packages changed or depend on one that did, and the other jobs build, typecheck, lint and test exactly those (a change to the workspace tooling, `WORKSPACE_TOOLING` in `scripts/turbo-affected.mjs`, or to the lane's own file runs everything). To see what a branch would run before pushing: `node scripts/turbo-affected.mjs --base origin/main`. To run one of the lane's steps over a subset yourself: `node scripts/turbo-set.mjs libs test --only=@stigmer/sdk`.
+CI (`.github/workflows/ci.ts-workspace.yaml`) runs the same task graph over the packages your change reaches: its first job asks `turbo query affected` which packages changed or depend on one that did, and the other jobs build, typecheck, lint and test exactly those (a change to the workspace tooling, `WORKSPACE_TOOLING` in `scripts/turbo-affected.mjs`, or to the lane's own file runs everything). To see what a branch would run before pushing: `node scripts/turbo-affected.mjs --base origin/main`. To run one of the lane's steps over a subset yourself: `node scripts/turbo-set.mjs libs test --only=@stigmer/client`.
 
 **Requirements**:
 - Node.js 22 (the version in the repo's `.nvmrc`; `nvm use` picks it up)
@@ -264,7 +264,7 @@ description as valid (description is optional).
 
 ### TypeScript SDK
 
-- **Package**: Published to npm as `@stigmer/sdk`
+- **Package**: Published to npm as `@stigmer/client`
 - **Build**: TypeScript → JavaScript with type definitions
 - **Testing**: Jest for unit tests
 - **Linting**: ESLint + Prettier

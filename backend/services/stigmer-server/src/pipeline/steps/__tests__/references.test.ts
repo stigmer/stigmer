@@ -25,27 +25,27 @@
  * the escalation door asks the floor alone — a dependency that has left is
  * not its question — and only when the level is being raised.
  */
-import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { create } from "@bufbuild/protobuf";
 import type { DescField, DescMessage } from "@bufbuild/protobuf";
 import { getOption, hasOption } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
-import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { reference_kind } from "@stigmer/apis/ai/stigmer/commons/apiresource/field_options_pb";
+import { UpdateVisibilityInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import type { Store } from "../../../store/interface.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
@@ -74,7 +74,7 @@ import {
 import { EXISTING_RESOURCE_KEY } from "../load-existing.js";
 import { newPermissiveSingleTeamAuthorizer } from "../authorize.js";
 import type { Authorizer } from "../../../extensions/authorizer.js";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import type {
   ReferenceParent,
   ReferenceTargets,

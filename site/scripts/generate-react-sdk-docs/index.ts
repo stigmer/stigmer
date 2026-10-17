@@ -1,7 +1,7 @@
 /**
  * React SDK Reference Docs Generator
  *
- * Reads TypeDoc JSON from @stigmer/react and produces per-domain Fumadocs
+ * Reads TypeDoc JSON from @stigmer/react-sdk and produces per-domain Fumadocs
  * MDX reference pages under docs/sdk/react/.
  *
  * Usage: tsx scripts/generate-react-sdk-docs/index.ts

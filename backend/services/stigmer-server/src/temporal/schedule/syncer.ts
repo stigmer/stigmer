@@ -28,9 +28,9 @@ import type { Client, ScheduleDescription } from "@temporalio/client";
 import { ScheduleAlreadyRunning, ScheduleNotFoundError } from "@temporalio/client";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import type { Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import { bumpStatusAudit } from "../../pipeline/steps/defaults.js";

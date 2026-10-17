@@ -21,7 +21,7 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 
 import { silentLogger } from "../../extensions/__tests__/composed-support.js";
 import type { CallerIdentity } from "../../extensions/identity.js";

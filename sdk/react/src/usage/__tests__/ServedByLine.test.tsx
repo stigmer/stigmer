@@ -8,7 +8,7 @@
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import { ProviderKeySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
+import { ProviderKeySource } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import { ServedByLine, summarizeServedBy, type ServedByRow } from "../ServedByLine";
 
 afterEach(cleanup);

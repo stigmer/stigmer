@@ -50,34 +50,34 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type {
   AgentUsageSummary,
   DailyUsage,
   HarnessUsage,
   RunUsageSummary,
   SessionUsageSummary,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import {
   AgentUsageSummarySchema,
   DailyUsageSchema,
   HarnessUsageSchema,
   RunUsageSummarySchema,
   SessionUsageSummarySchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import type {
   ModelUsage,
   ServedByUsage,
   UsageReportAggregate,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import {
   ModelUsageSchema,
   ProviderKeySource,
   ServedByUsageSchema,
   UsageReportAggregateSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type {
   MeteredRunUsage,

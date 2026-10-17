@@ -10,7 +10,7 @@ import {
   useState,
 } from "react";
 import { usePathname } from "next/navigation";
-import { useCanonicalOrgSlug, useOrgSlugForId } from "@stigmer/react";
+import { useCanonicalOrgSlug, useOrgSlugForId } from "@stigmer/react-sdk";
 
 // ---------------------------------------------------------------------------
 // Types

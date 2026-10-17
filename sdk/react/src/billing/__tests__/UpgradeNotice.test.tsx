@@ -4,8 +4,8 @@
 
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import { StigmerError } from "@stigmer/sdk";
-import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import { StigmerError } from "@stigmer/client";
+import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import { UpgradeNotice, planUpgradeFeature } from "../UpgradeNotice";
 import { refusal } from "./fixtures";
 

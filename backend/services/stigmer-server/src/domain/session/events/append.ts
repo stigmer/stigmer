@@ -41,17 +41,17 @@ import { clone, create, toBinary } from "@bufbuild/protobuf";
 import type { HandlerContext } from "@connectrpc/connect";
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import {
   AppendSessionEventsResponseSchema,
   SessionEventPreviewSchema,
   type AppendSessionEventsInput,
   type AppendSessionEventsResponse,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { eventTypeOf } from "@stigmer/session-log";
 import type { Logger } from "../../../boot/logger.js";

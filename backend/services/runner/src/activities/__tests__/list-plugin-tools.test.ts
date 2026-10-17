@@ -14,13 +14,13 @@ import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { Connection } from "@langchain/mcp-adapters";
-import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { McpServerEntrySchema, type McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { EnvVarDeclarationSchema, type EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
+import { PluginSchema, type Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { McpServerEntrySchema, type McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { EnvVarDeclarationSchema, type EnvVarDeclaration } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import {
   ExecutionValuesSchema,
   type ExecutionValues,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
 
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import type { StigmerClient } from "../../client/stigmer-client.js";

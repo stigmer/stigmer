@@ -18,10 +18,10 @@
  */
 
 import { create, toBinary } from "@bufbuild/protobuf";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { describe, expect, it } from "vitest";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
+import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 
 import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";

@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
 /** Props for {@link FileReferenceChipList}. */

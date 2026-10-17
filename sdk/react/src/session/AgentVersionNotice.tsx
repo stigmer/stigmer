@@ -20,7 +20,7 @@
  * Pinned by `__tests__/AgentVersionNotice.test.tsx`.
  */
 
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage } from "@stigmer/client";
 
 /** Props for {@link AgentVersionNotice}. */
 export interface AgentVersionNoticeProps {

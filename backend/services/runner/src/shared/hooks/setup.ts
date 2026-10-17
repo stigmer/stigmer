@@ -32,7 +32,7 @@ import { constants } from "node:fs";
 import { access } from "node:fs/promises";
 import { homedir } from "node:os";
 import { delimiter, join } from "node:path";
-import type { HookGroup } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import type { HookGroup } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
 import type { MountedPlugin } from "../plugin-mount.js";

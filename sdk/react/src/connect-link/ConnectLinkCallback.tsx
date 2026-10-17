@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { cn } from "@stigmer/theme";
-import { getUserMessage, isNotFound, isTransientStreamError } from "@stigmer/sdk";
-import { CompleteConnectLinkInputSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage, isNotFound, isTransientStreamError } from "@stigmer/client";
+import { CompleteConnectLinkInputSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/connect_link_pb";
 import { useStigmer } from "../hooks.js";
 import { isBrowserDestination } from "../internal/loginPageUrl.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";

@@ -1,5 +1,5 @@
 /**
- * Proves the `@stigmer/react/test` factories (../samples.ts): each resource
+ * Proves the `@stigmer/react-sdk/test` factories (../samples.ts): each resource
  * factory's defaults and overrides; the session-event builders (ids derived
  * from the run and arguments, the events of a whole turn, a folded turn and
  * tool use, list and stream responses numbered in order); that no factory
@@ -9,8 +9,8 @@
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { RunPhase, RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { RunPhase, RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { formatDuration } from "../../run/ToolCallDetail";
 import { samples, SAMPLE_INSTANT, sampleInstant, sampleDate } from "../samples";
 

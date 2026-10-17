@@ -14,11 +14,11 @@
 import { getOption } from "@bufbuild/protobuf";
 import type { DescField } from "@bufbuild/protobuf";
 
-import { event_type } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
+import { event_type } from "@stigmer/apis/ai/stigmer/commons/apiresource/field_options_pb";
 import {
   SessionEventSchema,
   type SessionEvent,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 /** A SessionEvent oneof case that holds an event. */
 export type SessionEventCase = NonNullable<SessionEvent["event"]["case"]>;

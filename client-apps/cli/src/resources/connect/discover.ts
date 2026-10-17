@@ -13,9 +13,9 @@
 // the plugin's declared default. Keys never leave the local machine.
 
 import { create } from "@bufbuild/protobuf";
-import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { type PluginTool, PluginToolSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
-import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
+import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { type PluginTool, PluginToolSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import type { EnvVarDeclaration } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { resolveHeaders, resolvePlaceholders } from "../mcp/placeholder-resolver.js";

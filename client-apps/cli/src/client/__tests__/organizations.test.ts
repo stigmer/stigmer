@@ -8,8 +8,8 @@
 
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import type { Stigmer } from "@stigmer/sdk";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { Stigmer } from "@stigmer/client";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { describe, expect, it } from "vitest";
 import {
   cannotSeeOrganization,

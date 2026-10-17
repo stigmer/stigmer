@@ -20,8 +20,8 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 
 import type { GuardedRead, GuardedWritePort } from "../../store/guarded-port.js";
 import { abortedError, ERROR_REASON_DOMAIN } from "../errors.js";

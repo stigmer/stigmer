@@ -15,20 +15,20 @@
 // the agent and org reports send.
 
 import { create, toJson } from "@bufbuild/protobuf";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   GetAgentUsageReportOutputSchema,
   GetOrgUsageReportOutputSchema,
   GetSessionUsageReportOutputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { ProviderKeySource, UsageReportAggregateSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { ProviderKeySource, UsageReportAggregateSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import {
   AgentHoursSchema,
   AgentHoursWindow,
-} from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
 import { describe, expect, it } from "vitest";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 import {
   formatAgentHours,
   formatServedBy,

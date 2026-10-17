@@ -26,7 +26,7 @@
  * `newModel` exists for tests that need a throwaway model (a cycle, a
  * chain past the depth bound).
  */
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { kindByEnumName } from "../../pipeline/apiresource-meta.js";
 import type { KindBinding } from "./bindings.js";

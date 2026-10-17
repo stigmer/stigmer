@@ -1,6 +1,6 @@
 "use client";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 /**
  * Searching the organization's installed plugins by name, description or
  * keyword: the data layer under `PluginPicker`, the shared resource search

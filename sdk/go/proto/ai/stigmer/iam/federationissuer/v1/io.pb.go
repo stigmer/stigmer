@@ -286,8 +286,8 @@ const file_ai_stigmer_iam_federationissuer_v1_io_proto_rawDesc = "" +
 	"\bresource\x18\x01 \x01(\v24.ai.stigmer.iam.federationissuer.v1.FederationIssuerB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"updateMask:\xc9\x01\xbaH\xc5\x01\x1a\xc2\x01\n" +
-	"\x17update_names_its_target\x12Qresource.metadata.id is required: an update names the federation issuer by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\xc0\x02\n" +
-	"&com.ai.stigmer.iam.federationissuer.v1B\aIoProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/federationissuer/v1;federationissuerv1\xa2\x02\x04ASIF\xaa\x02\"Ai.Stigmer.Iam.Federationissuer.V1\xca\x02\"Ai\\Stigmer\\Iam\\Federationissuer\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Federationissuer\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Federationissuer::V1b\x06proto3"
+	"\x17update_names_its_target\x12Qresource.metadata.id is required: an update names the federation issuer by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\xad\x02\n" +
+	"&com.ai.stigmer.iam.federationissuer.v1B\aIoProtoP\x01ZMgo.stigmer.ai/sdk/proto/ai/stigmer/iam/federationissuer/v1;federationissuerv1\xa2\x02\x04ASIF\xaa\x02\"Ai.Stigmer.Iam.Federationissuer.V1\xca\x02\"Ai\\Stigmer\\Iam\\Federationissuer\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Federationissuer\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Federationissuer::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_federationissuer_v1_io_proto_rawDescOnce sync.Once

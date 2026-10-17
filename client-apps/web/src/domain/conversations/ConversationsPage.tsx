@@ -7,9 +7,9 @@ import {
   useActiveOrgId,
   useOrgSlugForId,
   type ConversationIdentity,
-} from "@stigmer/react";
-import { isDeletedReference } from "@stigmer/sdk";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/react-sdk";
+import { isDeletedReference } from "@stigmer/client";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useAppNavigation } from "@/domain/_shared/navigation/app-navigation";
 
 /**

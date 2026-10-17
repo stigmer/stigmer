@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import type { FederationIssuer, FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import type { FederationIssuer, FederationIssuerSchema } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

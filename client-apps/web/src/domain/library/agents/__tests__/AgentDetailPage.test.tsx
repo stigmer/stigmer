@@ -6,12 +6,12 @@
  * Channels tab: no tab of its own (the view builds Channels), the chat-link
  * URL builder, the channel-apps settings route and the session route, and
  * no external connect hand-off (the browser runs the Slack popup itself).
- * The detail view itself is pinned in @stigmer/react; here it is stubbed to
+ * The detail view itself is pinned in @stigmer/react-sdk; here it is stubbed to
  * capture its props.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render } from "@testing-library/react";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 
 interface ViewProps {
   onRenamed?: (agent: Agent) => void;
@@ -28,7 +28,7 @@ const page = vi.hoisted(() => ({
   agentSlug: "",
 }));
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   AgentDetailView: (props: ViewProps) => {
     page.view.push(props);
     return null;

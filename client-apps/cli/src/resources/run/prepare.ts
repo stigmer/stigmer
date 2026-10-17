@@ -8,12 +8,12 @@
 // its conversation uses (vaults.ts), which is why a vault named by id is
 // looked up here, before anything is uploaded.
 
-import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { Attachment } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import type { Stigmer } from "@stigmer/client";
 import { UsageError } from "../../errors/index.js";
 import { parseApproveDefault, type ApproveDefault } from "../stream/answer.js";
 import { type ProgressSink, processAttachments } from "./attachments.js";

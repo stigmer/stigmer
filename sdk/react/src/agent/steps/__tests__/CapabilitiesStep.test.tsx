@@ -10,9 +10,9 @@
  */
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import type { AgentMcpServerInput } from "@stigmer/sdk";
-import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { AgentMcpServerInput } from "@stigmer/client";
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { CapabilitiesStep } from "../CapabilitiesStep";
 import { createInitialWizardData } from "../types";

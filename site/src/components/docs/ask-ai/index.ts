@@ -4,7 +4,7 @@
  *
  * Layered headless-first (behavior hook → provider → presentational
  * trigger/panel) so a future extraction of a generic "Ask AI launcher" into
- * `@stigmer/react` is a file move. Not exported through the docs MDX barrel:
+ * `@stigmer/react-sdk` is a file move. Not exported through the docs MDX barrel:
  * this is layout chrome, not page content.
  */
 

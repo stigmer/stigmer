@@ -29,8 +29,8 @@
  * autokeep.test.ts, ../../session/filereview/__tests__/decide.test.ts and
  * ../../session/filereview/__tests__/log-only-decisions.test.ts.
  */
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import { actionOfWord, scopeOfWord } from "../../session/filereview/words.js";
 import type { ActionWord, ScopeWord } from "../../session/filereview/words.js";

@@ -2,8 +2,8 @@
 
 import type { ReactNode } from "react";
 import { ArrowLeft, RefreshCw } from "lucide-react";
-import { cn } from "@stigmer/theme";
-import type { License } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import type { License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
 import { Button } from "../button/index.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";

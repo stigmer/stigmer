@@ -2,14 +2,14 @@
 
 import * as React from "react";
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { CheckIcon } from "lucide-react";
 import { useStigmerPortalContainer } from "../portal-container.js";
 
 // ---------------------------------------------------------------------------
 // SDK-internal styled Menu primitives over @base-ui/react.
 //
-// These are NOT exported from @stigmer/react. They provide a single source
+// These are NOT exported from @stigmer/react-sdk. They provide a single source
 // of truth for dropdown menu styling across SDK styled components
 // (OrgSwitcher, UserMenu, etc.) so that every menu looks identical.
 //

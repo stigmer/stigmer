@@ -8,12 +8,12 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { create } from "@bufbuild/protobuf";
-import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { PushSkillRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
-import { GitProvenanceSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/status_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import { PushSkillRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
+import { GitProvenanceSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/status_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { UpdateVisibilityInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import type { Stigmer } from "@stigmer/client";
 import { strFromU8, unzipSync, zipSync } from "fflate";
 import { DETERMINISTIC_ZIP_MTIME } from "@stigmer/plugin-package/client";
 import { parse as parseYaml } from "yaml";

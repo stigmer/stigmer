@@ -23,9 +23,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { type McpServerEntry, McpServerEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { type Vault, VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
+import { type McpServerEntry, McpServerEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { type Vault, VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import type { VaultSignInPhase } from "../../vault/useVaultSignIn.js";
 
 const stubs = vi.hoisted(() => ({

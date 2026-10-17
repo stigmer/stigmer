@@ -5,9 +5,9 @@
  * names and its access). Nothing refuses an eval's delete, so the purge
  * leaves nothing out.
  */
-import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
-import { EvalCommandController } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/command_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { EvalSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
+import { EvalCommandController } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/command_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { newCleanupGrantsStep } from "../../pipeline/steps/authorization-tuples.js";

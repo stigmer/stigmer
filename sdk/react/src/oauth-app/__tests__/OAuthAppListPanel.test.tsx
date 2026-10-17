@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { OAuthAppSchema, type OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
+import { OAuthAppSchema, type OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { OAuthAppListPanel } from "../OAuthAppListPanel";
 
 const stubs = vi.hoisted(() => ({ apps: [] as OAuthApp[] }));

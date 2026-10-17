@@ -6,11 +6,11 @@
 // client is a double recording what it was asked.
 
 import { create } from "@bufbuild/protobuf";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { ListRunsBySessionRequest } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { ListSessionEventsRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { ListRunsBySessionRequest } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { ListSessionEventsRequest } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import type { Stigmer } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { CliExitError } from "../../errors/index.js";
 import { phase, user } from "../__test-utils__/session-events.js";

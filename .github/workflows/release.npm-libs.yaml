@@ -127,7 +127,7 @@ jobs:
   # @stigmer/runner is an npm package too, so it ships from this same npm workflow.
   # It lives in its own job (not publish-libs.mjs) only because it is deliberately
   # NOT an npm workspace (see root package.json) and is built via make build-runner.
-  # Running after `publish` means @stigmer/protos@<version> is already on npm, so its
+  # Running after `publish` means @stigmer/apis@<version> is already on npm, so its
   # pinned dependency resolves with no cross-workflow race.
   publish-runner:
     needs: [determine-version, publish]
@@ -160,7 +160,7 @@ jobs:
       - name: Generate TypeScript proto stubs
         run: STUBS_FORCE=1 make -C apis ts-stubs
 
-      # Builds the workspace lib dists the runner links (@stigmer/protos,
+      # Builds the workspace lib dists the runner links (@stigmer/apis,
       # @stigmer/temporal-codecs — via build-ts-stubs), installs the runner's own
       # deps, and compiles the runner to dist/ while the libs are still local
       # file: links (so tsc resolves types against the in-repo sources).
@@ -240,7 +240,7 @@ jobs:
   # the exports-map typecheck over the packed tarball and a worker-start boot
   # against a real Temporal dev server — the posture a consumer's hoisted
   # node_modules tree runs, which nothing in this checkout exercises.
-  # Needs `publish`: the tarball pins @stigmer/protos, temporal-codecs,
+  # Needs `publish`: the tarball pins @stigmer/apis, temporal-codecs,
   # zip-structure and plugin-package to this release's registry versions.
   publish-server:
     needs: [determine-version, publish]
@@ -301,7 +301,7 @@ jobs:
   # @stigmer/server, at the same version on the same train, so a host pins
   # every @stigmer/* package at one version. Same standalone shape and the
   # same publish-standalone.mjs sequence as the server; its file: links pin
-  # to this release's @stigmer/server, @stigmer/protos and @stigmer/outbound.
+  # to this release's @stigmer/server, @stigmer/apis and @stigmer/outbound.
   # Needs `publish-server`: Enterprise never publishes at a version whose
   # server failed to (and the server's own `needs` brings the libraries).
   publish-enterprise:
@@ -361,7 +361,7 @@ jobs:
   # The CLI installs it on demand at `stigmer up` and launches `node main.js`
   # as the local stack's server.
   # Runs after `publish` only for release-train symmetry: the slim artifact
-  # bundles everything, so it has no registry dependency on @stigmer/protos.
+  # bundles everything, so it has no registry dependency on @stigmer/apis.
   publish-server-slim:
     needs: [determine-version, publish]
     runs-on: ubuntu-latest

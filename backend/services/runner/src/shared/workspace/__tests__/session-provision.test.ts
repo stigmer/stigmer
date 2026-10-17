@@ -20,9 +20,9 @@ import {
   WorkspaceSourceSchema,
   GitRepoSourceSchema,
   LocalPathSourceSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { provisionSessionWorkspace, type SessionProvisionConfig } from "../session-provision.js";
 
 const MARKER_FILE = "MARKER.txt";

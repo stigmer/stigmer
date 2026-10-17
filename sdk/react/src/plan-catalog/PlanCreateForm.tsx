@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
-import type { Plan } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
-import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
+import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
+import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import { Button } from "../button/index.js";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { FEATURE_COPY, type NamedFeature } from "../internal/features.js";

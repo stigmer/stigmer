@@ -7,7 +7,7 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { SearchResultSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import { SearchResultSchema } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 
 import { emptyResult, newSearchPagedResult } from "../paged-result.js";
 

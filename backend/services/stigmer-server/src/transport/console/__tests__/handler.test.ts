@@ -24,7 +24,7 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import {
   Health,
   HealthCheckResponse_ServingStatus as ServingStatus,
-} from "@stigmer/protos/grpc/health/v1/health_pb";
+} from "@stigmer/apis/grpc/health/v1/health_pb";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { connect as http2Connect } from "node:http2";
 import { tmpdir } from "node:os";

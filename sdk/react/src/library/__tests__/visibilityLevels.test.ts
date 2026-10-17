@@ -5,7 +5,7 @@
  * the edition offers them), and confirms before every member may use it.
  */
 import { describe, it, expect } from "vitest";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import {
   blueprintVisibilityLevels,
   vaultVisibilityLevels,

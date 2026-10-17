@@ -1,19 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { MessageThread } from "@stigmer/react";
-import { samples } from "@stigmer/react/test";
-import { cn, THEME_PRESETS, resolvePresetClass, type ThemePresetId } from "@stigmer/theme";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { MessageThread } from "@stigmer/react-sdk";
+import { samples } from "@stigmer/react-sdk/test";
+import { cn, THEME_PRESETS, resolvePresetClass, type ThemePresetId } from "@stigmer/design-tokens";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { conversation } from "../../fixtures";
 import { DEMO_SHELL_HEIGHT } from "../../shared/tokens";
 import { useDocsColorMode, type StigmerColorMode } from "../../../useDocsColorMode";
 
-import "@stigmer/theme/presets/corporate.css";
-import "@stigmer/theme/presets/startup.css";
-import "@stigmer/theme/presets/friendly.css";
-import "@stigmer/theme/presets/fintech.css";
-import "@stigmer/theme/presets/monochrome.css";
+import "@stigmer/design-tokens/presets/corporate.css";
+import "@stigmer/design-tokens/presets/startup.css";
+import "@stigmer/design-tokens/presets/friendly.css";
+import "@stigmer/design-tokens/presets/fintech.css";
+import "@stigmer/design-tokens/presets/monochrome.css";
 
 /**
  * One conversation rendered by the real `MessageThread` organism: a user

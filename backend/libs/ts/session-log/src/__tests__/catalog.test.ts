@@ -7,7 +7,7 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import { SESSION_EVENT_TYPES, eventCaseOf, eventIdOf, eventTypeOf, isStigmerEventType, processedAtOf } from "../catalog.js";
 

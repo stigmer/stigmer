@@ -28,13 +28,13 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginDialect, type PluginSpec } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
-import type { PluginStatus, PluginWarning } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ResourceRef } from "@stigmer/sdk";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginDialect, type PluginSpec } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/spec_pb";
+import type { PluginStatus, PluginWarning } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ResourceRef } from "@stigmer/client";
 import { HOOK_WARNING_KINDS } from "@stigmer/plugin-package";
 import { DIALECT_LABELS } from "@stigmer/plugin-package/client";
 import { useManageAccess } from "../access/useManageAccess.js";

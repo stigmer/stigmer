@@ -1,7 +1,7 @@
 /**
  * Product glue for real-component tours.
  *
- * A tour that renders real `@stigmer/react` components (e.g. `AgentDetailView`,
+ * A tour that renders real `@stigmer/react-sdk` components (e.g. `AgentDetailView`,
  * `MessageThread`, `SessionComposer`) needs three things to render in isolation
  * with no backend: an SDK client, the `.stgm` theme scope + design tokens, and
  * fixture data. This factory supplies all three from just the tour's RPC
@@ -24,20 +24,20 @@
 import "./fonts/fonts.css";
 
 // The COMPILED stylesheet — since #454 the workspace export
-// `@stigmer/react/styles.css` points at the same dist artifact npm consumers
+// `@stigmer/react-sdk/styles.css` points at the same dist artifact npm consumers
 // receive (the export used to point at the uncompiled Tailwind source, which
 // `scenar pack` cannot process — it deliberately does not run Tailwind).
-// `npm run build:css -w @stigmer/react` produces it
+// `npm run build:css -w @stigmer/react-sdk` produces it
 // (pack-all runs that automatically).
-import "@stigmer/react/styles.css";
+import "@stigmer/react-sdk/styles.css";
 
 import type { ReactNode } from "react";
 import { createRouterTransport, type ConnectRouter } from "@connectrpc/connect";
 import { getEmbedColorMode } from "@scenar/react";
-import { Stigmer } from "@stigmer/sdk";
-import { OrgProvider, StigmerProvider } from "@stigmer/react";
-import { samples } from "@stigmer/react/test";
-import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
+import { Stigmer } from "@stigmer/client";
+import { OrgProvider, StigmerProvider } from "@stigmer/react-sdk";
+import { samples } from "@stigmer/react-sdk/test";
+import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 
 /**
  * Benign `fetch` for the model registry `StigmerProvider` requests on mount.
@@ -70,7 +70,7 @@ interface PreviewProvidersProps {
  * @example
  * ```tsx
  * // tours/<slug>/.scenar/providers.tsx
- * import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
+ * import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
  * import { createStigmerPreview } from "../../_shared/stigmer-preview";
  * import { buildDemoAgent } from "../steps";
  *

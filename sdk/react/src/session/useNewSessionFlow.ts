@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
+import { getUserMessage, type ResourceRef } from "@stigmer/client";
 import type { AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
 import type { AgentResolution } from "../agent/index.js";
 import { useModelRegistry } from "../models/index.js";

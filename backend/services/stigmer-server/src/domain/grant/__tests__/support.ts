@@ -11,12 +11,12 @@
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 
-import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
-import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
-import { GrantSpecSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+import type { Grant } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
+import type { GrantSpec } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
+import { GrantSpecSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 
 import type {
   GrantedEvent,

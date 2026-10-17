@@ -10,10 +10,10 @@
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage, Message } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { Config } from "../../config/index.js";
 import { buildProgram } from "../../program.js";
 import { runWhoami } from "../auth/whoami.js";
@@ -87,8 +87,8 @@ vi.mock("../../resources/runs.js", async (importOriginal) => {
   };
 });
 
-vi.mock("@stigmer/sdk", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@stigmer/sdk")>();
+vi.mock("@stigmer/client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@stigmer/client")>();
   return {
     ...actual,
     ensureMyIdentityAccount: async () => ({

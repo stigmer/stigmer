@@ -11,11 +11,11 @@ import {
   describeApprovalPolicySource,
   hookApproveAllLabel,
   type ToolUse,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import {
   extractShellIntentFromPreview,
   type ToolUseAnswer,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 
 /** Props for {@link ApprovalPrompt}. */
 export interface ApprovalPromptProps {

@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useOrg, OperationalDashboard } from "@stigmer/react";
+import { useOrg, OperationalDashboard } from "@stigmer/react-sdk";
 
 export default function DashboardPage() {
   const { activeOrg } = useOrg();

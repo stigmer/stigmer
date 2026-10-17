@@ -10,7 +10,7 @@ import path from "node:path";
 import { fromJson } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { CapturedFileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import { CapturedFileChangeSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 
 import { aggregateDigest, fileDigest } from "../digest.js";
 import { hitlCorpusDir, readCorpusJson } from "../../approval/__tests__/corpus-support.js";

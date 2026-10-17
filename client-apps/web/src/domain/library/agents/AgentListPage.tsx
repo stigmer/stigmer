@@ -18,9 +18,9 @@ import {
   toast,
   type WorkbenchColumnDef,
   createLibraryListFn,
-} from "@stigmer/react";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+} from "@stigmer/react-sdk";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import { AGENT_DELETE_DESCRIPTION } from "@/domain/library/agents/agent-delete-confirmation";
 
 const VIEW_MODE_STORAGE_KEY = "stigmer:workbench:agents:viewMode";

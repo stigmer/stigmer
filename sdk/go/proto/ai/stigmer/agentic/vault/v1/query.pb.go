@@ -7,8 +7,8 @@
 package vaultv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,9 +32,9 @@ const file_ai_stigmer_agentic_vault_v1_query_proto_rawDesc = "" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\".ai.stigmer.agentic.vault.v1.Vault\"\x04и\x18\x01\x12a\n" +
 	"\agetMine\x12,.ai.stigmer.agentic.vault.v1.GetMyVaultInput\x1a\".ai.stigmer.agentic.vault.v1.Vault\"\x04и\x18\x01\x12s\n" +
 	"\x0fgetByExternalId\x126.ai.stigmer.agentic.vault.v1.GetVaultByExternalIdInput\x1a\".ai.stigmer.agentic.vault.v1.Vault\"\x04и\x18\x01\x12d\n" +
-	"\x04list\x12..ai.stigmer.agentic.vault.v1.ListVaultsRequest\x1a&.ai.stigmer.agentic.vault.v1.VaultList\"\x04и\x18\x01\x1a\x04\xa0\xff+;B\x8e\x02\n" +
+	"\x04list\x12..ai.stigmer.agentic.vault.v1.ListVaultsRequest\x1a&.ai.stigmer.agentic.vault.v1.VaultList\"\x04и\x18\x01\x1a\x04\xa0\xff+;B\xfb\x01\n" +
 	"\x1fcom.ai.stigmer.agentic.vault.v1B\n" +
-	"QueryProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/vault/v1;vaultv1\xa2\x02\x04ASAV\xaa\x02\x1bAi.Stigmer.Agentic.Vault.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Vault\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Vault::V1b\x06proto3"
+	"QueryProtoP\x01Z;go.stigmer.ai/sdk/proto/ai/stigmer/agentic/vault/v1;vaultv1\xa2\x02\x04ASAV\xaa\x02\x1bAi.Stigmer.Agentic.Vault.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Vault\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Vault::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_vault_v1_query_proto_goTypes = []any{
 	(*apiresource.ApiResourceId)(nil),        // 0: ai.stigmer.commons.apiresource.ApiResourceId

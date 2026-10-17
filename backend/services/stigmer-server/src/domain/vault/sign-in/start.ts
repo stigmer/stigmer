@@ -527,7 +527,7 @@ export function buildAuthorizationUrl(
  * it is the only cause observed in the wild (Canva, stigmer/stigmer#235),
  * and it names this deployment's callback host so self-hosted operators
  * can act on it. Surfaces which render start errors pass this text
- * through verbatim (getUserMessage in @stigmer/sdk), so it must stand on
+ * through verbatim (getUserMessage in @stigmer/client), so it must stand on
  * its own for an end user.
  */
 export function dcrRejectionMessage(

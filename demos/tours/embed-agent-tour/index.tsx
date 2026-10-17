@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import type { ResourceRef } from "@stigmer/sdk";
+import type { ResourceRef } from "@stigmer/client";
 import { BrowserView, CodeEditorView } from "@scenar/react";
 import { SessionView } from "../_shared/SessionView";
 import { DEMO_ORG } from "../_shared/fixtures";

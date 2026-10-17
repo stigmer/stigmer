@@ -138,44 +138,44 @@ import { create } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import type { McpServerEntry, PluginStatus } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { RunValueSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Run, RunValueDeclarer, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { McpServerEntry, PluginStatus } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { EvalRunSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { RunValueSourceSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run, RunValueDeclarer, RunValueSource } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunValueDeclarerKind,
   RunValueOrigin,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
-import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
-import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
+import type { EnvVarDeclaration } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
+import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import {
   ExecutionValuesSchema,
   PluginValuesSchema,
   RepositoryValuesSchema,
   SubagentValuesSchema,
   ToolValuesSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
 import type {
   ExecutionValues,
   PluginValues,
   SubagentValues,
   ToolValues,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
 import { hookVariableReferences, RUNNER_FILLED_VARIABLES } from "@stigmer/plugin-package";
 import { accessTokenVariable } from "@stigmer/tool-vocabulary";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { SecretService } from "../../encryption/encryption.js";

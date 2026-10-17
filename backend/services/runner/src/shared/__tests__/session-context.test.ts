@@ -12,7 +12,7 @@ import {
 
 describe("SESSION_CONTEXT_METADATA_KEY", () => {
   it("is pinned verbatim to the SDK's constant (mirror guard)", () => {
-    // Pinned to SESSION_CONTEXT_METADATA_KEY in @stigmer/sdk
+    // Pinned to SESSION_CONTEXT_METADATA_KEY in @stigmer/client
     // (sdk/typescript/src/session.ts). Changing either side alone
     // silently blinds the agent to the embedder's context; change BOTH
     // together.

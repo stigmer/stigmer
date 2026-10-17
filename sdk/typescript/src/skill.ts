@@ -1,11 +1,11 @@
 import { create } from "@bufbuild/protobuf";
 import type { Transport } from "@connectrpc/connect";
-import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
+import type { Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import {
   CreateSkillArtifactUploadUrlRequestSchema,
   PushSkillRequestSchema,
   type PushSkillRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 import { pushRoutedArtifact } from "./artifact-routing.js";
 import type { ArtifactRoute } from "./artifact-routing.js";
 import { SkillClient } from "./gen/skill.js";

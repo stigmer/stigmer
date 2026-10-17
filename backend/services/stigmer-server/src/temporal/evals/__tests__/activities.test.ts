@@ -34,22 +34,22 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { ApplicationFailure } from "@temporalio/common";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { EvalRunAblation } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import {
   EvalRunPartialReason,
   EvalRunPhase,
   EvalRunTryState,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   CriterionResult,
   ScoreSource,
-} from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { EVAL_RUN_LABEL } from "../../../domain/eval-run/constants.js";
 import { newPatternPool } from "../../../domain/eval-run/graders/patterns.js";

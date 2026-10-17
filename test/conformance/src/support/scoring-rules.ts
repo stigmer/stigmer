@@ -8,9 +8,9 @@
 // byte-pinned in the server (domain/scoring-rule/constants.ts and the judge's
 // not-graded reasons in domain/score/constants.ts) and asserted here over the
 // wire.
-import type { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import { ScoreState } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+import type { ScoringRuleSchema } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import { ScoreState } from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { InitShape } from "./init-shape";
 

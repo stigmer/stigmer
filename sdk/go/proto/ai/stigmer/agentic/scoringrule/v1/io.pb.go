@@ -189,8 +189,8 @@ const file_ai_stigmer_agentic_scoringrule_v1_io_proto_rawDesc = "" +
 	"\bresource\x18\x01 \x01(\v2..ai.stigmer.agentic.scoringrule.v1.ScoringRuleB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"updateMask:\xc4\x01\xbaH\xc0\x01\x1a\xbd\x01\n" +
-	"\x17update_names_its_target\x12Lresource.metadata.id is required: an update names the scoring rule by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\xb5\x02\n" +
-	"%com.ai.stigmer.agentic.scoringrule.v1B\aIoProtoP\x01ZZgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/scoringrule/v1;scoringrulev1\xa2\x02\x04ASAS\xaa\x02!Ai.Stigmer.Agentic.Scoringrule.V1\xca\x02!Ai\\Stigmer\\Agentic\\Scoringrule\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Scoringrule\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Scoringrule::V1b\x06proto3"
+	"\x17update_names_its_target\x12Lresource.metadata.id is required: an update names the scoring rule by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\xa2\x02\n" +
+	"%com.ai.stigmer.agentic.scoringrule.v1B\aIoProtoP\x01ZGgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/scoringrule/v1;scoringrulev1\xa2\x02\x04ASAS\xaa\x02!Ai.Stigmer.Agentic.Scoringrule.V1\xca\x02!Ai\\Stigmer\\Agentic\\Scoringrule\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Scoringrule\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Scoringrule::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_scoringrule_v1_io_proto_rawDescOnce sync.Once

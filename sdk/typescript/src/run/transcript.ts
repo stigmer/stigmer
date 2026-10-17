@@ -37,26 +37,26 @@
 // Node jobs, and the CLI alike.
 
 import { create, toJson, type JsonValue } from "@bufbuild/protobuf";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type {
   GetArtifactContentRequest,
   GetArtifactContentResponse,
   ListRunsBySessionRequest,
   RunList,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import {
   GetArtifactContentRequestSchema,
   ListRunsBySessionRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import type {
   ListSessionEventsRequest,
   SessionEventList,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { ListSessionEventsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { ListSessionEventsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   foldSession,
   toManagedAgentsJson,

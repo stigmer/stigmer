@@ -9,14 +9,14 @@
  * offered.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ScoringRule } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import type { ScoringRule } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
-import { StigmerError } from "@stigmer/sdk";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import { StigmerError } from "@stigmer/client";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { ScoringRuleSchema } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { orgWrapper } from "../../organization/__tests__/org-fixture";
 import { emptyReport } from "../../score/__tests__/quality-fixture";
 import { AgentQualityTab } from "../AgentQualityTab";

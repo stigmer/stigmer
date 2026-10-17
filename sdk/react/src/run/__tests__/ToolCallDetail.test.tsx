@@ -8,16 +8,16 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import type { ToolUse } from "@stigmer/sdk";
+import type { ToolUse } from "@stigmer/client";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
   type FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   FileChangeKind,
   FileReviewBlockReason,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { UseFileChangeContentReturn } from "../useFileChangeContent";
 import { reviewFile, reviewSet, toolUse, type ToolUseInit } from "./__fixtures__/fold-values";
 

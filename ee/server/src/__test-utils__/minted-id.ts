@@ -22,7 +22,7 @@ import {
   ApiResourceKindSchema,
   type ApiResourceKindMeta,
   kind_meta,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ulid } from "ulidx";
 
 /** A kind's `kind_meta` option, or a failure naming the kind that carries none. */

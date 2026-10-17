@@ -26,11 +26,11 @@ import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Transport } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
-import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
-import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
-import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { GrantCommandController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/command_pb";
+import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
+import { OrganizationCommandController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/command_pb";
+import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 import { accountIdFor } from "@stigmer/server";
 
 import {

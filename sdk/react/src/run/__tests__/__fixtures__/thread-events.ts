@@ -6,15 +6,15 @@
 // `buildThreadItems` and `MessageThread` read. Ids follow the runner's
 // shapes (`<run>.<call>`, `<run>.root.m<n>`) so a turn's items key stably.
 import { create, type JsonObject, type MessageInitShape } from "@bufbuild/protobuf";
-import { RunSchema, RunStatusSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import { InteractionMode, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { RunSchema, RunStatusSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
+import { InteractionMode, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import {
   StreamSessionEventsResponseSchema,
   type StreamSessionEventsResponse,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import type { Turn, TurnPhase } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import type { Turn, TurnPhase } from "@stigmer/client";
 import { SAMPLE_INSTANT, samples } from "../../../test/samples";
 
 type EventInit = MessageInitShape<typeof SessionEventSchema>["event"];

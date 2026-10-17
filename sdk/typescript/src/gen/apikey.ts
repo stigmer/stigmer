@@ -5,13 +5,13 @@ import { stripUndefined, toTimestamp } from "./proto-utils.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { ApiKeySchema, type ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
-import { ApiKeyIdSchema, CreateServiceAccountKeyInputSchema, UpdateApiKeyInputSchema, ApiKeyHashSchema, ListApiKeysInputSchema, ApiKeysSchema, ListApiKeysByAccountInputSchema, type CreateServiceAccountKeyInput, type ApiKeyHash, type ListApiKeysInput, type ApiKeys, type ListApiKeysByAccountInput } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
-import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
-import { ApiKeySpecSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/spec_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiKeySchema, type ApiKey } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
+import { ApiKeyCommandController } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/command_pb";
+import { ApiKeyIdSchema, CreateServiceAccountKeyInputSchema, UpdateApiKeyInputSchema, ApiKeyHashSchema, ListApiKeysInputSchema, ApiKeysSchema, ListApiKeysByAccountInputSchema, type CreateServiceAccountKeyInput, type ApiKeyHash, type ListApiKeysInput, type ApiKeys, type ListApiKeysByAccountInput } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/io_pb";
+import { ApiKeyQueryController } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/query_pb";
+import { ApiKeySpecSchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/spec_pb";
 
 /** Provides operations on apikey resources. */
 export class ApiKeyClient {

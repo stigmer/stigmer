@@ -48,7 +48,7 @@ import { getOption } from "@bufbuild/protobuf";
 import type { DescMethod } from "@bufbuild/protobuf";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { is_skip_authorization } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
+import { is_skip_authorization } from "@stigmer/apis/ai/stigmer/commons/rpc/method_options_pb";
 
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";

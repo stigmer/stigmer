@@ -86,7 +86,7 @@ message ToolCall {
   // Redacted by the runner's transcript builder at creation (stigmer#1119, the
   // runner's redactSensitiveArgs in shared/args-preview.ts). Rows persisted
   // before that may carry the values; clients hide them on display through
-  // @stigmer/sdk's redactSecretArgs. The key set's cross-surface contract is
+  // @stigmer/client's redactSecretArgs. The key set's cross-surface contract is
   // test/fixtures/tool-view/secret-args.json.
   google.protobuf.Struct args = 3;
 

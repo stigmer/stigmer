@@ -20,7 +20,7 @@ import {
   GrantPermissionInputSchema,
   type ConfirmToolUseInput,
   type GrantPermissionInput,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { UsageError } from "../../errors/index.js";
 
 /** The `--approve-default` choice; "" when the flag is unset. */

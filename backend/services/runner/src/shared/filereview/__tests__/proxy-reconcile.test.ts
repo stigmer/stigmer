@@ -25,11 +25,11 @@ import { clone, create } from "@bufbuild/protobuf";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { CapturedFileChange } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   FileCaptureClass,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { ProxyArtifactStorage } from "../../artifact-storage.js";
 import { casBlobReader, casManifestKey } from "../cas-substrate.js";
 import {

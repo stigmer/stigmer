@@ -28,10 +28,10 @@
  * The Scenar cursor is an overlay, so `inert` does not affect it.
  */
 import type { ReactNode } from "react";
-import { samples, sampleInstant } from "@stigmer/react/test";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { samples, sampleInstant } from "@stigmer/react-sdk/test";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { BrowserView, CodeEditorView, TerminalView } from "@scenar/react";
-import type { ResourceRef } from "@stigmer/sdk";
+import type { ResourceRef } from "@stigmer/client";
 import { AppShell } from "../_shared/AppShell";
 import { SessionView } from "../_shared/SessionView";
 import { DEMO_ORG, conversation } from "../_shared/fixtures";

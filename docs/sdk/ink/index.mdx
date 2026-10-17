@@ -1,13 +1,13 @@
 ---
 title: Ink SDK
 description:
-  Install and configure @stigmer/ink to build terminal UIs for Stigmer agent
+  Install and configure @stigmer/ink-ui to build terminal UIs for Stigmer agent
   sessions using React components rendered by Ink.
 ---
 
-`@stigmer/ink` provides terminal UI components for rendering Stigmer agent
+`@stigmer/ink-ui` provides terminal UI components for rendering Stigmer agent
 sessions in the terminal. It is built on [Ink](https://github.com/vadimdemedes/ink)
-(React for CLIs) and shares the same hook layer as `@stigmer/react` — all
+(React for CLIs) and shares the same hook layer as `@stigmer/react-sdk` — all
 hooks for sessions, executions, streaming, and approvals work identically.
 
 The package includes a provider, pre-built components for every part of a
@@ -18,10 +18,10 @@ terminal experience.
 ## Installation
 
 ```bash
-npm install @stigmer/ink @stigmer/sdk @stigmer/protos @bufbuild/protobuf ink react
+npm install @stigmer/ink-ui @stigmer/client @stigmer/apis @bufbuild/protobuf ink react
 ```
 
-`ink` and `react` 19+ are peer dependencies. `@stigmer/protos` provides the
+`ink` and `react` 19+ are peer dependencies. `@stigmer/apis` provides the
 protocol buffer types. `@bufbuild/protobuf` is its runtime dependency.
 
 ## Quick start
@@ -30,7 +30,7 @@ The fastest way to render a session in your terminal:
 
 ```tsx
 import { render } from "ink";
-import { SessionApp } from "@stigmer/ink";
+import { SessionApp } from "@stigmer/ink-ui";
 
 render(
   <SessionApp
@@ -53,7 +53,7 @@ For more control, create the client yourself and wrap your tree in
 
 ```tsx
 import { render } from "ink";
-import { InkStigmerProvider, createNodeClient } from "@stigmer/ink";
+import { InkStigmerProvider, createNodeClient } from "@stigmer/ink-ui";
 
 const client = createNodeClient({
   baseUrl: "https://api.stigmer.ai",
@@ -68,11 +68,11 @@ render(
 ```
 
 `InkStigmerProvider` provides the same React contexts as `StigmerProvider` from
-`@stigmer/react`, but without the DOM `<div>` wrapper used for CSS scoping
+`@stigmer/react-sdk`, but without the DOM `<div>` wrapper used for CSS scoping
 (terminals do not need it).
 
 `createNodeClient` uses `@connectrpc/connect-node` for native HTTP/2 transport.
-It is re-exported from `@stigmer/sdk/node` for convenience.
+It is re-exported from `@stigmer/client/node` for convenience.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
@@ -82,13 +82,13 @@ It is re-exported from `@stigmer/sdk/node` for convenience.
 
 ## Using React SDK hooks
 
-All hooks from `@stigmer/react` work under `InkStigmerProvider`. This is the
-main reason to choose `@stigmer/ink` over building a terminal UI from scratch:
+All hooks from `@stigmer/react-sdk` work under `InkStigmerProvider`. This is the
+main reason to choose `@stigmer/ink-ui` over building a terminal UI from scratch:
 you get the complete data layer for free.
 
 ```tsx
-import { useStigmer, useSessionConversation } from "@stigmer/react";
-import { InkStigmerProvider, createNodeClient } from "@stigmer/ink";
+import { useStigmer, useSessionConversation } from "@stigmer/react-sdk";
+import { InkStigmerProvider, createNodeClient } from "@stigmer/ink-ui";
 import { Box, Text } from "ink";
 
 function MySessionView({ sessionId, org }: { sessionId: string; org: string }) {
@@ -125,8 +125,8 @@ import {
   MessageThread,
   RunProgress,
   FollowUpInput,
-} from "@stigmer/ink";
-import { runPhaseOf, useSessionConversation } from "@stigmer/react";
+} from "@stigmer/ink-ui";
+import { runPhaseOf, useSessionConversation } from "@stigmer/react-sdk";
 import { Box } from "ink";
 
 function CustomView({ sessionId, org }: { sessionId: string; org: string }) {
@@ -160,12 +160,12 @@ handle tool call display. `ApprovalPrompt` renders the HITL approval UI.
 
 ## CLI integration
 
-`@stigmer/ink` ships a standalone binary that any CLI can spawn as a child
+`@stigmer/ink-ui` ships a standalone binary that any CLI can spawn as a child
 process — regardless of language. Your CLI creates the session, then hands
 the terminal to Ink for rendering:
 
 ```bash
-npx @stigmer/ink --session ses-abc123 --org my-org \
+npx @stigmer/ink-ui --session ses-abc123 --org my-org \
   --base-url https://api.stigmer.ai --api-key "$STIGMER_API_KEY"
 ```
 
@@ -179,7 +179,7 @@ post-exit state queries.
 <Cards>
   <Card
     title="Embed in your CLI"
-    description="Spawn @stigmer/ink from Go, Rust, or Python to render sessions in the terminal."
+    description="Spawn @stigmer/ink-ui from Go, Rust, or Python to render sessions in the terminal."
     href="/docs/sdk/ink/cli-integration"
   />
   <Card

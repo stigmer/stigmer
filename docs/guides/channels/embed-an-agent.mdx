@@ -121,7 +121,7 @@ user by name and calibrates its depth and defaults from the first message,
 without a visible context preamble polluting the chat.
 
 Pass `sessionContext` when you create the session — every session-creating
-surface in `@stigmer/react` accepts it
+surface in `@stigmer/react-sdk` accepts it
 ([`useNewSessionFlow`](/docs/sdk/react/session#usenewsessionflow),
 [`useCreateSession`](/docs/sdk/react/session#usecreatesession), and
 [`useCreateRun`](/docs/sdk/react/run#usecreaterun)'s bootstrap `sessionSpec`):
@@ -137,7 +137,7 @@ const flow = useNewSessionFlow({
 ```
 
 The value is stored on the session's spec metadata under
-`stigmer.ai/session-context` (exported from `@stigmer/sdk` as
+`stigmer.ai/session-context` (exported from `@stigmer/client` as
 `SESSION_CONTEXT_METADATA_KEY` for integrations that set the raw `metadata` map
 instead).
 

@@ -1,10 +1,10 @@
 "use client";
 
 import { type FormEvent, useCallback, useId, useMemo, useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
-import { getUserMessage } from "@stigmer/sdk";
-import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { getUserMessage } from "@stigmer/client";
+import type { ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import {
   CHANNEL_PROVIDERS,
   type ChannelProviderId,

@@ -7,9 +7,9 @@
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { PlanSchema } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
-import { SubscriptionSchema } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/api_pb";
-import { SubscriptionState } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/status_pb";
+import { PlanSchema } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
+import { SubscriptionSchema } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/api_pb";
+import { SubscriptionState } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/status_pb";
 import { planMove, planStanding } from "../plan-state";
 
 const NOW = new Date("2027-02-10T00:00:00Z");

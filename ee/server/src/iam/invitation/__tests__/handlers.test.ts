@@ -78,26 +78,26 @@ import {
 } from "@stigmer/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { OwnerAttributionType } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   ApiResourceAuditActorSchema,
   ApiResourceAuditInfoSchema,
   ApiResourceAuditSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
-import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
-import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
+import { GrantSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
+import type { GrantSpec } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
+import type { Invitation } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
 import {
   InvitationSchema,
   InvitationStatusSchema,
-} from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
-import { InvitationCommandController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/command_pb";
-import { InvitationState } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/enum_pb";
-import { InvitationQueryController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/query_pb";
-import { InvitationSpecSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/spec_pb";
-import { IamPermission, IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
+import { InvitationCommandController } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/command_pb";
+import { InvitationState } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/enum_pb";
+import { InvitationQueryController } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/query_pb";
+import { InvitationSpecSchema } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/spec_pb";
+import { IamPermission, IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import type { OrganizationFacts } from "../../organization-links.js";
 import type { GrantPathClient } from "../../grant/grant-path-client.js";

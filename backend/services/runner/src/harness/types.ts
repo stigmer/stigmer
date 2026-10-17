@@ -70,9 +70,9 @@
  */
 
 import type { TranscriptMessage } from "@stigmer/eval-runtime";
-import type { Run, RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { Run, RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import type { Config } from "../config.js";
 import type { NormalizedActivityInput } from "../shared/activity-input.js";
@@ -89,7 +89,7 @@ import type { MountedPlugin } from "../shared/plugin-mount.js";
 import type { HookFormatName } from "../shared/hooks/hook-set.js";
 import type { HookServerName } from "../shared/hooks/tool-view.js";
 import type { McpToolListing } from "../shared/mcp-tool-listing.js";
-import type { HookGroup } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import type { HookGroup } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { ResolvedAttachment } from "../shared/attachment-resolver.js";
 import type { NotViewableEntry, VisionImage } from "../shared/attachment-vision.js";
 import type { EffectiveServiceTier } from "../shared/service-tier.js";

@@ -26,9 +26,9 @@ import {
   workflowFileOf,
 } from "./turbo-affected.mjs";
 
-const WORKSPACE = ["@stigmer/protos", "@stigmer/sdk", "@stigmer/react", "web"];
+const WORKSPACE = ["@stigmer/apis", "@stigmer/client", "@stigmer/react-sdk", "web"];
 const SETS_BY_NAME = {
-  libs: ["@stigmer/protos", "@stigmer/sdk", "@stigmer/react"],
+  libs: ["@stigmer/apis", "@stigmer/client", "@stigmer/react-sdk"],
   workspace: WORKSPACE,
 };
 
@@ -120,28 +120,28 @@ test("readAffected: changed and downstream tasks name their package; an upstream
   // The (d) row of the 2026-09-11 matrix: a tool-view fixture edit.
   const { packages, rows, fallback } = readAffected(
     query([
-      task("@stigmer/protos", "build", "TaskAllChanged"),
-      task("@stigmer/react", "test", "TaskFileChanged"),
-      task("@stigmer/sdk", "build", "TaskAllChanged"),
-      task("@stigmer/sdk", "test", "TaskFileChanged"),
-      task("@stigmer/theme", "build", "TaskAllChanged"),
+      task("@stigmer/apis", "build", "TaskAllChanged"),
+      task("@stigmer/react-sdk", "test", "TaskFileChanged"),
+      task("@stigmer/client", "build", "TaskAllChanged"),
+      task("@stigmer/client", "test", "TaskFileChanged"),
+      task("@stigmer/design-tokens", "build", "TaskAllChanged"),
     ]),
   );
   assert.equal(fallback, null);
-  assert.deepEqual(packages.sort(), ["@stigmer/react", "@stigmer/sdk"]);
+  assert.deepEqual(packages.sort(), ["@stigmer/client", "@stigmer/react-sdk"]);
   assert.equal(rows.length, 5, "every task is kept for the summary");
-  assert.ok(rows.find((r) => r.package === "@stigmer/theme").upstreamOnly);
+  assert.ok(rows.find((r) => r.package === "@stigmer/design-tokens").upstreamOnly);
 });
 
 test("readAffected: a dependency's change reaches the dependents; the root package is dropped", () => {
   const { packages } = readAffected(
     query([
-      task("@stigmer/protos", "build", "TaskFileChanged"),
-      task("@stigmer/sdk", "build", "TaskDependencyTaskChanged"),
+      task("@stigmer/apis", "build", "TaskFileChanged"),
+      task("@stigmer/client", "build", "TaskDependencyTaskChanged"),
       task("//", "test", "TaskFileChanged"),
     ]),
   );
-  assert.deepEqual(packages.sort(), ["@stigmer/protos", "@stigmer/sdk"]);
+  assert.deepEqual(packages.sort(), ["@stigmer/apis", "@stigmer/client"]);
 });
 
 test("readAffected: a reason type this script does not know counts as affected, and says so", () => {
@@ -253,14 +253,14 @@ test("decide: the graph's answer, in workspace order", () => {
     changedFiles: ["sdk/react/src/x.ts", "test/fixtures/tool-view/a.json"],
     query: query([
       task("web", "build", "TaskDependencyTaskChanged"),
-      task("@stigmer/react", "build", "TaskFileChanged"),
-      task("@stigmer/protos", "build", "TaskAllChanged"),
+      task("@stigmer/react-sdk", "build", "TaskFileChanged"),
+      task("@stigmer/apis", "build", "TaskAllChanged"),
     ]),
     workspace: WORKSPACE,
   });
   assert.deepEqual(
     decision.packages,
-    ["@stigmer/react", "web"],
+    ["@stigmer/react-sdk", "web"],
     "workspace order, upstream-only dropped",
   );
   assert.equal(decision.everything, null);
@@ -332,8 +332,8 @@ test("summaryMarkdown: names the range, the packages and each task's reason; ups
     env: CI_PR,
     changedFiles: [],
     query: query([
-      task("@stigmer/sdk", "test", "TaskFileChanged"),
-      task("@stigmer/protos", "build", "TaskAllChanged"),
+      task("@stigmer/client", "test", "TaskFileChanged"),
+      task("@stigmer/apis", "build", "TaskAllChanged"),
     ]),
     workspace: WORKSPACE,
   });
@@ -342,11 +342,11 @@ test("summaryMarkdown: names the range, the packages and each task's reason; ups
     md,
     /Base `origin\/main` \(pull_request base branch\), head `HEAD`/,
   );
-  assert.match(md, /1 package\(s\): `@stigmer\/sdk`/);
-  assert.match(md, /`@stigmer\/sdk#test` \| TaskFileChanged/);
+  assert.match(md, /1 package\(s\): `@stigmer\/client`/);
+  assert.match(md, /`@stigmer\/client#test` \| TaskFileChanged/);
   assert.match(
     md,
-    /`@stigmer\/protos#build` \| TaskAllChanged \(upstream of an affected task; runs via \^build\)/,
+    /`@stigmer\/apis#build` \| TaskAllChanged \(upstream of an affected task; runs via \^build\)/,
   );
 
   const empty = summaryMarkdown(

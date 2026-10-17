@@ -25,8 +25,8 @@
  * without teams never makes the call.
  */
 import { useMemo } from "react";
-import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import type { ApiResourceRefView } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import {
   granteeFromView,
   isAppUserAccount,
@@ -34,7 +34,7 @@ import {
   personGrantee,
   teamGrantee,
   type Grantee,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { useTeamList } from "../team/useTeamList.js";
 import { useResourceAccess } from "./useResourceAccess.js";
 

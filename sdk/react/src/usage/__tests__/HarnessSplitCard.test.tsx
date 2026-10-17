@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { HarnessUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { HarnessUsageSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { HarnessSplitCard } from "../HarnessSplitCard";
 
 afterEach(cleanup);

@@ -45,7 +45,7 @@
  * id before its first persist; a `deterministic` one must never bind).
  */
 
-import type { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import type { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { VisionProfile } from "../shared/attachment-vision.js";
 import type { ToolCall } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";

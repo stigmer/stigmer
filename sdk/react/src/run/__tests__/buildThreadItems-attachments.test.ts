@@ -8,7 +8,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AttachmentSchema, type Attachment } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import { AttachmentSchema, type Attachment } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import { buildThreadItems, type ThreadItem } from "../MessageThread";
 import { runOf, status, turnsOf, user } from "./__fixtures__/thread-events";
 

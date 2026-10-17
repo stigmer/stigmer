@@ -5,8 +5,8 @@
 // while a server that holds one reads it with none.
 
 import { create } from "@bufbuild/protobuf";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Stigmer } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { UsageError } from "../../../errors/index.js";
 import { resolveAgent } from "../resolve.js";

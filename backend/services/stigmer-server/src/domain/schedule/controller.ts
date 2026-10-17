@@ -32,11 +32,11 @@
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 
-import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
-import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleListSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import { ScheduleCommandController } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/command_pb";
+import { ScheduleQueryController } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/query_pb";
+import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import type { Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleListSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
 import type {
   ListScheduleFiresRequest,
   ListSchedulesByAgentRequest,
@@ -45,14 +45,14 @@ import type {
   ScheduleList,
   ScheduleFireList,
   ScheduleTriggerResult,
-} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
 import type {
   ApiResourceReference,
   RenameInput,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { UpdateScheduleInput } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
-import { UpdateScheduleInputSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { UpdateScheduleInput } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
+import { UpdateScheduleInputSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { CredentialBinding } from "../../extensions/credential-binding.js";

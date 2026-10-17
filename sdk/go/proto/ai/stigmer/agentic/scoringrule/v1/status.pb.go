@@ -7,7 +7,7 @@
 package scoringrulev1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -138,8 +138,8 @@ const file_ai_stigmer_agentic_scoringrule_v1_status_proto_rawDesc = "" +
 	"\n" +
 	"not_graded\x18\x05 \x01(\x05R\tnotGraded\x123\n" +
 	"\x16last_not_graded_reason\x18\x06 \x01(\tR\x13lastNotGradedReason\x12F\n" +
-	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\xb9\x02\n" +
-	"%com.ai.stigmer.agentic.scoringrule.v1B\vStatusProtoP\x01ZZgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/scoringrule/v1;scoringrulev1\xa2\x02\x04ASAS\xaa\x02!Ai.Stigmer.Agentic.Scoringrule.V1\xca\x02!Ai\\Stigmer\\Agentic\\Scoringrule\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Scoringrule\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Scoringrule::V1b\x06proto3"
+	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\xa6\x02\n" +
+	"%com.ai.stigmer.agentic.scoringrule.v1B\vStatusProtoP\x01ZGgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/scoringrule/v1;scoringrulev1\xa2\x02\x04ASAS\xaa\x02!Ai.Stigmer.Agentic.Scoringrule.V1\xca\x02!Ai\\Stigmer\\Agentic\\Scoringrule\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Scoringrule\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Scoringrule::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_scoringrule_v1_status_proto_rawDescOnce sync.Once

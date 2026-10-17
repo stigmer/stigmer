@@ -8,7 +8,7 @@ package runv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
+	v1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -843,8 +843,8 @@ const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"\x05facts\x18\x02 \x03(\v2-.ai.stigmer.agentic.run.v1.RecalledMemoryFactR\x05facts\"K\n" +
 	"\x12RecalledMemoryFact\x12\x1b\n" +
 	"\tmemory_id\x18\x01 \x01(\tR\bmemoryId\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\tR\acontentB\xff\x01\n" +
-	"\x1dcom.ai.stigmer.agentic.run.v1B\tSpecProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
+	"\acontent\x18\x02 \x01(\tR\acontentB\xec\x01\n" +
+	"\x1dcom.ai.stigmer.agentic.run.v1B\tSpecProtoP\x01Z7go.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_run_v1_spec_proto_rawDescOnce sync.Once

@@ -143,7 +143,7 @@ test("the guard still finds the package and the links it exists for", () => {
   assert.equal(pkg.name, PACKAGE_NAME);
   assert.deepEqual(
     Object.keys(pkg.dependencies).filter((name) => name.startsWith("@stigmer/")).sort(),
-    ["@stigmer/outbound", "@stigmer/protos", "@stigmer/server"],
+    ["@stigmer/apis", "@stigmer/outbound", "@stigmer/server"],
   );
   assert.ok(Object.keys(pkg.dependencies).some((name) => !name.startsWith("@stigmer/")));
 });

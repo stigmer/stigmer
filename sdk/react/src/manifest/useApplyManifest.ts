@@ -6,7 +6,7 @@ import {
   parseManifest,
   type AppliedManifest,
   type ManifestDocument,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { findOrgByRef, useKnownOrgs } from "../organization/OrgProvider.js";
 import { toError } from "../internal/toError.js";

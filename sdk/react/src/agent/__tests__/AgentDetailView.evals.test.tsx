@@ -8,7 +8,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { Code } from "@connectrpc/connect";
-import { StigmerError } from "@stigmer/sdk";
+import { StigmerError } from "@stigmer/client";
 import { samples } from "../../test/samples";
 import { AgentDetailView } from "../AgentDetailView";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";

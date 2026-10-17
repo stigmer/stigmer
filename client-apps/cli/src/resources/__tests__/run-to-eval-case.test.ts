@@ -12,14 +12,14 @@
 import { create } from "@bufbuild/protobuf";
 import { zipSync } from "fflate";
 import { digestArchive } from "@stigmer/plugin-package/client";
-import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
+import { EvalSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
 import {
   EvalCaseArchiveSchema,
   type AddEvalCaseFromRunRequest,
   type BuildEvalCaseFromRunRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { Stigmer } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Stigmer } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { UsageError } from "../../errors/index.js";
 import { writeEvalCaseFromRun, type CaseFolderIo } from "../run-to-eval-case.js";

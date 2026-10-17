@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState, type DragEvent } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../element-resets.js";
 import { FileTypeIcon, FolderTypeIcon } from "../file-icons/index.js";
 import type { TreeNode } from "./tree-node.js";

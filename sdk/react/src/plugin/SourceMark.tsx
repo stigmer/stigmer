@@ -12,7 +12,7 @@
  */
 
 import { useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 import { githubAvatarUrl, githubOwner } from "./sources/github.js";
 import { OFFICIAL_PUBLISHER } from "./sources/official.js";

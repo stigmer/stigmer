@@ -8,7 +8,7 @@ package vaultv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -343,8 +343,8 @@ const file_ai_stigmer_agentic_vault_v1_connect_link_proto_rawDesc = "" +
 	"\x15ConnectLinkController\x12x\n" +
 	"\x0egetConnectLink\x122.ai.stigmer.agentic.vault.v1.ConnectLinkTokenInput\x1a,.ai.stigmer.agentic.vault.v1.ConnectLinkInfo\"\x04ȸ\x18\x01\x12\x81\x01\n" +
 	"\x10startConnectLink\x122.ai.stigmer.agentic.vault.v1.ConnectLinkTokenInput\x1a3.ai.stigmer.agentic.vault.v1.StartConnectLinkOutput\"\x04ȸ\x18\x01\x12\x8a\x01\n" +
-	"\x13completeConnectLink\x125.ai.stigmer.agentic.vault.v1.CompleteConnectLinkInput\x1a6.ai.stigmer.agentic.vault.v1.CompleteConnectLinkOutput\"\x04ȸ\x18\x01B\x94\x02\n" +
-	"\x1fcom.ai.stigmer.agentic.vault.v1B\x10ConnectLinkProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/vault/v1;vaultv1\xa2\x02\x04ASAV\xaa\x02\x1bAi.Stigmer.Agentic.Vault.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Vault\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Vault::V1b\x06proto3"
+	"\x13completeConnectLink\x125.ai.stigmer.agentic.vault.v1.CompleteConnectLinkInput\x1a6.ai.stigmer.agentic.vault.v1.CompleteConnectLinkOutput\"\x04ȸ\x18\x01B\x81\x02\n" +
+	"\x1fcom.ai.stigmer.agentic.vault.v1B\x10ConnectLinkProtoP\x01Z;go.stigmer.ai/sdk/proto/ai/stigmer/agentic/vault/v1;vaultv1\xa2\x02\x04ASAV\xaa\x02\x1bAi.Stigmer.Agentic.Vault.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Vault\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Vault::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_vault_v1_connect_link_proto_rawDescOnce sync.Once

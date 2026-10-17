@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { RouterProvider } from "react-router-dom";
-import { Stigmer } from "@stigmer/sdk";
-import type { DeploymentMode } from "@stigmer/sdk";
-import { StigmerProvider, OrgProvider, FetchCacheProvider } from "@stigmer/react";
+import { Stigmer } from "@stigmer/client";
+import type { DeploymentMode } from "@stigmer/client";
+import { StigmerProvider, OrgProvider, FetchCacheProvider } from "@stigmer/react-sdk";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { Toaster } from "sonner";
 import { router } from "./routes";

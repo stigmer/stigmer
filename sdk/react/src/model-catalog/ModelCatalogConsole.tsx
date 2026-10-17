@@ -9,9 +9,9 @@
 // ---------------------------------------------------------------------------
 
 import { useCallback } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage, isPermissionDenied } from "@stigmer/sdk";
-import type { ModelPricingBaseline } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage, isPermissionDenied } from "@stigmer/client";
+import type { ModelPricingBaseline } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { Button } from "../button/index.js";
 import { BaselineEditor } from "./BaselineEditor.js";
 import { RetireConfirm } from "./RetireConfirm.js";

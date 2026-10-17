@@ -7,8 +7,8 @@
 // controller.
 
 import { create } from "@bufbuild/protobuf";
-import { TagAgentVersionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import { TagAgentVersionInputSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
+import type { Stigmer } from "@stigmer/client";
 import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
 

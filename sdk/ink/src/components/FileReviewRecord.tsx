@@ -2,8 +2,8 @@
 // how each file was decided, read from the session's fold (`FileReviewSet`).
 import React from "react";
 import { Box, Text } from "ink";
-import type { FileReviewFile, FileReviewSet } from "@stigmer/sdk";
-import { fileChangeKindOf } from "@stigmer/react";
+import type { FileReviewFile, FileReviewSet } from "@stigmer/client";
+import { fileChangeKindOf } from "@stigmer/react-sdk";
 import {
   changeSetLineStats,
   fileDisplayPath,

@@ -17,8 +17,8 @@ import { createHash } from "node:crypto";
 
 import { enumToJson } from "@bufbuild/protobuf";
 
-import { FileChangeKindSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import { FileChangeKindSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { CapturedFileChange } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 
 export function fileDigest(c: CapturedFileChange): string {
   const canonical = [

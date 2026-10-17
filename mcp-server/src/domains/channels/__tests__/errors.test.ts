@@ -6,7 +6,7 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 
 import { domainError } from "../errors";
 

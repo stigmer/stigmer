@@ -9,7 +9,7 @@ import {
   useBreadcrumbOverride,
   type DetailAction,
   useOrgSlugForId,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 
 export default function SkillDetailPage() {
   const { org, slug } = useParams<{ org: string; slug: string }>();

@@ -62,7 +62,7 @@ export interface StigmerConfig {
    * @example
    * ```typescript
    * import { fetch } from "@tauri-apps/plugin-http";
-   * import { Stigmer } from "@stigmer/sdk";
+   * import { Stigmer } from "@stigmer/client";
    *
    * const stigmer = new Stigmer({
    *   baseUrl: "https://api.stigmer.ai",
@@ -107,7 +107,7 @@ export interface StigmerConfig {
    * @example
    * ```typescript
    * import { createConnectTransport } from "@connectrpc/connect-node";
-   * import { Stigmer } from "@stigmer/sdk";
+   * import { Stigmer } from "@stigmer/client";
    *
    * const stigmer = new Stigmer({
    *   baseUrl: "https://api.stigmer.ai",

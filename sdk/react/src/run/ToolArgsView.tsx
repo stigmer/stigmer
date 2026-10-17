@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { isSecretArgKey, redactSecretArgs } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+import { isSecretArgKey, redactSecretArgs } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 import {
   resolveToolCategory,
   extractWriteContentFromArgs,

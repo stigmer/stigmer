@@ -19,8 +19,8 @@
 
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { Entitlements } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
-import { LicenseTerm } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+import type { Entitlements } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
+import { LicenseTerm } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 
 /** A term an operator can issue; the unspecified zero value is not one. */
 export type IssuableTerm = LicenseTerm.trial | LicenseTerm.paid;

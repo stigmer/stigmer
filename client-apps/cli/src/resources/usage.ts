@@ -23,7 +23,7 @@
 // snake_case keys).
 
 import { create } from "@bufbuild/protobuf";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   GetAgentUsageReportInputSchema,
   GetAgentUsageReportOutputSchema,
@@ -34,19 +34,19 @@ import {
   type GetAgentUsageReportOutput,
   type GetOrgUsageReportOutput,
   type GetSessionUsageReportOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import {
   ProviderKeySource,
   type ModelUsage,
   type UsageReportAggregate,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import {
   AgentHoursSchema,
   AgentHoursWindow,
   GetAgentHoursInputSchema,
   type AgentHours,
-} from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
+import type { Stigmer } from "@stigmer/client";
 import type { OutputFormat } from "../output/index.js";
 import { renderProtoJson, renderProtoYaml, renderTable } from "../output/index.js";
 import { formatTokenCount } from "./run-format.js";
@@ -121,7 +121,7 @@ export function renderAgentHours(hours: AgentHours, format: OutputFormat): strin
 /**
  * Working agent time as hours to one decimal, e.g. "18.4 h": the tenth of
  * an hour the invoice bills by, rounded half up. The console's billing page
- * prints the same figure (formatAgentHours in @stigmer/react).
+ * prints the same figure (formatAgentHours in @stigmer/react-sdk).
  */
 export function formatAgentHours(seconds: bigint): string {
   const tenths = (seconds + 180n) / 360n;

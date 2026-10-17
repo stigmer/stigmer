@@ -6,13 +6,13 @@
     "typescript": {
       "Error": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error"
     },
-    "@stigmer/protos": {
+    "@stigmer/apis": {
       "*": "https://stigmer.ai/docs/api-reference"
     },
-    "@stigmer/sdk": {
+    "@stigmer/client": {
       "*": "https://stigmer.ai/docs/sdk/typescript"
     },
-    "@stigmer/react": {
+    "@stigmer/react-sdk": {
       "*": "https://stigmer.ai/docs/sdk/react"
     }
   }

@@ -69,14 +69,14 @@
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceRef } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 import {
   ApiResourceRefSchema,
   GrantSpecSchema,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
-import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
+import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import type {
   AuthorizationQueryEngine,
   GrantStore,

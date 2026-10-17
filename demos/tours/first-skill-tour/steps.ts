@@ -46,7 +46,7 @@ export type FirstSkillTourStep =
  */
 export const SKILL_REFS_CODE = [
   `// ${QUICKSTART_WORKSPACE.entryFile} — Add your Skill to the session`,
-  'import { Stigmer } from "@stigmer/sdk";',
+  'import { Stigmer } from "@stigmer/client";',
   "",
   "const stigmer = new Stigmer({",
   "  apiKey: process.env.STIGMER_API_KEY!,",

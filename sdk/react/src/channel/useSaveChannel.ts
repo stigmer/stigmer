@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import { buildChannelProto, type ChannelInput } from "@stigmer/sdk";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import { buildChannelProto, type ChannelInput } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { maskedEdit } from "../internal/maskedEdit.js";
 import { toError } from "../internal/toError.js";

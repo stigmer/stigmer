@@ -35,8 +35,8 @@
  *     edition, a proto read at most, never I/O. A scope that would need a
  *     network to answer is a different seam.
  */
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 /** The grant-scope contract (single-instance point, ExtensionDrivers.grantScope). */
 export interface GrantScope {

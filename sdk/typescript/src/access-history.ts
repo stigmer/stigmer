@@ -30,7 +30,7 @@ import {
   AccessHistoryEntrySchema,
   ListAccessHistoryInputSchema,
   type AccessHistoryEntry,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 
 import type { GrantClient } from "./gen/grant.js";
 

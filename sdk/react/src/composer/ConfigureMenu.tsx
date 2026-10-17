@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { Popover } from "@base-ui/react/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useStigmerPortalContainer } from "../portal-container.js";

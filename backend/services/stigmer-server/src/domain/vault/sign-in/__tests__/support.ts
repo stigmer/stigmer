@@ -14,14 +14,14 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { expect } from "vitest";
 
-import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
+import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { OAuthAppSchema } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
 import {
   TokenEndpointAuthMethod,
   VendorApprovalStatus,
-} from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/spec_pb";
+import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import { createLogger } from "../../../../boot/logger.js";
 import { SecretService } from "../../../../encryption/encryption.js";

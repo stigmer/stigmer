@@ -15,8 +15,8 @@
  * Pinned by `__tests__/run-defaults.test.ts`.
  */
 
-import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { fromProtoHarness, type HarnessOption } from "../models/harness.js";
 import { fromProtoServiceTier, type ServiceTierOption } from "../models/service-tier.js";
 import { fromProtoThinkingMode, type ThinkingModeOption } from "../models/thinking-mode.js";

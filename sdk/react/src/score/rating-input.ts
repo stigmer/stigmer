@@ -7,9 +7,9 @@
  * name the server fills with the score's id) is stated once.
  */
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import type { Score, ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import { ScoreSource } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
-import type { ScoreInput } from "@stigmer/sdk";
+import type { Score, ScoreSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import { ScoreSource } from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
+import type { ScoreInput } from "@stigmer/client";
 import { FEEDBACK_METRIC } from "./score-view.js";
 
 /** A person's rating of one run. */

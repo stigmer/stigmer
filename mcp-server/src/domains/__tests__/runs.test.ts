@@ -32,29 +32,29 @@ import type { AddressInfo } from "node:net";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
 import {
   RunSchema,
   type Run,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   SessionSchema,
   type Session,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import type {
   ConfirmToolUseInput,
   GrantPermissionInput,
   InterruptSessionInput,
   ListSessionEventsRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { configureLogger } from "../../logger";

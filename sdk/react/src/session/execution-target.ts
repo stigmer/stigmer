@@ -1,4 +1,4 @@
-import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 /**
  * String literal alias for the proto {@link ExecutionTarget} enum.

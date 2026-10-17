@@ -31,15 +31,15 @@
  */
 import { clone, create } from "@bufbuild/protobuf";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import type { UpdateOrganizationPoliciesInputSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
-import type { OrganizationPolicies } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { UpdateOrganizationPoliciesInputSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
+import type { OrganizationPolicies } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/spec_pb";
 import {
   OrganizationPoliciesSchema,
   OrganizationSpecSchema,
-} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/spec_pb";
 
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { internalError, notFoundError } from "../../pipeline/errors.js";

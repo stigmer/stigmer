@@ -1,8 +1,8 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { TokenProvider } from "@stigmer/sdk";
+import type { TokenProvider } from "@stigmer/client";
 import { InkStigmerProvider } from "../provider.js";
-import { createNodeClient, type NodeClientConfig } from "@stigmer/sdk/node";
+import { createNodeClient, type NodeClientConfig } from "@stigmer/client/node";
 import { SessionView } from "./SessionView.js";
 
 /** Props for {@link SessionApp}. */
@@ -43,7 +43,7 @@ export interface SessionAppProps {
  * @example
  * ```tsx
  * import { render } from "ink";
- * import { SessionApp } from "@stigmer/ink";
+ * import { SessionApp } from "@stigmer/ink-ui";
  *
  * render(
  *   <SessionApp

@@ -1,8 +1,8 @@
 "use client";
 
 import { memo, useMemo, type ComponentType } from "react";
-import type { Todo } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+import type { Todo } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
 import {

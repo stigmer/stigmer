@@ -11,7 +11,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   GetOrgUsageReportOutputSchema,
   type GetOrgUsageReportOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 
 const asked = vi.hoisted(() => ({
   agent: [] as unknown[],

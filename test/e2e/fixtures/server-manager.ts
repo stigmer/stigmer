@@ -109,7 +109,7 @@ export async function startBackendStack(opts: {
   const serverEntry = opts.singleOrg === true ? shippedEntry : libraryServerEntryPath();
   const runnerEntry = builtEntry(
     runnerEntryPath(),
-    "npm run build -w @stigmer/protos && npm run build -w @stigmer/runner (or make build-runner)",
+    "npm run build -w @stigmer/apis && npm run build -w @stigmer/runner (or make build-runner)",
     "Unified runner",
   );
   // STIGMER_E2E_DIAG (fixtures/diag.ts): each stream's log starts fresh with

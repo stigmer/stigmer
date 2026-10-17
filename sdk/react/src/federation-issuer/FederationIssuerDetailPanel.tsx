@@ -1,10 +1,10 @@
 "use client";
 
 import { type FormEvent, useCallback, useId, useState } from "react";
-import { cn } from "@stigmer/theme";
-import { buildFederationIssuerProto } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { buildFederationIssuerProto } from "@stigmer/client";
 import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
-import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import { EXPECTED_AUDIENCE_HINT, EXPECTED_AUDIENCE_PLACEHOLDER } from "./copy.js";
 import {

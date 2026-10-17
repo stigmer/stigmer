@@ -15,7 +15,7 @@ import { fromBinary } from "@bufbuild/protobuf";
 import pg from "pg";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 
 import { readSubAgents } from "../frozen-sub-agent.js";
 import type { StoreLogger } from "../logger.js";

@@ -17,8 +17,8 @@
 import { describe, expect, it, vi } from "vitest";
 import type { DynamicStructuredTool } from "@langchain/core/tools";
 import { create } from "@bufbuild/protobuf";
-import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { RunSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import { mainToolScope } from "../../../harness/turn-context.js";
 import type { TurnSubagent } from "../../../harness/types.js";
 import type { PluginSubagent, ResolvedBlueprint } from "../../../shared/blueprint-resolver.js";

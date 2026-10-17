@@ -15,18 +15,18 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { FileContentSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
   type FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   FileCaptureClass,
   FileChangeKind,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { FileReviewDecision, FileReviewFile, FileReviewSet } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { FileReviewDecision, FileReviewFile, FileReviewSet } from "@stigmer/client";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import type { UseFileChangeContentReturn } from "../useFileChangeContent";

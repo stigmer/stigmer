@@ -8,9 +8,9 @@
 import { createConnectRouter } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
-import { TeamQueryController } from "@stigmer/protos/ai/stigmer/iam/team/v1/query_pb";
-import { TokenService } from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
+import { OAuthAppQueryController } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/query_pb";
+import { TeamQueryController } from "@stigmer/apis/ai/stigmer/iam/team/v1/query_pb";
+import { TokenService } from "@stigmer/apis/ai/stigmer/iam/token/v1/token_pb";
 
 import { registerExtensionServicesUnshadowed } from "../route-shadowing.js";
 

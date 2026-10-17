@@ -17,7 +17,7 @@
 // server failed to record is red at the answer that made it. `expect` is
 // imported at the call for the reason runs.ts gives.
 import { foldSession, turnOf } from "@stigmer/session-log";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { type PollCoreOptions, pollUntil } from "./run-poll";
 

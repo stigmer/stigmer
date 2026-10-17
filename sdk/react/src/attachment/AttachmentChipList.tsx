@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import type { AttachmentEntry } from "./useAttachments.js";
 import { formatFileSize } from "./attachment-utils.js";
 import { useObjectUrl } from "./useObjectUrl.js";

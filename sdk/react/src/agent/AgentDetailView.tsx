@@ -1,23 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import type { EnvVarDeclaration } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useAgent } from "./useAgent.js";
 import { useUpdateAgent } from "./useUpdateAgent.js";
 import {
   buildAgentProto,
   deletedReferenceLabel,
   isDeletedReference,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelsPanel } from "../channel/ChannelsPanel.js";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell.js";
 import { Section } from "../resource-detail/Section.js";
@@ -151,14 +151,14 @@ export interface AgentDetailViewProps {
    * Called after a successful inline field save with the updated agent.
    * Consumers can use this to refresh breadcrumbs, sync URL state, etc.
    */
-  readonly onResourceUpdated?: (agent: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb").Agent) => void;
+  readonly onResourceUpdated?: (agent: import("@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb").Agent) => void;
   /**
    * Fired with the renamed agent after a rename from the Overview tab's
    * slug field (shown when `editable` and the caller may delete the
    * agent). A host whose address names the slug moves it to the new one;
    * the old slug keeps leading to the agent for 30 days.
    */
-  readonly onRenamed?: (agent: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb").Agent) => void;
+  readonly onRenamed?: (agent: import("@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb").Agent) => void;
   /**
    * Builds the absolute public chat URL for the chat links in the
    * Channels tab. The host application owns URL construction — its
@@ -285,7 +285,7 @@ export function AgentDetailView({
   // Several fields saved as one edit (the run defaults write run_config
   // and harness together); a failure is attributed to `field`.
   const saveFields = useCallback(
-    async (field: string, patch: Partial<import("@stigmer/sdk").AgentInput>): Promise<boolean> => {
+    async (field: string, patch: Partial<import("@stigmer/client").AgentInput>): Promise<boolean> => {
       if (!agent) return false;
       setSaveError(null);
       try {
@@ -303,11 +303,11 @@ export function AgentDetailView({
   );
 
   const saveField = useCallback(
-    async <K extends keyof import("@stigmer/sdk").AgentInput>(
+    async <K extends keyof import("@stigmer/client").AgentInput>(
       field: K,
-      value: import("@stigmer/sdk").AgentInput[K],
+      value: import("@stigmer/client").AgentInput[K],
     ): Promise<boolean> => {
-      const patch: Partial<import("@stigmer/sdk").AgentInput> = {};
+      const patch: Partial<import("@stigmer/client").AgentInput> = {};
       patch[field] = value;
       return saveFields(field, patch);
     },
@@ -324,7 +324,7 @@ export function AgentDetailView({
 
   const handleRenamed = useCallback(
     (renamed: RenamedResource) => {
-      onRenamed?.(renamed as import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb").Agent);
+      onRenamed?.(renamed as import("@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb").Agent);
       refetch();
     },
     [onRenamed, refetch],
@@ -601,9 +601,9 @@ function AgentOverview({
   readonly onSkillClick?: (ref: { org: string; slug: string }) => void;
   readonly editable?: boolean;
   readonly isSaving?: boolean;
-  readonly saveField?: <K extends keyof import("@stigmer/sdk").AgentInput>(
+  readonly saveField?: <K extends keyof import("@stigmer/client").AgentInput>(
     field: K,
-    value: import("@stigmer/sdk").AgentInput[K],
+    value: import("@stigmer/client").AgentInput[K],
   ) => Promise<boolean>;
   readonly saveRunDefaults?: (save: AgentRunDefaultsSave) => Promise<boolean>;
   readonly onPluginClick?: (ref: { org: string; slug: string }) => void;
@@ -614,7 +614,7 @@ function AgentOverview({
   // The failed save's message, shown only under the section that owns
   // the field — a rejection of one section's edit must not appear under
   // another section's editor.
-  const errorFor = (field: keyof import("@stigmer/sdk").AgentInput) =>
+  const errorFor = (field: keyof import("@stigmer/client").AgentInput) =>
     saveError?.field === field ? saveError.message : undefined;
   const slugForOrg = useOrgSlugForId();
   const handleInstructionsSave = useCallback(

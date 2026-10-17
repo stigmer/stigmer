@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { displayFileChangeSets } from "@stigmer/sdk";
+import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import { displayFileChangeSets } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 

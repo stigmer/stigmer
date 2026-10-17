@@ -3,8 +3,8 @@ import { render, screen, waitFor, fireEvent, cleanup } from "@testing-library/re
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ScheduleSchema, type Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { StigmerContext } from "../../context";
 import { createScheduleColumns } from "../scheduleColumns";
 import { ScheduleRowActions } from "../ScheduleRowActions";

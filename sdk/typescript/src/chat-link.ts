@@ -2,7 +2,7 @@
  * Chat-link helpers — the single source of truth for the hosted chat
  * URL shape, the embed snippet, and client-side `allowed_origins`
  * validation. Framework-free by design: consumed by the web console and
- * desktop app (via `@stigmer/react`), the `stigmer` CLI, and any platform
+ * desktop app (via `@stigmer/react-sdk`), the `stigmer` CLI, and any platform
  * builder that wants to construct chat links or embed snippets itself.
  *
  * The canonical URL shape is `<app-origin>/chat/<channel id>`, and

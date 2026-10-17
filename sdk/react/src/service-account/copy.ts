@@ -4,7 +4,7 @@
  * thing about the same accounts, and a host that mounts the settings page
  * elsewhere changes one link.
  */
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 /** The settings page that manages service accounts, as the hosts route it. */
 export const SERVICE_ACCOUNTS_SETTINGS_HREF = "/settings/service-accounts";

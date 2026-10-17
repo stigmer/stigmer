@@ -67,29 +67,29 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { guardedFetch } from "@stigmer/outbound/egress";
-import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
-import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
+import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
+import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { GrantCommandController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/command_pb";
+import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
 import {
   ApiResourceRefSchema,
   type GrantSpec,
   GrantSpecSchema,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
-import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { FederationIssuerCommandController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/command_pb";
-import { FederationIssuerQueryController } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/query_pb";
-import { InvitationCommandController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/command_pb";
-import { InvitationState } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/enum_pb";
-import { InvitationQueryController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/query_pb";
-import { TeamCommandController } from "@stigmer/protos/ai/stigmer/iam/team/v1/command_pb";
-import { TeamQueryController } from "@stigmer/protos/ai/stigmer/iam/team/v1/query_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
-import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
+import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { FederationIssuerCommandController } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/command_pb";
+import { FederationIssuerQueryController } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/query_pb";
+import { InvitationCommandController } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/command_pb";
+import { InvitationState } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/enum_pb";
+import { InvitationQueryController } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/query_pb";
+import { TeamCommandController } from "@stigmer/apis/ai/stigmer/iam/team/v1/command_pb";
+import { TeamQueryController } from "@stigmer/apis/ai/stigmer/iam/team/v1/query_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
+import { OrganizationCommandController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/command_pb";
 import {
   composeServer,
   createLogger,

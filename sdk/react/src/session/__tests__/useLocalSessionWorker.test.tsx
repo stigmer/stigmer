@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ExecutionTargetContext } from "../../execution-target-context";
 import { RunnerAdapterContext } from "../../runner-adapter";
 import type { RunnerAdapter } from "../../runner-adapter";
 import { useLocalSessionWorker } from "../useLocalSessionWorker";
 import type { UseWhoAmIReturn } from "../../grant/useWhoAmI";
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 
 // The signed-in account the hook compares a session's creator against.
 // Default: no account (a single-user server answers whoAmI NOT_FOUND), the

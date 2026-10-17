@@ -1,20 +1,20 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "@stigmer/theme/tokens.css";
-@import "@stigmer/theme/presets/corporate.css";
-@import "@stigmer/theme/presets/startup.css";
-@import "@stigmer/theme/presets/friendly.css";
-@import "@stigmer/theme/presets/fintech.css";
-@import "@stigmer/theme/presets/monochrome.css";
+@import "@stigmer/design-tokens/tokens.css";
+@import "@stigmer/design-tokens/presets/corporate.css";
+@import "@stigmer/design-tokens/presets/startup.css";
+@import "@stigmer/design-tokens/presets/friendly.css";
+@import "@stigmer/design-tokens/presets/fintech.css";
+@import "@stigmer/design-tokens/presets/monochrome.css";
 /* The COMPILED SDK stylesheet (dist/styles.css, `stg:`-prefixed utilities;
    #454). The console consumes the same prebuilt artifact external hosts get,
    so it exercises the real two-stylesheet embedding path: this app's Tailwind
    build no longer scans SDK sources or re-emits SDK utilities. Utilities this
    app's OWN code authors are generated below from this file's theme mappings
    (plus the z-popover definition, mirrored from the SDK build). Rebuild via
-   `npm run build:css -w @stigmer/react` (predev does this) or keep
+   `npm run build:css -w @stigmer/react-sdk` (predev does this) or keep
    `build:css:watch` running while editing SDK styles. */
-@import "@stigmer/react/styles.css";
+@import "@stigmer/react-sdk/styles.css";
 
 @custom-variant dark (&:is(.dark *, [data-stgm-color-mode="dark"] *));
 

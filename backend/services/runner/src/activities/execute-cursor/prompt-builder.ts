@@ -31,7 +31,7 @@
  */
 
 import { resolve } from "node:path";
-import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { formatConversationCatchupText } from "../../shared/conversation-catchup.js";
 import {
   formatChannelTemplatesSection,

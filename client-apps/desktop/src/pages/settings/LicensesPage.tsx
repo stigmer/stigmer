@@ -1,4 +1,4 @@
-import { LicensesConsole } from "@stigmer/react";
+import { LicensesConsole } from "@stigmer/react-sdk";
 
 /**
  * Platform-operator console for Stigmer licenses: the renewal calendar of

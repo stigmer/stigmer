@@ -31,8 +31,8 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import type { VaultConnection } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
+import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { VaultConnection } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import { RUNNER_FILLED_VARIABLES } from "@stigmer/plugin-package";
 import { toError } from "../internal/toError.js";
 import { toolAddressOf, vaultLoginServes } from "../vault/address.js";

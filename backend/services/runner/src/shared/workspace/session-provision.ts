@@ -11,7 +11,7 @@
  */
 
 import type { Config } from "../../config.js";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { WorkspaceProvisioner } from "./provisioner.js";
 import type { ProvisionResult, WorkspaceBackend } from "./types.js";
 import { LocalWorkspaceBackend } from "./local-backend.js";

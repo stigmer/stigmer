@@ -5,7 +5,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   ChannelConversationSchema,
   ConversationControl,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { ConversationAttentionBanner } from "../ConversationAttentionBanner";
 import type {
   ConversationCommand,

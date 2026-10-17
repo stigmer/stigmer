@@ -5,7 +5,7 @@ import {
   type AccessHistoryEntry,
   type AccessHistoryPage,
   ListAccessHistoryInputSchema,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useCursorPages } from "../internal/useCursorPages.js";
 
@@ -62,7 +62,7 @@ export interface UseAccessHistoryReturn {
  * holds, from the first page.
  *
  * To hand the whole history to another tool, use `exportAccessHistory`
- * and `accessHistoryJsonLine` from `@stigmer/sdk`.
+ * and `accessHistoryJsonLine` from `@stigmer/client`.
  *
  * @example
  * ```tsx

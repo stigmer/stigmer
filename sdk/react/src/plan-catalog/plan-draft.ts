@@ -6,9 +6,9 @@
 // for agent hours is refused without an allowance to exceed, as the
 // contract refuses it.
 
-import type { PlanInput } from "@stigmer/sdk";
-import { PlanInstrument } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
-import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import type { PlanInput } from "@stigmer/client";
+import { PlanInstrument } from "@stigmer/apis/ai/stigmer/billing/plan/v1/spec_pb";
+import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 
 // BigInt(...), not literals: the docs site compiles this source for a
 // target below ES2020, which has no BigInt literal syntax.

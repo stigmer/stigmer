@@ -27,7 +27,7 @@
 import type { DescMessage, Message } from "@bufbuild/protobuf";
 import { fromBinary } from "@bufbuild/protobuf";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type {
   OrganizationRowPage,

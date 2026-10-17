@@ -12,15 +12,15 @@ import type { MessageInitShape } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { BinaryWriter } from "@bufbuild/protobuf/wire";
 
-import { WebChannelMessagesSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
+import { WebChannelMessagesSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
 import {
   SlackInstallStatusSchema,
   WhatsAppInstallStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
+import { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceAuditSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 
 export const MERGE_ORG = "org_01jz0000000000000000000000";
 

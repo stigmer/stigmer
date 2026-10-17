@@ -14,7 +14,7 @@ import {
   AccessHistoryPageSchema,
   type AccessHistoryPage,
   type ListAccessHistoryInput,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 
 import { accessHistoryJsonLine, exportAccessHistory } from "../access-history";
 import type { RemovedAccessHistory } from "../access-history";

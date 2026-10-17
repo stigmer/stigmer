@@ -3,7 +3,7 @@
 /**
  * Bundles the mcp-server-stigmer bin into a self-contained single file.
  *
- * Why this exists: the bin once had to inline @stigmer/sdk, which was authored
+ * Why this exists: the bin once had to inline @stigmer/client, which was authored
  * for bundlers (extensionless relative imports) and could not run under a bare
  * `node` / `npx` / Docker. The published SDK now runs under plain Node (its
  * node entry carries explicit extensions), and hosts import the library entry

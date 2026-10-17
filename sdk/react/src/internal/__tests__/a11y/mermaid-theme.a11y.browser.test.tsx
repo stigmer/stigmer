@@ -11,7 +11,7 @@
 // component re-render (we mutate the scope in the DOM, never React state).
 
 import "../../../../dist/styles.css";
-import "@stigmer/theme/presets/fintech.css";
+import "@stigmer/design-tokens/presets/fintech.css";
 
 import { describe, it, afterEach, expect } from "vitest";
 import { render, cleanup, waitFor } from "@testing-library/react";

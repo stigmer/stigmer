@@ -8,7 +8,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { clone, create } from "@bufbuild/protobuf";
-import { TeamSchema, type Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import { TeamSchema, type Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import { StigmerContext } from "../../context";
 
 vi.mock("../TeamMembersPanel.js", () => ({

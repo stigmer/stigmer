@@ -17,8 +17,8 @@
  * one of them had, an Eval never matched with a plugin of its slug.
  */
 import { describe, expect, it } from "vitest";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { EvalRunAblation } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import {
   compareEvalRuns,
   evalFormForAgent,

@@ -9,7 +9,7 @@ import { testCallerIdentity } from "./support.js";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { create } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../boot/logger.js";

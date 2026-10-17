@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo } from "react";
-import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { runIdFromStorageKey, type DisplayFileChange } from "@stigmer/sdk";
+import type { FileContent } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
+import { runIdFromStorageKey, type DisplayFileChange } from "@stigmer/client";
 import { useArtifactContent } from "./useArtifactContent.js";
 import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl.js";
 
-// The key-parsing rule lives in @stigmer/sdk with the other shared
+// The key-parsing rule lives in @stigmer/client with the other shared
 // conversation-assembly rules; re-exported here for existing consumers.
 export { runIdFromStorageKey };
 

@@ -28,12 +28,12 @@ import type { AddressInfo } from "node:net";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { MemorySchema, type Memory } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
-import { MemoryCommandController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/command_pb";
-import { MemoryLifecycleState } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/enum_pb";
-import { MemorySpecSchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/spec_pb";
-import { MemoryStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/status_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { MemorySchema, type Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
+import { MemoryCommandController } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/command_pb";
+import { MemoryLifecycleState } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/enum_pb";
+import { MemorySpecSchema } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/spec_pb";
+import { MemoryStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/status_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { configureLogger } from "../../../logger";

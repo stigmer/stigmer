@@ -39,12 +39,12 @@ import { fromBinary } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
 import type { DescMessage, Message, MessageShape } from "@bufbuild/protobuf";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type {
   ApiResourceReference,
   ApiResourceReferenceSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import {
   internalError,

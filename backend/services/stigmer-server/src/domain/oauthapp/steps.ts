@@ -5,8 +5,8 @@
  * Proven by oauthapp.conformance.test.ts and __tests__/oauthapp.test.ts.
  */
 
-import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
-import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
+import { OAuthAppSchema } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
+import type { OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import { isCiphertextShaped } from "../../encryption/encryption.js";

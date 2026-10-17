@@ -8,7 +8,7 @@ import {
   SunMoon,
   User,
 } from "lucide-react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import type { ColorMode } from "../color-mode.js";
 import {
   Menu,

@@ -27,7 +27,7 @@ import {
   type SeededGatedRun,
 } from "../../helpers/approval";
 import { isFileGateStack } from "../../helpers/mock-llm-control";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 const mockUrl = getMockControlUrl();
 const fileGates = isFileGateStack();

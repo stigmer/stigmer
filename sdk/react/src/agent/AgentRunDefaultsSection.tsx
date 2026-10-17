@@ -23,14 +23,14 @@
  */
 
 import { useState } from "react";
-import { cn } from "@stigmer/theme";
-import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { cn } from "@stigmer/design-tokens";
+import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import {
   ServiceTier,
   ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { RunConfigInput } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { RunConfigInput } from "@stigmer/client";
 import { Section } from "../resource-detail/Section.js";
 import { HarnessSelector } from "../models/HarnessSelector.js";
 import { ModelSelector } from "../models/ModelSelector.js";

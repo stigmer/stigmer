@@ -17,13 +17,13 @@ import type { Client } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import { SessionEventPreviewSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
+import { SessionEventPreviewSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { eventTypeOf } from "@stigmer/session-log";
 import { loadConfig } from "../../../../boot/config.js";

@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useId, useState } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { ProviderKey } from "@stigmer/protos/ai/stigmer/billing/providerkey/v1/api_pb";
+import type { ProviderKey } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/api_pb";
 import { Button } from "../button/index.js";
 import { ApiResourceKind, useDeploymentMode, useResourceAvailable } from "../deployment-mode.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";

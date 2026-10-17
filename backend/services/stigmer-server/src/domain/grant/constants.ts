@@ -40,11 +40,11 @@
  * team may be granted, a role a team may not hold), and the two owner
  * refusals (a non-owner touching the owner role, the last owner's removal).
  */
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type {
   ApiResourceRef,
   GrantSpec,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 
 import { kindEnumName } from "../../pipeline/apiresource-meta.js";
 import { derivedId } from "../../pipeline/steps/defaults.js";

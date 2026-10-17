@@ -25,11 +25,11 @@ import type { DescMessage } from "@bufbuild/protobuf";
 import { BinaryReader, BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import { describe, expect, it } from "vitest";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { ApiResourceAuditStatusSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { reference_kind } from "@stigmer/apis/ai/stigmer/commons/apiresource/field_options_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceAuditStatusSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 
 import {
   FrozenAgentChannelSchema,

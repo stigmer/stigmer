@@ -8,8 +8,8 @@ import {
   useWorkspaceSources,
   ManageAccessButton,
   ThreadSkeleton,
-} from "@stigmer/react";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/react-sdk";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useNativeFolderPicker } from "../hooks/useNativeFolderPicker";
 import { useNativeWorkspaceFiles } from "../hooks/useNativeWorkspaceFiles";
 import { useNativeWorkspaceFileReader } from "../hooks/useNativeWorkspaceFileReader";

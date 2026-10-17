@@ -2,9 +2,9 @@
 
 import { useMemo } from "react";
 import { useTheme } from "next-themes";
-import { Stigmer } from "@stigmer/sdk";
-import { ConnectLinkView, StigmerProvider } from "@stigmer/react";
-import type { ResolvedColorMode } from "@stigmer/react";
+import { Stigmer } from "@stigmer/client";
+import { ConnectLinkView, StigmerProvider } from "@stigmer/react-sdk";
+import type { ResolvedColorMode } from "@stigmer/react-sdk";
 import { getApiBaseUrl } from "@/config/env";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 import { StigmerLogo } from "@/auth/StigmerLogo";

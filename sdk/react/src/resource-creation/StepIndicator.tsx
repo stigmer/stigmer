@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 
 /** Props for {@link StepIndicator}. */

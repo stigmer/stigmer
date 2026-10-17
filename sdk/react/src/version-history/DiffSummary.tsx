@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 /** Props for {@link DiffSummary}. */
 export interface DiffSummaryProps {

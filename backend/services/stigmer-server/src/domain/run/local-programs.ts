@@ -15,7 +15,7 @@
  *
  * Tests: __tests__/local-programs.test.ts.
  */
-import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import { failedPreconditionError } from "../../pipeline/errors.js";
 import type { SandboxLane } from "../../sandbox/lane.js";

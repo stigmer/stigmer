@@ -1,5 +1,5 @@
 {
-  "name": "@stigmer/theme",
+  "name": "@stigmer/design-tokens",
   "version": "0.0.0-dev",
   "description": "Design tokens, CSS custom properties, and utility functions for Stigmer UI components",
   "license": "Apache-2.0",

@@ -1,12 +1,12 @@
 // The framework-agnostic RunnerAdapter contract plus the createRunnerAdapter
-// construction helper. Canonical home for both; @stigmer/react re-exports them.
+// construction helper. Canonical home for both; @stigmer/react-sdk re-exports them.
 
 /**
  * Framework-agnostic RunnerAdapter interface.
  *
- * This is the canonical type definition re-exported by `@stigmer/react`.
+ * This is the canonical type definition re-exported by `@stigmer/react-sdk`.
  * Non-React consumers (Node.js scripts, custom frameworks) can import
- * directly from `@stigmer/sdk`.
+ * directly from `@stigmer/client`.
  *
  * When `executionTarget` is `"local"`, SDK clients automatically call
  * the adapter at the appropriate lifecycle points. The consumer never

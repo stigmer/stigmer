@@ -83,7 +83,7 @@ jobs:
           text = re.sub(r'version\s*=\s*\"[^\"]*\"', 'version = \"$VERSION\"', text, count=1)
           p.write_text(text)
           "
-          echo "Set stigmer-protos version to $VERSION"
+          echo "Set stigmer-apis version to $VERSION"
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 
@@ -145,7 +145,7 @@ jobs:
           p = pathlib.Path('pyproject.toml')
           text = p.read_text()
           text = re.sub(r'version\s*=\s*\"[^\"]*\"', 'version = \"$VERSION\"', text, count=1)
-          text = re.sub(r'\"stigmer-protos[^\"]*\"', '\"stigmer-protos==$VERSION\"', text)
+          text = re.sub(r'\"stigmer-apis[^\"]*\"', '\"stigmer-apis==$VERSION\"', text)
           p.write_text(text)
           "
           echo "Set stigmer version to $VERSION (protos dependency: $VERSION)"

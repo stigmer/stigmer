@@ -4,7 +4,7 @@
 // algorithmically. (Structure inherited from the Go CLI's types.Registry,
 // removed in the TypeScript migration — stigmer/stigmer#203.)
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { UsageError } from "../errors/index.js";
 import { generateAliases, normalizeAlias } from "./aliases.js";
 import { CLI_RELEVANT_KINDS, KIND_META, RETIRED_KINDS } from "./metadata.js";

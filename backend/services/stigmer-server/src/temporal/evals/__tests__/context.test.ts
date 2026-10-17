@@ -21,10 +21,10 @@ import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { EvalGrader, EvalGraderCheck } from "@stigmer/plugin-package";
-import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { EvalRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { EvalRunSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";

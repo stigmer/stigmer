@@ -7,9 +7,9 @@
  * vault itself.
  */
 import { type FormEvent, useCallback, useId, useState } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { INPUT_CLASS, PRIMARY_BUTTON_CLASS, QUIET_BUTTON_CLASS } from "./styles.js";
 import { useCreateVault } from "./useCreateVault.js";

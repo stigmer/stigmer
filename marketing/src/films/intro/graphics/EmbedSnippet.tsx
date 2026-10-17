@@ -6,13 +6,13 @@ import { GRID, TYPE, enter, exitFade, fadeUp } from "./motion";
 import type { GraphicProps } from "./types";
 
 /**
- * S4d (mid beat) — "add one component": the @stigmer/react integration a
+ * S4d (mid beat) — "add one component": the @stigmer/react-sdk integration a
  * platform builder actually writes, staggering in line by line between
  * the bare Meridian page and the live assistant. Mirrors the real demo
  * app (demo/app/src/App.tsx) — the exact code the S4d take runs.
  */
 const LINES: { text: string; indent: number; accent?: boolean }[] = [
-  { text: 'import { StigmerProvider, NewSessionViewer } from "@stigmer/react";', indent: 0 },
+  { text: 'import { StigmerProvider, NewSessionViewer } from "@stigmer/react-sdk";', indent: 0 },
   { text: "", indent: 0 },
   { text: "<StigmerProvider client={stigmer}>", indent: 0 },
   { text: "<NewSessionViewer", indent: 1, accent: true },

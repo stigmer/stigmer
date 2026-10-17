@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
   RunArtifactKind,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ArtifactStorage } from "../artifact-storage.js";
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import {
@@ -15,7 +15,7 @@ import {
 } from "../plan-artifact.js";
 import { AgentMessageSchema, TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
 /** Records uploads and returns deterministic download URLs (canonical double + shim). */
 function fakeStorage(): ArtifactStorage & { uploads: { key: string; content: Buffer; contentType?: string }[] } {

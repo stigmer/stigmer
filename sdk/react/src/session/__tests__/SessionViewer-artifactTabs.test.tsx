@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, act, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
 import {
   RunArtifactKind,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../../run/artifact-document";
 import { artifactKey, type SessionArtifactEntry } from "../useSessionArtifacts";
 

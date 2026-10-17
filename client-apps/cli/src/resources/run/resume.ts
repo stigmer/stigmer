@@ -7,8 +7,8 @@
 // The TTY path defers to Ink's SessionView, which loads history and offers a
 // follow-up composer for free.
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase, InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { BackendClient } from "../../client/index.js";
 import { getSessionById, listRunsBySession, listSessionEvents } from "../session.js";
 import { renderReplay } from "../stream/headless.js";

@@ -1,12 +1,12 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { renderHook, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
 import {
   RunArtifactKind,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { useSessionArtifacts, artifactKey } from "../useSessionArtifacts";
 
 function artifact(opts: { name: string; sandboxPath?: string }) {

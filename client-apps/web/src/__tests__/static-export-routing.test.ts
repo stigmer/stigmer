@@ -6,7 +6,7 @@ import {
   ORG_ADMIN_SETTINGS_NAV_ITEMS,
   PLATFORM_SETTINGS_NAV_GROUP,
   SETTINGS_NAV_GROUPS,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 import { LIBRARY_RESOURCE_TYPES } from "@/domain/library/library-navigation";
 
 // These tests pin two bug classes specific to static-export deployments

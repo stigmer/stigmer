@@ -8,9 +8,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Stigmer, DeploymentMode } from "@stigmer/sdk";
-import { cn, resolvePresetClass } from "@stigmer/theme";
-import type { ThemePresetId } from "@stigmer/theme";
+import type { Stigmer, DeploymentMode } from "@stigmer/client";
+import { cn, resolvePresetClass } from "@stigmer/design-tokens";
+import type { ThemePresetId } from "@stigmer/design-tokens";
 import { StigmerContext } from "./context.js";
 import { DeploymentModeContext } from "./deployment-mode.js";
 import { ExecutionTargetContext } from "./execution-target-context.js";
@@ -208,7 +208,7 @@ export interface StigmerProviderProps {
  *
  * Renders a `<div class="stgm">` container that scopes Stigmer's
  * CSS reset and design tokens. External consumers importing
- * `@stigmer/react/styles.css` get isolated styles that do not
+ * `@stigmer/react-sdk/styles.css` get isolated styles that do not
  * leak into the host application.
  *
  * **Sizing.** The container ships with no layout styling — it sizes

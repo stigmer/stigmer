@@ -7,7 +7,7 @@
 package agentv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -95,8 +95,8 @@ const file_ai_stigmer_agentic_agent_v1_status_proto_rawDesc = "" +
 	"(ai/stigmer/agentic/agent/v1/status.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xab\x01\n" +
 	"\vAgentStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12!\n" +
-	"\fversion_hash\x18\x03 \x01(\tR\vversionHashJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03R\x13default_instance_idR\x10share_link_tokenB\x8f\x02\n" +
-	"\x1fcom.ai.stigmer.agentic.agent.v1B\vStatusProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
+	"\fversion_hash\x18\x03 \x01(\tR\vversionHashJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03R\x13default_instance_idR\x10share_link_tokenB\xfc\x01\n" +
+	"\x1fcom.ai.stigmer.agentic.agent.v1B\vStatusProtoP\x01Z;go.stigmer.ai/sdk/proto/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_agent_v1_status_proto_rawDescOnce sync.Once

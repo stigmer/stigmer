@@ -1,10 +1,10 @@
 import type { NextConfig } from "next";
 
 const stigmerLibs = [
-  "@stigmer/protos",
-  "@stigmer/sdk",
-  "@stigmer/react",
-  "@stigmer/theme",
+  "@stigmer/apis",
+  "@stigmer/client",
+  "@stigmer/react-sdk",
+  "@stigmer/design-tokens",
   "@stigmer/embed",
   "@stigmer/plugin-package",
   "@stigmer/session-log",

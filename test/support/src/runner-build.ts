@@ -4,7 +4,7 @@
 //
 // We delegate to `make build-runner` rather than re-encode
 // the npm ordering here: that target is the maintained single entry that builds
-// the @stigmer/protos dist, installs the runner's own node_modules (the runner
+// the @stigmer/apis dist, installs the runner's own node_modules (the runner
 // is NOT a root npm workspace member), and compiles dist/ — including the
 // dist/.build-fingerprint that the runner's stale-build guard checks. Building
 // fresh in setup is what keeps that guard from refusing to start (exit 78).

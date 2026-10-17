@@ -17,6 +17,13 @@ performs the mechanics with a plain tag message; this skill wraps it with the
 judgement the Makefile cannot make (the bump, the notes) and runs the same
 preflight it does.
 
+Versions run on one 0.x line. Its first release is `v0.1.0`; until it is tagged,
+every dev build is a 0.1.0 prerelease
+(`0.1.0-dev.<14-digit UTC stamp>.g<12-character commit>`), and after it a dev
+build targets the next patch. `scripts/lib/line-base.mjs` reads the newest
+stable `vX.Y.Z` tag and gives the next version, for the dev lanes and for
+`make release` alike.
+
 Releases are batched. Finishing an issue or a pull request never cuts one: the
 change merges to `main` and ships with the next release, which the maintainer
 cuts on the release train (on a fixed weekly day, or whenever the maintainer
@@ -45,24 +52,29 @@ at a commit that the remote's `main` already has.
 ## 1. Previous release and the commits since
 
 ```bash
-git tag -l "v*" | sort -V | tail -n1
+node scripts/lib/line-base.mjs --latest
 git log --oneline <previous-tag>..HEAD
 ```
 
-Report both so the user sees what ships.
+Report both so the user sees what ships. An empty line from the first command
+means the line has no release yet: this one is `v0.1.0` whatever the bump, every
+commit on `main` ships in it, and section 2 is skipped.
 
 ## 2. The bump, by impact
+
+On the 0.x line, before `v1.0.0`, a change this section grades as a major ships
+as a minor (0.N to 0.N+1), the semver rule for a 0.x version; every other grade
+stands. `bump=major` is never chosen by grading: `v1.0.0` is cut on purpose,
+when the contract is declared stable.
 
 The presence of a `feat` commit is not a minor bump. Judge the change:
 
 - **major**: a `BREAKING CHANGE:` footer or `!` after the type; a public
   contract changes incompatibly for consumers who never touched the part that
   changed: a proto field or message is renamed, a wire value changes meaning, an
-  SDK export's signature changes, a Go import path moves. A Go major is itself a
-  migration for every Go consumer (the module path suffix and every import
-  change with it, section 5), so a major is graded on what it does to consumers
-  who did not use the removed surface. Before launch, a contract reshape is
-  graded by the before-launch bullet below instead.
+  SDK export's signature changes, a Go import path moves. A major is graded on
+  what it does to consumers who did not use the removed surface. Before launch,
+  a contract reshape is graded by the before-launch bullet below instead.
 - **minor, with an Upgrading section**: a surface is removed outright (a kind, a
   proto package, an SDK client or subpath, a CLI mode) and no known consumer
   used it; the release notes name every removed surface under Upgrading so a
@@ -74,18 +86,18 @@ The presence of a `feat` commit is not a minor bump. Judge the change:
   Stigmer's maintainers is known to use the surface that changed. The Upgrading
   section names every renamed field, message and RPC with its new name, every
   removed field, and every field whose value changed meaning with what it now
-  holds; the Go module keeps its major. The commits still carry their
-  `BREAKING CHANGE:` footers or `!` markers, and under this rule neither alone
-  makes the release a major. The contract is being remade in several steps
-  before launch, and grading each as a major would move every Go import path
-  once per step for no consumer's benefit. The cost is accepted for every
-  package the release ships: a Go consumer who runs `go get -u`, and a consumer
-  of `@stigmer/protos` or the npm SDKs on a caret range, the Python SDK on a
-  `~=X.Y` or open range, or the Java SDK on a version range, takes the change at
-  the next update, and learns of it from the Upgrading section. A release that
-  changes a surface a known outside consumer uses is a major, as above. The rule
-  ends with the first release whose notes announce general availability; that
-  release's pull request deletes this bullet.
+  holds. The commits still carry their `BREAKING CHANGE:` footers or `!`
+  markers, and under this rule neither alone makes the release a major. The
+  contract is being remade in several steps before launch, and grading each as a
+  major would move the line's major once per step for no consumer's benefit. The
+  cost is accepted for every package the release ships: a Go consumer who runs
+  `go get -u`, and a consumer of `@stigmer/apis` or the npm SDKs on a caret
+  range, the Python SDK on a `~=X.Y` or open range, or the Java SDK on a version
+  range, takes the change at the next update, and learns of it from the
+  Upgrading section. A release that changes a surface a known outside consumer
+  uses is a major, as above. The rule ends with the first release whose notes
+  announce general availability; that release's pull request deletes this
+  bullet.
 - **minor**: a new capability that expands what users or platform builders can
   do: a new API resource, a new CLI command, a new SDK domain, a product-level
   feature. The bar: would this earn a section in release notes that makes
@@ -176,6 +188,9 @@ Release v<X.Y.Z>
 **Full Changelog**: https://github.com/stigmer/stigmer/compare/<previous>...v<X.Y.Z>
 ```
 
+The line's first release has no previous tag; its notes end with
+`**Full Changelog**: https://github.com/stigmer/stigmer/commits/v0.1.0` instead.
+
 ## 5. Tag and push
 
 ```bash
@@ -187,12 +202,9 @@ git push origin "sdk/go/v<X.Y.Z>" "v<X.Y.Z>"
 `--cleanup=verbatim` matters: the notes contain Markdown headings, and git's
 default cleanup treats lines starting with `#` as comments and drops them.
 
-The Go SDK is a v2+ module: `sdk/go/go.mod` declares the major-version suffix in
-its module path and consumers import it with that suffix. The Go tag's name (the
-module directory followed by the version) is already correct for that layout; do
-not rename the tag or move the module into a versioned directory. When the major
-version changes, the module path suffix and every internal import path change
-with it.
+The Go SDK's module path is go.stigmer.ai/sdk, in `sdk/go`. Its tag is the
+module directory followed by the version, which is the name the Go module proxy
+looks for; do not rename it.
 
 Never force-push a tag; if one exists, stop and say so.
 

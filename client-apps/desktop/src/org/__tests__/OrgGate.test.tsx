@@ -8,7 +8,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   OrganizationSchema,
   type Organization,
-} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -20,7 +20,7 @@ const gate = vi.hoisted(() => ({
   onCreated: null as ((org: Organization) => void) | null,
 }));
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   useOrgGate: () => ({ state: { status: gate.status }, retry: () => undefined, refresh: gate.refresh }),
   CreateOrganizationForm: ({ onCreated }: { onCreated: (org: Organization) => void }) => {
     gate.onCreated = onCreated;

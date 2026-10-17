@@ -14,9 +14,9 @@
 // canceling, is no move at all.
 
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { Plan } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
-import type { Subscription } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/api_pb";
-import { SubscriptionState } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/status_pb";
+import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
+import type { Subscription } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/api_pb";
+import { SubscriptionState } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/status_pb";
 
 /** An organization's standing on its plan. */
 export type PlanStanding =

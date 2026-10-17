@@ -56,13 +56,13 @@ import type { DescMessage, DescMethod, Message } from "@bufbuild/protobuf";
 import { create } from "@bufbuild/protobuf";
 import type { Empty } from "@bufbuild/protobuf/wkt";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceAuditActorSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import type { ApiResourceAuditActor } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceAuditActorSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
+import type { ApiResourceAuditActor } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountCommandController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/command_pb";
 import type {
   CreateServiceAccountInput,
   IdentityAccountEmail,
@@ -70,10 +70,10 @@ import type {
   IdentityAccountsList,
   IdpId,
   ListServiceAccountsInput,
-} from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
-import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
-import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
-import type { UpdateIdentityAccountInput } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
+import { IdentityAccountQueryController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/query_pb";
+import { ApiResourceRefSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
+import type { UpdateIdentityAccountInput } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";

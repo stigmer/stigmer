@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleDetailView, useBreadcrumbOverride } from "@stigmer/react";
+import type { Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleDetailView, useBreadcrumbOverride } from "@stigmer/react-sdk";
 import {
   useLibraryNavigation,
   useRouteDetailYieldsToOverlay,

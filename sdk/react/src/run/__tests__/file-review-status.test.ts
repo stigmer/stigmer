@@ -11,9 +11,9 @@ import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
   type CapturedFileChange,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { FileReviewFile, FileReviewSet } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { FileReviewFile, FileReviewSet } from "@stigmer/client";
 import {
   changeForRowPath,
   changeSetReviewability,

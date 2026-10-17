@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../internal/tooltip.js";
 import type { StatusPhase } from "../types.js";
 
@@ -34,7 +34,7 @@ const PHASE_LABELS: Record<StatusPhase, string> = {
  *
  * Never communicates status through color alone — the text label is always
  * present (WCAG 1.4.1). Colors come from `--stgm-status-*` design tokens
- * defined in `@stigmer/theme`, ensuring correct appearance in both light
+ * defined in `@stigmer/design-tokens`, ensuring correct appearance in both light
  * and dark modes.
  *
  * @example

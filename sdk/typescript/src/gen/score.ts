@@ -4,14 +4,14 @@ import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { ScoreSchema, type Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import { ScoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/command_pb";
-import { ScoreSource, CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
-import { ScoreIdSchema, UpdateScoreInputSchema, ListScoresByRunRequestSchema, ScoreListSchema, ListScoresBySessionRequestSchema, GetAgentQualityReportRequestSchema, AgentQualityReportSchema, ListFlaggedScoresByAgentRequestSchema, type ListScoresByRunRequest, type ScoreList, type ListScoresBySessionRequest, type GetAgentQualityReportRequest, type AgentQualityReport, type ListFlaggedScoresByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
-import { ScoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/query_pb";
-import { ScoreSpecSchema, ScoreCriterionSchema, type ScoreCriterion } from "@stigmer/protos/ai/stigmer/agentic/score/v1/spec_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ScoreSchema, type Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import { ScoreCommandController } from "@stigmer/apis/ai/stigmer/agentic/score/v1/command_pb";
+import { ScoreSource, CriterionResult } from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
+import { ScoreIdSchema, UpdateScoreInputSchema, ListScoresByRunRequestSchema, ScoreListSchema, ListScoresBySessionRequestSchema, GetAgentQualityReportRequestSchema, AgentQualityReportSchema, ListFlaggedScoresByAgentRequestSchema, type ListScoresByRunRequest, type ScoreList, type ListScoresBySessionRequest, type GetAgentQualityReportRequest, type AgentQualityReport, type ListFlaggedScoresByAgentRequest } from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
+import { ScoreQueryController } from "@stigmer/apis/ai/stigmer/agentic/score/v1/query_pb";
+import { ScoreSpecSchema, ScoreCriterionSchema, type ScoreCriterion } from "@stigmer/apis/ai/stigmer/agentic/score/v1/spec_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on score resources. */
 export class ScoreClient {

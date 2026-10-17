@@ -30,17 +30,17 @@
 // `stillRunning: true` when the command could not cancel an eval run it
 // stopped following.
 
-import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import type { PluginWarning } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { PluginWarning } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   toResultDocument,
   type EvalRunCaseSourceInput,
   type EvalRunInput,
   type EvalRunResultDocument,
   type Stigmer,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { requireOrganization } from "../../client/single-org.js";
 import { resolveAgent } from "../agent/resolve.js";
 import { idPrefixesFor, parseReference } from "../reference.js";

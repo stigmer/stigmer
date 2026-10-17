@@ -18,9 +18,9 @@ import { fromJson } from "@bufbuild/protobuf";
 import {
   RunSchema,
   RunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** The retired ExecutionConfig's values, as a test names them. */
 export interface RetiredConfig {

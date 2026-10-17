@@ -45,21 +45,21 @@
 import { getOption, hasOption } from "@bufbuild/protobuf";
 import type { DescEnumValue } from "@bufbuild/protobuf";
 
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import {
   ApiResourceKind,
   ApiResourceKindSchema,
   ResourceTier,
   kind_meta,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceKindMeta } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceKindMeta } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   AuthorizationScopeType,
   OwnerAttributionType,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
-import type { ParentRelationConfig } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
-import type { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
+import type { ParentRelationConfig } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
+import type { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
 /** Go GetKindMeta: the kind_meta extension of the enum value. */
 export function getKindMeta(kind: ApiResourceKind): ApiResourceKindMeta {

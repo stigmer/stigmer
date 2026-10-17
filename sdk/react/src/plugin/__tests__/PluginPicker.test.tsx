@@ -13,9 +13,9 @@
 
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import type { ResourceRef, SearchParams } from "@stigmer/sdk";
-import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ResourceRef, SearchParams } from "@stigmer/client";
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { ACME_ID, GLOBEX_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 import { PluginPicker } from "../PluginPicker";

@@ -7,7 +7,7 @@
 package planv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -158,8 +158,8 @@ const file_ai_stigmer_billing_plan_v1_status_proto_rawDesc = "" +
 	"\x1aplan_lifecycle_unspecified\x10\x00\x12\n" +
 	"\n" +
 	"\x06active\x10\x01\x12\v\n" +
-	"\aretired\x10\x02B\x88\x02\n" +
-	"\x1ecom.ai.stigmer.billing.plan.v1B\vStatusProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/plan/v1;planv1\xa2\x02\x04ASBP\xaa\x02\x1aAi.Stigmer.Billing.Plan.V1\xca\x02\x1aAi\\Stigmer\\Billing\\Plan\\V1\xe2\x02&Ai\\Stigmer\\Billing\\Plan\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Billing::Plan::V1b\x06proto3"
+	"\aretired\x10\x02B\xf5\x01\n" +
+	"\x1ecom.ai.stigmer.billing.plan.v1B\vStatusProtoP\x01Z9go.stigmer.ai/sdk/proto/ai/stigmer/billing/plan/v1;planv1\xa2\x02\x04ASBP\xaa\x02\x1aAi.Stigmer.Billing.Plan.V1\xca\x02\x1aAi\\Stigmer\\Billing\\Plan\\V1\xe2\x02&Ai\\Stigmer\\Billing\\Plan\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Billing::Plan::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_billing_plan_v1_status_proto_rawDescOnce sync.Once

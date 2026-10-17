@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { useFetch } from "../internal/useFetch.js";
 import { type OpenedMarketplace, type PreparedInstall, findEntry, prepareEntry } from "./sources/read.js";
 import { type InstallRelation, useInstallRelation } from "./useInstallRelation.js";

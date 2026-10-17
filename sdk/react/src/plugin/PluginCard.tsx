@@ -17,7 +17,7 @@
  * as one more place plugins come from, not as a form somewhere else.
  */
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 import { Button } from "../button/Button.js";
 import { UploadIcon } from "../internal/UploadIcon.js";

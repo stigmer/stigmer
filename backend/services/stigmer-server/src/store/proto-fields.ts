@@ -28,7 +28,7 @@ import type { Message } from "@bufbuild/protobuf";
 import {
   ApiResourceKind,
   ApiResourceKindSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 /**
  * The kind's proto enum value name (Go: kind.String()), e.g.

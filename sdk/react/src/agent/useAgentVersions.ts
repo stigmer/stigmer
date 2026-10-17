@@ -3,11 +3,11 @@
 import { useCallback, useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
   ListAgentVersionsInputSchema,
   type AgentVersionEntry as ProtoAgentVersionEntry,
-} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import { useStigmer } from "../hooks.js";
 import { useCursorPages } from "../internal/useCursorPages.js";
 import { useFetch } from "../internal/useFetch.js";

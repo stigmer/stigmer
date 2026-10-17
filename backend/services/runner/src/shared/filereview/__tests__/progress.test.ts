@@ -21,8 +21,8 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   captureProgressDelta,
   snapshotBaseline,

@@ -7,7 +7,7 @@
 package billingv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -28,9 +28,9 @@ const file_ai_stigmer_billing_v1_query_proto_rawDesc = "" +
 	"!ai/stigmer/billing/v1/query.proto\x12\x15ai.stigmer.billing.v1\x1a+ai/stigmer/billing/v1/billing_account.proto\x1a\x1eai/stigmer/billing/v1/io.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xa3\x03\n" +
 	"\x16BillingQueryController\x12\xac\x01\n" +
 	"\x11getBillingAccount\x12-.ai.stigmer.billing.v1.GetBillingAccountInput\x1a%.ai.stigmer.billing.v1.BillingAccount\"A¸\x18=\b\x1b\x10\x1e\"\x03org*2unauthorized to view billing for this organization\x12\xd9\x01\n" +
-	"\x19listModelPricingBaselines\x125.ai.stigmer.billing.v1.ListModelPricingBaselinesInput\x1a4.ai.stigmer.billing.v1.ModelPricingBaselinesResponse\"O¸\x18K\b \x10\x1f*<only platform operators can view the model registry baseline2\astigmerB\xea\x01\n" +
+	"\x19listModelPricingBaselines\x125.ai.stigmer.billing.v1.ListModelPricingBaselinesInput\x1a4.ai.stigmer.billing.v1.ModelPricingBaselinesResponse\"O¸\x18K\b \x10\x1f*<only platform operators can view the model registry baseline2\astigmerB\xd7\x01\n" +
 	"\x19com.ai.stigmer.billing.v1B\n" +
-	"QueryProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
+	"QueryProtoP\x01Z7go.stigmer.ai/sdk/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
 
 var file_ai_stigmer_billing_v1_query_proto_goTypes = []any{
 	(*GetBillingAccountInput)(nil),         // 0: ai.stigmer.billing.v1.GetBillingAccountInput

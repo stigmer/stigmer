@@ -6,7 +6,7 @@
 // generated TypeScript stubs define may take any of those numbers. Before
 // this, only a comment in that file held the rule.
 //
-// The scan is every `*_pb.ts` module of the stubs package (`@stigmer/protos`,
+// The scan is every `*_pb.ts` module of the stubs package (`@stigmer/apis`,
 // located through its own export map), imported by its package path, and the
 // files those import, with every extension each file declares, top-level or
 // nested. The resource
@@ -30,7 +30,7 @@ const RETIRED_NUMBERS: ReadonlyMap<number, string> = new Map([
   [90301, "discriminator_value"],
 ]);
 
-const PACKAGE = "@stigmer/protos";
+const PACKAGE = "@stigmer/apis";
 const ANCHOR = "ai/stigmer/commons/apiresource/field_options_pb";
 
 /** The stubs package's root: the anchor module resolves to `<root>/dist/<ANCHOR>.js`. */

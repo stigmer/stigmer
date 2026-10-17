@@ -1,12 +1,12 @@
 "use client";
 
 import { TriangleAlert } from "lucide-react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
 import {
   ConversationControl,
   type ChannelConversation,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { Button } from "../button/Button.js";
 import type { UseConversationParticipationReturn } from "./useConversationParticipation.js";
 

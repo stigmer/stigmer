@@ -98,7 +98,7 @@ function parseField(child: Reflection): Field {
     const ref = child.type as { type: "reference"; target: unknown; name: string; package?: string };
     if (isExternalTarget(ref.target as number | { packageName: string; packagePath: string; qualifiedName: string } | undefined)) {
       const ext = ref.target as { packageName: string; qualifiedName: string };
-      if (ext.packageName === "@stigmer/protos") {
+      if (ext.packageName === "@stigmer/apis") {
         typeLink = `/docs/sdk/resources/run`;
       }
     }
@@ -199,7 +199,7 @@ export async function parseTypeDocJson(
   return {
     reference: {
       title: "Ink SDK Reference",
-      description: "API reference for @stigmer/ink terminal UI components.",
+      description: "API reference for @stigmer/ink-ui terminal UI components.",
       exports,
     },
     warnings,

@@ -36,7 +36,7 @@ import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
 import type { DatabaseSync } from "node:sqlite";
 import type { Pool } from "pg";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { builtInModel } from "../../authorization/model/index.js";
 

@@ -56,14 +56,14 @@ import { SignJWT, exportJWK, generateKeyPair } from "jose";
 import type { GenerateKeyPairResult } from "jose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
-import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
-import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IdentityAccountCommandController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/command_pb";
+import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
+import { OrganizationCommandController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/command_pb";
 
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";

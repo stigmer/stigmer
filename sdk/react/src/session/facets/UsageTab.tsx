@@ -12,8 +12,8 @@
  * report lists any run.
  */
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { useSessionUsage, type RunUsageEntry } from "../useSessionUsage.js";
 import { UsageWidget } from "../../run/UsageWidget.js";
 import { formatTokens, formatWorkingTime } from "../../usage/format.js";

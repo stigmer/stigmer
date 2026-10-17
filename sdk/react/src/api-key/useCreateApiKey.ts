@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { ApiKeyInput } from "@stigmer/sdk";
-import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import type { ApiKeyInput } from "@stigmer/client";
+import type { ApiKey } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

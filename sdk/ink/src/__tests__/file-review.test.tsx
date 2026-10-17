@@ -9,19 +9,19 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render } from "ink-testing-library";
 import { create } from "@bufbuild/protobuf";
-import { FileReviewContext } from "@stigmer/react";
-import { samples } from "@stigmer/react/test";
+import { FileReviewContext } from "@stigmer/react-sdk";
+import { samples } from "@stigmer/react-sdk/test";
 import {
   FileContentSchema,
   ToolCallOutputRefSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
+import type { FileContent } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { FileReviewSet, ToolUse } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { FileReviewSet, ToolUse } from "@stigmer/client";
 import { ToolCallItem } from "../components/ToolCallItem.js";
 import { ToolCallGroup } from "../components/ToolCallGroup.js";
 import { FileReviewPrompt } from "../components/FileReviewPrompt.js";

@@ -3,13 +3,13 @@
 import { create } from "@bufbuild/protobuf";
 import type {
   ChannelConversation,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import {
   ConversationControlInputSchema,
   GetChannelConversationInputSchema,
   ReplyToConversationInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
-import type { SendChannelMessageOutput } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import type { SendChannelMessageOutput } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { useCallback, useMemo } from "react";
 import { useStigmer } from "../hooks.js";
 import { useKeyedSubmission } from "../internal/useKeyedSubmission.js";

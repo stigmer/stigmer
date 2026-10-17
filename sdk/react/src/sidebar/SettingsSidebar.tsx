@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { SettingsNavGroup } from "../settings/settings-nav.js";
 import {
   SidebarChrome,

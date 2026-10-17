@@ -15,7 +15,7 @@
 import type {
   FileChangeProgress,
   FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 
 import { isCaptured } from "./record.js";
 

@@ -1,8 +1,8 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
-import type { PaymentMethodSummary } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
-import { BillingAccountStatus } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
+import { cn } from "@stigmer/design-tokens";
+import type { PaymentMethodSummary } from "@stigmer/apis/ai/stigmer/billing/v1/billing_account_pb";
+import { BillingAccountStatus } from "@stigmer/apis/ai/stigmer/billing/v1/enum_pb";
 
 /** Props for {@link PaymentMethodCard}. */
 export interface PaymentMethodCardProps {

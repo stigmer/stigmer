@@ -5,12 +5,12 @@
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { createRouterTransport } from "@connectrpc/connect";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
 import {
   ScheduleListSchema,
   type ListSchedulesRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
-import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
+import { ScheduleQueryController } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/query_pb";
 import { ScheduleClient } from "../../gen/schedule.js";
 
 /** Five schedules served two at a time, each request recorded. */

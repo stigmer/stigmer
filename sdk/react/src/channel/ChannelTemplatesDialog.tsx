@@ -2,12 +2,12 @@
 
 import { useCallback, useId, type ReactNode } from "react";
 import { ExternalLink, LayoutTemplate, X } from "lucide-react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
-import { getUserMessage } from "@stigmer/sdk";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import type { ChannelTemplate } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
+import { getUserMessage } from "@stigmer/client";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import type { ChannelTemplate } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";

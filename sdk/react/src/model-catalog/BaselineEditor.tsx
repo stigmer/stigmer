@@ -3,13 +3,13 @@
 import { useCallback, useState, type FormEvent } from "react";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { create } from "@bufbuild/protobuf";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage } from "@stigmer/client";
 import {
   ModelPricingBaselineSchema,
   PricingBlockSchema,
   PricingVariantSchema,
   type ModelPricingBaseline,
-} from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
+} from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { Button } from "../button/index.js";
 import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
 import {

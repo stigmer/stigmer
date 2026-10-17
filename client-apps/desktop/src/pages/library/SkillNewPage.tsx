@@ -5,7 +5,7 @@ import {
   useBreadcrumbOverride,
   useActiveOrgId,
   useOrgSlugForId,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 
 export default function SkillNewPage() {
   const org = useActiveOrgId();

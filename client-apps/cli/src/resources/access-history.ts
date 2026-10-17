@@ -11,28 +11,28 @@
 // and keeps the first page's word on retention: how many days the server
 // keeps the history. `export` is the follow read: oldest first, after the
 // last entry the caller holds (`--after`), every page, one entry per line,
-// through `@stigmer/sdk`'s `exportAccessHistory`, so the console's download
+// through `@stigmer/client`'s `exportAccessHistory`, so the console's download
 // and this command write the same lines; when the server's retention
 // removed entries after the caller's, the export says so once, apart from
 // the lines.
 
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   AccessChange,
   AccessChangeCause,
   type AccessHistoryEntry,
   type AccessHistoryPage,
   ListAccessHistoryInputSchema,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import {
   accessHistoryJsonLine,
   exportAccessHistory,
   isDeletedReference,
   type RemovedAccessHistory,
   type Stigmer,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { UsageError } from "../errors/usage-error.js";
 import { readCursorPages } from "./cursor-pages.js";
 

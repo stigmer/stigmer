@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useId, useMemo, useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
-import { getErrorReason, type ResourceRef } from "@stigmer/sdk";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import { ChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
+import { getErrorReason, type ResourceRef } from "@stigmer/client";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelInstallState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
 import { Button } from "../button/Button.js";
 import { useChannelAppList } from "../channel-app/useChannelAppList.js";
 import { useDeploymentMode } from "../deployment-mode.js";

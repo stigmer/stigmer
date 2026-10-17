@@ -14,9 +14,9 @@
 // `__tests__/AgentDetailView.subagents.test.tsx`.
 
 import { useCallback, useMemo, useState } from "react";
-import { cn } from "@stigmer/theme";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { isDeletedReference, type ResourceRef } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { isDeletedReference, type ResourceRef } from "@stigmer/client";
 import { Section } from "../resource-detail/Section.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { AgentPicker } from "./AgentPicker.js";

@@ -1,9 +1,9 @@
 "use client";
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { Todo } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Todo } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 import { RunPhaseBadge } from "./RunPhaseBadge.js";
 import { TodoList } from "./TodoList.js";
 

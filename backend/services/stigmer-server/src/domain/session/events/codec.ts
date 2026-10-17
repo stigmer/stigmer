@@ -18,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
 import {
   SessionEventSchema,
   type SessionEvent,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import { eventIdOf, eventTypeOf } from "@stigmer/session-log";
 import type { SessionEventDraft, SessionEventRecord } from "../../../store/session-events.js";

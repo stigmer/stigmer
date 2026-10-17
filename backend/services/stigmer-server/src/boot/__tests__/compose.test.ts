@@ -37,15 +37,15 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import {
   Health,
   HealthCheckResponse_ServingStatus as ServingStatus,
-} from "@stigmer/protos/grpc/health/v1/health_pb";
-import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
-import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/grpc/health/v1/health_pb";
+import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
+import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { create } from "@bufbuild/protobuf";
-import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
-import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
-import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
+import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
+import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
+import { SkillCommandController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/command_pb";
 import {
   createServer as netCreateServer,
   connect as netConnect,

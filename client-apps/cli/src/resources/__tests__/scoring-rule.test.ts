@@ -4,9 +4,9 @@
 // never applied from a manifest, so no other verb reaches it.
 
 import { create } from "@bufbuild/protobuf";
-import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import { ScoringRuleSchema } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Stigmer } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 
 import { Verb } from "../../registry/verbs.js";

@@ -11,15 +11,15 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type { HandlerContext } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import {
   SessionEventPreviewSchema,
   StreamSessionEventsRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
 import { createLogger } from "../../../../boot/logger.js";
 import type { Store } from "../../../../store/interface.js";

@@ -25,9 +25,9 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { claudePlugin } from "@stigmer/plugin-package/testing";
 import type { PluginFixture } from "@stigmer/plugin-package/testing";
-import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { PluginCommandController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/command_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 
 import { writeArchive } from "../../../archive/write.js";
 import { loadConfig } from "../../../boot/config.js";

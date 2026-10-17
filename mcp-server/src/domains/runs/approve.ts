@@ -16,9 +16,9 @@
 
 import { createClient } from "@connectrpc/connect";
 import type { JsonObject } from "@bufbuild/protobuf";
-import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import { toManagedAgentsJson } from "@stigmer/sdk";
+import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { toManagedAgentsJson } from "@stigmer/client";
 
 import { withTransport } from "../client.js";
 import { rpcError } from "../rpcerr.js";

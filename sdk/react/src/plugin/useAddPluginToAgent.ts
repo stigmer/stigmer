@@ -19,9 +19,9 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { toolServerSegment } from "@stigmer/plugin-package";
-import { type AgentInput, type ResourceRef, buildAgentProto } from "@stigmer/sdk";
+import { type AgentInput, type ResourceRef, buildAgentProto } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { keptReference } from "../internal/kept-reference.js";

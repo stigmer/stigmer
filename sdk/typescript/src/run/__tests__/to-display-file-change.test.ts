@@ -4,9 +4,9 @@ import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
   CapturedFileChangeSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import { FileContentSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
+import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { toDisplayFileChange } from "../to-display-file-change";
 
 function inline(text: string) {

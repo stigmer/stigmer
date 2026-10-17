@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import type { VersionTimelineEntryProps } from "./types.js";
 import { formatRelativeTime } from "../activity/format-relative-time.js";

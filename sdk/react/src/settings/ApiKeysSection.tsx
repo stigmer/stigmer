@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useId, useRef, useState } from "react";
-import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import type { ApiKey } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyListPanel } from "../api-key/ApiKeyListPanel.js";
 import { CreateApiKeyForm } from "../api-key/CreateApiKeyForm.js";
 import { ApiKeyCreatedAlert } from "../api-key/ApiKeyCreatedAlert.js";

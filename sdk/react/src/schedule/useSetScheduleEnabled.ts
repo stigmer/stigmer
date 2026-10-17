@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import type { Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toast } from "../feedback/toast.js";
 import { saveErrorMessage } from "../internal/maskedEdit.js";

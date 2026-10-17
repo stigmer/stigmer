@@ -14,8 +14,8 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { isNotFound, isPermissionDenied } from "@stigmer/sdk";
-import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { isNotFound, isPermissionDenied } from "@stigmer/client";
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 import { isEvalActive } from "./eval-view.js";

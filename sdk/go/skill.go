@@ -7,8 +7,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
-	skillv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1"
+	"go.stigmer.ai/sdk/internal/gen"
+	skillv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/skill/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"

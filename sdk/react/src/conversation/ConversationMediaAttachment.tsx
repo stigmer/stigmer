@@ -2,10 +2,10 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
-import type { ConversationMediaRef } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
-import { GetConversationMediaDownloadUrlInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
+import type { ConversationMediaRef } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { GetConversationMediaDownloadUrlInputSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { AttachmentImageLightbox } from "../attachment/AttachmentImageLightbox.js";
 import { formatFileSize } from "../attachment/attachment-utils.js";
 import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";

@@ -3,7 +3,7 @@
  * active organization by its id, the heading names that organization by
  * its slug, and an installed plugin opens at a URL whose org segment is the
  * slug of the org the plugin names by id. The catalogue is pinned in
- * @stigmer/react.
+ * @stigmer/react-sdk.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
@@ -20,7 +20,7 @@ const page = vi.hoisted(() => ({
   pushed: [] as string[],
 }));
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   MarketplaceCatalog: (props: CatalogProps) => {
     page.catalog.push(props);
     return null;

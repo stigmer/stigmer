@@ -2,9 +2,9 @@
 
 import { useCallback, useMemo } from "react";
 import { useTheme } from "next-themes";
-import { Stigmer } from "@stigmer/sdk";
-import { StigmerProvider } from "@stigmer/react";
-import type { ResolvedColorMode } from "@stigmer/react";
+import { Stigmer } from "@stigmer/client";
+import { StigmerProvider } from "@stigmer/react-sdk";
+import type { ResolvedColorMode } from "@stigmer/react-sdk";
 import { getApiBaseUrl } from "@/config/env";
 import { resolveAuthConfig } from "@/auth/config";
 import { createUserManager } from "@/auth/oidc/oidc-manager";

@@ -4,9 +4,9 @@
 // for human output (how many match, and how to read the next page), and
 // name each result's organization by slug as `list` does.
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { SearchResultSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { SearchResultSchema } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+import type { Stigmer } from "@stigmer/client";
 import type { OutputFormat } from "../output/index.js";
 import { organizationLabels } from "../client/organizations.js";
 import { SEARCH_TABLE } from "./list.js";

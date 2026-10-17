@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { AgentInput } from "@stigmer/sdk";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { AgentInput } from "@stigmer/client";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

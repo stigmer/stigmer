@@ -1,16 +1,16 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { ChannelsPanel, ConnectSlackDialog } from "@stigmer/react";
+import { ChannelsPanel, ConnectSlackDialog } from "@stigmer/react-sdk";
 import { connectFixture } from "@scenar/preview/connect";
 import { create } from "@bufbuild/protobuf";
-import { ChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/query_pb";
-import { ChannelListSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
-import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
-import { ChannelAppsSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
-import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
-import { CheckAuthorizationResultSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/query_pb";
+import { ChannelListSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
+import { ChannelAppQueryController } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/query_pb";
+import { ChannelAppsSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/io_pb";
+import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
+import { CheckAuthorizationResultSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   ScenarioPlayer,
   useNarrationManifest,

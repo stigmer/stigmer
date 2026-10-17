@@ -15,7 +15,7 @@
  * needs nothing from here. Not a registration point: a binding a unit
  * could replace would be a binding a unit could switch off.
  */
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { CallerIdentity } from "./identity.js";
 import type { RowAuthorizationFacts } from "./resource-authorization.js";

@@ -37,22 +37,22 @@
 // files". Every progress wait records the distinct snapshots it saw and puts
 // them in its failure message, because the sequence (say 0 -> 1 -> 3) is the
 // diagnosis a bare timeout hides.
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type {
   SessionEvent,
   StigmerFileReviewChangesEvent,
   StigmerFileReviewDecidedEvent,
   StigmerFileReviewReconciledEvent,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import type { ReviewFileChangesResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import type { ReviewFileChangesResponse } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { FileReviewSet } from "@stigmer/session-log";
 import type {
   CapturedFileChange,
   FileChangeProgress,
   FileChangeProgressEntry,
   FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { type PollCoreOptions, pollUntil } from "./run-poll";
 import { awaitTerminal, isTerminalPhase, pollExecution, type PollOptions } from "./runs";

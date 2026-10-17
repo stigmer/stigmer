@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { useDashboardSummary, type UseDashboardSummaryOptions } from "./useDashboardSummary.js";
 import { useDashboardFailedRuns } from "./useDashboardFailedRuns.js";
 import { DashboardKPICards } from "./DashboardKPICards.js";

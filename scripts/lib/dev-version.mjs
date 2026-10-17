@@ -3,7 +3,10 @@
 /**
  * The npm version of a dev build: `<base>-dev.<stamp>.g<12-char sha>`, the
  * one rule both dev lanes stamp (release.dev.yaml's determine-version and
- * scripts/publish-dev-local.sh), so they cannot drift apart.
+ * scripts/publish-dev-local.sh), so they cannot drift apart. The lanes take
+ * the base from scripts/lib/line-base.mjs: 0.1.0 until the line's first
+ * release, so a build then reads `0.1.0-dev.20261016120000.g10c87982a0f1`,
+ * and the next patch after the newest release from then on.
  *
  * The `.g<sha>` names the commit the build was made from (the `g` as in
  * `git describe`, so the identifier stays alphanumeric, which semver requires
@@ -25,7 +28,7 @@
  * ambiguous as the repository grows.
  *
  * Run as a script it prints the version:
- *   node scripts/lib/dev-version.mjs --base 3.41.1 --stamp 20261003120000
+ *   node scripts/lib/dev-version.mjs --base 0.1.0 --stamp 20261016120000
  */
 
 import { execFileSync } from "node:child_process";

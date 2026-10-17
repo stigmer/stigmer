@@ -25,7 +25,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   IdentityAccountSchema,
   type IdentityAccount,
-} from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { describe, expect, it } from "vitest";
 
 import {

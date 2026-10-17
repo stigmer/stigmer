@@ -29,8 +29,8 @@
  * it across the domain→clock boundary, exactly Go's controller →
  * scheduletemporal edge.
  */
-import type { ScheduleSpec } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import type { ScheduleSpec } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/spec_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 /**
  * Returns the refusal copy, or "" when the fire is allowed (Go

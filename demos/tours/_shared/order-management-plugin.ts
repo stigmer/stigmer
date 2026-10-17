@@ -16,21 +16,21 @@
  * Narrate-safe by construction: `steps.ts` files import the identity
  * constants from here, and `scenar narrate` loads `steps.ts` in plain Node
  * (tsx). Everything this module touches is in that loader's safe tier:
- * protos and `@stigmer/react/test` samples. Keep it that way: no component
+ * protos and `@stigmer/react-sdk/test` samples. Keep it that way: no component
  * imports, no CSS, no live clock (`verify-scenar-tours` enforces the last
  * one).
  */
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { samples, sampleDate } from "@stigmer/react/test";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginToolSchema, type PluginTool } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
-import { McpServerSignInSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import { samples, sampleDate } from "@stigmer/react-sdk/test";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginToolSchema, type PluginTool } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import { McpServerSignInSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import {
   VaultConnectionSchema,
   VaultConnectionSource,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import { DEMO_ORG } from "./fixtures";
 
 /**

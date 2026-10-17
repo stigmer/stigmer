@@ -1,6 +1,6 @@
 "use client";
 
-import type { ServerInfo } from "@stigmer/sdk";
+import type { ServerInfo } from "@stigmer/client";
 import { useStigmer } from "./hooks.js";
 import { useFetch } from "./internal/useFetch.js";
 

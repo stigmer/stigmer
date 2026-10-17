@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage, grantableRoleDescription, iamRoleDisplayName } from "@stigmer/sdk";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage, grantableRoleDescription, iamRoleDisplayName } from "@stigmer/client";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Invitation } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useInvitationPreview } from "./useInvitationPreview.js";
 import { useRedeemInvitation } from "./useRedeemInvitation.js";

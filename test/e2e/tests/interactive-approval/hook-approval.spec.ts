@@ -15,9 +15,9 @@
 //
 // Serial + a shared single-FIFO mock queue: the project runs `--workers=1` and
 // resets the queue per test.
-import type { HookSourceInput } from "@stigmer/sdk";
-import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { HookSourceInput } from "@stigmer/client";
+import { HookFormat } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { test, expect } from "../../fixtures";
 import {
   MockControl,

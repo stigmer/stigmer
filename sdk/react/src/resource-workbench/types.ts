@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 
 // ---------------------------------------------------------------------------
 // View modes
@@ -15,7 +15,7 @@ export type ViewMode = "table" | "cards" | "list";
 /**
  * Resource status phases that map to `--stgm-status-*` design tokens.
  *
- * Each phase corresponds to a token group defined in `@stigmer/theme`
+ * Each phase corresponds to a token group defined in `@stigmer/design-tokens`
  * (e.g. `--stgm-status-ready`, `--stgm-status-failed-subtle`).
  */
 export type StatusPhase =

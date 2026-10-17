@@ -66,8 +66,8 @@
  * reads the same on a stamp, in the actor lookup a console renders the
  * stamp with, and in a member list.
  */
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
 import { SERVICE_ACCOUNT_CALLER_CLASS } from "../../extensions/identity.js";
 import type { CallerIdentity } from "../../extensions/identity.js";

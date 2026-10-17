@@ -14,7 +14,7 @@
 // rendered by the file-review views, not here.
 //
 // This module has no React or framework dependency so it can be shared by
-// @stigmer/react and @stigmer/ink. The Go CLI mirrors it; the shared contract
+// @stigmer/react-sdk and @stigmer/ink-ui. The Go CLI mirrors it; the shared contract
 // is test/fixtures/tool-view/. Engine result formats are version-fragile, so
 // every assumption here is fixture-backed and degrades gracefully to json/text.
 
@@ -281,7 +281,7 @@ export const SHELL_INTENT_ARG_FIELD = "description";
  * degrade to null — callers fall back to their category label.
  *
  * The seam for surfaces that hold a pre-resolved kind and raw args instead of
- * a full tool use: the CLI's headless snapshot projection and @stigmer/react's
+ * a full tool use: the CLI's headless snapshot projection and @stigmer/react-sdk's
  * approval argsPreview path. Everything else should prefer
  * {@link extractShellIntent}.
  */

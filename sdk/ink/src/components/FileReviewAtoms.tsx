@@ -5,7 +5,7 @@ import { Text } from "ink";
  * Shared presentational atoms for the terminal file-review surfaces — the single
  * source for the `+N −M` line stat, so the decision prompt, the settled record,
  * and the mid-run progress bar can never drift in how they render a file's (or a
- * set's) magnitude. The terminal analogue of `@stigmer/react`'s `FileReviewAtoms`.
+ * set's) magnitude. The terminal analogue of `@stigmer/react-sdk`'s `FileReviewAtoms`.
  *
  * The change-kind marker is deliberately NOT here: the terminal renders kind via
  * the pure `kindLetter` helper (in `file-review.ts`), already shared across every

@@ -48,12 +48,12 @@ function recordingPack() {
 // A layout in the shape of a package that links the server: the package
 // links the server and a lib; the server links the same lib and one more.
 function writeTwoLevelLayout() {
-  writePackage("libs/protos", { name: "@stigmer/protos", dependencies: { "@bufbuild/protobuf": "2.12.0" } });
+  writePackage("libs/protos", { name: "@stigmer/apis", dependencies: { "@bufbuild/protobuf": "2.12.0" } });
   writePackage("libs/outbound", { name: "@stigmer/outbound" });
   writePackage("server", {
     name: "@stigmer/server",
     dependencies: {
-      "@stigmer/protos": "file:../libs/protos",
+      "@stigmer/apis": "file:../libs/protos",
       "@stigmer/outbound": "file:../libs/outbound",
       pg: "8.23.0",
     },
@@ -62,7 +62,7 @@ function writeTwoLevelLayout() {
     name: "@stigmer/linking",
     dependencies: {
       "@stigmer/server": "file:../../server",
-      "@stigmer/protos": "file:../../libs/protos",
+      "@stigmer/apis": "file:../../libs/protos",
       ulidx: "2.4.1",
     },
   });
@@ -82,7 +82,7 @@ test("a package linking a package that links a lib packs manifests naming only t
     }
   }
   assert.deepEqual(manifests.get(join(root, "server")).dependencies, {
-    "@stigmer/protos": "file:/packed/libs-protos.tgz",
+    "@stigmer/apis": "file:/packed/libs-protos.tgz",
     "@stigmer/outbound": "file:/packed/libs-outbound.tgz",
     pg: "8.23.0",
   });
@@ -121,8 +121,8 @@ test("a spec that is not a file: link passes through, and a package without link
   const { consumerResolvableSpecs } = linkedPacker(pack);
 
   assert.deepEqual(
-    consumerResolvableSpecs({ "@stigmer/server": "3.41.1", "@stigmer/protos": "file:libs/protos", pg: "8.23.0" }, root),
-    { "@stigmer/server": "3.41.1", "@stigmer/protos": "file:/packed/libs-protos.tgz" },
+    consumerResolvableSpecs({ "@stigmer/server": "3.41.1", "@stigmer/apis": "file:libs/protos", pg: "8.23.0" }, root),
+    { "@stigmer/server": "3.41.1", "@stigmer/apis": "file:/packed/libs-protos.tgz" },
   );
   assert.deepEqual(calls, [join(root, "libs/protos")]);
 });

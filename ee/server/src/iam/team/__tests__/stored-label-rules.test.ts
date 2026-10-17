@@ -18,10 +18,10 @@ import type { Authorizer, Logger } from "@stigmer/server";
 import { callerIdentityKey, createLogger } from "@stigmer/server";
 import { describe, expect, it } from "vitest";
 
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import { TeamCommandController } from "@stigmer/protos/ai/stigmer/iam/team/v1/command_pb";
-import { TeamSpecSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/spec_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { TeamSchema } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
+import { TeamCommandController } from "@stigmer/apis/ai/stigmer/iam/team/v1/command_pb";
+import { TeamSpecSchema } from "@stigmer/apis/ai/stigmer/iam/team/v1/spec_pb";
 
 import { newTeamServiceRegistrations, type TeamLaneDeps } from "../handlers.js";
 import { InMemoryTeamStore, storedTeam } from "./in-memory-team-store.js";

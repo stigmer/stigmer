@@ -6,10 +6,10 @@
 // organization's runs by the judge label. The clients are stubbed; nothing
 // here starts a server.
 import { create } from "@bufbuild/protobuf";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import { ScoreState } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { ScoreSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import { ScoreState } from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import {

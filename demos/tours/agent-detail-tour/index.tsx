@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { AgentDetailView } from "@stigmer/react";
+import { AgentDetailView } from "@stigmer/react-sdk";
 import { BrowserView } from "@scenar/react";
 import { DEMO_ORG } from "../_shared/fixtures";
 import { DEMO_SLUG, type AgentDetailTourStep } from "./steps";

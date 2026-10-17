@@ -8,7 +8,7 @@ package runv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -876,8 +876,8 @@ const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"\bagent_id\x18\b \x01(\tR\aagentId\x12#\n" +
 	"\ragent_version\x18\t \x01(\tR\fagentVersionJ\x04\b\x03\x10\x04R\rmcp_server_id\"4\n" +
 	"\rSetupProgress\x12#\n" +
-	"\rcurrent_phase\x18\x01 \x01(\tR\fcurrentPhaseB\xfe\x01\n" +
-	"\x1dcom.ai.stigmer.agentic.run.v1B\bApiProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
+	"\rcurrent_phase\x18\x01 \x01(\tR\fcurrentPhaseB\xeb\x01\n" +
+	"\x1dcom.ai.stigmer.agentic.run.v1B\bApiProtoP\x01Z7go.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_run_v1_api_proto_rawDescOnce sync.Once

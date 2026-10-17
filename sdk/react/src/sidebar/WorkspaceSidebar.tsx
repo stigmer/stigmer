@@ -10,7 +10,7 @@ import {
   Store,
   type LucideIcon,
 } from "lucide-react";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { RecentActivityEntry, RecentActivityGroup } from "../activity/types.js";
 import { groupRecentActivityByTime } from "../activity/group-activity.js";
 import { formatRelativeTime } from "../activity/format-relative-time.js";

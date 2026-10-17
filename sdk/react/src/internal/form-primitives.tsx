@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 // ---------------------------------------------------------------------------
 // Shared form primitives: the input and field styling of the operator

@@ -24,18 +24,18 @@
 
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import type { ApiKey } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
 import {
   type IdentityAccount,
   IdentityAccountSchema,
-} from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { ListApiKeysByAccountInputSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { ListApiKeysByAccountInputSchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/io_pb";
 import {
   CreateServiceAccountInputSchema,
   ListServiceAccountsInputSchema,
-} from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { iamRoleDisplayName, type Stigmer } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import { iamRoleDisplayName, type Stigmer } from "@stigmer/client";
 import { CliExitError } from "../errors/cli-exit-error.js";
 import { ExitCode } from "../errors/exit-codes.js";
 import { UsageError } from "../errors/usage-error.js";

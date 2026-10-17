@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useCallback, useEffect, type KeyboardEvent } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
 import type { UseWorkspaceEntriesReturn } from "./useWorkspaceEntries.js";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import { GitHubRepoPicker } from "../github/GitHubRepoPicker.js";

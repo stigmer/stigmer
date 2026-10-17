@@ -1,6 +1,6 @@
 import { create } from "@bufbuild/protobuf";
-import { GetArtifactRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
-import { isUnimplemented, type Stigmer } from "@stigmer/sdk";
+import { GetArtifactRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
+import { isUnimplemented, type Stigmer } from "@stigmer/client";
 import type { SkillFileEntry } from "../useSkillUpload.js";
 
 /** Unpacked artifact: file entries for browsing + content map for reading. */

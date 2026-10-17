@@ -14,7 +14,7 @@
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 
 import type { Store } from "../../store/interface.js";
 import { runSubagents } from "../run/run-subagents.js";

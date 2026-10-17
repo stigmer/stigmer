@@ -20,8 +20,8 @@
 //     for an organization they are not in, and a member reads neither for
 //     an agent they cannot view.
 import { Code } from "@connectrpc/connect";
-import { ScoreSource } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ScoreSource } from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";

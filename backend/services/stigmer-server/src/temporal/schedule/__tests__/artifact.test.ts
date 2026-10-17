@@ -9,7 +9,7 @@ import { ScheduleOverlapPolicy } from "@temporalio/client";
 import type { ScheduleDescription } from "@temporalio/client";
 import { describe, expect, it } from "vitest";
 
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
 
 import { ScheduleArtifact, desiredPaused, note } from "../artifact.js";
 import { ScheduleTemporalConfig } from "../config.js";

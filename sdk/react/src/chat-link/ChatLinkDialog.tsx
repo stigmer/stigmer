@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useId, useMemo, useRef, useState, type FormEvent } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import {
@@ -13,11 +13,11 @@ import {
   getUserMessage,
   validateOrigin,
   type ResourceRef,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { create as createMessage } from "@bufbuild/protobuf";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { Switch } from "../switch/Switch.js";
 import { Tabs, type TabItem } from "../tabs/Tabs.js";
 import { toast } from "../feedback/toast.js";
@@ -1523,7 +1523,7 @@ function buildDeveloperSnippet(
 ): string {
   const baseUrl = JSON.stringify(trimTrailing(apiBaseUrl, "/"));
   return [
-    `import { createNodeClient } from "@stigmer/sdk/node";`,
+    `import { createNodeClient } from "@stigmer/client/node";`,
     ``,
     `// A key of a service account with the admin role in ${org}`,
     `const stigmer = createNodeClient({`,

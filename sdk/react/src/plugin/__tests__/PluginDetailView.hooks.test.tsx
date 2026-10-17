@@ -13,12 +13,12 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { createRouterTransport } from "@connectrpc/connect";
-import { Stigmer } from "@stigmer/sdk";
-import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
-import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { HookConfigSchema, HookFormat, type HookConfig } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import { PluginStatusSchema, PluginWarningSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { Stigmer } from "@stigmer/client";
+import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { HookConfigSchema, HookFormat, type HookConfig } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { PluginStatusSchema, PluginWarningSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 import { StigmerContext } from "../../context.js";
 import { PluginDetailView } from "../PluginDetailView.js";

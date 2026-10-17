@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { UserMenu as SdkUserMenu } from "@stigmer/react";
+import { UserMenu as SdkUserMenu } from "@stigmer/react-sdk";
 import { useAuth } from "../auth/AuthProvider";
 import { useColorModePreference } from "../hooks/useColorModePreference";
 

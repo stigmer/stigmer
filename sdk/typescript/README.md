@@ -1,21 +1,21 @@
-# @stigmer/sdk
+# @stigmer/client
 
 TypeScript SDK for the Stigmer platform. Provides typed API clients for all Stigmer resources with authentication, error handling, and cross-resource search.
 
 ## Installation
 
 ```bash
-npm install @stigmer/sdk @stigmer/protos @bufbuild/protobuf
+npm install @stigmer/client @stigmer/apis @bufbuild/protobuf
 ```
 
-`@stigmer/protos` and `@bufbuild/protobuf` are peer dependencies.
+`@stigmer/apis` and `@bufbuild/protobuf` are peer dependencies.
 
 ## Quick Start
 
 ### Server-to-server (static API key)
 
 ```typescript
-import { Stigmer } from "@stigmer/sdk";
+import { Stigmer } from "@stigmer/client";
 
 const stigmer = new Stigmer({
   baseUrl: "https://api.stigmer.ai",
@@ -28,7 +28,7 @@ const agent = await stigmer.agent.get("agent-id");
 ### Browser / rotating credentials
 
 ```typescript
-import { Stigmer } from "@stigmer/sdk";
+import { Stigmer } from "@stigmer/client";
 
 const stigmer = new Stigmer({
   baseUrl: "https://api.stigmer.ai",
@@ -90,8 +90,8 @@ const { setupUrl } = await stigmer.billing.createPaymentMethodSetupSession({
 
 ```typescript
 import { create } from "@bufbuild/protobuf";
-import { ListAgentsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
-import { RenameInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ListAgentsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/io_pb";
+import { RenameInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 
 // Create
 const agent = await stigmer.agent.create({
@@ -153,7 +153,7 @@ for await (const a of stigmer.agent.listAll({ org: "my-org", labels: { team: "su
 ### Cross-resource search
 
 ```typescript
-import { ApiResourceKind } from "@stigmer/sdk";
+import { ApiResourceKind } from "@stigmer/client";
 
 const results = await stigmer.search.query({
   kinds: [ApiResourceKind.agent, ApiResourceKind.skill],
@@ -185,7 +185,7 @@ for await (const event of stigmer.run.watch("run-id", controller.signal)) {
 All SDK operations throw `StigmerError` with structured error codes:
 
 ```typescript
-import { StigmerError, isNotFound, isRetryable } from "@stigmer/sdk";
+import { StigmerError, isNotFound, isRetryable } from "@stigmer/client";
 
 try {
   const agent = await stigmer.agent.get("nonexistent");
@@ -263,10 +263,10 @@ const session = await stigmer.session.create({
 
 ### `RunnerAdapter`
 
-For local execution, the client owns the runner lifecycle. `@stigmer/sdk` exports the `RunnerAdapter` type so non-React hosts (Node scripts, custom frameworks) can implement it:
+For local execution, the client owns the runner lifecycle. `@stigmer/client` exports the `RunnerAdapter` type so non-React hosts (Node scripts, custom frameworks) can implement it:
 
 ```typescript
-import type { RunnerAdapter } from "@stigmer/sdk";
+import type { RunnerAdapter } from "@stigmer/client";
 
 const adapter: RunnerAdapter = {
   onSessionOpened: async (sessionId) => { /* start a worker for this session */ },
@@ -277,16 +277,16 @@ const adapter: RunnerAdapter = {
 If your runner backend already exposes `addSession` / `removeSession` (a `RunnerWorkerHost`) — the in-process `createStigmerRunnerManager`, the desktop's embedded-runner context, or your own API — skip the hand-wiring and let `createRunnerAdapter` build the adapter:
 
 ```typescript
-import { createRunnerAdapter } from "@stigmer/sdk";
+import { createRunnerAdapter } from "@stigmer/client";
 
 const adapter = createRunnerAdapter(myRunnerHost);
 ```
 
 A Session has no terminal phase, so its worker is tied to whether the session is **open**: attach on `onSessionOpened`, detach on `onSessionClosed` (and keep both idempotent — `onSessionOpened` may fire again on re-open).
 
-The SDK does not invoke these methods on its own in a non-React host — you wire the adapter to your own open/close code paths. In React apps, `@stigmer/react` does this wiring automatically: pass `executionTarget` and `runnerAdapter` to `StigmerProvider` and the SDK hooks invoke the adapter at the right lifecycle points.
+The SDK does not invoke these methods on its own in a non-React host — you wire the adapter to your own open/close code paths. In React apps, `@stigmer/react-sdk` does this wiring automatically: pass `executionTarget` and `runnerAdapter` to `StigmerProvider` and the SDK hooks invoke the adapter at the right lifecycle points.
 
-See the [`@stigmer/react` local execution docs](../react/README.md#local-execution) and the [runner embedding guide](https://stigmer.ai/docs/guides/runners/embedding) for the full desktop (local) and web (cloud) walkthrough.
+See the [`@stigmer/react-sdk` local execution docs](../react/README.md#local-execution) and the [runner embedding guide](https://stigmer.ai/docs/guides/runners/embedding) for the full desktop (local) and web (cloud) walkthrough.
 
 ## Code Generation
 

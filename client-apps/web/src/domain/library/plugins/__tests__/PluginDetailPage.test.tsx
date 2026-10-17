@@ -6,11 +6,11 @@
  * first, deletes once confirmed and returns to the plugins list; a failed
  * delete stays on the page (the delete hook shows its own error), and a
  * declined one deletes nothing. The detail view itself is pinned in
- * @stigmer/react; here it is stubbed to capture its props.
+ * @stigmer/react-sdk; here it is stubbed to capture its props.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render } from "@testing-library/react";
-import type { DetailAction } from "@stigmer/react";
+import type { DetailAction } from "@stigmer/react-sdk";
 
 interface Ref {
   org: string;
@@ -37,7 +37,7 @@ const page = vi.hoisted(() => ({
   deleteFails: false,
 }));
 
-vi.mock("@stigmer/react", () => {
+vi.mock("@stigmer/react-sdk", () => {
   const noop = () => undefined;
   return {
     PluginDetailView: (props: ViewProps) => {

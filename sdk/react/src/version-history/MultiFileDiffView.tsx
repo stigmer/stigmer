@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import type { MultiFileDiffResult } from "./types.js";
 import { DiffViewer } from "./DiffViewer.js";
 import { DiffFileList } from "./DiffFileList.js";

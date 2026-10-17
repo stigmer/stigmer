@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import { GetArtifactContentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { GetArtifactContentRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 

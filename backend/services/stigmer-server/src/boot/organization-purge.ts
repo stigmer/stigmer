@@ -27,9 +27,9 @@
  * What the tests pin (__tests__/organization-purge-inventory.test.ts): the
  * open-source composition's ownership, the refusals, and the stage order.
  */
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { AuthorizationScopeType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
-import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { AuthorizationScopeType } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
+import type { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
 import { newAgentPurge } from "../domain/agent/purge.js";
 import { newIdentityAccountPurge } from "../domain/identityaccount/purge.js";

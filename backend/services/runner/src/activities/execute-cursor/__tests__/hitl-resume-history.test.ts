@@ -56,7 +56,7 @@ import {
 import { loggedApprovalsFor } from "../../../__test-utils__/approval-log.js";
 import { AgentMessageSchema, ToolCallSchema, type AgentMessage, SubAgentRunSchema, TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { ApprovalAction, MessageType, ToolCallStatus, SubAgentStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
 /** The run the logged answers belong to. */
 const RUN_ID = "run_resume_history";

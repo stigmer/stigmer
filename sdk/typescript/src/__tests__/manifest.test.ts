@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { clone, create, equals } from "@bufbuild/protobuf";
-import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { ChannelAppSchema, type ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { AgentSchema, type Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { ChannelAppSchema, type ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { ScheduleSchema, type Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { parse as parseYaml } from "yaml";
 import {
   MCP_SERVER_WAY_FORWARD,
@@ -17,7 +17,7 @@ import {
 import { serializeManifest } from "../manifest/serialize";
 import { manifestDocumentForResource } from "../manifest/document";
 import { manifestKinds, manifestHandlerForYamlKind, type ServiceClientFn } from "../manifest/registry";
-import { ApiResourceReferenceSchema, RenameInputSchema, type RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema, RenameInputSchema, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 
 /**
  * Manifest engine contract tests.

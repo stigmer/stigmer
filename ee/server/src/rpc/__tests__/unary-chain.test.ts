@@ -20,10 +20,10 @@ import {
 import type { Interceptor } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import { TeamsSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/io_pb";
-import { TeamQueryController } from "@stigmer/protos/ai/stigmer/iam/team/v1/query_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { TeamSchema } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
+import { TeamsSchema } from "@stigmer/apis/ai/stigmer/iam/team/v1/io_pb";
+import { TeamQueryController } from "@stigmer/apis/ai/stigmer/iam/team/v1/query_pb";
 import type { Authorizer, Logger, PipelineStep, RequestContext } from "@stigmer/server";
 import { callerIdentityKey } from "@stigmer/server";
 

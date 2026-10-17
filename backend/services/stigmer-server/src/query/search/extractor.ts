@@ -20,10 +20,10 @@ import type { DescMessage, Message } from "@bufbuild/protobuf";
 import { TimestampSchema } from "@bufbuild/protobuf/wkt";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { SearchResultSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceMetadata } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { SearchResultSchema } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 
 import type { SearchIndexExtractor } from "../../pipeline/steps/index-search.js";
 

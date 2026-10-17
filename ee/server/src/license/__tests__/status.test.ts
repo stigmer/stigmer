@@ -5,7 +5,7 @@
  */
 import { describe, expect, it, vi } from "vitest";
 
-import { LicenseState } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+import { LicenseState } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 
 import { newLicenseStatusProvider } from "../status.js";
 import { goldenVector } from "./test-tickets.js";

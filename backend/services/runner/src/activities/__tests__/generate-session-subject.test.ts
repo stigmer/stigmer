@@ -11,9 +11,9 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ConnectError, Code } from "@connectrpc/connect";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 
 vi.mock("../../shared/model-registry.js", () => ({
   getSummarizationModel: vi.fn(async (primary: string) => primary),

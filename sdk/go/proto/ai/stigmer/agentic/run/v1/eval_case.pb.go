@@ -844,8 +844,8 @@ const file_ai_stigmer_agentic_run_v1_eval_case_proto_rawDesc = "" +
 	"\fEvalMockKind\x12\x1e\n" +
 	"\x1aeval_mock_kind_unspecified\x10\x00\x12\x18\n" +
 	"\x14eval_mock_kind_fixed\x10\x01\x12\x18\n" +
-	"\x14eval_mock_kind_agent\x10\x02B\x83\x02\n" +
-	"\x1dcom.ai.stigmer.agentic.run.v1B\rEvalCaseProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
+	"\x14eval_mock_kind_agent\x10\x02B\xf0\x01\n" +
+	"\x1dcom.ai.stigmer.agentic.run.v1B\rEvalCaseProtoP\x01Z7go.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_run_v1_eval_case_proto_rawDescOnce sync.Once

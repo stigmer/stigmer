@@ -1,11 +1,11 @@
 // Framework-agnostic execution-phase predicates.
 //
-// Lives in @stigmer/sdk (the pure layer) so it is shared by @stigmer/react and
-// @stigmer/ink and usable by pure logic here (e.g. the file-review fold's corpus
-// parity test reproduces the server's terminal-phase gate). @stigmer/react
+// Lives in @stigmer/client (the pure layer) so it is shared by @stigmer/react-sdk and
+// @stigmer/ink-ui and usable by pure logic here (e.g. the file-review fold's corpus
+// parity test reproduces the server's terminal-phase gate). @stigmer/react-sdk
 // re-exports it so its public API is unchanged.
 
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 const TERMINAL_PHASES: ReadonlySet<RunPhase> = new Set([
   RunPhase.RUN_COMPLETED,

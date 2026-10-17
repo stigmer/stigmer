@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { isTerminalPhase } from "../run/run-phases.js";
 
 /**

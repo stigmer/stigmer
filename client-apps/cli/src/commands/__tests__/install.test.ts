@@ -21,9 +21,9 @@ import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
-import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
-import type { PushPluginRequest } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginCommandController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/command_pb";
+import type { PushPluginRequest } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import {
   afterAll,
   afterEach,

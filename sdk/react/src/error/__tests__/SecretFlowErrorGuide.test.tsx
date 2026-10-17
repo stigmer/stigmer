@@ -8,7 +8,7 @@
  */
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { StigmerError } from "@stigmer/sdk";
+import { StigmerError } from "@stigmer/client";
 
 import { SecretFlowErrorGuide, isSecretFlowError } from "../SecretFlowErrorGuide.js";
 

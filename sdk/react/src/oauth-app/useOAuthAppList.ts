@@ -1,8 +1,8 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import { ListOAuthAppsInputSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/io_pb";
-import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
+import { ListOAuthAppsInputSchema } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/io_pb";
+import type { OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { useCursorPages } from "../internal/useCursorPages.js";
 

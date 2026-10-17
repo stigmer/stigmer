@@ -250,8 +250,8 @@ const file_ai_stigmer_agentic_score_v1_spec_proto_rawDesc = "" +
 	"\x0eScoreCriterion\x12\x1d\n" +
 	"\x04name\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x04name\x12N\n" +
 	"\x06result\x18\x02 \x01(\x0e2,.ai.stigmer.agentic.score.v1.CriterionResultB\b\xbaH\x05\x82\x01\x02\x10\x01R\x06result\x12 \n" +
-	"\x06reason\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\xf4\x03R\x06reasonB\x8d\x02\n" +
-	"\x1fcom.ai.stigmer.agentic.score.v1B\tSpecProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/score/v1;scorev1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Score.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Score\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Score::V1b\x06proto3"
+	"\x06reason\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\xf4\x03R\x06reasonB\xfa\x01\n" +
+	"\x1fcom.ai.stigmer.agentic.score.v1B\tSpecProtoP\x01Z;go.stigmer.ai/sdk/proto/ai/stigmer/agentic/score/v1;scorev1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Score.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Score\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Score::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_score_v1_spec_proto_rawDescOnce sync.Once

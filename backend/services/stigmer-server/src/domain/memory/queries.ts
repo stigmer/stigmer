@@ -20,8 +20,8 @@
  */
 import { fromBinary } from "@bufbuild/protobuf";
 
-import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
-import type { Memory } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
+import { MemorySchema } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
+import type { Memory } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
 
 import type { Store } from "../../store/interface.js";
 import type { ListIndexRow } from "../../store/list-index.js";

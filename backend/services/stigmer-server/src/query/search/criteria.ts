@@ -35,7 +35,7 @@ import {
   ApiResourceKind,
   ApiResourceKindSchema,
   ResourceTier,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { goTrimSpace } from "../../gocompat/trim.js";
 import { getKindMeta } from "../../pipeline/apiresource-meta.js";

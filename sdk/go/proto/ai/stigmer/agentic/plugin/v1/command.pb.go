@@ -7,8 +7,8 @@
 package pluginv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,8 +32,8 @@ const file_ai_stigmer_agentic_plugin_v1_command_proto_rawDesc = "" +
 	"\x17createArtifactUploadUrl\x12B.ai.stigmer.agentic.plugin.v1.CreatePluginArtifactUploadUrlRequest\x1a5.ai.stigmer.agentic.plugin.v1.PluginArtifactUploadUrl\"B¸\x18>\b(\x10\x1e\"\x03org*3unauthorized to install plugin in this organization\x12\xb0\x01\n" +
 	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a$.ai.stigmer.agentic.plugin.v1.Plugin\"?¸\x18;\b0\x10:\"\vresource_id*(unauthorized to update plugin visibility\x12\x86\x01\n" +
 	"\x06delete\x12&.ai.stigmer.agentic.plugin.v1.PluginId\x1a$.ai.stigmer.agentic.plugin.v1.Plugin\".¸\x18*\b\x03\x10:\"\x05value*\x1dunauthorized to delete plugin\x12\xac\x01\n" +
-	"\tlistTools\x122.ai.stigmer.agentic.plugin.v1.ListPluginToolsInput\x1a3.ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput\"6¸\x182\b\x01\x10:\"\tplugin_id*!unauthorized to list plugin tools\x1a\x04\xa0\xff+:B\x97\x02\n" +
-	" com.ai.stigmer.agentic.plugin.v1B\fCommandProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1;pluginv1\xa2\x02\x04ASAP\xaa\x02\x1cAi.Stigmer.Agentic.Plugin.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3"
+	"\tlistTools\x122.ai.stigmer.agentic.plugin.v1.ListPluginToolsInput\x1a3.ai.stigmer.agentic.plugin.v1.ListPluginToolsOutput\"6¸\x182\b\x01\x10:\"\tplugin_id*!unauthorized to list plugin tools\x1a\x04\xa0\xff+:B\x84\x02\n" +
+	" com.ai.stigmer.agentic.plugin.v1B\fCommandProtoP\x01Z=go.stigmer.ai/sdk/proto/ai/stigmer/agentic/plugin/v1;pluginv1\xa2\x02\x04ASAP\xaa\x02\x1cAi.Stigmer.Agentic.Plugin.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_plugin_v1_command_proto_goTypes = []any{
 	(*PushPluginRequest)(nil),                    // 0: ai.stigmer.agentic.plugin.v1.PushPluginRequest

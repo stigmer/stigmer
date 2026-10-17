@@ -8,7 +8,7 @@ package tokenv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -372,9 +372,9 @@ const file_ai_stigmer_iam_token_v1_token_proto_rawDesc = "" +
 	"\x0fguest_cookie_id\x18\x04 \x01(\tR\rguestCookieId2\xbf\x02\n" +
 	"\fTokenService\x12\xb5\x01\n" +
 	"\rmintUserToken\x12-.ai.stigmer.iam.token.v1.MintUserTokenRequest\x1a..ai.stigmer.iam.token.v1.MintUserTokenResponse\"E¸\x18A\b9\x10\x1e\"\x03org*6unauthorized to mint user tokens for this organization\x12w\n" +
-	"\x0emintGuestToken\x12..ai.stigmer.iam.token.v1.MintGuestTokenRequest\x1a/.ai.stigmer.iam.token.v1.MintGuestTokenResponse\"\x04ȸ\x18\x01B\xf6\x01\n" +
+	"\x0emintGuestToken\x12..ai.stigmer.iam.token.v1.MintGuestTokenRequest\x1a/.ai.stigmer.iam.token.v1.MintGuestTokenResponse\"\x04ȸ\x18\x01B\xe3\x01\n" +
 	"\x1bcom.ai.stigmer.iam.token.v1B\n" +
-	"TokenProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/token/v1;tokenv1\xa2\x02\x04ASIT\xaa\x02\x17Ai.Stigmer.Iam.Token.V1\xca\x02\x17Ai\\Stigmer\\Iam\\Token\\V1\xe2\x02#Ai\\Stigmer\\Iam\\Token\\V1\\GPBMetadata\xea\x02\x1bAi::Stigmer::Iam::Token::V1b\x06proto3"
+	"TokenProtoP\x01Z7go.stigmer.ai/sdk/proto/ai/stigmer/iam/token/v1;tokenv1\xa2\x02\x04ASIT\xaa\x02\x17Ai.Stigmer.Iam.Token.V1\xca\x02\x17Ai\\Stigmer\\Iam\\Token\\V1\xe2\x02#Ai\\Stigmer\\Iam\\Token\\V1\\GPBMetadata\xea\x02\x1bAi::Stigmer::Iam::Token::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_token_v1_token_proto_rawDescOnce sync.Once

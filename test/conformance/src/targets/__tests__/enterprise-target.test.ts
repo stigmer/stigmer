@@ -21,7 +21,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { X509Certificate } from "node:crypto";
 
 import { create } from "@bufbuild/protobuf";
-import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ConformanceClients } from "../../harness/clients";

@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Stigmer } from "@stigmer/sdk";
-import { StigmerProvider, InvitationRedemption } from "@stigmer/react";
-import type { ResolvedColorMode } from "@stigmer/react";
-import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
+import { Stigmer } from "@stigmer/client";
+import { StigmerProvider, InvitationRedemption } from "@stigmer/react-sdk";
+import type { ResolvedColorMode } from "@stigmer/react-sdk";
+import type { Invitation } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
 import { getApiBaseUrl } from "@/config/env";
 import { resolveAuthConfig } from "@/auth/config";
 import { createUserManager } from "@/auth/oidc/oidc-manager";

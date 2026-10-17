@@ -18,12 +18,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 import {
   IdentityAccountsListSchema,
   type ListServiceAccountsInput,
-} from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
-import { ResourceAccessByPrincipalListSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
+import { ResourceAccessByPrincipalListSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { ServiceAccountListPanel } from "../ServiceAccountListPanel";
 

@@ -9,12 +9,12 @@
 //
 // The registry lets a consumer override the label or summary for a ToolKind
 // (e.g. a product that wants "Run command" instead of "Shell") without forking
-// the components. Result interpretation stays in @stigmer/sdk; this is the React
+// the components. Result interpretation stays in @stigmer/client; this is the React
 // presentation seam.
 
 import { useMemo } from "react";
-import { resolveToolKind, normalizeToolResult, type ToolKind } from "@stigmer/sdk";
-import type { ToolResultView, ToolUse } from "@stigmer/sdk";
+import { resolveToolKind, normalizeToolResult, type ToolKind } from "@stigmer/client";
+import type { ToolResultView, ToolUse } from "@stigmer/client";
 import {
   resolveToolCategoryFromCall,
   extractPrimaryArg,
@@ -70,7 +70,7 @@ const registry = new Map<ToolKind, ToolPresenter>();
  *
  * @example
  * ```ts
- * import { registerToolPresenter } from "@stigmer/react";
+ * import { registerToolPresenter } from "@stigmer/react-sdk";
  *
  * const dispose = registerToolPresenter("shell", {
  *   label: () => "Run command",

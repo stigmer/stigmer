@@ -11,7 +11,7 @@ import (
 	"errors"
 	"testing"
 
-	billingv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/v1"
+	billingv1 "go.stigmer.ai/sdk/proto/ai/stigmer/billing/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

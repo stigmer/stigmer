@@ -9,8 +9,8 @@
  */
 import { clone, toBinary } from "@bufbuild/protobuf";
 
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 
 import { DuplicateAccountError } from "../store.js";
 import type { IdentityAccountStore } from "../store.js";

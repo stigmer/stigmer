@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import type { VisibilityLevelOption } from "./visibilityLevels.js";
 
 /** Color treatment key shared by every visibility surface. */

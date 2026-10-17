@@ -11,9 +11,9 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/status_pb";
-import type { ScheduleStatus } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/status_pb";
+import type { Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/status_pb";
+import type { ScheduleStatus } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/status_pb";
 
 /**
  * Returns the schedule's status, materializing the nested message a fresh

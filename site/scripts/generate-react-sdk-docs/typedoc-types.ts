@@ -1,7 +1,7 @@
 /**
  * TypeDoc JSON v2 schema types.
  *
- * Covers the reflection structures observed in @stigmer/react's
+ * Covers the reflection structures observed in @stigmer/react-sdk's
  * dist/api.json output (TypeDoc 0.28.x, schemaVersion "2.0").
  */
 

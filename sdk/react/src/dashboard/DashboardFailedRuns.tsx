@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import type { DashboardFailedRun } from "./types.js";
 import { formatRelativeTime } from "../activity/format-relative-time.js";

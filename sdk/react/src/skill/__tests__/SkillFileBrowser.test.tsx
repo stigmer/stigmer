@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { zipSync, strToU8 } from "fflate";
-import { StigmerError, type Stigmer } from "@stigmer/sdk";
+import { StigmerError, type Stigmer } from "@stigmer/client";
 import { StigmerContext } from "../../context";
 import { SkillFileBrowser } from "../SkillFileBrowser";
 

@@ -150,9 +150,9 @@ Show alternative content (install methods, platform-specific instructions).
 
 ```mdx
 <Tabs items={["npm", "yarn", "pnpm"]}>
-  <Tab value="npm">npm install @stigmer/sdk</Tab>
-  <Tab value="yarn">yarn add @stigmer/sdk</Tab>
-  <Tab value="pnpm">pnpm add @stigmer/sdk</Tab>
+  <Tab value="npm">npm install @stigmer/client</Tab>
+  <Tab value="yarn">yarn add @stigmer/client</Tab>
+  <Tab value="pnpm">pnpm add @stigmer/client</Tab>
 </Tabs>
 ```
 

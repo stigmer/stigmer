@@ -18,7 +18,7 @@
  * gate — can_create_session on the organization on create, the session's
  * own can_edit on update. Pure over the two records.
  */
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 
 import {
   RUN_GATE_CHECKS,

@@ -8,12 +8,12 @@
 // consoles consume this single implementation, so the paging lives once.
 
 import { create } from "@bufbuild/protobuf";
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import type { Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
 import {
   ListSchedulesRequestSchema,
   type ListSchedulesRequest,
   type ScheduleList,
-} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
 import type { WorkbenchListFn } from "../resource-workbench/types.js";
 
 /** The slice of the Stigmer client this module needs (mockable in tests). */

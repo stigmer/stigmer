@@ -13,8 +13,8 @@ import {
   createClient,
   createRouterTransport,
 } from "@connectrpc/connect";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
-import { Health, HealthCheckRequestSchema } from "@stigmer/protos/grpc/health/v1/health_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
+import { Health, HealthCheckRequestSchema } from "@stigmer/apis/grpc/health/v1/health_pb";
 import { describe, expect, it } from "vitest";
 
 import {

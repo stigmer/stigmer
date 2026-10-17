@@ -4,7 +4,7 @@
  * handed the active organization's id, the page's own prose shows the active
  * organization's slug, and on completion the page opens the new resource at
  * a URL carrying the slug of the organization the server put it in. The
- * creators are pinned in @stigmer/react.
+ * creators are pinned in @stigmer/react-sdk.
  */
 import type { ComponentType } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -17,7 +17,7 @@ const page = vi.hoisted(() => ({
   props: {} as Record<string, Record<string, unknown>[]>,
 }));
 
-vi.mock("@stigmer/react", () => {
+vi.mock("@stigmer/react-sdk", () => {
   const capture = (name: string) => (props: Record<string, unknown>) => {
     (page.props[name] ??= []).push(props);
     return null;

@@ -11,7 +11,7 @@
  *     organization delete stops with the organization in place, and
  *     another organization's invitations are untouched.
  */
-import type { ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+import type { ApiResourceRef } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 import { createLogger } from "@stigmer/server";
 import { describe, expect, it } from "vitest";
 

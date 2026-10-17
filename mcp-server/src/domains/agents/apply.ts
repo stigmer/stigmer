@@ -3,10 +3,10 @@
 // generated agentInputToProto bridge (codegen, src/gen/agent.ts) before the call.
 // Go parity: mcp-server/internal/domains/agents/apply.go.
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
 
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 
 import { agentInputToProto, type AgentInput } from "../../gen/agent.js";
 import { applyDeclaredVisibility } from "../apply-visibility.js";

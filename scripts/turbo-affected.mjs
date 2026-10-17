@@ -15,7 +15,7 @@
  * form, not `turbo run --affected`, which is package-level. The difference
  * matters here: two suites read fixtures that live outside any package
  * (turbo.json widens their `inputs`: apis/testdata/hitl/file-review for
- * @stigmer/sdk#test, test/fixtures/tool-view for sdk and react). The
+ * @stigmer/client#test, test/fixtures/tool-view for sdk and react). The
  * package-level view attributes such a change to the root and runs nothing;
  * the task-level view names the suites (measured 2026-09-11).
  *

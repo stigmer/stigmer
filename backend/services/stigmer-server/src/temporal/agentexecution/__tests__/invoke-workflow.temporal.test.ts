@@ -63,10 +63,10 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   RunSchema,
   RunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import { capturedSet } from "../../../domain/run/__tests__/file-review-seed.js";
 

@@ -12,11 +12,11 @@ import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import type { EvalSuite } from "@stigmer/plugin-package";
-import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
-import { PushEvalRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { EvalSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
+import { PushEvalRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";

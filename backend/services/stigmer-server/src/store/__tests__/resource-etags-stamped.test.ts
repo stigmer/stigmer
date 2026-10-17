@@ -21,13 +21,13 @@ import { create, fromBinary, getOption, toBinary } from "@bufbuild/protobuf";
 import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import { describe, expect, it } from "vitest";
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import {
   ApiResourceKind,
   ApiResourceKindSchema,
   kind_meta,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceGroup } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_group_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceGroup } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_group_pb";
 
 import { convertToChannel } from "../channel-kinds-merged.js";
 import { etagOf, stampEtag, storedEtagOf } from "../etag.js";

@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
 import {
   ApiResourceAuditSchema,
   ApiResourceAuditInfoSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 import { groupSessionsByTime, type SessionGroup } from "../group-sessions";
 
 const NOW = new Date("2026-03-18T14:00:00Z");

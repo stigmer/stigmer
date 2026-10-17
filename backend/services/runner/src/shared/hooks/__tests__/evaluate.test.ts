@@ -12,7 +12,7 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import { HookGroupSchema, HookHandlerSchema, type HookGroup } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { HookGroupSchema, HookHandlerSchema, type HookGroup } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { describe, expect, it, vi } from "vitest";
 import { hookLeaseKey } from "../../approval-policy.js";
 import { HookEvaluator, type HookEvaluatorDeps } from "../evaluate.js";

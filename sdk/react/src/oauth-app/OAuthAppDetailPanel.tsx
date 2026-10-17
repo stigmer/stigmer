@@ -1,14 +1,14 @@
 "use client";
 
 import { type FormEvent, useCallback, useId, useState } from "react";
-import { cn } from "@stigmer/theme";
-import { buildOAuthAppProto, getUserMessage } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { buildOAuthAppProto, getUserMessage } from "@stigmer/client";
 import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
-import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
+import type { OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
 import {
   TokenEndpointAuthMethod,
   VendorApprovalStatus,
-} from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import { useUpdateOAuthApp } from "./useUpdateOAuthApp.js";
 import { useDeleteOAuthApp } from "./useDeleteOAuthApp.js";

@@ -14,8 +14,8 @@
  * has a server that signs in.
  */
 
-import { cn } from "@stigmer/theme";
-import type { ResourceRef } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import type { ResourceRef } from "@stigmer/client";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { PluginServerSignIn } from "./PluginServerSignIn.js";
 import { usePlugin } from "./usePlugin.js";

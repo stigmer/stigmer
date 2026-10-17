@@ -9,7 +9,7 @@
  * answers. The state is read from the instant the controller hands in
  * (state.ts), never the wall clock, so a report and its `checked_at` agree.
  */
-import type { LicenseClaims } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+import type { LicenseClaims } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 import type { LicenseStatusProvider } from "@stigmer/server";
 
 import { licenseStateAt } from "./state.js";

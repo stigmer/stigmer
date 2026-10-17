@@ -4,14 +4,14 @@ import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { PlanSchema, type Plan } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
-import { PlanCommandController } from "@stigmer/protos/ai/stigmer/billing/plan/v1/command_pb";
-import { PlanIdSchema, ListPlansInputSchema, PlansSchema, type ListPlansInput, type Plans } from "@stigmer/protos/ai/stigmer/billing/plan/v1/io_pb";
-import { PlanQueryController } from "@stigmer/protos/ai/stigmer/billing/plan/v1/query_pb";
-import { PlanSpecSchema, PlanInstrument, PlanTermsSchema } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { Feature, EntitlementLimitsSchema, EntitlementsSchema } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import { PlanSchema, type Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
+import { PlanCommandController } from "@stigmer/apis/ai/stigmer/billing/plan/v1/command_pb";
+import { PlanIdSchema, ListPlansInputSchema, PlansSchema, type ListPlansInput, type Plans } from "@stigmer/apis/ai/stigmer/billing/plan/v1/io_pb";
+import { PlanQueryController } from "@stigmer/apis/ai/stigmer/billing/plan/v1/query_pb";
+import { PlanSpecSchema, PlanInstrument, PlanTermsSchema } from "@stigmer/apis/ai/stigmer/billing/plan/v1/spec_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { Feature, EntitlementLimitsSchema, EntitlementsSchema } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 
 /** Provides operations on plan resources. */
 export class PlanClient {

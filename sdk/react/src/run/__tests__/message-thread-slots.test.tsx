@@ -12,11 +12,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import React, { memo } from "react";
 import { create } from "@bufbuild/protobuf";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RecalledMemoriesSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import { RunArtifactKind, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Turn } from "@stigmer/sdk";
+import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RecalledMemoriesSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
+import { RunArtifactKind, InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Turn } from "@stigmer/client";
 
 import { MessageThread, type MessageThreadProps, type MessageThreadSlots } from "../MessageThread";
 import type { MessageEntryProps } from "../MessageEntry";

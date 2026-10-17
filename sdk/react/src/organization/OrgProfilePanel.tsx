@@ -1,10 +1,10 @@
 "use client";
 
 import { type FormEvent, useCallback, useEffect, useId, useMemo, useState } from "react";
-import { cn } from "@stigmer/theme";
-import { buildOrganizationProto, getUserMessage } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { buildOrganizationProto, getUserMessage } from "@stigmer/client";
 import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useOrganization } from "./useOrganization.js";
 import { useUpdateOrganization } from "./useUpdateOrganization.js";
 import { useRenameOrganization } from "./useRenameOrganization.js";

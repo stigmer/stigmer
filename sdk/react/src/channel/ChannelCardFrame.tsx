@@ -8,7 +8,7 @@
 // the menu differ, and those are each card's own.
 
 import type { ComponentType, ReactNode } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { TruncatedText } from "../internal/truncated-text.js";
 
 /** Props for {@link ChannelCardFrame}. */

@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import type { AgentInput } from "@stigmer/sdk";
+import type { AgentInput } from "@stigmer/client";
 import { listsPlugin, withPlugin } from "../plugin-on-agent.js";
 
 const ORG = "org_acme";

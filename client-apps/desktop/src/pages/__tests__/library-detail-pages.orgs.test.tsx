@@ -4,7 +4,7 @@
  * the agent a plugin was added to, a schedule's agent) names its
  * organization by id; the page opens it at a URL carrying that
  * organization's slug. A plugin's "Start a chat" opens the launcher with
- * the plugin named. The views are pinned in @stigmer/react.
+ * the plugin named. The views are pinned in @stigmer/react-sdk.
  */
 import type { ComponentType } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -20,7 +20,7 @@ const page = vi.hoisted(() => ({
   props: {} as Record<string, Record<string, unknown>[]>,
 }));
 
-vi.mock("@stigmer/react", () => {
+vi.mock("@stigmer/react-sdk", () => {
   const capture = (name: string) => (props: Record<string, unknown>) => {
     (page.props[name] ??= []).push(props);
     return null;

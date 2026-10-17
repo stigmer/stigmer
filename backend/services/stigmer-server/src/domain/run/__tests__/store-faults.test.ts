@@ -29,8 +29,8 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   GetArtifactContentRequestSchema,
   GetArtifactDownloadUrlRequestSchema,
@@ -38,9 +38,9 @@ import {
   RecoverRunInputSchema,
   ResumeRunInputSchema,
   TerminateRunInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { ConfirmToolUseInputSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { ConfirmToolUseInputSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
 
 import type { ArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
 import { createLogger } from "../../../boot/logger.js";
@@ -74,7 +74,7 @@ import { fileReviewSeed } from "./file-review-seed.js";
 import { SessionEventBroker } from "../../session/events/broker.js";
 import { draftOf } from "../../session/events/codec.js";
 import type { SessionEventQuery } from "../../../store/session-events.js";
-import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 const silentLogger = createLogger({
   level: "error",

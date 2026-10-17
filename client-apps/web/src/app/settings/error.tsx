@@ -7,7 +7,7 @@ import {
   classifyError,
   getUserMessage,
   type ErrorCategory,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { Button } from "@/domain/_shared/ui/button";
 
 interface SettingsErrorProps {

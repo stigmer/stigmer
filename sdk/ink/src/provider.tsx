@@ -1,6 +1,6 @@
 import React, { type ReactNode } from "react";
-import { StigmerContext, DeploymentModeContext } from "@stigmer/react";
-import type { Stigmer, DeploymentMode } from "@stigmer/sdk";
+import { StigmerContext, DeploymentModeContext } from "@stigmer/react-sdk";
+import type { Stigmer, DeploymentMode } from "@stigmer/client";
 
 /**
  * Props for {@link InkStigmerProvider}.
@@ -24,16 +24,16 @@ export interface InkStigmerProviderProps {
  * Stigmer provider for Ink (terminal) environments.
  *
  * Provides the same React contexts as `StigmerProvider` from
- * `@stigmer/react`, but without the DOM `<div>` wrapper used for
+ * `@stigmer/react-sdk`, but without the DOM `<div>` wrapper used for
  * CSS scoping (which is not applicable in a terminal).
  *
- * All hooks from `@stigmer/react` (`useStigmer`, `useSessionConversation`,
+ * All hooks from `@stigmer/react-sdk` (`useStigmer`, `useSessionConversation`,
  * `useSessionEvents`, etc.) work identically under this provider.
  *
  * @example
  * ```tsx
  * import { render } from "ink";
- * import { InkStigmerProvider, createNodeClient } from "@stigmer/ink";
+ * import { InkStigmerProvider, createNodeClient } from "@stigmer/ink-ui";
  *
  * const client = createNodeClient({
  *   baseUrl: "https://api.stigmer.ai",

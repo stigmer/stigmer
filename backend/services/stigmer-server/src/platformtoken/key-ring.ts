@@ -31,7 +31,7 @@ import {
 } from "node:crypto";
 import type { KeyObject } from "node:crypto";
 
-import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
 import { getOrCreateKey } from "../encryption/key-manager.js";
 import type { KeyCodec, KeyLoaderOptions } from "../encryption/key-manager.js";

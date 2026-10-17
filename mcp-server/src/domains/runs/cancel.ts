@@ -10,8 +10,8 @@
 // the interrupt stopped.
 
 import { createClient } from "@connectrpc/connect";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
 
 import { withTransport } from "../client.js";
 import { rpcError } from "../rpcerr.js";

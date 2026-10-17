@@ -31,7 +31,7 @@ npm run start -- --help   # run the CLI from source via tsx
 
 ## Design
 
-The CLI standardizes on the high-level `@stigmer/sdk` `Stigmer` client for reads
+The CLI standardizes on the high-level `@stigmer/client` `Stigmer` client for reads
 and the in-process Ink session view. The backend-client façade
 also exposes the underlying transport so write flows can use raw controllers for
 full YAML-to-proto fidelity.

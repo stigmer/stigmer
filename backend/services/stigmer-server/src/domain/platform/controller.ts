@@ -50,7 +50,7 @@ import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
-import { LicenseState } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+import { LicenseState } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 import {
   GetLicenseStatusOutputSchema,
   GetRunnerBootstrapConfigOutputSchema,
@@ -58,14 +58,14 @@ import {
   GetServerInfoOutputSchema,
   PlatformQueryController,
   ServerEdition,
-} from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+} from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import type {
   GetLicenseStatusOutput,
   GetRunnerBootstrapConfigOutput,
   GetRunnerScopedTokenInput,
   GetRunnerScopedTokenOutput,
   GetServerInfoOutput,
-} from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+} from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
 import type { SingleOrganization } from "../../pipeline/interceptors/single-organization.js";
 import type { Logger } from "../../boot/logger.js";

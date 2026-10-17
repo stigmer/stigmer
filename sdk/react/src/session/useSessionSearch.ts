@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStigmer } from "../hooks.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";
 import { useCursorPages } from "../internal/useCursorPages.js";

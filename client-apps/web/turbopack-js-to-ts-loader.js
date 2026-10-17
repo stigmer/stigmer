@@ -3,7 +3,7 @@
 // standard workaround for the missing `resolve.extensionAlias` feature in
 // Turbopack. See: https://github.com/vercel/next.js/issues/82945
 //
-// The SDK packages (@stigmer/sdk, @stigmer/react, @stigmer/theme) are authored
+// The SDK packages (@stigmer/client, @stigmer/react-sdk, @stigmer/design-tokens) are authored
 // with explicit `.js` specifiers so their published `dist` is resolvable by
 // plain Node ESM (the CLI / mcp-server run under Node). Turbopack consumes their
 // TypeScript source via `transpilePackages`, so every relative-`.js` form must

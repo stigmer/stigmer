@@ -16,15 +16,15 @@
 // so a script reads the same envelope either way, all criteria included.
 
 import { create } from "@bufbuild/protobuf";
-import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
+import { ScoreSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
 import {
   CriterionResult,
   ScoreSource,
   ScoreState,
-} from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
-import { ListScoresByRunRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
+import { ListScoresByRunRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
+import type { Stigmer } from "@stigmer/client";
 import { renderEmpty, renderProtoListJson, renderProtoListYaml, renderTable } from "../output/index.js";
 import { readCursorPages } from "./cursor-pages.js";
 

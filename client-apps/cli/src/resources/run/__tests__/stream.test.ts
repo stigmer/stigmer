@@ -9,12 +9,12 @@
 // epilogue are doubles.
 
 import { create } from "@bufbuild/protobuf";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type {
   ConfirmToolUseInput,
   StreamSessionEventsRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import type { Stigmer } from "@stigmer/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HeadlessStreamDeps } from "../../stream/headless.js";
 import { NdjsonRenderer } from "../../stream/render-ndjson.js";

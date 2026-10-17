@@ -46,11 +46,11 @@
 
 import { createHash } from "node:crypto";
 import { create } from "@bufbuild/protobuf";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
 import {
   RunArtifactKind,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ArtifactStorage } from "./artifact-storage.js";
 import { utcTimestamp } from "./status.js";
 import { MessageType } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";

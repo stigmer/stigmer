@@ -3,8 +3,8 @@
 // describeApprovalPolicySource maps the rule that decided a tool call's
 // approval requirement (`stigmer.permission.asked`'s `policy_source`, one word
 // such as `builtin_category` or `hook`; the fold's `ToolAsk.policySource`) to
-// a short human phrase. It is shared by @stigmer/react (the ApprovalCard
-// "why-gated" line and the tool-call detail view) and @stigmer/ink (the
+// a short human phrase. It is shared by @stigmer/react-sdk (the ApprovalCard
+// "why-gated" line and the tool-call detail view) and @stigmer/ink-ui (the
 // terminal approval prompt). The phrasing is intrinsic to the source's
 // semantics so the same label reads correctly whether the call is still
 // waiting (a gating source -> "required by ...") or already cleared (a bypass

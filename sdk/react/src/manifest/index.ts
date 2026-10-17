@@ -1,5 +1,5 @@
 // Manifest domain: the console-facing YAML edit/apply experience for every
-// registry-supported resource kind, built on the @stigmer/sdk manifest
+// registry-supported resource kind, built on the @stigmer/client manifest
 // engine (parseManifest / serializeManifest / stigmer.manifest).
 //
 // Headless-first: the hooks are independently importable; the

@@ -187,15 +187,15 @@ function generateTSResourceClient(
 
   if (needsApiResourceId) {
     needsCreate = true;
-    imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceIdSchema");
+    imports.addValue("@stigmer/apis/ai/stigmer/commons/apiresource/io_pb", "ApiResourceIdSchema");
   }
   if (needsApiResourceRef) {
     needsCreate = true;
-    imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
+    imports.addValue("@stigmer/apis/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
   }
   if (needsApiResourceDeleteInput) {
     needsCreate = true;
-    imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceDeleteInputSchema");
+    imports.addValue("@stigmer/apis/ai/stigmer/commons/apiresource/io_pb", "ApiResourceDeleteInputSchema");
     imports.addType("./types", "DeleteResourceInput");
   }
   if (needsEmptySchema) {
@@ -205,8 +205,8 @@ function generateTSResourceClient(
   if (hasInputType) {
     needsCreate = true;
     imports.addValue(importBase + "/spec_pb", specSchema.name + "Schema");
-    imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb", "ApiResourceMetadataSchema");
-    imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb", "ApiResourceVisibility");
+    imports.addValue("@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb", "ApiResourceMetadataSchema");
+    imports.addValue("@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb", "ApiResourceVisibility");
     imports.addValue("./proto-utils", "stripUndefined");
   }
 
@@ -452,7 +452,7 @@ function generateTSMethod(
     buf.push("  }\n");
   } else if (isApiResourceRefInput) {
     imports.addType("./types", "ResourceRef");
-    imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb", "ApiResourceKind");
+    imports.addValue("@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb", "ApiResourceKind");
     buf.push(`  async ${tsMethodName(sdkMethodName(svc, m))}(ref: ResourceRef): Promise<${outputType}> {\n`);
     buf.push("    try {\n");
     buf.push(`      ${returnKeyword}await this.${svc.role}.${tsMethodName(m.name)}(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.${cfg.resourceKind} }));\n`);
@@ -835,7 +835,7 @@ function generateTSBuildProto(
             buf.push(`    spec.${oneofTSName} = { case: ${goQuote(fieldName)}, value: input.${fieldName} };\n`);
           }
         } else if (childType === "ApiResourceReference") {
-          imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
+          imports.addValue("@stigmer/apis/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
           buf.push(`    spec.${oneofTSName} = { case: ${goQuote(fieldName)}, value: create(ApiResourceReferenceSchema, input.${fieldName}) };\n`);
         } else {
           buf.push(`    spec.${oneofTSName} = { case: ${goQuote(fieldName)}, value: input.${fieldName} };\n`);
@@ -855,7 +855,7 @@ function generateTSBuildProto(
     buf.push("      ...(input.labels && { labels: input.labels }),\n");
     buf.push("      ...(input.visibility && { visibility: input.visibility }),\n");
     if (cfg.isVersioned) {
-      imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb", "ApiResourceMetadataVersionSchema");
+      imports.addValue("@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb", "ApiResourceMetadataVersionSchema");
       buf.push("      ...(input.versionMessage && { version: Object.assign(create(ApiResourceMetadataVersionSchema), { message: input.versionMessage }) }),\n");
     }
     buf.push("    }),\n");
@@ -873,7 +873,7 @@ function generateTSBuildProto(
     buf.push("      ...(input.labels && { labels: input.labels }),\n");
     buf.push("      ...(input.visibility && { visibility: input.visibility }),\n");
     if (cfg.isVersioned) {
-      imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb", "ApiResourceMetadataVersionSchema");
+      imports.addValue("@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb", "ApiResourceMetadataVersionSchema");
       buf.push("      ...(input.versionMessage && { version: Object.assign(create(ApiResourceMetadataVersionSchema), { message: input.versionMessage }) }),\n");
     }
     buf.push("    }),\n");
@@ -909,13 +909,13 @@ function emitTSPreComputeField(buf: string[], f: FieldSchema, imports: TsImportS
     imports.addValue("@bufbuild/protobuf/wkt", "ValueSchema");
     buf.push(`  const ${fieldName} = input.${fieldName} !== undefined ? fromJson(ValueSchema, input.${fieldName}) : undefined;\n`);
   } else if (t.kind === "message" && t.messageType === "ApiResourceReference") {
-    imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
+    imports.addValue("@stigmer/apis/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
     const init = refKind !== 0 ? `{ ...input.${fieldName}, kind: ${refKind} }` : `input.${fieldName}`;
     buf.push(`  const ${fieldName} = (input.${fieldName}?.slug || input.${fieldName}?.org || input.${fieldName}?.id) ? create(ApiResourceReferenceSchema, ${init}) : undefined;\n`);
   } else if (t.kind === "message") {
     buf.push(`  const ${fieldName} = input.${fieldName} ? build${t.messageType}Proto(input.${fieldName}) : undefined;\n`);
   } else if (t.kind === "array" && t.elementType?.kind === "message" && t.elementType.messageType === "ApiResourceReference") {
-    imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
+    imports.addValue("@stigmer/apis/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
     if (refKind !== 0) {
       buf.push(`  const ${fieldName} = input.${fieldName}?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: ${refKind} }));\n`);
     } else {
@@ -1024,7 +1024,7 @@ function emitTSNestedBuilders(
       if (typeMap.has(childType) && !isSpecialType(childType)) {
         buf.push(`    msg.${oneofName} = { case: ${goQuote(fieldName)}, value: build${childType}Proto(input.${fieldName}) };\n`);
       } else if (isSpecialType(childType) && childType === "ApiResourceReference") {
-        imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
+        imports.addValue("@stigmer/apis/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
         buf.push(`    msg.${oneofName} = { case: ${goQuote(fieldName)}, value: create(ApiResourceReferenceSchema, ${tsRefWithKind(`input.${fieldName}`, field)}) };\n`);
       } else {
         buf.push(`    msg.${oneofName} = { case: ${goQuote(fieldName)}, value: input.${fieldName} };\n`);
@@ -1065,7 +1065,7 @@ function emitTSNestedFieldAssign(buf: string[], f: FieldSchema, typeMap: Map<str
   } else if (t.kind === "array" && (t.elementType === undefined || t.elementType.kind !== "message")) {
     buf.push(`  if (input.${fieldName}) msg.${fieldName} = input.${fieldName};\n`);
   } else if (t.kind === "array" && t.elementType?.kind === "message" && t.elementType.messageType === "ApiResourceReference") {
-    imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
+    imports.addValue("@stigmer/apis/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
     if (refKind !== 0) {
       buf.push(`  if (input.${fieldName}) msg.${fieldName} = input.${fieldName}.map(r => create(ApiResourceReferenceSchema, { ...r, kind: ${refKind} }));\n`);
     } else {
@@ -1077,7 +1077,7 @@ function emitTSNestedFieldAssign(buf: string[], f: FieldSchema, typeMap: Map<str
       buf.push(`  if (input.${fieldName}) msg.${fieldName} = input.${fieldName}.map(build${elemMsg}Proto);\n`);
     }
   } else if (t.kind === "message" && t.messageType === "ApiResourceReference") {
-    imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
+    imports.addValue("@stigmer/apis/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
     const init = refKind !== 0 ? `{ ...input.${fieldName}, kind: ${refKind} }` : `input.${fieldName}`;
     buf.push(`  if (input.${fieldName}?.slug || input.${fieldName}?.org || input.${fieldName}?.id) msg.${fieldName} = create(ApiResourceReferenceSchema, ${init});\n`);
   } else if (t.kind === "message") {

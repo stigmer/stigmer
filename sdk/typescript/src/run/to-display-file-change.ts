@@ -11,12 +11,12 @@
 // A pure derive-on-read projection, called at render time by the review
 // card and the session's Changes surface, never stored.
 //
-// Framework-agnostic (no React) so it is shared across @stigmer/react and
-// @stigmer/ink, alongside tool-view.ts.
+// Framework-agnostic (no React) so it is shared across @stigmer/react-sdk and
+// @stigmer/ink-ui, alongside tool-view.ts.
 
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { CapturedFileChange } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { FileContent } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
+import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 /**
  * How a file changed, in the word the session's file-review events use

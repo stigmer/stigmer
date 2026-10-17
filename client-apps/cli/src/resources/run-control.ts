@@ -12,14 +12,14 @@
 // layer owns presentation (single source of the success wording).
 
 import { create } from "@bufbuild/protobuf";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   PauseRunInputSchema,
   ResumeRunInputSchema,
   TerminateRunInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import type { Stigmer } from "@stigmer/client";
 import { cancelAgentRun, formatAgentPhase } from "./runs.js";
 
 /** Outcome of a control verb: the post-mutation phase. */

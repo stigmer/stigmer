@@ -24,13 +24,13 @@
 import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { EvalRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { EvalRunPhase, EvalRunPluginSchema, EvalRunTryState } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { EvalRunSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { EvalRunPhase, EvalRunPluginSchema, EvalRunTryState } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { EVAL_RUN_LABEL } from "../../../domain/eval-run/constants.js";
 import { newPatternPool } from "../../../domain/eval-run/graders/patterns.js";

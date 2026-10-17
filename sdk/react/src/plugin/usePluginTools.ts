@@ -15,7 +15,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { ListPluginToolsInputSchema, type PluginTool } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+import { ListPluginToolsInputSchema, type PluginTool } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

@@ -1,4 +1,4 @@
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 /**
  * The shared glyph vocabulary for thread cards (session tool-call rows and

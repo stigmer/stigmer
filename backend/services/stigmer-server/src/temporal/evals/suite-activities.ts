@@ -32,7 +32,7 @@ import { create } from "@bufbuild/protobuf";
 import { timestampNow } from "@bufbuild/protobuf/wkt";
 import { Context } from "@temporalio/activity";
 
-import { EvalRunTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { EvalRunTargetSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import {
   EvalRunAbortSchema,
   EvalRunArmSchema,
@@ -42,8 +42,8 @@ import {
   EvalRunPhase,
   EvalRunTryState,
   EvalRunTrySchema,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import type { EvalRunArm, EvalRunCase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import type { EvalRunArm, EvalRunCase } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import { EVAL_RUN_SUITES_UNREADABLE_ERROR } from "../../domain/eval-run/constants.js";

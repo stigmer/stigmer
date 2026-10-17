@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import type { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { PermissionGate } from "../grant/PermissionGate.js";
 import { useOrganization } from "../organization/useOrganization.js";
 import { useSingleOrg } from "../server-info.js";

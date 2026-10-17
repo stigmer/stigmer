@@ -88,12 +88,12 @@ jobs:
           node-version-file: ".nvmrc"
 
       # Root install, deliberately not `cd test/e2e && npm ci` — the e2e
-      # package resolves @stigmer/sdk + @stigmer/protos through workspace
+      # package resolves @stigmer/client + @stigmer/apis through workspace
       # hoisting (the make test-e2e-approval precedent).
       - name: Install npm workspace dependencies
         run: npm ci
 
-      # The web console and the SDK resolve @stigmer/protos through built
+      # The web console and the SDK resolve @stigmer/apis through built
       # dist/ output (the package `exports` map points only at ./dist/*.js).
       - name: Build SDK libraries
         run: npm run build:libs

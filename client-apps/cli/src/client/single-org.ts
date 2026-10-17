@@ -15,7 +15,7 @@
 // failed ask (an unreachable server, a refused credential) rejects with its
 // own error, so the command reports the real cause rather than "organization
 // not set", and is not remembered, so the next ask tries again.
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 import { UsageError } from "../errors/usage-error.js";
 
 const answers = new WeakMap<Stigmer, Promise<boolean>>();

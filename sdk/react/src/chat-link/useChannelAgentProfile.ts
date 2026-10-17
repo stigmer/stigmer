@@ -4,8 +4,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   GetChannelAgentProfileRequestSchema,
   type ChannelAgentProfile,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
-import { isNotFound } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
+import { isNotFound } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 import type { ChatLinkAudience } from "./webChannelDraft.js";

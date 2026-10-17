@@ -29,8 +29,8 @@
  * reason the contract documents on each gated command, so a console tells a
  * renewal refusal by its reason, never by its copy.
  */
-import type { LicenseClaims } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
-import type { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { LicenseClaims } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
+import type { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { PipelineStep, RequestContext } from "@stigmer/server";
 import { failedPreconditionError } from "@stigmer/server";
 

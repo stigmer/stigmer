@@ -8,7 +8,7 @@ import { act, renderHook } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it, vi } from "vitest";
 
-import { GetOrgUsageReportOutputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { GetOrgUsageReportOutputSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 
 const downloads = vi.hoisted(() => [] as Array<{ filename: string; csv: string }>);
 

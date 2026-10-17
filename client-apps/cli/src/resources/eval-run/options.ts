@@ -38,10 +38,10 @@
 // A refusal exits 1, as the format exits 1 for an invalid option, not the
 // CLI's usual usage code 2, which the format keeps for a partial run.
 
-import { ALLOW_TOOL_PATTERN } from "@stigmer/sdk";
-import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import type { EvalRunTargetInput } from "@stigmer/sdk";
+import { ALLOW_TOOL_PATTERN } from "@stigmer/client";
+import { EvalRunAblation } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import type { EvalRunTargetInput } from "@stigmer/client";
 import { CliExitError } from "../../errors/index.js";
 
 /** The exit code of an invalid option, as the format has it. */

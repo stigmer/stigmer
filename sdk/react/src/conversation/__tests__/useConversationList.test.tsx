@@ -13,7 +13,7 @@ import {
   ChannelConversationListFilter,
   ChannelConversationSchema,
   ConversationControl,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useConversationList } from "../useConversationList";

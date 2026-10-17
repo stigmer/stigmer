@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { WorkspaceWriteBack } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 
 /**
  * A single write-back entry enriched with the run it came from.

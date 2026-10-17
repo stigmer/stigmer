@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import type { Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { deriveScheduleState } from "./scheduleState.js";

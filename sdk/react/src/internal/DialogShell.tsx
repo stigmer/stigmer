@@ -7,7 +7,7 @@ import type {
   ReactNode,
   SyntheticEvent,
 } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import {
   PortalContainerContext,
   useStigmerPortalContainer,

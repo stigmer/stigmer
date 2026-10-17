@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import {
   toProtoHarness,
   fromProtoHarness,

@@ -41,8 +41,8 @@
  * claims downstream, and the propagation lane stamps `origin:
  * "in-process"` on it.
  */
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { accountAsCaller } from "../domain/identityaccount/actor.js";
 import { accountForStamp } from "../domain/identityaccount/resolve.js";

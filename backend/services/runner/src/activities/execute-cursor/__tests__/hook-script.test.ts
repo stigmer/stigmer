@@ -22,7 +22,7 @@ import { join } from "node:path";
 
 import { buildHookClientScript, generateHookScript } from "../hook-script.js";
 import { create as createMessage } from "@bufbuild/protobuf";
-import { HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
 import { HookSet } from "../../../shared/hooks/hook-set.js";
 import { buildShellEnv } from "../../../shared/shell-env.js";

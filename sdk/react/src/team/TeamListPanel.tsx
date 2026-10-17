@@ -10,10 +10,10 @@
  * be one membership read per team on every render of the list, and the
  * count lives where the members do: on the team's own page.
  */
-import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import { ChevronRight, UsersRound } from "lucide-react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 

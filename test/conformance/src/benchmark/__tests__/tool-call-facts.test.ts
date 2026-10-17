@@ -12,7 +12,7 @@
 // words; a denied call is `skipped`; the final to-do list is counted by
 // state.
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import type { ToolUse } from "@stigmer/session-log";
 import { describe, expect, it } from "vitest";
 import type { TimingLine } from "../report";

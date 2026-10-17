@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage } from "@stigmer/client";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { useOrg } from "../organization/OrgProvider.js";

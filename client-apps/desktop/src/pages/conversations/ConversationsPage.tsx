@@ -6,9 +6,9 @@ import {
   type ConversationIdentity,
   useActiveOrgId,
   useOrgSlugForId,
-} from "@stigmer/react";
-import { isDeletedReference } from "@stigmer/sdk";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/react-sdk";
+import { isDeletedReference } from "@stigmer/client";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 /**
  * The Conversations area — the desktop twin of web's

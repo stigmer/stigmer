@@ -4,11 +4,11 @@
 // are numbered (`seq`) in the order they are delivered.
 
 import { vi } from "vitest";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import type {
   StreamSessionEventsRequest,
   StreamSessionEventsResponse,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { samples } from "../../test/samples";
 
 /** A controllable `session.streamEvents`. */

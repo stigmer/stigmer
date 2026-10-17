@@ -59,8 +59,8 @@ vi.mock("@stigmer/embed", () => ({
 const getAgentProfileMock = vi.fn<(request?: unknown) => Promise<unknown>>();
 const stigmerConfigs: unknown[] = [];
 const guestAuthConfigs: Record<string, unknown>[] = [];
-vi.mock("@stigmer/sdk", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@stigmer/sdk")>();
+vi.mock("@stigmer/client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@stigmer/client")>();
   return {
     ...actual,
     Stigmer: class MockStigmer {
@@ -77,7 +77,7 @@ vi.mock("@stigmer/sdk", async (importOriginal) => {
 });
 
 const visitorChatProps: Record<string, unknown>[] = [];
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   StigmerProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="provider">{children}</div>
   ),
@@ -87,7 +87,7 @@ vi.mock("@stigmer/react", () => ({
   },
 }));
 
-import { StigmerError } from "@stigmer/sdk";
+import { StigmerError } from "@stigmer/client";
 import ChatLinkPage from "../ChatLinkPage";
 
 // A real StigmerError so the page's (unmocked) isNotFound helper matches it,

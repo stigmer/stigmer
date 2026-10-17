@@ -21,14 +21,14 @@
 
 import type { DescService } from "@bufbuild/protobuf";
 import { type Client, createClient, type Transport } from "@connectrpc/connect";
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   isResourceAvailable,
   type ServerInfo,
   Stigmer,
   type TokenProvider,
-} from "@stigmer/sdk";
-import { createNodeTransport, normalizeEndpoint } from "@stigmer/sdk/node";
+} from "@stigmer/client";
+import { createNodeTransport, normalizeEndpoint } from "@stigmer/client/node";
 import {
   type Config,
   load,

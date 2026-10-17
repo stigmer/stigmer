@@ -6,8 +6,8 @@ import {
   deletedReferenceLabel,
   isDeletedReference,
   type ResourceRef,
-} from "@stigmer/sdk";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/client";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { Copy, FileJson, FileText } from "lucide-react";
 import type { HarnessOption } from "../../models/harness.js";
 import { HARNESS_META } from "../../models/harness.js";

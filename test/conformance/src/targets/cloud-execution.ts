@@ -27,7 +27,7 @@
 // (the hermetic launcher or a pre-provisioned endpoint owns its lifecycle).
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import type { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { CLOUD_ENV } from "../harness/cloud-env";
 import type { ConformanceClients, PresentingOptions } from "../harness/clients";
 import { McpToolFixture } from "../harness/mcp-server";

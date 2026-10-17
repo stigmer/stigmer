@@ -44,8 +44,8 @@
 // has no start time. Pinned by `__tests__/result-document.test.ts`.
 
 import { timestampMs } from "@bufbuild/protobuf/wkt";
-import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import type { EvalRunTarget } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import type { EvalRunTarget } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import {
   EvalRunPartialReason,
   EvalRunPhase,
@@ -57,8 +57,8 @@ import {
   type EvalRunPlugin,
   type EvalRunStatus,
   type EvalRunTry,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 /** Why a suite did not finish, in the format's words. */
 export type ResultPartialReason = "cost_ceiling" | "interrupted";

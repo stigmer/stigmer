@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { type RunStatus, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { WorkspaceWriteBackPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
-import { GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { type RunStatus, RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { WorkspaceWriteBackPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
+import { GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import {
   WriteBackCoordinator,

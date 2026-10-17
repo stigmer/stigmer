@@ -19,7 +19,7 @@
  * has answered, no button is offered.
  */
 import { useCallback, useId, useRef, useState } from "react";
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { useActiveOrgId } from "../organization/OrgProvider.js";

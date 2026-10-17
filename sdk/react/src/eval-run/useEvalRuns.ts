@@ -17,11 +17,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
 import {
   ListEvalRunsByAgentRequestSchema,
   ListEvalRunsByPluginRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useCursorPages } from "../internal/useCursorPages.js";
 import { isEvalActive } from "./eval-view.js";

@@ -2,8 +2,8 @@
 
 import { useCallback, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import type { AttachmentInput } from "@stigmer/sdk";
+import { UploadAttachmentRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import type { AttachmentInput } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import {

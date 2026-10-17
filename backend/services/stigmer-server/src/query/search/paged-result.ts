@@ -11,7 +11,7 @@
  * readonly types carry the same do-not-mutate contract without the
  * per-call copies (TS's compile-time twin of Go's runtime discipline).
  */
-import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 
 export interface SearchPagedResult {
   readonly results: readonly SearchResult[];

@@ -8,9 +8,9 @@
 import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render } from "ink-testing-library";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { ThreadMessage } from "@stigmer/react";
-import { samples } from "@stigmer/react/test";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { ThreadMessage } from "@stigmer/react-sdk";
+import { samples } from "@stigmer/react-sdk/test";
 import { MessageEntry } from "../components/MessageEntry.js";
 import { RunProgress } from "../components/RunProgress.js";
 import { ToolCallItem } from "../components/ToolCallItem.js";

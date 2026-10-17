@@ -8,8 +8,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { Stigmer } from "@stigmer/sdk";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Stigmer } from "@stigmer/client";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { samples } from "../../test/samples";
 import { useRunActions } from "../useRunActions";

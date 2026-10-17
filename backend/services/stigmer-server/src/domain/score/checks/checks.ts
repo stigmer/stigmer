@@ -13,7 +13,7 @@
  */
 import { createHash } from "node:crypto";
 
-import { CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+import { CriterionResult } from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
 
 import type { RunAction, RunActions } from "./actions.js";
 

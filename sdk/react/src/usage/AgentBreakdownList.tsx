@@ -11,8 +11,8 @@
  * optional links.
  */
 
-import { cn } from "@stigmer/theme";
-import type { AgentUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { cn } from "@stigmer/design-tokens";
+import type { AgentUsageSummary } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { formatCompactCount, formatWorkingTime, sharePercent } from "./format.js";
 
 /** Props for {@link AgentBreakdownList}. */

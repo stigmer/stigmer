@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import {
   OAUTH_CALLBACK_MESSAGE_TYPE,
   OAUTH_BROADCAST_CHANNEL,
@@ -83,7 +83,7 @@ function announce(message: OAuthCallbackMessage): void {
  * @example
  * ```tsx
  * // app/auth/oauth/callback/page.tsx (Next.js)
- * import { OAuthCallbackHandler } from "@stigmer/react";
+ * import { OAuthCallbackHandler } from "@stigmer/react-sdk";
  *
  * export default function OAuthCallbackPage() {
  *   return <OAuthCallbackHandler />;

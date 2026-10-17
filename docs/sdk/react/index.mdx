@@ -1,25 +1,25 @@
 ---
 title: React SDK
 description:
-  Install and configure @stigmer/react to build UIs with pre-built hooks and
+  Install and configure @stigmer/react-sdk to build UIs with pre-built hooks and
   components for the Stigmer API.
 ---
 
-`@stigmer/react` provides React hooks and UI components for every domain in the
+`@stigmer/react-sdk` provides React hooks and UI components for every domain in the
 Stigmer API. The hooks manage data fetching, mutations, and real-time streaming.
 The components render the same views used in the Stigmer Console — session
 composers, message threads, approval cards, and resource detail panels.
 
-This package requires a configured `@stigmer/sdk` client. See
+This package requires a configured `@stigmer/client` client. See
 [SDK Overview](/docs/sdk/overview) for client setup and authentication.
 
 ## Installation
 
 ```bash
-npm install @stigmer/react @stigmer/sdk @stigmer/protos @bufbuild/protobuf
+npm install @stigmer/react-sdk @stigmer/client @stigmer/apis @bufbuild/protobuf
 ```
 
-`@stigmer/protos` provides the protocol buffer types that hooks and components
+`@stigmer/apis` provides the protocol buffer types that hooks and components
 use. `@bufbuild/protobuf` is its runtime dependency.
 
 `react` and `react-dom` 19+ must already be installed.
@@ -42,9 +42,9 @@ Import the stylesheet, create a client, and wrap your component tree in
 `StigmerProvider`:
 
 ```tsx
-import { Stigmer } from "@stigmer/sdk";
-import { StigmerProvider } from "@stigmer/react";
-import "@stigmer/react/styles.css";
+import { Stigmer } from "@stigmer/client";
+import { StigmerProvider } from "@stigmer/react-sdk";
+import "@stigmer/react-sdk/styles.css";
 
 const client = new Stigmer({
   baseUrl: "https://api.stigmer.ai",
@@ -83,9 +83,9 @@ Cognito, Entra ID). The SDK sends their JWT directly to Stigmer for validation.
 
 ```tsx
 import { useMemo } from "react";
-import { Stigmer } from "@stigmer/sdk";
-import { StigmerProvider } from "@stigmer/react";
-import "@stigmer/react/styles.css";
+import { Stigmer } from "@stigmer/client";
+import { StigmerProvider } from "@stigmer/react-sdk";
+import "@stigmer/react-sdk/styles.css";
 import { useAuth } from "./your-auth-provider";
 
 function App() {
@@ -126,9 +126,9 @@ token and passes it to `getAccessToken`.
 
 ```tsx
 import { useMemo } from "react";
-import { Stigmer } from "@stigmer/sdk";
-import { StigmerProvider } from "@stigmer/react";
-import "@stigmer/react/styles.css";
+import { Stigmer } from "@stigmer/client";
+import { StigmerProvider } from "@stigmer/react-sdk";
+import "@stigmer/react-sdk/styles.css";
 
 async function getAccessToken(): Promise<string | null> {
   const res = await fetch("/api/stigmer-token");
@@ -174,7 +174,7 @@ for backend setup in TypeScript, Go, Python, and Java.
 Any descendant component can access the SDK client with `useStigmer()`:
 
 ```tsx
-import { useStigmer } from "@stigmer/react";
+import { useStigmer } from "@stigmer/react-sdk";
 
 function MyComponent() {
   const stigmer = useStigmer();
@@ -209,7 +209,7 @@ import {
   ApiResourceKind,
   CloudFeatureNotice,
   ApiKeyListPanel,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 
 function ApiKeySection() {
   const available = useResourceAvailable(ApiResourceKind.api_key);
@@ -224,7 +224,7 @@ function ApiKeySection() {
 |------|------|---------|-------------|
 | `client` | `Stigmer` | — | Configured SDK client instance. Required. |
 | `deploymentMode` | `"local" \| "cloud"` | `"cloud"` | Backend deployment mode. Controls feature availability. |
-| `preset` | `ThemePresetId` | — | Theme preset from `@stigmer/theme`. Applies preset design tokens to all descendant components. |
+| `preset` | `ThemePresetId` | — | Theme preset from `@stigmer/design-tokens`. Applies preset design tokens to all descendant components. |
 | `className` | `string` | — | Additional CSS classes on the scoping wrapper. |
 | `children` | `ReactNode` | — | Application tree. |
 

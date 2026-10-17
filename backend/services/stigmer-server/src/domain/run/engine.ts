@@ -28,7 +28,7 @@
 import type { RequestContext } from "../../pipeline/request-context.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { unavailableError } from "../../pipeline/errors.js";
-import type { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
 import { ENGINE_UNAVAILABLE_MESSAGE } from "./constants.js";
 

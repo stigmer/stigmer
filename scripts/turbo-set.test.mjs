@@ -50,8 +50,8 @@ test("libs set is the package name of every PACKAGES entry, in publish order", (
   );
   assert.equal(
     names[0],
-    "@stigmer/protos",
-    "protos publishes first, so it builds first",
+    "@stigmer/apis",
+    "the API stubs publish first, so they build first",
   );
   assert.equal(
     names.at(-1),
@@ -65,25 +65,25 @@ test("runner-deps set is the union of the runner's and the server's file:-linked
   const dir = scratchRepo({
     "backend/services/runner/package.json": {
       dependencies: {
-        "@stigmer/protos": "file:../../../apis/stubs/ts",
+        "@stigmer/apis": "file:../../../apis/stubs/ts",
         "@stigmer/zip-structure": "file:../../libs/ts/zip-structure",
         "@temporalio/worker": "^1.0.0", // not ours
-        "@stigmer/sdk": "^0.5.0", // ours, but from the registry: not a link
+        "@stigmer/client": "^0.5.0", // ours, but from the registry: not a link
       },
       devDependencies: {
-        "@stigmer/react": "file:../../../sdk/react", // dev-only: not what a release stamps
+        "@stigmer/react-sdk": "file:../../../sdk/react", // dev-only: not what a release stamps
       },
     },
     "backend/services/stigmer-server/package.json": {
       dependencies: {
-        "@stigmer/protos": "file:../../../apis/stubs/ts",
+        "@stigmer/apis": "file:../../../apis/stubs/ts",
         "@stigmer/temporal-codecs": "file:../../libs/ts/temporal-codecs",
       },
     },
   });
   try {
     assert.deepEqual(runnerLinkedSet(dir), [
-      "@stigmer/protos",
+      "@stigmer/apis",
       "@stigmer/temporal-codecs",
       "@stigmer/zip-structure",
     ]);
@@ -100,10 +100,10 @@ test("runner-deps set in this repo names the libs both standalone packages link 
     "backend/services/stigmer-server/package.json",
   ]);
   assert.deepEqual(runnerLinkedSet(), [
+    "@stigmer/apis",
     "@stigmer/eval-runtime",
     "@stigmer/outbound",
     "@stigmer/plugin-package",
-    "@stigmer/protos",
     "@stigmer/session-log",
     "@stigmer/temporal-codecs",
     "@stigmer/tool-vocabulary",
@@ -211,8 +211,8 @@ test("selectPackages: the set's order, narrowed to --only; an unknown name is re
 });
 
 test("selectPackages in this repo: a lib named out of `libs` stays; a client app named out of `libs` is not in the set", () => {
-  assert.deepEqual(selectPackages("libs", ["@stigmer/sdk", "web"]), [
-    "@stigmer/sdk",
+  assert.deepEqual(selectPackages("libs", ["@stigmer/client", "web"]), [
+    "@stigmer/client",
   ]);
   assert.deepEqual(selectPackages("workspace", ["web"]), ["web"]);
   assert.deepEqual(
@@ -225,14 +225,14 @@ test("selectPackages in this repo: a lib named out of `libs` stays; a client app
 test("turboArgs with --only filters to the selection and returns null for an empty one", () => {
   assert.deepEqual(
     turboArgs("libs", "test", [
-      "--only=@stigmer/react,@stigmer/sdk",
+      "--only=@stigmer/react-sdk,@stigmer/client",
       "--force",
     ]),
     [
       "run",
       "test",
-      "--filter=@stigmer/sdk",
-      "--filter=@stigmer/react",
+      "--filter=@stigmer/client",
+      "--filter=@stigmer/react-sdk",
       "--concurrency=1",
       "--force",
     ],
@@ -250,10 +250,10 @@ test("turboArgs: task first, one --filter per package, caller flags last", () =>
   assert.deepEqual(args, [
     "run",
     "build",
+    "--filter=@stigmer/apis",
     "--filter=@stigmer/eval-runtime",
     "--filter=@stigmer/outbound",
     "--filter=@stigmer/plugin-package",
-    "--filter=@stigmer/protos",
     "--filter=@stigmer/session-log",
     "--filter=@stigmer/temporal-codecs",
     "--filter=@stigmer/tool-vocabulary",

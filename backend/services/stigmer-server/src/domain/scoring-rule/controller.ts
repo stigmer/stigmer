@@ -17,17 +17,17 @@
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
-import { ScoringRuleCommandController } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/command_pb";
-import { ScoringRuleQueryController } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/query_pb";
-import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
-import type { ScoringRule } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
-import { ScoringRuleIdSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/io_pb";
+import { ScoringRuleCommandController } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/command_pb";
+import { ScoringRuleQueryController } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/query_pb";
+import { ScoringRuleSchema } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import type { ScoringRule } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import { ScoringRuleIdSchema } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/io_pb";
 import type {
   ScoringRuleId,
   GetScoringRuleByAgentRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { UpdateScoringRuleInput } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { UpdateScoringRuleInput } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { CredentialBinding } from "../../extensions/credential-binding.js";

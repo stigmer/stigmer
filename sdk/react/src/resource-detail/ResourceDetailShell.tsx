@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
 import { Tabs } from "../tabs/Tabs.js";
 import { ResourceActionBar } from "./ResourceActionBar.js";

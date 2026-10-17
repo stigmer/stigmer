@@ -1,6 +1,6 @@
-import { ChannelConversationListFilter } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
-import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_query_pb";
-import { ChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/query_pb";
+import { ChannelConversationListFilter } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { ChannelConversationQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_query_pb";
+import { ChannelQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/query_pb";
 import { createStigmerPreview } from "../../_shared/stigmer-preview";
 import {
   ALL_CONVERSATIONS,

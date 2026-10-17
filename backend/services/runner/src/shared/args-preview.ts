@@ -38,7 +38,7 @@
  * on a row's `args`, or in an approval message (stigmer#1119). Matched
  * case-insensitively against the top-level key name. Clients mirror this set
  * to hide the values on rows persisted before the runner redacted `args`
- * (`@stigmer/sdk`'s `isSecretArgKey`); the shared, machine-checked contract is
+ * (`@stigmer/client`'s `isSecretArgKey`); the shared, machine-checked contract is
  * `test/fixtures/tool-view/secret-args.json` — keep this set and that fixture
  * in lockstep.
  */

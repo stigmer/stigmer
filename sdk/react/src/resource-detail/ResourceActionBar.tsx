@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { ActionMenu } from "../action-menu/index.js";
 import type { DetailAction } from "./types.js";
 

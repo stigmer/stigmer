@@ -78,7 +78,7 @@ test("PACKAGES publishes the workspace libs the runner's release stamps as deps"
   // The runner release workflows rewrite these file: links to the exact
   // release version right before `npm publish` — a lib missing from the
   // publish set makes every embedder's fresh runner install unresolvable.
-  assert.ok(PACKAGES.includes("apis/stubs/ts"), "@stigmer/protos must be in PACKAGES");
+  assert.ok(PACKAGES.includes("apis/stubs/ts"), "@stigmer/apis must be in PACKAGES");
   assert.ok(
     PACKAGES.includes("backend/libs/ts/temporal-codecs"),
     "@stigmer/temporal-codecs must be in PACKAGES",
@@ -130,7 +130,7 @@ test("generateDistPackageJson carries bin and pins workspace deps", () => {
         license: "Apache-2.0",
         type: "module",
         engines: { node: ">=20" },
-        dependencies: { "@stigmer/protos": "*", "@stigmer/sdk": "*", zod: "^3.25.0" },
+        dependencies: { "@stigmer/apis": "*", "@stigmer/client": "*", zod: "^3.25.0" },
         publishConfig: {
           main: "./dist/index.js",
           types: "./dist/index.d.ts",
@@ -148,8 +148,8 @@ test("generateDistPackageJson carries bin and pins workspace deps", () => {
     assert.equal(dist.types, "./index.d.ts");
     assert.equal(dist.version, "1.2.3");
     // Workspace deps pinned to the lockstep version; third-party untouched.
-    assert.equal(dist.dependencies["@stigmer/protos"], "1.2.3");
-    assert.equal(dist.dependencies["@stigmer/sdk"], "1.2.3");
+    assert.equal(dist.dependencies["@stigmer/apis"], "1.2.3");
+    assert.equal(dist.dependencies["@stigmer/client"], "1.2.3");
     assert.equal(dist.dependencies.zod, "^3.25.0");
   } finally {
     rmSync(pkgDir, { recursive: true, force: true });
@@ -161,11 +161,11 @@ test("generateDistPackageJson carries bin and pins workspace deps", () => {
 // third-party dep to ignore, and a package nothing reaches (embed). Keyed by
 // real PACKAGES paths so the order assertion is meaningful.
 const syntheticManifests = new Map([
-  ["apis/stubs/ts", { name: "@stigmer/protos" }],
-  ["sdk/typescript", { name: "@stigmer/sdk", peerDependencies: { "@stigmer/protos": "*", "@bufbuild/protobuf": "^2" } }],
+  ["apis/stubs/ts", { name: "@stigmer/apis" }],
+  ["sdk/typescript", { name: "@stigmer/client", peerDependencies: { "@stigmer/apis": "*", "@bufbuild/protobuf": "^2" } }],
   ["sdk/embed", { name: "@stigmer/embed" }],
-  ["sdk/ink", { name: "@stigmer/ink", dependencies: { ink: "^5" }, peerDependencies: { "@stigmer/sdk": "*" } }],
-  ["client-apps/cli", { name: "@stigmer/cli", dependencies: { "@stigmer/ink": "*", "@stigmer/sdk": "*" } }],
+  ["sdk/ink", { name: "@stigmer/ink-ui", dependencies: { ink: "^5" }, peerDependencies: { "@stigmer/client": "*" } }],
+  ["client-apps/cli", { name: "@stigmer/cli", dependencies: { "@stigmer/ink-ui": "*", "@stigmer/client": "*" } }],
 ]);
 
 test("packageClosure follows dependencies and peers, in PACKAGES order", () => {
@@ -178,7 +178,7 @@ test("packageClosure follows dependencies and peers, in PACKAGES order", () => {
     "client-apps/cli",
   ]);
   // A leaf's closure is itself.
-  assert.deepEqual(packageClosure("@stigmer/protos", syntheticManifests), ["apis/stubs/ts"]);
+  assert.deepEqual(packageClosure("@stigmer/apis", syntheticManifests), ["apis/stubs/ts"]);
 });
 
 test("packageClosure of several names is the union of their closures, once each, in PACKAGES order", () => {
@@ -186,15 +186,15 @@ test("packageClosure of several names is the union of their closures, once each,
   // one --only each; overlapping closures (ink and sdk both reach protos)
   // must not pack a package twice, and the order stays the publish order
   // whatever order the names arrive in.
-  assert.deepEqual(packageClosure(["@stigmer/embed", "@stigmer/ink"], syntheticManifests), [
+  assert.deepEqual(packageClosure(["@stigmer/embed", "@stigmer/ink-ui"], syntheticManifests), [
     "apis/stubs/ts",
     "sdk/typescript",
     "sdk/embed",
     "sdk/ink",
   ]);
   assert.deepEqual(
-    packageClosure(["@stigmer/ink", "@stigmer/embed"], syntheticManifests),
-    packageClosure(["@stigmer/embed", "@stigmer/ink"], syntheticManifests),
+    packageClosure(["@stigmer/ink-ui", "@stigmer/embed"], syntheticManifests),
+    packageClosure(["@stigmer/embed", "@stigmer/ink-ui"], syntheticManifests),
   );
   // One name in a list is the single-name closure.
   assert.deepEqual(packageClosure(["@stigmer/cli"], syntheticManifests), packageClosure("@stigmer/cli", syntheticManifests));
@@ -204,7 +204,7 @@ test("packageClosure refuses a name outside the publish set", () => {
   // A typo must not pack an empty set that an image then installs "successfully".
   assert.throws(() => packageClosure("@stigmer/clii", syntheticManifests), /not a publishable workspace package/);
   // In a list too, and it names the one that is wrong.
-  assert.throws(() => packageClosure(["@stigmer/protos", "@stigmer/clii"], syntheticManifests), /--only @stigmer\/clii: not a publishable/);
+  assert.throws(() => packageClosure(["@stigmer/apis", "@stigmer/clii"], syntheticManifests), /--only @stigmer\/clii: not a publishable/);
 });
 
 test("packageClosure refuses an @stigmer/* edge that leaves the publish set", () => {
@@ -213,7 +213,7 @@ test("packageClosure refuses an @stigmer/* edge that leaves the publish set", ()
   const manifests = new Map(syntheticManifests);
   manifests.set("client-apps/cli", {
     name: "@stigmer/cli",
-    dependencies: { "@stigmer/sdk": "*", "@stigmer/not-published": "*" },
+    dependencies: { "@stigmer/client": "*", "@stigmer/not-published": "*" },
   });
   assert.throws(() => packageClosure("@stigmer/cli", manifests), /@stigmer\/not-published, which is not in the publish set/);
 });
@@ -287,7 +287,7 @@ test("isTestSidePath names the workspace's test markers and nothing a consumer i
   ]) {
     assert.equal(isTestSidePath(rel), true, rel);
   }
-  // The published test-support entry points (@stigmer/react/test,
+  // The published test-support entry points (@stigmer/react-sdk/test,
   // @stigmer/plugin-package/testing) and names that merely contain "test".
   for (const rel of [
     "test/index.ts",

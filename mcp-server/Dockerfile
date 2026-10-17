@@ -63,7 +63,7 @@ WORKDIR /app
 # bridge until someone noticed and reran (the v3.12.8 /memory route sat
 # undeployed this way, 2026-08-22). Until v3.14.1 the wait polled only the
 # TOP package with `npm view`; the install then failed anyway with
-# ETARGET on @stigmer/sdk@3.14.1 — every @stigmer/* dependency is published
+# ETARGET on @stigmer/client@3.14.1 — every @stigmer/* dependency is published
 # by the same run and each becomes visible on its own schedule, so the
 # only reliable signal is the install itself succeeding. Retrying the
 # install (npm install is idempotent on failure: nothing is left half

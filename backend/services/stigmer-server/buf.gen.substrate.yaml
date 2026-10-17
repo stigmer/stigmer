@@ -1,5 +1,5 @@
 # Agent Substrate's Control API, generated for the `substrate` sandbox driver
-# (src/sandbox/substrate). Server-private: never part of @stigmer/protos,
+# (src/sandbox/substrate). Server-private: never part of @stigmer/apis,
 # which carries Stigmer's own API only.
 #
 # The tag is the Substrate release this server speaks to. Substrate's API

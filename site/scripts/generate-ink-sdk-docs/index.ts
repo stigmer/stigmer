@@ -1,7 +1,7 @@
 /**
  * Ink SDK Reference Docs Generator
  *
- * Reads TypeDoc JSON from @stigmer/ink and produces a single Fumadocs
+ * Reads TypeDoc JSON from @stigmer/ink-ui and produces a single Fumadocs
  * MDX reference page under docs/sdk/ink/.
  *
  * Usage: tsx scripts/generate-ink-sdk-docs/index.ts

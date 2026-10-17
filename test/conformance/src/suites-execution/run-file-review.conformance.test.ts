@@ -43,7 +43,7 @@
 // suite's own fixture, not a runner internal.
 import { Code } from "@connectrpc/connect";
 import { create, toJson } from "@bufbuild/protobuf";
-import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ApprovalMode,
   DiffCompleteness,
@@ -51,12 +51,12 @@ import {
   FileCaptureClass,
   FileChangeKind,
   FileReviewBlockReason,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { CapturedFileChange, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { StigmerFileReviewReconciledEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { CapturedFileChange, FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { StigmerFileReviewReconciledEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleFireOutcome } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";

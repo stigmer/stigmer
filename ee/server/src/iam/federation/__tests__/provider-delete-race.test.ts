@@ -26,10 +26,10 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import type { ApiResourceRef, GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { ApiResourceRef, GrantSpec } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import { SILENT_LOGGER } from "../../../__test-utils__/refusing-doubles.js";
 import { newJwksKeyCache } from "../../../verifiers/jwks.js";

@@ -19,11 +19,11 @@
 
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
-import { buildEmbedSnippet, StigmerError, type ChannelInput, type Stigmer } from "@stigmer/sdk";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { AgentSchema, type Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { ChannelAudience } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
+import { buildEmbedSnippet, StigmerError, type ChannelInput, type Stigmer } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { classify, ExitCode, UsageError } from "../../errors/index.js";
 import { linkAgent, setChannelEnabled } from "../channel.js";

@@ -12,7 +12,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { OrgGateState } from "@stigmer/react";
+import type { OrgGateState } from "@stigmer/react-sdk";
 import type { AuthUser } from "@/auth";
 
 const nav = vi.hoisted(() => ({ pathname: "/dashboard" }));
@@ -25,7 +25,7 @@ const gate = vi.hoisted(() => ({
   refresh: vi.fn(),
 }));
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   useOrgGate: ({ isBypassed }: { isBypassed: boolean }) => {
     gate.bypassArgs.push(isBypassed);
     return { state: gate.state, retry: gate.retry, refresh: gate.refresh };

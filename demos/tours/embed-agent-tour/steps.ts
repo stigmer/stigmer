@@ -10,8 +10,8 @@
  * the agent they created answering inside "their" app. The order it
  * discusses is #ORD-4821, the sequence's shared order fixture.
  */
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { samples } from "@stigmer/react/test";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { samples } from "@stigmer/react-sdk/test";
 import type { ScenarioStep } from "@scenar/react";
 import { conversation, type DemoConversation } from "../_shared/fixtures";
 
@@ -62,13 +62,13 @@ export const replyConversation = conversation(
 export const EMBED_CODE = [
   "// src/App.tsx — the whole embed",
   'import { useMemo, useState } from "react";',
-  'import { Stigmer } from "@stigmer/sdk";',
+  'import { Stigmer } from "@stigmer/client";',
   "import {",
   "  NewSessionViewer,",
   "  SessionViewer,",
   "  StigmerProvider,",
-  '} from "@stigmer/react";',
-  'import "@stigmer/react/styles.css";',
+  '} from "@stigmer/react-sdk";',
+  'import "@stigmer/react-sdk/styles.css";',
   "",
   "function SupportChat() {",
   "  const [sessionId, setSessionId] = useState<string | null>(null);",

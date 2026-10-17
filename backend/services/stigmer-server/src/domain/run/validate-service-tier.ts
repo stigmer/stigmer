@@ -27,8 +27,8 @@
  * refuses the same request with the same message (pinned by the
  * conformance tier suite, which runs against every target).
  */
-import type { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";

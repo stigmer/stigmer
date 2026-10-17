@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { toDisplayFileChange } from "@stigmer/sdk";
-import type { ToolResultView, ToolUse } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+import type { CapturedFileChange } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import { toDisplayFileChange } from "@stigmer/client";
+import type { ToolResultView, ToolUse } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 import { BoundedContent } from "../internal/BoundedContent.js";
 import { FileChangeDiff } from "./FileChangesView.js";
 import { useFileReviewRowChange } from "./FileReviewContext.js";
@@ -42,7 +42,7 @@ export interface ToolCallDetailProps {
  *
  * Arguments render through the shared {@link ToolArgsView} (same component used
  * by {@link ApprovalCard}); results render through {@link ResultView}, driven by
- * `@stigmer/sdk`'s `normalizeToolResult` — so an edit shows a diff, a shell shows
+ * `@stigmer/client`'s `normalizeToolResult` — so an edit shows a diff, a shell shows
  * a terminal with an exit badge, a search shows a match list, and unknown tools
  * degrade to readable JSON instead of a raw dump.
  *

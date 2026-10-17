@@ -1,8 +1,8 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
-import type { Plan } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
-import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import { cn } from "@stigmer/design-tokens";
+import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
+import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import { Button } from "../button/index.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { FEATURE_COPY } from "../internal/features.js";

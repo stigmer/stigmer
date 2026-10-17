@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { StigmerError, getErrorReason } from "@stigmer/sdk";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { StigmerError, getErrorReason } from "@stigmer/client";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 import { StigmerContext } from "../../context";
 import { useInstallChannel } from "../useInstallChannel";
 

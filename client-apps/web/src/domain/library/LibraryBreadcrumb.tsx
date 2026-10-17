@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
-import { useBreadcrumbLabel } from "@stigmer/react";
+import { useBreadcrumbLabel } from "@stigmer/react-sdk";
 
 const SEGMENT_LABELS: Record<string, string> = {
   agents: "Agents",

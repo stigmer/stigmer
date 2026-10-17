@@ -24,8 +24,8 @@ import {
   type Turn,
   type TurnItem,
 } from "@stigmer/session-log";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { sessionLog } from "./answers";
 import { sessionIdOf } from "./runs";

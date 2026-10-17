@@ -7,8 +7,8 @@
 package agentv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -35,8 +35,8 @@ const file_ai_stigmer_agentic_agent_v1_command_proto_rawDesc = "" +
 	"\x06rename\x12+.ai.stigmer.commons.apiresource.RenameInput\x1a\".ai.stigmer.agentic.agent.v1.Agent\"3¸\x18/\b\x03\x10(\"\vresource_id*\x1cunauthorized to rename agent\x12\x81\x01\n" +
 	"\x06delete\x12$.ai.stigmer.agentic.agent.v1.AgentId\x1a\".ai.stigmer.agentic.agent.v1.Agent\"-¸\x18)\b\x03\x10(\"\x05value*\x1cunauthorized to delete agent\x12\x9a\x01\n" +
 	"\n" +
-	"tagVersion\x121.ai.stigmer.agentic.agent.v1.TagAgentVersionInput\x1a\".ai.stigmer.agentic.agent.v1.Agent\"5¸\x181\b\x02\x10(\"\bagent_id*!unauthorized to tag agent version\x1a\x04\xa0\xff+(B\x90\x02\n" +
-	"\x1fcom.ai.stigmer.agentic.agent.v1B\fCommandProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
+	"tagVersion\x121.ai.stigmer.agentic.agent.v1.TagAgentVersionInput\x1a\".ai.stigmer.agentic.agent.v1.Agent\"5¸\x181\b\x02\x10(\"\bagent_id*!unauthorized to tag agent version\x1a\x04\xa0\xff+(B\xfd\x01\n" +
+	"\x1fcom.ai.stigmer.agentic.agent.v1B\fCommandProtoP\x01Z;go.stigmer.ai/sdk/proto/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_agent_v1_command_proto_goTypes = []any{
 	(*Agent)(nil),                             // 0: ai.stigmer.agentic.agent.v1.Agent

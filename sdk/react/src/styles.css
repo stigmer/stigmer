@@ -24,7 +24,7 @@
    cascade — regardless of load order, layer merging, or where the host mounts
    `StigmerProvider`. The prefix is deliberately NOT `stgm`: Tailwind prefixes
    theme variables too, and `--stgm-font-sans`/`--stgm-shadow-sm` would
-   collide with the identically-named `@stigmer/theme` tokens (including a
+   collide with the identically-named `@stigmer/design-tokens` tokens (including a
    self-referential `--stgm-font-sans: var(--stgm-font-sans)` cycle through
    the `@theme inline` block below).
 
@@ -46,7 +46,7 @@
    cannot be nested inside `@layer` — the generated utilities still emit
    into `stgm` alongside the standard ones. */
 @import "tw-animate-css";
-@import "@stigmer/theme/tokens.css" layer(stgm);
+@import "@stigmer/design-tokens/tokens.css" layer(stgm);
 
 @custom-variant dark (&:is([data-stgm-color-mode="dark"] *));
 

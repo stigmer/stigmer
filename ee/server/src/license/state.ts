@@ -19,7 +19,7 @@
  */
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 
-import { LicenseState, type LicenseClaims } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+import { LicenseState, type LicenseClaims } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 import type { LicenseStatusReport } from "@stigmer/server";
 
 /** How long before `expires_at` a license reports `expiring`. */

@@ -10,8 +10,8 @@ import {
   useBreadcrumbOverride,
   useActiveOrgId,
   useOrgSlugForId,
-} from "@stigmer/react";
-import type { CreationPath, AgentWizardData } from "@stigmer/react";
+} from "@stigmer/react-sdk";
+import type { CreationPath, AgentWizardData } from "@stigmer/react-sdk";
 
 type PageState =
   | { readonly phase: "picking" }

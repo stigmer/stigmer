@@ -5,11 +5,11 @@
  * switch lands on the org-neutral dashboard. A plain click on a recents row
  * opens its session through session navigation, while a modifier-click is
  * left to the browser (a new tab). The sidebar itself is pinned in
- * @stigmer/react.
+ * @stigmer/react-sdk.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import type { RecentActivityEntry, RenderSidebarLink } from "@stigmer/react";
+import type { RecentActivityEntry, RenderSidebarLink } from "@stigmer/react-sdk";
 
 const page = vi.hoisted(() => ({
   countedOrg: [] as Array<string | null>,
@@ -18,7 +18,7 @@ const page = vi.hoisted(() => ({
   openedSessions: [] as string[],
 }));
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   WorkspaceSidebar: (props: Record<string, unknown>) => {
     page.sidebar.push(props);
     return null;

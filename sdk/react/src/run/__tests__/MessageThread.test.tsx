@@ -15,21 +15,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { LoadedVersionsSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { LoadedVersionsSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { FileContentSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   DiffCompleteness,
   FileCaptureClass,
   FileChangeKind,
   InteractionMode,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { Stigmer, Turn } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Stigmer, Turn } from "@stigmer/client";
 import { StigmerContext } from "../../context";
 import { MessageThread, type MessageThreadProps } from "../MessageThread";
 import {

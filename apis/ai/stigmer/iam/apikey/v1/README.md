@@ -162,7 +162,7 @@ Every flag is in the CLI reference: [`stigmer apikey`](../../../../../../docs/cl
 ### Use in Code
 
 ```typescript
-import { createNodeClient } from "@stigmer/sdk/node";
+import { createNodeClient } from "@stigmer/client/node";
 
 const stigmer = createNodeClient({
   baseUrl: "https://api.stigmer.ai",

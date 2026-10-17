@@ -8,10 +8,10 @@
 
 import { describe, it, afterEach } from "vitest";
 import { screen } from "@testing-library/react";
-import type { Stigmer } from "@stigmer/sdk";
-import { StigmerError } from "@stigmer/sdk";
-import { LicenseTerm } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
-import type { License } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
+import type { Stigmer } from "@stigmer/client";
+import { StigmerError } from "@stigmer/client";
+import { LicenseTerm } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
+import type { License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
 import {
   COLOR_MODES,
   auditA11y,

@@ -17,7 +17,7 @@
  * to ask (a verified token's provider names the parent; a period worker
  * acts for the platform). Faults propagate; "none" is undefined or empty.
  */
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 
 export interface ChildOrganizations {
   /**

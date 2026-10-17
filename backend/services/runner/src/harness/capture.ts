@@ -69,8 +69,8 @@
  * BASELINE for the same change set. Both predate the lift on both harnesses.
  */
 
-import { FileCaptureClass } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { TurnCommandProvenance } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import { FileCaptureClass } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { TurnCommandProvenance } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import { captureBaselineToLedger, captureCandidateToLedger } from "../shared/filereview/capture.js";

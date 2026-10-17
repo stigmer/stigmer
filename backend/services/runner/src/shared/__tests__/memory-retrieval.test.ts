@@ -20,7 +20,7 @@
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { RecalledMemoriesSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import { RecalledMemoriesSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 
 import {
   selectRecalledFacts,

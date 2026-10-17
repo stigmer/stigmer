@@ -8,8 +8,8 @@ import { create } from "@bufbuild/protobuf";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { PaymentMethodSummarySchema } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
-import { BillingAccountStatus } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
+import { PaymentMethodSummarySchema } from "@stigmer/apis/ai/stigmer/billing/v1/billing_account_pb";
+import { BillingAccountStatus } from "@stigmer/apis/ai/stigmer/billing/v1/enum_pb";
 
 import { PaymentMethodCard } from "../PaymentMethodCard";
 

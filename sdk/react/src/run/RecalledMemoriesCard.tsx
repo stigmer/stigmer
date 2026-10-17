@@ -1,9 +1,9 @@
 "use client";
 
 import { memo, useId, useMemo, useState } from "react";
-import type { RecalledMemoryFact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import type { MemoryRecall } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+import type { RecalledMemoryFact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
+import type { MemoryRecall } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 
 /**
  * Resolve the recall's injected memory ids against the run's

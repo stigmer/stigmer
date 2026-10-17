@@ -16,15 +16,15 @@
 
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import { ChannelSpecSchema, SlackChannelConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
+import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelSpecSchema, SlackChannelConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
 import {
   ChannelStatusSchema,
   ChannelInstallState,
   SlackInstallStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
-import { samples } from "@stigmer/react/test";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
+import { samples } from "@stigmer/react-sdk/test";
 import type { ScenarioStep } from "@scenar/react";
 
 // ---------------------------------------------------------------------------

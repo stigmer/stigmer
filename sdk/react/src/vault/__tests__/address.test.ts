@@ -15,8 +15,8 @@
  */
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { McpServerEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { VaultConnectionSchema, VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
+import { McpServerEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { VaultConnectionSchema, VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import {
   gitHostOf,
   isSignInConnection,

@@ -1,12 +1,12 @@
 // A run's phase in both spellings: the run record's `RunPhase` and the word
 // a turn's `stigmer.run.status` event carries (`TurnPhase`). The terminal
-// predicate is re-exported from @stigmer/sdk so React, Ink and the pure SDK
+// predicate is re-exported from @stigmer/client so React, Ink and the pure SDK
 // logic share one definition; `runPhaseOf` lets a phase read from the
 // session's events drive the components that render a `RunPhase`.
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { TurnPhase } from "@stigmer/sdk";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { TurnPhase } from "@stigmer/client";
 
-export { isTerminalPhase } from "@stigmer/sdk";
+export { isTerminalPhase } from "@stigmer/client";
 
 const RUN_PHASE_OF: Readonly<Record<TurnPhase, RunPhase>> = {
   pending: RunPhase.RUN_PENDING,

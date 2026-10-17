@@ -16,12 +16,12 @@ import { create } from "@bufbuild/protobuf";
 import { createRouterTransport } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
+import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
 import {
   InterruptSessionResponseSchema,
   SessionEventListSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
 
 import type { Logger } from "../../../boot/logger.js";
 import { MAX_MESSAGE_BYTES } from "../../constants.js";

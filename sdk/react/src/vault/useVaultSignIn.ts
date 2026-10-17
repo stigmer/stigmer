@@ -20,13 +20,13 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 import {
   CompleteSignInInputSchema,
   SignInReturn,
   StartSignInInputSchema,
   type CompleteSignInOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { checkedLoginPageUrl } from "../internal/loginPageUrl.js";
 import { toError } from "../internal/toError.js";

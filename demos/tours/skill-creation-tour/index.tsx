@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { SkillDetailView, SkillUploader } from "@stigmer/react";
+import { SkillDetailView, SkillUploader } from "@stigmer/react-sdk";
 import { BrowserView, CodeEditorView, type FileTreeEntry } from "@scenar/react";
 import { AppShell } from "../_shared/AppShell";
 import { ResourceListPage } from "../_shared/ResourceListPage";

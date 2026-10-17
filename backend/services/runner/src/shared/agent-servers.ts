@@ -18,9 +18,9 @@
  * Proven by __tests__/agent-servers.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
-import type { AgentMcpServer } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { McpServerEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { AgentMcpServer } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { McpServerEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { accessTokenVariable } from "@stigmer/tool-vocabulary";
 
 import { PLACEHOLDER_RE } from "./placeholder-resolver.js";

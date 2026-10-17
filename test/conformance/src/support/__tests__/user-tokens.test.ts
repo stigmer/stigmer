@@ -6,7 +6,7 @@
 // nothing here starts a server.
 import { describe, expect, it } from "vitest";
 
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import type { ConformanceClients } from "../../harness/clients";
 import { API_KEY_PLAINTEXT_PREFIX } from "../apikeys";

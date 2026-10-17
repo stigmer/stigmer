@@ -33,10 +33,10 @@ import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create, fromBinary } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
-import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
-import { VaultListSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultCommandController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/command_pb";
+import { VaultListSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 import type {
   GetMyVaultInput,
   GetVaultByExternalIdInput,
@@ -47,22 +47,22 @@ import type {
   SetVaultSecretsInput,
   VaultList,
   VaultTarget,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
-import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
-import { ConnectLinkController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
-import { VaultValueController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
-import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
+import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
+import { ConnectLinkController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/connect_link_pb";
+import { VaultValueController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
+import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type {
   ApiResourceDeleteInput,
   ApiResourceId,
   ApiResourceReference,
   RenameInput,
   UpdateVisibilityInput,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import type { UpdateVaultInput } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import type { UpdateVaultInput } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { SecretService } from "../../encryption/encryption.js";

@@ -1,10 +1,10 @@
 import { create } from "@bufbuild/protobuf";
-import { ListChannelsByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
+import { ListChannelsByAgentRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
 import { test, expect } from "../../fixtures";
 import { ensureDefaultOrg } from "../../fixtures/seed-helpers";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
 import type { Page } from "@playwright/test";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 
 /**
  * An agent's Channels tab: its chat links, Slack and WhatsApp channels in

@@ -20,7 +20,7 @@ import {
   GetServerInfoOutputSchema,
   PlatformQueryController,
   ServerEdition,
-} from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+} from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
 import { PlatformClient } from "../platform";
 

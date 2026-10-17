@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { normalizeToolResult, redactSecretArgs, type ToolFullOutput, type ToolUse } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+import { normalizeToolResult, redactSecretArgs, type ToolFullOutput, type ToolUse } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { formatDuration } from "./ToolCallDetail.js";
 import { humanizeToolName } from "./tool-categories.js";

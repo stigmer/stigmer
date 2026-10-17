@@ -30,28 +30,28 @@ import { describe, it, expect, afterEach } from "vitest";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
-import { Stigmer, type DeploymentMode } from "@stigmer/sdk";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { Stigmer, type DeploymentMode } from "@stigmer/client";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   CheckAuthorizationResultSchema,
   type CheckMyPermissionInput,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
 import {
   InvitationSchema,
   InvitationStatusSchema,
-} from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
-import { InvitationCommandController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/command_pb";
-import { InvitationState } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/enum_pb";
-import { InvitationsSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/io_pb";
-import { InvitationSpecSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/spec_pb";
-import { InvitationQueryController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/query_pb";
+} from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
+import { InvitationCommandController } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/command_pb";
+import { InvitationState } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/enum_pb";
+import { InvitationsSchema } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/io_pb";
+import { InvitationSpecSchema } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/spec_pb";
+import { InvitationQueryController } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/query_pb";
 import {
   OrganizationSchema,
   type Organization,
-} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { OrganizationsSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
-import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
+} from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { OrganizationsSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
+import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { OrgProvider } from "../../organization/OrgProvider";

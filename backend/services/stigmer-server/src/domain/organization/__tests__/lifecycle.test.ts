@@ -22,11 +22,11 @@ import type { UnaryRequest, UnaryResponse } from "@connectrpc/connect";
 import { Code, ConnectError, createContextValues } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { AgentIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
-import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
-import { OrganizationIdSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
+import { AgentIdSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/io_pb";
+import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
+import { OrganizationIdSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
 
 import type { OrganizationDeletion } from "../../../store/interface.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";

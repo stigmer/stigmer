@@ -3,9 +3,10 @@
 The three first-party clients: `cli` (the `stigmer` command, commander plus the
 Ink session view from `sdk/ink`), `web` (the Next.js console) and `desktop`
 (Tauri, Vite and React Router). The web console and the desktop app are thin
-shells over `@stigmer/react`; the CLI is a thin shell over `@stigmer/sdk`.
-Anything a platform builder could need belongs in `sdk/`, whose guide binds
-there. This guide is an index; the READMEs and headers it names are the truth.
+shells over `@stigmer/react-sdk`; the CLI is a thin shell over
+`@stigmer/client`. Anything a platform builder could need belongs in `sdk/`,
+whose guide binds there. This guide is an index; the READMEs and headers it
+names are the truth.
 
 ## Read in this order
 
@@ -48,7 +49,7 @@ there. This guide is an index; the READMEs and headers it names are the truth.
 ## Laws, web and desktop
 
 - Thin shells: routes, layout and framework wiring only. A page file that grows
-  domain logic is logic that belongs in `@stigmer/react`.
+  domain logic is logic that belongs in `@stigmer/react-sdk`.
 - Client-app parity: every consumer of a shared SDK component wires it the same
   way, and a fix to one client's wiring is applied to every client in the same
   changeset. Divergence without a platform reason is a defect.

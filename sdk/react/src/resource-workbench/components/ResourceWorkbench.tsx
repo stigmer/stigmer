@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useMemo, useState, type ReactNode } from "react";
-import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { cn } from "@stigmer/theme";
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { cn } from "@stigmer/design-tokens";
 import type {
   WorkbenchColumnDef,
   WorkbenchListFn,

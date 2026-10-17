@@ -44,7 +44,7 @@ import {
   ListSessionEventsRequestSchema,
   StreamSessionEventsRequestSchema,
   type StreamSessionEventsResponse,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { eventTypeOf, isStigmerEventType, toManagedAgentsJson, toManagedAgentsStreamJson } from "@stigmer/session-log";
 
 import { KEEPALIVE_PING_INTERVAL_MS } from "../constants.js";

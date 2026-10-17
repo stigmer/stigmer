@@ -24,16 +24,16 @@
 // Negative cases (too-short instructions, missing name) are written inline in
 // the suite, not here: this module represents validity by construction, the
 // convention every builder in support/ follows.
-import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import type { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import type { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
+import type { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { InitShape } from "./init-shape";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { type AgentMcpServerSchema, AgentSpecSchema, type HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { type AgentMcpServerSchema, AgentSpecSchema, type HookSourceSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { FixtureTracker } from "../harness/fixtures";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { type EnvVarDeclarationInit, makeEnvDeclarations } from "./vaults";
 
 export const AGENT_API_VERSION = "agentic.stigmer.ai/v1";

@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import { AlertTriangle, RotateCcw } from "lucide-react";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage } from "@stigmer/client";
 import { Button } from "@/domain/_shared/ui/button";
 
 export function RunLoadFailed({ error, onRetry }: { error: Error; onRetry: () => void }) {

@@ -27,14 +27,14 @@
 import { isFieldSet, toJson } from "@bufbuild/protobuf";
 import type { DescMessage, JsonObject, Message } from "@bufbuild/protobuf";
 
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import {
   EventDeltaSchema,
   EventStartSchema,
   SessionEventSchema,
   ToolOutputDeltaSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import type { StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import type { StreamSessionEventsResponse } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
 import { eventTypeOf } from "./catalog.js";
 

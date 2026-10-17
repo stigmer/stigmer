@@ -25,7 +25,7 @@
  * inside an unsigned page token, so it can be any text: one the store would
  * never render continues nothing, an empty page, rather than a fault.
  */
-import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import type { GuardedWritePort, ListIndexCursor, ListIndexRow } from "@stigmer/server";
 
 /** The insert's two outcomes; nothing else about a new row can be in question. */

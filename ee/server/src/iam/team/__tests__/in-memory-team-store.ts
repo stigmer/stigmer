@@ -9,14 +9,14 @@ import { clone, create, toBinary } from "@bufbuild/protobuf";
 import { stampEtag } from "@stigmer/server";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   ApiResourceAuditInfoSchema,
   ApiResourceAuditSchema,
   ApiResourceAuditStatusSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
+import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
+import { TeamSchema } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 
 import type { GuardedRead, ListIndexCursor, ListIndexRow } from "@stigmer/server";
 

@@ -36,7 +36,7 @@ import { manifestHandlerForTypeName, manifestKinds } from "./registry.js";
  * @example
  * ```ts
  * import { clone } from "@bufbuild/protobuf";
- * import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+ * import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
  *
  * const schedule = await stigmer.schedule.getByReference({ org, slug });
  * const updated = clone(ScheduleSchema, schedule);

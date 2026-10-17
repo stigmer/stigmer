@@ -4,16 +4,16 @@ import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import type { Violation } from "@bufbuild/protovalidate";
 import { pathToString } from "@bufbuild/protobuf/reflect";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import {
   buildLicenseProto,
   getUserMessage,
   StigmerError,
   type LicenseCustomerInput,
   type LicenseInput,
-} from "@stigmer/sdk";
-import { LicenseSchema, type License } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
-import { LicenseTerm } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+} from "@stigmer/client";
+import { LicenseSchema, type License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
+import { LicenseTerm } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 import { Button } from "../button/index.js";
 import { UNSTYLED_FIELDSET, UNSTYLED_LIST } from "../internal/element-resets.js";
 import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";

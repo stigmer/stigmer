@@ -21,7 +21,7 @@
 import { describe, it, expect, vi, beforeAll, afterEach, beforeEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { ResourceRef, Stigmer } from "@stigmer/sdk";
+import type { ResourceRef, Stigmer } from "@stigmer/client";
 import { StigmerContext } from "../../context";
 import { noMyVaultClient } from "../../__tests__/helpers/no-my-vault";
 import { openMenu } from "../../__tests__/helpers/open-menu";

@@ -7,8 +7,8 @@
 package scorev1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -30,8 +30,8 @@ const file_ai_stigmer_agentic_score_v1_command_proto_rawDesc = "" +
 	"\x16ScoreCommandController\x12V\n" +
 	"\x06create\x12\".ai.stigmer.agentic.score.v1.Score\x1a\".ai.stigmer.agentic.score.v1.Score\"\x04и\x18\x01\x12\x99\x01\n" +
 	"\x06update\x12-.ai.stigmer.agentic.score.v1.UpdateScoreInput\x1a\".ai.stigmer.agentic.score.v1.Score\"<¸\x188\b\x02\x10=\"\x14resource.metadata.id*\x1cunauthorized to update score\x12\x81\x01\n" +
-	"\x06delete\x12$.ai.stigmer.agentic.score.v1.ScoreId\x1a\".ai.stigmer.agentic.score.v1.Score\"-¸\x18)\b\x03\x10=\"\x05value*\x1cunauthorized to delete score\x1a\x04\xa0\xff+=B\x90\x02\n" +
-	"\x1fcom.ai.stigmer.agentic.score.v1B\fCommandProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/score/v1;scorev1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Score.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Score\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Score::V1b\x06proto3"
+	"\x06delete\x12$.ai.stigmer.agentic.score.v1.ScoreId\x1a\".ai.stigmer.agentic.score.v1.Score\"-¸\x18)\b\x03\x10=\"\x05value*\x1cunauthorized to delete score\x1a\x04\xa0\xff+=B\xfd\x01\n" +
+	"\x1fcom.ai.stigmer.agentic.score.v1B\fCommandProtoP\x01Z;go.stigmer.ai/sdk/proto/ai/stigmer/agentic/score/v1;scorev1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Score.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Score\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Score::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_score_v1_command_proto_goTypes = []any{
 	(*Score)(nil),            // 0: ai.stigmer.agentic.score.v1.Score

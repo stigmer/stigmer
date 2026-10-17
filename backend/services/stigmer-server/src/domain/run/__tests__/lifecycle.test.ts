@@ -45,35 +45,35 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunCredentialsSchema,
   RunSchema,
   RunStatusSchema,
   RunValueSourceSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
   RunValueOrigin,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type {
   PauseRunInput,
   RecoverRunInput,
   ResumeRunInput,
   TerminateRunInput,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import {
   PauseRunInputSchema,
   RecoverRunInputSchema,
   ResumeRunInputSchema,
   TerminateRunInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import { InterruptSessionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
+import { InterruptSessionInputSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import type { RunStatusTransition } from "../../../extensions/status-hooks.js";

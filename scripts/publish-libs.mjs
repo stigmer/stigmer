@@ -15,7 +15,7 @@
  *   NPM_TOKEN=npm_xxx node scripts/publish-libs.mjs --version 0.5.0  # CI with token
  *   node scripts/publish-libs.mjs --version 0.0.0-dev.abc1234 --pack-dir out/pkgs  # tarballs, no registry
  *   node scripts/publish-libs.mjs --version 3.17.0 --pack-dir out/pkgs --only @stigmer/cli  # one package + its @stigmer/* closure
- *   node scripts/publish-libs.mjs --version 3.17.0 --pack-dir out/pkgs --only @stigmer/protos --only @stigmer/outbound  # the union of two closures
+ *   node scripts/publish-libs.mjs --version 3.17.0 --pack-dir out/pkgs --only @stigmer/apis --only @stigmer/outbound  # the union of two closures
  *
  * --version is required. It stamps the version into every dist/package.json.
  *
@@ -80,7 +80,7 @@ export const PACKAGES = [
   // @stigmer/temporal-codecs has no @stigmer/* deps, so its position is
   // order-free. It MUST publish: the runner (published separately by the
   // release workflows) depends on it, pinned to the exact release version
-  // at stamp time — exactly like @stigmer/protos.
+  // at stamp time — exactly like @stigmer/apis.
   "backend/libs/ts/temporal-codecs",
   // @stigmer/zip-structure has no deps at all, so its position is order-free.
   // It MUST publish for the same reason as temporal-codecs: the runner links
@@ -108,7 +108,7 @@ export const PACKAGES = [
   // and the server names recorded tool calls with it, and both pin the exact
   // release version at stamp time.
   "backend/libs/ts/tool-vocabulary",
-  // @stigmer/session-log depends on @stigmer/protos and
+  // @stigmer/session-log depends on @stigmer/apis and
   // @stigmer/tool-vocabulary, both above it. It MUST publish: the server and
   // the runner link it (the server's renderer, the runner's to-do rule), the
   // SDKs, the CLI and MCP fold a session's events with it, and the hosted
@@ -122,7 +122,7 @@ export const PACKAGES = [
   // so the IIFE bundles nothing but itself), so its position is order-free.
   "sdk/embed",
   "sdk/ink",
-  // mcp-server depends only on @stigmer/protos + @stigmer/sdk, both above it,
+  // mcp-server depends only on @stigmer/apis + @stigmer/client, both above it,
   // so the publish DAG stays ordered. Mirrors the build:libs order in package.json.
   "mcp-server",
   // @stigmer/plugins is the official plugin marketplace as a directory tree
@@ -131,7 +131,7 @@ export const PACKAGES = [
   // acquires it at its exact version for `stigmer install`, and the console
   // reads it at the server's version from the npm CDN, so it MUST publish too.
   "plugins",
-  // @stigmer/cli depends on @stigmer/protos + @stigmer/sdk + @stigmer/ink, all
+  // @stigmer/cli depends on @stigmer/apis + @stigmer/client + @stigmer/ink-ui, all
   // above it, so it publishes last with its deps already resolved.
   "client-apps/cli",
 ];
@@ -334,7 +334,7 @@ export function generateDistPackageJson(pkgDir, version) {
  * The markers the workspace uses for files that exist only to test a package:
  * a `__tests__`, `__test-utils__` or `__fixtures__` directory anywhere on the
  * path, or a `*.test.*` / `*.spec.*` file. Deliberately not `test/` or
- * `testing.ts`: `@stigmer/react/test` and `@stigmer/plugin-package/testing`
+ * `testing.ts`: `@stigmer/react-sdk/test` and `@stigmer/plugin-package/testing`
  * are published entry points for consumers' own tests.
  */
 const TEST_SIDE_DIRS = new Set(["__tests__", "__test-utils__", "__fixtures__"]);

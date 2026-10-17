@@ -19,8 +19,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { EvalRunPhase } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import { DEFAULT_THRESHOLD } from "../../../domain/eval-run/scoring.js";
 import type { Store } from "../../../store/interface.js";

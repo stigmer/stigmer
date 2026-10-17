@@ -25,7 +25,7 @@ import {
   EvalMockPluginHomeSchema,
   EvalMockServerSchema,
   EvalMockToolSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
 
 import type { MockAbort } from "../../../harness/stop-controller.js";
 import type { AgentMockModel, AgentMockRequest } from "../agent-mock.js";

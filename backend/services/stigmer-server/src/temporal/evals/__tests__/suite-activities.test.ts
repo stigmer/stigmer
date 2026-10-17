@@ -27,14 +27,14 @@ import { MockActivityEnvironment } from "@temporalio/testing";
 import { DefaultLogger } from "@temporalio/worker";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { EvalRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { EvalRunSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import {
   EvalRunPartialReason,
   EvalRunPhase,
   EvalRunTryState,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { EvalSuiteSource } from "../../../domain/eval-run/suite.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";

@@ -10,7 +10,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { Code } from "@connectrpc/connect";
-import { StigmerError } from "@stigmer/sdk";
+import { StigmerError } from "@stigmer/client";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 import { FLAGGED_PAGE_SIZE, useFlaggedRuns } from "../useFlaggedRuns";
 import { useAgentQualityReport } from "../useAgentQualityReport";

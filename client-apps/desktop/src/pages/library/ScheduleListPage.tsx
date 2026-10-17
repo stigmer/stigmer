@@ -1,7 +1,7 @@
 import { useMemo, useReducer, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CalendarClock, Plus, Upload } from "lucide-react";
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import type { Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
 import {
   ResourceWorkbench,
   ApplyManifestDialog,
@@ -11,7 +11,7 @@ import {
   useStigmer,
   useActiveOrgId,
   useOrgSlugForId,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 
 export default function ScheduleListPage() {
   const org = useActiveOrgId();

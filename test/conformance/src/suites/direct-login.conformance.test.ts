@@ -36,8 +36,8 @@
 import { generateKeyPairSync } from "node:crypto";
 
 import { Code } from "@connectrpc/connect";
-import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { expectGrpcCode } from "../contract/errors";

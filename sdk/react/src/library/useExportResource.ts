@@ -2,9 +2,9 @@
 
 import { useCallback, useMemo } from "react";
 import { parse as parseYaml } from "yaml";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { serializeManifest } from "@stigmer/sdk";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { serializeManifest } from "@stigmer/client";
 import { toast } from "../feedback/toast.js";
 import { downloadTextFile } from "../internal/download.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
