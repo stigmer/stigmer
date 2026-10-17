@@ -93,7 +93,8 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err: unknown) => {
+/** The CLI's run, exported so a test can await it in-process. */
+export const run = main().catch((err: unknown) => {
   console.error("[docs-inventory] Fatal error:", err);
   process.exit(1);
 });
