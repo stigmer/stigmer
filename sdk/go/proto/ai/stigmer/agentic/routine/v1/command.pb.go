@@ -7,8 +7,8 @@
 package routinev1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -34,8 +34,8 @@ const file_ai_stigmer_agentic_routine_v1_command_proto_rawDesc = "" +
 	"\x06rename\x12+.ai.stigmer.commons.apiresource.RenameInput\x1a&.ai.stigmer.agentic.routine.v1.Routine\"5¸\x181\b\x03\x108\"\vresource_id*\x1eunauthorized to rename routine\x12\x8b\x01\n" +
 	"\x06delete\x12(.ai.stigmer.agentic.routine.v1.RoutineId\x1a&.ai.stigmer.agentic.routine.v1.Routine\"/¸\x18+\b\x03\x108\"\x05value*\x1eunauthorized to delete routine\x12\x8b\x01\n" +
 	"\x06resume\x12(.ai.stigmer.agentic.routine.v1.RoutineId\x1a&.ai.stigmer.agentic.routine.v1.Routine\"/¸\x18+\b\x02\x108\"\x05value*\x1eunauthorized to resume routine\x12\x95\x01\n" +
-	"\x04fire\x12/.ai.stigmer.agentic.routine.v1.FireRoutineInput\x1a0.ai.stigmer.agentic.routine.v1.RoutineFireResult\"*¸\x18&\b;\x108\"\x02id*\x1cunauthorized to fire routine\x1a\x04\xa0\xff+8B\x9e\x02\n" +
-	"!com.ai.stigmer.agentic.routine.v1B\fCommandProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/routine/v1;routinev1\xa2\x02\x04ASAR\xaa\x02\x1dAi.Stigmer.Agentic.Routine.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Routine\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Routine\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Routine::V1b\x06proto3"
+	"\x04fire\x12/.ai.stigmer.agentic.routine.v1.FireRoutineInput\x1a0.ai.stigmer.agentic.routine.v1.RoutineFireResult\"*¸\x18&\b;\x108\"\x02id*\x1cunauthorized to fire routine\x1a\x04\xa0\xff+8B\x8b\x02\n" +
+	"!com.ai.stigmer.agentic.routine.v1B\fCommandProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/routine/v1;routinev1\xa2\x02\x04ASAR\xaa\x02\x1dAi.Stigmer.Agentic.Routine.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Routine\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Routine\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Routine::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_routine_v1_command_proto_goTypes = []any{
 	(*Routine)(nil),                 // 0: ai.stigmer.agentic.routine.v1.Routine

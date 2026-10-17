@@ -8,7 +8,7 @@ package routinev1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
+	v1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -122,8 +122,8 @@ const file_ai_stigmer_agentic_routine_v1_spec_proto_rawDesc = "" +
 	"\aenabled\x18\x03 \x01(\bR\aenabled\x12H\n" +
 	"\x05agent\x18\x04 \x01(\v2*.ai.stigmer.agentic.run.v1.AgentInvocationB\x06\xbaH\x03\xc8\x01\x01R\x05agent:\x91\x01\xbaH\x8d\x01\x1a\x8a\x01\n" +
 	"\x14cron_needs_time_zone\x12Itime_zone is required when cron is set: a schedule is kept in a time zone\x1a'!has(this.cron) || this.time_zone != ''B\a\n" +
-	"\x05_cronB\x9b\x02\n" +
-	"!com.ai.stigmer.agentic.routine.v1B\tSpecProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/routine/v1;routinev1\xa2\x02\x04ASAR\xaa\x02\x1dAi.Stigmer.Agentic.Routine.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Routine\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Routine\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Routine::V1b\x06proto3"
+	"\x05_cronB\x88\x02\n" +
+	"!com.ai.stigmer.agentic.routine.v1B\tSpecProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/routine/v1;routinev1\xa2\x02\x04ASAR\xaa\x02\x1dAi.Stigmer.Agentic.Routine.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Routine\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Routine\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Routine::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_routine_v1_spec_proto_rawDescOnce sync.Once

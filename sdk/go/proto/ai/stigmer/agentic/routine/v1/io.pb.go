@@ -8,7 +8,7 @@ package routinev1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
@@ -972,8 +972,8 @@ const file_ai_stigmer_agentic_routine_v1_io_proto_rawDesc = "" +
 	"\x1cROUTINE_FIRE_OUTCOME_SKIPPED\x10\x04\x12\"\n" +
 	"\x1eROUTINE_FIRE_OUTCOME_COMPLETED\x10\x05\x12\x1f\n" +
 	"\x1bROUTINE_FIRE_OUTCOME_FAILED\x10\x06\x12\"\n" +
-	"\x1eROUTINE_FIRE_OUTCOME_TIMED_OUT\x10\aB\x99\x02\n" +
-	"!com.ai.stigmer.agentic.routine.v1B\aIoProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/routine/v1;routinev1\xa2\x02\x04ASAR\xaa\x02\x1dAi.Stigmer.Agentic.Routine.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Routine\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Routine\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Routine::V1b\x06proto3"
+	"\x1eROUTINE_FIRE_OUTCOME_TIMED_OUT\x10\aB\x86\x02\n" +
+	"!com.ai.stigmer.agentic.routine.v1B\aIoProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/routine/v1;routinev1\xa2\x02\x04ASAR\xaa\x02\x1dAi.Stigmer.Agentic.Routine.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Routine\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Routine\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Routine::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_routine_v1_io_proto_rawDescOnce sync.Once

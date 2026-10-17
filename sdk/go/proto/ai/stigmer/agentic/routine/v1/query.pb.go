@@ -7,8 +7,8 @@
 package routinev1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -33,9 +33,9 @@ const file_ai_stigmer_agentic_routine_v1_query_proto_rawDesc = "" +
 	"\vlistByAgent\x129.ai.stigmer.agentic.routine.v1.ListRoutinesByAgentRequest\x1a*.ai.stigmer.agentic.routine.v1.RoutineList\"\x04и\x18\x01\x12l\n" +
 	"\x04list\x122.ai.stigmer.agentic.routine.v1.ListRoutinesRequest\x1a*.ai.stigmer.agentic.routine.v1.RoutineList\"\x04и\x18\x01\x12\xad\x01\n" +
 	"\tlistFires\x126.ai.stigmer.agentic.routine.v1.ListRoutineFiresRequest\x1a..ai.stigmer.agentic.routine.v1.RoutineFireList\"8¸\x184\b\x01\x108\"\n" +
-	"routine_id*\"unauthorized to list routine fires\x1a\x04\xa0\xff+8B\x9c\x02\n" +
+	"routine_id*\"unauthorized to list routine fires\x1a\x04\xa0\xff+8B\x89\x02\n" +
 	"!com.ai.stigmer.agentic.routine.v1B\n" +
-	"QueryProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/routine/v1;routinev1\xa2\x02\x04ASAR\xaa\x02\x1dAi.Stigmer.Agentic.Routine.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Routine\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Routine\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Routine::V1b\x06proto3"
+	"QueryProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/routine/v1;routinev1\xa2\x02\x04ASAR\xaa\x02\x1dAi.Stigmer.Agentic.Routine.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Routine\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Routine\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Routine::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_routine_v1_query_proto_goTypes = []any{
 	(*RoutineId)(nil),                        // 0: ai.stigmer.agentic.routine.v1.RoutineId
