@@ -1,355 +1,185 @@
 # Dev Publishing Guide
 
-This document explains how to publish and consume **dev builds** of the Stigmer
-dependencies — throwaway, on-demand builds that let two developers iterate across
-repos fast. One person publishes a dev build; the other bumps a version
-reference and tries it within minutes.
+A **dev build** is a commit of `main`, published before it is released, for
+compositions that embed `@stigmer/server` (the hosted edition is one). An
+open-source change such a composition needs merges here first; this repository
+publishes that commit as a dev build; the composition pins the build and merges
+on it, then moves to the release that carries the change.
 
-It is the dev-channel counterpart to the production
-[Release Workflow Guide](release-workflow.md). Production releases are immutable,
-signed, and published in lockstep under a `v*` tag. Dev builds are deliberately
-the opposite: ephemeral, unsigned, and published on demand to each ecosystem's
-**native dev channel** so they never pollute a production release index.
+Dev builds never go to the registries users install from. npmjs.com and ghcr.io
+carry releases only ([Release Workflow Guide](release-workflow.md)). Dev builds
+live in Stigmer's own Google Artifact Registry, in two publicly readable
+repositories:
+
+| What | Where | Example |
+| --- | --- | --- |
+| npm packages | `https://us-central1-npm.pkg.dev/pc-stigmer-foundation/stigmer-npm/` | `@stigmer/server@0.1.0-dev.20261017120000.g10c87982a0f1` |
+| Sandbox runner image | `us-central1-docker.pkg.dev/pc-stigmer-foundation/stigmer-oss/runner` | `…/stigmer-oss/runner:v0.1.0-dev.20261017120000.g10c87982a0f1` |
+
+Anyone can install or pull them without a login; only this repository's
+publishing workflows can write them. Every release's npm packages are copied
+into the same npm repository too ([`release.npm-mirror.yaml`](../release.npm-mirror.yaml)),
+so a consumer that routes the `@stigmer` scope there installs a release and a
+dev build from one place, and moving between them is a version change.
 
 ## TL;DR
 
-**Publisher** (the person making changes):
+**Publish** (after the change has merged to `main`):
 
 ```bash
-# From your feature branch, publish dev builds of everything:
-make publish-dev
-
-# Or scope it and/or pin the base version:
-make publish-dev targets=maven,npm
-make publish-dev targets=maven base=0.2.0
+make publish-dev               # dispatches release.dev on main
+make publish-dev base=0.2.0    # pin the base version
 ```
 
-**Consumer** (the person trying the changes): after a **one-time** per-language
-setup (below), switching a dependency between a dev build and a prod release is
-**only a version-string change** — nothing else.
+The run's summary prints the version, the image, and the pin line.
 
-| Language | Prod reference | Dev reference |
-| --- | --- | --- |
-| Java (Maven) | `ai.stigmer:stigmer-sdk:0.1.0` | `ai.stigmer:stigmer-sdk:0.1.1-SNAPSHOT` |
-| npm | `@stigmer/react-sdk@0.1.0` | `@stigmer/react-sdk@dev` |
-| Python | `stigmer-sdk==0.1.0` | `stigmer-sdk==0.1.1.dev<N>` (from TestPyPI) |
-| Go | `go.stigmer.ai/sdk@v0.1.0` | `go.stigmer.ai/sdk@<branch>` |
-| Rust | crates.io `"0.1.0"` | `{ git = "...", branch = "..." }` |
+**Consume**, once per project, beside its `package.json`:
 
-The examples are the line after its first release, `v0.1.0`. Until that is
-tagged there is no prod reference, and every dev build is on base `0.1.0`
-(`0.1.0-SNAPSHOT`, `0.1.0-dev.<stamp>.g<sha12>`, `0.1.0.dev<N>`).
+```ini
+# .npmrc
+@stigmer:registry=https://us-central1-npm.pkg.dev/pc-stigmer-foundation/stigmer-npm/
+```
+
+then pin every `@stigmer/*` package at the one version the run printed.
+
+**Try unmerged work** without publishing anything:
+`make stage-server-library` (below).
 
 ---
 
 ## Design principles
 
 1. **Separate pipeline, pristine production.** Dev builds run through
-   [`release.dev.yaml`](../release.dev.yaml), a dispatch-only workflow.
-   The production `release.*` workflows are never touched and only ever publish
-   real `v*` releases.
+   [`release.dev.yaml`](../release.dev.yaml), a dispatch-only workflow. The
+   production `release.*` workflows only ever publish `v*` releases.
 
-2. **Native ephemeral channel per ecosystem.** We do not invent one shared dev
-   registry. Each ecosystem already has a purpose-built dev mechanism, and using
-   it is the least surprising thing for any future contributor:
-   - Maven → `-SNAPSHOT` to the Sonatype Central **snapshot** repository
-     (mutable, auto-expired).
-   - npm → a dedicated `dev` **dist-tag** on the same public npm registry.
-   - Python → **TestPyPI**, the throwaway PyPI.
-   - Go / Rust → a **git ref** (no publish step at all).
-   - MCP server → a `dev-<sha>` **Docker tag** on GHCR.
-   - Sandbox runner → a `v<npm version>` **Docker tag** on GHCR, published with
-     npm and before the server, by the workflow only.
+2. **Off the public shelves.** A dev build is not something a user should
+   install by accident or find in a package's version history, so it is never
+   published to npmjs.com or ghcr.io. Stigmer's own registry keeps it readable
+   by address (it is built from this public source) and invisible to anyone
+   browsing those registries.
 
-3. **One-time consumer setup, then version-string-only switching.** For Maven and
-   Python the dev channel lives at a different URL than the prod channel, so the
-   consumer declares it **once**. After that the dev and prod channels coexist in
-   the consumer's config, and flipping a dependency dev↔prod is only a
-   version-string change. The consumer never edits config to switch back and
-   forth. For npm and Go there is nothing to add at all.
+3. **From `main` only.** Every dev build is a commit a composition can merge on.
+   The workflow refuses any other ref in its first job, and the publisher's
+   trust (below) admits `main` and release tags only, so a branch can never
+   write the repositories compositions install from.
 
-4. **Dev versions never collide with a release.** Every dev coordinate carries a
-   `-SNAPSHOT` / `-dev.<stamp>` / `.dev<N>` suffix and targets the *next*
-   unreleased version. This structurally prevents a dev artifact from shadowing a
-   real release (the failure mode behind issue #156, where a published
-   `@stigmer/apis` shadowed the in-repo workspace stub).
+4. **Keyless.** No token is stored anywhere. A publishing job exchanges its
+   GitHub OIDC token for a short-lived token of a Google service account that
+   may write the two repositories and nothing else.
+
+5. **npm decides where packages go.** The workflow points the `@stigmer` scope
+   at the npm repository (`actions/setup-node` with `registry-url` and
+   `scope`); npm publishes a scoped package to its scope's registry; and the
+   publish scripts wait on and smoke-install from that same registry
+   ([`scripts/publish-standalone.mjs`](../../../scripts/publish-standalone.mjs),
+   `configuredRegistry`). No script names the registry.
+
+6. **Dev versions never collide with a release.** Every dev version carries a
+   `-dev.<stamp>` suffix and targets the *next* unreleased version, so it sorts
+   below the release it precedes and can never shadow one (the failure mode
+   behind issue #156).
 
 ---
 
 ## Versioning scheme
 
-`release.dev.yaml` derives a single **base** version (the next patch after the
-newest stable `v*` tag, or `0.1.0` while the line has no release yet, unless you
-pass `base=X.Y.Z`; `scripts/lib/line-base.mjs` is the rule, which
-`make release` tags by too) and stamps each ecosystem with the suffix it
-expects:
+`release.dev.yaml` derives one **base** version (the next patch after the newest
+stable `v*` tag, or `0.1.0` while the line has no release yet, unless you pass
+`base=X.Y.Z`; [`scripts/lib/line-base.mjs`](../../../scripts/lib/line-base.mjs)
+is the rule, which `make release` tags by too) and stamps it:
 
-| Channel | Version | Notes |
+| Artifact | Version | Notes |
 | --- | --- | --- |
-| Maven | `X.Y.Z-SNAPSHOT` | Stable, mutable pointer — republish endlessly. |
-| npm | `X.Y.Z-dev.<UTCstamp>.g<sha12>` under tag `dev` | Unique per publish; `@dev` always resolves the newest. `g<sha12>` is the first 12 characters of the commit the build came from; the local lane writes it only from a clean tree (`scripts/lib/dev-version.mjs`). |
-| Python | `X.Y.Z.dev<epoch>` on TestPyPI | PEP 440 dev release. |
-| Docker | `:dev-<shortsha>` (and a moving `:dev`) | On GHCR. |
-| Sandbox runner | `runner:v<npm version>`, `runner-layer:v<npm version>`, `runner-base:v<npm version>` | On GHCR, from the workflow's npm target only, after the image's smoke. Never `latest`; the layer is a development layer (empty `/runner/RELEASE`). |
+| npm | `X.Y.Z-dev.<UTCstamp>.g<sha12>` under tag `dev` | Unique per publish. `g<sha12>` is the first 12 characters of the commit the build came from ([`scripts/lib/dev-version.mjs`](../../../scripts/lib/dev-version.mjs)). |
+| Sandbox runner | `runner:v<npm version>` (and `dev-<sha12>`, the bytes the smoke tested) | Published before the server, after the in-image smoke. Never `latest` or `prod`; the layer inside is a development layer (empty `/runner/RELEASE`). No `runner-base` or `runner-layer`. |
 
 ---
 
 ## Publishing
 
-### Recommended: dispatch the workflow (`make publish-dev`)
+`make publish-dev` runs `gh workflow run release.dev.yaml --ref main`. It prints
+a `gh run watch ...` command; the run's summary has the copy-paste pin line. You
+can also run it from the GitHub UI: **Actions → release.dev → Run workflow**, on
+`main`.
 
-This keeps all publishing credentials in GitHub Actions — nothing sensitive on
-your laptop — and gives you an audit log.
+What one run publishes, in order:
 
-```bash
-make publish-dev                       # all targets, auto base version
-make publish-dev targets=maven,npm     # subset
-make publish-dev base=0.2.0            # pin the base version
-```
+1. Every workspace library (`scripts/publish-libs.mjs`), under the `dev` tag.
+2. The sandbox runner image, smoke-tested in the image
+   ([`release.runner-images.yaml`](../release.runner-images.yaml)).
+3. `@stigmer/runner` and its slim packages, `@stigmer/server` (after the runner
+   image, so a server version always has its runner), then `@stigmer/enterprise`
+   at the same version, each through `scripts/publish-standalone.mjs` with its
+   consumer-install smoke.
 
-`make publish-dev` runs `gh workflow run release.dev.yaml` against your **current
-branch**, so you publish dev builds straight off your feature branch. It prints a
-`gh run watch ...` command to follow the run; the run's **summary** page contains
-a copy-paste block of the exact consumer coordinates for everything it published.
-
-> First-time note: a `workflow_dispatch` workflow only becomes dispatchable once
-> the workflow file exists on the repository's **default branch**. Merge
-> `release.dev.yaml` to `main` once; thereafter it can run against any branch.
-
-You can also run it from the GitHub UI: **Actions → release.dev → Run workflow**.
-
-### Fastest inner loop: publish locally from your working tree (`make publish-dev-local`)
-
-`make publish-dev` requires you to **commit and push** first (CI checks out the
-ref from GitHub). For a tight inner loop, `make publish-dev-local` publishes
-**straight from your working tree** — no commit, no push, no CI wait:
-
-```bash
-make publish-dev-local                    # all targets, auto base version
-make publish-dev-local targets=npm,maven  # subset
-make publish-dev-local targets=maven      # Maven only
-make publish-dev-local base=0.2.0         # pin the base version
-```
-
-(`make publish-dev-maven-local` is kept as an alias for `targets=maven`.)
-
-It derives the same dev versions, publishes to the same channels (npm `dev` tag,
-Maven SNAPSHOT, TestPyPI, GHCR), and prints the same consumer coordinates. Its
-npm target publishes the runner and `@stigmer/server` through the same
-`scripts/publish-standalone.mjs` sequence as the workflow. It is backed by
-[`scripts/publish-dev-local.sh`](../../../scripts/publish-dev-local.sh).
-
-**Credentials come from Planton secrets**, fetched at runtime and never written
-to disk (GitHub Actions secrets are write-only and cannot be read back, so they
-can't drive a local run). Required secrets in the `stigmer` org — each a
-single-value secret stored under the key `value`:
-
-```bash
-planton secret set npm-token              value=npm_xxxxxxxx          # npmjs.com automation token
-planton secret set maven-central-username value=XXXX                  # Sonatype Central user-token username
-planton secret set maven-central-password value=YYYY                  # Sonatype Central user-token password
-planton secret set testpypi-token         value=pypi-xxxxxxxx         # test.pypi.org API token
-# ghcr-stigmer-pat already exists in the org (used for the MCP Docker push)
-```
-
-**Requirements / notes:**
-
-- **Planton CLI**: the script reads secrets with `planton secret get --key value
-  -o plain`. Release CLIs return the raw value; older/dev builds that print a
-  decorated table are handled too (the script extracts the value cell and rejects
-  anything that comes back with embedded whitespace, as a corruption guard).
-- The local TestPyPI upload uses an **API token**, which sidesteps the OIDC
-  trusted-publisher configuration the CI workflow needs.
-- The MCP Docker push infers your GitHub username from `gh`; override with
-  `GHCR_USER=<login>` if needed. Multi-arch is the default; set
-  `DOCKER_PLATFORMS=linux/arm64` to build a single arch faster.
-- The script stamps versions into `pom.xml` / `pyproject.toml` while building and
-  **restores them on exit** (even on failure), preserving any pre-existing
-  uncommitted edits to those files.
-
-> Trade-off: the local path has no CI audit trail and weaker build provenance
-> than `make publish-dev`. Use it for fast iteration; prefer `make publish-dev`
-> for builds you want recorded.
+Python, Java, the Go SDK, the Rust crate and the MCP server image have no dev
+build. Their consumers install releases; Go and Rust can follow a commit of
+`main` by git ref (`go get go.stigmer.ai/sdk@<sha>`, a Cargo `git` dependency
+with `rev`).
 
 ---
 
-## Consumer setup (one-time per language)
+## Consuming
 
-### Java (Maven)
+A dev build is pinned by its exact version, never by the `dev` tag:
+`@stigmer/server` and every other `@stigmer/*` dependency at the same
+`X.Y.Z-dev.<stamp>.g<sha12>`. A consumer that merges on a dev build is expected
+to check that the commit the version names is on this repository's `main`,
+which it can do with no lookup. A production image never carries a dev build:
+the consumer moves to a release before anything ships.
 
-Add the Central snapshot repository to the consuming project's `pom.xml` **once**.
-It coexists with Maven Central; it is only consulted for `-SNAPSHOT` versions, so
-your prod (release) dependencies are unaffected.
+With the scope line in place, `npm install`, `npm ci` and a Docker build that
+copies the `.npmrc` beside the manifest all fetch `@stigmer/*` from the npm
+repository with no credential. Releases are there too, so the line stays when
+the pin moves to a release.
 
-```xml
-<repositories>
-  <repository>
-    <id>central-snapshots</id>
-    <url>https://central.sonatype.com/repository/maven-snapshots/</url>
-    <releases><enabled>false</enabled></releases>
-    <snapshots><enabled>true</enabled></snapshots>
-  </repository>
-</repositories>
-```
+A composition that selects its runner by its pin launches
+`…/stigmer-oss/runner:v<pinned version>` for a dev build and
+`ghcr.io/stigmer/runner:v<version>` for a release. The open-source server itself
+launches `runner:latest` for any version that is not a release.
 
-Then switch the dependency version only:
+### Trying unmerged work
 
-```xml
-<!-- prod -->
-<dependency>
-  <groupId>ai.stigmer</groupId>
-  <artifactId>stigmer-sdk</artifactId>
-  <version>0.1.0</version>
-</dependency>
-
-<!-- dev (only the version changed) -->
-<dependency>
-  <groupId>ai.stigmer</groupId>
-  <artifactId>stigmer-sdk</artifactId>
-  <version>0.1.1-SNAPSHOT</version>
-</dependency>
-```
-
-Force-refresh to the latest snapshot with `mvn -U ...`.
-
-### npm
-
-Nothing to configure — the `dev` dist-tag lives on the same public npm registry as
-`latest`. Switch the version reference only:
-
-```bash
-npm install @stigmer/react-sdk@0.1.0   # prod
-npm install @stigmer/react-sdk@dev     # dev (latest dev build)
-```
-
-`@dev` always resolves to the newest dev build. To pin an exact dev build, use the
-full `0.1.1-dev.<stamp>.g<sha12>` version from the run summary.
-
-**`@stigmer/server` (the library a composition pins).** A composition that pins the library at an exact release has three ways to run against an unreleased server change, fastest first:
-
-1. **No publish at all: `make stage-server-library`.** It packs the server, the `@stigmer/*` libraries it links and `@stigmer/enterprise` (`ee/server`, built against that server) from your working tree, at one `0.0.0-local.<stamp>` version, into `backend/services/stigmer-server/stage/library` (`out=<dir>` moves it). The consumer installs every tarball in one `npm install --no-save <dir>/pkgs/*.tgz`, which changes neither its `package.json` nor its lockfile; its next `npm ci` puts the pinned release back. This is the everyday loop: minutes from an edit to the consumer's own suite, and nothing leaves your machine. `npm link` is not a substitute: a linked package resolves its dependencies from this repository's `node_modules`, which gives the consumer a second copy of every package the server declares in `stigmerPublish.consumerCheck.singleCopy`.
-2. **A dev build from your working tree: `make publish-dev-local targets=npm`.** It publishes `@stigmer/server` with the libs and the runner, through the same `scripts/publish-standalone.mjs` sequence as the workflow, consumer smoke included (it needs the `temporal` CLI, and uses a Temporal already answering on `127.0.0.1:7233` or starts a dev server for the step). Use it when another machine or session must install the build. It builds no sandbox runner image, so a composition that launches sandboxes finds no `runner:v<version>` for it.
-3. **A dev build of a pushed commit: dispatch this workflow** (`targets=npm`), when the build must trace to a commit. Dispatched on `main` once the OSS pull request has merged, it is the build the cloud composition merges on. Its npm target also publishes the sandbox runner images at the same version (`ghcr.io/stigmer/runner:v<version>`, with `runner-layer` and `runner-base`), smoke-tested in the image, and publishes `@stigmer/server` only after them: a server pinned from this lane always has its runner, for a composition that selects the runner by its pin.
-
-**`@stigmer/enterprise` (Stigmer Enterprise, `ee/server`).** The workflow's npm target publishes it after the server, at the same dev version, through `publish-npm-enterprise` (the dev twin of the release's `publish-enterprise`), so the run summary's pin line names it beside `@stigmer/server`. A composition that runs Enterprise pins it at that one version with every other `@stigmer/*` package. `make publish-dev-local` does not publish it.
-
-A dev build is pinned by its exact version, never by the `dev` tag: `@stigmer/server` and every other `@stigmer/*` dependency at the same `X.Y.Z-dev.<stamp>.g<sha12>`. A consumer that merges on a dev build (the cloud composition's `main`) is expected to pin only one whose commit is on this repository's `main`, and to check that by the commit the version names, which it can check out with no lookup. A version without `.g<sha12>` (a local build from a dirty tree) names no commit, so such a consumer refuses it. A production image never carries a dev build: the consumer re-pins to a release before anything deploys.
-
-### Python (TestPyPI)
-
-dev builds go to TestPyPI. Point pip at TestPyPI **with PyPI as an extra index**
-(so transitive deps still resolve from prod PyPI) and pass `--pre`:
-
-```bash
-# prod
-pip install stigmer-sdk
-
-# dev (TestPyPI)
-pip install \
-  -i https://test.pypi.org/simple/ \
-  --extra-index-url https://pypi.org/simple/ \
-  --pre 'stigmer-sdk==0.1.1.dev<N>'
-```
-
-To make this a one-time setup, add the extra index to your `pip.conf`
-(`~/.config/pip/pip.conf` on Linux/macOS):
-
-```ini
-[global]
-extra-index-url = https://test.pypi.org/simple/
-pre = true
-```
-
-### Go (no publish — git ref)
-
-The Go SDK is consumed by module path. Prod uses a tag; dev uses your branch:
-
-```bash
-go get go.stigmer.ai/sdk@v0.1.0      # prod
-go get go.stigmer.ai/sdk@my-branch   # dev
-```
-
-### Rust (no publish — git dependency)
-
-crates.io is immutable, so dev iteration uses a git dependency in `Cargo.toml`:
-
-```toml
-# prod
-stigmer-runner-host = "0.1.0"
-
-# dev
-stigmer-runner-host = { git = "https://github.com/stigmer/stigmer", branch = "my-branch" }
-```
-
-### MCP server (Docker)
-
-```bash
-docker pull ghcr.io/stigmer/mcp-server-stigmer:dev-<sha>
-```
-
-### Sandbox runner (Docker)
-
-A composition that selects its runner by its pin (the cloud's does: `runner:v<pinned version>`) needs nothing more. The open-source server itself still launches `runner:latest` for a dev-channel version, because it cannot tell a workflow build from a local one. To pull one by hand:
-
-```bash
-docker pull ghcr.io/stigmer/runner:v0.1.1-dev.<stamp>.g<sha12>
-```
+`make stage-server-library` packs the server, the `@stigmer/*` libraries it
+links and `@stigmer/enterprise` from your working tree, at one
+`0.0.0-local.<stamp>` version, into `backend/services/stigmer-server/stage/library`
+(`out=<dir>` moves it). The consumer installs every tarball in one
+`npm install --no-save <dir>/pkgs/*.tgz`, which changes neither its
+`package.json` nor its lockfile; its next `npm ci` puts its pin back. Nothing
+leaves your machine. `npm link` is not a substitute: a linked package resolves
+its dependencies from this repository's `node_modules`, which gives the
+consumer a second copy of every package the server declares in
+`stigmerPublish.consumerCheck.singleCopy`.
 
 ---
 
 ## Infrastructure prerequisites
 
-One-time account/secret setup. There are **two credential planes**:
+The repositories and the publisher are Stigmer's own Google Cloud resources. The
+workflows read four **repository Variables** (identifiers, not secrets):
 
-- **CI path** (`make publish-dev`) reads **GitHub Actions secrets**.
-- **Local path** (`make publish-dev-local`) reads **Planton secrets** (GitHub
-  Actions secrets are write-only and cannot be read back). The Planton slugs are
-  listed in the local-publish section above.
+| Variable | Value |
+| --- | --- |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER` | `projects/<number>/locations/global/workloadIdentityPools/github/providers/github-actions` |
+| `GCP_IMAGE_PUBLISHER` | `github-image-publisher@pc-stigmer-foundation.iam.gserviceaccount.com` |
+| `STIGMER_NPM_REGISTRY` | `https://us-central1-npm.pkg.dev/pc-stigmer-foundation/stigmer-npm/` |
+| `STIGMER_OSS_REGISTRY_ROOT` | `us-central1-docker.pkg.dev/pc-stigmer-foundation/stigmer-oss` |
 
-### Maven credentials
+The provider admits a token only from `release.dev.yaml`,
+`release.runner-images.yaml` and `release.npm-mirror.yaml` in this repository,
+on `main` or a `v*` tag. The publisher may write `stigmer-npm` and `stigmer-oss`
+and nothing else; both repositories grant read to everyone.
 
-- Both paths publish to the Central snapshot repo. **Snapshot publishing must be
-  enabled** for the Sonatype Central account/namespace, and the same account also
-  needs **release publishing** enabled for production releases.
-- CI: the existing `MAVEN_CENTRAL_USERNAME` / `MAVEN_CENTRAL_PASSWORD` GitHub
-  secrets (same `central` server id as the release workflow).
-- Local: the `maven-central-username` / `maven-central-password` Planton secrets.
-  The script generates a temporary `settings.xml` referencing them via
-  `${env.*}`, so you do **not** need to edit your `~/.m2/settings.xml`.
-
-### TestPyPI (Python)
-
-- CI: publishes via **OIDC Trusted Publishing** (matching
-  `release.python-sdk.yaml`). A Trusted Publisher must be configured on
-  `test.pypi.org` for **both** projects (`stigmer-sdk` and `stigmer-apis`), pointing
-  at this repository and the `release.dev` workflow.
-- Local: uses the `testpypi-token` Planton secret (an API token), which does not
-  require the trusted-publisher setup.
-
-### npm
-
-- CI: reuses the existing `NPM_TOKEN` GitHub secret.
-- Local: uses the `npm-token` Planton secret.
-
-### GHCR (MCP Docker, sandbox runner)
-
-- CI: uses the workflow's `GITHUB_TOKEN` (the runner images: `packages: write` on `publish-runner-image`).
-- Local: uses the existing `ghcr-stigmer-pat` Planton secret.
-
-### Planton CLI (local path only)
-
-The local path reads secrets via the Planton CLI. It works with both release
-CLIs (clean `-o plain` output) and older/dev builds (decorated table, parsed by
-the script). A parsed value containing whitespace is rejected as a corruption
-guard.
+The release lanes keep their own credentials (`NPM_TOKEN` for npmjs.com, the
+workflow token for ghcr.io); only the mirror job among them takes a Google
+token.
 
 ---
 
 ## What's intentionally out of scope
 
-- **Desktop installers and the website** are apps / deployables, not
-  dependencies another developer references, so they have no dev channel here.
-  The sandbox runner images do: a composition that selects its runner by
-  its pin launches the runner of that version.
-- **Signing / provenance / lockstep** are production-release concerns. Dev builds
-  are explicitly throwaway and skip them for speed.
+- **Desktop installers and the website** are apps, not dependencies another
+  project references, so they have no dev build.
+- **Signing and provenance** are release concerns; a dev build is a step on the
+  way to the release that carries its change.

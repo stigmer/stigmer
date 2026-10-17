@@ -2,9 +2,9 @@
 
 /**
  * The npm version of a dev build: `<base>-dev.<stamp>.g<12-char sha>`, the
- * one rule both dev lanes stamp (release.dev.yaml's determine-version and
- * scripts/publish-dev-local.sh), so they cannot drift apart. The lanes take
- * the base from scripts/lib/line-base.mjs: 0.1.0 until the line's first
+ * rule release.dev.yaml's determine-version stamps (and
+ * release.runner-images.yaml checks a dev runner's tag against). The lane
+ * takes the base from scripts/lib/line-base.mjs: 0.1.0 until the line's first
  * release, so a build then reads `0.1.0-dev.20261016120000.g10c87982a0f1`,
  * and the next patch after the newest release from then on.
  *
@@ -15,11 +15,12 @@
  * composition builds the runner and console its gate runs from it, and
  * refuses a commit that is not on `main`. npm's `gitHead` cannot stand in for
  * this; it records whatever HEAD the publishing checkout had, which for a
- * local publish need not be the code that was packed.
+ * build from a working tree need not be the code that was packed.
  *
  * A tree with any uncommitted or untracked file gets no `.g<sha>`: its build
- * is not that commit's code, so it is published unattributed, and a consumer
- * that requires the commit refuses it.
+ * is not that commit's code, so it would be unattributed, and a consumer
+ * that requires the commit refuses it. The dev lane builds a fresh checkout
+ * of `main`, so its builds always name their commit.
  *
  * The hash is the first 12 characters of HEAD's full id, cut here rather than
  * by git, whose `--short` length depends on the repository's object count

@@ -5,7 +5,7 @@
 // is not a release; a bad bump is refused, on a fresh line too. The entry
 // point the callers run prints the same answer for this checkout and exits 1
 // on a refusal, a scratch repository stands in for a fresh line and for one
-// with releases, and all three callers read the rule from here rather than
+// with releases, and both callers read the rule from here rather than
 // restating it. Run via `node --test scripts/lib/*.test.mjs` (wired into the
 // root `npm test`).
 
@@ -101,11 +101,10 @@ test("run as the callers run it, it prints this checkout's answer, and refuses a
   assert.throws(() => run("--stray"), (error) => error.status === 1 && /line-base: /.test(String(error.stderr)));
 });
 
-test("the two dev lanes and `make release` take the next version from this helper, never inline", () => {
+test("the dev lane and `make release` take the next version from this helper, never inline", () => {
   const read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
   const callers = {
     ".github/workflows/release.dev.yaml": /BASE=\$\(node scripts\/lib\/line-base\.mjs\)/,
-    "scripts/publish-dev-local.sh": /BASE="\$\(node scripts\/lib\/line-base\.mjs\)"/,
     Makefile: /NEW_VERSION=\$\$\(node scripts\/lib\/line-base\.mjs --bump="\$\(bump\)"\)/,
   };
   for (const [caller, call] of Object.entries(callers)) {

@@ -215,10 +215,14 @@ version. A change that the cloud needs therefore follows one order:
 
 1. The OSS pull request lands the seam (the new extension point, the new export,
    the behaviour) here, with its tests and its conformance coverage. While it is
-   in flight, the cloud side is proven against a local build of this tree.
+   in flight, the cloud side is proven against tarballs of this tree
+   (`make stage-server-library`), which publishes nothing.
 2. Once it has merged, a development build of `main` is published
-   (`release.dev.yaml`, `targets=npm`); its version names the commit it was
-   built from (`X.Y.Z-dev.<stamp>.g<sha>`).
+   (`make publish-dev`, which dispatches `release.dev.yaml` on `main`; it
+   refuses any other ref); its version names the commit it was built from
+   (`X.Y.Z-dev.<stamp>.g<sha>`). Dev builds go to Stigmer's own npm and image
+   repositories, never npmjs.com or ghcr.io
+   (`.github/workflows/docs/dev-publishing.md`).
 3. The cloud pull request pins that build and merges on it, without waiting for
    a release; the cloud is expected to refuse a build whose named commit is not
    on `main`.

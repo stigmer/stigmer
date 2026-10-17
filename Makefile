@@ -1435,29 +1435,20 @@ release: release-preflight ## Tag and push a release (usage: make release [bump=
 	@echo "  - Live check on real providers   (ci.live.yaml, after the npm release)"
 
 # ─── Dev Publishing ───────────────────────────
-# Publish throwaway "dev" builds to each ecosystem's native ephemeral channel so
-# two developers can iterate across repos fast. See
-# .github/workflows/docs/dev-publishing.md for the consumer side.
+# A dev build of a commit of main, published to Stigmer's own registries for
+# compositions that embed the server (never to npmjs.com or ghcr.io). See
+# .github/workflows/docs/dev-publishing.md; unmerged work is staged as tarballs
+# with scripts/stage-server-library.mjs, which publishes nothing.
 
 .PHONY: publish-dev
-publish-dev: ## Publish dev builds via the release.dev workflow (usage: make publish-dev [targets=all] [base=X.Y.Z])
+publish-dev: ## Publish a dev build of main via the release.dev workflow (usage: make publish-dev [base=X.Y.Z])
 	@command -v gh >/dev/null 2>&1 || { echo "error: gh CLI not found — install from https://cli.github.com"; exit 1; }
 	@set -e; \
-	BRANCH=$$(git rev-parse --abbrev-ref HEAD); \
-	TARGETS="$(or $(targets),all)"; \
-	echo "Dispatching release.dev on branch '$$BRANCH' (targets: $$TARGETS, base: $(or $(base),auto))"; \
-	gh workflow run release.dev.yaml --ref "$$BRANCH" -f targets="$$TARGETS" $(if $(base),-f base_version="$(base)",); \
+	echo "Dispatching release.dev on main (base: $(or $(base),auto))"; \
+	gh workflow run release.dev.yaml --ref main $(if $(base),-f base_version="$(base)",); \
 	echo ""; \
 	echo "Dispatched. Follow the run with:"; \
-	echo "  gh run watch \$$(gh run list --workflow=release.dev.yaml --branch \"$$BRANCH\" --limit 1 --json databaseId --jq '.[0].databaseId')"
-
-.PHONY: publish-dev-local
-publish-dev-local: ## Publish dev builds from your working tree (creds from Planton; usage: make publish-dev-local [targets=all] [base=X.Y.Z])
-	@TARGETS="$(or $(targets),all)" BASE="$(base)" scripts/publish-dev-local.sh
-
-.PHONY: publish-dev-maven-local
-publish-dev-maven-local: ## Local dev publish, Maven only (alias for publish-dev-local targets=maven)
-	@TARGETS="maven" BASE="$(base)" scripts/publish-dev-local.sh
+	echo "  gh run watch \$$(gh run list --workflow=release.dev.yaml --branch main --limit 1 --json databaseId --jq '.[0].databaseId')"
 
 # ─── Clean ────────────────────────────────────
 

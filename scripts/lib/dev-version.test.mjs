@@ -2,8 +2,8 @@
 // `.g<first 12 characters of HEAD>`, whatever git's own abbreviation length;
 // a tree with an uncommitted or untracked file names none; a malformed base,
 // stamp or id is refused rather than published; and the entry point the
-// lanes call prints the same version and exits 1 on a refusal, and both
-// lanes call it rather than restating the rule. A scratch
+// lane calls prints the same version and exits 1 on a refusal, and the dev
+// lane calls it rather than restating the rule. A scratch
 // repository with `core.abbrev` set to 7 stands in for a checkout git
 // abbreviates short.
 // Run via `node --test scripts/lib/*.test.mjs` (wired into the root `npm test`).
@@ -100,10 +100,9 @@ test("run as the lanes run it, it prints this checkout's version, and refuses a 
   );
 });
 
-test("both dev lanes stamp the npm version through this helper, never inline", () => {
+test("the dev lane stamps the npm version through this helper, never inline", () => {
   const lanes = {
     ".github/workflows/release.dev.yaml": readFileSync(new URL("../../.github/workflows/release.dev.yaml", import.meta.url), "utf8"),
-    "scripts/publish-dev-local.sh": readFileSync(new URL("../publish-dev-local.sh", import.meta.url), "utf8"),
   };
   for (const [lane, text] of Object.entries(lanes)) {
     assert.match(text, /NPM_VERSION="?\$\(node scripts\/lib\/dev-version\.mjs --base "\$BASE" --stamp "\$STAMP"\)"?/, `${lane} calls the helper`);

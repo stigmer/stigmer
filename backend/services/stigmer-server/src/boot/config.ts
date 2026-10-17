@@ -372,10 +372,9 @@ export const DEFAULT_MODEL_REGISTRY_UPSTREAM = "https://api.stigmer.ai";
  * (the release lane stamps SERVER_VERSION into the server image, the
  * all-in-one image and @stigmer/server-slim); the @stigmer/server library
  * and an unbundled build report `dev`, a local build
- * (`0.0.0-local.<stamp>`) has no published image, and a dev-channel stamp
- * has one only when release.dev.yaml cut it (a local dev publish builds
- * none), which nothing here can tell, so all of those fall back to
- * `latest`. A composition that embeds the library names its image itself
+ * (`0.0.0-local.<stamp>`) has no published image, and a dev build's
+ * runner lives in Stigmer's own image repository rather than ghcr.io
+ * (release.dev.yaml), so all of those fall back to `latest`. A composition that embeds the library names its image itself
  * (the cloud selects the image of the version it pins). isReleaseVersion is the one test of which
  * versions the release lane publishes.
  */

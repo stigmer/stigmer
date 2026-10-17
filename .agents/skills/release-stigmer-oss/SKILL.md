@@ -21,7 +21,7 @@ Versions run on one 0.x line. Its first release is `v0.1.0`; until it is tagged,
 every dev build is a 0.1.0 prerelease
 (`0.1.0-dev.<14-digit UTC stamp>.g<12-character commit>`), and after it a dev
 build targets the next patch. `scripts/lib/line-base.mjs` reads the newest
-stable `vX.Y.Z` tag and gives the next version, for the dev lanes and for
+stable `vX.Y.Z` tag and gives the next version, for the dev lane and for
 `make release` alike.
 
 Releases are batched. Finishing an issue or a pull request never cuts one: the
@@ -214,7 +214,10 @@ Every lane triggers on the `v*` tag; the list is
 `.github/workflows/release.*.yaml` and `make release` prints the summary. In
 short: protos to the Buf registry; CLI binaries and the GitHub release; desktop
 installers as a draft; the `@stigmer/*` npm packages including `@stigmer/server`
-(the library the cloud composition pins) and `@stigmer/server-slim`, with the
+(the library the cloud composition pins) and `@stigmer/server-slim`, then a copy
+of the release's packages into Stigmer's own npm repository
+(`release.npm-mirror.yaml`, where compositions install `@stigmer/*` from; a
+failed copy is re-run by dispatching that workflow with the version), with the
 server, Enterprise server, runner and all-in-one images pushed to GHCR and the
 Helm chart to its OCI registry, each smoked before promotion; the Go SDK through
 the module proxy; the Python packages to PyPI; the Java SDK to Maven; the MCP

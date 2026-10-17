@@ -30,6 +30,11 @@
 // The pack lane stages the server beside libs packed by publish-libs.mjs,
 // so a script driving both must not learn two vocabularies.
 //
+// And the wait reads where the lane publishes. A dev build goes to the
+// registry the @stigmer scope names, never to npmjs.com, so a wait that read
+// only npm's default registry would poll npmjs.com for a version that never
+// arrives there. `configuredRegistry` is pinned on a fake `npm config get`.
+//
 // And a package's own LICENSE is its license. A standalone package under a
 // license other than the root's publishes with its own text, so the root
 // copy is made only for a package that carries none, and the rehearsal's
@@ -49,6 +54,7 @@ import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
 import {
+  configuredRegistry,
   INSTALL_METADATA_ACCEPT,
   installGap,
   parseArgs,
@@ -56,6 +62,7 @@ import {
   REQUEST_TIMEOUT_MS,
   resolveTag,
   rootLicenseCopy,
+  STANDALONE_PACKAGES,
   stampManifest,
   waitForRegistry,
   WAIT_BUDGET_MS,
@@ -248,11 +255,7 @@ test("every standalone package stamps cleanly from its committed manifest", () =
   // directories. Every @stigmer/* dependency each carries must be a file:
   // link (so the stamp pins it) — a dependency added as a bare version
   // range would publish untested resolution and escape the pinned set.
-  for (const dir of [
-    "backend/services/runner",
-    "backend/services/stigmer-server",
-    "ee/server",
-  ]) {
+  for (const dir of STANDALONE_PACKAGES) {
     const manifest = JSON.parse(
       readFileSync(join(repoRoot, dir, "package.json"), "utf8"),
     );
@@ -624,4 +627,22 @@ test("installGap names the first thing an install still lacks, so the wait asks 
       gap,
     );
   }
+});
+
+test("configuredRegistry follows the @stigmer scope's registry when one is set, and npm's default otherwise", () => {
+  const scoped = {
+    "@stigmer:registry": "https://us-central1-npm.pkg.dev/pc-stigmer-foundation/stigmer-npm/",
+    registry: "https://registry.npmjs.org/",
+  };
+  assert.equal(
+    configuredRegistry((key) => scoped[key]),
+    "https://us-central1-npm.pkg.dev/pc-stigmer-foundation/stigmer-npm/",
+  );
+  // npm prints `undefined` for a key nobody set: the release lane's case.
+  const unscoped = { "@stigmer:registry": "undefined", registry: "https://registry.npmjs.org/" };
+  assert.equal(configuredRegistry((key) => unscoped[key]), "https://registry.npmjs.org/");
+  assert.equal(
+    configuredRegistry((key) => (key === "registry" ? "https://registry.npmjs.org/" : "")),
+    "https://registry.npmjs.org/",
+  );
 });
