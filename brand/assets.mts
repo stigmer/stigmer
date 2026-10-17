@@ -1,9 +1,13 @@
 /** Read the canonical refined SVG and derive consistent colors, crops and backgrounds. */
 import { readFile } from "node:fs/promises";
 
+/** The two brand tones: graphite ink and its light counterpart, never pure black or white. */
+export const BRAND_DARK = "#1c1c1e";
+export const BRAND_LIGHT = "#ededed";
+
 export async function brandSvg({
   size = 1024,
-  color = "#0a0a0a",
+  color = BRAND_DARK,
   background,
   tight = false,
   rounded = false,
@@ -24,14 +28,14 @@ export async function brandSvg({
   return source
     .replace(/width="1024" height="1024"/, `width="${size}" height="${size}"`)
     .replace('viewBox="0 0 34 34"', `viewBox="${box}"`)
-    .replaceAll("#0a0a0a", color)
+    .replaceAll(BRAND_DARK, color)
     .replace("</title>", `</title>${backdrop}`);
 }
 
 /** Pair the unmodified mark with the approved, font-independent Instrument Sans lettering. */
 export async function brandLockupSvg({
   width = 1536,
-  color = "#0a0a0a",
+  color = BRAND_DARK,
 }: {
   width?: number;
   color?: string;
@@ -46,6 +50,6 @@ export async function brandLockupSvg({
   // Lower the lettering 7.2 units for optical centering: 3 px at a 40 px height.
   const lettering = wordmark
     .replace("<svg ", '<svg x="103.62352941176471" y="7.2" ')
-    .replaceAll("#0a0a0a", color);
+    .replaceAll(BRAND_DARK, color);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${Math.round((width * 96) / 364)}" viewBox="0 0 364 96"><title>Stigmer</title>${mark}${lettering}</svg>\n`;
 }

@@ -3,12 +3,34 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import sharp from "sharp";
-import { brandSvg } from "../assets.mjs";
+import {
+  BRAND_DARK,
+  BRAND_LIGHT,
+  brandLockupSvg,
+  brandSvg,
+} from "../assets.mjs";
+
+test("the source artwork is drawn in BRAND_DARK, so every recolor takes effect", async () => {
+  for (const file of ["../logo.svg", "../source/wordmark.svg"]) {
+    const source = await readFile(new URL(file, import.meta.url), "utf8");
+    assert.ok(
+      source.includes(`fill="${BRAND_DARK}"`),
+      `${file} must use BRAND_DARK, the color the generators replace`,
+    );
+  }
+  const light = await brandLockupSvg({ color: BRAND_LIGHT });
+  assert.ok(
+    !light.includes(BRAND_DARK),
+    "a light lockup must keep no dark fill in the mark or the lettering",
+  );
+});
 
 for (const size of [16, 24, 32, 1024]) {
   test(`transparent light and dark marks have identical silhouettes at ${size}px`, async () => {
     const light = sharp(Buffer.from(await brandSvg({ size })));
-    const dark = sharp(Buffer.from(await brandSvg({ size, color: "#fefefe" })));
+    const dark = sharp(
+      Buffer.from(await brandSvg({ size, color: BRAND_LIGHT })),
+    );
     const metadata = await light.metadata();
     assert.equal(metadata.width, size);
     assert.equal(metadata.height, size);
@@ -59,13 +81,13 @@ test("the default avatar is opaque, square and safe for a circular crop", async 
 test("favicon crops and rounded app backgrounds render at native target resolution", async () => {
   const tight = await brandSvg({
     size: 16,
-    background: "#f1f1f1",
+    background: BRAND_LIGHT,
     tight: true,
   });
   const rounded = await brandSvg({
     size: 180,
-    background: "#0a0a0a",
-    color: "#fefefe",
+    background: BRAND_DARK,
+    color: BRAND_LIGHT,
     rounded: true,
   });
   const squareAlpha = await sharp(Buffer.from(tight))
@@ -95,8 +117,8 @@ for (const theme of ["light", "dark"]) {
           await brandSvg({
             size,
             tight: true,
-            color: theme === "dark" ? "#fefefe" : "#0a0a0a",
-            background: theme === "dark" ? "#0a0a0a" : "#f1f1f1",
+            color: theme === "dark" ? BRAND_LIGHT : BRAND_DARK,
+            background: theme === "dark" ? BRAND_DARK : BRAND_LIGHT,
           }),
         ),
       )
@@ -122,9 +144,9 @@ for (const theme of ["light", "dark"]) {
 }
 
 for (const [filename, color, background] of [
-  ["logo.png", "#0a0a0a", undefined],
-  ["logo-white.png", "#fefefe", undefined],
-  ["avatar.png", "#fefefe", "#0a0a0a"],
+  ["logo.png", BRAND_DARK, undefined],
+  ["logo-white.png", BRAND_LIGHT, undefined],
+  ["avatar.png", BRAND_LIGHT, BRAND_DARK],
 ] as const) {
   test(`${filename} contains the current canonical artwork`, async () => {
     const expected = await sharp(

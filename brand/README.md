@@ -1,8 +1,14 @@
 # Stigmer logo
 
 Use **avatar.png** for GitHub, organization profiles, and other square or
-circular avatar uploads. It is a 1024 × 1024 PNG with a white mark on a dark
+circular avatar uploads. It is a 1024 × 1024 PNG with a light mark on a graphite
 background.
+
+The logo uses two tones, never pure black or white: graphite `#1c1c1e` for the
+dark mark and dark backgrounds, and light gray `#ededed` for the light mark and
+light backgrounds. "White" in the file names below means this light tone.
+`assets.mts` exports them as `BRAND_DARK` and `BRAND_LIGHT`; every generator
+reads those names.
 
 | File             | Use                                             |
 | ---------------- | ----------------------------------------------- |
