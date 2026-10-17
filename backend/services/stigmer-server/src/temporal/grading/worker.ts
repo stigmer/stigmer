@@ -3,7 +3,7 @@
  * activities and the AI judge's (judge-activities.ts) on their own queue
  * (config.ts), registered in the boot workers list beside
  * the agent-execution and schedule workers, and rebuilt by the manager on
- * every reconnect as they are (temporal/schedule/worker.ts is the shape
+ * every reconnect as they are (temporal/routine/worker.ts is the shape
  * this copies). The workflow registers under its byte-pinned type through
  * the barrel's export name; the activities under their names as the
  * activities object's keys.

@@ -1,7 +1,7 @@
 /**
  * Grade-run workflow orchestration tests, through a TestWorkflowEnvironment
  * with scripted activities (the schedule tick's precedent,
- * temporal/schedule/__tests__/tick-workflow.temporal.test.ts).
+ * temporal/routine/__tests__/tick-workflow.temporal.test.ts).
  *
  * What these pin (the grading workflow's contract):
  *   - a run is graded by the grade activity, whose outcome is the
