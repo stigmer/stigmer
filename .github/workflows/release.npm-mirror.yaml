@@ -1,4 +1,7 @@
 name: release.npm-mirror
+# The version in every run's title, so `gh run list` finds a release's copy by it
+# (a workflow_run's branch is main, not the tag).
+run-name: release.npm-mirror ${{ inputs.version || github.event.workflow_run.head_branch }}
 
 # =============================================================================
 # Mirror a release's npm packages into Stigmer's own npm repository
