@@ -14,7 +14,7 @@
  */
 
 import sharp from "sharp";
-import { brandSvg } from "../../../brand/assets.mjs";
+import { BRAND_DARK, BRAND_LIGHT, brandSvg } from "../../../brand/assets.mjs";
 import pngToIco from "png-to-ico";
 import * as fs from "fs/promises";
 import * as path from "path";
@@ -79,8 +79,8 @@ async function renderMaster(): Promise<Buffer> {
   const bodySize = Math.round(MASTER_SIZE * ICON_BODY_RATIO);
   const svgContent = await brandSvg({
     size: bodySize,
-    color: "#fefefe",
-    background: "#0a0a0a",
+    color: BRAND_LIGHT,
+    background: BRAND_DARK,
     rounded: true,
   });
   const offset = Math.round((MASTER_SIZE - bodySize) / 2);
@@ -186,7 +186,7 @@ async function main(): Promise<void> {
 
   await fs.writeFile(
     path.join(DESKTOP_ROOT, "public", "app-icon-light.svg"),
-    await brandSvg({ background: "#f1f1f1", rounded: true }),
+    await brandSvg({ background: BRAND_LIGHT, rounded: true }),
   );
   await sharp(
     Buffer.from(await brandSvg({ size: 44, color: "#000000", tight: true })),

@@ -3,14 +3,14 @@ import sharp from "sharp";
 import pngToIco from "png-to-ico";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { brandSvg } from "../../../brand/assets.mjs";
+import { BRAND_DARK, BRAND_LIGHT, brandSvg } from "../../../brand/assets.mjs";
 
 async function main(): Promise<void> {
   const publicDir = path.join(process.cwd(), "public");
   for (const theme of ["light", "dark"] as const) {
     const options = {
-      color: theme === "dark" ? "#fefefe" : "#0a0a0a",
-      background: theme === "dark" ? "#0a0a0a" : "#f1f1f1",
+      color: theme === "dark" ? BRAND_LIGHT : BRAND_DARK,
+      background: theme === "dark" ? BRAND_DARK : BRAND_LIGHT,
     };
     await fs.writeFile(
       path.join(publicDir, `favicon-${theme}.svg`),

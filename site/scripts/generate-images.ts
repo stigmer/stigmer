@@ -18,7 +18,12 @@
  */
 
 import sharp from "sharp";
-import { brandLockupSvg, brandSvg } from "../../brand/assets.mjs";
+import {
+  BRAND_DARK,
+  BRAND_LIGHT,
+  brandLockupSvg,
+  brandSvg,
+} from "../../brand/assets.mjs";
 import pngToIco from "png-to-ico";
 import * as fs from "fs/promises";
 import * as path from "path";
@@ -74,18 +79,18 @@ async function generateFavicon(
 async function generateAllIcons(): Promise<void> {
   await fs.writeFile(
     path.join(PUBLIC_DIR, "logo-lockup-white.svg"),
-    await brandLockupSvg({ color: "#fefefe" }),
+    await brandLockupSvg({ color: BRAND_LIGHT }),
   );
   const faviconSvg = await brandSvg({
     size: 32,
-    color: "#fefefe",
-    background: COLORS.darkBg,
+    color: BRAND_LIGHT,
+    background: BRAND_DARK,
     tight: true,
   });
   await fs.writeFile(path.join(PUBLIC_DIR, "favicon.svg"), faviconSvg);
   await fs.writeFile(
     path.join(PUBLIC_DIR, "logo-white.svg"),
-    await brandSvg({ color: "#fefefe" }),
+    await brandSvg({ color: BRAND_LIGHT }),
   );
   for (const [size, filename, tight] of [
     [16, "favicon-16x16.png", true],
@@ -96,8 +101,8 @@ async function generateAllIcons(): Promise<void> {
   ] as const) {
     const svg = await brandSvg({
       size,
-      color: "#fefefe",
-      background: COLORS.darkBg,
+      color: BRAND_LIGHT,
+      background: BRAND_DARK,
       tight,
       rounded: !tight,
     });
@@ -209,7 +214,7 @@ function createOgBadges(): Buffer {
  */
 async function prepareLogoForOgImage(): Promise<Buffer> {
   const logoSize = 120;
-  const svgContent = await brandSvg({ size: logoSize, color: "#fefefe" });
+  const svgContent = await brandSvg({ size: logoSize, color: BRAND_LIGHT });
 
   return sharp(Buffer.from(svgContent))
     .resize(logoSize, logoSize, {
