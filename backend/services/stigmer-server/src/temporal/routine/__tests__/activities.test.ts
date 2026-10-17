@@ -6,8 +6,13 @@
  * the schedule fire handed to the run starter and its ledger row keyed by
  * the fire's id, phase classification incl. GONE, the idempotent success
  * reset, and the ONE-closure failure record — increment, threshold latch
- * (first pause's copy never rewritten), next_fire_at clear, and the
- * best-effort artifact re-sync exactly at the crossing.
+ * (first pause's copy never rewritten), next_fire_at clear, the timed-out
+ * ledger verdict, and the best-effort artifact re-sync exactly at the
+ * crossing, whose failure is logged and never fails the verdict. A fire
+ * ledger write that fails is logged and never fails its activity. A row
+ * with no status yet gets one materialized by the fire's stamp, and every
+ * store fault other than not-found fails its activity with an error
+ * naming the write it was making, so Temporal retries it.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -22,12 +27,15 @@ import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_p
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
+import type { LogFields, Logger } from "../../../boot/logger.js";
+import type { Store } from "../../../store/interface.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import { createRoutineTickActivities } from "../activities.js";
 import type { RoutineTickActivityDeps } from "../activities.js";
 import { RoutineTemporalConfig } from "../config.js";
 import {
   FAILURE_RUN_FAILED,
+  FAILURE_RUN_TIMED_OUT,
   FAILURE_START_FAILED,
   PHASE_CANCELLED,
   PHASE_COMPLETED,
@@ -65,14 +73,15 @@ const config = new RoutineTemporalConfig("schedule_stigmer", 60, 24, 2, 60, true
 let peekResult: Date | undefined;
 let peekError: Error | undefined;
 let ensureCalls: string[];
+let ensureError: Error | undefined;
 let startRunOutcome: RunOutcomeResult;
 let startedFires: RoutineFireRequest[];
 
-function activities() {
+function activities(overrides?: { store?: Store; logger?: Logger }) {
   const deps: RoutineTickActivityDeps = {
-    store,
+    store: overrides?.store ?? store,
     config,
-    logger: silentLogger,
+    logger: overrides?.logger ?? silentLogger,
     syncer: {
       peekNextFireAt: async () => {
         if (peekError !== undefined) {
@@ -82,6 +91,9 @@ function activities() {
       },
       ensureAndRecord: async (routine) => {
         ensureCalls.push(routine.metadata?.id ?? "");
+        if (ensureError !== undefined) {
+          throw ensureError;
+        }
         return undefined;
       },
     },
@@ -93,6 +105,41 @@ function activities() {
     },
   };
   return createRoutineTickActivities(deps);
+}
+
+/** The test store with one method rejecting as a database fault would (never not-found). */
+function faulting(
+  method: "getResource" | "updateResource" | "upsertRoutineFire" | "markLatestRoutineFireTerminal",
+): Store {
+  return new Proxy(store, {
+    get(target, property, receiver) {
+      if (property === method) {
+        return () => Promise.reject(new Error("database offline"));
+      }
+      const value: unknown = Reflect.get(target, property, receiver);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
+
+interface LogLine {
+  readonly level: "warn" | "error";
+  readonly message: string;
+  readonly fields: LogFields | undefined;
+}
+
+/** A logger that keeps its warn and error lines. */
+function capturingLogger(): { logger: Logger; lines: LogLine[] } {
+  const lines: LogLine[] = [];
+  return {
+    lines,
+    logger: {
+      debug: () => undefined,
+      info: () => undefined,
+      warn: (message, fields) => lines.push({ level: "warn", message, fields }),
+      error: (message, fields) => lines.push({ level: "error", message, fields }),
+    },
+  };
 }
 
 function routineRow(overrides?: { enabled?: boolean; pausedReason?: string; failures?: number }) {
@@ -125,6 +172,7 @@ beforeEach(async () => {
   peekResult = undefined;
   peekError = undefined;
   ensureCalls = [];
+  ensureError = undefined;
   startRunOutcome = { kind: "started", runId: "run_01x", alreadyExisted: false };
   startedFires = [];
   await store.deleteResource(ApiResourceKind.routine, "sch_01act");
@@ -172,6 +220,28 @@ describe("recordTick — the revalidation matrix", () => {
     const row = await store.getResource(ApiResourceKind.routine, "sch_01act", RoutineSchema);
     expect(row.status?.lastFireAt).toBeDefined();
     expect(row.status?.nextFireAt).toBeUndefined();
+  });
+
+  it("a row with no status yet gets one materialized by the fire's stamp", async () => {
+    const statusless = routineRow();
+    statusless.status = undefined;
+    await store.saveResource(ApiResourceKind.routine, "sch_01act", RoutineSchema, statusless);
+    expect(await activities()[RECORD_TICK_ACTIVITY_NAME]("sch_01act", NOMINAL)).toBe(TICK_FIRED);
+    const row = await store.getResource(ApiResourceKind.routine, "sch_01act", RoutineSchema);
+    expect(row.status?.lastFireAt?.seconds).toBe(BigInt(Date.parse(NOMINAL) / 1000));
+  });
+
+  it("a store fault reading the row fails the activity, naming the routine, so Temporal retries it", async () => {
+    await expect(
+      activities({ store: faulting("getResource") })[RECORD_TICK_ACTIVITY_NAME]("sch_01act", NOMINAL),
+    ).rejects.toThrow("load routine sch_01act: database offline");
+  });
+
+  it("a store fault writing the fire fails the activity, naming the status write", async () => {
+    await store.saveResource(ApiResourceKind.routine, "sch_01act", RoutineSchema, routineRow());
+    await expect(
+      activities({ store: faulting("updateResource") })[RECORD_TICK_ACTIVITY_NAME]("sch_01act", NOMINAL),
+    ).rejects.toThrow("record routine fire on status: database offline");
   });
 });
 
@@ -229,6 +299,35 @@ describe("startScheduledRun — re-validation and the ledger", () => {
     expect(runs[0]?.reason).toBe("run refused: gate said no");
     expect(runs[0]?.completedAt).not.toBe("");
   });
+
+  it("a store fault reading the row fails the activity rather than skipping the fire", async () => {
+    await expect(
+      activities({ store: faulting("getResource") })[START_SCHEDULED_RUN_ACTIVITY_NAME]("sch_01act", NOMINAL),
+    ).rejects.toThrow("load routine sch_01act: database offline");
+    expect(startedFires).toEqual([]);
+  });
+
+  it("a fire-ledger row that cannot be written is logged and never fails the started run", async () => {
+    await store.saveResource(ApiResourceKind.routine, "sch_01act", RoutineSchema, routineRow());
+    const log = capturingLogger();
+    const result = await activities({ store: faulting("upsertRoutineFire"), logger: log.logger })[
+      START_SCHEDULED_RUN_ACTIVITY_NAME
+    ]("sch_01act", NOMINAL);
+    expect(result.outcome).toBe(RUN_STARTED);
+    expect(result.executionId).toBe("run_01x");
+    expect(log.lines).toEqual([
+      {
+        level: "warn",
+        message: "Fire-ledger row not written (best-effort — the run itself is unaffected)",
+        fields: {
+          routine_id: "sch_01act",
+          fire_id: "sch-01act-20260825t093000z",
+          outcome: "started",
+          error: "database offline",
+        },
+      },
+    ]);
+  });
 });
 
 describe("pollExecutionPhase — one row read, GONE distinct from RUNNING", () => {
@@ -276,6 +375,30 @@ describe("recordSuccessfulRun — the absorbing zero", () => {
 
   it("a deleted row is a silent no-op", async () => {
     await expect(activities()[RECORD_SUCCESSFUL_RUN_ACTIVITY_NAME]("sch_01act")).resolves.toBeUndefined();
+  });
+
+  it("a fire-ledger verdict that cannot be written is logged and never fails the reset", async () => {
+    await store.saveResource(ApiResourceKind.routine, "sch_01act", RoutineSchema, routineRow({ failures: 1 }));
+    const log = capturingLogger();
+    await activities({ store: faulting("markLatestRoutineFireTerminal"), logger: log.logger })[
+      RECORD_SUCCESSFUL_RUN_ACTIVITY_NAME
+    ]("sch_01act");
+    const row = await store.getResource(ApiResourceKind.routine, "sch_01act", RoutineSchema);
+    expect(row.status?.consecutiveFailures).toBe(0);
+    expect(log.lines).toEqual([
+      {
+        level: "warn",
+        message: "Fire-ledger verdict not written (best-effort — the streak write is unaffected)",
+        fields: { routine_id: "sch_01act", outcome: "completed", error: "database offline" },
+      },
+    ]);
+  });
+
+  it("a store fault fails the reset, naming the routine, so the retried write lands", async () => {
+    await store.saveResource(ApiResourceKind.routine, "sch_01act", RoutineSchema, routineRow({ failures: 1 }));
+    await expect(
+      activities({ store: faulting("updateResource") })[RECORD_SUCCESSFUL_RUN_ACTIVITY_NAME]("sch_01act"),
+    ).rejects.toThrow("reset failure streak on routine sch_01act: database offline");
   });
 });
 
@@ -328,5 +451,53 @@ describe("recordFailedRun — the one-closure verdict", () => {
     const runs = await store.listRoutineFires("sch_01act", undefined, 10);
     expect(runs[0]?.outcome).toBe("failed");
     expect(runs[0]?.reason).toBe("run aex_01x ended failed");
+  });
+
+  it("marks the timed_out ledger verdict for a run that outlived its tracking budget", async () => {
+    await store.saveResource(ApiResourceKind.routine, "sch_01act", RoutineSchema, routineRow());
+    await activities()[START_SCHEDULED_RUN_ACTIVITY_NAME]("sch_01act", NOMINAL);
+
+    const reason = "run run_01x did not finish within 60 minutes";
+    const recorded = await activities()[RECORD_FAILED_RUN_ACTIVITY_NAME]("sch_01act", reason, FAILURE_RUN_TIMED_OUT);
+    expect(recorded).toEqual({ consecutiveFailures: 1, paused: false });
+    const runs = await store.listRoutineFires("sch_01act", undefined, 10);
+    expect(runs[0]?.outcome).toBe("timed_out");
+    expect(runs[0]?.reason).toBe(reason);
+    expect(runs[0]?.completedAt).not.toBe("");
+  });
+
+  it("a failed artifact re-sync at the crossing is logged and never fails the verdict (reconciliation pauses it)", async () => {
+    await store.saveResource(ApiResourceKind.routine, "sch_01act", RoutineSchema, routineRow({ failures: 1 }));
+    ensureError = new Error("temporal is away");
+    const log = capturingLogger();
+
+    const recorded = await activities({ logger: log.logger })[RECORD_FAILED_RUN_ACTIVITY_NAME](
+      "sch_01act",
+      "run aex_01x ended failed",
+      FAILURE_RUN_FAILED,
+    );
+
+    expect(recorded).toEqual({ consecutiveFailures: 2, paused: true });
+    expect(ensureCalls).toEqual(["sch_01act"]);
+    expect(log.lines.filter((line) => line.level === "error")).toEqual([
+      {
+        level: "error",
+        message: "Paused routine's artifact not yet converged (the reconciliation pass will pause it)",
+        fields: { routine_id: "sch_01act", error: "temporal is away" },
+      },
+    ]);
+  });
+
+  it("a store fault fails the verdict, naming the routine, and writes no streak", async () => {
+    await store.saveResource(ApiResourceKind.routine, "sch_01act", RoutineSchema, routineRow());
+    await expect(
+      activities({ store: faulting("updateResource") })[RECORD_FAILED_RUN_ACTIVITY_NAME](
+        "sch_01act",
+        "run aex_01x ended failed",
+        FAILURE_RUN_FAILED,
+      ),
+    ).rejects.toThrow("record failed run on routine sch_01act: database offline");
+    const row = await store.getResource(ApiResourceKind.routine, "sch_01act", RoutineSchema);
+    expect(row.status?.consecutiveFailures).toBe(0);
   });
 });

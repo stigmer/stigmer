@@ -10,7 +10,11 @@
  * idempotency of a schedule fire (found by its routine's label and its
  * name, never by a name alone) that a fire call never runs, the
  * refusal-code partition, and the run-request shape: a new conversation on
- * the routine's agent, titled by the routine.
+ * the routine's agent, titled by the routine, on the harness the routine
+ * names. A routine with no agent is a missing target; a routine deleted
+ * mid-fire keeps its run and stamps nothing; and every store or create
+ * fault that is not a deterministic refusal throws, naming what it was
+ * doing, so the tick activity retries under the fire's deterministic name.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -38,6 +42,8 @@ import { ownerAsFireCaller, routineHasNoOwnerMessage } from "../../../domain/rou
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { RoutineFireCallerInput } from "../../../extensions/routine-fire-caller.js";
 import { trustedLocalIdentity } from "../../../pipeline/interceptors/auth.js";
+import { ResourceNotFoundError } from "../../../store/interface.js";
+import type { Store } from "../../../store/interface.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import { RoutineTemporalConfig } from "../config.js";
 import {
@@ -297,15 +303,34 @@ describe("RunStarter.startRun — against a real store", () => {
   function starter(
     create_: (run: Run, fireCaller: CallerIdentity) => Promise<Run>,
     fireIdentity: RoutineFireIdentity = TRUSTED_LOCAL,
+    store_: Store = store,
   ) {
     return new RunStarter({
-      store,
+      store: store_,
       config,
       executions: { create: create_ },
       fireIdentity,
       logger: silentLogger,
     });
   }
+
+  /** The test store with one method replaced. */
+  function storeWith(
+    method: "queryResources" | "updateResource",
+    replacement: (...args: unknown[]) => Promise<unknown>,
+  ): Store {
+    return new Proxy(store, {
+      get(target, property, receiver) {
+        if (property === method) {
+          return replacement;
+        }
+        const value: unknown = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+  }
+
+  const created = (id: string) => async () => create(RunSchema, { metadata: { id, org: "acme" } });
 
   it("shapes the run request: name, org, label, the routine's slug as the title, the fire-context message", async () => {
     let seen: Run | undefined;
@@ -745,6 +770,108 @@ describe("RunStarter.startRun — against a real store", () => {
       alreadyExisted: true,
     });
     await store.deleteResource(ApiResourceKind.run, "run_01racer");
+  });
+
+  it("starts the fire's session on the harness the routine names", async () => {
+    let seen: Run | undefined;
+    const runStarter = starter(async (run) => {
+      seen = run;
+      return create(RunSchema, { metadata: { id: "run_01native", org: "acme" } });
+    });
+    await runStarter.startRun(routineWith({ harness: Harness.NATIVE }), manualFire(ROUTINE_ID, NOMINAL, ""));
+    const sessionSpec = seen?.spec?.target.case === "sessionSpec" ? seen.spec.target.value : undefined;
+    expect(sessionSpec?.harness).toBe(Harness.NATIVE);
+  });
+
+  it("answers targetMissing when the routine names no agent at all", async () => {
+    const agentless = routineWith();
+    agentless.spec!.agent!.agentRef = undefined;
+    const runStarter = starter(async () => {
+      throw new Error("unreachable");
+    });
+    expect(await runStarter.startRun(agentless, scheduleFire(ROUTINE_ID, NOMINAL))).toEqual({
+      kind: "targetMissing",
+      reason: "routine has no agent",
+    });
+  });
+
+  it("throws, naming the fire, when the lookup for its earlier run faults", async () => {
+    const runStarter = starter(
+      async () => {
+        throw new Error("create must not run when the lookup faulted");
+      },
+      TRUSTED_LOCAL,
+      storeWith("queryResources", () => Promise.reject(new Error("database offline"))),
+    );
+    await expect(runStarter.startRun(routineWith(), scheduleFire(ROUTINE_ID, NOMINAL))).rejects.toThrow(
+      "look up run rtn-01test-20260825t093000z: database offline",
+    );
+  });
+
+  it("rethrows a create fault that is no RPC error, unchanged", async () => {
+    const fault = new Error("socket hang up");
+    const runStarter = starter(async () => {
+      throw fault;
+    });
+    await expect(runStarter.startRun(routineWith(), manualFire(ROUTINE_ID, NOMINAL, ""))).rejects.toBe(fault);
+  });
+
+  it("throws on AlreadyExists when no winner row can be found", async () => {
+    const fire = scheduleFire(ROUTINE_ID, new Date("2026-08-30T09:30:00Z"));
+    const runStarter = starter(async () => {
+      throw new ConnectError("duplicate", Code.AlreadyExists);
+    });
+    await expect(runStarter.startRun(routineWith(), fire)).rejects.toThrow(
+      `duplicate-check refusal but no run row for ${fire.fireId}: [already_exists] duplicate`,
+    );
+  });
+
+  it("throws on AlreadyExists when the re-find of the winner faults, with the same diagnostic", async () => {
+    const fire = scheduleFire(ROUTINE_ID, new Date("2026-08-31T09:30:00Z"));
+    let queries = 0;
+    const secondQueryFaults = storeWith("queryResources", (...args) => {
+      queries++;
+      if (queries > 1) {
+        return Promise.reject(new Error("database offline"));
+      }
+      return (store.queryResources as (...a: unknown[]) => Promise<unknown>)(...args);
+    });
+    const runStarter = starter(
+      async () => {
+        throw new ConnectError("duplicate", Code.AlreadyExists);
+      },
+      TRUSTED_LOCAL,
+      secondQueryFaults,
+    );
+    await expect(runStarter.startRun(routineWith(), fire)).rejects.toThrow(
+      `duplicate-check refusal but no run row for ${fire.fireId}: database offline`,
+    );
+    expect(queries).toBe(2);
+  });
+
+  it("a routine deleted mid-fire keeps its started run and stamps nothing", async () => {
+    const gone = routineWith();
+    gone.metadata!.id = "rtn_01gone";
+    const runStarter = starter(created("run_01orphan"));
+    expect(await runStarter.startRun(gone, manualFire("rtn_01gone", NOMINAL, ""))).toEqual({
+      kind: "started",
+      runId: "run_01orphan",
+      alreadyExisted: false,
+    });
+    await expect(
+      store.getResource(ApiResourceKind.routine, "rtn_01gone", RoutineSchema),
+    ).rejects.toBeInstanceOf(ResourceNotFoundError);
+  });
+
+  it("throws, naming the routine, when stamping last_run_id faults, so the activity retries", async () => {
+    const runStarter = starter(
+      created("run_01unstamped"),
+      TRUSTED_LOCAL,
+      storeWith("updateResource", () => Promise.reject(new Error("database offline"))),
+    );
+    await expect(runStarter.startRun(routineWith(), manualFire(ROUTINE_ID, NOMINAL, ""))).rejects.toThrow(
+      "stamp last_run_id on routine rtn_01test: database offline",
+    );
   });
 
   it("writes the routine's saved settings as the turn's run_config, unchanged", async () => {

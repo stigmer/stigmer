@@ -8,9 +8,12 @@
  *     genuinely gone — a row created after phase 2's listing must never
  *     lose its just-armed clock (THE guard);
  *   - probe-prefixed and foreign artifacts are never touched;
- *   - per-row failures count and the pass continues;
- *   - the kick queue coalesces, stop() drains, and a rejected pass can
- *     neither brick the queue nor escape into shutdown.
+ *   - per-row failures (arm, repair, no-schedule removal, orphan point
+ *     read, orphan teardown) count, log the routine, and the pass
+ *     continues; a failed row listing aborts the pass with one counted
+ *     failure, and a corrupt row is skipped with a warning;
+ *   - the kick queue coalesces, stop() drains, and a rejected pass is
+ *     logged and can neither brick the queue nor escape into shutdown.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -25,6 +28,8 @@ import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
+import type { LogFields, Logger } from "../../../boot/logger.js";
+import type { Store } from "../../../store/interface.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import { RoutineTemporalConfig } from "../config.js";
 import { RoutineReconciler } from "../reconciler.js";
@@ -94,14 +99,53 @@ function fakeSyncer(): Pick<RoutineSyncer, "ensureAndRecord" | "teardown"> {
   };
 }
 
-function reconciler(client: Client | undefined = fakeClient()): RoutineReconciler {
+function reconciler(
+  client: Client | undefined = fakeClient(),
+  overrides?: { store?: Store; logger?: Logger },
+): RoutineReconciler {
   return new RoutineReconciler(
     () => client,
-    store,
+    overrides?.store ?? store,
     fakeSyncer(),
     config,
-    silentLogger,
+    overrides?.logger ?? silentLogger,
   );
+}
+
+/** The test store with one method replaced. */
+function storeWith(
+  method: "getResource" | "listResources",
+  replacement: (...args: unknown[]) => Promise<unknown>,
+): Store {
+  return new Proxy(store, {
+    get(target, property, receiver) {
+      if (property === method) {
+        return replacement;
+      }
+      const value: unknown = Reflect.get(target, property, receiver);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
+
+interface LogLine {
+  readonly level: "warn" | "error";
+  readonly message: string;
+  readonly fields: LogFields | undefined;
+}
+
+/** A logger that keeps its warn and error lines. */
+function capturingLogger(): { logger: Logger; lines: LogLine[] } {
+  const lines: LogLine[] = [];
+  return {
+    lines,
+    logger: {
+      debug: () => undefined,
+      info: () => undefined,
+      warn: (message, fields) => lines.push({ level: "warn", message, fields }),
+      error: (message, fields) => lines.push({ level: "error", message, fields }),
+    },
+  };
 }
 
 function routineRow(id: string, overrides?: { enabled?: boolean; pausedReason?: string }) {
@@ -264,6 +308,114 @@ describe("runPass — the four phases", () => {
     expect(counts.failures).toBe(2); // both arms failed, pass finished
   });
 
+  it("counts and logs a failed repair of a drifted artifact, and continues the pass", async () => {
+    await store.saveResource(ApiResourceKind.routine, "sch_drift", RoutineSchema, routineRow("sch_drift"));
+    listedArtifacts = [
+      { scheduleId: "schedule/tick/sch_drift", state: { note: "cron=old tz=old", paused: false } },
+    ];
+    syncerScript.ensureError = new Error("temporal away");
+    const log = capturingLogger();
+
+    const counts = await reconciler(fakeClient(), { logger: log.logger }).runPass();
+    expect(counts).toMatchObject({ rowsExamined: 1, repaired: 0, failures: 1 });
+    expect(log.lines).toEqual([
+      {
+        level: "error",
+        message: "Reconciliation failed to repair a drifted artifact (pass continues)",
+        fields: { routine_id: "sch_drift", error: "temporal away" },
+      },
+    ]);
+  });
+
+  it("counts and logs a failed removal of the artifact a removed cron left, and continues the pass", async () => {
+    const unscheduled = routineRow("rtn_ondemand");
+    unscheduled.spec!.cron = undefined;
+    await store.saveResource(ApiResourceKind.routine, "rtn_ondemand", RoutineSchema, unscheduled);
+    await store.saveResource(ApiResourceKind.routine, "sch_next", RoutineSchema, routineRow("sch_next"));
+    listedArtifacts = [converged("rtn_ondemand"), converged("sch_next")];
+    syncerScript.ensureError = new Error("temporal away");
+    const log = capturingLogger();
+
+    const counts = await reconciler(fakeClient(), { logger: log.logger }).runPass();
+    expect(counts).toMatchObject({ rowsExamined: 2, repaired: 0, failures: 1 });
+    expect(log.lines).toEqual([
+      {
+        level: "error",
+        message: "Reconciliation failed to remove the artifact of a routine with no schedule (pass continues)",
+        fields: { routine_id: "rtn_ondemand", error: "temporal away" },
+      },
+    ]);
+  });
+
+  it("leaves an orphan whose point read faulted, counting and logging it (only not-found proves an orphan)", async () => {
+    listedArtifacts = [converged("sch_unsure")];
+    const log = capturingLogger();
+    const faulty = storeWith("getResource", () => Promise.reject(new Error("database offline")));
+
+    const counts = await reconciler(fakeClient(), { store: faulty, logger: log.logger }).runPass();
+    expect(counts).toMatchObject({ orphansDeleted: 0, failures: 1 });
+    expect(syncerScript.toreDown).toEqual([]);
+    expect(log.lines).toEqual([
+      {
+        level: "error",
+        message: "Reconciliation could not confirm an orphan (leaving it; pass continues)",
+        fields: { routine_id: "sch_unsure", error: "database offline" },
+      },
+    ]);
+  });
+
+  it("counts and logs a failed orphan teardown, and continues the pass", async () => {
+    listedArtifacts = [converged("sch_ghost")];
+    syncerScript.teardownError = new Error("temporal away");
+    const log = capturingLogger();
+
+    const counts = await reconciler(fakeClient(), { logger: log.logger }).runPass();
+    expect(counts).toMatchObject({ orphansDeleted: 0, failures: 1 });
+    expect(log.lines).toEqual([
+      {
+        level: "error",
+        message: "Reconciliation failed to delete an orphaned artifact (pass continues)",
+        fields: { routine_id: "sch_ghost", error: "temporal away" },
+      },
+    ]);
+  });
+
+  it("a failed row listing aborts the pass with one counted, logged failure", async () => {
+    const log = capturingLogger();
+    const faulty = storeWith("listResources", () => Promise.reject(new Error("database offline")));
+
+    const counts = await reconciler(fakeClient(), { store: faulty, logger: log.logger }).runPass();
+    expect(counts).toMatchObject({ rowsExamined: 0, failures: 1 });
+    expect(log.lines).toEqual([
+      {
+        level: "error",
+        message: "Routine reconciliation could not list rows",
+        fields: { error: "database offline" },
+      },
+    ]);
+  });
+
+  it("skips a corrupt row with a warning and converges the rest", async () => {
+    await store.saveResource(ApiResourceKind.routine, "sch_whole", RoutineSchema, routineRow("sch_whole"));
+    const log = capturingLogger();
+    // A truncated tag varint: no Routine decodes from it.
+    const corrupt = new Uint8Array([0xff, 0xff]);
+    const withCorrupt = storeWith("listResources", async () => [
+      corrupt,
+      ...(await store.listResources(ApiResourceKind.routine)),
+    ]);
+
+    const counts = await reconciler(fakeClient(), { store: withCorrupt, logger: log.logger }).runPass();
+    expect(counts).toMatchObject({ rowsExamined: 1, armed: 1, failures: 0 });
+    expect(syncerScript.ensured).toEqual(["sch_whole"]);
+    expect(log.lines).toHaveLength(1);
+    expect(log.lines[0]).toMatchObject({
+      level: "warn",
+      message: "Routine reconciliation skipped a corrupt row",
+    });
+    expect(log.lines[0]?.fields?.error).toEqual(expect.any(String));
+  });
+
   it("a failed artifact listing aborts the pass with one counted failure", async () => {
     listError = new Error("list exploded");
     const counts = await reconciler().runPass();
@@ -272,8 +424,13 @@ describe("runPass — the four phases", () => {
   });
 
   it("skips silently when Temporal is not connected", async () => {
-    const counts = await reconciler(undefined).runPass();
-    expect(counts).toMatchObject({ rowsExamined: 0, failures: 0 });
+    await store.saveResource(ApiResourceKind.routine, "sch_offline", RoutineSchema, routineRow("sch_offline"));
+    // Built directly: an undefined argument would take reconciler()'s
+    // connected default.
+    const offline = new RoutineReconciler(() => undefined, store, fakeSyncer(), config, silentLogger);
+    const counts = await offline.runPass();
+    expect(counts).toMatchObject({ rowsExamined: 0, armed: 0, failures: 0 });
+    expect(syncerScript.ensured).toEqual([]);
   });
 
   it("phase 4 prunes ledger rows past retention and keeps fresh ones", async () => {
@@ -321,11 +478,12 @@ describe("the loop — kicks, coalescing, stop, containment", () => {
     expect(syncerScript.ensured).toContain("sch_kick");
   });
 
-  it("a pass that throws unexpectedly neither bricks the queue nor escapes stop()", async () => {
+  it("a pass that throws unexpectedly is logged, and neither bricks the queue nor escapes stop()", async () => {
     // Force runPass itself to reject by making the STORE listing throw a
     // non-Error the internal catches don't expect... every internal await
     // is caught today, so drive the containment seam directly: a client
     // provider that THROWS (never legal, but the backstop must hold).
+    const log = capturingLogger();
     const r = new RoutineReconciler(
       () => {
         throw new Error("provider exploded");
@@ -333,10 +491,19 @@ describe("the loop — kicks, coalescing, stop, containment", () => {
       store,
       fakeSyncer(),
       config,
-      silentLogger,
+      log.logger,
     );
     const kick = r.startReconciliation();
     kick();
+    // The boot pass runs and its rejection is contained as one log line
+    // (observed before stopping: stop() skips a queued, unstarted pass).
+    await waitFor(() => log.lines.length > 0);
+    expect(log.lines[0]).toEqual({
+      level: "error",
+      message:
+        "Routine reconciliation pass failed unexpectedly (the loop continues; the next tick or kick retries)",
+      fields: { error: "provider exploded" },
+    });
     // stop() must resolve (never rethrow the pass failure into shutdown).
     await expect(r.stop()).resolves.toBeUndefined();
 
