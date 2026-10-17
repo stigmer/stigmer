@@ -118,6 +118,13 @@ describe("GrantAccessForm", () => {
     expect([spec.resource?.kind, spec.resource?.id, spec.relation]).toEqual(["agent", "agt_1", "viewer"]);
   });
 
+  it("says what Participant on a conversation means", () => {
+    renderForm(ApiResourceKind.session, "session", "ses_1");
+    fireEvent.click(screen.getByText("choose person"));
+    fireEvent.click(screen.getByLabelText(/Participant/));
+    expect(screen.getByText(/Participants send messages/)).toBeTruthy();
+  });
+
   it("says what Participant on a routine lends, and nothing for Viewer", () => {
     renderForm(ApiResourceKind.routine, "routine", "rtn_1");
     fireEvent.click(screen.getByText("choose person"));

@@ -171,6 +171,14 @@ describe("LibraryLayout route-children mounting", () => {
   });
 });
 
+describe("LibraryLayout routine detail", () => {
+  it("renders a deep-loaded routine's detail", () => {
+    setRoute("/library/routines/acme/nightly");
+    render(<LibraryLayout>{null}</LibraryLayout>);
+    expect(screen.getByTestId("routine-detail")).toBeTruthy();
+  });
+});
+
 describe("LibraryLayout org segment", () => {
   it("puts the org's slug in the URL when navigating with its id", () => {
     render(

@@ -150,4 +150,10 @@ describe("desktop RoutineDetailPage — its own slug", () => {
     act(() => last<RoutineView>("RoutineDetailView").onRenamed({ metadata: { slug: "nightly-digest" } }));
     expect(location()).toBe("/library/routines/acme/nightly-digest");
   });
+
+  it("lands on the routine list after a delete", () => {
+    renderDetail(RoutineDetailPage);
+    act(() => last<{ onDeleted: () => void }>("RoutineDetailView").onDeleted());
+    expect(location()).toBe("/library/routines");
+  });
 });

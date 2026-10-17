@@ -35,7 +35,7 @@ import {
   type RoutineFireResult,
 } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
 import type { Stigmer } from "@stigmer/client";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { UsageError } from "../../errors/index.js";
 import type { CommandResult } from "../../output/index.js";
 import { fireRoutine, renderFiresTable, resumeRoutine, showRoutineFires } from "../routine.js";
@@ -335,6 +335,21 @@ describe("showRoutineFires", () => {
       [1, "page-1"],
     ]);
     expect(JSON.parse(streams.text())).toHaveLength(3);
+  });
+
+  it("writes to standard output when no streams are given", async () => {
+    const { client } = history([[byPerson]]);
+    const written: string[] = [];
+    const write = vi.spyOn(process.stdout, "write").mockImplementation((chunk: string | Uint8Array) => {
+      written.push(String(chunk));
+      return true;
+    });
+    try {
+      await showRoutineFires(client, "sch_1", "acme", 50, "json");
+    } finally {
+      write.mockRestore();
+    }
+    expect(JSON.parse(written.join(""))).toHaveLength(1);
   });
 
   it("reads every page with a limit of zero", async () => {

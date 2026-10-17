@@ -40,6 +40,8 @@ vi.mock("@stigmer/react-sdk", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: (url: string) => page.pushed.push(url) }),
+  // The static export prerenders one placeholder page; the address names the routine.
+  useParams: () => ({ org: "__placeholder__", slug: "__placeholder__" }),
 }));
 
 vi.mock("@/domain/library/library-navigation", () => ({
@@ -55,7 +57,7 @@ vi.mock("@/domain/runs/run-navigation", () => ({
   useRunNavigation: () => ({ navigateToRun: (id: string) => page.openedRuns.push(id) }),
 }));
 
-import { RoutineDetailPageInner } from "../RoutineDetailPage";
+import { RoutineDetailPage, RoutineDetailPageInner } from "../RoutineDetailPage";
 
 function view(): ViewProps | undefined {
   return page.view.at(-1);
@@ -122,5 +124,11 @@ describe("web RoutineDetailPageInner", () => {
     act(() => view()?.onRenamed?.({ metadata: { name: "Nightly", slug: "digest" } } as Routine));
 
     expect(page.canonical).toEqual(["nightly-digest", "digest"]);
+  });
+
+  it("reads the routine from the address the static export serves", () => {
+    window.history.replaceState(null, "", "/library/routines/acme/nightly");
+    render(<RoutineDetailPage />);
+    expect([view()?.org, view()?.slug]).toEqual(["acme", "nightly"]);
   });
 });

@@ -116,6 +116,12 @@ describe("desktop RoutineNewPage — organizations", () => {
 
     expect(location()).toBe("/library/routines/shared-team/made");
   });
+
+  it("returns to the routine list on cancel", () => {
+    renderPage(RoutineNewPage);
+    act(() => last<{ onCancel: () => void }>("RoutineForm").onCancel());
+    expect(location()).toBe("/library/routines");
+  });
 });
 
 describe("desktop SkillNewPage — organizations", () => {

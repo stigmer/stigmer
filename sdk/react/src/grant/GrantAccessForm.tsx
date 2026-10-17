@@ -77,12 +77,15 @@ const SESSION_PARTICIPANT_NOTE =
 const ROUTINE_PARTICIPANT_NOTE =
   "Participants start this routine, with a note, and see its runs. Every run acts as the person who created it; the note reaches the agent as information, not instructions.";
 
+/** What Participant means, for each kind whose Participant needs saying. */
+const PARTICIPANT_NOTES: Partial<Record<ApiResourceKind, string>> = {
+  [ApiResourceKind.session]: SESSION_PARTICIPANT_NOTE,
+  [ApiResourceKind.routine]: ROUTINE_PARTICIPANT_NOTE,
+};
+
 /** The note under the role picker for a role on a kind, or `null`. */
 function participantNote(kind: ApiResourceKind, role: IamRole | null): string | null {
-  if (role !== IamRole.participant) return null;
-  if (kind === ApiResourceKind.session) return SESSION_PARTICIPANT_NOTE;
-  if (kind === ApiResourceKind.routine) return ROUTINE_PARTICIPANT_NOTE;
-  return null;
+  return role === IamRole.participant ? (PARTICIPANT_NOTES[kind] ?? null) : null;
 }
 
 /**

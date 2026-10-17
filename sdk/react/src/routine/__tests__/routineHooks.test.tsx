@@ -414,6 +414,15 @@ describe("useSetRoutineEnabled", () => {
 });
 
 describe("useUpdateRoutineSpec", () => {
+  it("refuses a routine with no spec, sending nothing", async () => {
+    const update = vi.fn(async () => ROUTINE);
+    const { result } = renderHook(() => useUpdateRoutineSpec(), { wrapper: wrapper({ routine: { update } }) });
+    const bare = clone(RoutineSchema, ROUTINE);
+    bare.spec = undefined;
+    await expect(result.current.updateSpec(bare, () => {})).rejects.toThrow(/Cannot edit this routine: it has no spec/);
+    expect(update).not.toHaveBeenCalled();
+  });
+
   it("names only the spec field the edit changed, sends nothing for no change, and says to reload a routine changed since", async () => {
     const update = vi.fn(async () => ROUTINE);
     const client = { routine: { update } };

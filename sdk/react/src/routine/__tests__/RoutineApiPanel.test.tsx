@@ -14,7 +14,8 @@
  *     stated wherever the setup is;
  *   - a server that trusts every request gets no key line and no setup, and
  *     an unknown public address shows the shared notice instead of a
- *     command nobody can run.
+ *     command nobody can run;
+ *   - the call copies whole, and the create dialog closes on cancel.
  *
  * The generated client is a fake behind the one provider seam.
  */
@@ -140,6 +141,23 @@ describe("RoutineApiPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Give it Participant" }));
     expect(onManageAccess).toHaveBeenCalledOnce();
+  });
+
+  it("copies the call, and the create dialog closes on cancel", async () => {
+    const writeText = vi.fn(async () => {});
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    try {
+      renderPanel({ canGrant: true, canCreateAccount: true });
+      await screen.findByText(/RoutineCommandController\/fire/);
+      fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+      await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining('"id":"rtn_01triage"')));
+
+      fireEvent.click(await screen.findByRole("button", { name: "Create a service account" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+      await waitFor(() => expect(screen.queryByRole("radio", { name: /^Viewer/ })).toBeNull());
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("tells someone who may not create a service account that an admin does, with the link", async () => {

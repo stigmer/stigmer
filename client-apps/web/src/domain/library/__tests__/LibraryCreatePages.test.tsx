@@ -99,6 +99,13 @@ describe("web library create pages", () => {
     expect(page.pushed).toEqual(["/library/routines/acme/made"]);
   });
 
+  it("RoutineNewPage returns to the routine list on cancel", () => {
+    render(<RoutineNewPage />);
+
+    call("RoutineForm", "onCancel", undefined);
+    expect(page.pushed).toEqual(["/library/routines"]);
+  });
+
   it("SkillNewPage uploads into the active org id and opens the skill under the org slug", () => {
     render(<SkillNewPage />);
 
