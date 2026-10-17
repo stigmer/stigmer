@@ -28,6 +28,11 @@ async function prepare(): Promise<string> {
   return join(site, "public");
 }
 
+// The whole export renders every size through sharp: about 2.3 s on a
+// developer's machine and 5.2 to 5.6 s on a hosted CI runner (stigmer#2406),
+// past vitest's 5-second default there.
+const EXPORT_TIMEOUT_MS = 20_000;
+
 describe("website brand exports", () => {
   it("generates browser sizes, an ICO, the social image and the README banner", async () => {
     const publicDir = await prepare();
@@ -84,7 +89,7 @@ describe("website brand exports", () => {
     expect(await readFile(join(publicDir, "logo-lockup-white.svg"))).toEqual(
       await readFile(new URL("../../../brand/logo-lockup-white.svg", import.meta.url)),
     );
-  });
+  }, EXPORT_TIMEOUT_MS);
 
   it("reports source errors and exits unsuccessfully instead of declaring success", async () => {
     await prepare();
