@@ -16,7 +16,7 @@ import { RoutineStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/
 import type { RoutineStatus } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/status_pb";
 
 /**
- * Returns the schedule's status, materializing the nested message a fresh
+ * Returns the routine's status, materializing the nested message a fresh
  * row may lack (Go ensureStatus).
  */
 export function ensureStatus(routine: Routine): RoutineStatus {

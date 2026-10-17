@@ -56,7 +56,7 @@ export function newRoutineWorkerFactory(
         new URL("./workflows/index.ts", import.meta.url),
       ],
       prebuiltSibling: new URL(
-        "./workflow-bundle-schedule.js",
+        "./workflow-bundle-routine.js",
         import.meta.url,
       ),
     });

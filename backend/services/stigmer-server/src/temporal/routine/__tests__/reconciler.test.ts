@@ -51,7 +51,7 @@ let dir: string;
 let store: SqliteStore;
 
 interface ListedArtifact {
-  routineId: string;
+  scheduleId: string;
   state: { note?: string; paused: boolean };
 }
 
@@ -111,7 +111,7 @@ function routineRow(id: string, overrides?: { enabled?: boolean; pausedReason?: 
       cron: "0 9 * * *",
       timeZone: "UTC",
       enabled: overrides?.enabled ?? true,
-      target: { case: "agent", value: { agentRef: { slug: "helper" } } },
+      agent: { agentRef: { slug: "helper" } },
     },
     status: { pausedReason: overrides?.pausedReason ?? "" },
   });
@@ -131,7 +131,7 @@ async function waitFor(condition: () => boolean, timeoutMs = 5_000): Promise<voi
 /** The live artifact state that MATCHES a row (no drift). */
 function converged(id: string): ListedArtifact {
   return {
-    routineId: `schedule/tick/${id}`,
+    scheduleId: `schedule/tick/${id}`,
     state: { note: "cron=0 9 * * * tz=UTC", paused: false },
   };
 }
@@ -166,6 +166,20 @@ describe("runPass — the four phases", () => {
     expect(syncerScript.ensured).toEqual(["sch_unarmed"]);
   });
 
+  it("arms nothing for a routine with no cron, and removes the artifact a removed cron left", async () => {
+    const unscheduled = routineRow("rtn_ondemand");
+    unscheduled.spec!.cron = undefined;
+    await store.saveResource(ApiResourceKind.routine, "rtn_ondemand", RoutineSchema, unscheduled);
+
+    expect(await reconciler().runPass()).toMatchObject({ rowsExamined: 1, armed: 0, repaired: 0, failures: 0 });
+    expect(syncerScript.ensured).toEqual([]);
+
+    listedArtifacts = [converged("rtn_ondemand")];
+    const counts = await reconciler().runPass();
+    expect(counts).toMatchObject({ armed: 0, repaired: 1, orphansDeleted: 0, failures: 0 });
+    expect(syncerScript.ensured, "the syncer's convergence removes it").toEqual(["rtn_ondemand"]);
+  });
+
   it("leaves a converged artifact untouched", async () => {
     await store.saveResource(ApiResourceKind.routine, "sch_ok", RoutineSchema, routineRow("sch_ok"));
     listedArtifacts = [converged("sch_ok")];
@@ -178,7 +192,7 @@ describe("runPass — the four phases", () => {
   it("repairs note drift (the fingerprint is the only spec-change witness)", async () => {
     await store.saveResource(ApiResourceKind.routine, "sch_drift", RoutineSchema, routineRow("sch_drift"));
     listedArtifacts = [
-      { routineId: "schedule/tick/sch_drift", state: { note: "cron=old tz=old", paused: false } },
+      { scheduleId: "schedule/tick/sch_drift", state: { note: "cron=old tz=old", paused: false } },
     ];
 
     const counts = await reconciler().runPass();
@@ -231,8 +245,8 @@ describe("runPass — the four phases", () => {
 
   it("skips probe-prefixed and foreign artifacts entirely", async () => {
     listedArtifacts = [
-      { routineId: "schedule/probe/sch_x", state: { paused: false } },
-      { routineId: "someone-elses-workflow-schedule", state: { paused: false } },
+      { scheduleId: "schedule/probe/sch_x", state: { paused: false } },
+      { scheduleId: "someone-elses-workflow-schedule", state: { paused: false } },
     ];
 
     const counts = await reconciler().runPass();
@@ -264,28 +278,30 @@ describe("runPass — the four phases", () => {
 
   it("phase 4 prunes ledger rows past retention and keeps fresh ones", async () => {
     const base = {
-      routineId: "sch_prune",
+      routineId: "rtn_prune",
       org: "acme",
-      origin: "cron",
+      origin: "schedule",
       outcome: "completed",
       reason: "",
-      executionId: "aex_x",
+      runId: "run_x",
       completedAt: "2020-01-01T00:00:00Z",
     };
     await store.upsertRoutineFire({
       ...base,
+      fireId: "rtn-prune-20200101t000000z",
       nominalFireTime: "2020-01-01T00:00:00Z",
       recordedAt: "2020-01-01T00:00:00Z", // ancient — beyond any retention
     });
     await store.upsertRoutineFire({
       ...base,
+      fireId: "rtn-prune-20990101t000000z",
       nominalFireTime: "2099-01-01T00:00:00Z",
       recordedAt: "2099-01-01T00:00:00Z", // future-fresh — must survive
     });
 
     await reconciler().runPass();
 
-    const runs = await store.listRoutineFires("sch_prune", undefined, 10);
+    const runs = await store.listRoutineFires("rtn_prune", undefined, 10);
     const total = runs.length;
     expect(total).toBe(1);
     expect(runs[0]?.nominalFireTime).toBe("2099-01-01T00:00:00Z");

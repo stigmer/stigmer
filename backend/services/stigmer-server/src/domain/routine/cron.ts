@@ -41,7 +41,7 @@ const CRON_SHORTHANDS = new Set([
 const CRON_FIELD_PATTERN = /^[0-9A-Za-z*,/-]+$/;
 
 /**
- * Enforces the schedule cron grammar; throws InvalidArgument with the
+ * Enforces a routine's cron grammar; throws InvalidArgument with the
  * cross-edition byte-pinned copy. Pure and deterministic.
  */
 export function validateRoutineCron(cron: string): void {

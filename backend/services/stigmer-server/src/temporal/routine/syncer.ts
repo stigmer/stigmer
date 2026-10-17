@@ -1,6 +1,6 @@
 /**
  * The Syncer — ports pkg/domain/schedule/temporal/syncer.go: converges one
- * Schedule resource's Temporal artifact to its desired state and records
+ * routine's Temporal artifact to its desired state and records
  * the result on the resource's status. The ONE arming/teardown authority,
  * shared by the write-path steps, the reconciliation pass, and the tick's
  * next-fire refresh.
@@ -19,10 +19,14 @@
  * witness: stamped from Temporal's own answer when armed, cleared when the
  * artifact is paused, absent while nothing has converged.
  *
- * Go's Clock/Syncer also carries a Trigger method (the artifact-trigger
- * lane); the trigger RPC runs through the direct-run path instead, which
- * left it with zero production callers, so this port deliberately omits
- * it.
+ * A routine with no cron wants no artifact: converging it removes any
+ * artifact a removed cron left and clears next_fire_at, and needs the
+ * engine only for that removal, so a routine that never had a schedule is
+ * written with the engine away. The reconciliation pass removes what a
+ * write made while the engine was away could not.
+ *
+ * Fires do not pass through the syncer: the fire RPC runs through the
+ * direct-run path.
  */
 import type { Client, ScheduleDescription } from "@temporalio/client";
 import { ScheduleAlreadyRunning, ScheduleNotFoundError } from "@temporalio/client";
@@ -37,7 +41,7 @@ import { bumpStatusAudit } from "../../pipeline/steps/defaults.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { RoutineArtifact } from "./artifact.js";
-import { desiredPaused, note } from "./artifact.js";
+import { desiredPaused, hasSchedule, note } from "./artifact.js";
 import { artifactId } from "./names.js";
 import { ensureStatus } from "./status-writes.js";
 
@@ -69,12 +73,16 @@ export class RoutineSyncer {
    * it into their response state (Go EnsureAndRecord).
    */
   async ensureAndRecord(routine: Routine): Promise<Date | undefined> {
+    const resourceId = routine.metadata?.id ?? "";
+    if (!hasSchedule(routine)) {
+      await this.disarm(routine);
+      return undefined;
+    }
     const client = this.clientProvider();
     if (client === undefined) {
       throw new TemporalUnavailableError();
     }
 
-    const resourceId = routine.metadata?.id ?? "";
     const id = artifactId(resourceId);
 
     try {
@@ -122,7 +130,7 @@ export class RoutineSyncer {
    * contract (Go PeekNextFireAt).
    */
   async peekNextFireAt(routine: Routine): Promise<Date | undefined> {
-    if (desiredPaused(routine)) {
+    if (!hasSchedule(routine) || desiredPaused(routine)) {
       return undefined;
     }
     const client = this.clientProvider();
@@ -168,6 +176,33 @@ export class RoutineSyncer {
   }
 
   /**
+   * Converges a routine with no cron: removes the artifact a removed cron
+   * left, when the engine is here to ask (not-found is success; away, the
+   * reconciliation pass removes it later), and clears next_fire_at.
+   */
+  private async disarm(routine: Routine): Promise<void> {
+    const resourceId = routine.metadata?.id ?? "";
+    if (this.clientProvider() !== undefined) {
+      await this.teardown(resourceId);
+    }
+    if (routine.status?.nextFireAt === undefined) {
+      return;
+    }
+    try {
+      await this.store.updateResource(ApiResourceKind.routine, resourceId, RoutineSchema, (live) => {
+        const status = ensureStatus(live);
+        status.nextFireAt = undefined;
+        bumpStatusAudit(status);
+      });
+    } catch (error) {
+      if (error instanceof ResourceNotFoundError) {
+        return;
+      }
+      throw new Error(`clear next_fire_at: ${message(error)}`, { cause: error });
+    }
+  }
+
+  /**
    * Stamps status.next_fire_at from peekNextFireAt onto the LIVE row
    * (updateResource re-reads inside the lock — the stamp can never
    * resurrect a stale snapshot of the rest of status). Go recordNextFireAt.
@@ -192,8 +227,8 @@ export class RoutineSyncer {
         // Deleted between arm and stamp: the orphaned artifact is harmless
         // (revalidation no-ops it) and the reconciliation pass reaps it.
         this.logger.info(
-          "Schedule row gone before next_fire_at stamp — skipping",
-          { schedule_id: routine.metadata?.id ?? "" },
+          "Routine row gone before next_fire_at stamp — skipping",
+          { routine_id: routine.metadata?.id ?? "" },
         );
         return nextFireAt;
       }

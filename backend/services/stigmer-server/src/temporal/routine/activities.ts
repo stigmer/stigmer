@@ -48,6 +48,7 @@ import {
   TICK_SKIPPED_AUTO_PAUSED,
   TICK_SKIPPED_DELETED,
   TICK_SKIPPED_DISABLED,
+  TICK_SKIPPED_UNSCHEDULED,
   type FailureKind,
   type FailureRecorded,
   type ObservedRunPhase,
@@ -56,13 +57,15 @@ import {
   type TickOutcome,
 } from "./names.js";
 import {
-  RUN_LEDGER_ORIGIN_CRON,
+  RUN_LEDGER_ORIGIN_SCHEDULE,
   RUN_LEDGER_OUTCOME_COMPLETED,
   RUN_LEDGER_OUTCOME_FAILED,
   RUN_LEDGER_OUTCOME_TIMED_OUT,
   recordRunLedgerStart,
   recordRunLedgerVerdict,
 } from "./run-ledger.js";
+import { hasSchedule } from "./artifact.js";
+import { scheduleFire } from "./run-starter.js";
 import type { RunStarter } from "./run-starter.js";
 import type { RoutineSyncer } from "./syncer.js";
 import { ensureStatus } from "./status-writes.js";
@@ -72,7 +75,7 @@ export interface RoutineTickActivityDeps {
   readonly config: RoutineTemporalConfig;
   /**
    * The narrow syncer slice the activities call (satisfied by
-   * ScheduleSyncer): the next-fire refresh on record-tick and the
+   * RoutineSyncer): the next-fire refresh on record-tick and the
    * best-effort artifact re-sync at the pause-threshold crossing.
    */
   readonly syncer: Pick<RoutineSyncer, "peekNextFireAt" | "ensureAndRecord">;
@@ -86,61 +89,68 @@ export function createRoutineTickActivities(
   deps: RoutineTickActivityDeps,
 ): RoutineTickActivities {
   return {
-    [RECORD_TICK_ACTIVITY_NAME]: (scheduleResourceId, nominalFireTimeRfc3339) =>
-      recordTick(deps, scheduleResourceId, nominalFireTimeRfc3339),
+    [RECORD_TICK_ACTIVITY_NAME]: (routineResourceId, nominalFireTimeRfc3339) =>
+      recordTick(deps, routineResourceId, nominalFireTimeRfc3339),
     [START_SCHEDULED_RUN_ACTIVITY_NAME]: (
-      scheduleResourceId,
+      routineResourceId,
       nominalFireTimeRfc3339,
-    ) => startScheduledRun(deps, scheduleResourceId, nominalFireTimeRfc3339),
+    ) => startScheduledRun(deps, routineResourceId, nominalFireTimeRfc3339),
     [POLL_EXECUTION_PHASE_ACTIVITY_NAME]: (executionId) =>
       pollExecutionPhase(deps, executionId),
-    [RECORD_SUCCESSFUL_RUN_ACTIVITY_NAME]: (scheduleResourceId) =>
-      recordSuccessfulRun(deps, scheduleResourceId),
-    [RECORD_FAILED_RUN_ACTIVITY_NAME]: (scheduleResourceId, reason, kind) =>
-      recordFailedRun(deps, scheduleResourceId, reason, kind),
+    [RECORD_SUCCESSFUL_RUN_ACTIVITY_NAME]: (routineResourceId) =>
+      recordSuccessfulRun(deps, routineResourceId),
+    [RECORD_FAILED_RUN_ACTIVITY_NAME]: (routineResourceId, reason, kind) =>
+      recordFailedRun(deps, routineResourceId, reason, kind),
   };
 }
 
 /**
- * Re-reads the schedule row and either records the fire or explains why
+ * Re-reads the routine row and either records the fire or explains why
  * this tick is a no-op — the revalidation that makes every orphaned
  * artifact harmless by construction: deleted, owner-disabled,
  * and platform-paused rows all decline the fire (Go RecordTick).
  */
 async function recordTick(
   deps: RoutineTickActivityDeps,
-  scheduleResourceId: string,
+  routineResourceId: string,
   nominalFireTimeRfc3339: string,
 ): Promise<TickOutcome> {
   let routine: Routine;
   try {
     routine = await deps.store.getResource(
       ApiResourceKind.routine,
-      scheduleResourceId,
+      routineResourceId,
       RoutineSchema,
     );
   } catch (error) {
     if (error instanceof ResourceNotFoundError) {
       deps.logger.info(
-        "Schedule tick no-op — row deleted (orphaned artifact; the reconciliation pass removes it)",
-        { schedule_id: scheduleResourceId },
+        "Routine tick no-op — row deleted (orphaned artifact; the reconciliation pass removes it)",
+        { routine_id: routineResourceId },
       );
       return TICK_SKIPPED_DELETED;
     }
-    throw new Error(`load schedule ${scheduleResourceId}: ${message(error)}`, {
+    throw new Error(`load routine ${routineResourceId}: ${message(error)}`, {
       cause: error,
     });
   }
   if (!(routine.spec?.enabled ?? false)) {
-    deps.logger.info("Schedule tick no-op — owner-disabled", {
-      schedule_id: scheduleResourceId,
+    deps.logger.info("Routine tick no-op — owner-disabled", {
+      routine_id: routineResourceId,
     });
     return TICK_SKIPPED_DISABLED;
   }
+  if (!hasSchedule(routine)) {
+    deps.logger.info(
+      "Routine tick no-op — the routine has no schedule (its stale artifact is removed by the reconciliation pass)",
+      { routine_id: routineResourceId },
+    );
+    return TICK_SKIPPED_UNSCHEDULED;
+  }
   const pausedReason = routine.status?.pausedReason ?? "";
   if (pausedReason !== "") {
-    deps.logger.info("Schedule tick no-op — platform-paused", {
-      schedule_id: scheduleResourceId,
+    deps.logger.info("Routine tick no-op — platform-paused", {
+      routine_id: routineResourceId,
       reason: pausedReason,
     });
     return TICK_SKIPPED_AUTO_PAUSED;
@@ -172,7 +182,7 @@ async function recordFire(
     deps.logger.warn(
       "Could not refresh next_fire_at during tick (recording the fire without it)",
       {
-        schedule_id: routine.metadata?.id ?? "",
+        routine_id: routine.metadata?.id ?? "",
         error: message(error),
       },
     );
@@ -198,12 +208,12 @@ async function recordFire(
       // Deleted between revalidation and the write: nothing to record.
       return;
     }
-    throw new Error(`record schedule fire on status: ${message(error)}`, {
+    throw new Error(`record routine fire on status: ${message(error)}`, {
       cause: error,
     });
   }
-  deps.logger.info("Schedule fire recorded", {
-    schedule_id: routine.metadata?.id ?? "",
+  deps.logger.info("Routine fire recorded", {
+    routine_id: routine.metadata?.id ?? "",
     nominal_fire_time: nominalFireTimeRfc3339,
   });
 }
@@ -217,7 +227,7 @@ async function recordFire(
  */
 async function startScheduledRun(
   deps: RoutineTickActivityDeps,
-  scheduleResourceId: string,
+  routineResourceId: string,
   nominalFireTimeRfc3339: string,
 ): Promise<RunStart> {
   const trackingBudget = deps.config.resolvedRunTrackingTimeoutMinutes();
@@ -226,13 +236,13 @@ async function startScheduledRun(
   try {
     routine = await deps.store.getResource(
       ApiResourceKind.routine,
-      scheduleResourceId,
+      routineResourceId,
       RoutineSchema,
     );
   } catch (error) {
     if (!(error instanceof ResourceNotFoundError)) {
       throw new Error(
-        `load schedule ${scheduleResourceId}: ${message(error)}`,
+        `load routine ${routineResourceId}: ${message(error)}`,
         { cause: error },
       );
     }
@@ -241,11 +251,12 @@ async function startScheduledRun(
   if (
     routine === undefined ||
     !(routine.spec?.enabled ?? false) ||
+    !hasSchedule(routine) ||
     (routine.status?.pausedReason ?? "") !== ""
   ) {
     deps.logger.info(
-      "Schedule run start no-op — row deleted/disabled/paused between record and start",
-      { schedule_id: scheduleResourceId },
+      "Routine run start no-op — row deleted/disabled/paused between record and start",
+      { routine_id: routineResourceId },
     );
     const skipped: RunStart = {
       outcome: RUN_SKIPPED,
@@ -254,27 +265,30 @@ async function startScheduledRun(
       failureReason: "",
     };
     // The deleted-row skip deliberately leaves NO ledger row: the delete
-    // already cascaded the schedule's history, and a bookkeeping write here
+    // already cascaded the routine's history, and a bookkeeping write here
     // would resurrect it.
     if (routine !== undefined) {
       await recordRunLedgerStart(
         deps.store,
         deps.logger,
-        scheduleResourceId,
-        routine.metadata?.org ?? "",
-        nominalFireTimeRfc3339,
-        RUN_LEDGER_ORIGIN_CRON,
+        {
+          routineId: routineResourceId,
+          fireId: scheduleFire(routineResourceId, parseRfc3339(nominalFireTimeRfc3339)).fireId,
+          org: routine.metadata?.org ?? "",
+          nominalFireTime: nominalFireTimeRfc3339,
+          origin: RUN_LEDGER_ORIGIN_SCHEDULE,
+        },
         skipped,
       );
     }
     return skipped;
   }
 
-  const nominal = parseRfc3339(nominalFireTimeRfc3339);
+  const fire = scheduleFire(routineResourceId, parseRfc3339(nominalFireTimeRfc3339));
 
   // Infrastructure failures throw: the activity retries, and the
-  // deterministic execution name absorbs the retry.
-  const outcome = await deps.runStarter.startRun(routine, nominal);
+  // deterministic run name absorbs the retry.
+  const outcome = await deps.runStarter.startRun(routine, fire);
 
   const result: RunStart = {
     outcome: RUN_STARTED,
@@ -285,10 +299,10 @@ async function startScheduledRun(
   switch (outcome.kind) {
     case "started":
       result.outcome = outcome.alreadyExisted ? RUN_ALREADY_STARTED : RUN_STARTED;
-      result.executionId = outcome.executionId;
-      deps.logger.info("Schedule fire started its run", {
-        schedule_id: scheduleResourceId,
-        execution_id: outcome.executionId,
+      result.executionId = outcome.runId;
+      deps.logger.info("Routine's schedule fire started its run", {
+        routine_id: routineResourceId,
+        run_id: outcome.runId,
         already_existed: outcome.alreadyExisted,
       });
       break;
@@ -310,10 +324,13 @@ async function startScheduledRun(
   await recordRunLedgerStart(
     deps.store,
     deps.logger,
-    scheduleResourceId,
-    routine.metadata?.org ?? "",
-    nominalFireTimeRfc3339,
-    RUN_LEDGER_ORIGIN_CRON,
+    {
+      routineId: routineResourceId,
+      fireId: fire.fireId,
+      org: routine.metadata?.org ?? "",
+      nominalFireTime: nominalFireTimeRfc3339,
+      origin: RUN_LEDGER_ORIGIN_SCHEDULE,
+    },
     result,
   );
   return result;
@@ -322,7 +339,7 @@ async function startScheduledRun(
 /**
  * Classifies the tracked run's current phase from one row read. GONE (row
  * deleted mid-track) is distinct from RUNNING: a deleted run must not
- * brick its schedule, so it yields no verdict.
+ * brick its routine, so it yields no verdict.
  *
  * The read unmarshals the whole execution row — SQLite stores one protobuf
  * blob with no projection. At one poll per 5-60s per active
@@ -369,16 +386,16 @@ async function pollExecutionPhase(
 /**
  * Resets the failure streak to its absorbing zero. Idempotent — the caller
  * retries freely: a LOST reset strands a stale streak that pauses a
- * healthy schedule later, so this write must land (Go RecordSuccessfulRun).
+ * healthy routine later, so this write must land (Go RecordSuccessfulRun).
  */
 async function recordSuccessfulRun(
   deps: RoutineTickActivityDeps,
-  scheduleResourceId: string,
+  routineResourceId: string,
 ): Promise<void> {
   try {
     await deps.store.updateResource(
       ApiResourceKind.routine,
-      scheduleResourceId,
+      routineResourceId,
       RoutineSchema,
       (live) => {
         const status = ensureStatus(live);
@@ -391,19 +408,19 @@ async function recordSuccessfulRun(
       return; // deleted mid-track: nothing to reset
     }
     throw new Error(
-      `reset failure streak on schedule ${scheduleResourceId}: ${message(error)}`,
+      `reset failure streak on routine ${routineResourceId}: ${message(error)}`,
       { cause: error },
     );
   }
   await recordRunLedgerVerdict(
     deps.store,
     deps.logger,
-    scheduleResourceId,
+    routineResourceId,
     RUN_LEDGER_OUTCOME_COMPLETED,
     "",
   );
-  deps.logger.info("Schedule run completed — failure streak reset", {
-    schedule_id: scheduleResourceId,
+  deps.logger.info("Routine run completed — failure streak reset", {
+    routine_id: routineResourceId,
   });
 }
 
@@ -414,17 +431,17 @@ async function recordSuccessfulRun(
  * guarded SQL statement: the increment reads the live value
  * inside the lock, the pause is written only at the crossing and only when
  * no reason is already latched (the first pause's copy is never
- * rewritten), and next_fire_at clears so the schedule advertises no fire
+ * rewritten), and next_fire_at clears so the routine advertises no fire
  * it will decline.
  *
  * The caller gives this activity EXACTLY ONE attempt: an increment is not
  * idempotent — a retry after a successful write over-counts and pauses a
- * healthy schedule early, while a lost write under-counts and fails safe
+ * healthy routine early, while a lost write under-counts and fails safe
  * (Go RecordFailedRun).
  */
 async function recordFailedRun(
   deps: RoutineTickActivityDeps,
-  scheduleResourceId: string,
+  routineResourceId: string,
   reason: string,
   kind: FailureKind,
 ): Promise<FailureRecorded> {
@@ -436,7 +453,7 @@ async function recordFailedRun(
   try {
     await deps.store.updateResource(
       ApiResourceKind.routine,
-      scheduleResourceId,
+      routineResourceId,
       RoutineSchema,
       (live) => {
         const status = ensureStatus(live);
@@ -458,22 +475,22 @@ async function recordFailedRun(
   } catch (error) {
     if (error instanceof ResourceNotFoundError) {
       // Deleted mid-track: a no-op by construction — deleting a run or its
-      // schedule must never resurrect either.
+      // routine must never resurrect either.
       deps.logger.info(
-        "Schedule run failure not recorded — row deleted mid-track",
-        { schedule_id: scheduleResourceId, reason },
+        "Routine run failure not recorded — row deleted mid-track",
+        { routine_id: routineResourceId, reason },
       );
       return { consecutiveFailures: 0, paused: false };
     }
     throw new Error(
-      `record failed run on schedule ${scheduleResourceId}: ${message(error)}`,
+      `record failed run on routine ${routineResourceId}: ${message(error)}`,
       { cause: error },
     );
   }
 
-  deps.logger.warn("Schedule run failed", {
+  deps.logger.warn("Routine run failed", {
     failure_kind: kind,
-    schedule_id: scheduleResourceId,
+    routine_id: routineResourceId,
     consecutive_failures: recorded.consecutiveFailures,
     threshold,
     paused: recorded.paused,
@@ -488,7 +505,7 @@ async function recordFailedRun(
       await recordRunLedgerVerdict(
         deps.store,
         deps.logger,
-        scheduleResourceId,
+        routineResourceId,
         RUN_LEDGER_OUTCOME_FAILED,
         reason,
       );
@@ -497,7 +514,7 @@ async function recordFailedRun(
       await recordRunLedgerVerdict(
         deps.store,
         deps.logger,
-        scheduleResourceId,
+        routineResourceId,
         RUN_LEDGER_OUTCOME_TIMED_OUT,
         reason,
       );
@@ -517,14 +534,14 @@ async function recordFailedRun(
     try {
       const routine = await deps.store.getResource(
         ApiResourceKind.routine,
-        scheduleResourceId,
+        routineResourceId,
         RoutineSchema,
       );
       await deps.syncer.ensureAndRecord(routine);
     } catch (error) {
       deps.logger.error(
-        "Paused schedule's artifact not yet converged (the reconciliation pass will pause it)",
-        { schedule_id: scheduleResourceId, error: message(error) },
+        "Paused routine's artifact not yet converged (the reconciliation pass will pause it)",
+        { routine_id: routineResourceId, error: message(error) },
       );
     }
   }

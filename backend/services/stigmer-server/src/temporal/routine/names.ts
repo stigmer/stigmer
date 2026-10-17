@@ -24,8 +24,8 @@
 export const TICK_WORKFLOW_TYPE = "schedule/tick";
 
 /**
- * Prefixes each Schedule resource's Temporal Schedule artifact id:
- * schedule/tick/{scheduleResourceId} (Go TickIDPrefix).
+ * Prefixes each routine's Temporal Schedule artifact id:
+ * schedule/tick/{routineResourceId} (Go TickIDPrefix).
  */
 export const TICK_ID_PREFIX = `${TICK_WORKFLOW_TYPE}/`;
 
@@ -37,9 +37,9 @@ export const TICK_ID_PREFIX = `${TICK_WORKFLOW_TYPE}/`;
  */
 export const PROBE_ID_PREFIX = "schedule/probe/";
 
-/** The Temporal Schedule artifact id for a Schedule resource id. */
-export function artifactId(scheduleResourceId: string): string {
-  return TICK_ID_PREFIX + scheduleResourceId;
+/** The Temporal Schedule artifact id for a routine's id (a kept `sch_` id included). */
+export function artifactId(routineResourceId: string): string {
+  return TICK_ID_PREFIX + routineResourceId;
 }
 
 /** Inverts artifactId. */
@@ -67,17 +67,24 @@ export const RECORD_FAILED_RUN_ACTIVITY_NAME =
 // releases; the VALUES mirror the cloud edition's enums name-for-name
 // (one runbook, two editions) — Go tick_activities.go.
 
-/** recordTick's verdict on whether this fire proceeds (Go TickOutcome). */
+/**
+ * recordTick's verdict on whether this fire proceeds (Go TickOutcome).
+ * SKIPPED_UNSCHEDULED is a tick of an artifact whose routine no longer has
+ * a cron (the artifact's removal had not converged yet); the workflow
+ * returns on every value but FIRED, so a new skip needs no version gate.
+ */
 export type TickOutcome =
   | "FIRED"
   | "SKIPPED_DELETED"
   | "SKIPPED_DISABLED"
-  | "SKIPPED_AUTO_PAUSED";
+  | "SKIPPED_AUTO_PAUSED"
+  | "SKIPPED_UNSCHEDULED";
 
 export const TICK_FIRED = "FIRED" satisfies TickOutcome;
 export const TICK_SKIPPED_DELETED = "SKIPPED_DELETED" satisfies TickOutcome;
 export const TICK_SKIPPED_DISABLED = "SKIPPED_DISABLED" satisfies TickOutcome;
 export const TICK_SKIPPED_AUTO_PAUSED = "SKIPPED_AUTO_PAUSED" satisfies TickOutcome;
+export const TICK_SKIPPED_UNSCHEDULED = "SKIPPED_UNSCHEDULED" satisfies TickOutcome;
 
 /** startScheduledRun's verdict on the run start (Go RunOutcome). */
 export type RunOutcome =
@@ -150,21 +157,21 @@ export interface FailureRecorded {
  */
 export interface RoutineTickActivities {
   [RECORD_TICK_ACTIVITY_NAME]: (
-    scheduleResourceId: string,
+    routineResourceId: string,
     nominalFireTimeRfc3339: string,
   ) => Promise<TickOutcome>;
   [START_SCHEDULED_RUN_ACTIVITY_NAME]: (
-    scheduleResourceId: string,
+    routineResourceId: string,
     nominalFireTimeRfc3339: string,
   ) => Promise<RunStart>;
   [POLL_EXECUTION_PHASE_ACTIVITY_NAME]: (
     executionId: string,
   ) => Promise<ObservedRunPhase>;
   [RECORD_SUCCESSFUL_RUN_ACTIVITY_NAME]: (
-    scheduleResourceId: string,
+    routineResourceId: string,
   ) => Promise<void>;
   [RECORD_FAILED_RUN_ACTIVITY_NAME]: (
-    scheduleResourceId: string,
+    routineResourceId: string,
     reason: string,
     kind: FailureKind,
   ) => Promise<FailureRecorded>;

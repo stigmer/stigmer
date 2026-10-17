@@ -1,11 +1,14 @@
 /**
- * Schedule write-path steps — ports the validation half of
- * pkg/domain/schedule/controller/steps.go: the defaults resolver
- * (create/apply) and the update validator, plus the workspace and
- * model-pinning rules both share.
+ * Routine write-path steps: the defaults resolver (create/apply) and the
+ * update validator, plus the schedule, workspace and model-pinning rules
+ * both share.
  *
- * Proven by schedule.conformance.test.ts (CONFORMANCE_TARGET=local) and
- * __tests__/schedule.composed.test.ts.
+ * A routine's cron is optional: the grammar is checked only when one is
+ * set, while a time zone that is set is always checked, because every run
+ * is dated in it whether or not a schedule fires the routine.
+ *
+ * Proven by routine.conformance.test.ts (CONFORMANCE_TARGET=local) and
+ * __tests__/routine.composed.test.ts.
  */
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -45,30 +48,29 @@ export interface RoutineValidationDeps {
 }
 
 /**
- * Prepares a schedule for creation — the ScheduleDefaultsResolver mirror
- * (cloud edition), whose error contracts this step replicates
- * byte-identically (Go resolveScheduleDefaultsStep):
+ * Prepares a routine for creation:
  *
- *  1. Requires metadata.org — the schedule-owning org is the billing org
- *     for every fire, so it can never be inferred.
- *  2. Validates the cron grammar and the time zone (cron.ts — lexical
- *     rules; no cron parsing in either edition).
+ *  1. Requires metadata.org — the routine's org is the billing org for
+ *     every run, so it can never be inferred.
+ *  2. Validates the cron grammar when a cron is set, and the time zone
+ *     (cron.ts — lexical rules; no cron parsing in either edition).
  *  3. Requires spec.agent.agent_ref. NormalizeReferences ran first: the
  *     org is absolute (empty meant same-org, the platform-wide
  *     relative-reference convention) and a slug is the agent's id.
  *  4. Enforces the same-org invariant: agent_ref.org must equal
- *     metadata.org — the schedule's org pays for every fire, and both must
+ *     metadata.org — the routine's org pays for every run, and both must
  *     be the agent's. Checked BEFORE the agent load, and no refusal names
  *     whether another org's slug exists.
- *  5. Loads the referenced agent by id — scheduling a nonexistent agent is
- *     refused with the same NOT_FOUND a direct agent lookup would produce.
+ *  5. Loads the referenced agent by id — a routine of a nonexistent agent
+ *     is refused with the same NOT_FOUND a direct agent lookup would
+ *     produce.
  *
- * Deliberately NO slug default from the agent: schedules are N-per-agent
- * with different prompts, so no single schedule is "the" canonical one. A
- * schedule without a slug or name falls through to the generic ResolveSlug
+ * Deliberately NO slug default from the agent: routines are N-per-agent
+ * with different messages, so no single routine is "the" canonical one. A
+ * routine without a slug or name falls through to the generic ResolveSlug
  * derive-from-name behavior.
  *
- * Resolution is idempotent: an already-resolved schedule passes through
+ * Resolution is idempotent: an already-resolved routine passes through
  * unchanged, so the apply pipeline running it before delegating to the
  * create pipeline (which runs it again) is harmless.
  */
@@ -76,21 +78,19 @@ export function newResolveRoutineDefaultsStep(
   deps: RoutineValidationDeps,
 ): PipelineStep<typeof RoutineSchema> {
   return {
-    name: "ResolveScheduleDefaults",
+    name: "ResolveRoutineDefaults",
     async execute(ctx: RequestContext<typeof RoutineSchema>): Promise<void> {
       const routine = ctx.newState;
       const metadata = routine.metadata;
 
       if ((metadata?.org ?? "") === "") {
-        throw invalidArgumentError("metadata.org is required for a schedule");
+        throw invalidArgumentError("metadata.org is required for a routine");
       }
 
       const spec = routine.spec;
-      validateRoutineCron(spec?.cron ?? "");
-      validateRoutineTimeZone(spec?.timeZone ?? "");
+      validateRoutineSchedule(spec);
 
-      const agentRef =
-        spec?.target.case === "agent" ? spec.target.value.agentRef : undefined;
+      const agentRef = spec?.agent?.agentRef;
       if (agentRef === undefined || (agentRef.id === "" && agentRef.slug === "")) {
         throw invalidArgumentError("spec.agent.agent_ref is required");
       }
@@ -98,13 +98,13 @@ export function newResolveRoutineDefaultsStep(
       validateRoutineWorkspace(spec);
       validateRoutineModelPinning(deps.modelRegistry, spec);
 
-      // The same-org invariant (spec.proto): the schedule's org is the
-      // billing org for every fire, and it must be the agent's. Checked
+      // The same-org invariant (spec.proto): the routine's org is the
+      // billing org for every run, and it must be the agent's. Checked
       // BEFORE the agent load.
       const refOrg = agentRef.org;
       if (refOrg !== (metadata?.org ?? "")) {
         throw failedPreconditionError(
-          `spec.agent.agent_ref.org must match metadata.org — a schedule must live in the referenced agent's organization (${refOrg})`,
+          `spec.agent.agent_ref.org must match metadata.org — a routine must live in the referenced agent's organization (${refOrg})`,
         );
       }
 
@@ -126,25 +126,26 @@ export function newResolveRoutineDefaultsStep(
 }
 
 /**
- * Context key for the agent ResolveScheduleDefaults resolved from
+ * Context key for the agent ResolveRoutineDefaults resolved from
  * spec.agent.agent_ref, read by the create lane's authorization step.
  */
-export const REFERENCED_AGENT_KEY = "scheduleReferencedAgent";
+export const REFERENCED_AGENT_KEY = "routineReferencedAgent";
 
-/** The deny copy of the create bar, the Java ScheduleCreateHandler's. */
+/** The deny copy of the create bar. */
 export const ROUTINE_CREATE_DENIED_MESSAGE =
-  "You don't have permission to schedule this agent";
+  "You don't have permission to make a routine of this agent";
 
 /**
  * The create lane's authorization question, for AuthorizeResolvedTarget
- * after ResolveScheduleDefaults: can_edit on the REFERENCED AGENT. The RPC
+ * after ResolveRoutineDefaults: can_edit on the REFERENCED AGENT. The RPC
  * is is_skip_authorization because its target is that agent, resolved from
  * a slug, not a request field; and there is deliberately no organization
- * bar — a schedule is unattended spend on an agent, an editor's act, and
+ * bar — a routine is unattended spend on an agent, an editor's act, and
  * the same-org invariant the resolve step enforces already binds the
- * schedule's organization to the agent's (command.proto). An editor, who
- * maintains the definition, may run it on a clock: a schedule widens no
- * one's access, and each fire re-checks its creator's can_execute.
+ * routine's organization to the agent's (command.proto). An editor, who
+ * maintains the definition, may run it on a schedule: a routine widens no
+ * one's access, and each run acts as its owner, whose can_execute the run
+ * create checks again.
  */
 export function resolveRoutineCreateTargets(
   ctx: RequestContext<typeof RoutineSchema>,
@@ -164,40 +165,51 @@ export function resolveRoutineCreateTargets(
 }
 
 /**
- * Enforces the schedule-specific workspace constraint on the shared
+ * Validates a routine's schedule: the cron grammar when a cron is set, and
+ * the time zone whenever one is set (cron.ts). A routine without a cron
+ * still dates every run in its zone, so a mistyped zone is refused here
+ * rather than quietly read as UTC. The message rule that a cron needs a
+ * zone is the spec's CEL rule, checked by ValidateProto.
+ */
+export function validateRoutineSchedule(spec: RoutineSpec | undefined): void {
+  if (spec?.cron !== undefined) {
+    validateRoutineCron(spec.cron);
+  }
+  validateRoutineTimeZone(spec?.timeZone ?? "");
+}
+
+/**
+ * Enforces the routine-specific workspace constraint on the shared
  * AgentInvocation: every workspace entry must be a git_repo
  * source. A local_path needs a connected client to serve the directory,
- * and a schedule fire has none — refusing at write time beats a
- * deterministic provisioning failure at 3 AM. Copy is cross-edition
- * contract (Go validateScheduleWorkspace).
+ * and a routine's run has none — refusing at write time beats a
+ * deterministic provisioning failure at 3 AM.
  */
 export function validateRoutineWorkspace(
   spec: RoutineSpec | undefined,
 ): void {
-  const entries =
-    spec?.target.case === "agent" ? spec.target.value.workspaceEntries : [];
+  const entries = spec?.agent?.workspaceEntries ?? [];
   for (const [i, entry] of entries.entries()) {
     if (entry.source?.source.case !== "gitRepo") {
       throw invalidArgumentError(
-        `spec.agent.workspace_entries[${i}] must use a git_repo source — a scheduled run has no connected client to serve a local_path`,
+        `spec.agent.workspace_entries[${i}] must use a git_repo source — a routine's run has no connected client to serve a local_path`,
       );
     }
   }
 }
 
 /**
- * Enforces the two unattended model-pinning rules at write time (Go
- * validateScheduleModelPinning):
+ * Enforces the two unattended model-pinning rules at write time:
  *
- *   - PRESENCE (stigmer/stigmer#362): a Cursor-harness schedule must pin a
- *     model. Stated once in the clock's scheduleModelPinningRefusal, which
- *     the run starter also evaluates as the launch backstop for rows
- *     written before the rule existed.
+ *   - PRESENCE (stigmer/stigmer#362): a Cursor-harness routine must pin a
+ *     model. Stated once in routineModelPinningRefusal, which the run
+ *     starter also evaluates as the launch backstop for rows written
+ *     before the rule existed.
  *   - EXISTENCE (stigmer/stigmer#774): whatever model IS pinned must be in
- *     the registry for the harness the fires would use — a typo'd pin used
+ *     the registry for the harness the runs would use — a typo'd pin used
  *     to pass through verbatim and silently run (and bill) as Auto.
  *     Write-time only BY DESIGN (no fire-time backstop — registry drift
- *     must never break an existing schedule at its 3 AM fire).
+ *     must never break an existing routine at its 3 AM fire).
  */
 export function validateRoutineModelPinning(
   modelRegistry: ModelCatalogProvider,
@@ -207,8 +219,7 @@ export function validateRoutineModelPinning(
   if (presence !== "") {
     throw invalidArgumentError(presence);
   }
-  const invocation =
-    spec?.target.case === "agent" ? spec.target.value : undefined;
+  const invocation = spec?.agent;
   // Saved settings name the model their tier or thinking is for.
   const selfContained = savedChoiceWithoutModelRefusal(
     { fieldPath: "spec.agent.run_config" },
@@ -229,33 +240,16 @@ export function validateRoutineModelPinning(
 }
 
 /**
- * The manifest vocabulary for the schedule's target arm — the populated
- * target-oneof member's field name, exactly what users declared in YAML
- * (Go targetFieldName resolves it through proto reflection; connect-es
- * exposes the case name directly, identical for the single-word field
- * this oneof carries, "agent").
- */
-export function targetFieldName(spec: RoutineSpec | undefined): string {
-  return spec?.target.case ?? "";
-}
-
-/**
- * Enforces the schedule's immutable identity on update (Go
- * validateScheduleUpdateStep):
+ * Enforces the routine's immutable identity on update:
  *
  *   - spec.agent.agent_ref must keep referencing the same agent. Create's
- *     consent bar is can_edit on the REFERENCED agent (cloud edition); if
- *     an update could repoint the target, a schedule owner could drive an
- *     agent they may not edit — bypassing that consent. Create a new
- *     schedule instead (nothing is lost — a schedule carries no install
- *     state).
- *   - The target arm (target oneof case) must not change: a schedule
- *     keeps the kind of target it was created for. Trivially satisfied
- *     while one arm exists; enforced structurally so a later arm lands
- *     with the rule already in force.
- *   - The cron grammar and time zone are re-validated: update replaces the
- *     spec wholesale and does not run the defaults resolver, so the write
- *     path must hold the same bar as create.
+ *     consent bar is can_edit on the REFERENCED agent; if an update could
+ *     repoint it, a routine's owner could drive an agent they may not edit
+ *     — bypassing that consent. Create a new routine instead (nothing is
+ *     lost — a routine carries no install state).
+ *   - The schedule (cron and time zone) is re-validated: update replaces
+ *     the spec wholesale and does not run the defaults resolver, so the
+ *     write path must hold the same bar as create.
  *
  * Runs after NormalizeReferences, which resolved the request's reference,
  * so the agent is compared by id. metadata.slug/org immutability needs no step
@@ -268,40 +262,25 @@ export function newValidateRoutineUpdateStep(
   deps: RoutineValidationDeps,
 ): PipelineStep<typeof RoutineSchema> {
   return {
-    name: "ValidateScheduleUpdate",
+    name: "ValidateRoutineUpdate",
     async execute(ctx: RequestContext<typeof RoutineSchema>): Promise<void> {
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as Routine | undefined;
       if (existing === undefined) {
         throw internalError(
-          new Error("existing schedule not found in context"),
-          "existing schedule not found in context",
+          new Error("existing routine not found in context"),
+          "existing routine not found in context",
         );
       }
 
-      const newState = ctx.newState;
-
-      const inputTarget = targetFieldName(newState.spec);
-      const existingTarget = targetFieldName(existing.spec);
-      if (inputTarget !== existingTarget) {
-        throw failedPreconditionError(
-          `spec target is immutable (schedule target is ${existingTarget}) — create a new schedule for a different target kind`,
-        );
-      }
-
-      const spec = newState.spec;
-      validateRoutineCron(spec?.cron ?? "");
-      validateRoutineTimeZone(spec?.timeZone ?? "");
+      const spec = ctx.newState.spec;
+      validateRoutineSchedule(spec);
       // Update replaces the spec wholesale (no defaults resolver), so the
       // workspace and model-pinning constraints must hold here too.
       validateRoutineWorkspace(spec);
       validateRoutineModelPinning(deps.modelRegistry, spec);
 
-      const inputRef =
-        spec?.target.case === "agent" ? spec.target.value.agentRef : undefined;
-      const existingRef =
-        existing.spec?.target.case === "agent"
-          ? existing.spec.target.value.agentRef
-          : undefined;
+      const inputRef = spec?.agent?.agentRef;
+      const existingRef = existing.spec?.agent?.agentRef;
 
       if (
         (inputRef?.id ?? "") !== (existingRef?.id ?? "") ||
@@ -313,7 +292,7 @@ export function newValidateRoutineUpdateStep(
           slug: existingRef?.slug ?? "",
         });
         throw failedPreconditionError(
-          `spec.agent.agent_ref is immutable (schedule runs ${existingRef?.org ?? ""}/${held}) — create a new schedule to run a different agent`,
+          `spec.agent.agent_ref is immutable (routine runs ${existingRef?.org ?? ""}/${held}) — create a new routine to run a different agent`,
         );
       }
     },

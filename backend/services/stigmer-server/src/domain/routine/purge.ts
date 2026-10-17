@@ -1,7 +1,7 @@
 /**
- * The schedule's purge (domain/organization/purge/kind-purge.ts): every
- * schedule of an organization being deleted, removed with its delete
- * chain's cleanup (controller.ts `deleteSchedule`): the row, its access,
+ * The routine's purge (domain/organization/purge/kind-purge.ts): every
+ * routine of an organization being deleted, removed with its delete
+ * chain's cleanup (controller.ts `deleteRoutine`): the row, its access,
  * its clock artifact in the engine, its fire ledger. The purge runs it in
  * the quiesce stage, before anything else, so nothing fires while the rest
  * of the organization is removed.
@@ -32,7 +32,7 @@ import {
 
 export interface RoutinePurgeDeps extends KindPurgeDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
-  /** The schedule clock the controller tears artifacts down through. */
+  /** The routine clock the controller tears artifacts down through. */
   readonly routineClock: ClockProvider;
 }
 

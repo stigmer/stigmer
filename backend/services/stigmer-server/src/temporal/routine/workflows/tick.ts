@@ -115,7 +115,7 @@ const startActivities = proxyActivities<RoutineTickActivities>({
 });
 // Failure-record stub: EXACTLY ONE attempt — the streak increment is the
 // clock's single non-idempotent write. A retry after a successful write
-// over-counts and pauses a healthy schedule early; a lost write
+// over-counts and pauses a healthy routine early; a lost write
 // under-counts, which fails safe.
 const failureActivities = proxyActivities<RoutineTickActivities>({
   startToCloseTimeout: "30 seconds",
@@ -124,24 +124,24 @@ const failureActivities = proxyActivities<RoutineTickActivities>({
 
 /**
  * Executes one tick (Go TickWorkflow.Run; registered as "schedule/tick"
- * via the barrel). The single argument is the schedule resource id
+ * via the barrel). The single argument is the routine's id
  * (Temporal bakes action args once — the nominal fire time is derived,
  * never carried).
  */
-export async function tick(scheduleResourceId: string): Promise<void> {
-  const nominal = nominalFireTime(scheduleResourceId);
+export async function tick(routineResourceId: string): Promise<void> {
+  const nominal = nominalFireTime(routineResourceId);
   const nominalRfc3339 = rfc3339Seconds(nominal);
 
   const tickOutcome = await failing(
     "record tick",
     recordActivities[RECORD_TICK_ACTIVITY_NAME](
-      scheduleResourceId,
+      routineResourceId,
       nominalRfc3339,
     ),
   );
   if (tickOutcome !== TICK_FIRED) {
     log.info("Schedule tick complete", {
-      schedule_id: scheduleResourceId,
+      routine_id: routineResourceId,
       nominal_fire_time: nominalRfc3339,
       outcome: tickOutcome,
     });
@@ -151,7 +151,7 @@ export async function tick(scheduleResourceId: string): Promise<void> {
   const runStart = await failing(
     "start scheduled run",
     startActivities[START_SCHEDULED_RUN_ACTIVITY_NAME](
-      scheduleResourceId,
+      routineResourceId,
       nominalRfc3339,
     ),
   );
@@ -159,7 +159,7 @@ export async function tick(scheduleResourceId: string): Promise<void> {
   switch (runStart.outcome) {
     case RUN_SKIPPED:
       log.info("Schedule tick complete", {
-        schedule_id: scheduleResourceId,
+        routine_id: routineResourceId,
         nominal_fire_time: nominalRfc3339,
         run_outcome: runStart.outcome,
       });
@@ -171,13 +171,13 @@ export async function tick(scheduleResourceId: string): Promise<void> {
       const recorded = await failing(
         "record start failure",
         failureActivities[RECORD_FAILED_RUN_ACTIVITY_NAME](
-          scheduleResourceId,
+          routineResourceId,
           runStart.failureReason,
           FAILURE_START_FAILED,
         ),
       );
       log.info("Schedule tick complete", {
-        schedule_id: scheduleResourceId,
+        routine_id: routineResourceId,
         nominal_fire_time: nominalRfc3339,
         run_outcome: runStart.outcome,
         verdict: "start_failed",
@@ -188,7 +188,7 @@ export async function tick(scheduleResourceId: string): Promise<void> {
     }
     case RUN_STARTED:
     case RUN_ALREADY_STARTED:
-      await trackRun(scheduleResourceId, nominalRfc3339, runStart);
+      await trackRun(routineResourceId, nominalRfc3339, runStart);
       return;
     default: {
       // Compile-time exhaustiveness; the runtime throw stands for
@@ -206,7 +206,7 @@ export async function tick(scheduleResourceId: string): Promise<void> {
  * the verdict (Go trackRun).
  */
 async function trackRun(
-  scheduleResourceId: string,
+  routineResourceId: string,
   nominalRfc3339: string,
   runStart: RunStart,
 ): Promise<void> {
@@ -248,25 +248,25 @@ async function trackRun(
     const recorded = await failing(
       "record tracking timeout",
       failureActivities[RECORD_FAILED_RUN_ACTIVITY_NAME](
-        scheduleResourceId,
+        routineResourceId,
         reason,
         FAILURE_RUN_TIMED_OUT,
       ),
     );
-    logVerdict(scheduleResourceId, nominalRfc3339, runStart, "timed_out", recorded);
+    logVerdict(routineResourceId, nominalRfc3339, runStart, "timed_out", recorded);
     return;
   }
   if (phase === PHASE_COMPLETED) {
     await failing(
       "record successful run",
-      recordActivities[RECORD_SUCCESSFUL_RUN_ACTIVITY_NAME](scheduleResourceId),
+      recordActivities[RECORD_SUCCESSFUL_RUN_ACTIVITY_NAME](routineResourceId),
     );
-    logVerdict(scheduleResourceId, nominalRfc3339, runStart, "completed");
+    logVerdict(routineResourceId, nominalRfc3339, runStart, "completed");
     return;
   }
   if (phase === PHASE_GONE) {
     // Deleting a run must not brick its schedule: no verdict.
-    logVerdict(scheduleResourceId, nominalRfc3339, runStart, "gone");
+    logVerdict(routineResourceId, nominalRfc3339, runStart, "gone");
     return;
   }
   // FAILED, CANCELLED, TERMINATED.
@@ -274,13 +274,13 @@ async function trackRun(
   const recorded = await failing(
     "record failed run",
     failureActivities[RECORD_FAILED_RUN_ACTIVITY_NAME](
-      scheduleResourceId,
+      routineResourceId,
       reason,
       FAILURE_RUN_FAILED,
     ),
   );
   logVerdict(
-    scheduleResourceId,
+    routineResourceId,
     nominalRfc3339,
     runStart,
     phase.toLowerCase(),
@@ -311,14 +311,14 @@ export function trackingBackoffMs(cycle: number): number {
  * execution name derives from it, so both idempotency keys agree on every
  * retry.
  */
-function nominalFireTime(scheduleResourceId: string): Date {
+function nominalFireTime(routineResourceId: string): Date {
   const attribute = workflowInfo().typedSearchAttributes.get(
     SCHEDULED_START_TIME_KEY,
   );
   if (attribute !== undefined) {
     return attribute;
   }
-  const base = `${artifactId(scheduleResourceId)}-`;
+  const base = `${artifactId(routineResourceId)}-`;
   const workflowId = workflowInfo().workflowId;
   if (workflowId.startsWith(base)) {
     const suffix = workflowId.slice(base.length);
@@ -366,7 +366,7 @@ function rfc3339Seconds(date: Date): string {
 }
 
 function logVerdict(
-  scheduleResourceId: string,
+  routineResourceId: string,
   nominalRfc3339: string,
   runStart: RunStart,
   verdict: string,
@@ -374,7 +374,7 @@ function logVerdict(
 ): void {
   if (recorded === undefined) {
     log.info("Schedule tick complete", {
-      schedule_id: scheduleResourceId,
+      routine_id: routineResourceId,
       nominal_fire_time: nominalRfc3339,
       run_outcome: runStart.outcome,
       execution_id: runStart.executionId,
@@ -383,7 +383,7 @@ function logVerdict(
     return;
   }
   log.info("Schedule tick complete", {
-    schedule_id: scheduleResourceId,
+    routine_id: routineResourceId,
     nominal_fire_time: nominalRfc3339,
     run_outcome: runStart.outcome,
     execution_id: runStart.executionId,

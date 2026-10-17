@@ -6,7 +6,7 @@
  * audit bump BuildUpdateState stamped, and who attached each vault the
  * spec names, the VaultAttachments step's record, which a fire with no
  * person asks `can_use` of) over the status and slug of the row the chain
- * read, by compare-and-swap on that row. NOT a plain save: schedule status
+ * read, by compare-and-swap on that row. NOT a plain save: routine status
  * has a concurrent writer (the tick), and a save of the load-time snapshot
  * could silently revert a fire record, a streak write, or a PAUSE —
  * breaking the "resume is the one clearing path" pin. A tick or a rename
@@ -27,9 +27,9 @@ export function newPersistRoutineUpdateStep(
   store: Store,
 ): PipelineStep<typeof RoutineSchema> {
   return {
-    name: "PersistScheduleUpdate",
+    name: "PersistRoutineUpdate",
     async execute(ctx: RequestContext<typeof RoutineSchema>): Promise<void> {
-      await swapOntoLoadedRow(store, ctx, "failed to persist schedule update");
+      await swapOntoLoadedRow(store, ctx, "failed to persist routine update");
     },
   };
 }

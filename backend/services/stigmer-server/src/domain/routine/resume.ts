@@ -7,11 +7,11 @@
  * (spec.enabled). Resume clears the latch and resets
  * status.consecutive_failures, and is deliberately the ONLY path that does
  * either: update and apply preserve status verbatim, so a
- * routine manifest apply can never silently un-pause a failing schedule.
+ * routine manifest apply can never silently un-pause a failing routine.
  *
- * Resuming a schedule that is not paused (and has no failure streak)
+ * Resuming a routine that is not paused (and has no failure streak)
  * succeeds and changes nothing — no write, no audit bump. A disabled
- * schedule stays disabled: the latch and the switch are independent.
+ * routine stays disabled: the latch and the switch are independent.
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 
@@ -47,7 +47,7 @@ class NothingToClearError extends Error {
  *
  * Why atomic: a previous
  * load-mutate-save across step boundaries was safe only while nothing else
- * wrote schedule status. The clock ended that — a fire recorded (or a
+ * wrote routine status. The clock ended that — a fire recorded (or a
  * streak advanced) between the load and the save would have been silently
  * reverted. The agent-execution domain adopted this exact primitive after
  * losing user approvals to the same race class.
@@ -56,7 +56,7 @@ export function newClearRoutinePauseStep<Desc extends DescMessage>(
   store: Store,
 ): PipelineStep<Desc> {
   return {
-    name: "ClearSchedulePause",
+    name: "ClearRoutinePause",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
       const loaded = ctx.get(EXISTING_RESOURCE_KEY) as Routine;
       const routineId = loaded.metadata?.id ?? "";
@@ -102,18 +102,18 @@ export function newClearRoutinePauseStep<Desc extends DescMessage>(
             );
           } catch (readError) {
             if (readError instanceof ResourceNotFoundError) {
-              throw notFoundError("Schedule", routineId);
+              throw notFoundError("Routine", routineId);
             }
-            throw internalError(readError, "failed to resume schedule");
+            throw internalError(readError, "failed to resume routine");
           }
           ctx.set(EXISTING_RESOURCE_KEY, live);
           return;
         }
         if (error instanceof ResourceNotFoundError) {
           // Deleted between load and clear: the delete won.
-          throw notFoundError("Schedule", routineId);
+          throw notFoundError("Routine", routineId);
         }
-        throw internalError(error, "failed to resume schedule");
+        throw internalError(error, "failed to resume routine");
       }
       // live holds the post-image (cleared) — the honest response.
       ctx.set(EXISTING_RESOURCE_KEY, live);

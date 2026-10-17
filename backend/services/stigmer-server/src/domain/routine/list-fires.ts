@@ -1,17 +1,17 @@
 /**
- * The listFires query steps — port pkg/domain/schedule/controller/list_runs.go:
- * the fire-ledger surface. Every fire leaves a row, INCLUDING
- * fires that created no execution (a refused launch gate, a missing target
- * agent), with the refusing gate's copy verbatim: this is the RPC that
- * explains status.consecutive_failures.
+ * The listFires query steps: the fire-ledger surface. Every fire leaves a
+ * row, INCLUDING fires that created no run (a refused launch gate, a
+ * missing target agent), with the refusing gate's copy verbatim, and who
+ * fired it when someone did: this is the RPC that explains
+ * status.consecutive_failures, and who started what.
  *
- * Rows carrying an execution id but no terminal outcome are enriched with
- * the execution's LIVE phase at read time — manual fires are untracked by
- * design (the caller watches the execution), so their outcome is resolved
- * here rather than by a tracker, and outcome columns never lie while a run
- * is in flight.
+ * Rows carrying a run id but no terminal outcome are enriched with the
+ * run's LIVE phase at read time — manual fires are untracked by design
+ * (the caller watches the run), so their outcome is resolved here rather
+ * than by a tracker, and outcome columns never lie while a run is in
+ * flight.
  */
-import { create } from "@bufbuild/protobuf";
+import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -26,6 +26,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
 import type { RoutineFire } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceAuditActorSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 
 import { internalError, notFoundError } from "../../pipeline/errors.js";
 import {
@@ -36,19 +37,22 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { RoutineFireRecord, Store } from "../../store/interface.js";
+import {
+  RUN_LEDGER_ORIGIN_MANUAL,
+  RUN_LEDGER_ORIGIN_SCHEDULE,
+} from "../../temporal/routine/run-ledger.js";
 
 type ListFiresInput = typeof RoutineQueryController.method.listFires.input;
 
 export const LIST_FIRES_RESULT_KEY = "listFiresResult";
 
 /**
- * Confirms the schedule exists — a missing schedule answers NOT_FOUND,
- * never an empty history that reads as "exists but never fired" (Go
- * loadScheduleForRunsStep).
+ * Confirms the routine exists — a missing routine answers NOT_FOUND,
+ * never an empty history that reads as "exists but never fired".
  */
 export function newLoadRoutineForFiresStep(store: Store): PipelineStep<ListFiresInput> {
   return {
-    name: "LoadScheduleForRuns",
+    name: "LoadRoutineForFires",
     async execute(ctx: RequestContext<ListFiresInput>): Promise<void> {
       const routineId = ctx.input.routineId;
       try {
@@ -59,24 +63,23 @@ export function newLoadRoutineForFiresStep(store: Store): PipelineStep<ListFires
         );
       } catch (error) {
         if (error instanceof ResourceNotFoundError) {
-          throw notFoundError("Schedule", routineId);
+          throw notFoundError("Routine", routineId);
         }
-        throw internalError(error, "failed to load schedule");
+        throw internalError(error, "failed to load routine");
       }
     },
   };
 }
 
 /**
- * Pages the fire ledger (newest first) by its key, then enriches the
- * page's in-flight rows with the execution's live phase (Go
- * listRunsFromLedgerStep). The ledger's rows carry their key as the page
- * cursor: the nominal fire time in the cursor's instant and the origin in
- * its id, the two columns the ledger orders by.
+ * Pages the fire ledger (newest first), then enriches the page's in-flight
+ * rows with the run's live phase. The ledger's rows carry their order as
+ * the page cursor: the nominal fire time in the cursor's instant and the
+ * fire id in its id, the two columns the ledger orders by.
  */
 export function newListFiresFromLedgerStep(store: Store): PipelineStep<ListFiresInput> {
   return {
-    name: "ListRunsFromLedger",
+    name: "ListFiresFromLedger",
     async execute(ctx: RequestContext<ListFiresInput>): Promise<void> {
       const req = ctx.input;
       const page = await readPage<RoutineFireRecord>({
@@ -86,23 +89,23 @@ export function newListFiresFromLedgerStep(store: Store): PipelineStep<ListFires
               req.routineId,
               after === undefined
                 ? undefined
-                : { nominalFireTime: after.createdAt, origin: after.id },
+                : { nominalFireTime: after.createdAt, fireId: after.id },
               limit,
             )
           ).map((record) => ({
-            id: record.origin,
+            id: record.fireId,
             data: encodeRecord(record),
-            cursor: { createdAt: record.nominalFireTime, id: record.origin },
+            cursor: { createdAt: record.nominalFireTime, id: record.fireId },
           })),
         request: req,
         fingerprint: listPageFingerprint({
-          lane: "schedule.listFires",
-          scheduleId: req.routineId,
+          lane: "routine.listFires",
+          routineId: req.routineId,
         }),
         decode: decodeRecord,
-        // Authorized once, on the schedule: the fires are its own record.
+        // Authorized once, on the routine: the fires are its own record.
         scope: (records) => Promise.resolve(records),
-        failure: "failed to list schedule fires",
+        failure: "failed to list routine fires",
       });
 
       const entries: RoutineFire[] = [];
@@ -120,19 +123,37 @@ export function newListFiresFromLedgerStep(store: Store): PipelineStep<ListFires
   };
 }
 
-/** A ledger row as the page loop carries it: its own fields, as JSON bytes. */
+/** A ledger row as the page loop carries it: its fields as JSON bytes, the actor as its own bytes. */
 function encodeRecord(record: RoutineFireRecord): Uint8Array {
-  return new TextEncoder().encode(JSON.stringify(record));
+  const { firedBy, ...fields } = record;
+  return new TextEncoder().encode(
+    JSON.stringify({
+      ...fields,
+      firedBy:
+        firedBy === undefined
+          ? undefined
+          : Buffer.from(toBinary(ApiResourceAuditActorSchema, firedBy)).toString("base64"),
+    }),
+  );
 }
 
 function decodeRecord(data: Uint8Array): RoutineFireRecord {
-  return JSON.parse(new TextDecoder().decode(data)) as RoutineFireRecord;
+  const { firedBy, ...fields } = JSON.parse(new TextDecoder().decode(data)) as Omit<
+    RoutineFireRecord,
+    "firedBy"
+  > & { readonly firedBy?: string };
+  return {
+    ...fields,
+    firedBy:
+      firedBy === undefined
+        ? undefined
+        : fromBinary(ApiResourceAuditActorSchema, Buffer.from(firedBy, "base64")),
+  };
 }
 
 /**
  * Maps one ledger row to the wire, enriching a non-terminal row that
- * carries an execution id with the execution's live phase — the read-time
- * honesty rule (Go toProtoRun).
+ * carries a run id with the run's live phase — the read-time honesty rule.
  */
 async function toProtoFire(
   store: Store,
@@ -144,7 +165,9 @@ async function toProtoFire(
     origin: fireOriginFromLabel(record.origin),
     outcome: fireOutcomeFromLabel(record.outcome),
     reason: record.reason,
-    runId: record.executionId,
+    runId: record.runId,
+    fireId: record.fireId,
+    firedBy: record.firedBy,
   });
   const nominal = parseTime(record.nominalFireTime);
   if (nominal !== undefined) {
@@ -162,21 +185,17 @@ async function toProtoFire(
     return fire;
   }
 
-  // In flight on paper — ask the execution row what actually happened.
-  if (record.executionId === "") {
+  // In flight on paper — ask the run row what actually happened.
+  if (record.runId === "") {
     return fire;
   }
   let phase: RunPhase;
   try {
-    const execution = await store.getResource(
-      ApiResourceKind.run,
-      record.executionId,
-      RunSchema,
-    );
-    phase = execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
+    const run = await store.getResource(ApiResourceKind.run, record.runId, RunSchema);
+    phase = run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   } catch {
-    // Execution deleted (or unreadable): the ledger row stands as
-    // recorded — deleting a run must not rewrite its history.
+    // Run deleted (or unreadable): the ledger row stands as recorded —
+    // deleting a run must not rewrite its history.
     return fire;
   }
   switch (phase) {
@@ -187,7 +206,7 @@ async function toProtoFire(
     case RunPhase.RUN_CANCELLED:
     case RunPhase.RUN_TERMINATED:
       fire.outcome = RoutineFireOutcome.FAILED;
-      fire.reason = `run ${record.executionId} ended ${executionPhaseWord(phase)}`;
+      fire.reason = `run ${record.runId} ended ${runPhaseWord(phase)}`;
       break;
     default:
       // Genuinely still running — "started" is the honest answer.
@@ -197,10 +216,10 @@ async function toProtoFire(
 }
 
 /**
- * Lowers an RunPhase to the reason vocabulary the tick's verdict
- * writer uses ("run X ended failed") — Go executionPhaseWord.
+ * Lowers a RunPhase to the reason vocabulary the tick's verdict writer
+ * uses ("run X ended failed").
  */
-function executionPhaseWord(phase: RunPhase): string {
+function runPhaseWord(phase: RunPhase): string {
   switch (phase) {
     case RunPhase.RUN_FAILED:
       return "failed";
@@ -216,9 +235,9 @@ function executionPhaseWord(phase: RunPhase): string {
 /** Maps the ledger's lowercase origin vocabulary back to the wire enum. */
 function fireOriginFromLabel(origin: string): RoutineFireOrigin {
   switch (origin) {
-    case "cron":
+    case RUN_LEDGER_ORIGIN_SCHEDULE:
       return RoutineFireOrigin.SCHEDULE;
-    case "manual":
+    case RUN_LEDGER_ORIGIN_MANUAL:
       return RoutineFireOrigin.MANUAL;
     default:
       return RoutineFireOrigin.UNSPECIFIED;

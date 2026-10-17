@@ -7,7 +7,7 @@
  * (domain/run/resolve-run-config.ts) from three layers: the
  * turn's own (the request, or the surface it came through), the defaults of
  * the agent it runs, and the lane's operator profile. The core knows its own
- * lanes: a schedule's fire (the reserved schedule label) and everything
+ * lanes: a routine's fire (the reserved routine label) and everything
  * else (interactive). An edition
  * that admits outsiders (the cloud's shared-agent guests and channel
  * senders) composes their turns on lanes the core never names: OSS never

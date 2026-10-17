@@ -1,8 +1,10 @@
 /**
  * Pins the tick activities against Go's tick_activities_test.go: the
- * record-tick revalidation matrix (deleted/disabled/paused decline), the
- * start-run re-validation collapse to SKIPPED (and its no-ledger-row
- * deleted arm), phase classification incl. GONE, the idempotent success
+ * record-tick revalidation matrix (deleted/disabled/paused decline, and a
+ * routine whose cron was removed while its artifact lingers), the start-run
+ * re-validation collapse to SKIPPED (and its no-ledger-row deleted arm),
+ * the schedule fire handed to the run starter and its ledger row keyed by
+ * the fire's id, phase classification incl. GONE, the idempotent success
  * reset, and the ONE-closure failure record — increment, threshold latch
  * (first pause's copy never rewritten), next_fire_at clear, and the
  * best-effort artifact re-sync exactly at the crossing.
@@ -45,8 +47,10 @@ import {
   TICK_SKIPPED_AUTO_PAUSED,
   TICK_SKIPPED_DELETED,
   TICK_SKIPPED_DISABLED,
+  TICK_SKIPPED_UNSCHEDULED,
 } from "../names.js";
-import type { RunOutcomeResult } from "../run-starter.js";
+import { scheduleFire } from "../run-starter.js";
+import type { RoutineFireRequest, RunOutcomeResult } from "../run-starter.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 const NOMINAL = "2026-08-25T09:30:00Z";
@@ -62,6 +66,7 @@ let peekResult: Date | undefined;
 let peekError: Error | undefined;
 let ensureCalls: string[];
 let startRunOutcome: RunOutcomeResult;
+let startedFires: RoutineFireRequest[];
 
 function activities() {
   const deps: RoutineTickActivityDeps = {
@@ -80,7 +85,12 @@ function activities() {
         return undefined;
       },
     },
-    runStarter: { startRun: async () => startRunOutcome },
+    runStarter: {
+      startRun: async (_routine, fire) => {
+        startedFires.push(fire);
+        return startRunOutcome;
+      },
+    },
   };
   return createRoutineTickActivities(deps);
 }
@@ -92,7 +102,7 @@ function routineRow(overrides?: { enabled?: boolean; pausedReason?: string; fail
       cron: "0 9 * * *",
       timeZone: "UTC",
       enabled: overrides?.enabled ?? true,
-      target: { case: "agent", value: { agentRef: { slug: "helper" } } },
+      agent: { agentRef: { slug: "helper" } },
     },
     status: {
       pausedReason: overrides?.pausedReason ?? "",
@@ -115,7 +125,8 @@ beforeEach(async () => {
   peekResult = undefined;
   peekError = undefined;
   ensureCalls = [];
-  startRunOutcome = { kind: "started", executionId: "aex_01x", alreadyExisted: false };
+  startRunOutcome = { kind: "started", runId: "run_01x", alreadyExisted: false };
+  startedFires = [];
   await store.deleteResource(ApiResourceKind.routine, "sch_01act");
   await store.deleteRoutineFiresByRoutine("sch_01act");
 });
@@ -134,6 +145,13 @@ describe("recordTick — the revalidation matrix", () => {
   it("declines a platform-paused row", async () => {
     await store.saveResource(ApiResourceKind.routine, "sch_01act", RoutineSchema, routineRow({ pausedReason: "Paused after 2..." }));
     expect(await activities()[RECORD_TICK_ACTIVITY_NAME]("sch_01act", NOMINAL)).toBe(TICK_SKIPPED_AUTO_PAUSED);
+  });
+
+  it("declines a routine whose cron was removed while its artifact still ticks", async () => {
+    const unscheduled = routineRow();
+    unscheduled.spec!.cron = undefined;
+    await store.saveResource(ApiResourceKind.routine, "sch_01act", RoutineSchema, unscheduled);
+    expect(await activities()[RECORD_TICK_ACTIVITY_NAME]("sch_01act", NOMINAL)).toBe(TICK_SKIPPED_UNSCHEDULED);
   });
 
   it("fires a live row: stamps last_fire_at = NOMINAL and refreshes next_fire_at", async () => {
@@ -168,6 +186,15 @@ describe("startScheduledRun — re-validation and the ledger", () => {
     expect(total).toBe(1); // the skip left its ledger row (row exists)
   });
 
+  it("collapses a routine that lost its cron between record and start into SKIPPED", async () => {
+    const unscheduled = routineRow();
+    unscheduled.spec!.cron = undefined;
+    await store.saveResource(ApiResourceKind.routine, "sch_01act", RoutineSchema, unscheduled);
+    const result = await activities()[START_SCHEDULED_RUN_ACTIVITY_NAME]("sch_01act", NOMINAL);
+    expect(result.outcome).toBe(RUN_SKIPPED);
+    expect(startedFires).toEqual([]);
+  });
+
   it("the deleted-row skip leaves NO ledger row (the cascade already ran)", async () => {
     const result = await activities()[START_SCHEDULED_RUN_ACTIVITY_NAME]("sch_01act", NOMINAL);
     expect(result.outcome).toBe(RUN_SKIPPED);
@@ -175,15 +202,19 @@ describe("startScheduledRun — re-validation and the ledger", () => {
     expect(total).toBe(0);
   });
 
-  it("a started run writes the non-terminal cron ledger row", async () => {
+  it("a started run writes the non-terminal schedule ledger row, keyed by the schedule fire's id", async () => {
     await store.saveResource(ApiResourceKind.routine, "sch_01act", RoutineSchema, routineRow());
     const result = await activities()[START_SCHEDULED_RUN_ACTIVITY_NAME]("sch_01act", NOMINAL);
     expect(result.outcome).toBe(RUN_STARTED);
-    expect(result.executionId).toBe("aex_01x");
+    expect(result.executionId).toBe("run_01x");
+    expect(startedFires).toEqual([scheduleFire("sch_01act", new Date(NOMINAL))]);
     const runs = await store.listRoutineFires("sch_01act", undefined, 10);
     expect(runs).toHaveLength(1);
     expect(runs[0]?.outcome).toBe("started");
-    expect(runs[0]?.origin).toBe("cron");
+    expect(runs[0]?.origin).toBe("schedule");
+    expect(runs[0]?.fireId).toBe("sch-01act-20260825t093000z");
+    expect(runs[0]?.runId).toBe("run_01x");
+    expect(runs[0]?.firedBy, "nobody fired a schedule's own fire").toBeUndefined();
     expect(runs[0]?.completedAt).toBe("");
   });
 

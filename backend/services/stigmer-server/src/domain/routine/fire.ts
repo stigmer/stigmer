@@ -1,28 +1,34 @@
 /**
- * The trigger command's steps — ports
- * pkg/domain/schedule/controller/trigger.go.
+ * The fire command's steps: a routine run once, now, by its owner or a
+ * Participant, optionally with a short note.
  *
- * The manual fire runs SYNCHRONOUSLY through the standard execution create
- * pipeline — every launch gate runs — and the result names what happened:
- * the created execution's id, or the refusing gate's copy verbatim.
- * Two-level contract: a gRPC error means the trigger itself was refused
- * (missing → NOT_FOUND, disabled → FAILED_PRECONDITION); a gRPC success
- * means the fire happened, whatever the run's outcome — a deterministically
- * refused run is a successful trigger honestly reported, never an
- * exception.
+ * The fire runs SYNCHRONOUSLY through the standard run create pipeline —
+ * every launch gate runs — and the result names what happened: the created
+ * run's id, or the refusing gate's copy verbatim. Two-level contract: a
+ * gRPC error means the fire itself was refused (missing → NOT_FOUND,
+ * disabled → FAILED_PRECONDITION); a gRPC success means the fire happened,
+ * whatever the run's outcome — a deterministically refused run is a
+ * successful fire honestly reported, never an exception.
  *
  * Semantics:
- *   - A PAUSED schedule may be triggered (test-then-resume): a test fire
- *     is exactly how an owner verifies a fix before resuming, and resume
- *     stays the one path that clears the latch.
- *   - Manual fires do NOT feed the failure streak: the sync path is
- *     untracked (the caller watches the execution), so it has no honest
- *     completion verdict to contribute — and a test fire of a broken
- *     schedule must not race its owner to the pause threshold.
+ *   - Each call is its own fire, even two in one second: its id is the
+ *     second's name plus random characters (run-starter.ts `manualFire`),
+ *     and the run starter never looks for an earlier one. A caller that
+ *     retries starts a second run, recorded with its own `fired_by`.
+ *   - The run acts as the routine's owner, whoever fired it; the text is
+ *     handed to the run fenced as information, not instructions
+ *     (run-starter.ts `composeMessage`).
+ *   - A PAUSED routine may be fired (test-then-resume): a test fire is
+ *     exactly how an owner verifies a fix before resuming, and resume stays
+ *     the one path that clears the latch.
+ *   - A fire does NOT feed the failure streak: the sync path is untracked
+ *     (the caller watches the run), so it has no honest completion verdict
+ *     to contribute — and a test fire of a broken routine must not race its
+ *     owner to the pause threshold.
  *   - The handler stamps last_fire_at and writes the fire-ledger row
- *     (origin=manual) because the tick is not in the path to do it; the
- *     run starter stamps last_execution_id on success as it does for cron
- *     fires.
+ *     (origin=manual, fired_by=the caller) because the tick is not in the
+ *     path to do it; the run starter stamps last_run_id on success as it
+ *     does for a schedule's fires.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
@@ -30,6 +36,7 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
 import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
 import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineCommandController } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/command_pb";
 import {
   RoutineFireOutcome,
   RoutineFireResultSchema,
@@ -43,80 +50,85 @@ import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import {
   failedPreconditionError,
+  invalidArgumentError,
   rethrownStatusError,
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
-import { setAuditFieldsForUpdate } from "../../pipeline/steps/defaults.js";
+import { auditActorFor, setAuditFieldsForUpdate } from "../../pipeline/steps/defaults.js";
+import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
-import { recordManualFire } from "../../temporal/routine/run-ledger.js";
-import { rfc3339Seconds } from "../../temporal/routine/run-ledger.js";
-import type { RunOutcomeResult } from "../../temporal/routine/run-starter.js";
+import { recordManualFire, rfc3339Seconds } from "../../temporal/routine/run-ledger.js";
+import { manualFire } from "../../temporal/routine/run-starter.js";
+import type { RoutineFireRequest, RunOutcomeResult } from "../../temporal/routine/run-starter.js";
 
-// The trigger refusal copy, byte-identical to the cloud edition's
-// ScheduleTriggerHandler (same error contracts in both editions; the
-// conformance suite asserts these verbatim). A change on either side must
-// change both.
+type FireInput = typeof RoutineCommandController.method.fire.input;
 
 /**
- * The owner's switch is off. OSS has no blueprint-access layer, so the
- * refusal here is pure contract parity: cloud MUST refuse (a
- * disabled-schedule run would die mid-execution after its side
- * effects), and the two editions must not diverge on a refusal
- * a user can observe. Consoles turn the dead end into a one-click
- * "Enable & run now".
+ * The owner's switch is off. Contract parity across editions: a hosted
+ * edition MUST refuse (a disabled routine's run would die mid-run after its
+ * side effects), and the editions must not diverge on a refusal a user can
+ * observe. Consoles turn the dead end into a one-click "Enable & run now".
  */
-export const TRIGGER_DISABLED_MESSAGE =
-  "schedule is disabled (spec.enabled=false) — enable it before triggering";
+export const FIRE_DISABLED_MESSAGE =
+  "routine is disabled (spec.enabled=false) — enable it before firing";
 
 /**
  * No run starter is wired into this process (production wiring always
  * injects it — this is the defensive posture for embedded/test assemblies
  * that skip server wiring): refuse honestly, never pretend.
  */
-export const TRIGGER_NO_RUNNER_MESSAGE =
-  "this Stigmer server process has no schedule run starter wired — the schedule cannot fire";
+export const FIRE_NO_RUNNER_MESSAGE =
+  "this Stigmer server process has no routine run starter wired — the routine cannot fire";
 
 /**
- * The narrow slice of the scheduling runtime the trigger needs (satisfied
- * by the clock's RunStarter): start one run through the full execution
- * create pipeline and answer with the real outcome. Deliberately NOT the
- * Clock — a manual fire needs no Temporal artifact: the artifact
- * round-trip made the fire asynchronous, so the
- * RPC answered "started" before the launch gates ran — exactly the false
- * toast the owner hit (Go Runner).
+ * The narrow slice of the scheduling runtime a fire needs (satisfied by
+ * the RunStarter): start one run through the full run create pipeline and
+ * answer with the real outcome. Deliberately NOT the clock — a fire needs
+ * no Temporal artifact, so a routine fires even while the engine is away.
  */
 export interface RoutineRunner {
-  startRun(
-    routine: Routine,
-    nominalFireTime: Date,
-  ): Promise<RunOutcomeResult>;
+  startRun(routine: Routine, fire: RoutineFireRequest): Promise<RunOutcomeResult>;
 }
 
 /** A provider so the compose root can wire the runner after the clock stage. */
 export type RunnerProvider = () => RoutineRunner | undefined;
 
-/** Carries the shaped ScheduleTriggerResult from the fire step to the handler. */
-export const TRIGGER_RESULT_KEY = "trigger_result";
+/** Carries the shaped RoutineFireResult from the fire step to the handler. */
+export const FIRE_RESULT_KEY = "fire_result";
 
 /**
- * Refuses a disabled schedule (the owner's switch) — the ONE remaining
- * trigger refusal (paused schedules are triggerable, and the tick's
- * revalidation no longer
- * guards manual fires because manual fires no longer pass through the
- * tick). Go validateTriggerableStep.
+ * The routine a fire names: its input's `id`, for the shared load step
+ * (LoadExistingForDelete reads RESOURCE_ID_KEY).
  */
-export function newValidateTriggerableStep<
+export function newExtractFireRoutineIdStep(): PipelineStep<FireInput> {
+  return {
+    name: "ExtractFireRoutineId",
+    execute(ctx: RequestContext<FireInput>): void {
+      if (ctx.input.id === "") {
+        throw invalidArgumentError("resource id is required");
+      }
+      ctx.set(RESOURCE_ID_KEY, ctx.input.id);
+    },
+  };
+}
+
+/**
+ * Refuses a disabled routine (the owner's switch) — the ONE fire refusal
+ * (paused routines fire, and the tick's revalidation does not guard fires,
+ * which never pass through the tick).
+ */
+export function newValidateFireableStep<
   Desc extends DescMessage,
 >(): PipelineStep<Desc> {
   return {
-    name: "ValidateTriggerable",
+    name: "ValidateFireable",
     execute(ctx: RequestContext<Desc>): void {
       const routine = ctx.get(EXISTING_RESOURCE_KEY) as Routine;
       if (!(routine.spec?.enabled ?? false)) {
-        throw failedPreconditionError(TRIGGER_DISABLED_MESSAGE);
+        throw failedPreconditionError(FIRE_DISABLED_MESSAGE);
       }
     },
   };
@@ -129,44 +141,40 @@ export interface FireDirectRunDeps {
 }
 
 /**
- * Starts the run in-process and shapes the result: stamp last_fire_at, run
- * the full create pipeline via the Runner, write the fire-ledger row,
- * mirror the outcome into ScheduleTriggerResult. Infrastructure failures
- * from the create pipeline propagate as the handler's error — the
- * in-process client already speaks gRPC status (Go fireDirectRunStep).
+ * Starts the run in-process and shapes the result: run the full create
+ * pipeline via the runner, stamp last_fire_at, write the fire-ledger row,
+ * mirror the outcome into RoutineFireResult. Infrastructure failures from
+ * the create pipeline propagate as the handler's error — the in-process
+ * client already speaks gRPC status.
  */
-export function newFireDirectRunStep<Desc extends DescMessage>(
+export function newFireDirectRunStep(
   deps: FireDirectRunDeps,
-): PipelineStep<Desc> {
+): PipelineStep<FireInput> {
   return {
     name: "FireDirectRun",
-    async execute(ctx: RequestContext<Desc>): Promise<void> {
+    async execute(ctx: RequestContext<FireInput>): Promise<void> {
       const runner = deps.runner();
       if (runner === undefined) {
-        throw failedPreconditionError(TRIGGER_NO_RUNNER_MESSAGE);
+        throw failedPreconditionError(FIRE_NO_RUNNER_MESSAGE);
       }
 
       const routine = ctx.get(EXISTING_RESOURCE_KEY) as Routine;
       const routineId = routine.metadata?.id ?? "";
 
-      // The manual fire's nominal time is the trigger instant, whole
-      // seconds — the same identity the deterministic execution name uses,
-      // so a manual fire at the exact cron nominal second converges on the
-      // same execution via the ALREADY_EXISTS → re-find path.
+      // The fire's instant, whole seconds; its id adds random characters,
+      // so it is this call's fire alone.
       const nominal = new Date(Math.floor(Date.now() / 1000) * 1000);
-      const nominalRfc3339 = rfc3339Seconds(nominal);
+      const fire = manualFire(routineId, nominal, ctx.input.text);
 
       let outcome: RunOutcomeResult;
       try {
-        outcome = await runner.startRun(routine, nominal);
+        outcome = await runner.startRun(routine, fire);
       } catch (error) {
-        deps.logger.warn(
-          "Manual trigger's run start failed on infrastructure",
-          {
-            schedule_id: routineId,
-            error: error instanceof Error ? error.message : String(error),
-          },
-        );
+        deps.logger.warn("Fire's run start failed on infrastructure", {
+          routine_id: routineId,
+          fire_id: fire.fireId,
+          error: error instanceof Error ? error.message : String(error),
+        });
         // The in-process client's error instance carries the INNER
         // response's metadata; echoing it corrupts the serving HTTP/2
         // trailers (NGHTTP2_PROTOCOL_ERROR).
@@ -177,43 +185,46 @@ export function newFireDirectRunStep<Desc extends DescMessage>(
       }
 
       // The fire happened: record it — last_fire_at on status (the tick is
-      // not in this path to do it) and the ledger row (origin=manual).
+      // not in this path to do it) and the ledger row, naming the caller.
       await stampLastFireAt(deps, routineId, nominal, ctx.callerIdentity);
       await recordManualFire(
         deps.store,
         deps.logger,
-        routineId,
-        routine.metadata?.org ?? "",
-        nominalRfc3339,
+        {
+          routineId,
+          fireId: fire.fireId,
+          org: routine.metadata?.org ?? "",
+          nominalFireTime: rfc3339Seconds(nominal),
+          firedBy: auditActorFor(ctx.callerIdentity),
+        },
         outcome,
       );
 
-      const result = create(RoutineFireResultSchema);
+      const result = create(RoutineFireResultSchema, { fireId: fire.fireId });
       switch (outcome.kind) {
         case "started":
           result.outcome = RoutineFireOutcome.STARTED;
-          result.runId = outcome.executionId;
-          deps.logger.info("Schedule triggered manually — run started", {
-            schedule_id: routineId,
-            execution_id: outcome.executionId,
-            already_existed: outcome.alreadyExisted,
+          result.runId = outcome.runId;
+          deps.logger.info("Routine fired — run started", {
+            routine_id: routineId,
+            run_id: outcome.runId,
           });
           break;
         case "targetMissing":
           result.outcome = RoutineFireOutcome.TARGET_MISSING;
           result.refusalReason = outcome.reason;
-          deps.logger.warn("Schedule triggered manually — target missing", {
-            schedule_id: routineId,
+          deps.logger.warn("Routine fired — target missing", {
+            routine_id: routineId,
             reason: outcome.reason,
           });
           break;
         case "refused":
           result.outcome = RoutineFireOutcome.REFUSED;
           result.refusalReason = outcome.reason;
-          deps.logger.warn(
-            "Schedule triggered manually — run refused by a launch gate",
-            { schedule_id: routineId, reason: outcome.reason },
-          );
+          deps.logger.warn("Routine fired — run refused by a launch gate", {
+            routine_id: routineId,
+            reason: outcome.reason,
+          });
           break;
         default: {
           const exhaustive: never = outcome;
@@ -222,8 +233,8 @@ export function newFireDirectRunStep<Desc extends DescMessage>(
       }
 
       // Answer with the post-fire row — last_fire_at and (on success)
-      // last_execution_id freshly stamped. A failed re-read degrades to the
-      // loaded schedule rather than failing a fire that already happened.
+      // last_run_id freshly stamped. A failed re-read degrades to the
+      // loaded routine rather than failing a fire that already happened.
       try {
         result.routine = await deps.store.getResource(
           ApiResourceKind.routine,
@@ -234,18 +245,17 @@ export function newFireDirectRunStep<Desc extends DescMessage>(
         result.routine = routine;
       }
 
-      ctx.set(TRIGGER_RESULT_KEY, result);
+      ctx.set(FIRE_RESULT_KEY, result);
     },
   };
 }
 
 /**
- * Records the manual fire on status — best-effort with a loud log: the run
+ * Records the fire on status — best-effort with a loud log: the run
  * already started, and a bookkeeping failure must not turn a real fire
- * into a caller-visible error. (The cron path's stamp rides the tick's
- * recordFire; this is its manual twin. Uses the FULL shared audit helper —
- * this is a request-path write, unlike the clock's minimal bump.) Go
- * stampLastFireAt.
+ * into a caller-visible error. (A schedule fire's stamp rides the tick's
+ * recordFire; this is its manual twin, with the full shared audit helper,
+ * since this is a request-path write.)
  */
 async function stampLastFireAt(
   deps: FireDirectRunDeps,
@@ -271,9 +281,9 @@ async function stampLastFireAt(
       return;
     }
     deps.logger.warn(
-      "Manual fire's last_fire_at not stamped (best-effort — the run is unaffected)",
+      "Fire's last_fire_at not stamped (best-effort — the run is unaffected)",
       {
-        schedule_id: routineId,
+        routine_id: routineId,
         error: error instanceof Error ? error.message : String(error),
       },
     );

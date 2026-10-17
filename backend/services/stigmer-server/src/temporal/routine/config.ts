@@ -44,7 +44,7 @@ export class RoutineTemporalConfig {
     readonly maxConsecutiveFailures: number,
     /**
      * One fire's tracking budget — under overlap SKIP, literally the
-     * maximum time one hung run may silence a schedule. Clamped at fire
+     * maximum time one hung run may silence a routine. Clamped at fire
      * time (resolvedRunTrackingTimeoutMinutes). Default: 60.
      */
     readonly runTrackingTimeoutMinutes: number,
@@ -57,14 +57,14 @@ export class RoutineTemporalConfig {
     /** The periodic pass cadence. Default: 5. */
     readonly reconciliationIntervalMinutes: number,
     /**
-     * Bounds each scheduled run's tool rounds (0 disables the bound). An
+     * Bounds each routine run's tool rounds (0 disables the bound). An
      * unattended runaway burns the user's own API budget with nobody
      * watching — worse than an interactive one. Default: 20 (the cloud
      * profile's value).
      */
     readonly executionProfileMaxToolRounds: number,
     /**
-     * Bounds each scheduled run's spend, enforced by the shared runner
+     * Bounds each routine run's spend, enforced by the shared runner
      * (0 disables). Default: 1.00.
      */
     readonly executionProfileMaxCostUsd: number,
@@ -78,9 +78,9 @@ export class RoutineTemporalConfig {
   ) {}
 
   /**
-   * The schedule lane's operator profile: the bounds every scheduled turn
+   * The routine lane's operator profile: the bounds every routine turn
    * is capped by, as the one settings resolution reads them
-   * (domain/agentexecution/resolve-run-config.ts) — a ceiling the schedule's
+   * (domain/agentexecution/resolve-run-config.ts) — a ceiling the routine's
    * own run_config and the agent's defaults can lower, never raise. A
    * disabled bound (0) is not set.
    */

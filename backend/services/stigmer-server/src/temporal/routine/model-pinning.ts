@@ -2,23 +2,23 @@
  * The unattended model-pinning rule — ports
  * pkg/domain/schedule/temporal/modelpinning.go (stigmer/stigmer#362).
  *
- * A schedule whose fires would run the CURSOR harness must pin a model: an
+ * A routine whose fires would run the CURSOR harness must pin a model: an
  * empty model there selects Auto, whose price variant follows the provider
  * ACCOUNT's out-of-band default speed setting — nobody at a 3 AM fire is
  * watching a rate change. The native harness is exempt on purpose: an
  * empty model resolves to the platform's own registry-priced default at an
  * explicitly requested tier — deterministic, nothing to pin.
  *
- * Only an EXPLICIT cursor harness trips this save-time rule. A schedule
+ * Only an EXPLICIT cursor harness trips this save-time rule. A routine
  * that names no harness fires on its agent's engine when it names no model
  * either (a fire naming a model but no engine starts on native, the engine
  * its model was checked against), so an agent whose engine is Cursor can
  * still put an unattended fire on Cursor with no model anywhere: the
  * server judges that case when the fire's turn is created, on what will
  * actually run (domain/agentexecution/resolve-run-config.ts,
- * unattendedPinRefusal). This rule deliberately judges the schedule's own
+ * unattendedPinRefusal). This rule deliberately judges the routine's own
  * pin only, never the agent's defaults: the agent can change after the
- * schedule is saved, so a Cursor schedule names its own model. The cloud
+ * routine is saved, so a Cursor routine names its own model. The cloud
  * edition additionally judges its configured default harness (cursor
  * there) — same contract, each edition's own default-harness truth.
  *
@@ -39,7 +39,7 @@ import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 export function routineModelPinningRefusal(
   spec: RoutineSpec | undefined,
 ): string {
-  const agent = spec?.target.case === "agent" ? spec.target.value : undefined;
+  const agent = spec?.agent;
   if (agent?.harness !== Harness.CURSOR) {
     return "";
   }

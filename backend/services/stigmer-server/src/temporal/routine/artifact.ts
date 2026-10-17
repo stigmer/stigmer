@@ -11,7 +11,7 @@
  *   - PauseOnFailure stays false: Temporal must never pause behind the
  *     platform's back, or the artifact would oscillate against the
  *     reconciliation pass (which converges paused-state from the row).
- *   - The action carries exactly ONE argument — the schedule resource id.
+ *   - The action carries exactly ONE argument — the routine's id.
  *     The nominal fire time cannot ride here (Temporal bakes action args
  *     once and replays them verbatim per fire); the tick derives it from
  *     the fire itself.
@@ -42,7 +42,16 @@ export function note(routine: Routine): string {
 }
 
 /**
- * The artifact must be paused when the owner disabled the schedule
+ * Whether the routine runs on a schedule, and so wants an artifact at all.
+ * A routine with no cron runs only when fired: it keeps no artifact, and
+ * nothing about it needs the engine.
+ */
+export function hasSchedule(routine: Routine): boolean {
+  return (routine.spec?.cron ?? "") !== "";
+}
+
+/**
+ * The artifact must be paused when the owner disabled the routine
  * (spec.enabled=false) OR the platform latched it (status.paused_reason) —
  * two levers, one artifact state (Go DesiredPaused).
  */

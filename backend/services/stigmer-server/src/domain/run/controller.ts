@@ -212,9 +212,9 @@ export interface AgentExecutionControllerDeps {
    */
   readonly runLanes: RunLanes | undefined;
   /**
-   * The schedule lane's operator profile: the fire-time bounds every
-   * scheduled turn is capped by (ScheduleTemporalConfig's execution
-   * profile). Undefined = no schedule ceiling.
+   * The routine lane's operator profile: the fire-time bounds every
+   * routine turn is capped by (RoutineTemporalConfig's execution
+   * profile). Undefined = no routine ceiling.
    */
   readonly routineRunProfile: RunConfig | undefined;
   /**

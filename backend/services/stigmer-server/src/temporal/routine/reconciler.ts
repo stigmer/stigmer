@@ -1,6 +1,6 @@
 /**
  * The reconciler — ports pkg/domain/schedule/temporal/reconcile.go:
- * converges Schedule rows and Temporal artifacts in both directions — rows
+ * converges routine rows and Temporal artifacts in both directions — rows
  * without artifacts get armed, drifted artifacts get rewritten, artifacts
  * without rows get deleted.
  *
@@ -31,7 +31,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { Logger } from "../../boot/logger.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
-import { desiredPaused, note } from "./artifact.js";
+import { desiredPaused, hasSchedule, note } from "./artifact.js";
 import type { RoutineTemporalConfig } from "./config.js";
 import { PROBE_ID_PREFIX, TICK_ID_PREFIX, resourceIdOf } from "./names.js";
 import { pruneRunLedger } from "./run-ledger.js";
@@ -70,7 +70,7 @@ export class RoutineReconciler {
   constructor(
     private readonly clientProvider: () => Client | undefined,
     private readonly store: Store,
-    /** The narrow syncer slice the pass calls (satisfied by ScheduleSyncer). */
+    /** The narrow syncer slice the pass calls (satisfied by RoutineSyncer). */
     private readonly syncer: Pick<RoutineSyncer, "ensureAndRecord" | "teardown">,
     private readonly config: RoutineTemporalConfig,
     private readonly logger: Logger,
@@ -78,7 +78,7 @@ export class RoutineReconciler {
 
   /**
    * Executes one convergence pass. Per-row failures are counted and the
-   * pass continues — one broken schedule must never stop the rest from
+   * pass continues — one broken routine must never stop the rest from
    * converging (Go RunPass).
    */
   async runPass(): Promise<ReconcileCounts> {
@@ -92,7 +92,7 @@ export class RoutineReconciler {
 
     const client = this.clientProvider();
     if (client === undefined) {
-      this.logger.debug("Schedule reconciliation skipped — Temporal not connected");
+      this.logger.debug("Routine reconciliation skipped — Temporal not connected");
       return counts;
     }
 
@@ -112,7 +112,7 @@ export class RoutineReconciler {
         // Temporal use on the shared dev server) — never touch it.
       }
     } catch (error) {
-      this.logger.error("Schedule reconciliation could not list artifacts", {
+      this.logger.error("Routine reconciliation could not list artifacts", {
         error: message(error),
       });
       counts.failures++;
@@ -125,7 +125,7 @@ export class RoutineReconciler {
     try {
       rows = await this.listRoutines();
     } catch (error) {
-      this.logger.error("Schedule reconciliation could not list rows", {
+      this.logger.error("Routine reconciliation could not list rows", {
         error: message(error),
       });
       counts.failures++;
@@ -137,20 +137,43 @@ export class RoutineReconciler {
       const actual = artifacts.get(resourceId);
       artifacts.delete(resourceId);
 
+      // A routine with no cron wants no artifact: one a removed cron left
+      // is drift, removed by the same convergence.
+      if (!hasSchedule(row)) {
+        if (actual === undefined) {
+          continue;
+        }
+        try {
+          await this.syncer.ensureAndRecord(row);
+        } catch (error) {
+          counts.failures++;
+          this.logger.error(
+            "Reconciliation failed to remove the artifact of a routine with no schedule (pass continues)",
+            { routine_id: resourceId, error: message(error) },
+          );
+          continue;
+        }
+        counts.repaired++;
+        this.logger.info("Reconciliation removed the artifact of a routine with no schedule", {
+          routine_id: resourceId,
+        });
+        continue;
+      }
+
       if (actual === undefined) {
         try {
           await this.syncer.ensureAndRecord(row);
         } catch (error) {
           counts.failures++;
           this.logger.error(
-            "Reconciliation failed to arm a schedule (pass continues)",
-            { schedule_id: resourceId, error: message(error) },
+            "Reconciliation failed to arm a routine (pass continues)",
+            { routine_id: resourceId, error: message(error) },
           );
           continue;
         }
         counts.armed++;
-        this.logger.info("Reconciliation armed a schedule without an artifact", {
-          schedule_id: resourceId,
+        this.logger.info("Reconciliation armed a routine without an artifact", {
+          routine_id: resourceId,
         });
       } else if (actual.note !== note(row) || actual.paused !== desiredPaused(row)) {
         try {
@@ -159,13 +182,13 @@ export class RoutineReconciler {
           counts.failures++;
           this.logger.error(
             "Reconciliation failed to repair a drifted artifact (pass continues)",
-            { schedule_id: resourceId, error: message(error) },
+            { routine_id: resourceId, error: message(error) },
           );
           continue;
         }
         counts.repaired++;
         this.logger.info("Reconciliation repaired a drifted artifact", {
-          schedule_id: resourceId,
+          routine_id: resourceId,
           actual_note: actual.note,
           actual_paused: actual.paused,
         });
@@ -189,7 +212,7 @@ export class RoutineReconciler {
           counts.failures++;
           this.logger.error(
             "Reconciliation could not confirm an orphan (leaving it; pass continues)",
-            { schedule_id: resourceId, error: message(error) },
+            { routine_id: resourceId, error: message(error) },
           );
           continue;
         }
@@ -200,13 +223,13 @@ export class RoutineReconciler {
         counts.failures++;
         this.logger.error(
           "Reconciliation failed to delete an orphaned artifact (pass continues)",
-          { schedule_id: resourceId, error: message(error) },
+          { routine_id: resourceId, error: message(error) },
         );
         continue;
       }
       counts.orphansDeleted++;
       this.logger.info("Reconciliation deleted an orphaned artifact", {
-        schedule_id: resourceId,
+        routine_id: resourceId,
       });
     }
 
@@ -218,7 +241,7 @@ export class RoutineReconciler {
       this.config.resolvedRunHistoryRetentionDays(),
     );
 
-    this.logger.info("Schedule reconciliation pass complete", {
+    this.logger.info("Routine reconciliation pass complete", {
       counts: formatCounts(counts),
     });
     return counts;
@@ -297,7 +320,7 @@ export class RoutineReconciler {
         await this.runPass();
       } catch (error) {
         this.logger.error(
-          "Schedule reconciliation pass failed unexpectedly (the loop continues; the next tick or kick retries)",
+          "Routine reconciliation pass failed unexpectedly (the loop continues; the next tick or kick retries)",
           { error: message(error) },
         );
       }
@@ -306,8 +329,8 @@ export class RoutineReconciler {
   }
 
   /**
-   * Loads every schedule row, skipping corrupt blobs (the lenient-read
-   * posture list endpoints use). OSS scale is a handful of schedules on
+   * Loads every routine row, skipping corrupt blobs (the lenient-read
+   * posture list endpoints use). OSS scale is a handful of routines on
    * one user's machine; the full listing per pass is noise (Go
    * listSchedules).
    */
@@ -318,7 +341,7 @@ export class RoutineReconciler {
       try {
         routines.push(fromBinary(RoutineSchema, data));
       } catch (error) {
-        this.logger.warn("Schedule reconciliation skipped a corrupt row", {
+        this.logger.warn("Routine reconciliation skipped a corrupt row", {
           error: message(error),
         });
       }

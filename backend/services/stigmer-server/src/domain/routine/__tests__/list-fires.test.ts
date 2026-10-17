@@ -54,7 +54,7 @@ function listRequest(size: number) {
 
 /** The ledger rows of one schedule, read back through the step. */
 async function listed(
-  rows: ReadonlyArray<{ origin: string; outcome: string; executionId?: string; completedAt?: string }>,
+  rows: ReadonlyArray<{ origin: string; outcome: string; runId?: string; completedAt?: string }>,
   seed: (store: Store) => Promise<void> = () => Promise.resolve(),
 ): Promise<RoutineFireList> {
   temp = tempStore();
@@ -69,13 +69,14 @@ async function listed(
   for (const [i, row] of rows.entries()) {
     await store.upsertRoutineFire({
       routineId: ROUTINE_ID,
+      fireId: `fire-${i}`,
       org: "org_acme",
       // One second apart, oldest first, so the page reads newest first.
       nominalFireTime: `2026-10-07T00:00:${String(i).padStart(2, "0")}Z`,
       origin: row.origin,
       outcome: row.outcome,
       reason: "",
-      executionId: row.executionId ?? "",
+      runId: row.runId ?? "",
       recordedAt: "",
       completedAt: row.completedAt ?? "2026-10-07T01:00:00Z",
     });
@@ -97,14 +98,14 @@ describe("the fire ledger's labels on the wire", () => {
       ["timed_out", RoutineFireOutcome.TIMED_OUT],
       ["exploded", RoutineFireOutcome.UNSPECIFIED],
     ];
-    const list = await listed(labels.map(([outcome]) => ({ origin: "cron", outcome })));
+    const list = await listed(labels.map(([outcome]) => ({ origin: "schedule", outcome })));
     expect(list.entries).toHaveLength(labels.length);
     expect(list.entries.map((fire) => fire.outcome)).toEqual(labels.map(([, outcome]) => outcome).reverse());
   });
 
   it("maps both origin labels, and an unknown one to UNSPECIFIED", async () => {
     const list = await listed([
-      { origin: "cron", outcome: "completed" },
+      { origin: "schedule", outcome: "completed" },
       { origin: "manual", outcome: "completed" },
       { origin: "webhook", outcome: "completed" },
     ]);
@@ -120,9 +121,9 @@ describe("a fire still in flight on the ledger", () => {
   it("takes its run's live phase, and keeps the recorded outcome when the run is gone or was never made", async () => {
     const list = await listed(
       [
-        { origin: "cron", outcome: "skipped", executionId: "", completedAt: "" },
-        { origin: "manual", outcome: "started", executionId: "run_gone", completedAt: "" },
-        { origin: "manual", outcome: "started", executionId: "run_done", completedAt: "" },
+        { origin: "schedule", outcome: "skipped", runId: "", completedAt: "" },
+        { origin: "manual", outcome: "started", runId: "run_gone", completedAt: "" },
+        { origin: "manual", outcome: "started", runId: "run_done", completedAt: "" },
       ],
       (store) =>
         store.saveResource(

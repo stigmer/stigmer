@@ -1,10 +1,10 @@
 /**
- * The schedule list index (store/list-index.ts): `agent` is the key
- * listByAgent reads, the id the agent target's agent_ref holds, so a
- * schedule of an agent since deleted never lists under a new agent of the
- * same name. A schedule with another target holds no value for it. The
- * organization and the creation order are every declaration's: list
- * answers one organization's schedules newest first.
+ * The routine list index (store/list-index.ts): `agent` is the key
+ * listByAgent and the agent's delete cascade read, the id the routine's
+ * agent_ref holds, so a routine of an agent since deleted never lists
+ * under a new agent of the same name. The organization and the creation
+ * order are every declaration's: list answers one organization's routines
+ * newest first.
  *
  * A change to `keys` bumps `revision` (boot/__tests__/list-indexes.test.ts
  * pins the pair).

@@ -40,7 +40,7 @@ function schedule(overrides?: {
       cron: overrides?.cron ?? "0 9 * * *",
       timeZone: overrides?.timeZone ?? "Asia/Kolkata",
       enabled: overrides?.enabled ?? true,
-      target: { case: "agent", value: { agentRef: { slug: "helper" } } },
+      agent: { agentRef: { slug: "helper" } },
     },
     status: { pausedReason: overrides?.pausedReason ?? "" },
   });

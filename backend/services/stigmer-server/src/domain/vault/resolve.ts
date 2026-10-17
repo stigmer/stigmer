@@ -33,8 +33,8 @@
  *   3. the session's vaults, in order;
  *   4. for a run with no person only, the vaults of the surface it came
  *      through, found from server-stamped facts: the minting platform
- *      client (the run's audit), its schedule (the run's
- *      stigmer.ai/schedule-id), its eval run (the run's
+ *      client (the run's audit), its routine (the run's
+ *      stigmer.ai/routine-id), its eval run (the run's
  *      stigmer.ai/eval-run), its channel of any type (the session's
  *      stigmer.ai/channel-id). A surface of another
  *      organization than the run's contributes nothing. An eval run's
@@ -211,7 +211,7 @@ import { personOf } from "./service.js";
 import { openSessionValues, repositoryTokenKey } from "./session-values.js";
 import type { SessionOwnValues } from "./session-values.js";
 
-/** The audit link a schedule stamps on every run it starts (temporal/schedule/run-starter.ts). */
+/** The audit link a routine stamps on every run it starts (temporal/routine/run-starter.ts). */
 export { ROUTINE_ID_LABEL_KEY };
 
 /**
@@ -932,7 +932,7 @@ interface OpenScope {
 /** A vault a run names, with what to say about it and whose permission to ask. */
 interface NamedVault {
   readonly ref: ApiResourceReference;
-  /** "this conversation", "schedule 'nightly'", for the messages. */
+  /** "this conversation", "routine 'nightly'", for the messages. */
   readonly namedBy: string;
   /** Whose can_use to ask; undefined refuses (nobody recorded attaching it). */
   readonly principal: string | undefined;
@@ -967,7 +967,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
   /**
    * Why a named vault may not serve this run, or undefined when it may: a
    * My vault reaches only its own person's runs, and a person-less run only
-   * through its owner's own schedule; any other vault needs `can_use` for
+   * through its owner's own routine; any other vault needs `can_use` for
    * the principal.
    */
   async function refusalOf(
@@ -1089,15 +1089,15 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     const routineId = execution.metadata?.labels[ROUTINE_ID_LABEL_KEY] ?? "";
     if (routineId !== "") {
       const routine = await loadOptional(ApiResourceKind.routine, routineId, RoutineSchema);
-      const target = routine?.spec?.target;
+      const invocation = routine?.spec?.agent;
       if (
         routine !== undefined &&
-        target?.case === "agent" &&
-        sameOrganization("schedule", routineId, routine.metadata?.org ?? "")
+        invocation !== undefined &&
+        sameOrganization("routine", routineId, routine.metadata?.org ?? "")
       ) {
         surfaces.push({
-          what: `schedule '${routine.metadata?.name ?? routineId}'`,
-          refs: target.value.vaults,
+          what: `routine '${routine.metadata?.name ?? routineId}'`,
+          refs: invocation.vaults,
           attachers: routine.status?.vaultAttachers ?? {},
           org: executionOrg,
         });

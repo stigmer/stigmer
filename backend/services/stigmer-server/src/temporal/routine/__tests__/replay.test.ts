@@ -12,7 +12,7 @@
  * Fully local: replay needs no Temporal server, so this gate runs in the
  * plain vitest suite (and the ci.stigmer-server workflow) on every
  * change. Histories are captured by
- * scripts/capture-schedule-replay-histories.ts (mock payloads only).
+ * scripts/capture-routine-replay-histories.ts (mock payloads only).
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";

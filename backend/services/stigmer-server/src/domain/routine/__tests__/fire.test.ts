@@ -1,15 +1,16 @@
 /**
- * Pins the manual fire's arms the composed suite cannot reach: its server
+ * Pins the fire call's arms the composed suite cannot reach: its server
  * has no engine behind it, so every run start there fails before a run
  * exists. Here the run starter answers "started", and the FireDirectRun
- * step must answer STARTED naming the run, stamp last_fire_at on the
- * schedule, and leave a manual ledger row carrying the run's id, so
- * listFires can later read the run's live phase; and it answers "refused",
- * and the step must answer REFUSED with the gate's copy verbatim and no run,
- * and record the refused fire.
+ * step must hand it a manual fire carrying the call's text under a fresh
+ * fire id, answer STARTED naming the run and the fire, stamp last_fire_at
+ * on the routine, and leave a manual ledger row carrying the run's id, so
+ * listFires can later read the run's live phase, and who fired it; and it
+ * answers "refused", and the step must answer REFUSED with the gate's copy
+ * verbatim and no run, and record the refused fire.
  *
  * The store is a real throwaway SQLite store; the run starter is a stub
- * that records the schedule it was asked to fire.
+ * that records the routine and the fire it was asked to run.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterEach, describe, expect, it } from "vitest";
@@ -30,7 +31,8 @@ import { RequestContext } from "../../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
-import { newFireDirectRunStep, TRIGGER_RESULT_KEY } from "../fire.js";
+import type { RoutineFireRequest } from "../../../temporal/routine/run-starter.js";
+import { FIRE_RESULT_KEY, newFireDirectRunStep } from "../fire.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -38,8 +40,8 @@ const silentLogger = createLogger({
   write: () => {},
 });
 
-const ROUTINE_ID = "sch_fire";
-const RUN_ID = "aex_fired";
+const ROUTINE_ID = "rtn_fire";
+const RUN_ID = "run_fired";
 
 let temp: TempStore | undefined;
 
@@ -49,7 +51,7 @@ afterEach(async () => {
 });
 
 describe("FireDirectRun — a run the starter started", () => {
-  it("answers STARTED naming the run, stamps last_fire_at and records the manual fire with the run's id", async () => {
+  it("hands the starter a fresh manual fire with the call's text, answers STARTED naming the run and the fire, and records who fired it", async () => {
     temp = tempStore();
     const store = temp.store;
     const routine = create(RoutineSchema, {
@@ -63,18 +65,16 @@ describe("FireDirectRun — a run the starter started", () => {
       routine,
     );
 
-    const fired: Routine[] = [];
-    const step = newFireDirectRunStep<
-      typeof RoutineCommandController.method.fire.input
-    >({
+    const fired: Array<{ routine: Routine; fire: RoutineFireRequest }> = [];
+    const step = newFireDirectRunStep({
       store,
       logger: silentLogger,
       runner: () => ({
-        startRun: (target) => {
-          fired.push(target);
+        startRun: (target, fire) => {
+          fired.push({ routine: target, fire });
           return Promise.resolve({
             kind: "started",
-            executionId: RUN_ID,
+            runId: RUN_ID,
             alreadyExisted: false,
           });
         },
@@ -83,19 +83,25 @@ describe("FireDirectRun — a run the starter started", () => {
     const ctx = new RequestContext(
       RoutineCommandController.method.fire.input,
       create(RoutineCommandController.method.fire.input, {
-        value: ROUTINE_ID,
+        id: ROUTINE_ID,
+        text: "Sentry alert SEN-4521 fired",
       }),
-      testCallerIdentity(),
+      testCallerIdentity({ identityId: "ida_alerts", displayName: "Alerts bot", mintedBy: "ida_key" }),
     );
     ctx.set(EXISTING_RESOURCE_KEY, routine);
 
     await step.execute(ctx);
 
-    expect(fired.map((target) => target.metadata?.id)).toEqual([ROUTINE_ID]);
-    const result = ctx.get(TRIGGER_RESULT_KEY) as RoutineFireResult;
+    expect(fired.map(({ routine: target }) => target.metadata?.id)).toEqual([ROUTINE_ID]);
+    const fire = fired[0]!.fire;
+    expect(fire.origin).toBe("manual");
+    expect(fire.text).toBe("Sentry alert SEN-4521 fired");
+    expect(fire.fireId).toMatch(/^rtn-fire-\d{8}t\d{6}z-[0-9a-z]{6}$/);
+    const result = ctx.get(FIRE_RESULT_KEY) as RoutineFireResult;
     expect(result.$typeName).toBe(RoutineFireResultSchema.typeName);
     expect(result.outcome).toBe(RoutineFireOutcome.STARTED);
     expect(result.runId).toBe(RUN_ID);
+    expect(result.fireId).toBe(fire.fireId);
     expect(result.refusalReason).toBe("");
     // The answer is the post-fire row, its fire instant stamped.
     expect(result.routine?.status?.lastFireAt).toBeDefined();
@@ -104,13 +110,15 @@ describe("FireDirectRun — a run the starter started", () => {
     const total = runs.length;
     expect(total).toBe(1);
     expect(runs[0]).toMatchObject({
-      scheduleId: ROUTINE_ID,
+      routineId: ROUTINE_ID,
+      fireId: fire.fireId,
       org: "org_acme",
       origin: "manual",
       outcome: "started",
-      executionId: RUN_ID,
+      runId: RUN_ID,
       completedAt: "",
     });
+    expect(runs[0]?.firedBy).toMatchObject({ id: "ida_alerts", displayName: "Alerts bot", mintedBy: "ida_key" });
   });
 });
 
@@ -124,7 +132,7 @@ describe("FireDirectRun — a run a launch gate refused", () => {
     });
     await store.saveResource(ApiResourceKind.routine, ROUTINE_ID, RoutineSchema, routine);
 
-    const step = newFireDirectRunStep<typeof RoutineCommandController.method.fire.input>({
+    const step = newFireDirectRunStep({
       store,
       logger: silentLogger,
       runner: () => ({
@@ -133,20 +141,20 @@ describe("FireDirectRun — a run a launch gate refused", () => {
     });
     const ctx = new RequestContext(
       RoutineCommandController.method.fire.input,
-      create(RoutineCommandController.method.fire.input, { value: ROUTINE_ID }),
+      create(RoutineCommandController.method.fire.input, { id: ROUTINE_ID }),
       testCallerIdentity(),
     );
     ctx.set(EXISTING_RESOURCE_KEY, routine);
 
     await step.execute(ctx);
 
-    const result = ctx.get(TRIGGER_RESULT_KEY) as RoutineFireResult;
+    const result = ctx.get(FIRE_RESULT_KEY) as RoutineFireResult;
     expect(result.outcome).toBe(RoutineFireOutcome.REFUSED);
     expect(result.refusalReason).toBe("over budget for the month");
     expect(result.runId).toBe("");
     const fires = await store.listRoutineFires(ROUTINE_ID, undefined, 10);
     const total = fires.length;
     expect(total).toBe(1);
-    expect(fires[0]).toMatchObject({ origin: "manual", outcome: "refused", executionId: "" });
+    expect(fires[0]).toMatchObject({ origin: "manual", outcome: "refused", runId: "", fireId: result.fireId });
   });
 });

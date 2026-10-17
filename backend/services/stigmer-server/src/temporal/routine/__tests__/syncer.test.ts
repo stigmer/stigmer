@@ -2,9 +2,12 @@
  * Pins the syncer against Go's syncer.go: the create-or-update convergence
  * on ScheduleAlreadyRunning, next_fire_at stamped from Temporal's OWN
  * answer through the atomic row write (undefined while paused), teardown's
- * not-found-is-success idempotence, and the unavailable posture when no
- * client exists (this machinery once shipped untested).
+ * not-found-is-success idempotence, the unavailable posture when no
+ * client exists (this machinery once shipped untested), and a routine with
+ * no cron, which keeps no artifact: converging it removes one a removed
+ * cron left, clears next_fire_at, and needs no engine at all.
  */
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -76,7 +79,7 @@ function routineRow(overrides?: { enabled?: boolean; pausedReason?: string }) {
       cron: "0 9 * * *",
       timeZone: "UTC",
       enabled: overrides?.enabled ?? true,
-      target: { case: "agent", value: { agentRef: { slug: "helper" } } },
+      agent: { agentRef: { slug: "helper" } },
     },
     status: { pausedReason: overrides?.pausedReason ?? "" },
   });
@@ -190,5 +193,40 @@ describe("peekNextFireAt", () => {
     fake.describeNextActionTimes = [];
     const result = await syncer(fakeClient()).peekNextFireAt(routineRow());
     expect(result).toBeUndefined();
+  });
+});
+
+describe("ensureAndRecord — a routine with no cron", () => {
+  function unscheduled() {
+    const routine = routineRow();
+    routine.spec!.cron = undefined;
+    routine.status!.nextFireAt = timestampFromDate(new Date("2026-08-26T09:00:00Z"));
+    return routine;
+  }
+
+  it("removes the artifact a removed cron left, creates none, and clears next_fire_at", async () => {
+    await store.saveResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema, unscheduled());
+    expect(await syncer(fakeClient()).ensureAndRecord(unscheduled())).toBeUndefined();
+    expect(fake.createCalls).toBe(0);
+    expect(fake.updateCalls).toBe(0);
+    expect(fake.deleteCalls).toEqual(["schedule/tick/sch_01sync"]);
+    const row = await store.getResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema);
+    expect(row.status?.nextFireAt).toBeUndefined();
+  });
+
+  it("needs no engine: with no client it neither throws nor asks for one", async () => {
+    await store.saveResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema, unscheduled());
+    await expect(syncer(undefined).ensureAndRecord(unscheduled())).resolves.toBeUndefined();
+    const row = await store.getResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema);
+    expect(row.status?.nextFireAt).toBeUndefined();
+  });
+
+  it("an artifact already gone is success", async () => {
+    fake.deleteError = new ScheduleNotFoundError("gone", "schedule/tick/sch_01sync");
+    await expect(syncer(fakeClient()).ensureAndRecord(unscheduled())).resolves.toBeUndefined();
+  });
+
+  it("peeks no next fire, engine or not", async () => {
+    await expect(syncer(undefined).peekNextFireAt(unscheduled())).resolves.toBeUndefined();
   });
 });

@@ -1,6 +1,6 @@
 /**
  * Captures schedule/tick workflow histories for the replay determinism
- * gate — the go-forward discipline the schedule domain itself
+ * gate — the go-forward discipline the routine's tick itself
  * originated (Go tick_history_capture_test.go): any change to the tick's
  * logic must replay committed histories green, or be gated with patched().
  * Histories are REGENERATED only when no producing release is still
@@ -10,9 +10,9 @@
  * (tick-completed-run, tick-skipped-disabled, tick-start-failed) —
  * captured fresh here because Go histories cannot replay against the TS
  * SDK. Mock data only — safe to commit. Writes proto-JSON to
- * src/temporal/schedule/__tests__/replay-histories/.
+ * src/temporal/routine/__tests__/replay-histories/.
  *
- * Usage: npx tsx scripts/capture-schedule-replay-histories.ts
+ * Usage: npx tsx scripts/capture-routine-replay-histories.ts
  * (requires the `temporal` CLI on PATH — same as the workflow tests)
  */
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -23,10 +23,10 @@ import { Worker } from "@temporalio/worker";
 
 const TASK_QUEUE = "schedule-replay-capture";
 const WORKFLOWS_PATH = fileURLToPath(
-  new URL("../src/temporal/schedule/workflows/index.ts", import.meta.url),
+  new URL("../src/temporal/routine/workflows/index.ts", import.meta.url),
 );
 const OUT_DIR = fileURLToPath(
-  new URL("../src/temporal/schedule/__tests__/replay-histories", import.meta.url),
+  new URL("../src/temporal/routine/__tests__/replay-histories", import.meta.url),
 );
 
 // Scenario scripting mirrors the tick workflow tests' double.

@@ -1,8 +1,8 @@
 /**
- * The fire ledger — ports pkg/domain/schedule/temporal/runledger.go:
- * every fire leaves a row — including fires that created no
- * execution, which are the only durable trace of a refused launch gate
- * below the auto-pause threshold.
+ * The fire ledger: every fire leaves a row — including fires that created
+ * no run, which are the only durable trace of a refused launch gate below
+ * the auto-pause threshold — keyed by the fire's id, and naming who fired
+ * it when someone did.
  *
  * Writes ride INSIDE the existing activities, never the tick workflow
  * body: activity implementations are invisible to recorded histories, so
@@ -14,9 +14,11 @@
  * retry a run that already achieved its outcome, and failing a verdict
  * activity would error the tick before the streak write lands — a storage
  * hiccup must never break streak semantics. The ledger upsert converges
- * under the retries that do happen (fire-identity key, terminal rows
+ * under the retries that do happen (the fire id is the key, terminal rows
  * immutable).
  */
+import type { ApiResourceAuditActor } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+
 import type { Logger } from "../../boot/logger.js";
 import type { RoutineFireRecord, Store } from "../../store/interface.js";
 import type { RunOutcomeResult } from "./run-starter.js";
@@ -30,9 +32,9 @@ import {
 } from "./names.js";
 
 // Ledger vocabulary: the lowercase names of the
-// ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome / ScheduleFireOrigin
+// ai.stigmer.agentic.routine.v1.RoutineFireOutcome / RoutineFireOrigin
 // enum values, shared byte-for-byte with the cloud edition's rows.
-export const RUN_LEDGER_ORIGIN_CRON = "cron";
+export const RUN_LEDGER_ORIGIN_SCHEDULE = "schedule";
 export const RUN_LEDGER_ORIGIN_MANUAL = "manual";
 
 export const RUN_LEDGER_OUTCOME_STARTED = "started";
@@ -48,28 +50,41 @@ export function rfc3339Seconds(date: Date): string {
   return date.toISOString().replace(/\.\d{3}Z$/, "Z");
 }
 
+/** Which fire a ledger write is about. */
+export interface LedgerFire {
+  readonly routineId: string;
+  /** The fire's id: its run's name (run-starter.ts). */
+  readonly fireId: string;
+  readonly org: string;
+  /** RFC-3339, whole seconds. */
+  readonly nominalFireTime: string;
+  /** RUN_LEDGER_ORIGIN_SCHEDULE or RUN_LEDGER_ORIGIN_MANUAL. */
+  readonly origin: string;
+  /** Who fired it; absent for a schedule's own fire. */
+  readonly firedBy?: ApiResourceAuditActor;
+}
+
 /**
- * Writes the fire's row from the run-start outcome (Go
- * recordRunLedgerStart). Start failures (refused / target missing) and
- * skips are terminal at insert — no tracking follows them, so the reason
- * must survive NOW. ALREADY_STARTED collapses into "started": the row is
- * the same fire, re-found by an idempotent retry.
+ * Writes the fire's row from the run-start outcome. Start failures
+ * (refused / target missing) and skips are terminal at insert — no
+ * tracking follows them, so the reason must survive NOW. ALREADY_STARTED
+ * collapses into "started": the row is the same fire, re-found by an
+ * idempotent retry.
  */
 export async function recordRunLedgerStart(
   store: Store,
   logger: Logger,
-  routineId: string,
-  org: string,
-  nominalFireTimeRfc3339: string,
-  origin: string,
+  fire: LedgerFire,
   runStart: RunStart,
 ): Promise<void> {
   const base = {
-    routineId,
-    org,
-    nominalFireTime: nominalFireTimeRfc3339,
-    origin,
-    executionId: runStart.executionId,
+    routineId: fire.routineId,
+    fireId: fire.fireId,
+    org: fire.org,
+    nominalFireTime: fire.nominalFireTime,
+    origin: fire.origin,
+    runId: runStart.executionId,
+    firedBy: fire.firedBy,
     reason: runStart.failureReason,
     recordedAt: "",
   };
@@ -109,8 +124,8 @@ export async function recordRunLedgerStart(
     logger.warn(
       "Fire-ledger row not written (best-effort — the run itself is unaffected)",
       {
-        schedule_id: routineId,
-        nominal_fire_time: nominalFireTimeRfc3339,
+        routine_id: fire.routineId,
+        fire_id: fire.fireId,
         outcome: record.outcome,
         error: error instanceof Error ? error.message : String(error),
       },
@@ -119,12 +134,12 @@ export async function recordRunLedgerStart(
 }
 
 /**
- * Stamps the terminal verdict on the schedule's in-flight CRON row (Go
- * recordRunLedgerVerdict). Keyed on (schedule, cron) by necessity: the
- * verdict activities' signatures are pinned by recorded Temporal
- * histories, and the artifact's SKIP overlap plus the spanning tick
- * guarantee at most one in-flight cron run per schedule. The origin filter
- * keeps a newer manual fire's untracked row from stealing the verdict.
+ * Stamps the terminal verdict on the routine's in-flight SCHEDULE row.
+ * Keyed on (routine, schedule origin) by necessity: the verdict
+ * activities' signatures are pinned by recorded Temporal histories, and
+ * the artifact's SKIP overlap plus the spanning tick guarantee at most one
+ * in-flight schedule run per routine. The origin filter keeps a newer
+ * manual fire's untracked row from stealing the verdict.
  */
 export async function recordRunLedgerVerdict(
   store: Store,
@@ -136,7 +151,7 @@ export async function recordRunLedgerVerdict(
   try {
     await store.markLatestRoutineFireTerminal(
       routineId,
-      RUN_LEDGER_ORIGIN_CRON,
+      RUN_LEDGER_ORIGIN_SCHEDULE,
       outcome,
       reason,
       rfc3339Seconds(new Date()),
@@ -145,7 +160,7 @@ export async function recordRunLedgerVerdict(
     logger.warn(
       "Fire-ledger verdict not written (best-effort — the streak write is unaffected)",
       {
-        schedule_id: routineId,
+        routine_id: routineId,
         outcome,
         error: error instanceof Error ? error.message : String(error),
       },
@@ -154,20 +169,18 @@ export async function recordRunLedgerVerdict(
 }
 
 /**
- * Writes the fire-ledger row for one trigger-command fire (origin=manual)
- * — exported for the trigger controller, so the ledger vocabulary and the
- * outcome mapping stay in ONE module (Go RecordManualFire). Manual rows
- * for started runs stay non-terminal forever in storage: manual fires are
- * untracked by design (the caller watches the execution), and listFires
- * resolves their outcome from the execution's live phase at read time.
- * Start failures are terminal at insert, exactly like cron.
+ * Writes the fire-ledger row for one fire call (origin=manual) — exported
+ * for the fire step, so the ledger vocabulary and the outcome mapping stay
+ * in ONE module. Manual rows for started runs stay non-terminal forever in
+ * storage: manual fires are untracked by design (the caller watches the
+ * run), and listFires resolves their outcome from the run's live phase at
+ * read time. Start failures are terminal at insert, exactly like a
+ * schedule's.
  */
 export async function recordManualFire(
   store: Store,
   logger: Logger,
-  routineId: string,
-  org: string,
-  nominalFireTimeRfc3339: string,
+  fire: Omit<LedgerFire, "origin">,
   outcome: RunOutcomeResult,
 ): Promise<void> {
   const runStart: RunStart = {
@@ -179,7 +192,7 @@ export async function recordManualFire(
   switch (outcome.kind) {
     case "started":
       runStart.outcome = RUN_STARTED;
-      runStart.executionId = outcome.executionId;
+      runStart.executionId = outcome.runId;
       break;
     case "targetMissing":
       runStart.outcome = RUN_TARGET_MISSING;
@@ -197,17 +210,14 @@ export async function recordManualFire(
   await recordRunLedgerStart(
     store,
     logger,
-    routineId,
-    org,
-    nominalFireTimeRfc3339,
-    RUN_LEDGER_ORIGIN_MANUAL,
+    { ...fire, origin: RUN_LEDGER_ORIGIN_MANUAL },
     runStart,
   );
 }
 
 /**
  * Enforces the retention the table was born with; called from the
- * reconciliation pass (the clock's one periodic hook). Go pruneRunLedger.
+ * reconciliation pass (the clock's one periodic hook).
  */
 export async function pruneRunLedger(
   store: Store,
