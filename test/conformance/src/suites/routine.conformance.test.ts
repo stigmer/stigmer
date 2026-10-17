@@ -13,8 +13,7 @@
 // what "it runs only when fired" costs; the schedule rules (a cron is kept
 // in a zone; a zone set without one is still checked); the fire and resume
 // refusal matrix, enforced ahead of any clock; a routine going with its
-// agent; Owner never grantable on a routine (every run acts as its creator);
-// and a client never claiming a routine on a session it creates.
+// agent; and a client never claiming a routine on a session it creates.
 //
 // The access blocks ride the target's ENFORCING LANE (the cloud's and
 // Enterprise's primaries, open source's OIDC sibling on the local
@@ -24,7 +23,8 @@
 //     lock copy, and may still switch it off;
 //   - an admin neither fires it (can_fire is its owner's and its
 //     Participants') nor is told they may;
-//   - per-resource grants (perResourceGrants): a Participant — here a
+//   - per-resource grants (perResourceGrants): Owner is never granted on a
+//     routine (every run acts as its creator); a Participant — here a
 //     service account, the alerting tool's — may fire and read it and is
 //     refused changing it; an admin is refused granting Participant with
 //     the Participant copy and may revoke one; where the edition grants no
@@ -508,25 +508,6 @@ describe("Routine queries", () => {
 });
 
 describe("Routine access, in every edition", () => {
-  it("[rpc:GrantCommandController.create] Owner is never granted on a routine: every run acts as its creator", async () => {
-    const { org } = await target.provisionTenancy();
-    const { slug: agentSlug } = await createAgentFixture(org);
-    const routine = await createRoutineFixture(org, agentSlug);
-
-    const err = await expectGrpcCode(
-      () =>
-        clients.grantCommand.create(
-          grantTriple({ kind: "identity_account", id: "ida_01conformancegrantee" }, "owner", {
-            kind: "routine",
-            id: routine.metadata!.id,
-          }),
-        ),
-      Code.InvalidArgument,
-      "a grant of owner on a routine",
-    );
-    expect(err.rawMessage).toBe(roleNotGrantableMessage("owner", "routine", ["participant", "viewer"]));
-  });
-
   it("[rpc:SessionCommandController.create] a client cannot claim a routine: a session's status.routine_id is the server's alone", async () => {
     const { org } = await target.provisionTenancy();
     const created = await clients.sessionCommand.create({
@@ -634,6 +615,25 @@ describe.skipIf(capabilities.perResourceGrants)("Routine access — no per-resou
 });
 
 describe.skipIf(!capabilities.perResourceGrants)("Routine access — Participants (per-resource grants)", () => {
+  it("[rpc:GrantCommandController.create] Owner is never granted on a routine: every run acts as its creator", async () => {
+    const { org } = await target.provisionTenancy();
+    const { slug: agentSlug } = await createAgentFixture(org);
+    const routine = await createRoutineFixture(org, agentSlug);
+
+    const err = await expectGrpcCode(
+      () =>
+        clients.grantCommand.create(
+          grantTriple({ kind: "identity_account", id: "ida_01conformancegrantee" }, "owner", {
+            kind: "routine",
+            id: routine.metadata!.id,
+          }),
+        ),
+      Code.InvalidArgument,
+      "a grant of owner on a routine",
+    );
+    expect(err.rawMessage).toBe(roleNotGrantableMessage("owner", "routine", ["participant", "viewer"]));
+  });
+
   async function participantFixture(on: EnforcingLane) {
     const tenancy = await laneTenancy(on);
     const { slug: agentSlug } = await createAgentFixture(tenancy.org, on.clients);

@@ -430,4 +430,25 @@ describe.skipIf(!realRunProvable)("Routine real-run contract (routineFiring + mo
 
     await awaitCompleted(result.runId);
   });
+
+  it("[rpc:RoutineCommandController.fire] a routine naming no engine, on an agent whose engine is Cursor with no model, is refused at fire with the pin-presence copy", async () => {
+    const { org } = await target.provisionTenancy();
+    // The agent starts its conversations on Cursor and names no model; the
+    // routine names neither, so its unattended fire would run Auto.
+    const agent = await clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("routine-cursor-target"), harness: Harness.CURSOR }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    const routine = await clients.routineCommand.create(
+      makeRoutine(org, uniqueName("routine-cursor"), agent.metadata!.slug),
+    );
+    fixtures.defer(() => clients.routineCommand.delete({ value: routine.metadata!.id }));
+
+    const result = await clients.routineCommand.fire({ id: routine.metadata!.id });
+
+    expect(result.outcome).toBe(RoutineFireOutcome.REFUSED);
+    expect(result.refusalReason).toContain("must name a model");
+    expect(result.refusalReason).toContain("stigmer/stigmer#362");
+    expect(result.runId).toBe("");
+  });
 });

@@ -81,8 +81,8 @@ session's `reviewFileChanges` with `reviewFileByPath` or `reviewChangeSet`, read
 the decisions back from the log with `readFileReviewLog` and `reviewSetNow`,
 then read the tree back (`test/conformance/src/support/file-review.ts`).
 
-For a routine: `makeRoutine` in `test/conformance/src/support/routines.ts`.
-For anything else that advances on its own: `pollUntil` in
+For a routine: `makeRoutine` in `test/conformance/src/support/routines.ts`. For
+anything else that advances on its own: `pollUntil` in
 `test/conformance/src/support/run-poll.ts`, never a fixed sleep.
 
 ## Reuse the harness
