@@ -6,7 +6,9 @@
  * every launch gate runs — and the result names what happened: the created
  * run's id, or the refusing gate's copy verbatim. Two-level contract: a
  * gRPC error means the fire itself was refused (missing → NOT_FOUND,
- * disabled → FAILED_PRECONDITION); a gRPC success means the fire happened,
+ * disabled → FAILED_PRECONDITION, started by hand more often than the
+ * server's hourly limit → RESOURCE_EXHAUSTED, fire-rate.ts); a gRPC success
+ * means the fire happened,
  * whatever the run's outcome — a deterministically refused run is a
  * successful fire honestly reported, never an exception.
  *
@@ -132,9 +134,10 @@ export function newExtractFireRoutineIdStep(): PipelineStep<FireInput> {
 }
 
 /**
- * Refuses a disabled routine (the owner's switch) — the ONE fire refusal
- * (paused routines fire, and the tick's revalidation does not guard fires,
- * which never pass through the tick).
+ * Refuses a disabled routine (the owner's switch) — the one refusal of the
+ * routine's own state (paused routines fire, and the tick's revalidation
+ * does not guard fires, which never pass through the tick); the hourly
+ * limit on hand fires is fire-rate.ts's.
  */
 export function newValidateFireableStep<
   Desc extends DescMessage,

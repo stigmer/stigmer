@@ -1112,6 +1112,18 @@ export interface Store {
     limit: number,
   ): Promise<RoutineFireRecord[]>;
 
+  /**
+   * How many of the routine's fires of the given origin were recorded at
+   * or after `recordedSince` (RFC-3339, compared lexicographically, the
+   * ledger's convention): the hourly limit on hand fires reads it
+   * (domain/routine/fire-rate.ts).
+   */
+  countRoutineFiresSince(
+    routineId: string,
+    origin: string,
+    recordedSince: string,
+  ): Promise<number>;
+
   /** Delete-cascade twin, called after the resource row delete succeeds. */
   deleteRoutineFiresByRoutine(routineId: string): Promise<number>;
 

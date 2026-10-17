@@ -440,6 +440,12 @@ export type {
   RoutineFireCallerInput,
 } from "./extensions/routine-fire-caller.js";
 export { RoutineFireRefusedError } from "./extensions/routine-fire-caller.js";
+// Core's identity for an account the server acts as (a routine's owner, a
+// grading or eval run's), the default fire caller's answer: an edition's
+// fire caller starts from it, so a fire's creator stamps carry the owner's
+// email and name, and a service account keeps its class and organization,
+// exactly as open source's own fires do.
+export { accountAsCaller } from "./domain/identityaccount/actor.js";
 // The identity an AI judge run acts as (drivers.gradingCaller) — the
 // composition mints it per judge run; the grading workflow propagates it
 // through the in-process caller header. A mint that can act as nobody throws

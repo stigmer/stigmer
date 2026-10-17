@@ -190,7 +190,10 @@ class RoutineCommandControllerServicer(object):
 
         A disabled routine refuses (enable it first). A platform-paused routine
         MAY be fired: a test fire is exactly how an owner verifies a fix before
-        resuming; resume remains the one path that clears the pause.
+        resuming; resume remains the one path that clears the pause. A routine
+        started by hand as often as the server allows in an hour (30 by
+        default) refuses until the hour has room again; the routine's own
+        schedule is never limited by it.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

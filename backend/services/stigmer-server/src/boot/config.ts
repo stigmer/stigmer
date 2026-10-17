@@ -29,6 +29,7 @@ import {
 import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
 
 import { SERVER_VERSION } from "../domain/platform/version.js";
+import { DEFAULT_ROUTINE_FIRES_PER_HOUR } from "../domain/routine/fire-rate.js";
 import {
   loginProviderSettingNames,
   loginProviderSettings,
@@ -328,6 +329,13 @@ export interface ServerConfig {
    * manifest value or argv.
    */
   readonly sandboxRunnerSecretEnv: Readonly<Record<string, string>>;
+  /**
+   * How many times one routine may be started by hand (Run now or the API)
+   * in an hour (STIGMER_ROUTINE_FIRES_PER_HOUR, default 30); below 1, no
+   * limit. A routine's own schedule is never limited by it
+   * (domain/routine/fire-rate.ts).
+   */
+  readonly routineFiresPerHour: number;
 }
 
 // The bundled "Stigmer Local" OAuth App credentials (callback:
@@ -495,6 +503,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       "stigmer-sandboxes",
     ),
     ...loadSandboxRunnerEnv(env),
+    routineFiresPerHour: envInt(
+      env,
+      "STIGMER_ROUTINE_FIRES_PER_HOUR",
+      DEFAULT_ROUTINE_FIRES_PER_HOUR,
+    ),
   };
 }
 

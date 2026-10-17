@@ -4,10 +4,13 @@
  *
  * Environment variables deliberately share the STIGMER_SCHEDULES_* names
  * with the cloud edition, so test harnesses and runbooks use one
- * vocabulary. There is deliberately NO interval-floor knob: the floor is a
- * platform guardrail for a shared metered system, enforced by cloud's
- * pre-persist probe; OSS is one user on their own machine and has no probe
- * — a present-but-ignored knob would be a lie.
+ * vocabulary. There is deliberately NO interval-floor knob, in any edition:
+ * five-field cron fires at most once a minute, the artifact's SKIP overlap
+ * never starts a fire over a running one, and every fire is a run that
+ * passes the run create pipeline's launch gates (an edition's spend and
+ * capacity gates among them) and feeds the failure streak when refused.
+ * How often a routine is started BY HAND is bounded separately, per hour,
+ * by domain/routine/fire-rate.ts.
  *
  * Config lives with the clock, not the domain: every reader is clock-side
  * — the agentexecution

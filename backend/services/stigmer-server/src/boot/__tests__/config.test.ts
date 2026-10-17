@@ -247,6 +247,15 @@ describe("loadConfig", () => {
     expect(loadConfig({}).readyLine).toBeUndefined();
   });
 
+  it("limits a routine to 30 hand fires an hour unless the operator names a number", () => {
+    expect(loadConfig({}).routineFiresPerHour).toBe(30);
+    expect(loadConfig({ STIGMER_ROUTINE_FIRES_PER_HOUR: "5" }).routineFiresPerHour).toBe(5);
+    expect(loadConfig({ STIGMER_ROUTINE_FIRES_PER_HOUR: "0" }).routineFiresPerHour).toBe(0);
+    for (const value of ["", "lots", "5x"]) {
+      expect(loadConfig({ STIGMER_ROUTINE_FIRES_PER_HOUR: value }).routineFiresPerHour).toBe(30);
+    }
+  });
+
   describe("the sandbox runner image (STIGMER_SANDBOX_RUNNER_IMAGE)", () => {
     it("defaults to the image of the server's own release", () => {
       expect(defaultSandboxRunnerImage("3.41.0")).toBe(
