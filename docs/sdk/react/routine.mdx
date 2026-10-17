@@ -387,9 +387,15 @@ key's reach beyond this routine is stated, since a key acts with its
 account's whole organization role.
 
 What shows follows the server:
-- the setup steps only where `can_grant_access` on the routine is
-  allowed, which open source answers `false` (it grants roles on
-  organizations only); there the panel says to use the creator's key;
+- on open source (the server's reported edition), which grants roles on
+  organizations only, so only a routine's creator may start it: use the
+  creator's key;
+- where an edition shares a routine with people and service accounts:
+  the setup steps to someone who may grant on it (`can_grant_access`),
+  "send your own key" to someone who may start it (`can_fire`), and to
+  anyone else that starting it takes Participant from its creator. A
+  permission answers for the person, never for the edition, so the
+  edition is read from the server, not inferred from a refusal;
 - the Authorization line unless the server trusts every request;
 - the shared unknown-address notice when the server's public address
   cannot be known.

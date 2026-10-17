@@ -992,6 +992,22 @@ describe("RoutineDetailView: starting it, who started it, and its API", () => {
     expect(client.routine.fire.mock.calls[1]![0].text).toBe("");
   });
 
+  it("retries a refused Enable & run by firing again, without re-sending the enable", async () => {
+    const client = makeClient(makeRoutine({ enabled: false }));
+    client.routine.fire.mockRejectedValueOnce(new Error("the routine was started 30 times this hour"));
+    renderView(client);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Enable & run now" }));
+    fireEvent.click(await screen.findByText("Enable & run"));
+    await waitFor(() => expect(client.routine.fire).toHaveBeenCalledTimes(1));
+    expect(client.routine.update).toHaveBeenCalledTimes(1);
+
+    // The dialog stays open with the enable done; the retry only fires.
+    fireEvent.click(await screen.findByText("Start run"));
+    await waitFor(() => expect(client.routine.fire).toHaveBeenCalledTimes(2));
+    expect(client.routine.update).toHaveBeenCalledTimes(1);
+  });
+
   it("bounds the note at the contract's 65,536 characters", async () => {
     const client = makeClient(makeRoutine());
     renderView(client);
@@ -1079,7 +1095,9 @@ describe("RoutineDetailView: starting it, who started it, and its API", () => {
     const withPlatform = {
       ...client,
       baseUrl: "https://api.example.com",
-      platform: { getServerInfo: vi.fn().mockResolvedValue({ authenticationRequired: true }) },
+      platform: {
+        getServerInfo: vi.fn().mockResolvedValue({ authenticationRequired: true, deploymentMode: "local" }),
+      },
     };
     renderView(withPlatform as unknown as MockClient, { defaultTab: "api" });
 
@@ -1088,7 +1106,7 @@ describe("RoutineDetailView: starting it, who started it, and its API", () => {
       /https:\/\/api\.example\.com\/ai\.stigmer\.agentic\.routine\.v1\.RoutineCommandController\/fire/,
     );
     expect(curl.textContent).toContain('"id":"sch_01example"');
-    // Open source answers can_grant_access false: the creator's own key, no setup steps.
+    // Open source shares a routine with no one: the creator's own key, no setup steps.
     await screen.findByText("Use an API key of the person who created this routine.");
     expect(screen.queryByText("Who may call it")).toBeNull();
   });

@@ -6,12 +6,14 @@
  *     secret in the copied line), drops the Authorization line only for a
  *     server that trusts every request, and quotes the JSON body so a quote
  *     in it cannot end the shell argument;
- *   - the panel's three postures: where the edition shares a routine with no
- *     one but its creator (open source answers `can_grant_access` false) it
- *     says to use the creator's key; where it does, someone who may create a
- *     service account is offered the form with Viewer preset, and anyone
- *     else is told an admin does it, with the link; the key's reach is
- *     stated wherever the setup is;
+ *   - the panel's postures, read from the server's edition and then the
+ *     person's permissions: on open source, which shares a routine with no
+ *     one, it says to use the creator's key; where an edition shares it, the
+ *     setup steps go to someone who may grant (with the service-account form
+ *     and Viewer preset to someone who may create one, and the admins line
+ *     and link to anyone else), "send your own key" to a Participant, and
+ *     "it takes Participant" to a Viewer, never "use the creator's key"; the
+ *     key's reach is stated wherever the setup is;
  *   - a server that trusts every request gets no key line and no setup, and
  *     an unknown public address shows the shared notice instead of a
  *     command nobody can run;
@@ -73,7 +75,9 @@ describe("buildRoutineFireCurl", () => {
 
 interface Answers {
   readonly authenticationRequired?: boolean;
+  readonly edition?: "local" | "enterprise" | "cloud";
   readonly canGrant?: boolean;
+  readonly canFire?: boolean;
   readonly canCreateAccount?: boolean;
   readonly baseUrl?: string;
 }
@@ -84,9 +88,11 @@ function renderPanel(answers: Answers, onManageAccess?: () => void) {
       isAuthorized:
         input.relation === "can_grant_access"
           ? answers.canGrant ?? false
-          : input.relation === "can_create_identity_account"
-            ? answers.canCreateAccount ?? false
-            : false,
+          : input.relation === "can_fire"
+            ? answers.canFire ?? false
+            : input.relation === "can_create_identity_account"
+              ? answers.canCreateAccount ?? false
+              : false,
     }),
   );
   const client = {
@@ -94,6 +100,7 @@ function renderPanel(answers: Answers, onManageAccess?: () => void) {
     platform: {
       getServerInfo: vi.fn().mockResolvedValue({
         authenticationRequired: answers.authenticationRequired ?? true,
+        deploymentMode: answers.edition ?? "cloud",
       }),
     },
     grant: { checkMyPermission },
@@ -122,9 +129,23 @@ describe("RoutineApiPanel", () => {
   });
 
   it("tells open source to use the creator's own key, with no setup steps", async () => {
-    renderPanel({ canGrant: false });
+    const { checkMyPermission } = renderPanel({ edition: "local" });
     await screen.findByText("Use an API key of the person who created this routine.");
     expect(screen.queryByText("Who may call it")).toBeNull();
+    expect(checkMyPermission).not.toHaveBeenCalled();
+  });
+
+  it("tells a Participant to send their own key, never the creator's", async () => {
+    renderPanel({ canGrant: false, canFire: true });
+    await screen.findByText(/You may start this routine: send your own API key/);
+    expect(screen.queryByText(/Use an API key of the person who created/)).toBeNull();
+    expect(screen.queryByText("Who may call it")).toBeNull();
+  });
+
+  it("tells a Viewer that starting it takes Participant from its creator", async () => {
+    renderPanel({ canGrant: false, canFire: false });
+    await screen.findByText(/Starting it takes Participant on this routine/);
+    expect(screen.queryByText(/Use an API key of the person who created/)).toBeNull();
   });
 
   it("offers an admin the service account with Viewer preset, and the Participant grant", async () => {
@@ -172,7 +193,7 @@ describe("RoutineApiPanel", () => {
     const { checkMyPermission } = renderPanel({ authenticationRequired: false, canGrant: true });
 
     await waitFor(() => expect(screen.getByText(/RoutineCommandController\/fire/).textContent).not.toContain("Authorization"));
-    await waitFor(() => expect(checkMyPermission).toHaveBeenCalled());
+    expect(checkMyPermission).not.toHaveBeenCalled();
     expect(screen.queryByText("Who may call it")).toBeNull();
     expect(screen.queryByText("Use an API key of the person who created this routine.")).toBeNull();
   });

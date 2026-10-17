@@ -9,6 +9,7 @@ import { Button } from "../button/Button.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { CopyBlock } from "../internal/CopyBlock.js";
 import { DialogShell } from "../internal/DialogShell.js";
+import { trimTrailing } from "../internal/trim.js";
 import { UnknownPublicAddressNotice } from "../internal/UnknownPublicAddressNotice.js";
 import { usePublicBaseUrl } from "../public-base-url-context.js";
 import { useServerInfo } from "../server-info.js";
@@ -45,7 +46,7 @@ export function buildRoutineFireCurl({
   routineId,
   withKey,
 }: BuildRoutineFireCurlArgs): string {
-  const base = baseUrl.replace(/\/+$/, "");
+  const base = trimTrailing(baseUrl, "/");
   const path = `${RoutineCommandController.typeName}/${RoutineCommandController.method.fire.name}`;
   const body = JSON.stringify({ id: routineId, text: EXAMPLE_NOTE });
   return [
@@ -92,9 +93,15 @@ export interface RoutineApiPanelProps {
  * account's whole organization role.
  *
  * What shows follows the server:
- * - the setup steps only where `can_grant_access` on the routine is
- *   allowed, which open source answers `false` (it grants roles on
- *   organizations only); there the panel says to use the creator's key;
+ * - on open source (the server's reported edition), which grants roles on
+ *   organizations only, so only a routine's creator may start it: use the
+ *   creator's key;
+ * - where an edition shares a routine with people and service accounts:
+ *   the setup steps to someone who may grant on it (`can_grant_access`),
+ *   "send your own key" to someone who may start it (`can_fire`), and to
+ *   anyone else that starting it takes Participant from its creator. A
+ *   permission answers for the person, never for the edition, so the
+ *   edition is read from the server, not inferred from a refusal;
  * - the Authorization line unless the server trusts every request;
  * - the shared unknown-address notice when the server's public address
  *   cannot be known.
@@ -119,12 +126,22 @@ export function RoutineApiPanel({
   // Only an explicit false means the server trusts every request.
   const withKey = serverInfo?.authenticationRequired !== false;
 
+  const edition = serverInfo?.deploymentMode;
+  const sharesPerResource = withKey && edition !== undefined && edition !== "local";
+  const ownerKeyOnly = withKey && edition === "local";
+
   const grantCheck = useCheckPermission(
-    routineId ? { kind: "routine", id: routineId } : null,
+    sharesPerResource && routineId ? { kind: "routine", id: routineId } : null,
     "can_grant_access",
   );
-  const sharesWithAccounts = withKey && !grantCheck.isLoading && grantCheck.allowed;
-  const ownerKeyOnly = withKey && !grantCheck.isLoading && !grantCheck.allowed;
+  const fireCheck = useCheckPermission(
+    sharesPerResource && routineId ? { kind: "routine", id: routineId } : null,
+    "can_fire",
+  );
+  const settled = sharesPerResource && !grantCheck.isLoading && !fireCheck.isLoading;
+  const setsUpCallers = settled && grantCheck.allowed;
+  const firesWithOwnKey = settled && !grantCheck.allowed && fireCheck.allowed;
+  const needsParticipant = settled && !grantCheck.allowed && !fireCheck.allowed;
 
   const curl =
     baseUrl === null ? null : buildRoutineFireCurl({ baseUrl, routineId, withKey });
@@ -160,7 +177,21 @@ export function RoutineApiPanel({
         </p>
       )}
 
-      {sharesWithAccounts && (
+      {firesWithOwnKey && (
+        <p className="stg:text-xs stg:text-muted-foreground">
+          You may start this routine: send your own API key as the bearer
+          token.
+        </p>
+      )}
+
+      {needsParticipant && (
+        <p className="stg:text-xs stg:text-muted-foreground">
+          Starting it takes Participant on this routine, which the person who
+          created it gives.
+        </p>
+      )}
+
+      {setsUpCallers && (
         <CallerSetup
           org={org}
           onManageAccess={onManageAccess}

@@ -380,8 +380,16 @@ export function RoutineDetailView({
   // A disabled routine refuses to fire at the server, so the
   // staged-disabled test flow the creation form promises is "enable, then
   // fire", and the dialog makes it one step.
+  // Once enabling has landed, the dialog drops it: a retry after a refused
+  // fire (the hourly limit, a dropped connection) fires again without
+  // re-sending the enable on the routine as first loaded, whose version
+  // the server would no longer accept.
   const handleStartRun = async (text: string | undefined) => {
-    if (runDialog?.enableFirst) await setEnabled(routine, true);
+    if (runDialog?.enableFirst) {
+      await setEnabled(routine, true);
+      refetch();
+      setRunDialog({ enableFirst: false });
+    }
     await fireNow(text);
   };
 
