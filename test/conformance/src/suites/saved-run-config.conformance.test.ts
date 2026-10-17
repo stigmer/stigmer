@@ -1,9 +1,9 @@
 // Conformance suite for saved run settings (Class A).
-// Domain: agentic / schedule, channel (web and Slack) — the save-time rule
+// Domain: agentic / routine, channel (web and Slack) — the save-time rule
 // every surface that stores a RunConfig shares.
 //
 // The contract under test (RunConfig in run/v1/invocation.proto):
-// saved settings are self-contained. A schedule's or a channel's (web or
+// saved settings are self-contained. A routine's or a channel's (web or
 // Slack) run_config that asks for the fast tier or for thinking names the
 // model it is for; only a live message may set either alone, to adjust the
 // model a less specific layer chose. Each surface refuses the unnamed choice at save
@@ -56,19 +56,19 @@ const FAST_ALONE = create(RunConfigSchema, { serviceTier: ServiceTier.FAST });
 const THINKING_ALONE = create(RunConfigSchema, { thinkingMode: ThinkingMode.ENABLED });
 
 describe("Saved run settings name the model their tier or thinking is for", () => {
-  it("[rpc:ScheduleCommandController.create] a schedule refuses fast or thinking with no model (InvalidArgument)", async () => {
+  it("[rpc:RoutineCommandController.create] a routine refuses fast or thinking with no model (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const slug = await agentIn(org);
     for (const runConfig of [FAST_ALONE, THINKING_ALONE]) {
       const input = create(RoutineSchema, makeRoutine(org, uniqueName("sched-saved"), slug));
-      if (input.spec?.target.case !== "agent") {
-        throw new Error("makeSchedule builds an agent target");
+      if (input.spec?.agent === undefined) {
+        throw new Error("makeRoutine builds an agent invocation");
       }
-      input.spec.target.value.runConfig = runConfig;
+      input.spec.agent.runConfig = runConfig;
       const err = await expectGrpcCode(
         () => clients.routineCommand.create(input),
         Code.InvalidArgument,
-        "schedule saving a tier or thinking with no model",
+        "a routine saving a tier or thinking with no model",
       );
       expect(err.rawMessage).toContain("spec.agent.run_config.model_name");
     }
@@ -107,25 +107,25 @@ describe("Saved run settings name the model their tier or thinking is for", () =
     }
   });
 
-  it("[rpc:ScheduleCommandController.create] each surface accepts thinking saved with the model it is for", async () => {
+  it("[rpc:RoutineCommandController.create] each surface accepts thinking saved with the model it is for", async () => {
     const { org } = await target.provisionTenancy();
     const slug = await agentIn(org);
 
-    // A schedule reads an unset engine as native; a channel is judged
+    // A routine reads an unset engine as native; a channel is judged
     // against every engine's list, so the web channel names the native id
     // and the Slack channel the Cursor id, and both are known.
     const onNative = create(RunConfigSchema, { modelName: "claude-haiku-4.5", thinkingMode: ThinkingMode.ENABLED });
     const onCursor = create(RunConfigSchema, { modelName: "claude-haiku-4-5", thinkingMode: ThinkingMode.ENABLED });
 
     const routine = create(RoutineSchema, makeRoutine(org, uniqueName("sched-saved-ok"), slug));
-    if (routine.spec?.target.case !== "agent") {
-      throw new Error("makeSchedule builds an agent target");
+    if (routine.spec?.agent === undefined) {
+      throw new Error("makeRoutine builds an agent invocation");
     }
-    routine.spec.target.value.runConfig = onNative;
+    routine.spec.agent.runConfig = onNative;
     const savedRoutine = await clients.routineCommand.create(routine);
     fixtures.defer(() => clients.routineCommand.delete({ value: savedRoutine.metadata!.id }));
     expect(
-      savedRoutine.spec?.target.case === "agent" ? savedRoutine.spec.target.value.runConfig?.thinkingMode : undefined,
+      savedRoutine.spec?.agent?.runConfig?.thinkingMode,
     ).toBe(ThinkingMode.ENABLED);
 
     const web = create(ChannelSchema, makeWebChannel(org, slug, { name: uniqueName("web-saved-ok") }));

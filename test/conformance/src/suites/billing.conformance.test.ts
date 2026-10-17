@@ -44,7 +44,7 @@ import { createTarget, type TargetProfile } from "../targets";
 import type { ConformanceClients } from "../harness/clients";
 import type { PrivilegedScope, TenancyContext } from "../targets/target";
 
-// Collection-time capability read (the billing-denial / schedule-firing pattern).
+// Collection-time capability read (the billing-denial / routine-firing pattern).
 const engineServed = createTarget().capabilities.billingEngine;
 
 let target: TargetProfile;

@@ -6,11 +6,11 @@
 // list with page_size 1, following tokens to the end:
 //
 //   - a list scoped to one parent (an agent's Slack and web channels and
-//     its schedules, an agent's sessions, a version history) holds only the
+//     its routines, an agent's sessions, a version history) holds only the
 //     seeded rows, so the walk is exactly three pages of one entry, newest
 //     first, a token on the first two and none after the third;
 //   - a list of an organization or of the caller (agents, skills, plugins,
-//     channels of every type, schedules, vaults, memories, sessions, API keys,
+//     channels of every type, routines, vaults, memories, sessions, API keys,
 //     OAuth apps, channel apps, the caller's
 //     organizations, search) may also hold rows the edition provisions with
 //     an organization, and a page may be short, even empty, under a read
@@ -261,7 +261,7 @@ describe("List conformance — a parent's lists walk exactly three pages", () =>
     expectExactWalk(walked, seeded);
   });
 
-  it("[rpc:ScheduleQueryController.listByAgent] an agent's schedules page one at a time, newest first", async () => {
+  it("[rpc:RoutineQueryController.listByAgent] an agent's routines page one at a time, newest first", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgent(org);
     const seeded = await seedThree(() => createRoutine(org, agent.metadata!.slug));
@@ -398,7 +398,7 @@ describe("List conformance — an organization's lists walk every seeded row onc
     expectSeededWalk(walked, seeded);
   });
 
-  it("[rpc:ScheduleQueryController.list] schedules", async () => {
+  it("[rpc:RoutineQueryController.list] routines", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgent(org);
     const seeded = await seedThree(() => createRoutine(org, agent.metadata!.slug));
@@ -657,7 +657,7 @@ describe("List conformance — a label filter walks only the rows carrying every
     );
   });
 
-  it("[rpc:ScheduleQueryController.list] [rpc:ScheduleQueryController.listByAgent] schedules, of the organization and of one agent", async () => {
+  it("[rpc:RoutineQueryController.list] [rpc:RoutineQueryController.listByAgent] routines, of the organization and of one agent", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgent(org);
     const seed = async (labels: Record<string, string>) => {

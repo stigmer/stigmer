@@ -942,14 +942,13 @@ describe("Run file review — the next message closes the review", () => {
   });
 });
 
-// A fired turn runs in the schedule's session, whose creator is the
-// schedule's lane account: only a runner that acts as each run's creator can
-// serve it. The hosted edition serves those turns in the sandbox its
+// A fired turn runs in its routine's owner's conversation: only a runner
+// that acts as each run's creator can serve it. The hosted edition serves those turns in the sandbox its
 // composition provisions, proven by that composition's own suites.
 describe.skipIf(
   !collectionTarget.capabilities.routineFiring || !collectionTarget.capabilities.runnerActsAsRunCreator,
 )(
-  "Run file review — an unattended turn's write (scheduleFiring targets)",
+  "Run file review — an unattended turn's write (routineFiring targets)",
   () => {
     it("a fired turn that writes a file applies it and ends, with nothing to review (stigmer#1471)", async () => {
       const { org } = await target.provisionTenancy();
@@ -962,14 +961,14 @@ describe.skipIf(
       );
       fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
       const routine = await clients.routineCommand.create(
-        create(RoutineSchema, makeRoutine(org, uniqueName("sched-unattended"), agent.metadata!.slug)),
+        create(RoutineSchema, makeRoutine(org, uniqueName("routine-unattended"), agent.metadata!.slug)),
       );
       fixtures.defer(() => clients.routineCommand.delete({ value: routine.metadata!.id }));
 
       mock.enqueue(writeFileTurn("toolu_w_unattended", "report.txt", "nightly report\n"));
       mock.enqueue(readFileTurn("toolu_r_unattended", "report.txt"));
       mock.enqueue(anthropicText("Report written."));
-      const fired = await clients.routineCommand.fire({ value: routine.metadata!.id });
+      const fired = await clients.routineCommand.fire({ id: routine.metadata!.id });
       expect(fired.outcome, `the fire's refusal: ${fired.refusalReason}`).toBe(RoutineFireOutcome.STARTED);
       fixtures.defer(() => clients.agentExecutionCommand.delete({ value: fired.runId }).then(() => undefined, () => undefined));
 

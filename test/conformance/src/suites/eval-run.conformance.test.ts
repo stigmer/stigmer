@@ -97,7 +97,7 @@ import type { TenancyContext } from "../targets/target";
 let target: TargetProfile;
 // Read at collection time so an edition without an engine reports its cases
 // SKIPPED (the conformance guide's rule), never as passes that returned early.
-// `scheduleFiring` is the engine-backed flag the run and create-mints-id
+// `routineFiring` is the engine-backed flag the run and create-mints-id
 // suites gate the same boundary on.
 const capabilities = createTarget().capabilities;
 let clients: ConformanceClients;

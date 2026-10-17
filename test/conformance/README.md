@@ -828,7 +828,7 @@ src/
                     + run*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
                       structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, stigmer-mcp-stdio,
                       request-shape, tool-lists)
-                    + plugin-tools, run-plugins, mcp-caller-identity, mcp-server-address, vault-resolution, session-immutability, schedule-firing, billing-*  (Class B)
+                    + plugin-tools, run-plugins, mcp-caller-identity, mcp-server-address, vault-resolution, session-immutability, routine-firing, billing-*  (Class B)
                     + goldens/  (the request-shape facet's file goldens; regenerated only under a ruling)
 scripts/            check-inventory, cloud-fixtures-serve, benchmark-harnesses
 fixtures/           working-agent/ (the working agent as a plugin: its skills, sub-agent, MCP server, and its evals/ suite

@@ -110,7 +110,7 @@ export class EnterpriseTarget implements TargetProfile {
     versionTagging: true,
     skillArtifactTransferLane: true,
     // No Temporal and no runner behind this target, as on the plain local
-    // target: schedules cannot fire, and no runner acts for anyone.
+    // target: routines cannot fire, and no runner acts for anyone.
     routineFiring: false,
     runnerActsAsRunCreator: false,
     // The reserved-label guard admits the platform operator only, and this

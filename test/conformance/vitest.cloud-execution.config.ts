@@ -9,7 +9,7 @@
 //
 // Include-list curation (each exclusion deliberate, the vitest.cloud.config.ts
 // convention):
-// - schedule-firing is EXCLUDED: it needs the engine but no runner, so the
+// - routine-firing is EXCLUDED: it needs the engine but no runner, so the
 //   Class A cloud run already picks it up (see vitest.cloud.config.ts) —
 //   running it here would only double the nightly signal.
 // - open-computer-use is EXCLUDED: a local-only developer gate (macOS
@@ -31,7 +31,7 @@ export default defineConfig({
   test: {
     include: ["src/suites-execution/**/*.test.ts"],
     exclude: [
-      "src/suites-execution/schedule-firing.conformance.test.ts",
+      "src/suites-execution/routine-firing.conformance.test.ts",
       "src/suites-execution/open-computer-use.conformance.test.ts",
       "src/suites-execution/run-request-shape.conformance.test.ts",
     ],

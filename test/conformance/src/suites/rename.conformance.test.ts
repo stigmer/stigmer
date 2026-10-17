@@ -3,7 +3,7 @@
 // Domain: conformance suites.
 //
 // One table over the seven open-source kinds a person may rename (agent,
-// vault, schedule, channel, channel app, OAuth app, eval), each pinned the
+// vault, routine, channel, channel app, OAuth app, eval), each pinned the
 // same way:
 //   - rename keeps the id, and a read by the old slug answers the resource
 //     by its new slug;
@@ -20,7 +20,7 @@
 //     the old slug is the write arm, refused with SLUG_RENAMED, and the
 //     create arm expects that same refusal (nobody takes the held slug).
 // Then the references that named a renamed resource (a session's, a
-// schedule's and a channel's agent, a parent's subagent, a channel's app)
+// routine's and a channel's agent, a parent's subagent, a channel's app)
 // come back with its new slug, and an apply carrying the id finds the
 // resource by it, while the same file in another organization makes its
 // own. The hold's end is the server's own test (its clock is a parameter,
@@ -161,10 +161,10 @@ const KINDS: readonly RenamableKind[] = [
       }, updateMask: { paths: ["*"] } }),
   },
   {
-    title: "[rpc:ScheduleCommandController.rename] a schedule",
+    title: "[rpc:RoutineCommandController.rename] a routine",
     writeTitle:
-      "[rpc:ScheduleCommandController.rename] [rpc:ScheduleCommandController.apply] a schedule's",
-    noun: "Schedule",
+      "[rpc:RoutineCommandController.rename] [rpc:RoutineCommandController.apply] a routine's",
+    noun: "Routine",
     writeVerb: "apply",
     oldSlugCreateReason: "SLUG_RESERVED",
     create: async (org, name) => {
@@ -380,7 +380,7 @@ describe("a renamed resource keeps its id, and its old slug leads to it", () => 
 });
 
 describe("a reference that named a renamed resource comes back with its new slug", () => {
-  it("[rpc:AgentCommandController.rename] [rpc:ChannelAppCommandController.rename] [rpc:SessionQueryController.get] [rpc:ScheduleQueryController.get] [rpc:ChannelQueryController.get] [rpc:AgentQueryController.get] a session's, a schedule's and a channel's agent, a parent's subagent and a channel's app", async () => {
+  it("[rpc:AgentCommandController.rename] [rpc:ChannelAppCommandController.rename] [rpc:SessionQueryController.get] [rpc:RoutineQueryController.get] [rpc:ChannelQueryController.get] [rpc:AgentQueryController.get] a session's, a routine's and a channel's agent, a parent's subagent and a channel's app", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await agentInOrg(org, uniqueName("renamed-agent"));
     const parent = await agentInOrg(org, uniqueName("parent"), [agent.slug]);
@@ -442,9 +442,7 @@ describe("a reference that named a renamed resource comes back with its new slug
       value: routine.metadata!.id,
     });
     expect(
-      fired.spec?.target.case === "agent"
-        ? fired.spec.target.value.agentRef
-        : undefined,
+      fired.spec?.agent?.agentRef,
     ).toMatchObject({ id: agent.id, slug: agentSlug });
     const read = await clients.channelQuery.get({
       value: channel.metadata!.id,

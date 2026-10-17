@@ -3,11 +3,11 @@
 //   an empty entry set, the external id), the two entry-write targets (the
 //   caller's own My vault by `mine`, a vault by id), and each entry write's
 //   input carrying its target and its names, values or addresses.
-// - The `vaults` option of every surface builder (web channel, schedule,
+// - The `vaults` option of every surface builder (web channel, routine,
 //   session) names each vault by slug with the vault kind, and a builder
 //   given none sets no list; a session's includeMyVault is set only when
 //   given.
-// - A schedule's repository carries the token a fixture gives it, and a
+// - A routine's repository carries the token a fixture gives it, and a
 //   run's first-turn My vault choice rides its new session, refused beside
 //   an existing session id.
 // Pure: hand-built shapes, no target.
@@ -80,13 +80,11 @@ describe("the vaults option of the surface builders", () => {
     });
     expect(makeSessionSpec({}).includeMyVault).toBeUndefined();
 
-    const schedule = makeRoutine("acme", "nightly", "bot", {
+    const routine = makeRoutine("acme", "nightly", "bot", {
       vaults: slugs,
       repositories: [{ name: "app", url: "https://github.com/acme/app", token: "ghp-1" }],
     });
-    const target = schedule.spec?.target;
-    expect(target?.case).toBe("agent");
-    const invocation = target?.case === "agent" ? target.value : undefined;
+    const invocation = routine.spec?.agent;
     expect(invocation?.vaults).toEqual(VAULT_REFS);
     expect(invocation?.workspaceEntries?.[0]?.source?.source).toEqual({
       case: "gitRepo",
@@ -94,8 +92,8 @@ describe("the vaults option of the surface builders", () => {
     });
     const tokenless = makeRoutine("acme", "n", "bot", {
       repositories: [{ name: "app", url: "https://github.com/acme/app" }],
-    }).spec?.target;
-    expect(tokenless?.case === "agent" ? tokenless.value.workspaceEntries?.[0]?.source?.source : undefined).toEqual({
+    }).spec?.agent;
+    expect(tokenless?.workspaceEntries?.[0]?.source?.source).toEqual({
       case: "gitRepo",
       value: { url: "https://github.com/acme/app", token: "" },
     });

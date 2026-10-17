@@ -55,7 +55,7 @@ export class LocalTarget implements TargetProfile {
     enforcingAuthorizer: false,
     versionTagging: true,
     skillArtifactTransferLane: true,
-    // No Temporal behind this target at all — schedules cannot fire.
+    // No Temporal behind this target at all — routines cannot fire.
     routineFiring: false,
     // No runner behind this target either; the open-source runner's shape
     // is proven on local-execution, whose enforcing lane boots one.

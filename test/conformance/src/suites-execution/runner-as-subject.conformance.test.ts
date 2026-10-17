@@ -55,7 +55,7 @@
 //     token, is no person of their run, so their run reads no My vault,
 //     even their own and even when the conversation includes it: only the
 //     conversation's vaults and the organization's embedding vaults serve
-//     it (an integrator keeps such a user's keys in a vault it names). A schedule's
+//     it (an integrator keeps such a user's keys in a vault it names). A routine's
 //     vault stops serving its fires once the account that attached it may
 //     no longer use it. A member's run with memory
 //     on, whose agent calls `remember`, writes a Memory whose subject is the
@@ -1002,14 +1002,14 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(viaEmbedding?.vaultId).toBe(team.metadata!.id);
     });
 
-    it("[rpc:ScheduleCommandController.trigger] a schedule's vault stops serving its fires once the account that attached it may no longer use it", async (ctx) => {
+    it("[rpc:RoutineCommandController.fire] a routine's vault stops serving its fires once the account that attached it may no longer use it", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const tenancy: TenancyContext = await lane.provisionTenancy();
       fixtures.defer(() => lane.cleanupTenancy(tenancy));
       const org = tenancy.org;
 
       // An admin of the organization (not its owner, so the role can be
-      // taken away) authors an agent and a schedule, and attaches a PRIVATE
+      // taken away) authors an agent and a routine, and attaches a PRIVATE
       // shared vault the founder made: an admin may use it.
       const admin = await lane.provisionWithRole(tenancy, "admin");
       const adminId = await lane.accountIdOf(admin);
@@ -1050,7 +1050,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
 
       mock.enqueue(anthropicText("Scheduled work."));
       const allowed = await lane.clients.routineCommand.fire({
-        value: routine.metadata!.id,
+        id: routine.metadata!.id,
       });
       expect(
         allowed.outcome,
@@ -1074,11 +1074,11 @@ describe.skipIf(!runnerActsAsRunCreator)(
       const refused = await pollUntil(
         () =>
           lane.clients.routineCommand.fire({
-            value: routine.metadata!.id,
+            id: routine.metadata!.id,
           }),
         (result) => result.outcome !== RoutineFireOutcome.STARTED,
         (last, timeoutMs) =>
-          `the schedule still fired ${timeoutMs}ms after its attacher lost use of the vault (outcome ${last?.outcome})`,
+          `the routine still fired ${timeoutMs}ms after its attacher lost use of the vault (outcome ${last?.outcome})`,
       );
       expect(refused.runId).toBe("");
       expect(refused.refusalReason).toContain(

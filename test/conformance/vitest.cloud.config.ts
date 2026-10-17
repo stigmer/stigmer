@@ -16,10 +16,11 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    // schedule-firing is the one execution-class suite the cloud run picks
+    // routine-firing is the one execution-class suite the cloud run picks
     // up: firing needs the engine (which this environment boots) but no
-    // runner and no LLM (fires target a deleted agent and fail inside the
-    // tick), so it is the first Class B behavior assertable against cloud —
+    // runner and no LLM (its no-LLM fires are refused by the run create
+    // before any run exists), so it is the first Class B behavior
+    // assertable against cloud —
     // the full runner-backed Class B suites live in the cloud-execution run
     // (vitest.cloud-execution.config.ts).
     // plugin-oauth runs here like every other Class A suite: the
@@ -27,7 +28,7 @@ export default defineConfig({
     // the suite's pinned constant (server-process.ts).
     include: [
       "src/suites/**/*.conformance.test.ts",
-      "src/suites-execution/schedule-firing.conformance.test.ts",
+      "src/suites-execution/routine-firing.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-cloud.ts"],
     // Judges every test on the RPCs it sent: a `[rpc:...]` tag it never sent

@@ -1,6 +1,6 @@
 // Parent-gated create authorization: the create lanes whose target is
 // not a request field — a parent loaded from a reference (an agent to
-// schedule or make a channel for), or the organization a blueprint or
+// make a routine of or a channel for), or the organization a blueprint or
 // memory lands in. Each RPC is
 // `is_skip_authorization` on the wire where the target is loaded, and the
 // handler asks the bar its proto states once its resolve step has loaded
@@ -9,9 +9,9 @@
 //   - Plugin.push: the admin bar on the organization the plugin installs in
 //     (`can_create_plugin`), so a member is refused and an outsider naming
 //     the organization is refused, and neither refusal installs anything;
-//   - Schedule (`can_edit`) and Channel (`can_manage_audience`, every type)
+//   - Routine (`can_edit`) and Channel (`can_manage_audience`, every type)
 //     on the referenced agent, so a member who may run an org-visible agent
-//     may not schedule it or make a channel for it, and an outsider is
+//     may not make a routine of it or a channel for it, and an outsider is
 //     refused; the admin may;
 //   - Memory.create: an outsider naming an organization is refused; a member
 //     remembers there once both the organization and the member have
@@ -102,7 +102,7 @@ async function castOf(lane: EnforcingLane): Promise<Cast> {
 // the annotation family's where the check is new.
 const PLUGIN_ORG_DENIED =
   "unauthorized to install plugin in this organization";
-const ROUTINE_DENIED = "You don't have permission to schedule this agent";
+const ROUTINE_DENIED = "You don't have permission to make a routine of this agent";
 const CHANNEL_DENIED =
   "You don't have permission to make a channel for this agent";
 const MEMORY_ORG_DENIED = "unauthorized to capture memory in this organization";
@@ -170,8 +170,8 @@ describe("Plugin.push asks the blueprint bar", () => {
   });
 });
 
-describe("Schedule and Channel ask their bar on the referenced agent", () => {
-  it("[rpc:ScheduleCommandController.create] [rpc:ChannelCommandController.create] an admin schedules an org-visible agent and makes a web and a Slack channel for it; a member who may run it may not; an outsider is refused", async (ctx) => {
+describe("Routine and Channel ask their bar on the referenced agent", () => {
+  it("[rpc:RoutineCommandController.create] [rpc:ChannelCommandController.create] an admin makes a routine of an org-visible agent and a web and a Slack channel for it; a member who may run it may not; an outsider is refused", async (ctx) => {
     const c = await castOf(laneOrSkip(ctx));
     const agent = await seedAgent(c, ORG_VISIBLE);
     const slug = agent.metadata!.slug;
@@ -207,7 +207,7 @@ describe("Schedule and Channel ask their bar on the referenced agent", () => {
             }),
           ),
         ROUTINE_DENIED,
-        `${who} schedules the agent`,
+        `${who} makes a routine of the agent`,
       );
       await expectDenied(
         () =>

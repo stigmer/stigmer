@@ -117,7 +117,7 @@ import type { TenancyContext } from "../targets/target";
 let target: TargetProfile;
 // Read at collection time so an edition without an engine (or without a
 // capability) reports its cases SKIPPED, never as passes that returned
-// early. `scheduleFiring` is the engine-backed flag the eval run about a
+// early. `routineFiring` is the engine-backed flag the eval run about a
 // plugin's suite and create-mints-id gate the same boundary on.
 const capabilities = createTarget().capabilities;
 let clients: ConformanceClients;

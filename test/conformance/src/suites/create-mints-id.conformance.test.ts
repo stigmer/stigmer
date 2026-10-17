@@ -29,7 +29,7 @@
 // Two rows depend on the edition. An execution create needs a Temporal engine
 // behind the server: the plain local targets refuse it Unavailable before any
 // id is minted (pinned by the run suite), so that row runs where
-// `scheduleFiring` (the engine-backed flag that suite gates the same boundary
+// `routineFiring` (the engine-backed flag that suite gates the same boundary
 // on) holds. On the open-source server the execution class pins the same rule
 // with an engine behind it ("create never keeps a metadata.id the caller
 // sent" in the run suite). Memory
@@ -370,8 +370,8 @@ const ROWS: readonly Row[] = [
     },
   },
   {
-    title: "[rpc:ScheduleCommandController.create] Schedule",
-    key: "ScheduleCommandController.create",
+    title: "[rpc:RoutineCommandController.create] Routine",
+    key: "RoutineCommandController.create",
     kind: ApiResourceKind.routine,
     async send({ org }, chosenId) {
       const agent = await agentIn(org);
@@ -388,8 +388,8 @@ const ROWS: readonly Row[] = [
     },
   },
   {
-    title: "[rpc:ScheduleCommandController.apply] Schedule (apply as a create)",
-    key: "ScheduleCommandController.apply",
+    title: "[rpc:RoutineCommandController.apply] Routine (apply as a create)",
+    key: "RoutineCommandController.apply",
     kind: ApiResourceKind.routine,
     async send({ org }, chosenId) {
       const agent = await agentIn(org);

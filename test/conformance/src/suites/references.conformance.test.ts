@@ -8,14 +8,14 @@
 //     different resources is refused INVALID_ARGUMENT;
 //   - delete and remake: when the agent a reference names is deleted and
 //     another agent takes its name, the reference keeps naming the deleted
-//     one (its id, and no slug): a session's agent, a schedule's fire, and
-//     the list filters keyed on an agent id (channels, schedules)
-//     never move to the newcomer (a channel goes with its agent, so the
-//     newcomer lists none and neither does the deleted agent).
+//     one (its id, and no slug): a session's agent and the list filters
+//     keyed on an agent id (channels, routines) never move to the newcomer
+//     (a channel and a routine go with their agent, so the newcomer lists
+//     none, the deleted agent lists none, and a routine of the deleted
+//     agent is gone rather than running the newcomer).
 // Edition-unconditional: no Temporal, no runner.
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { RoutineFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -23,7 +23,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { makeSlackChannel } from "../support/channels";
 import { makeAgent } from "../support/agents";
 import { uniqueName } from "../support/naming";
-import { makeRoutine, targetMissingReason } from "../support/routines";
+import { makeRoutine } from "../support/routines";
 import { makeSession } from "../support/sessions";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -117,24 +117,29 @@ describe("delete and remake: a reference never moves to a newcomer that takes a 
     expect(read.status?.agentId).toBe(before.id);
   });
 
-  it("[rpc:ScheduleCommandController.trigger] a schedule's fire refuses TARGET_MISSING naming the deleted agent, and never runs the newcomer", async () => {
+  it("[rpc:RoutineQueryController.get] [rpc:RoutineCommandController.fire] a routine goes with its agent, so it never runs a newcomer that took the agent's name", async () => {
     const { org } = await target.provisionTenancy();
-    const slug = uniqueName("remade-sched");
+    const slug = uniqueName("remade-routine");
     const before = await createAgent(org, slug);
-    const routine = await clients.routineCommand.create(makeRoutine(org, uniqueName("sched"), slug));
+    const routine = await clients.routineCommand.create(makeRoutine(org, uniqueName("routine"), slug));
     fixtures.defer(() => clients.routineCommand.delete({ value: routine.metadata!.id }));
 
     await clients.agentCommand.delete({ value: before.id });
     await createAgent(org, slug);
 
-    const fired = await clients.routineCommand.fire({ value: routine.metadata!.id });
-    expect(fired.outcome).toBe(RoutineFireOutcome.TARGET_MISSING);
-    // The reason names the organization by the id the reference holds.
-    expect(fired.refusalReason).toBe(targetMissingReason(routine.metadata!.org, before.id));
-    expect(fired.runId).toBe("");
+    await expectGrpcCode(
+      () => clients.routineQuery.get({ value: routine.metadata!.id }),
+      Code.NotFound,
+      "a routine whose agent was deleted",
+    );
+    await expectGrpcCode(
+      () => clients.routineCommand.fire({ id: routine.metadata!.id }),
+      Code.NotFound,
+      "firing a routine whose agent was deleted",
+    );
   });
 
-  it("[rpc:ChannelQueryController.listByAgent] [rpc:ScheduleQueryController.listByAgent] the lists keyed on an agent id answer the agent they were written for, never the newcomer", async () => {
+  it("[rpc:ChannelQueryController.listByAgent] [rpc:RoutineQueryController.listByAgent] the lists keyed on an agent id answer the agent they were written for, never the newcomer", async () => {
     const { org } = await target.provisionTenancy();
     const slug = uniqueName("remade-lists");
     const before = await createAgent(org, slug);
@@ -153,9 +158,10 @@ describe("delete and remake: a reference never moves to a newcomer that takes a 
 
     const keptChannels = await clients.channelQuery.listByAgent({ agentId: before.id, org });
     const keptRoutines = await clients.routineQuery.listByAgent({ agentId: before.id, org });
-    // A channel goes with its agent (channel.conformance.test.ts), so the
-    // deleted agent's list is empty too: neither id lists the old channel.
+    // A channel and a routine go with their agent (channel.conformance.test.ts,
+    // routine.conformance.test.ts), so the deleted agent's lists are empty
+    // too: neither id lists the old channel or the old routine.
     expect(keptChannels.entries.map((c) => c.metadata?.id)).toEqual([]);
-    expect(keptRoutines.entries.map((s) => s.metadata?.id)).toEqual([routine.metadata!.id]);
+    expect(keptRoutines.entries.map((s) => s.metadata?.id)).toEqual([]);
   });
 });

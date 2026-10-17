@@ -194,8 +194,8 @@ const KINDS: ReadonlyArray<UpdatableKind> = [
       snapshotOf(SessionSpecSchema, await clients.sessionCommand.update({ resource: { metadata }, updateMask: { paths } })),
   },
   {
-    noun: "Schedule",
-    rpc: "ScheduleCommandController.update",
+    noun: "Routine",
+    rpc: "RoutineCommandController.update",
     create: async (org) => {
       const agent = await agentIn(org);
       const routine = await clients.routineCommand.create(makeRoutine(org, uniqueName("upd-sched"), agent.slug));

@@ -2,7 +2,7 @@
 //
 // Domain: agentic — where each value a run uses lives (the run's source
 // manifest, planned at create) and what the runner fetches from those vaults
-// when the work starts, exercised through Run and Schedule. The contract:
+// when the work starts, exercised through Run and Routine. The contract:
 //   - what a run needs is what its agent declares, what each MCP server of
 //     each plugin it lists reads (declared `plugin:<plugin>:<server>`, by
 //     the plugin's id and the server's name), and a token for each
@@ -12,7 +12,7 @@
 //   - values come from, in order: the sender's My vault when the
 //     conversation includes it (include_my_vault), then the conversation's
 //     vaults; a conversation that leaves My vault out never reads it; for a
-//     run with no person (a schedule's), only the schedule's vaults;
+//     run with no person (a routine's), only the routine's vaults;
 //   - a plain setting may carry its value in the declaration, and a vault
 //     secret of the same name takes its place;
 //   - a required key found nowhere refuses the create with
@@ -32,7 +32,7 @@
 //
 // The two-person arms (each sender's turn uses their own My vault, never a
 // teammate's; a run reads only the vaults its conversation chose; a
-// revoked use stops a schedule's next fire) run on the enforcing execution
+// revoked use stops a routine's next fire) run on the enforcing execution
 // lane in runner-as-subject.conformance.test.ts.
 //
 // Observation strategy: the manifest is stamped SYNCHRONOUSLY inside the
@@ -915,35 +915,35 @@ describe("vault resolution — the agent's shell", () => {
   });
 });
 
-// A schedule's fire has no person: it uses only the vaults the schedule
-// names, never its owner's My vault unless the owner attached it.
-describe.skipIf(!firingEnabled)("vault resolution — a schedule's fire (scheduleFiring targets)", () => {
+// A routine's fire uses only the vaults the routine names, never its
+// owner's My vault unless the owner attached it.
+describe.skipIf(!firingEnabled)("vault resolution — a routine's fire (routineFiring targets)", () => {
   async function routineOn(org: string, env: Record<string, EnvVarDeclarationInit>, vaults: string[] = []) {
-    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("sched-agent"), env }));
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("routine-agent"), env }));
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
     const routine = await clients.routineCommand.create(
-      makeRoutine(org, uniqueName("sched-vault"), agent.metadata!.slug, { vaults }),
+      makeRoutine(org, uniqueName("routine-vault"), agent.metadata!.slug, { vaults }),
     );
     fixtures.defer(() => clients.routineCommand.delete({ value: routine.metadata!.id }));
     return routine;
   }
 
-  it("[rpc:ScheduleCommandController.trigger] a fire never reads its owner's My vault: a key only there refuses the fire, naming the key and the schedule", async () => {
+  it("[rpc:RoutineCommandController.fire] a fire never reads its owner's My vault: a key only there refuses the fire, naming the key and the routine", async () => {
     const { org } = await target.provisionTenancy();
     await saveToMyVault(org, { SCHED_KEY: "owner-value" });
     const routine = await routineOn(org, { SCHED_KEY: {} });
 
-    const result = await clients.routineCommand.fire({ value: routine.metadata!.id });
+    const result = await clients.routineCommand.fire({ id: routine.metadata!.id });
 
     expect(result.outcome, "a person-less fire with a key nowhere it may look is refused").not.toBe(
       RoutineFireOutcome.STARTED,
     );
     expect(result.runId).toBe("");
     expect(result.refusalReason).toContain("needs SCHED_KEY");
-    expect(result.refusalReason).toContain("ask the owner of schedule");
+    expect(result.refusalReason).toContain("ask the owner of routine");
   });
 
-  it("[rpc:ScheduleCommandController.trigger] a fire uses the schedule's own vaults", async () => {
+  it("[rpc:RoutineCommandController.fire] a fire uses the routine's own vaults", async () => {
     const { org } = await target.provisionTenancy();
     await saveToMyVault(org, { SCHED_KEY: "owner-value", OWNER_ONLY_KEY: "owner-only" });
     const team = await sharedVaultWith(org, { SCHED_KEY: "schedule-value" });
@@ -951,7 +951,7 @@ describe.skipIf(!firingEnabled)("vault resolution — a schedule's fire (schedul
     expect(Object.values(routine.status?.vaultAttachers ?? {}), "the attacher is recorded").toHaveLength(1);
 
     mock.enqueue(anthropicText("Scheduled work..."), { delayMs: HOLD_MS });
-    const result = await clients.routineCommand.fire({ value: routine.metadata!.id });
+    const result = await clients.routineCommand.fire({ id: routine.metadata!.id });
     expect(result.outcome, `fire refused: ${result.refusalReason}`).toBe(RoutineFireOutcome.STARTED);
     fixtures.defer(async () => {
       await interruptRunSession(clients, result.runId).catch(() => {});
@@ -960,21 +960,21 @@ describe.skipIf(!firingEnabled)("vault resolution — a schedule's fire (schedul
 
     const sources = await runSourcesOf(clients, result.runId);
     expect(sourcesFor(sources, "OWNER_ONLY_KEY"), "the fire never reads its owner's My vault").toEqual([]);
-    const scheduled = agentSourceOf(sources, "SCHED_KEY");
-    expect(scheduled?.origin, "the schedule's vault fills the key").toBe(RunValueOrigin.SURFACE_VAULT);
-    expect(scheduled?.vaultId).toBe(team.id);
+    const routines = agentSourceOf(sources, "SCHED_KEY");
+    expect(routines?.origin, "the routine's vault fills the key").toBe(RunValueOrigin.SURFACE_VAULT);
+    expect(routines?.vaultId).toBe(team.id);
     const fired = await clients.agentExecutionQuery.get({ value: result.runId });
     expect(fired.status?.credentials?.person, "a fire records no person").toBeUndefined();
   });
 
-  it("[rpc:ScheduleCommandController.create] a schedule may carry its owner's own My vault, and its fires use it", async () => {
+  it("[rpc:RoutineCommandController.create] a routine may carry its owner's own My vault, and its fires use it", async () => {
     const { org } = await target.provisionTenancy();
     const mineId = await saveToMyVault(org, { OWNERS_KEY: "owners-own" });
     const mine = await clients.vaultQuery.get({ value: mineId });
     const routine = await routineOn(org, { OWNERS_KEY: {} }, [mine.metadata!.slug]);
 
     mock.enqueue(anthropicText("Scheduled work..."), { delayMs: HOLD_MS });
-    const result = await clients.routineCommand.fire({ value: routine.metadata!.id });
+    const result = await clients.routineCommand.fire({ id: routine.metadata!.id });
     expect(result.outcome, `fire refused: ${result.refusalReason}`).toBe(RoutineFireOutcome.STARTED);
     fixtures.defer(async () => {
       await interruptRunSession(clients, result.runId).catch(() => {});
@@ -985,11 +985,11 @@ describe.skipIf(!firingEnabled)("vault resolution — a schedule's fire (schedul
     expect(owners?.vaultId).toBe(mineId);
   });
 
-  it("[rpc:ScheduleCommandController.create] a schedule's repository cannot carry a token: it names a vault instead", async () => {
+  it("[rpc:RoutineCommandController.create] a routine's repository cannot carry a token: it names a vault instead", async () => {
     const { org } = await target.provisionTenancy();
-    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("sched-repo-agent") }));
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("routine-repo-agent") }));
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-    const input = makeRoutine(org, uniqueName("sched-repo"), agent.metadata!.slug, {
+    const input = makeRoutine(org, uniqueName("routine-repo"), agent.metadata!.slug, {
       repositories: [{ name: "repo", url: "https://github.com/acme/repo", token: "ghp-inline" }],
     });
     let refused: ConnectError | undefined;
