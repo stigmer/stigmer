@@ -1,8 +1,9 @@
 // Pins the routine fixtures and the fire bytes in support/routines.ts: the
 // fenced text a fire call's run is told (a text cannot close the block or
 // open a second one, in any case), the message assembled around the line
-// the server renders, the shape of a fire call's run name, and a routine
-// with no schedule carrying no cron and no zone.
+// the server renders, the shape of a fire call's run name, a routine with
+// no schedule carrying no cron and no zone, and the refusal of a zone the
+// tz database does not hold, which names the zone and an example.
 import { describe, expect, it } from "vitest";
 
 import {
@@ -11,6 +12,7 @@ import {
   fencedFireText,
   fireCallMessage,
   fireCallRunNamePrefix,
+  invalidTimeZoneMessage,
   makeRoutine,
 } from "../routines";
 
@@ -70,5 +72,13 @@ describe("makeRoutine", () => {
     const routine = makeRoutine("acme", "daily", "bot");
     expect(routine.spec?.cron).toBe("0 9 * * *");
     expect(routine.spec?.timeZone).toBe("Asia/Kolkata");
+  });
+});
+
+describe("invalidTimeZoneMessage", () => {
+  it("names the zone it refuses and a zone it would take", () => {
+    expect(invalidTimeZoneMessage("Mars/Olympus")).toBe(
+      'spec.time_zone "Mars/Olympus" is not a valid IANA time zone (e.g. "Asia/Kolkata")',
+    );
   });
 });

@@ -1048,8 +1048,10 @@ describe.skipIf(!runnerActsAsRunCreator)(
         adminId,
       );
 
+      // The admin fires it: a routine is fired by its owner and the people
+      // they make Participants, never by an organization's other admins.
       mock.enqueue(anthropicText("Scheduled work."));
-      const allowed = await lane.clients.routineCommand.fire({
+      const allowed = await admin.routineCommand.fire({
         id: routine.metadata!.id,
       });
       expect(
@@ -1063,8 +1065,9 @@ describe.skipIf(!runnerActsAsRunCreator)(
           .catch(() => undefined);
       });
 
-      // The admin becomes a member: no longer one who may use the private
-      // vault. The next fire refuses, naming the vault.
+      // The admin becomes a member: still the routine's owner, but no longer
+      // one who may use the private vault. The next fire refuses, naming the
+      // vault.
       await lane.clients.grantCommand.create(
         organizationRole(adminId, "member", org),
       );
@@ -1073,7 +1076,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       );
       const refused = await pollUntil(
         () =>
-          lane.clients.routineCommand.fire({
+          admin.routineCommand.fire({
             id: routine.metadata!.id,
           }),
         (result) => result.outcome !== RoutineFireOutcome.STARTED,

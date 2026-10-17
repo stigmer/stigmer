@@ -476,6 +476,18 @@ describe("RoutineDetailView", () => {
     await waitFor(() => expect(onDeleted).toHaveBeenCalledOnce());
   });
 
+  it("copies the routine's id from the actions menu", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    renderView(makeClient(makeRoutine()));
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    await openMenu(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Copy ID" }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith("sch_01example"));
+  });
+
   it("renders references as plain text without navigation callbacks", async () => {
     renderView(makeClient(makeRoutine()));
 

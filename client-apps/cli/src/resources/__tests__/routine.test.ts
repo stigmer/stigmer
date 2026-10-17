@@ -4,9 +4,13 @@
 // and the next scheduled fire; a refused run (a launch gate, or a target
 // agent that is gone) is an error result relaying the server's reason
 // verbatim with a hint that the fire is recorded; a routine with no id is a
-// usage error and fires nothing. The client is a double recording what it was
-// asked. The routine here keeps the `sch_` id a stored schedule was minted
-// with, which still names it.
+// usage error and fires nothing. And for resumeRoutine, the `routine resume`
+// dispatch: a paused routine's resume names what it cleared, one that was not
+// paused says there was nothing to clear and when it next fires, a disabled
+// one is told it will not run until enabled, and a routine with no id is a
+// usage error that resumes nothing. The client is a double recording what it
+// was asked. The routine here keeps the `sch_` id a stored schedule was
+// minted with, which still names it.
 
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
@@ -21,7 +25,7 @@ import type { Stigmer } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { UsageError } from "../../errors/index.js";
 import type { CommandResult } from "../../output/index.js";
-import { fireRoutine } from "../routine.js";
+import { fireRoutine, resumeRoutine } from "../routine.js";
 
 const NEXT_FIRE = new Date("2026-10-07T09:00:00.000Z");
 
@@ -128,5 +132,75 @@ describe("fireRoutine", () => {
       new UsageError("Routine 'sch_1' has no id — cannot fire"),
     );
     expect(fired).toEqual([]);
+  });
+});
+
+describe("resumeRoutine", () => {
+  /** A client whose routine get answers `before` and whose resume answers `after`. */
+  function resumable(before: Routine, after: Routine): { client: Stigmer; resumed: string[] } {
+    const resumed: string[] = [];
+    const client = {
+      routine: {
+        get: async () => before,
+        resume: async (id: string) => {
+          resumed.push(id);
+          return after;
+        },
+      },
+    } as unknown as Stigmer;
+    return { client, resumed };
+  }
+
+  const cleared = create(RoutineSchema, {
+    metadata: { id: "sch_1", slug: "nightly", name: "Nightly digest" },
+    spec: { enabled: true },
+    status: { nextFireAt: timestampFromDate(NEXT_FIRE) },
+  });
+
+  it("names the pause it cleared and the failures it reset", async () => {
+    const paused = create(RoutineSchema, {
+      metadata: { id: "sch_1", slug: "nightly", name: "Nightly digest" },
+      spec: { enabled: true },
+      status: { pausedReason: "Paused after 2 consecutive failed runs", consecutiveFailures: 2 },
+    });
+    const { client, resumed } = resumable(paused, cleared);
+
+    const result = await resumeRoutine(client, "sch_1", "acme");
+
+    expect(resumed).toEqual(["sch_1"]);
+    expect(result.message).toBe("Routine 'Nightly digest' resumed");
+    expect(fields(result)).toEqual({
+      "Pause reason": "Paused after 2 consecutive failed runs",
+      "Consecutive failures": "2",
+      "Next fire": NEXT_FIRE.toISOString(),
+    });
+  });
+
+  it("says there was nothing to clear for a routine that was not paused", async () => {
+    const { client } = resumable(cleared, cleared);
+
+    const result = await resumeRoutine(client, "sch_1", "acme");
+
+    expect(result.message).toBe("Routine 'Nightly digest' was not paused — nothing to clear");
+    expect(fields(result)).toEqual({ "Next fire": NEXT_FIRE.toISOString() });
+  });
+
+  it("tells a disabled routine's owner it will not run until enabled", async () => {
+    const disabled = create(RoutineSchema, { metadata: { id: "sch_1", slug: "nightly" }, spec: { enabled: false } });
+    const { client } = resumable(disabled, disabled);
+
+    const result = await resumeRoutine(client, "sch_1", "acme");
+
+    expect(result.message).toBe("Routine 'nightly' was not paused — nothing to clear");
+    expect(result.hints[0]).toBe("This routine is disabled (enabled: false) — it will not run until you enable it:");
+  });
+
+  it("refuses a routine with no id and resumes nothing", async () => {
+    const { client, resumed } = resumable(create(RoutineSchema, { metadata: { slug: "nightly" } }), cleared);
+
+    await expect(resumeRoutine(client, "sch_1", "acme")).rejects.toThrow(
+      new UsageError("Routine 'sch_1' has no id — cannot resume"),
+    );
+    expect(resumed).toEqual([]);
   });
 });

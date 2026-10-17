@@ -231,15 +231,17 @@ export function RoutineDetailView({
     message: string;
   } | null>(null);
 
+  // Takes the routine its editor rendered with: the editors render only
+  // once the routine has loaded, so the save never runs without one.
   const saveSpecField = useCallback(
     async (
+      current: Routine,
       field: string,
       mutate: (spec: RoutineSpec) => void,
     ): Promise<boolean> => {
-      if (!routine) return false;
       setSaveError(null);
       try {
-        await updateSpec(routine, mutate);
+        await updateSpec(current, mutate);
         refetch();
         return true;
       } catch (err) {
@@ -250,7 +252,7 @@ export function RoutineDetailView({
         return false;
       }
     },
-    [routine, updateSpec, refetch],
+    [updateSpec, refetch],
   );
 
   const builtInTabs = useMemo<readonly TabItem[]>(
@@ -525,7 +527,7 @@ export function RoutineDetailView({
                 cron={spec?.cron ?? ""}
                 timeZone={spec?.timeZone ?? ""}
                 onSave={(cron, timeZone) =>
-                  saveSpecField("cadence", (s) => {
+                  saveSpecField(routine, "cadence", (s) => {
                     s.cron = cron;
                     s.timeZone = timeZone;
                   })
@@ -573,7 +575,7 @@ export function RoutineDetailView({
                 value={target.message ?? ""}
                 placeholder="The instruction the agent receives on every fire — write it for a run with no human present."
                 onSave={(v) =>
-                  saveSpecField("message", (s) => {
+                  saveSpecField(routine, "message", (s) => {
                     if (s.agent !== undefined) {
                       s.agent.message = v.trim();
                     }
@@ -598,7 +600,7 @@ export function RoutineDetailView({
                 refs={target.vaults ?? []}
                 creatorId={specAudit?.createdBy?.id ?? ""}
                 onSave={(refs) =>
-                  saveSpecField("vaults", (s) => {
+                  saveSpecField(routine, "vaults", (s) => {
                     if (s.agent !== undefined) {
                       s.agent.vaults = refs.map((r) =>
                         create(ApiResourceReferenceSchema, {
@@ -635,7 +637,7 @@ export function RoutineDetailView({
               <EngineModelInlineEditor
                 invocation={target}
                 onSave={(harness, modelName, serviceTier, thinkingMode) =>
-                  saveSpecField("engine-model", (s) => {
+                  saveSpecField(routine, "engine-model", (s) => {
                     if (s.agent !== undefined) {
                       applyEngineModel(s.agent, harness, modelName, serviceTier, thinkingMode);
                     }
@@ -657,7 +659,7 @@ export function RoutineDetailView({
               <BudgetInlineEditor
                 config={target.runConfig}
                 onSave={(maxCostUsd) =>
-                  saveSpecField("budget", (s) => {
+                  saveSpecField(routine, "budget", (s) => {
                     if (s.agent !== undefined) {
                       applyBudget(s.agent, maxCostUsd);
                     }
