@@ -622,7 +622,7 @@ The run acts as the routine's owner and starts a new conversation, with the rout
 
 The fire runs synchronously through the standard run create pipeline (every launch gate runs), and the result names what happened: the created run's id, or the refusing gate's own copy verbatim. status.last_fire_at and status.last_run_id record a started run. A fire does NOT feed the failure streak: the streak is the schedule's unattended health signal, and a test fire of a broken routine must not race its owner to the pause threshold.
 
-A disabled routine refuses (enable it first). A platform-paused routine MAY be fired: a test fire is exactly how an owner verifies a fix before resuming; resume remains the one path that clears the pause.
+A disabled routine refuses (enable it first). A platform-paused routine MAY be fired: a test fire is exactly how an owner verifies a fix before resuming; resume remains the one path that clears the pause. A routine started by hand as often as the server allows in an hour (30 by default) refuses until the hour has room again; the routine's own schedule is never limited by it.
 
 <SDKTabs>
 <Tab value="TypeScript">

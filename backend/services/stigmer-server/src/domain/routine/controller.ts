@@ -153,6 +153,7 @@ import {
   newValidateFireableStep,
   type RunnerProvider,
 } from "./fire.js";
+import { newValidateFireRateStep } from "./fire-rate.js";
 import { newOwnersLockStep } from "./owners-lock.js";
 import { newVaultAttachmentsStep } from "../vault/attachments.js";
 import { ROUTINE_VAULT_ATTACHMENTS } from "./vault-attachments.js";
@@ -191,6 +192,8 @@ export interface RoutineControllerDeps {
   readonly ownerAccounts: AccountsByCaller | undefined;
   /** The composed list read scope — list/listByAgent narrow through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
+  /** Hand fires allowed per routine per hour (fire-rate.ts); below 1, no limit. */
+  readonly firesPerHour: number;
 }
 
 /** Registers both routine services on the router (routes stage). */
@@ -498,6 +501,12 @@ async function fire(
     .addStep(newExtractFireRoutineIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, RoutineSchema))
     .addStep(newValidateFireableStep())
+    .addStep(
+      newValidateFireRateStep({
+        store: deps.store,
+        firesPerHour: deps.firesPerHour,
+      }),
+    )
     .addStep(
       newFireDirectRunStep({
         store: deps.store,

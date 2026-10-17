@@ -433,7 +433,10 @@ public final class RoutineCommandControllerGrpc {
      * race its owner to the pause threshold.
      * A disabled routine refuses (enable it first). A platform-paused routine
      * MAY be fired: a test fire is exactly how an owner verifies a fix before
-     * resuming; resume remains the one path that clears the pause.
+     * resuming; resume remains the one path that clears the pause. A routine
+     * started by hand as often as the server allows in an hour (30 by
+     * default) refuses until the hour has room again; the routine's own
+     * schedule is never limited by it.
      * </pre>
      */
     default void fire(ai.stigmer.agentic.routine.v1.FireRoutineInput request,
@@ -616,7 +619,10 @@ public final class RoutineCommandControllerGrpc {
      * race its owner to the pause threshold.
      * A disabled routine refuses (enable it first). A platform-paused routine
      * MAY be fired: a test fire is exactly how an owner verifies a fix before
-     * resuming; resume remains the one path that clears the pause.
+     * resuming; resume remains the one path that clears the pause. A routine
+     * started by hand as often as the server allows in an hour (30 by
+     * default) refuses until the hour has room again; the routine's own
+     * schedule is never limited by it.
      * </pre>
      */
     public void fire(ai.stigmer.agentic.routine.v1.FireRoutineInput request,
@@ -780,7 +786,10 @@ public final class RoutineCommandControllerGrpc {
      * race its owner to the pause threshold.
      * A disabled routine refuses (enable it first). A platform-paused routine
      * MAY be fired: a test fire is exactly how an owner verifies a fix before
-     * resuming; resume remains the one path that clears the pause.
+     * resuming; resume remains the one path that clears the pause. A routine
+     * started by hand as often as the server allows in an hour (30 by
+     * default) refuses until the hour has room again; the routine's own
+     * schedule is never limited by it.
      * </pre>
      */
     public ai.stigmer.agentic.routine.v1.RoutineFireResult fire(ai.stigmer.agentic.routine.v1.FireRoutineInput request) throws io.grpc.StatusException {
@@ -943,7 +952,10 @@ public final class RoutineCommandControllerGrpc {
      * race its owner to the pause threshold.
      * A disabled routine refuses (enable it first). A platform-paused routine
      * MAY be fired: a test fire is exactly how an owner verifies a fix before
-     * resuming; resume remains the one path that clears the pause.
+     * resuming; resume remains the one path that clears the pause. A routine
+     * started by hand as often as the server allows in an hour (30 by
+     * default) refuses until the hour has room again; the routine's own
+     * schedule is never limited by it.
      * </pre>
      */
     public ai.stigmer.agentic.routine.v1.RoutineFireResult fire(ai.stigmer.agentic.routine.v1.FireRoutineInput request) {
@@ -1112,7 +1124,10 @@ public final class RoutineCommandControllerGrpc {
      * race its owner to the pause threshold.
      * A disabled routine refuses (enable it first). A platform-paused routine
      * MAY be fired: a test fire is exactly how an owner verifies a fix before
-     * resuming; resume remains the one path that clears the pause.
+     * resuming; resume remains the one path that clears the pause. A routine
+     * started by hand as often as the server allows in an hour (30 by
+     * default) refuses until the hour has room again; the routine's own
+     * schedule is never limited by it.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.routine.v1.RoutineFireResult> fire(

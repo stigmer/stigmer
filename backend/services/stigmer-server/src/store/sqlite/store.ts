@@ -1442,6 +1442,21 @@ export class SqliteStore implements Store {
     }));
   }
 
+  async countRoutineFiresSince(
+    routineId: string,
+    origin: string,
+    recordedSince: string,
+  ): Promise<number> {
+    // idx_routine_fires_recency (routine_id, recorded_at DESC) serves the range.
+    const row = this.open()
+      .prepare(
+        `SELECT COUNT(*) AS fired FROM routine_fires
+          WHERE routine_id = ? AND origin = ? AND recorded_at >= ?`,
+      )
+      .get(routineId, origin, recordedSince) as { fired: number } | undefined;
+    return Number(row?.fired ?? 0);
+  }
+
   async deleteRoutineFiresByRoutine(routineId: string): Promise<number> {
     const db = this.open();
     const result = db

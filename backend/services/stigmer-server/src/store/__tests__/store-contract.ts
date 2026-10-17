@@ -1253,6 +1253,24 @@ export function describeStoreContract(
       expect(await fx.store.pruneRoutineFires("2026-08-20T00:01:00Z")).toBe(1);
       expect(await fx.store.deleteRoutineFiresByRoutine("rtn_1")).toBe(2);
     });
+
+    it("counts one routine's fires of one origin recorded since an instant, inclusive", async () => {
+      const fires: ReadonlyArray<[string, string, string, string]> = [
+        ["rtn_1", "m-early", "manual", "2026-08-20T00:59:59Z"],
+        ["rtn_1", "m-edge", "manual", "2026-08-20T01:00:00Z"],
+        ["rtn_1", "m-late", "manual", "2026-08-20T01:30:00Z"],
+        ["rtn_1", "tick", "schedule", "2026-08-20T01:10:00Z"],
+        ["rtn_2", "m-other", "manual", "2026-08-20T01:20:00Z"],
+      ];
+      for (const [routineId, fireId, origin, recordedAt] of fires) {
+        await fx.store.upsertRoutineFire({ ...baseRun, routineId, fireId, origin, recordedAt });
+      }
+
+      expect(await fx.store.countRoutineFiresSince("rtn_1", "manual", "2026-08-20T01:00:00Z")).toBe(2);
+      expect(await fx.store.countRoutineFiresSince("rtn_1", "schedule", "2026-08-20T01:00:00Z")).toBe(1);
+      expect(await fx.store.countRoutineFiresSince("rtn_1", "manual", "2026-08-20T02:00:00Z")).toBe(0);
+      expect(await fx.store.countRoutineFiresSince("rtn_missing", "manual", "")).toBe(0);
+    });
   });
 
   describe("search index (engine-neutral read semantics)", () => {

@@ -1467,6 +1467,20 @@ export class PostgresStore implements Store {
     }));
   }
 
+  async countRoutineFiresSince(
+    routineId: string,
+    origin: string,
+    recordedSince: string,
+  ): Promise<number> {
+    // idx_routine_fires_recency (routine_id, recorded_at DESC) serves the range.
+    const result = await this.open().query<{ fired: string }>(
+      `SELECT COUNT(*) AS fired FROM routine_fires
+        WHERE routine_id = $1 AND origin = $2 AND recorded_at >= $3`,
+      [routineId, origin, recordedSince],
+    );
+    return Number(result.rows[0]?.fired ?? 0);
+  }
+
   async deleteRoutineFiresByRoutine(routineId: string): Promise<number> {
     const result = await this.open().query(
       `DELETE FROM routine_fires WHERE routine_id = $1`,

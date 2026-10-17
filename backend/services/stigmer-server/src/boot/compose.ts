@@ -1947,6 +1947,7 @@ export async function composeServer(
       ownerAccounts: requireAuthentication ? identityAccounts : undefined,
       authorizationLifecycle,
       listReadScope,
+      firesPerHour: config.routineFiresPerHour,
     });
     registerMemoryServices(router, {
       store,
