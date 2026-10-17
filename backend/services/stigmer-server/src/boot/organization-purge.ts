@@ -4,7 +4,7 @@
  * the stage order, and the boot check that every kind an organization can
  * own is removed by someone or kept on purpose.
  *
- * The order. Schedules go in the quiesce stage, before anything else, so
+ * The order. Routines go in the quiesce stage, before anything else, so
  * nothing fires while the rest is removed. The content stage then removes
  * leaves first: a run before the session it belongs to, a blueprint's
  * shares, channels and scoring rule
@@ -73,7 +73,7 @@ export interface CoreKindPurgeDeps extends KindPurgeDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composition's one secret facade (sealed values' backing state). */
   readonly secretService: SecretService;
-  /** The schedule clock the schedule controller tears artifacts down through. */
+  /** The routine clock the routine controller and the agent's delete tear artifacts down through. */
   readonly routineClock: ClockProvider;
   /** The composed channel runtime; undefined when no unit composes one. */
   readonly channelRuntime: ChannelRuntime | undefined;

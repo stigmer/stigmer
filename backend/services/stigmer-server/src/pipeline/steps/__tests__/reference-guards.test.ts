@@ -81,7 +81,7 @@ const routine = (agentRef?: { id?: string; slug?: string }) =>
     spec: {
       cron: "0 9 * * *",
       timeZone: "UTC",
-      target: { case: "agent", value: { agentRef: agentRef && { org: ORG, ...agentRef } } },
+      agent: { agentRef: agentRef && { org: ORG, ...agentRef } },
     },
   });
 

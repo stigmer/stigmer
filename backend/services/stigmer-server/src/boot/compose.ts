@@ -47,7 +47,6 @@ import {
 import { newStoredResources } from "../authorization/stored-resources.js";
 import { newBuiltInGradingCaller } from "../authorization/grading-caller.js";
 import { newBuiltInEvalRunCaller } from "../authorization/eval-run-caller.js";
-import { newBuiltInRoutineFireCaller } from "../authorization/routine-fire-caller.js";
 import { newTrustedLocalAuthorizer } from "../authorization/trusted-local-authorizer.js";
 import type { Authorizer } from "../extensions/authorizer.js";
 import type { ComposedServices } from "../extensions/composed-services.js";
@@ -57,7 +56,6 @@ import type { ListReadScope } from "../extensions/list-read-scope.js";
 import type { OrganizationDirectory } from "../extensions/organization-directory.js";
 import type { GradingCallerMint } from "../extensions/grading-caller.js";
 import type { EvalRunCallerMint } from "../extensions/eval-run-caller.js";
-import type { RoutineFireCaller } from "../extensions/routine-fire-caller.js";
 import { registerAgentServices } from "../domain/agent/controller.js";
 import {
   newConfigFromEnv,
@@ -81,6 +79,7 @@ import { RoutineArtifact } from "../temporal/routine/artifact.js";
 import { newRoutineConfigFromEnv } from "../temporal/routine/config.js";
 import { RoutineReconciler } from "../temporal/routine/reconciler.js";
 import { RunStarter } from "../temporal/routine/run-starter.js";
+import type { RoutineFireIdentity } from "../temporal/routine/run-starter.js";
 import { RoutineSyncer } from "../temporal/routine/syncer.js";
 import { newRoutineWorkerFactory } from "../temporal/routine/worker.js";
 import { newGradingConfigFromEnv } from "../temporal/grading/config.js";
@@ -89,6 +88,7 @@ import { newEvalsConfigFromEnv } from "../temporal/evals/config.js";
 import { newEvalsWorkerFactory } from "../temporal/evals/worker.js";
 import { evalModelCatalogOf } from "../domain/eval-run/matrix.js";
 import { registerRoutineServices } from "../domain/routine/controller.js";
+import { ownerAsFireCaller } from "../domain/routine/owner.js";
 import { registerChannelServices } from "../domain/channel/controller.js";
 import { registerChannelConversationServices } from "../domain/channel/conversation.js";
 import { registerChannelMessageServices } from "../domain/channel/message.js";
@@ -479,8 +479,8 @@ export async function composeServer(
   // The AUTHORIZATION posture (authorization/posture.ts), named once and
   // handed down: a unit's own Authorizer (nothing built in installs);
   // the built-in posture (no unit Authorizer under an authentication
-  // posture — open source composes its Authorizer, organization directory
-  // and schedule fire caller below, and the role rows are
+  // posture — open source composes its Authorizer and organization
+  // directory below, and the role rows are
   // enforced); or trusted-local (the permissive default: one caller,
   // nothing to separate). `builtInAuthorization` is
   // the first two together — the roles exist to feed the built-in
@@ -688,11 +688,10 @@ export async function composeServer(
   // trusted-local, open source's permissive driver
   // (authorization/trusted-local-authorizer.ts), which separates no callers
   // and answers only whether a named Organization exists, as the other two
-  // do (stigmer#1163). The organization directory and the
-  // schedule fire caller are bound beside it under the same posture, so
-  // `listMine` lists what a person may view and a scheduled run
-  // belongs to the person who scheduled it — a fire the internal lane
-  // would otherwise hand to nobody an enforcing evaluator recognizes.
+  // do (stigmer#1163). The organization directory is bound beside it
+  // under the same posture, so `listMine` lists what a person may view;
+  // who a routine's fires act as is chosen below by the authentication
+  // posture alone (routineFireIdentity).
   const postureAuthorizer: Authorizer =
     extensions.authorizer ??
     (authorizationPosture === "built-in"
@@ -715,11 +714,17 @@ export async function composeServer(
           rowReaders: extensions.drivers.resourceRowReaders,
         })
       : undefined);
-  const routineFireCaller: RoutineFireCaller | undefined =
-    extensions.drivers.routineFireCaller ??
-    (authorizationPosture === "built-in"
-      ? newBuiltInRoutineFireCaller({ store, accounts: identityAccounts })
-      : undefined);
+  // Who a routine's fires act as (temporal/routine/run-starter.ts): its
+  // owner in every posture that signs callers in, presented as a unit's
+  // fire-caller driver turns them, else as themselves; the trusted-local
+  // laptop's one person keeps its own internal identity.
+  const routineFireIdentity: RoutineFireIdentity = requireAuthentication
+    ? {
+        kind: "owner",
+        accounts: identityAccounts,
+        caller: extensions.drivers.routineFireCaller ?? ownerAsFireCaller,
+      }
+    : { kind: "trusted-local" };
   // The ONE list read scope (the seam's single-instance point), bound
   // here under the same posture and handed to every list-shaped consumer
   // below — the post-scan lanes, recent activity, the run summaries and
@@ -1077,11 +1082,11 @@ export async function composeServer(
   // routes() (which runs twice), so a recover over either router waits
   // for one over the other.
   const agentExecutionRecoverSerializer = new KeyedSerializer();
-  // Stage: schedule clock — Go server.go 578–592 injection order:
+  // Stage: the routine's schedule clock — Go server.go 578–592 injection order:
   // config → artifact → syncer → run starter → (worker below) →
   // reconciler. The client provider closes over `temporalManager`,
   // declared just below — legal and deliberate: the manager's factory list
-  // must include the schedule worker at construction, while the syncer and
+  // must include the routine worker at construction, while the syncer and
   // reconciler only READ the client at call time, long after boot (a call
   // before initialization would throw loudly, the composition-root idiom).
   const routineTemporalConfig = newRoutineConfigFromEnv();
@@ -1135,12 +1140,10 @@ export async function composeServer(
     routineArtifact,
     logger,
   );
-  // Every fire enters the FULL execution create pipeline through the
-  // in-process agentexecution client (Go server.go 581: the RunStarter's
-  // ExecutionCreator edge). The scheduleFireCaller driver bound in the
-  // identity stage (a unit's, or open source's under
-  // the built-in posture), when present, gives each fire its identity —
-  // propagated by the creator's asCaller lane.
+  // Every fire enters the FULL run create pipeline through the in-process
+  // run client (the RunStarter's ExecutionCreator edge), propagating the
+  // identity the identity stage chose (routineFireIdentity) by the
+  // creator's asCaller lane.
   const routineRunStarter = new RunStarter({
     store,
     config: routineTemporalConfig,
@@ -1151,7 +1154,7 @@ export async function composeServer(
           fireCaller,
         ),
     },
-    fireCallerMint: routineFireCaller,
+    fireIdentity: routineFireIdentity,
     logger,
   });
   const routineReconciler = new RoutineReconciler(
@@ -1162,7 +1165,7 @@ export async function composeServer(
     logger,
   );
   // The manager owns the connection lifecycle; one factory per domain
-  // worker (Go createWorkers' list) — agent-execution and the schedule
+  // worker (Go createWorkers' list) — agent-execution and the routine
   // clock.
   const temporalManager = new TemporalManager({
     hostPort: config.temporalHostPort,
@@ -1862,8 +1865,10 @@ export async function composeServer(
         workflows: evalRunWorkflows,
       },
       // The agent's delete tears down its Slack and WhatsApp channels
-      // through the same runtime the channel's own delete uses.
+      // through the same runtime the channel's own delete uses, and its
+      // routines' artifacts through the routine clock.
       channelRuntime: extensions.drivers.channelRuntime,
+      routineClock: () => routineSyncer,
     });
     registerSessionServices(router, {
       store,
@@ -1925,7 +1930,7 @@ export async function composeServer(
       authorizationLifecycle,
       listReadScope,
     });
-    // Schedule registers between channelapp and memory (Go server.go
+    // Routine registers between channelapp and memory (Go server.go
     // 417 → 426 → 436). The clock and runner ride constant providers —
     // production wiring always has both (Go SetClock/SetRunner beside the
     // manager); the provider SHAPE exists for embedded/test assemblies
@@ -1939,6 +1944,7 @@ export async function composeServer(
       modelRegistry: modelCatalog,
       clock: () => routineSyncer,
       runner: () => routineRunStarter,
+      ownerAccounts: requireAuthentication ? identityAccounts : undefined,
       authorizationLifecycle,
       listReadScope,
     });
@@ -2425,7 +2431,7 @@ export async function composeServer(
         await temporalManager.startWorkers();
       }
       temporalManager.startHealthMonitor();
-      // Schedule reconciliation: an immediate boot pass (the dev server may
+      // Routine reconciliation: an immediate boot pass (the dev server may
       // have restarted with empty state while the daemon was down), the
       // periodic loop, and the reconnect kick — Go server.go 763–764.
       const kickRoutineReconcile = routineReconciler.startReconciliation();

@@ -120,7 +120,7 @@ function pushLink(
   resource: object,
   parent: ParentRelationConfig,
 ): void {
-  const parentId = parentIdOf(resource, parent.specField);
+  const parentId = parentIdOf(resource, parent);
   if (parentId !== "") {
     links.push({
       relation: parent.relation,

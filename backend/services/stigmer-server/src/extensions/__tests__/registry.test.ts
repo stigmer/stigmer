@@ -298,12 +298,12 @@ describe("resolveExtensions — merge semantics", () => {
     expect(resolveExtensions([]).drivers.listReadScope).toBeUndefined();
   });
 
-  it("keeps the declared ScheduleFireCallerMint as the resolved singleton", () => {
+  it("keeps the declared RoutineFireCaller as the resolved singleton", () => {
     const mint = {
-      mintFireCaller: () =>
+      callerFor: () =>
         Promise.resolve({
-          identityId: "ida_sched",
-          callerClass: "schedule",
+          identityId: "ida_owner",
+          callerClass: "user",
           issuer: "stigmer",
           rawToken: "jwt",
         }),
@@ -316,12 +316,12 @@ describe("resolveExtensions — merge semantics", () => {
     expect(resolveExtensions([]).drivers.routineFireCaller).toBeUndefined();
   });
 
-  it("throws on a second ScheduleFireCallerMint, naming both units", () => {
+  it("throws on a second RoutineFireCaller, naming both units", () => {
     const mint = {
-      mintFireCaller: () =>
+      callerFor: () =>
         Promise.resolve({
-          identityId: "ida_sched",
-          callerClass: "schedule",
+          identityId: "ida_owner",
+          callerClass: "user",
           issuer: "stigmer",
           rawToken: "jwt",
         }),
@@ -332,7 +332,7 @@ describe("resolveExtensions — merge semantics", () => {
         { name: "mint-b", drivers: { routineFireCaller: mint } },
       ]),
     ).toThrowError(
-      /extension 'mint-b' registers a ScheduleFireCallerMint, but 'mint-a' already did/,
+      /extension 'mint-b' registers a RoutineFireCaller, but 'mint-a' already did/,
     );
   });
 

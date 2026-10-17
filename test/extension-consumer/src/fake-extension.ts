@@ -66,7 +66,6 @@ import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import {
-  accountIdFor,
   ArtifactStorageNotFoundError,
   callerIdentityKey,
   callerIdentityOf,
@@ -187,7 +186,8 @@ import type {
   SandboxCredentialRequest,
   SandboxProvisioner,
   SandboxProvisionerFactory,
-  ScheduleFireCallerMint,
+  RoutineFireCaller,
+  RoutineFireCallerInput,
   SubstrateMaintenance,
   SubstratePauseGuard,
   SubstrateRunnerMode,
@@ -1028,20 +1028,19 @@ export const consumerAccountSlugs: {
 } = { derive: fittedSlug, repair: repairAccountSlug };
 
 /**
- * A consumer-shaped schedule-fire caller mint — the identity a schedule
- * fire acts as, minted per fire. The
- * cloud edition's real driver mints a schedule JWT (sub = the org's
- * system-schedule account, claim = the firing Schedule id); this fake
- * proves the contract compiles from consumer code. The account's id is the
- * derived id of the lane's own subject (`accountIdFor`), as an edition's
- * per-org system accounts take it.
+ * A consumer-shaped routine fire caller — the credential a routine's fire
+ * presents for the routine's owner, whom core resolves. An edition that
+ * reads a verifiable credential downstream mints a token naming the owner
+ * and scoped to the fire; this fake proves the contract compiles from
+ * consumer code.
  */
-const consumerRoutineFireCaller: ScheduleFireCallerMint = {
-  mintFireCaller: (org: string, routineId: string) => {
+const consumerRoutineFireCaller: RoutineFireCaller = {
+  callerFor: ({ org, routineId, owner }: RoutineFireCallerInput) => {
+    void org;
     void routineId;
     return Promise.resolve({
-      identityId: accountIdFor(`stgm_schedule|${org}`),
-      callerClass: "schedule",
+      identityId: owner.metadata?.id ?? "",
+      callerClass: "user",
       issuer: "stigmer",
       rawToken: "compile-proof.jwt",
     });
@@ -1494,8 +1493,8 @@ export const fakeExtension: ServerExtension = {
     // The sealing seam: vault-backed wire formats registered
     // by version token ("v1" is the reserved built-in).
     secretCodecs: new Map([["v2", consumerVaultCodec]]),
-    // The schedule-fire caller seam: who a schedule fire acts as.
-    scheduleFireCaller: consumerRoutineFireCaller,
+    // The routine fire caller seam: the credential a fire presents for its owner.
+    routineFireCaller: consumerRoutineFireCaller,
     // The run-lanes seam: which lane a visitor's turn comes through, and
     // that lane's settings, operator profile and approval mode.
     runLanes: consumerRunLanes,

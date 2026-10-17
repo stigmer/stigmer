@@ -748,7 +748,7 @@ describe("renames, through a composed server", () => {
       await agents().create(agentInput(ORG, "race-schedule-agent"));
       const input = (name: string, cron: string, id = "", slug = "") => ({
         apiVersion: AGENTIC,
-        kind: "Schedule",
+        kind: "Routine",
         metadata: { name, org: ORG, ...(id !== "" ? { id, slug } : {}) },
         spec: {
           cron,

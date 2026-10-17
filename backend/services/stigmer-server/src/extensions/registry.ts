@@ -329,9 +329,8 @@ export interface ResolvedExtensionDrivers {
    */
   readonly visitorErrorPolicy: VisitorErrorPolicy | undefined;
   /**
-   * The schedule-fire caller mint — undefined =
-   * schedule fires enter the create pipeline as the `internal` class,
-   * OSS behavior byte-identical.
+   * The routine fire caller — undefined = a fire's owner acts as
+   * themselves (domain/routine/owner.ts `ownerAsFireCaller`).
    */
   readonly routineFireCaller: RoutineFireCaller | undefined;
   /**
@@ -685,7 +684,7 @@ export function resolveExtensions(
     if (unit.drivers?.routineFireCaller !== undefined) {
       if (routineFireCallerDeclaredBy !== undefined) {
         throw new Error(
-          `extension '${unit.name}' registers a ScheduleFireCallerMint, but '${routineFireCallerDeclaredBy}' already did — exactly one may be composed`,
+          `extension '${unit.name}' registers a RoutineFireCaller, but '${routineFireCallerDeclaredBy}' already did — exactly one may be composed`,
         );
       }
       routineFireCaller = unit.drivers.routineFireCaller;

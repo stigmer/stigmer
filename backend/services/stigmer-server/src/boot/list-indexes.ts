@@ -32,7 +32,7 @@
  *
  * Since every list pages (2026-10-14), every kind a list RPC reads joins:
  * `agent`, `skill` and `plugin` for their organization lists, and
- * `schedule` and `channel` for theirs and for one agent's, and `oauth_app` and `channel_app` for their organization lists
+ * `routine` and `channel` for theirs and for one agent's, and `oauth_app` and `channel_app` for their organization lists
  * (each domain's list-index.ts).
  */
 import { agentListIndex } from "../domain/agent/list-index.js";

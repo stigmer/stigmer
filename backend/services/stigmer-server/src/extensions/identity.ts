@@ -137,6 +137,17 @@ export interface CallerIdentity {
    * alike.
    */
   readonly origin?: CallOrigin;
+  /**
+   * The routine whose fire this request is part of. Set only by the
+   * routine run starter, on the identity it propagates to the run create
+   * in-process (temporal/routine/run-starter.ts); the run create hands it
+   * on to the session it creates, whose create records it as
+   * `status.routine_id` (domain/session/routine-link.ts), which is what
+   * shows the fire's conversation to the routine's viewers. No verifier
+   * sets it, and the serving chassis strips the propagation header from
+   * the wire, so no client can claim a routine.
+   */
+  readonly routineId?: string;
 }
 
 /**

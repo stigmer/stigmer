@@ -84,7 +84,7 @@ export interface InProcessClients {
   readonly scoreDeleter: ScoreDeleter;
   /**
    * The AI judge's run (temporal/grading/judge-activities.ts): its create
-   * enters the FULL run create pipeline, as the schedule clock's fire does,
+   * enters the FULL run create pipeline, as a routine's fire does,
    * AS THE GRADING CALLER when the composition minted one (the asCaller
    * lane), so the hosted edition's launch gates and sandbox see a caller
    * they can bill and mint for; its terminate is the server's own.
@@ -114,11 +114,11 @@ export interface InProcessClients {
    */
   readonly reconcileTurnCreator: ReconcileTurnCreator;
   /**
-   * The schedule clock's fire edge (server.go 581: the RunStarter's
-   * in-process agentexecution client): every fire — cron tick or manual
-   * trigger — enters the FULL execution create pipeline, so session
-   * auto-create, the value plan, launch gates, and workflow start all
-   * run exactly as for an external create.
+   * A routine's fire edge (the RunStarter's in-process run client): every
+   * fire — a schedule tick or a fire call — enters the FULL run create
+   * pipeline as the identity the RunStarter chose, so session auto-create,
+   * the value plan, launch gates, and workflow start all run exactly as
+   * for an external create.
    */
   readonly routineExecutionCreator: RoutineExecutionCreator;
   /**
@@ -131,7 +131,7 @@ export interface InProcessClients {
    * broadcast) and carry the internal caller class this transport's
    * position 1 stamps. The worker builds no identity of its own: server
    * code acting on its own behalf rides this lane, where the class is
-   * minted — exactly like the schedule clock above.
+   * minted.
    */
   readonly executionStatusWriter: ExecutionStatusWriter;
   /**
@@ -279,26 +279,18 @@ export function createInProcessClients(
       create: (run, caller) =>
         agentExecutionCommand.create(run, asCaller(caller)),
     },
-    // The schedule clock's fire edge — the plain Create RPC (Go's
-    // ExecutionCreator). Every call through this transport
-    // carries the internal caller class stamped at position 1; its audit
-    // derivation equals the old process-global operator identity. A
-    // composed fire caller (the scheduleFireCaller driver point)
-    // propagates instead — the RunStarter mints it per
-    // fire, so the created execution and its auto-created session carry
-    // the edition's schedule identity (the asCaller lane).
+    // A routine's fire edge — the plain Create RPC, always propagating
+    // the identity the RunStarter chose for the fire (the routine's owner,
+    // or the trusted-local laptop's internal identity), with the routine
+    // on it, so the created run and its auto-created session carry both
+    // (the asCaller lane).
     routineExecutionCreator: {
-      create: (execution, fireCaller) =>
-        agentExecutionCommand.create(
-          execution,
-          fireCaller === undefined ? undefined : asCaller(fireCaller),
-        ),
+      create: (run, fireCaller) => agentExecutionCommand.create(run, asCaller(fireCaller)),
     },
     // The worker's own-behalf status writes — the plain UpdateStatus RPC
     // under the internal class (never asCaller: the fallback is the
     // server's own reconciliation of a runner outcome, a daemon-origin
-    // write with no original caller to propagate, exactly the schedule
-    // clock's posture when no fire caller is composed).
+    // write with no original caller to propagate).
     executionStatusWriter: {
       updateStatus: (input) => agentExecutionCommand.updateStatus(input),
     },

@@ -13,7 +13,7 @@
  *   - visitor error policy (the transport-boundary sanitizer's
  *     edition semantics)
  *   - secret codecs (the versioned secret-value wire formats)
- *   - schedule-fire caller (who a schedule fire acts as)
+ *   - routine fire caller (the credential a routine's fire presents for its owner)
  *   - identity-account store + identity federation (the first domain
  *     whose persistence is a PORT, and the four federated RPC arms only
  *     one edition serves)
@@ -186,12 +186,12 @@ export interface ExtensionDrivers {
    */
   readonly secretCodecs?: ReadonlyMap<string, SecretCodec>;
   /**
-   * The schedule-fire caller mint (single-instance point) — the identity a
-   * schedule fire acts as when it re-enters the
-   * execution create pipeline. When composed, the RunStarter propagates
-   * the minted caller through the in-process caller header on every fire
-   * (cron tick and manual trigger alike); when absent, fires enter as
-   * the `internal` class — OSS behavior byte-identical.
+   * The routine fire caller (single-instance point) — the credential a
+   * routine's fire presents for the routine's owner, whom core resolves
+   * (routine-fire-caller.ts). The RunStarter propagates what it returns,
+   * with the routine on it, through the in-process caller header on every
+   * fire (a schedule's and a fire call's alike); when absent, the owner
+   * acts as themselves.
    */
   readonly routineFireCaller?: RoutineFireCaller;
   /**

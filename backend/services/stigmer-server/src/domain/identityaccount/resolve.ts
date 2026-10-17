@@ -56,8 +56,8 @@
  * `accountForCaller`'s order, with no subject read for an account-id
  * stamp the id read missed: no account carries an `ida_` as its subject,
  * so that read could only miss. Three lanes make the server act as the
- * person a row names: the built-in schedule fire caller (a fire acts as
- * the schedule's creator), the runner-subject verifier (a run credential
+ * person a row names: a routine's fire (it acts as the routine's owner,
+ * domain/routine/owner.ts), the runner-subject verifier (a run credential
  * admits its bearer as the execution's creator) and the API-key verifier
  * (a key authenticates as its creator). Stated here so they cannot
  * resolve one stamp two ways; each decides for itself what "nobody"
