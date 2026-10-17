@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: deps dev build start lint typecheck test-unit clean preview generate-narration copy-narration validate-demos test-demos check-docs-inventory docs-inventory
+.PHONY: deps dev build start lint typecheck test-unit clean preview check-docs-inventory docs-inventory
 
 PORT ?= 3000
 
@@ -11,7 +11,7 @@ deps:
 	@# Self-heal a known hoisting hazard: @stigmer/react-sdk needs lowlight@3
 	@# (createLowlight), while react-syntax-highlighter pulls lowlight@1. On an
 	@# incremental install over a stale tree, v1 can win the top-level slot and
-	@# leave v3 unmaterialized, which crashes every /docs demo at import time.
+	@# leave v3 unmaterialized, which crashes every page that imports the SDK.
 	@# If the hoisted lowlight is not v3, force one clean reinstall to reconcile.
 	@if ! grep -q '"version": "3' node_modules/lowlight/package.json 2>/dev/null; then \
 		echo "==> Repairing node_modules (hoisting lowlight@3 for @stigmer/react-sdk)"; \
@@ -50,18 +50,6 @@ typecheck: deps
 test-unit: deps
 	yarn test:unit
 
-# Generate narration audio from scenario step definitions (co-located output)
-generate-narration: deps
-	yarn generate-narration
-
-# Copy co-located narration audio to public/demos/ for Next.js static serving
-copy-narration: deps
-	yarn copy-narration
-
-# Validate demo scenarios for token compliance, interaction coverage, and manifest alignment
-validate-demos: deps
-	yarn validate-demos
-
 # Verify every docs page is classified in docs/_inventory/classification.yaml
 # (fate, diataxis, teaches, medium; generated pages via cohort rules)
 check-docs-inventory: deps
@@ -70,11 +58,6 @@ check-docs-inventory: deps
 # Render the human-readable docs inventory report to stdout
 docs-inventory: deps
 	yarn generate-docs-inventory
-
-# Run Playwright demo e2e tests (starts dev server automatically via playwright.config.ts)
-# Requires Playwright browsers: npx playwright install
-test-demos: deps
-	yarn test:demos
 
 # Remove build artifacts
 clean:

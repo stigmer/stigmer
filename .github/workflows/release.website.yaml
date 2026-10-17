@@ -25,12 +25,11 @@ on:
       - "site/**"
       - "brand/**"
       - "docs/**"
-      - "demos/**"
       - "vale/**"
-      # What the site and the demo tours link and the build compiles from
-      # source (build:libs, then the site and the tour bundles), so a change to
-      # one reaches stigmer.ai with its merge (scripts/lane-triggers.test.mjs
-      # fails when one is missing). preview.website.yaml keeps the same list.
+      # What the site links and the build compiles from source (build:libs,
+      # then the site), so a change to one reaches stigmer.ai with its merge
+      # (scripts/lane-triggers.test.mjs fails when one is missing).
+      # preview.website.yaml keeps the same list.
       - "apis/stubs/ts/**"
       - "sdk/typescript/**"
       - "sdk/react/**"

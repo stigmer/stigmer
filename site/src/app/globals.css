@@ -6,7 +6,6 @@
    #454) — the same prebuilt artifact npm consumers get. This site's Tailwind
    build no longer scans SDK sources or inherits SDK build directives. */
 @import "@stigmer/react-sdk/styles.css";
-@import "@scenar/react/theme.css";
 
 /* `dark:` responds to the docs `.dark` class AND the SDK color-mode attribute
    (same combined variant as the web console), so site utilities react to both
@@ -26,7 +25,7 @@
  * The whole site is dark-only: `<html class="dark">` is hardcoded in the
  * root layout, no theme provider ever changes it, and the palette below is
  * declared once on :root. The `.dark` class itself stays on <html> because
- * vendor stylesheets (fumadocs shiki.css, @stigmer/design-tokens, @scenar/react)
+ * vendor stylesheets (fumadocs shiki.css, @stigmer/design-tokens)
  * key their dark tokens off it.
  */
 
@@ -136,7 +135,7 @@
  *
  * Subtle negative letter-spacing on prose headings, matching the tight
  * tracking of the display headlines (marketing Hero, docs DocsTitle). The
- * `.not-prose` guard keeps embedded demos and the welcome Hero untouched —
+ * `.not-prose` guard keeps the welcome Hero and other self-styled blocks untouched —
  * they already control their own type.
  * ============================================================================= */
 

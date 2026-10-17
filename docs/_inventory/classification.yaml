@@ -15,21 +15,15 @@
 #   medium    none | diagram | still | screenshot-journey | animated-tour |
 #             interactive — the page's TARGET demonstration centerpiece.
 #             Prose and code are the substrate of every page, not a
-#             medium. `still` and `screenshot-journey` are Scenar-rendered
-#             `<Still>`s (see docs/STYLE.md "Stills") — never hand-captured
-#             screenshots.
+#             medium. `still` and `screenshot-journey` are never
+#             hand-captured screenshots (see docs/STYLE.md, "Classify every
+#             page").
 #   why       Rationale, required by the gate for a non-"none" medium (why
 #             that centerpiece) and for a non-"keep" fate (why the page
 #             doesn't survive as-is) — one sentence each when both apply.
-#   embeds    Per-embed fate map for embeds the page renders TODAY, keyed by
-#             ScenarEmbed id or legacy <Demo*> component name:
-#               keep    — survives as-is
-#               replace — superseded by the page's target medium
-#               drop    — removed without replacement
 #
 # Enforced by `make check-docs-inventory` (ci.docs): every hand-authored
-# page on disk needs an entry, every entry needs a live page, and each
-# page's rendered embeds must match its declared map.
+# page on disk needs an entry, and every entry needs a live page.
 
 pages:
   # ── Docs root ──────────────────────────────────────────────────────────
@@ -42,9 +36,7 @@ pages:
     medium: animated-tour
     why:
       The hero exists to show the product working; motion is the pitch. The
-      quickstart tour is the first thing a reader does, so the hero shows it.
-    embeds:
-      quickstart-tour: replace
+      quickstart is the first thing a reader does, so the hero shows it.
 
   # ── Get Started ────────────────────────────────────────────────────────
   concepts/what-is-stigmer:
@@ -68,9 +60,6 @@ pages:
     why:
       The reader compares their console to ours at each step and needs to stop
       on the frame that matters; playback pace fights that.
-    embeds:
-      quickstart-tour: replace
-      api-key-setup: replace
 
   getting-started/local:
     fate: keep
@@ -90,9 +79,6 @@ pages:
     why:
       A console upload procedure the reader performs alongside the page, one
       screen at a time.
-    embeds:
-      first-skill-tour: replace
-      skill-creation-tour: replace
 
   getting-started/connect-tools:
     fate: keep
@@ -106,10 +92,6 @@ pages:
       The Add MCP server form, the sign-in and the plugin page's Check tools are
       a console procedure the reader replays on their own screen; reference
       journeys read at the reader's pace.
-    embeds:
-      connect-tools-tour: replace
-      mcp-server-creation-tour: replace
-      mcp-server-connect-tour: replace
 
   getting-started/create-agent:
     fate: keep
@@ -135,8 +117,6 @@ pages:
       The payoff is the chat streaming inside a third-party product; the motion
       is the demonstration (a deliberate deviation from the screenshot-journey
       default for getting-started pages, 2026-08-23).
-    embeds:
-      embed-agent-tour: keep
 
   # ── Agents ─────────────────────────────────────────────────────────────
   concepts/agents:
@@ -158,7 +138,7 @@ pages:
       trigger condition, attachable to Agents and Sessions.
     medium: still
     why:
-      The embed exists to show the Skill detail page next to its source; a
+      The Skill detail page shown next to its source makes the split visible; a
       single frame is the honest medium for a static screen.
 
   concepts/plugins:
@@ -204,8 +184,6 @@ pages:
     why:
       The pause-then-resume beat IS the concept — the agent stops mid-run and a
       human decision resumes it; motion carries the cause-and-effect.
-    embeds:
-      DemoApprovalFlowPlayback: replace
 
   concepts/tools:
     fate: split
@@ -220,8 +198,6 @@ pages:
       is a sequence that must be seen once. Split because the page mixes
       concept, marketplace pitch, connect procedure, and auth patterns that
       guides/integrations already owns.
-    embeds:
-      DemoToolCallsPlayback: replace
 
   guides/plugins/install-a-plugin:
     fate: keep
@@ -297,11 +273,7 @@ pages:
       visitor messages, embedding, and credentials.
     medium: screenshot-journey
     why:
-      A console procedure across the chat link dialog's tabs; the current tour
-      also depicts an existing chat link where the prose teaches creating one (inherited
-      drift a re-authored journey fixes).
-    embeds:
-      chat-link-tour: replace
+      A console procedure across the chat link dialog's tabs.
 
   guides/channels/embed-an-agent:
     fate: keep
@@ -324,8 +296,6 @@ pages:
     why:
       A multi-screen console procedure (channel wizard, consent, channel card)
       the reader performs step by step.
-    embeds:
-      DemoConnectSlackChannel: replace
 
   guides/channels/connect-whatsapp:
     fate: keep
@@ -337,8 +307,6 @@ pages:
     why:
       Same procedural shape as the Slack twin — console screens the reader
       follows at their own pace.
-    embeds:
-      DemoConnectWhatsAppChannel: replace
 
   guides/channels/bring-your-own-slack-app:
     fate: keep
@@ -402,8 +370,6 @@ pages:
     why:
       Adding a server, signing in and checking its tools is a sequence the
       reader must see once to trust.
-    embeds:
-      DemoMarketplaceConnectTour: replace
 
   guides/integrations/oauth-for-tools:
     fate: keep
@@ -416,8 +382,6 @@ pages:
     why:
       The popup authorize round-trip and the row flipping to Signed in is a
       sequence; the timing is the lesson.
-    embeds:
-      DemoOAuthConnectFlow: replace
 
   guides/integrations/oauth-architecture:
     fate: keep
@@ -652,10 +616,7 @@ pages:
     medium: diagram
     why:
       A machine-to-machine flow is structure; the page's two sequence diagrams
-      are its native form. The narrated playback stays as a supplement — it is
-      shipped, accurate, and costs nothing to keep.
-    embeds:
-      authentication-flow-playback: keep
+      are its native form.
 
   guides/authentication/federation/register-federation-issuer:
     fate: keep
@@ -672,8 +633,6 @@ pages:
       Authentication without a Grant yields 403; grant a principal a role on a
       resource, or revoke access again.
     medium: none
-    embeds:
-      provision-grant-playback: keep
 
   guides/authentication/federation/provision-federated-accounts:
     fate: keep
@@ -682,8 +641,6 @@ pages:
       The check-then-create provisioning pattern, plus update and deprovision,
       and why externalSub must be the OIDC sub.
     medium: none
-    embeds:
-      provision-grant-playback: keep
 
   guides/authentication/federation/child-organizations:
     fate: keep
@@ -694,9 +651,6 @@ pages:
       tokens, and share a catalog with every child.
     medium: diagram
     why: Parent-to-child fan-out is structure; the two mermaids carry it.
-    embeds:
-      multi-tenant-setup-playback: keep
-      multi-tenant-jit-playback: keep
 
   guides/authentication/product-users:
     fate: keep
@@ -956,10 +910,7 @@ pages:
     medium: interactive
     why:
       Theming is learned by flipping presets and modes and watching token values
-      change — the reader must drive it; the legacy playground is replaced by a
-      maintained interactive surface.
-    embeds:
-      DemoThemingPlayground: replace
+      change — the reader must drive it.
 
 # ── Generated cohorts ─────────────────────────────────────────────────────
 # One rule per generator-owned directory. A page counts as generated when it

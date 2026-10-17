@@ -31,10 +31,10 @@ that points at headers and READMEs; it does not restate them, because a second
 copy is the one that drifts.
 
 A package guide binds exactly the directory it lives in: its shim's `globs:` is
-that directory and nothing else. A sibling tree that shares the laws (`demos/`
-and `site/` with `docs/`, `backend/libs/ts/` with the server) is reached by its
-own `README.md`, by the root guide, and by a skill's `paths:`, never by a guide
-that lives elsewhere.
+that directory and nothing else. A sibling tree that shares the laws (`site/`
+with `docs/`, `backend/libs/ts/` with the server) is reached by its own
+`README.md`, by the root guide, and by a skill's `paths:`, never by a guide that
+lives elsewhere.
 
 ## Measured loading behaviour (Cursor 3.20.17, 2026-09-16)
 

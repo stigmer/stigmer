@@ -48,7 +48,7 @@ backend/stigmer-server   backend/runner   backend/libs
 sdk                  sdk/react, sdk/theme, sdk/go, ... for one package
 client-apps/cli      client-apps/web   client-apps/desktop
 mcp-server           test/conformance  test/e2e
-docs   site   demos  deploy   scripts
+docs   site   deploy   scripts
 agents               guidance files (AGENTS.md, .agents/)
 repo                 repository-wide configuration
 ```

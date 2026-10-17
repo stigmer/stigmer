@@ -7,8 +7,8 @@
  * id, which the server mints when the channel is first applied, so the id is
  * read back from the deployment and set here (`docs-agent/README.md` has the
  * steps). Empty means no chat link is wired: the Ask AI button and panel
- * render nothing. Hardcoded absolutes, matching the `ScenarEmbed` precedent: the
- * docs site is a single-origin static export with no environment plumbing,
+ * render nothing. Hardcoded absolutes: the docs site is a single-origin
+ * static export with no environment plumbing,
  * and a relative or env-derived value would only add a way to be wrong.
  */
 

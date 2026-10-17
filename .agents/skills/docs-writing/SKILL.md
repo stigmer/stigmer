@@ -2,14 +2,13 @@
 name: docs-writing
 description:
   How Stigmer's documentation is written beyond the mechanics in docs/STYLE.md,
-  covering the register per reader, the choice of a page's medium, Scenar
-  demonstrations, narration and alt text, tutorial sequences, the overview files
-  that feed generated reference pages, and what to refuse. Use when writing or
-  reviewing any page under docs, a tour under demos, or site content.
+  covering the register per reader, the choice of a page's medium, alt text,
+  tutorial sequences, the overview files that feed generated reference pages,
+  and what to refuse. Use when writing or reviewing any page under docs or site
+  content.
 paths:
   - docs/**
   - site/**
-  - demos/**
 ---
 
 # Writing Stigmer's documentation
@@ -61,43 +60,20 @@ yes wins. Two doctrines sit behind it:
   source itself), and the prose around an embed carries the information on its
   own.
 
-## Demonstrations are Scenar artifacts
+## Screen demonstrations are paused
 
-Every screen demonstration (animated tour, still, screenshot journey) is a
-Scenar scenario under `demos/tours/`: a timeline of steps plus a pure render
-function over real `@stigmer/react-sdk` components and frozen fixtures.
-`demos/README.md` is the authoring guide and the source of the numbers (the
-canonical viewport, the sizing contract, the theme contract); read it before
-touching a tour. `scripts/verify-scenar-tours.mjs` enforces the invariants in
-CI, and its header explains each one. The laws an author most often bends:
+No page renders a screen demonstration today: how pages show screens is being
+redecided, and each page's `medium` in `docs/_inventory/classification.yaml`
+keeps its target as input to that decision. Until then a page stays prose, code
+and diagrams. A hand-captured screenshot rots with no signal, so it is not added
+in the meantime, not even as a placeholder.
 
-- Steps are pure functions of step data. Depict a component state through props;
-  never drive a stateful component with synthetic events.
-- Fixtures never read the live clock. Every instant derives from the exported
-  `SAMPLE_INSTANT`; a literal date is a defect.
-- Never author `zoom` or a CSS scale in a tour. Legibility comes from the camera
-  (the `viewport_transition` interaction), not from shrinking; one scale factor
-  per frame, owned by the viewport boundary.
-- Tour-local views use `--scenar-*` tokens so both themes work; review light and
-  dark.
+## Alt text describes the screen
 
-Animated tours are packed, hosted, and embedded with `<ScenarEmbed>`; adding or
-removing one changes the page's classification entry and needs a prose lead-in
-that stands alone. Stills and screenshot journeys are named shots on a
-scenario's steps (`shot`, kebab-case, named and never indexed), rendered by
-`scenar shoot` in light and dark, and they ride the pack pipeline rather than
-the repository. A hand-captured screenshot rots with no signal; a rendered still
-is regenerated from source. Until a page's stills exist, the page keeps its
-current state rather than gaining a placeholder.
-
-## Narration and alt text are different registers
-
-Narration (the `narration` field on a step) is written for audio: it narrates
-concepts and outcomes, not screen mechanics ("The agent pauses and asks a human
-to approve", not "Now a card appears"). One idea per step, one or two sentences,
-never a repeat of the caption. Not every step needs narration; silence gives the
-visual room. Alt text describes a screen, is authored in the MDX beside the
-image, and is never derived from narration.
+Alt text is written for a reader who cannot see the image: it describes what the
+image shows, not what the reader should feel about it, and it is authored in the
+MDX beside the image. It is also what the markdown exports carry in the image's
+place.
 
 ## Tutorials and learning paths
 
@@ -152,8 +128,6 @@ sections already say.
 - A hand-captured screenshot, even as a placeholder.
 - An animated tour for content the reader works through at their own pace.
 - A visual that leaves the markdown exports with nothing.
-- A new component or scenario in the legacy inline-demo surface under
-  `site/src/components/docs/demos/`.
 - Infrastructure-tool analogies on the sales site or in introductory docs.
 - Filler ("it should be noted that", "it is important to understand").
 - Two Diátaxis types on one page.

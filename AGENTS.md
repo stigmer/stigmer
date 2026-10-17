@@ -57,7 +57,7 @@ skill" when it could be misread.
   what `stigmer install` and the console's Marketplace offer when no other
   source is named. Nothing in it is installed unasked.
 - `docs/` and `site/`: documentation content (MDX, Vale, Prettier) and the
-  Fumadocs site; `demos/`: Scenar tours; `docs-agent/`: the Ask AI agent.
+  Fumadocs site; `docs-agent/`: the Ask AI agent.
 - `deploy/`: Helm chart and all-in-one image; `examples/`; `marketing/`;
   `blog/`.
 - `scripts/`: repo-level Node scripts, each with a `*.test.mjs` sibling run by

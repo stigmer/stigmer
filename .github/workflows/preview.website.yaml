@@ -27,9 +27,8 @@ on:
       - "site/**"
       - "brand/**"
       - "docs/**"
-      - "demos/**"
       - "vale/**"
-      # What the site and the demo tours link and the build compiles from
+      # What the site links and the build compiles from
       # source, as in release.website.yaml (scripts/lane-triggers.test.mjs
       # fails when one is missing).
       - "apis/stubs/ts/**"
@@ -55,5 +54,3 @@ concurrency:
 jobs:
   build:
     uses: ./.github/workflows/build.website.yaml
-    with:
-      demos_base: https://review-${{ github.event.pull_request.number }}.stigmer.ai/demos

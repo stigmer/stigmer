@@ -27,14 +27,10 @@ When an Agent has tool access and receives a request that requires action, it:
 4. The tool returns a result
 5. The Agent uses the result to form its response
 
-Here's what this looks like in practice — a customer asks about an order, and
-the Agent calls the `get_order` tool to look up the details:
-
-<DemoToolCallsPlayback />
-
-The tool call appears in the conversation with its name and result. The Agent
-then uses that data to answer the customer's question with specific, real
-information instead of a generic response.
+Say a customer asks about an order, and the Agent calls the `get_order` tool to
+look up the details. The tool call appears in the conversation with its name and
+result. The Agent then uses that data to answer the customer's question with
+specific, real information instead of a generic response.
 
 ## Built-in web fetch
 

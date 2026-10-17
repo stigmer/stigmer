@@ -8,8 +8,8 @@ interface HeroProps {
   /** One-line pitch under the headline. Plain language — widest audience. */
   description?: string;
   /**
-   * Media slot rendered below the text block — typically a `<ScenarEmbed>`
-   * product tour. Optional so a hero page can ship text-only.
+   * Media slot rendered below the text block. Optional so a hero page can ship
+   * text-only.
    */
   children?: ReactNode;
 }

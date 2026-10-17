@@ -299,7 +299,7 @@ jobs:
           done
 
       # The guide's join, as the guide prints it (deploy/runner-layer/Dockerfile,
-      # held byte-identical to the guide by scripts/verify-docs-tour-parity),
+      # held byte-identical to the guide by scripts/verify-docs-listing-parity),
       # onto a glibc base Stigmer did not build: the runner boots there through
       # its start script, and the start script passes Node its arguments
       # unchanged while dropping a base's NODE_OPTIONS (one that would kill

@@ -276,7 +276,6 @@ Nothing to touch. Listed so a probe's hit here is a stop, not a lead.
   (typed by the option or defaulting to one value).
 - Fixtures and clients: `test/e2e/helpers/approval.ts`,
   `test/extension-consumer/src/fake-extension.ts`, `test/fixtures/tool-view/`,
-  `site/src/components/docs/demos/shared/StigmerPreviewProvider.tsx`,
   `sdk/java/src/main/java/ai/stigmer/sdk/BillingClient.java` (a hand-written
   client's field comment).
 - Inside the runner: comments across `shared/` and the composition roots that

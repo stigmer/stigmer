@@ -95,7 +95,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs build-libs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check gen-authorization-model gen-authorization-model-check gen-substrate-stubs gen-substrate-stubs-check gen-runner-turn-stubs gen-runner-turn-stubs-check
+.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs build-libs gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check gen-authorization-model gen-authorization-model-check gen-substrate-stubs gen-substrate-stubs-check gen-runner-turn-stubs gen-runner-turn-stubs-check
 build: build-libs build-web verify-desktop docs-build build-java-sdk build-runner build-server ## Build all project artifacts
 	@echo ""
 	@echo "built: the server ($(SERVER_DIR)/dist) and runner (the CLI ships as the @stigmer/cli npm package)"
@@ -348,13 +348,7 @@ gen-cli-docs-check: ## Verify CLI docs are up to date (CI)
 	fi; \
 	echo "✓ CLI docs are up to date"
 
-gen-narration: ## Generate narration audio for demo scenarios
-	$(MAKE) -C site generate-narration
-
-preview-sync: ## Re-scan client-apps/web and update site/.scenar/ view registry
-	npx scenar preview sync --source client-apps/web --output site/.scenar
-
-codegen: protos build-ts-stubs gen-sdk-docs gen-narration gen-ipc-fixtures gen-authorization-model ## Regenerate all derived code (stubs + SDK docs + narration + IPC fixtures + the authorization model JSON)
+codegen: protos build-ts-stubs gen-sdk-docs gen-ipc-fixtures gen-authorization-model ## Regenerate all derived code (stubs + SDK docs + IPC fixtures + the authorization model JSON)
 
 gen-ipc-fixtures: $(RUNNER_DIR)/node_modules ## Regenerate golden IPC fixtures from ipc-protocol.ts (runner artifact + crate copy)
 	@cd $(RUNNER_DIR) && npm run gen:ipc-fixtures
@@ -811,9 +805,9 @@ tidy: ## Run go mod tidy on all Go modules
 
 .PHONY: fix lint lint-web typecheck-web verify-web run-web build-web clean-web clean-build-web \
        lint-desktop typecheck-desktop verify-desktop kill-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
-       lint-docs lint-docs-audit format-docs format-docs-check check-links web-build validate-demos tsdoc-check test-demos \
+       lint-docs lint-docs-audit format-docs format-docs-check check-links web-build tsdoc-check \
        check-docs-inventory check-conformance-inventory \
-       test-web test-desktop test-runner-host test-e2e test-e2e-approval test-e2e-console-login test-e2e-single-org test-a11y check check-all \
+       test-web test-desktop test-runner-host test-e2e test-e2e-approval test-e2e-console-login test-e2e-single-org test-a11y check \
        check-prep check-go check-node check-site check-rust check-java
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
@@ -978,14 +972,8 @@ web-build: build-web
 desktop-dev: launch-desktop
 desktop-build: build-desktop
 
-validate-demos: ## Run static demo scenario validation (token compliance, manifest alignment)
-	$(MAKE) -C site validate-demos
-
 tsdoc-check: ## Validate TSDoc quality for all TypeScript SDKs
 	node scripts/turbo-set.mjs workspace tsdoc:check
-
-test-demos: docs-build ## Run Playwright demo e2e tests — slow (~20 min), run explicitly or in CI
-	$(MAKE) -C site test-demos
 
 # The three targets below install from the ROOT for test-e2e-approval's
 # reason: `cd test/e2e && npm ci` prunes the root-hoisted packages of a local
@@ -1060,7 +1048,7 @@ test-e2e-single-org: ## Run the console E2E against the shipped server entry, wh
 #                      web+desktop suites over the whole workspace, then the
 #                      runner and server builds + dep hygiene
 #        check-site  — vale, prettier --check, site lint/typecheck/build,
-#                      demo validation, link check (all under docs/ + site/)
+#                      link check (all under docs/ + site/)
 #        check-rust  — desktop cargo test + runner-host crate
 #        check-java  — Java proto stubs + SDK (mvn)
 #
@@ -1149,7 +1137,6 @@ check-node: $(SERVER_DIR)/node_modules ## check bucket: the TS workspace lane (t
 	# The cloud-capability behavior inventory: every conformance
 	# row has a test, every test tag names a row. Static — no target boots.
 	$(MAKE) check-conformance-inventory
-	node scripts/verify-scenar-tours.mjs
 	npm run build:web
 	# Runs after the web build on purpose: with a fresh out/ present, the
 	# routing gate also cross-checks its derived export set against the
@@ -1168,7 +1155,7 @@ check-node: $(SERVER_DIR)/node_modules ## check bucket: the TS workspace lane (t
 	# Same #399-class gate for the TS server's compiled entry.
 	cd $(SERVER_DIR) && npm run verify:dist
 
-check-site: ## check bucket: docs lint/format/links + site lint/typecheck/test/build + demo validation
+check-site: ## check bucket: docs lint/format/links + site lint/typecheck/test/build
 	@vale sync 2>/dev/null
 	@vale $(DOCS_SOURCES)
 	@$(PRETTIER_GUARD)
@@ -1179,7 +1166,6 @@ check-site: ## check bucket: docs lint/format/links + site lint/typecheck/test/b
 	$(MAKE) -C site typecheck
 	$(MAKE) -C site test-unit
 	$(MAKE) -C site build
-	$(MAKE) -C site validate-demos
 	@lychee --config .lychee.toml --root-dir . docs/
 
 check-rust: ## check bucket: desktop cargo test + runner-host crate (mirrors ci.crate: fmt/clippy/build/test)
@@ -1190,8 +1176,6 @@ check-rust: ## check bucket: desktop cargo test + runner-host crate (mirrors ci.
 
 check-java: ## check bucket: Java proto stubs + SDK (mvn)
 	$(MAKE) build-java-sdk
-
-check-all: check test-demos ## Full CI gate including Playwright demo e2e (slow)
 
 # ─── Docs Linting ─────────────────────────────
 

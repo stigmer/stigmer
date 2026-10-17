@@ -60,8 +60,8 @@ async function main(): Promise<void> {
       console.error(
         "\nEvery hand-authored docs page needs an entry in " +
           "docs/_inventory/classification.yaml (fate, diataxis, teaches, " +
-          "medium, per-embed fates); generated pages are covered by cohort " +
-          "rules. See docs/STYLE.md.",
+          "medium); generated pages are covered by cohort rules. See " +
+          "docs/STYLE.md.",
       );
       process.exit(1);
     }

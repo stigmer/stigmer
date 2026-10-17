@@ -6,8 +6,6 @@ description:
   exchange, secure storage, and credential lifecycle automatically.
 ---
 
-import { DemoOAuthConnectFlow } from "@/components/docs";
-
 Some MCP servers connect to services that require OAuth — GitHub, Slack, Figma,
 Linear, Notion. For such a server Stigmer manages the whole sign-in: the login
 window, token exchange, sealed storage in your vault, and automatic refresh. You
@@ -20,12 +18,10 @@ never handle tokens directly.
   difference is how credentials are obtained.
 </Callout>
 
-The walkthrough below signs in to the MCP server of a GitHub plugin from the
-plugin's page: **Sign in** opens GitHub's authorization page, you approve the
-requested permissions, and the login is saved in your vault at the server's
-address. **Check tools** then lists what the server offers.
-
-<DemoOAuthConnectFlow />
+Take a GitHub plugin's MCP server: on the plugin's page, **Sign in** opens
+GitHub's authorization page, you approve the requested permissions, and the
+login is saved in your vault at the server's address. **Check tools** then lists
+what the server offers.
 
 A server written in an Agent's own `mcp_servers` signs in the same way, with
 **Sign in** on its row in the Agent's **MCP servers** section, and the login is
