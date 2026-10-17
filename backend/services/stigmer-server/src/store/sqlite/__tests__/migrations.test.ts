@@ -98,8 +98,9 @@
  * current and previous moved with their sch_ id and bytes but the kind
  * string, its grants re-keyed (Owner made Participant) with their history,
  * the fire ledger rebuilt keyed by fire id (a manual fire sharing its second
- * suffixed), the runs it started relabelled; a grant it cannot read fails
- * the step, naming it, and leaves the database at v41.
+ * suffixed), the runs it started relabelled, grants, history entries and
+ * runs read across keyset pages; a grant, history entry or run it cannot
+ * read fails the step, naming it, and leaves the database at v41.
  * A schema written by a newer release is refused before any migration or
  * list-index reconciliation, with the failed store's connection closed.
  */
@@ -223,6 +224,7 @@ import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_p
 import { ChannelAudience } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
 import { ChannelInstallState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
 import { CHANNEL_MERGE_PAGE_SIZE } from "../../channel-kinds-merged.js";
+import { ROUTINE_RENAME_PAGE_SIZE } from "../../schedules-become-routines.js";
 import { MERGE_ORG, agentChannelRowBytes, shareRowBytes } from "../../__tests__/channel-merge-rows.js";
 import { channelListIndex } from "../../../domain/channel/list-index.js";
 import { buildChannelAgentProfile, loadLinkedChannel } from "../../../domain/channel/steps.js";
@@ -4647,5 +4649,74 @@ describe("v42: the schedule is a routine", () => {
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_41);
     expect(db.prepare(`SELECT kind FROM resources WHERE id = 'sch_daily'`).all()).toEqual([{ kind: "schedule" }]);
     expect(tableNames(db)).toContain("schedule_runs");
+  });
+
+  it("reads runs across keyset pages, relabelling the run past the first page", () => {
+    const db = v41Database();
+    db.exec("BEGIN");
+    for (let i = 0; i <= ROUTINE_RENAME_PAGE_SIZE; i++) {
+      const id = `run_page_${String(i).padStart(4, "0")}`;
+      insert(db, "run", id, toBinary(RunSchema, create(RunSchema, { metadata: { id, org: ORG, labels: { [SCHEDULE_LABEL]: "sch_daily" } } })));
+    }
+    db.exec("COMMIT");
+    runMigrations(db, SCHEMA_VERSION_42);
+
+    const last = `run_page_${String(ROUTINE_RENAME_PAGE_SIZE).padStart(4, "0")}`;
+    const row = db.prepare(`SELECT data FROM resources WHERE kind = 'run' AND id = ?`).get(last) as { data: Uint8Array };
+    expect(fromBinary(RunSchema, new Uint8Array(row.data)).metadata?.labels).toEqual({ [ROUTINE_LABEL]: "sch_daily" });
+    const labelled = db.prepare(`SELECT data FROM resources WHERE kind = 'run'`).all() as Array<{ data: Uint8Array }>;
+    expect(
+      labelled.filter((run) => fromBinary(RunSchema, new Uint8Array(run.data)).metadata?.labels[ROUTINE_LABEL] === "sch_daily"),
+    ).toHaveLength(ROUTINE_RENAME_PAGE_SIZE + 1);
+  });
+
+  it("moves grant history entries across keyset pages, re-keying the entry past the first page", () => {
+    const db = v41Database();
+    const entry = db.prepare(
+      `INSERT INTO grant_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, grant_id,
+         principal_kind, principal_id, relation, resource_kind, resource_id, data)
+       VALUES (?, ?, '2026-10-17T00:00:00.000Z', 'granted', 'grant', 'ida_bea', 'user', ?, 'identity_account', 'ida_cal', 'viewer', 'schedule', 'sch_daily', ?)`,
+    );
+    db.exec("BEGIN");
+    for (let sequence = 1; sequence <= ROUTINE_RENAME_PAGE_SIZE + 1; sequence++) {
+      entry.run(ORG, sequence, grantIdAfterV34(viewerGrant), grantRowAfterV34(viewerGrant));
+    }
+    db.exec("COMMIT");
+    runMigrations(db, SCHEMA_VERSION_42);
+
+    const viewer = { ...viewerGrant, resource: "routine:sch_daily" };
+    expect(
+      db.prepare(`SELECT resource_kind, grant_id, COUNT(*) AS n FROM grant_history GROUP BY resource_kind, grant_id`).all(),
+    ).toEqual([{ resource_kind: "routine", grant_id: grantIdAfterV34(viewer), n: ROUTINE_RENAME_PAGE_SIZE + 1 }]);
+  });
+
+  it("a grant history entry on a schedule that does not decode fails the step, names the entry, and leaves the database at v41", () => {
+    const db = v41Database();
+    seed(db);
+    db.prepare(
+      `INSERT INTO grant_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, grant_id,
+         principal_kind, principal_id, relation, resource_kind, resource_id, data)
+       VALUES (?, 7, '2026-10-17T00:00:00.000Z', 'granted', 'grant', 'ida_bea', 'user', 'grt_x', 'identity_account', 'ida_cal', 'viewer', 'schedule', 'sch_daily', ?)`,
+    ).run(ORG, new Uint8Array([0xff, 0xff, 0xff]));
+    expect(() => runMigrations(db, SCHEMA_VERSION_42)).toThrow(
+      `grant_history '${ORG}/7' cannot be read to rename the schedule kind to the routine kind`,
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_41);
+    expect(db.prepare(`SELECT resource_kind FROM grant_history WHERE org = ? AND sequence = 1`).all(ORG)).toEqual([
+      { resource_kind: "schedule" },
+    ]);
+  });
+
+  it("a run that does not decode fails the step, names the row, and leaves the database at v41 with its fire ledger", () => {
+    const db = v41Database();
+    seed(db);
+    insert(db, "run", "run_broken", new Uint8Array([0xff, 0xff, 0xff]));
+    expect(() => runMigrations(db, SCHEMA_VERSION_42)).toThrow(
+      "run 'run_broken' cannot be read to rename the schedule kind to the routine kind",
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_41);
+    expect(db.prepare(`SELECT kind FROM resources WHERE id = 'sch_daily'`).all()).toEqual([{ kind: "schedule" }]);
+    expect(tableNames(db)).toContain("schedule_runs");
+    expect(tableNames(db)).not.toContain("routine_fires");
   });
 });

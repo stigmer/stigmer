@@ -94,6 +94,12 @@
  * guest conversation relabelled; a row, grant, history entry or
  * conversation it cannot read, an archived version or a previous name
  * fails the step, naming it, and leaves the database at v36.
+ * v38 renames the schedule kind to the routine kind
+ * (../../schedules-become-routines.ts): its rows and names moved, its
+ * grants re-keyed (Owner made Participant) with their history, the fire
+ * ledger rebuilt keyed by fire id, the runs it started relabelled across
+ * keyset pages; a grant, history entry or run it cannot read fails the
+ * step, naming it, and leaves the database at v37.
  * A step's starting database is built by running the chain up to the step
  * before it.
  * Newer schemas are refused without writes or reconciliation; refusal
@@ -218,6 +224,7 @@ import { ChannelAudience } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spe
 import { ChannelInstallState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { CHANNEL_MERGE_PAGE_SIZE } from "../../channel-kinds-merged.js";
+import { ROUTINE_RENAME_PAGE_SIZE } from "../../schedules-become-routines.js";
 import { MERGE_ORG, agentChannelRowBytes, shareRowBytes } from "../../__tests__/channel-merge-rows.js";
 import { channelListIndex } from "../../../domain/channel/list-index.js";
 import { buildChannelAgentProfile, loadLinkedChannel } from "../../../domain/channel/steps.js";
@@ -4921,6 +4928,73 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_38)).rejects.toThrow(/grt_broken/);
           expect(await version(client)).toBe(SCHEMA_VERSION_37);
           expect((await client.query(`SELECT kind FROM resources WHERE id = 'sch_daily'`)).rows).toEqual([{ kind: "schedule" }]);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reads runs across keyset pages, relabelling the run past the first page", async () => {
+        const client = await clientAt(SCHEMA_VERSION_37);
+        try {
+          for (let i = 0; i <= ROUTINE_RENAME_PAGE_SIZE; i++) {
+            const id = `run_page_${String(i).padStart(4, "0")}`;
+            await insertRow(
+              client,
+              "run",
+              id,
+              toBinary(RunSchema, create(RunSchema, { metadata: { id, org: ORG, labels: { [SCHEDULE_LABEL]: "sch_daily" } } })),
+            );
+          }
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_38);
+
+          const runs = (await client.query<{ id: string; data: Buffer }>(`SELECT id, data FROM resources WHERE kind = 'run'`)).rows;
+          const labelled = runs.filter(
+            (run) => fromBinary(RunSchema, new Uint8Array(run.data)).metadata?.labels[ROUTINE_LABEL] === "sch_daily",
+          );
+          expect(labelled).toHaveLength(ROUTINE_RENAME_PAGE_SIZE + 1);
+          expect(labelled.map((run) => run.id)).toContain(`run_page_${String(ROUTINE_RENAME_PAGE_SIZE).padStart(4, "0")}`);
+        } finally {
+          await client.end();
+        }
+      }, 60_000);
+
+      it("a grant history entry on a schedule that does not decode fails the step, names the entry, and leaves the database at v37", async () => {
+        const client = await clientAt(SCHEMA_VERSION_37);
+        try {
+          await seed(client);
+          await client.query(
+            `INSERT INTO grant_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, grant_id,
+               principal_kind, principal_id, relation, resource_kind, resource_id, data)
+             VALUES ($1, 7, $2, 'granted', 'grant', 'ida_bea', 'user', 'grt_x', 'identity_account', 'ida_cal', 'viewer', 'schedule', 'sch_daily', $3)`,
+            [ORG, "2026-10-17T00:00:00.000Z", Buffer.from([0xff, 0xff, 0xff])],
+          );
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_38)).rejects.toThrow(
+            `grant_history '${ORG}/7' cannot be read to rename the schedule kind to the routine kind`,
+          );
+          expect(await version(client)).toBe(SCHEMA_VERSION_37);
+          expect(
+            (await client.query(`SELECT resource_kind FROM grant_history WHERE org = $1 AND sequence = 1`, [ORG])).rows,
+          ).toEqual([{ resource_kind: "schedule" }]);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a run that does not decode fails the step, names the row, and leaves the database at v37 with its fire ledger", async () => {
+        const client = await clientAt(SCHEMA_VERSION_37);
+        try {
+          await seed(client);
+          await insertRow(client, "run", "run_broken", new Uint8Array([0xff, 0xff, 0xff]));
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_38)).rejects.toThrow(
+            "run 'run_broken' cannot be read to rename the schedule kind to the routine kind",
+          );
+          expect(await version(client)).toBe(SCHEMA_VERSION_37);
+          expect((await client.query(`SELECT kind FROM resources WHERE id = 'sch_daily'`)).rows).toEqual([{ kind: "schedule" }]);
+          const tables = (
+            await client.query<{ table_name: string }>(`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`)
+          ).rows.map((r) => r.table_name);
+          expect(tables).toContain("schedule_runs");
+          expect(tables).not.toContain("routine_fires");
         } finally {
           await client.end();
         }

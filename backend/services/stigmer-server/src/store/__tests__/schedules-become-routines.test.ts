@@ -8,7 +8,7 @@
  *   - rekeyedRoutineGrant re-keys a grant on a schedule to the routine
  *     triple's `grt_` id, an Owner grant made a Participant grant and a
  *     Viewer grant kept a Viewer grant, and passes over a grant on another
- *     kind;
+ *     kind and a grant that holds no spec;
  *   - relabelledRoutineRun moves a run's schedule label to the routine
  *     label, keeps a routine label the row already holds, re-stamps an etag
  *     only on a row that had one, and passes over a run without the label;
@@ -148,6 +148,11 @@ describe("rekeyedRoutineGrant", () => {
 
   it("passes over a grant on another kind, Owner included", () => {
     expect(rekeyedRoutineGrant(grantBytes("owner", "agent"))).toBeUndefined();
+  });
+
+  it("passes over a grant that holds no spec", () => {
+    const bare = toBinary(GrantSchema, create(GrantSchema, { metadata: { id: "grt_bare", org: "org_acme" } }));
+    expect(rekeyedRoutineGrant(bare)).toBeUndefined();
   });
 
   it("fails on bytes that do not decode", () => {
