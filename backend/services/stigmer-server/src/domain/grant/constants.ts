@@ -344,6 +344,16 @@ export const PARTICIPANT_ASSIGNMENT_DENIED_MESSAGE =
   "only the person who created this routine may choose who starts it";
 
 /**
+ * A grant of Viewer on a routine by anyone but the person who created it
+ * (PERMISSION_DENIED): a Viewer reads the routine's runs, every one of
+ * which acted as its creator and is that person's conversation, so only the
+ * creator chooses who may. Taking Viewer away is anyone's who manages the
+ * routine.
+ */
+export const VIEWER_ASSIGNMENT_DENIED_MESSAGE =
+  "only the person who created this routine may choose who sees its runs";
+
+/**
  * A grant of the organization's `affiliated` relation (INVALID_ARGUMENT, on
  * every lane): it is derived from a person's organization roles, never
  * granted (fga/model/tenancy/organization.fga).

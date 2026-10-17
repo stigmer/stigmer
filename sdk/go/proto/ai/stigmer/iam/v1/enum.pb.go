@@ -43,10 +43,11 @@ const (
 	// Access management permissions.
 	IamPermission_can_grant_access IamPermission = 4
 	IamPermission_can_view_access  IamPermission = 5
-	// Whether the caller may grant a role that acts with the resource holder's
-	// authority: the owner role on an organization (only its owners hold
-	// it), or Participant on a routine (only the routine's owner holds it,
-	// because a Participant's fire acts as the owner).
+	// Whether the caller may grant a role that acts with, or sees what was
+	// done under, the resource holder's authority: the owner role on an
+	// organization (only its owners hold it), or Participant or Viewer on a
+	// routine (only the routine's owner holds it, because a Participant's
+	// fire acts as the owner and a Viewer reads the runs that acted as them).
 	IamPermission_can_assign_roles IamPermission = 47
 	// Whether the caller may change who reaches the resource: its visibility,
 	// who observes its runs, or a channel it answers on (a chat link among

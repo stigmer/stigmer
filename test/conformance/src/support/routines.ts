@@ -40,6 +40,11 @@ export const OWNERS_LOCK_MESSAGE =
 export const PARTICIPANT_ASSIGNMENT_DENIED_MESSAGE =
   "only the person who created this routine may choose who starts it";
 
+// Anyone but the routine's creator granting Viewer: a Viewer reads the
+// runs that acted as the creator.
+export const VIEWER_ASSIGNMENT_DENIED_MESSAGE =
+  "only the person who created this routine may choose who sees its runs";
+
 // The create bar: can_edit on the referenced agent.
 export const ROUTINE_CREATE_DENIED_MESSAGE = "You don't have permission to make a routine of this agent";
 

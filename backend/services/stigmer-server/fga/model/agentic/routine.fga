@@ -16,11 +16,16 @@ module agentic
 # 2026-07-13 trade made them (org-admin-owner-inheritance.fga.yaml) through
 # the permissions instead: they see a routine, its fire history and its
 # access list, switch it off, rename, relabel, delete or resume it, and
-# revoke access. They do not fire it, grant Participant, or read its runs,
-# since the run speaks with the owner's authority and the fire's text reaches
-# it. The server adds the one rule the model cannot state: only the owner
-# changes what a routine runs (an admin's update may switch it off, never
-# change the message).
+# revoke access. They do not fire it, grant Participant or Viewer, or read
+# its runs, since the run speaks with the owner's authority and the fire's
+# text reaches it. The server adds the two rules the model cannot state:
+# only the owner changes what a routine runs (an admin's update may switch
+# it off, never change the message), and only the owner grants a role on it
+# (the grant lane asks can_assign_roles for Participant and Viewer alike, so
+# an admin cannot make themselves a Viewer of the owner's runs). A
+# Participant or Viewer the owner grants to a team or a service account is
+# reached by whoever that principal's managers add to it or mint a key for:
+# the owner chooses that principal knowing who manages it.
 #
 # A Participant (a person, an Enterprise team's members, or a service
 # account) fires it and reads its runs; a Viewer reads it and its runs.
@@ -81,7 +86,8 @@ type routine
     # ACCESS MANAGEMENT
     # ========================================
     define can_grant_access: owner or admin from organization
-    # A role that acts with the owner's authority: Participant fires as the
-    # owner, so only the owner grants it.
+    # A role that acts with, or sees what was done under, the owner's
+    # authority: Participant fires as the owner and Viewer reads the runs
+    # that acted as them, so only the owner grants either.
     define can_assign_roles: owner
     define can_view_access: viewer or admin from organization

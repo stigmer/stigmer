@@ -63,6 +63,7 @@ import {
   LAST_OWNER_MESSAGE,
   OWNER_ASSIGNMENT_DENIED_MESSAGE,
   PARTICIPANT_ASSIGNMENT_DENIED_MESSAGE,
+  VIEWER_ASSIGNMENT_DENIED_MESSAGE,
   PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE,
   noGrantableRolesMessage,
   personQualifierMessage,
@@ -616,17 +617,26 @@ describe("owner is assigned by owners", () => {
       ]);
     });
 
-    it("asks nothing for Viewer on a routine, nor for taking Participant away: removing access only shrinks it", async () => {
+    it("asks can_assign_roles on the routine when a grant gives Viewer on it, refusing with the Viewer copy: a Viewer reads the runs that acted as the owner", async () => {
       const denied = authorizer(false);
-      const participant = triple(
-        { kind: "identity_account", id: "ida_alerts" },
-        "participant",
-        { kind: "routine", id: "rtn_1" },
+      const viewer = triple({ kind: "identity_account", id: "ida_admin" }, "viewer", { kind: "routine", id: "rtn_1" });
+      const error = await refusal(() =>
+        newAuthorizeOwnerAssignmentStep(denied, specRoleAssignment).execute(specContext(viewer)),
       );
-      await newAuthorizeOwnerAssignmentStep(denied, specRoleAssignment).execute(
-        specContext(triple({ kind: "identity_account", id: "ida_alerts" }, "viewer", { kind: "routine", id: "rtn_1" })),
-      );
-      await newAuthorizeOwnerAssignmentStep(denied, specOwnerAssignment).execute(specContext(participant));
+      expect(error.code).toBe(Code.PermissionDenied);
+      expect(error.rawMessage).toBe(VIEWER_ASSIGNMENT_DENIED_MESSAGE);
+      expect(denied.asked).toEqual([
+        { permission: IamPermission.can_assign_roles, resourceKind: ApiResourceKind.routine, resourceId: "rtn_1" },
+      ]);
+    });
+
+    it("asks nothing for taking Participant or Viewer away: removing access only shrinks it", async () => {
+      const denied = authorizer(false);
+      for (const role of ["participant", "viewer"]) {
+        await newAuthorizeOwnerAssignmentStep(denied, specOwnerAssignment).execute(
+          specContext(triple({ kind: "identity_account", id: "ida_alerts" }, role, { kind: "routine", id: "rtn_1" })),
+        );
+      }
       expect(denied.asked).toEqual([]);
     });
 

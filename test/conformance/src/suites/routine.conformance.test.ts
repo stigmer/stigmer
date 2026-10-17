@@ -27,7 +27,9 @@
 //     routine (every run acts as its creator); a Participant — here a
 //     service account, the alerting tool's — may fire and read it and is
 //     refused changing it; an admin is refused granting Participant with
-//     the Participant copy and may revoke one; where the edition grants no
+//     the Participant copy and may revoke one; an admin is refused making
+//     themselves a Viewer (a Viewer reads the owner's runs) with the Viewer
+//     copy, and may take a Viewer the owner granted away; where the edition grants no
 //     role on one resource, a Participant grant is UNIMPLEMENTED with the
 //     edition sentence, and the owner fires with their own credential.
 //
@@ -55,6 +57,7 @@ import {
   FIRE_DISABLED_MESSAGE,
   OWNERS_LOCK_MESSAGE,
   PARTICIPANT_ASSIGNMENT_DENIED_MESSAGE,
+  VIEWER_ASSIGNMENT_DENIED_MESSAGE,
   invalidTimeZoneMessage,
   makeRoutine,
 } from "../support/routines";
@@ -710,5 +713,36 @@ describe.skipIf(!capabilities.perResourceGrants)("Routine access — Participant
     expect(roles.roles).toEqual([]);
     const revoked = await member.grantQuery.checkMyPermission({ resource: ref("routine", id), relation: "can_fire" });
     expect(revoked.isAuthorized).toBe(false);
+  });
+
+  it("[rpc:GrantCommandController.create] [rpc:GrantCommandController.delete] an admin is refused making themselves a Viewer of the owner's runs, with the Viewer copy, and may take a Viewer away", async (ctx) => {
+    const on = laneOrSkip(ctx);
+    const { tenancy, id } = await participantFixture(on);
+    const admin = await on.provisionWithRole(tenancy, "admin");
+    const adminId = await on.accountIdOf(admin);
+
+    const refused = await expectGrpcCode(
+      () => admin.grantCommand.create(grantTriple({ kind: "identity_account", id: adminId }, "viewer", { kind: "routine", id })),
+      Code.PermissionDenied,
+      "an admin granting themselves Viewer on a routine they did not create",
+    );
+    expect(refused.rawMessage).toBe(VIEWER_ASSIGNMENT_DENIED_MESSAGE);
+    const held = await on.clients.grantQuery.getPrincipalResourceRoles({
+      principal: ref("identity_account", adminId),
+      resource: ref("routine", id),
+    });
+    expect(held.roles, "the admin holds no role on the routine, so none of its runs").toEqual([]);
+
+    // The owner chooses who sees the runs; an admin may still take it back.
+    const member = await on.provisionMember(tenancy);
+    const memberId = await on.accountIdOf(member);
+    const grant = grantTriple({ kind: "identity_account", id: memberId }, "viewer", { kind: "routine", id });
+    await on.clients.grantCommand.create(grant);
+    await admin.grantCommand.delete(grant);
+    const roles = await on.clients.grantQuery.getPrincipalResourceRoles({
+      principal: ref("identity_account", memberId),
+      resource: ref("routine", id),
+    });
+    expect(roles.roles).toEqual([]);
   });
 });

@@ -58,10 +58,11 @@ public enum IamPermission
   can_view_access(5),
   /**
    * <pre>
-   * Whether the caller may grant a role that acts with the resource holder's
-   * authority: the owner role on an organization (only its owners hold
-   * it), or Participant on a routine (only the routine's owner holds it,
-   * because a Participant's fire acts as the owner).
+   * Whether the caller may grant a role that acts with, or sees what was
+   * done under, the resource holder's authority: the owner role on an
+   * organization (only its owners hold it), or Participant or Viewer on a
+   * routine (only the routine's owner holds it, because a Participant's
+   * fire acts as the owner and a Viewer reads the runs that acted as them).
    * </pre>
    *
    * <code>can_assign_roles = 47;</code>
@@ -387,10 +388,11 @@ public enum IamPermission
   public static final int can_view_access_VALUE = 5;
   /**
    * <pre>
-   * Whether the caller may grant a role that acts with the resource holder's
-   * authority: the owner role on an organization (only its owners hold
-   * it), or Participant on a routine (only the routine's owner holds it,
-   * because a Participant's fire acts as the owner).
+   * Whether the caller may grant a role that acts with, or sees what was
+   * done under, the resource holder's authority: the owner role on an
+   * organization (only its owners hold it), or Participant or Viewer on a
+   * routine (only the routine's owner holds it, because a Participant's
+   * fire acts as the owner and a Viewer reads the runs that acted as them).
    * </pre>
    *
    * <code>can_assign_roles = 47;</code>

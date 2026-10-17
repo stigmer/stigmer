@@ -56,16 +56,17 @@
  * `can_grant_access` (admin) already, so an admin grants every role up to
  * admin; a change that touches an organization's `owner` role also needs
  * `can_assign_roles` there, which only its owners hold, and so does a grant
- * of `participant` on a routine, a role that acts with the routine's
- * owner's authority (its fires run as them), which only that owner holds.
+ * of `participant` or `viewer` on a routine, which only that owner holds:
+ * a Participant fires as the owner, and a Viewer reads the runs that acted
+ * as them, the owner's conversations.
  * Two steps carry it, on the caller lanes only (`create`, `delete`,
  * `revokeOrgAccess`; never the bootstrap twins, whose platform-pipeline
  * callers hold no organization role):
  *   - AuthorizeOwnerAssignment asks `can_assign_roles` on the resource when
  *     the spec grants or revokes `owner` on an organization, when the
  *     account `revokeOrgAccess` removes holds it, or when the spec grants
- *     `participant` on a routine (revoking it only shrinks access, so it
- *     asks nothing more than can_grant_access). It is Authorize's own
+ *     `participant` or `viewer` on a routine (revoking either only shrinks
+ *     access, so it asks nothing more than can_grant_access). It is Authorize's own
  *     evaluation (`authorizeResolvedResource`), so the `internal` caller
  *     skips it as it skips position 1;
  *   - KeepOneOwner refuses a revoke or a removal that would leave the
@@ -119,6 +120,7 @@ import {
   LAST_OWNER_MESSAGE,
   OWNER_ASSIGNMENT_DENIED_MESSAGE,
   PARTICIPANT_ASSIGNMENT_DENIED_MESSAGE,
+  VIEWER_ASSIGNMENT_DENIED_MESSAGE,
   PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE,
   TEAM_MEMBERS_RELATION,
   noGrantableRolesMessage,
@@ -331,7 +333,12 @@ const ORGANIZATION_KIND_NAME = kindEnumName(ApiResourceKind.organization);
 const IDENTITY_ACCOUNT_KIND_NAME = kindEnumName(ApiResourceKind.identity_account);
 const ROUTINE_KIND_NAME = kindEnumName(ApiResourceKind.routine);
 const OWNER_RELATION = IamRole[IamRole.owner];
-const PARTICIPANT_RELATION = IamRole[IamRole.participant];
+
+/** The routine roles only its owner grants, each with its refusal's copy. */
+const ROUTINE_ASSIGNMENT_DENIED_MESSAGES: Readonly<Record<string, string>> = {
+  [IamRole[IamRole.participant]]: PARTICIPANT_ASSIGNMENT_DENIED_MESSAGE,
+  [IamRole[IamRole.viewer]]: VIEWER_ASSIGNMENT_DENIED_MESSAGE,
+};
 
 /** The context key the organization's owner rows are kept under for the rest of the request. */
 const ORGANIZATION_OWNERS_KEY = "organizationOwners";
@@ -414,18 +421,18 @@ export async function specOwnerAssignment(
 }
 
 /**
- * `create`: the spec grants an organization's owner role, or Participant on
- * a routine.
+ * `create`: the spec grants an organization's owner role, or Participant or
+ * Viewer on a routine.
  */
 export async function specRoleAssignment(
   ctx: RequestContext<typeof GrantSpecSchema>,
 ): Promise<RoleAssignment | undefined> {
   const { resource, relation } = ctx.input;
-  if (resource?.kind === ROUTINE_KIND_NAME && relation === PARTICIPANT_RELATION) {
+  if (resource?.kind === ROUTINE_KIND_NAME && Object.hasOwn(ROUTINE_ASSIGNMENT_DENIED_MESSAGES, relation)) {
     return {
       resourceKind: ApiResourceKind.routine,
       resourceId: resource.id,
-      deniedMessage: PARTICIPANT_ASSIGNMENT_DENIED_MESSAGE,
+      deniedMessage: ROUTINE_ASSIGNMENT_DENIED_MESSAGES[relation] ?? "",
     };
   }
   return specOwnerAssignment(ctx);
