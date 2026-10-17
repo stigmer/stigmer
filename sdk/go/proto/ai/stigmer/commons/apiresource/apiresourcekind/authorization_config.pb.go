@@ -315,13 +315,18 @@ type ParentRelationConfig struct {
 	// Example: "session_id" for run, "subject_identity_account_id" for
 	// memory.
 	// This eliminates hardcoded parent ID extraction logic in the service.
+	// Exactly one of spec_field and status_field is set.
 	SpecField string `protobuf:"bytes,3,opt,name=spec_field,json=specField,proto3" json:"spec_field,omitempty"`
-	// Whether a row may leave the spec field empty, writing no link.
+	// Whether a row may leave the parent field empty, writing no link.
 	//
 	// A kind whose rows each link one of several parents (a vault belongs to a
 	// person or to its organization) marks each parent optional. A required
 	// parent whose field is empty fails the create.
-	Optional      bool `protobuf:"varint,4,opt,name=optional,proto3" json:"optional,omitempty"`
+	Optional bool `protobuf:"varint,4,opt,name=optional,proto3" json:"optional,omitempty"`
+	// Field name in the resource's status message that contains the parent ID,
+	// for a link only the server may write. Example: "routine_id" for a
+	// session a routine's fire started.
+	StatusField   string `protobuf:"bytes,5,opt,name=status_field,json=statusField,proto3" json:"status_field,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -382,6 +387,13 @@ func (x *ParentRelationConfig) GetOptional() bool {
 		return x.Optional
 	}
 	return false
+}
+
+func (x *ParentRelationConfig) GetStatusField() string {
+	if x != nil {
+		return x.StatusField
+	}
+	return ""
 }
 
 // FGA authorization tuple configuration for a resource kind.
@@ -659,13 +671,14 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_p
 	"\x10VisibilityConfig\x12.\n" +
 	"\x13supports_child_orgs\x18\x02 \x01(\bR\x11supportsChildOrgs\x12!\n" +
 	"\fsupports_org\x18\x03 \x01(\bR\vsupportsOrg\x12;\n" +
-	"\x1adefaults_to_org_visibility\x18\x04 \x01(\bR\x17defaultsToOrgVisibilityJ\x04\b\x01\x10\x02R\x0fsupports_public\"\x81\x01\n" +
+	"\x1adefaults_to_org_visibility\x18\x04 \x01(\bR\x17defaultsToOrgVisibilityJ\x04\b\x01\x10\x02R\x0fsupports_public\"\xa4\x01\n" +
 	"\x14ParentRelationConfig\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x1a\n" +
 	"\brelation\x18\x02 \x01(\tR\brelation\x12\x1d\n" +
 	"\n" +
 	"spec_field\x18\x03 \x01(\tR\tspecField\x12\x1a\n" +
-	"\boptional\x18\x04 \x01(\bR\boptional\"\xcd\x06\n" +
+	"\boptional\x18\x04 \x01(\bR\boptional\x12!\n" +
+	"\fstatus_field\x18\x05 \x01(\tR\vstatusField\"\xcd\x06\n" +
 	"\x13AuthorizationConfig\x12e\n" +
 	"\n" +
 	"scope_type\x18\x01 \x01(\x0e2F.ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationScopeTypeR\tscopeType\x12c\n" +

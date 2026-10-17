@@ -1,0 +1,56 @@
+{
+  "name": "RoutineSpec",
+  "description": "RoutineSpec defines what a routine runs and, optionally, when it runs on\n its own.\n\n The spec is deliberately small: the agent and message each run starts\n from, an optional cron expression, the IANA time zone the routine keeps,\n and the owner's enablement switch. Everything the platform observes about\n firing lives in status, so a declarative apply can never clobber it.",
+  "protoType": "ai.stigmer.agentic.routine.v1.RoutineSpec",
+  "protoFile": "apis/ai/stigmer/agentic/routine/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Cron",
+      "jsonName": "cron",
+      "protoField": "cron",
+      "type": {
+        "kind": "string"
+      },
+      "description": "When the routine runs on its own: a cron expression in the classic\n 5-field form (minute, hour, day-of-month, month, day-of-week),\n evaluated in `time_zone`, for example \"0 9 * * *\" for daily at 09:00.\n The shorthands @hourly, @daily, @weekly, @monthly, and @yearly are also\n accepted. Time zone prefixes (CRON_TZ=/TZ=), @every intervals, 6- or\n 7-field forms, and trailing comments are rejected. Absent, the routine\n runs only when it is fired.",
+      "required": false,
+      "oneofGroup": "_cron",
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "TimeZone",
+      "jsonName": "timeZone",
+      "protoField": "time_zone",
+      "type": {
+        "kind": "string"
+      },
+      "description": "IANA time zone the routine keeps, e.g. \"Asia/Kolkata\": its schedule is\n evaluated in it, and every run is told the date and time in it. Required\n when `cron` is set; empty without one means UTC.",
+      "required": false
+    },
+    {
+      "name": "Enabled",
+      "jsonName": "enabled",
+      "protoField": "enabled",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether the routine runs. Off stops it from running on its schedule and\n refuses fire, without deleting the routine or its history.",
+      "required": false
+    },
+    {
+      "name": "Agent",
+      "jsonName": "agent",
+      "protoField": "agent",
+      "type": {
+        "kind": "message",
+        "messageType": "AgentInvocation"
+      },
+      "description": "The agent each run starts, with the message it starts from.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    }
+  ]
+}

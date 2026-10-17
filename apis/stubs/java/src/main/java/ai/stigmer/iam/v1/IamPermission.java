@@ -58,8 +58,10 @@ public enum IamPermission
   can_view_access(5),
   /**
    * <pre>
-   * Whether the caller may grant, revoke or remove the owner role on an
-   * organization: only its owners hold it.
+   * Whether the caller may grant a role that acts with the resource holder's
+   * authority: the owner role on an organization (only its owners hold
+   * it), or Participant on a routine (only the routine's owner holds it,
+   * because a Participant's fire acts as the owner).
    * </pre>
    *
    * <code>can_assign_roles = 47;</code>
@@ -330,6 +332,15 @@ public enum IamPermission
    * <code>can_create_eval = 58;</code>
    */
   can_create_eval(58),
+  /**
+   * <pre>
+   * Whether the caller may fire a routine: start a run of it now, with an
+   * optional note. Its owner and the Participants the owner granted.
+   * </pre>
+   *
+   * <code>can_fire = 59;</code>
+   */
+  can_fire(59),
   UNRECOGNIZED(-1),
   ;
 
@@ -376,8 +387,10 @@ public enum IamPermission
   public static final int can_view_access_VALUE = 5;
   /**
    * <pre>
-   * Whether the caller may grant, revoke or remove the owner role on an
-   * organization: only its owners hold it.
+   * Whether the caller may grant a role that acts with the resource holder's
+   * authority: the owner role on an organization (only its owners hold
+   * it), or Participant on a routine (only the routine's owner holds it,
+   * because a Participant's fire acts as the owner).
    * </pre>
    *
    * <code>can_assign_roles = 47;</code>
@@ -648,6 +661,15 @@ public enum IamPermission
    * <code>can_create_eval = 58;</code>
    */
   public static final int can_create_eval_VALUE = 58;
+  /**
+   * <pre>
+   * Whether the caller may fire a routine: start a run of it now, with an
+   * optional note. Its owner and the Participants the owner granted.
+   * </pre>
+   *
+   * <code>can_fire = 59;</code>
+   */
+  public static final int can_fire_VALUE = 59;
 
 
   public final int getNumber() {
@@ -712,6 +734,7 @@ public enum IamPermission
       case 56: return can_view_access_history;
       case 57: return can_mint_user_tokens;
       case 58: return can_create_eval;
+      case 59: return can_fire;
       default: return null;
     }
   }

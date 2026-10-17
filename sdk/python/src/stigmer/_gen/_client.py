@@ -21,8 +21,8 @@ from ._organization import OrganizationClient
 from ._plan import PlanClient
 from ._plugin import PluginClient
 from ._providerkey import ProviderKeyClient
+from ._routine import RoutineClient
 from ._run import RunClient
-from ._schedule import ScheduleClient
 from ._score import ScoreClient
 from ._scoringrule import ScoringRuleClient
 from ._session import SessionClient
@@ -53,8 +53,8 @@ class GeneratedClient:
         self.plans = PlanClient(channel)
         self.plugins = PluginClient(channel)
         self.providerkeys = ProviderKeyClient(channel)
+        self.routines = RoutineClient(channel)
         self.runs = RunClient(channel)
-        self.schedules = ScheduleClient(channel)
         self.scores = ScoreClient(channel)
         self.scoringrules = ScoringRuleClient(channel)
         self.sessions = SessionClient(channel)

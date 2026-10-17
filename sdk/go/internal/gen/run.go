@@ -238,36 +238,6 @@ type SessionSpecInput struct {
 	FileReview       bool
 }
 
-// WorkspaceEntryInput is the SDK input type for WorkspaceEntry.
-type WorkspaceEntryInput struct {
-	Name   string
-	Source *WorkspaceSourceInput
-}
-
-// WorkspaceSourceInput is the SDK input type for WorkspaceSource.
-type WorkspaceSourceInput struct {
-	GitRepo   *GitRepoSourceInput
-	LocalPath *LocalPathSourceInput
-}
-
-// GitRepoSourceInput is the SDK input type for GitRepoSource.
-type GitRepoSourceInput struct {
-	Url    string
-	Branch string
-	Commit string
-	// Depth is not sent when zero: this input cannot tell a zero you set from
-	// none, so zero means unset. Number of commits to include in the clone
-	// history.
-	Depth         int32
-	WriteBackMode sessionv1.GitWriteBackMode
-	Token         string
-}
-
-// LocalPathSourceInput is the SDK input type for LocalPathSource.
-type LocalPathSourceInput struct {
-	Path string
-}
-
 // AttachmentInput is the SDK input type for Attachment.
 type AttachmentInput struct {
 	Filename    string
@@ -440,42 +410,6 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 	return resource, nil
 }
 
-func (i *WorkspaceEntryInput) toProto() (*sessionv1.WorkspaceEntry, error) {
-	p := &sessionv1.WorkspaceEntry{}
-	p.Name = i.Name
-	if i.Source != nil {
-		v, err := i.Source.toProto()
-		if err != nil {
-			return nil, fieldErr("Source", err)
-		}
-		p.Source = v
-	}
-	return p, nil
-}
-
-func (i *WorkspaceSourceInput) toProto() (*sessionv1.WorkspaceSource, error) {
-	p := &sessionv1.WorkspaceSource{}
-	if i.LocalPath != nil {
-		m := &sessionv1.LocalPathSource{}
-		m.Path = i.LocalPath.Path
-		p.Source = &sessionv1.WorkspaceSource_LocalPath{LocalPath: m}
-	}
-	if i.GitRepo != nil {
-		m := &sessionv1.GitRepoSource{}
-		m.Url = i.GitRepo.Url
-		m.Branch = i.GitRepo.Branch
-		m.Commit = i.GitRepo.Commit
-		if i.GitRepo.Depth != 0 {
-			v := i.GitRepo.Depth
-			m.Depth = &v
-		}
-		m.WriteBackMode = i.GitRepo.WriteBackMode
-		m.Token = i.GitRepo.Token
-		p.Source = &sessionv1.WorkspaceSource_GitRepo{GitRepo: m}
-	}
-	return p, nil
-}
-
 func (i *AttachmentInput) toProto() (*runv1.Attachment, error) {
 	return &runv1.Attachment{
 		Filename:    i.Filename,
@@ -633,49 +567,6 @@ func sessionSpecInputFromProto(p *sessionv1.SessionSpec) *SessionSpecInput {
 		input.Plugins = append(input.Plugins, resourceRefFromProto(r))
 	}
 	input.FileReview = p.GetFileReview()
-	return input
-}
-
-func workspaceEntryInputFromProto(p *sessionv1.WorkspaceEntry) *WorkspaceEntryInput {
-	if p == nil {
-		return nil
-	}
-	input := &WorkspaceEntryInput{}
-	input.Name = p.GetName()
-	input.Source = workspaceSourceInputFromProto(p.GetSource())
-	return input
-}
-
-func workspaceSourceInputFromProto(p *sessionv1.WorkspaceSource) *WorkspaceSourceInput {
-	if p == nil {
-		return nil
-	}
-	input := &WorkspaceSourceInput{}
-	input.GitRepo = gitRepoSourceInputFromProto(p.GetGitRepo())
-	input.LocalPath = localPathSourceInputFromProto(p.GetLocalPath())
-	return input
-}
-
-func gitRepoSourceInputFromProto(p *sessionv1.GitRepoSource) *GitRepoSourceInput {
-	if p == nil {
-		return nil
-	}
-	input := &GitRepoSourceInput{}
-	input.Url = p.GetUrl()
-	input.Branch = p.GetBranch()
-	input.Commit = p.GetCommit()
-	input.Depth = p.GetDepth()
-	input.WriteBackMode = p.GetWriteBackMode()
-	input.Token = p.GetToken()
-	return input
-}
-
-func localPathSourceInputFromProto(p *sessionv1.LocalPathSource) *LocalPathSourceInput {
-	if p == nil {
-		return nil
-	}
-	input := &LocalPathSourceInput{}
-	input.Path = p.GetPath()
 	return input
 }
 

@@ -46,6 +46,7 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_view_access_history: _ClassVar[IamPermission]
     can_mint_user_tokens: _ClassVar[IamPermission]
     can_create_eval: _ClassVar[IamPermission]
+    can_fire: _ClassVar[IamPermission]
 
 class IamRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -95,6 +96,7 @@ can_manage_keys: IamPermission
 can_view_access_history: IamPermission
 can_mint_user_tokens: IamPermission
 can_create_eval: IamPermission
+can_fire: IamPermission
 iam_role_unspecified: IamRole
 owner: IamRole
 admin: IamRole

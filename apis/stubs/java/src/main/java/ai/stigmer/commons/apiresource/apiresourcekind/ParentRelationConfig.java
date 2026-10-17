@@ -36,6 +36,7 @@ private static final long serialVersionUID = 0L;
     kind_ = "";
     relation_ = "";
     specField_ = "";
+    statusField_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -168,6 +169,7 @@ private static final long serialVersionUID = 0L;
    * Example: "session_id" for run, "subject_identity_account_id" for
    * memory.
    * This eliminates hardcoded parent ID extraction logic in the service.
+   * Exactly one of spec_field and status_field is set.
    * </pre>
    *
    * <code>string spec_field = 3 [json_name = "specField"];</code>
@@ -193,6 +195,7 @@ private static final long serialVersionUID = 0L;
    * Example: "session_id" for run, "subject_identity_account_id" for
    * memory.
    * This eliminates hardcoded parent ID extraction logic in the service.
+   * Exactly one of spec_field and status_field is set.
    * </pre>
    *
    * <code>string spec_field = 3 [json_name = "specField"];</code>
@@ -217,7 +220,7 @@ private static final long serialVersionUID = 0L;
   private boolean optional_ = false;
   /**
    * <pre>
-   * Whether a row may leave the spec field empty, writing no link.
+   * Whether a row may leave the parent field empty, writing no link.
    *
    * A kind whose rows each link one of several parents (a vault belongs to a
    * person or to its organization) marks each parent optional. A required
@@ -230,6 +233,57 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public boolean getOptional() {
     return optional_;
+  }
+
+  public static final int STATUS_FIELD_FIELD_NUMBER = 5;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object statusField_ = "";
+  /**
+   * <pre>
+   * Field name in the resource's status message that contains the parent ID,
+   * for a link only the server may write. Example: "routine_id" for a
+   * session a routine's fire started.
+   * </pre>
+   *
+   * <code>string status_field = 5 [json_name = "statusField"];</code>
+   * @return The statusField.
+   */
+  @java.lang.Override
+  public java.lang.String getStatusField() {
+    java.lang.Object ref = statusField_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      statusField_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Field name in the resource's status message that contains the parent ID,
+   * for a link only the server may write. Example: "routine_id" for a
+   * session a routine's fire started.
+   * </pre>
+   *
+   * <code>string status_field = 5 [json_name = "statusField"];</code>
+   * @return The bytes for statusField.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getStatusFieldBytes() {
+    java.lang.Object ref = statusField_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      statusField_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
   }
 
   private byte memoizedIsInitialized = -1;
@@ -258,6 +312,9 @@ private static final long serialVersionUID = 0L;
     if (optional_ != false) {
       output.writeBool(4, optional_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(statusField_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 5, statusField_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -279,6 +336,9 @@ private static final long serialVersionUID = 0L;
     if (optional_ != false) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(4, optional_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(statusField_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(5, statusField_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -303,6 +363,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getSpecField())) return false;
     if (getOptional()
         != other.getOptional()) return false;
+    if (!getStatusField()
+        .equals(other.getStatusField())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -323,6 +385,8 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + OPTIONAL_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getOptional());
+    hash = (37 * hash) + STATUS_FIELD_FIELD_NUMBER;
+    hash = (53 * hash) + getStatusField().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -463,6 +527,7 @@ private static final long serialVersionUID = 0L;
       relation_ = "";
       specField_ = "";
       optional_ = false;
+      statusField_ = "";
       return this;
     }
 
@@ -508,6 +573,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.optional_ = optional_;
       }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.statusField_ = statusField_;
+      }
     }
 
     @java.lang.Override
@@ -539,6 +607,11 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getOptional() != false) {
         setOptional(other.getOptional());
+      }
+      if (!other.getStatusField().isEmpty()) {
+        statusField_ = other.statusField_;
+        bitField0_ |= 0x00000010;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -586,6 +659,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 32
+            case 42: {
+              statusField_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 42
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -815,6 +893,7 @@ private static final long serialVersionUID = 0L;
      * Example: "session_id" for run, "subject_identity_account_id" for
      * memory.
      * This eliminates hardcoded parent ID extraction logic in the service.
+     * Exactly one of spec_field and status_field is set.
      * </pre>
      *
      * <code>string spec_field = 3 [json_name = "specField"];</code>
@@ -839,6 +918,7 @@ private static final long serialVersionUID = 0L;
      * Example: "session_id" for run, "subject_identity_account_id" for
      * memory.
      * This eliminates hardcoded parent ID extraction logic in the service.
+     * Exactly one of spec_field and status_field is set.
      * </pre>
      *
      * <code>string spec_field = 3 [json_name = "specField"];</code>
@@ -864,6 +944,7 @@ private static final long serialVersionUID = 0L;
      * Example: "session_id" for run, "subject_identity_account_id" for
      * memory.
      * This eliminates hardcoded parent ID extraction logic in the service.
+     * Exactly one of spec_field and status_field is set.
      * </pre>
      *
      * <code>string spec_field = 3 [json_name = "specField"];</code>
@@ -885,6 +966,7 @@ private static final long serialVersionUID = 0L;
      * Example: "session_id" for run, "subject_identity_account_id" for
      * memory.
      * This eliminates hardcoded parent ID extraction logic in the service.
+     * Exactly one of spec_field and status_field is set.
      * </pre>
      *
      * <code>string spec_field = 3 [json_name = "specField"];</code>
@@ -903,6 +985,7 @@ private static final long serialVersionUID = 0L;
      * Example: "session_id" for run, "subject_identity_account_id" for
      * memory.
      * This eliminates hardcoded parent ID extraction logic in the service.
+     * Exactly one of spec_field and status_field is set.
      * </pre>
      *
      * <code>string spec_field = 3 [json_name = "specField"];</code>
@@ -922,7 +1005,7 @@ private static final long serialVersionUID = 0L;
     private boolean optional_ ;
     /**
      * <pre>
-     * Whether a row may leave the spec field empty, writing no link.
+     * Whether a row may leave the parent field empty, writing no link.
      *
      * A kind whose rows each link one of several parents (a vault belongs to a
      * person or to its organization) marks each parent optional. A required
@@ -938,7 +1021,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether a row may leave the spec field empty, writing no link.
+     * Whether a row may leave the parent field empty, writing no link.
      *
      * A kind whose rows each link one of several parents (a vault belongs to a
      * person or to its organization) marks each parent optional. A required
@@ -958,7 +1041,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether a row may leave the spec field empty, writing no link.
+     * Whether a row may leave the parent field empty, writing no link.
      *
      * A kind whose rows each link one of several parents (a vault belongs to a
      * person or to its organization) marks each parent optional. A required
@@ -971,6 +1054,108 @@ private static final long serialVersionUID = 0L;
     public Builder clearOptional() {
       bitField0_ = (bitField0_ & ~0x00000008);
       optional_ = false;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object statusField_ = "";
+    /**
+     * <pre>
+     * Field name in the resource's status message that contains the parent ID,
+     * for a link only the server may write. Example: "routine_id" for a
+     * session a routine's fire started.
+     * </pre>
+     *
+     * <code>string status_field = 5 [json_name = "statusField"];</code>
+     * @return The statusField.
+     */
+    public java.lang.String getStatusField() {
+      java.lang.Object ref = statusField_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        statusField_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Field name in the resource's status message that contains the parent ID,
+     * for a link only the server may write. Example: "routine_id" for a
+     * session a routine's fire started.
+     * </pre>
+     *
+     * <code>string status_field = 5 [json_name = "statusField"];</code>
+     * @return The bytes for statusField.
+     */
+    public com.google.protobuf.ByteString
+        getStatusFieldBytes() {
+      java.lang.Object ref = statusField_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        statusField_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Field name in the resource's status message that contains the parent ID,
+     * for a link only the server may write. Example: "routine_id" for a
+     * session a routine's fire started.
+     * </pre>
+     *
+     * <code>string status_field = 5 [json_name = "statusField"];</code>
+     * @param value The statusField to set.
+     * @return This builder for chaining.
+     */
+    public Builder setStatusField(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      statusField_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Field name in the resource's status message that contains the parent ID,
+     * for a link only the server may write. Example: "routine_id" for a
+     * session a routine's fire started.
+     * </pre>
+     *
+     * <code>string status_field = 5 [json_name = "statusField"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearStatusField() {
+      statusField_ = getDefaultInstance().getStatusField();
+      bitField0_ = (bitField0_ & ~0x00000010);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Field name in the resource's status message that contains the parent ID,
+     * for a link only the server may write. Example: "routine_id" for a
+     * session a routine's fire started.
+     * </pre>
+     *
+     * <code>string status_field = 5 [json_name = "statusField"];</code>
+     * @param value The bytes for statusField to set.
+     * @return This builder for chaining.
+     */
+    public Builder setStatusFieldBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      statusField_ = value;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }

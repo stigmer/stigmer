@@ -17,7 +17,7 @@ import { file_ai_stigmer_agentic_evalrun_v1_api } from "@stigmer/protos/ai/stigm
 import { file_ai_stigmer_agentic_scoringrule_v1_api } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { file_ai_stigmer_agentic_memory_v1_api } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { file_ai_stigmer_agentic_plugin_v1_api } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { file_ai_stigmer_agentic_schedule_v1_api } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { file_ai_stigmer_agentic_routine_v1_api } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
 import { file_ai_stigmer_agentic_score_v1_api } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { file_ai_stigmer_agentic_session_v1_api } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { file_ai_stigmer_agentic_skill_v1_api } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
@@ -44,7 +44,7 @@ const ROOT_FILES: DescFile[] = [
   file_ai_stigmer_agentic_scoringrule_v1_api,
   file_ai_stigmer_agentic_memory_v1_api,
   file_ai_stigmer_agentic_plugin_v1_api,
-  file_ai_stigmer_agentic_schedule_v1_api,
+  file_ai_stigmer_agentic_routine_v1_api,
   file_ai_stigmer_agentic_score_v1_api,
   file_ai_stigmer_agentic_session_v1_api,
   file_ai_stigmer_agentic_skill_v1_api,

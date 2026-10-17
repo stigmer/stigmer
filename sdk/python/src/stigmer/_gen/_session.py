@@ -18,7 +18,7 @@ from google.protobuf import field_mask_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
-from ._run import GitRepoSourceInput, LocalPathSourceInput, WorkspaceEntryInput, WorkspaceSourceInput
+from ._routine import GitRepoSourceInput, LocalPathSourceInput, WorkspaceEntryInput, WorkspaceSourceInput
 
 
 class SessionClient:

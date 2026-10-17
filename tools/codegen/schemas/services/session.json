@@ -1721,9 +1721,9 @@
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that\n channels can install through instead of the shared platform app."
         },
         {
-          "name": "schedule",
+          "name": "routine",
           "number": 56,
-          "description": "Recurring trigger that runs an agent on a cron schedule."
+          "description": "A saved agent invocation, run on an optional schedule or fired by Run now\n or over the API, acting as its owner."
         },
         {
           "name": "memory",
@@ -1875,6 +1875,16 @@
           }
         },
         "description": "Prior harness state identifiers this session has owned, oldest first.\n\n A session can span multiple harness-side conversations: when the\n cursor-runner's resume fails, it creates a fresh Cursor agent and\n replaces harness_state_id, and the replaced id lands here.",
+        "required": false
+      },
+      {
+        "name": "RoutineId",
+        "jsonName": "routineId",
+        "protoField": "routine_id",
+        "type": {
+          "kind": "string"
+        },
+        "description": "The routine whose fire started this conversation; empty for every other\n conversation.",
         "required": false
       }
     ]

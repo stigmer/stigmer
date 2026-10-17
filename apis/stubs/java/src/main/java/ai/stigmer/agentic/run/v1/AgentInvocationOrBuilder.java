@@ -143,8 +143,8 @@ public interface AgentInvocationOrBuilder extends
    * Vaults whose logins and secrets the runs this invocation creates use, in
    * order: the first vault holding a match wins. At most 20.
    *
-   * A schedule's runs have no person, so these vaults are all they use. The
-   * schedule's owner may attach their own My vault; nobody else's.
+   * A routine's runs use these vaults and no others. The routine's owner
+   * may attach their own My vault; nobody else's.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 7 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
@@ -156,8 +156,8 @@ public interface AgentInvocationOrBuilder extends
    * Vaults whose logins and secrets the runs this invocation creates use, in
    * order: the first vault holding a match wins. At most 20.
    *
-   * A schedule's runs have no person, so these vaults are all they use. The
-   * schedule's owner may attach their own My vault; nobody else's.
+   * A routine's runs use these vaults and no others. The routine's owner
+   * may attach their own My vault; nobody else's.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 7 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
@@ -168,8 +168,8 @@ public interface AgentInvocationOrBuilder extends
    * Vaults whose logins and secrets the runs this invocation creates use, in
    * order: the first vault holding a match wins. At most 20.
    *
-   * A schedule's runs have no person, so these vaults are all they use. The
-   * schedule's owner may attach their own My vault; nobody else's.
+   * A routine's runs use these vaults and no others. The routine's owner
+   * may attach their own My vault; nobody else's.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 7 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
@@ -180,8 +180,8 @@ public interface AgentInvocationOrBuilder extends
    * Vaults whose logins and secrets the runs this invocation creates use, in
    * order: the first vault holding a match wins. At most 20.
    *
-   * A schedule's runs have no person, so these vaults are all they use. The
-   * schedule's owner may attach their own My vault; nobody else's.
+   * A routine's runs use these vaults and no others. The routine's owner
+   * may attach their own My vault; nobody else's.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 7 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
@@ -193,8 +193,8 @@ public interface AgentInvocationOrBuilder extends
    * Vaults whose logins and secrets the runs this invocation creates use, in
    * order: the first vault holding a match wins. At most 20.
    *
-   * A schedule's runs have no person, so these vaults are all they use. The
-   * schedule's owner may attach their own My vault; nobody else's.
+   * A routine's runs use these vaults and no others. The routine's owner
+   * may attach their own My vault; nobody else's.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 7 [json_name = "vaults", (.buf.validate.field) = { ... }</code>

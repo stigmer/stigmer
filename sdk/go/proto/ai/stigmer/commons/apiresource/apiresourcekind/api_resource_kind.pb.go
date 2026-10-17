@@ -241,8 +241,9 @@ const (
 	// Customer-owned messaging-platform app (e.g. a Slack app) that
 	// channels can install through instead of the shared platform app.
 	ApiResourceKind_channel_app ApiResourceKind = 48
-	// Recurring trigger that runs an agent on a cron schedule.
-	ApiResourceKind_schedule ApiResourceKind = 56
+	// A saved agent invocation, run on an optional schedule or fired by Run now
+	// or over the API, acting as its owner.
+	ApiResourceKind_routine ApiResourceKind = 56
 	// Agent-proposed, user-confirmed fact the platform remembers about a person.
 	ApiResourceKind_memory ApiResourceKind = 57
 	// An installed Agent Plugins package: one thing holding skills, agents,
@@ -305,7 +306,7 @@ var (
 		43: "skill",
 		47: "channel",
 		48: "channel_app",
-		56: "schedule",
+		56: "routine",
 		57: "memory",
 		58: "plugin",
 		59: "vault",
@@ -335,7 +336,7 @@ var (
 		"skill":                     43,
 		"channel":                   47,
 		"channel_app":               48,
-		"schedule":                  56,
+		"routine":                   56,
 		"memory":                    57,
 		"plugin":                    58,
 		"vault":                     59,
@@ -555,7 +556,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"enterprise\x10\x03*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xb4 \n" +
+	"\astigmer\x10\x01*\xe0 \n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x126\n" +
@@ -575,13 +576,15 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x05agent\x10(\x1a\xf4\x01\xaa\xff+\xef\x01\b\x01\x10\x01\x1a\x05Agent\"\x05Agent*\x03agt0\x01@\x01J\xd1\x01\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x03\x01\x06\x04B\x02\x06\x04JA\b\x01\x12=Everything, including deleting it and deciding who has accessJ@\b\x06\x12<Change and run it; cannot delete it or decide who has accessJ5\b\x04\x121Run it and see how it is set up; cannot change it\x12M\n" +
 	"\x03run\x10)\x1aD\xaa\xff+@\b\x01\x10\x01\x1a\x03Run\"\x03Run*\x03run@\x01J$\b\x03\x10\x02\x1a\x1e\n" +
 	"\asession\x12\asession\x1a\n" +
-	"session_idR\x03aex\x12\xeb\x01\n" +
-	"\asession\x10*\x1a\xdd\x01\xaa\xff+\xd8\x01\b\x01\x10\x01\x1a\aSession\"\aSession*\x03ses@\x01J\xb8\x01\b\x02\x10\x01:\x03\x01\x05\x04JO\b\x01\x12KEverything, including deleting the conversation and deciding who has accessJ+\b\x05\x12'Read the conversation and send messagesJ/\b\x04\x12+Read the conversation; cannot send messages\x12\xbc\x01\n" +
+	"session_idR\x03aex\x12\x8d\x02\n" +
+	"\asession\x10*\x1a\xff\x01\xaa\xff+\xfa\x01\b\x01\x10\x01\x1a\aSession\"\aSession*\x03ses@\x01J\xda\x01\b\x02\x10\x01\" \n" +
+	"\aroutine\x12\aroutine \x01*\n" +
+	"routine_id:\x03\x01\x05\x04JO\b\x01\x12KEverything, including deleting the conversation and deciding who has accessJ+\b\x05\x12'Read the conversation and send messagesJ/\b\x04\x12+Read the conversation; cannot send messages\x12\xbc\x01\n" +
 	"\x05skill\x10+\x1a\xb0\x01\xaa\xff+\xab\x01\b\x01\x10\x01\x1a\x05Skill\"\x05Skill*\x03skl0\x01@\x01J\x8d\x01\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x02\x01\x04B\x01\x04JA\b\x01\x12=Everything, including deleting it and deciding who has accessJ5\b\x04\x121Use it and see what it contains; cannot change it\x12\xbc\x02\n" +
 	"\achannel\x10/\x1a\xae\x02\xaa\xff+\xa9\x02\b\x01\x10\x01\x1a\aChannel\"\aChannel*\x03chn8\x01@\x01J\xfd\x01\b\x02\x10\x01:\x03\x01\x04\x05B\x02\x04\x05JC\b\x01\x12?Everything, including the channel's settings and who has accessJI\b\x04\x12ESee the channel and read its conversations; cannot change it or replyJ^\b\x05\x12ZRead the channel's Slack and WhatsApp conversations and reply to customers as the businessR\x03ashR\x03ach\x12p\n" +
 	"\vchannel_app\x100\x1a_\xaa\xff+[\b\x01\x10\x01\x1a\n" +
-	"ChannelApp\"\vChannel App*\x05chapp8\x01@\x01J1\b\x02\x10\x04:\x01\x04J(\b\x04\x12$See its settings; cannot change them\x12\xbb\x01\n" +
-	"\bschedule\x108\x1a\xac\x01\xaa\xff+\xa7\x01\b\x01\x10\x01\x1a\bSchedule\"\bSchedule*\x03sch8\x01@\x01J\x83\x01\b\x02\x10\x01:\x02\x01\x04B\x01\x04JA\b\x01\x12=Everything, including deleting it and deciding who has accessJ3\b\x04\x12/See the schedule and its runs; cannot change it\x12m\n" +
+	"ChannelApp\"\vChannel App*\x05chapp8\x01@\x01J1\b\x02\x10\x04:\x01\x04J(\b\x04\x12$See its settings; cannot change them\x12\xc5\x01\n" +
+	"\aroutine\x108\x1a\xb7\x01\xaa\xff+\xb2\x01\b\x01\x10\x01\x1a\aRoutine\"\aRoutine*\x03rtn8\x01@\x01J\x8b\x01\b\x02\x10\x01:\x02\x05\x04B\x02\x05\x04J@\b\x05\x12<Start it, with a message, and see its runs; cannot change itJ;\b\x04\x127See the routine and its runs; cannot start or change itR\x03sch\x12m\n" +
 	"\x06memory\x109\x1aa\xaa\xff+]\b\x01\x10\x01\x1a\x06Memory\"\x06Memory*\x03mem8\x01@\x01J>\b\x02\x10\x04\"8\n" +
 	"\x10identity_account\x12\asubject\x1a\x1bsubject_identity_account_id\x12\xbf\x01\n" +
 	"\x06plugin\x10:\x1a\xb2\x01\xaa\xff+\xad\x01\b\x01\x10\x01\x1a\x06Plugin\"\x06Plugin*\x03plg0\x01@\x01J\x8d\x01\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x02\x01\x04B\x01\x04JA\b\x01\x12=Everything, including deleting it and deciding who has accessJ5\b\x04\x121Use it and see what it contains; cannot change it\x12\xbc\x01\n" +

@@ -46,7 +46,7 @@ class ApiResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     skill: _ClassVar[ApiResourceKind]
     channel: _ClassVar[ApiResourceKind]
     channel_app: _ClassVar[ApiResourceKind]
-    schedule: _ClassVar[ApiResourceKind]
+    routine: _ClassVar[ApiResourceKind]
     memory: _ClassVar[ApiResourceKind]
     plugin: _ClassVar[ApiResourceKind]
     vault: _ClassVar[ApiResourceKind]
@@ -82,7 +82,7 @@ session: ApiResourceKind
 skill: ApiResourceKind
 channel: ApiResourceKind
 channel_app: ApiResourceKind
-schedule: ApiResourceKind
+routine: ApiResourceKind
 memory: ApiResourceKind
 plugin: ApiResourceKind
 vault: ApiResourceKind

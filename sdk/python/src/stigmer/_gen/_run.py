@@ -16,11 +16,11 @@ from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from google.protobuf import field_mask_pb2
 from ai.stigmer.agentic.session.v1 import spec_pb2 as session_spec_pb2
-from ai.stigmer.agentic.session.v1 import workspace_pb2 as session_workspace_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
 from ._agent import RunConfigInput
+from ._routine import GitRepoSourceInput, LocalPathSourceInput, WorkspaceEntryInput, WorkspaceSourceInput
 
 
 class RunClient:
@@ -298,75 +298,6 @@ class SessionSpecInput:
             _ref = ref._to_proto()
             _ref.kind = 58
             msg.plugins.append(_ref)
-        return msg
-
-
-@dataclass
-class WorkspaceEntryInput:
-    """SDK input type for WorkspaceEntry."""
-
-    source: WorkspaceSourceInput | None
-    name: str = ""
-
-    def _to_proto(self) -> session_workspace_pb2.WorkspaceEntry:
-        msg = session_workspace_pb2.WorkspaceEntry(
-            name=self.name,
-        )
-        if self.source is not None:
-            msg.source.CopyFrom(self.source._to_proto())
-        return msg
-
-
-@dataclass
-class WorkspaceSourceInput:
-    """SDK input type for WorkspaceSource."""
-
-    git_repo: GitRepoSourceInput | None = None
-    local_path: LocalPathSourceInput | None = None
-
-    def _to_proto(self) -> session_workspace_pb2.WorkspaceSource:
-        msg = session_workspace_pb2.WorkspaceSource()
-        if self.local_path is not None:
-            msg.local_path.CopyFrom(self.local_path._to_proto())
-        if self.git_repo is not None:
-            msg.git_repo.CopyFrom(self.git_repo._to_proto())
-        return msg
-
-
-@dataclass
-class GitRepoSourceInput:
-    """SDK input type for GitRepoSource."""
-
-    url: str
-    branch: str = ""
-    commit: str = ""
-    depth: int | None = None
-    write_back_mode: int = 0
-    token: str = ""
-
-    def _to_proto(self) -> session_workspace_pb2.GitRepoSource:
-        msg = session_workspace_pb2.GitRepoSource(
-            url=self.url,
-            branch=self.branch,
-            commit=self.commit,
-            write_back_mode=self.write_back_mode,
-            token=self.token,
-        )
-        if self.depth is not None:
-            msg.depth = self.depth
-        return msg
-
-
-@dataclass
-class LocalPathSourceInput:
-    """SDK input type for LocalPathSource."""
-
-    path: str = ""
-
-    def _to_proto(self) -> session_workspace_pb2.LocalPathSource:
-        msg = session_workspace_pb2.LocalPathSource(
-            path=self.path,
-        )
         return msg
 
 

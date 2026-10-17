@@ -65,6 +65,7 @@ public interface ParentRelationConfigOrBuilder extends
    * Example: "session_id" for run, "subject_identity_account_id" for
    * memory.
    * This eliminates hardcoded parent ID extraction logic in the service.
+   * Exactly one of spec_field and status_field is set.
    * </pre>
    *
    * <code>string spec_field = 3 [json_name = "specField"];</code>
@@ -78,6 +79,7 @@ public interface ParentRelationConfigOrBuilder extends
    * Example: "session_id" for run, "subject_identity_account_id" for
    * memory.
    * This eliminates hardcoded parent ID extraction logic in the service.
+   * Exactly one of spec_field and status_field is set.
    * </pre>
    *
    * <code>string spec_field = 3 [json_name = "specField"];</code>
@@ -88,7 +90,7 @@ public interface ParentRelationConfigOrBuilder extends
 
   /**
    * <pre>
-   * Whether a row may leave the spec field empty, writing no link.
+   * Whether a row may leave the parent field empty, writing no link.
    *
    * A kind whose rows each link one of several parents (a vault belongs to a
    * person or to its organization) marks each parent optional. A required
@@ -99,4 +101,28 @@ public interface ParentRelationConfigOrBuilder extends
    * @return The optional.
    */
   boolean getOptional();
+
+  /**
+   * <pre>
+   * Field name in the resource's status message that contains the parent ID,
+   * for a link only the server may write. Example: "routine_id" for a
+   * session a routine's fire started.
+   * </pre>
+   *
+   * <code>string status_field = 5 [json_name = "statusField"];</code>
+   * @return The statusField.
+   */
+  java.lang.String getStatusField();
+  /**
+   * <pre>
+   * Field name in the resource's status message that contains the parent ID,
+   * for a link only the server may write. Example: "routine_id" for a
+   * session a routine's fire started.
+   * </pre>
+   *
+   * <code>string status_field = 5 [json_name = "statusField"];</code>
+   * @return The bytes for statusField.
+   */
+  com.google.protobuf.ByteString
+      getStatusFieldBytes();
 }
