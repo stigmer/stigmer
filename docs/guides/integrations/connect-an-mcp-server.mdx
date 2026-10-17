@@ -6,8 +6,6 @@ description:
   Agent; or give one Agent a server of its own in one call.
 ---
 
-import { DemoMarketplaceConnectTour } from "@/components/docs";
-
 An MCP server reaches an Agent two ways: in a plugin the Agent lists, or written
 in the Agent itself under `mcp_servers`. Use a plugin to share a server across
 Agents and chats: a plugin from a marketplace may carry the servers you need
@@ -22,13 +20,6 @@ it to work. When one Agent needs a server, or you create Agents from code,
   page](/docs/concepts/tools) for the foundational model before following this
   guide.
 </Callout>
-
-The walkthrough below opens Neon's plugin from the Library's Plugins page. Its
-one MCP server is reached over HTTP at Neon's hosted endpoint and reads one key,
-the Neon API key, which your vault holds. **Check tools** lists the server's
-five tools, and marks `run_sql` destructive.
-
-<DemoMarketplaceConnectTour />
 
 ## Connect an MCP server
 

@@ -230,9 +230,7 @@ jobs:
   # tsdoc:check where a package defines it (a broken {@link} fails the pull
   # request that introduces it), then the gates that
   # are not turbo tasks: the web routing gate (client-apps/web/nginx.conf
-  # against the static export), the Scenar tours (determinism;
-  # timeline shape; docs embed-id resolution — also wired in ci.docs for the
-  # docs half of that contract). The desktop shell's Rust crate has its own
+  # against the static export). The desktop shell's Rust crate has its own
   # job, `desktop-rust`, below.
   verify:
     name: Lint + Typecheck
@@ -272,10 +270,6 @@ jobs:
       - name: Verify web routing
         if: contains(fromJSON(needs.changes.outputs.packages), 'web')
         run: make verify-web-routing
-
-      - name: Verify Scenar tours
-        if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/demos')
-        run: node scripts/verify-scenar-tours.mjs
 
   # Browser-mode suites (sdk/react/vitest.a11y.config.ts, every
   # *.browser.test.ts(x)): the workspace-panel a11y audit plus layout-contract

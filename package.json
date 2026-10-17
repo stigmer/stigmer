@@ -17,7 +17,6 @@
     "sdk/ink",
     "mcp-server",
     "plugins",
-    "demos",
     "client-apps/cli",
     "client-apps/web",
     "client-apps/desktop",

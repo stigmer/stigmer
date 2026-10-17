@@ -99,18 +99,20 @@ page's demonstration centerpiece, if it has one. Pick it with this rule, first
 Reserve `animated-tour` for genuine demonstrations — a capability that must be
 seen working. Getting-started journeys and console procedures are
 `screenshot-journey`: the reader compares their own screen against the depicted
-one and sets the pace. `still` and `screenshot-journey` are rendered from real
-components by Scenar, never hand-captured — a screenshot taken by hand goes
-stale with no signal, so do not add one as a placeholder.
+one and sets the pace.
+
+No page renders a screen demonstration today: how pages show screens is being
+redecided, and `medium` keeps each page's target as input to that decision.
+Until then, do not add a screenshot captured by hand, not even as a placeholder:
+it goes stale with no signal.
 
 Generated pages (the `cli/commands/`, `sdk/react/`, `sdk/resources/`,
 `sdk/ink/`, and `sdk/theme/` reference sets) are covered by cohort rules in the
 same file and need no per-page entry.
 
 When you add a page, add its entry. When you delete or move a page, update its
-entry (remove it, or re-key it) in the same commit. When you add or remove an
-embed, update the page's `embeds` map. CI fails on any mismatch and names the
-page.
+entry (remove it, or re-key it) in the same commit. CI fails on any mismatch and
+names the page.
 
 ## MDX components
 
@@ -237,87 +239,6 @@ Click-to-zoom for screenshots and diagrams.
 ```mdx
 <ImageZoom src="/docs/screenshot.png" alt="Dashboard overview" />
 ```
-
-### Scenario embeds
-
-`<ScenarEmbed>` renders a hosted product walkthrough from
-`stigmer.ai/demos/<id>/`. The `id` must match a tour directory under
-`demos/tours/` — CI rejects a typo (`scripts/verify-scenar-tours.mjs`).
-
-```mdx
-<ScenarEmbed id="quickstart-tour" title="Quickstart walkthrough" />
-```
-
-Two rules when adding or removing an embed:
-
-1. Declare it in the page's entry in `docs/_inventory/classification.yaml` (see
-   "Classify every page" below). CI fails when a page's embeds and its
-   declaration disagree.
-2. Give it a prose lead-in that says what the reader is about to watch. An
-   animated-tour embed contributes nothing to the markdown exports (`llms.txt`,
-   the Copy-as-Markdown button), so the surrounding prose must carry the
-   information on its own. (Stills carry a stronger rule of their own — see "A
-   still completes a story" below.)
-
-The legacy `<Demo* />` components (for example `<DemoToolCallsPlayback />`) are
-the pre-Scenar embed system and are being retired page by page during the docs
-revamp. Do not add new ones.
-
-### Stills
-
-`<Still>` places one Scenar-rendered screenshot in the prose — the `still`
-medium, and the frames of a `screenshot-journey` (several stills interleaved
-with the page's steps). Never hand-capture a screenshot, not even as a
-placeholder: a hand-captured image rots with no signal, while a still is
-re-rendered from the tour source on every release and served beside the tour
-bundles at `stigmer.ai/demos/<scenario>/stills/`.
-
-```mdx
-<Still
-  id="agent-detail-tour/agent-detail"
-  alt="The Agent detail page in the Stigmer console: the support-agent
-definition with its description and instructions."
-/>
-```
-
-- **A still completes a story.** Never drop a screenshot in "for visual
-  interest" — a reader who senses a screenshot is decorative learns to skip all
-  of them. Every still is the middle of a three-beat sequence the prose builds
-  around it:
-  1. **Setup** — the sentence before the still names the reader's action or the
-     claim being demonstrated ("Run `stigmer agent deploy`", "the gate renders
-     the payload as a diff").
-  2. **Payoff** — the still shows the outcome of exactly that action or claim,
-     nothing else. If the frame doesn't answer "and here is what you see", it is
-     the wrong frame (or the wrong shot — re-declare it).
-  3. **Anchor** — the prose after the still (or the next step in a journey)
-     points at something concrete on the frame the reader should find or verify
-     before moving on. A still nothing refers back to is decoration.
-- **`id` is `<scenario>/<shot>`** — a tour directory under `demos/tours/` and a
-  `shot` name declared on one of its steps (`demos/README.md` covers declaring
-  shots). CI resolves both halves and fails on a typo, a missing shot, or a
-  missing tour (`scripts/verify-scenar-tours.mjs`, invariant 8).
-- **`alt` is required and CI-enforced.** Unlike an animated embed, a still
-  survives into the markdown exports as a real image — `cleanContent` rewrites
-  the tag to `![alt](…)` — so the alt text is what an LLM or a markdown reader
-  gets. Describe the screen ("The Agent detail page showing…"), don't repeat the
-  narration: narration is written for audio, alt text for a reader who cannot
-  see the image. Write the tag self-closing; CI rejects a paired form.
-- **Stills render light-on-dark.** The docs site is dark-only and media is
-  deliberately light: a bright frame reads as content against the dark page, and
-  the markdown exports have always linked the light variant, so the two channels
-  stay consistent. `scenar shoot` still captures both themes; only the light
-  capture is rendered, so eyeball the light variant when reviewing.
-  Click-to-zoom shows the full 2560x1600 capture.
-- **A still keeps its source tour alive.** When a still replaces a page's last
-  `<ScenarEmbed>`, the tour under `demos/tours/` must stay — it is what the
-  still is rendered from. The classification `embeds` map tracks iframe embeds
-  only; a `<Still>` needs no entry there.
-
-To see an unreleased still on its real docs page, use the same local loop as
-embeds (`demos/README.md`, "Authoring loop"): serve `.bundles/` and point
-`NEXT_PUBLIC_SCENAR_EMBED_BASE` at it. To eyeball one frame without capturing,
-open the packed bundle with `?shot=<name>`.
 
 ## Prose
 

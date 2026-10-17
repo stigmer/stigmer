@@ -1,6 +1,0 @@
-{
-  "contract": {
-    "0": { "targets": ["plugin-bottom"] },
-    "3": { "targets": ["plugin-bottom"] }
-  }
-}

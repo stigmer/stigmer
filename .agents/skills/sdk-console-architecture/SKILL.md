@@ -186,18 +186,18 @@ must never become a layout channel.
 layout in a real browser.
 
 **Console chrome is SDK-owned.** `WorkspaceSidebar` and `SettingsSidebar` are
-public `@stigmer/react-sdk` surfaces rendered by the web console, the desktop
-app and the documentation tours (`demos/tours/_shared/`), so the depicted chrome
-cannot drift from the product (stigmer/stigmer#317). Per-host differences enter
-only through named seams: `renderLink` (the host's router link, or an inert row
-in a tour), the `footer` slot (each host's user menu), `renderEntryAccessory`
-(the desktop's background-run indicator), and data as props (`useRecentActivity`
-output or frozen fixtures, plus a `now` instant for deterministic hosts). The
-app-shell frame (column width, collapse state, zone switching, responsive
-wrapping) stays client-app-owned under Thin shells. Never re-transcribe sidebar
-markup into a client app or a demo scene; extend the component's seams. The same
-holds for every depicted surface: a demo scene renders the real SDK organism
-with fixture data and hand-draws only documented page framing.
+public `@stigmer/react-sdk` surfaces rendered by the web console and the desktop
+app, so the hosts' chrome cannot drift apart (stigmer/stigmer#317). Per-host
+differences enter only through named seams: `renderLink` (the host's router
+link, or an inert row), the `footer` slot (each host's user menu),
+`renderEntryAccessory` (the desktop's background-run indicator), and data as
+props (`useRecentActivity` output or frozen fixtures, plus a `now` instant for
+deterministic hosts). The app-shell frame (column width, collapse state, zone
+switching, responsive wrapping) stays client-app-owned under Thin shells. Never
+re-transcribe sidebar markup into a client app or a demo scene; extend the
+component's seams. The same holds for every depicted surface: a demo scene
+renders the real SDK organism with fixture data and hand-draws only documented
+page framing.
 
 ## Dont-dos
 
