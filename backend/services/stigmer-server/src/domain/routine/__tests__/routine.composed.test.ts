@@ -1,5 +1,5 @@
 /**
- * Pins the schedule domain against Go's schedule_test.go and
+ * Pins the routine domain against Go's schedule_test.go and
  * trigger_test.go — through the REAL stack: a composed server on an
  * ephemeral port, a native gRPC client, the full interceptor chain, the
  * REAL in-process agentexecution create pipeline behind the trigger, and
@@ -13,9 +13,13 @@
  *     write, the lost swap retried from a fresh read;
  *   - resume's atomic latch+streak clear, its idempotent no-write no-op,
  *     and the pause→resume round trip;
- *   - the trigger's two-level contract with the REAL launch gates: with no
+ *   - the fire's two-level contract with the REAL launch gates: with no
  *     engine behind the server the fire happens and honestly reports the
  *     EnsureEngineAvailable refusal — never a gRPC error;
+ *   - a routine goes with its agent: deleting the agent deletes it and its
+ *     fire history. A fire's TARGET_MISSING outcome is still reported for
+ *     an agent row gone without its cascade (a store restored from a backup
+ *     older than the routine), which these cases stage through the store;
  *   - the fire ledger: manual rows, cascade on delete, listFires paging,
  *     and an in-flight row's outcome read from its run's live phase.
  */
@@ -49,6 +53,7 @@ import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { writeLandsMidUpdate } from "../../../pipeline/__tests__/race-support.js";
+import { releaseNamesOfDeleted } from "../../../pipeline/steps/names.js";
 import { FIRE_DISABLED_MESSAGE } from "../fire.js";
 import {
   organizationId,
@@ -70,7 +75,7 @@ let acmeId: string;
 let otherOrgId: string;
 
 beforeAll(async () => {
-  dir = mkdtempSync(path.join(tmpdir(), "schedule-domain-test-"));
+  dir = mkdtempSync(path.join(tmpdir(), "routine-domain-test-"));
   server = await composeServer({
     config: loadConfig({
       STIGMER_MODEL_REGISTRY_REFRESH: "off",
@@ -100,6 +105,7 @@ beforeAll(async () => {
     ["Ephemeral", "ephemeral"],
     ["Ephemeral Two", "ephemeral-2"],
     ["Ephemeral Three", "ephemeral-3"],
+    ["Ephemeral Four", "ephemeral-4"],
   ] as const) {
     await agentCommand.create({
       apiVersion: "agentic.stigmer.ai/v1",
@@ -110,16 +116,33 @@ beforeAll(async () => {
   }
 });
 
-/** Deletes a test agent by slug — the dangling-reference setup — and answers the id it had. */
-async function deleteAgent(slug: string): Promise<string> {
+/** The id of the test agent with `slug` in acme. */
+async function agentId(slug: string): Promise<string> {
   const agents = createClient(AgentQueryController, transport);
   const agent = await agents.getByReference({
     kind: ApiResourceKind.agent,
     org: "acme",
     slug,
   });
-  const id = agent.metadata?.id ?? "";
+  return agent.metadata?.id ?? "";
+}
+
+/** Deletes a test agent through its API, cascade included, and answers the id it had. */
+async function deleteAgent(slug: string): Promise<string> {
+  const id = await agentId(slug);
   await agentCommand.delete({ value: id });
+  return id;
+}
+
+/**
+ * Removes a test agent's row and frees its name the way a delete does, but
+ * runs no cascade: the dangling-reference setup, an agent gone while its
+ * routines stayed (a store restored from a backup older than the routine).
+ */
+async function dropAgentRow(slug: string): Promise<string> {
+  const id = await agentId(slug);
+  await server.store.deleteResource(ApiResourceKind.agent, id);
+  await releaseNamesOfDeleted(server.store, silentLogger, ApiResourceKind.agent, acmeId, id);
   return id;
 }
 
@@ -178,9 +201,9 @@ async function refusal(run: () => Promise<unknown>): Promise<ConnectError> {
 }
 
 describe("create — the defaults resolver through the real chain", () => {
-  it("creates with a derived slug and the sch_ id prefix; arming degrades with Temporal away", async () => {
+  it("creates with a derived slug and the rtn_ id prefix; arming degrades with Temporal away", async () => {
     const created = await command.create(routineInput({ name: "Morning Digest" }));
-    expect(created.metadata?.id).toMatch(/^sch_[0-9a-z]{26}$/);
+    expect(created.metadata?.id).toMatch(/^rtn_[0-9a-z]{26}$/);
     expect(created.metadata?.slug).toBe("morning-digest");
     // Temporal is a closed port: the arm degraded, next_fire_at absent —
     // the write still succeeded.
@@ -194,7 +217,7 @@ describe("create — the defaults resolver through the real chain", () => {
   it("requires metadata.org", async () => {
     const err = await refusal(() => command.create(routineInput({ org: "" })));
     expect(err.code).toBe(Code.InvalidArgument);
-    expect(err.rawMessage).toBe("metadata.org is required for a schedule");
+    expect(err.rawMessage).toBe("metadata.org is required for a routine");
   });
 
   it("refuses a cross-org agent ref BEFORE the agent load (no slug probing)", async () => {
@@ -203,7 +226,7 @@ describe("create — the defaults resolver through the real chain", () => {
     );
     expect(err.code).toBe(Code.FailedPrecondition);
     expect(err.rawMessage).toBe(
-      `spec.agent.agent_ref.org must match metadata.org — a schedule must live in the referenced agent's organization (${otherOrgId})`,
+      `spec.agent.agent_ref.org must match metadata.org — a routine must live in the referenced agent's organization (${otherOrgId})`,
     );
   });
 
@@ -292,7 +315,7 @@ describe("update — immutable identity and the status-honest graft", () => {
     );
     expect(err.code).toBe(Code.FailedPrecondition);
     expect(err.rawMessage).toBe(
-      `spec.agent.agent_ref is immutable (schedule runs ${acmeId}/helper) — create a new schedule to run a different agent`,
+      `spec.agent.agent_ref is immutable (routine runs ${acmeId}/helper) — create a new routine to run a different agent`,
     );
   });
 
@@ -422,9 +445,9 @@ describe("trigger — the two-level contract", () => {
       routineInput({ name: "Orphan Fire", slug: "orphan-fire", agentSlug: "ephemeral" }),
     );
     const id = created.metadata?.id ?? "";
-    const deletedId = await deleteAgent("ephemeral");
-    // Delete and remake: another agent takes the name. The schedule holds
-    // the deleted agent's id, so its fire never runs the new one.
+    const deletedId = await dropAgentRow("ephemeral");
+    // Gone and remade: another agent takes the name. The routine holds
+    // the gone agent's id, so its fire never runs the new one.
     await agentCommand.create({
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Agent",
@@ -433,8 +456,7 @@ describe("trigger — the two-level contract", () => {
     });
 
     // The fire happened (level two): the deterministic dangling-reference
-    // outcome is a SUCCESSFUL trigger honestly reported, never an
-    // exception (no cascade by contract).
+    // outcome is a SUCCESSFUL fire honestly reported, never an exception.
     const result = await command.fire({ id });
     expect(result.outcome).toBe(RoutineFireOutcome.TARGET_MISSING);
     expect(result.refusalReason).toBe(`target agent ${acmeId}/${deletedId} not found`);
@@ -455,7 +477,7 @@ describe("trigger — the two-level contract", () => {
       routineInput({ name: "Paused Fire", slug: "paused-fire", agentSlug: "ephemeral-2" }),
     );
     const id = created.metadata?.id ?? "";
-    await deleteAgent("ephemeral-2");
+    await dropAgentRow("ephemeral-2");
     await pauseDirectly(id);
 
     // Past ValidateTriggerable (paused ≠ disabled), the fire runs and
@@ -640,7 +662,7 @@ describe("delete — teardown posture and the ledger cascade", () => {
       routineInput({ name: "Delete Me", slug: "delete-me", agentSlug: "ephemeral-3" }),
     );
     const id = created.metadata?.id ?? "";
-    await deleteAgent("ephemeral-3");
+    await dropAgentRow("ephemeral-3");
     await command.fire({ id }); // leaves a manual TARGET_MISSING row
 
     const deleted = await command.delete({ value: id });
@@ -652,6 +674,30 @@ describe("delete — teardown posture and the ledger cascade", () => {
     // so assert through the store).
     const total = (await server.store.listRoutineFires(id, undefined, 10)).length;
     expect(total).toBe(0);
+  });
+
+  it("goes with its agent: deleting the agent deletes the routine and its fire history", async () => {
+    const created = await command.create(
+      routineInput({ name: "Goes With Agent", slug: "goes-with-agent", agentSlug: "ephemeral-4" }),
+    );
+    const id = created.metadata?.id ?? "";
+    await server.store.upsertRoutineFire({
+      routineId: id,
+      fireId: `${id}-fire`,
+      org: acmeId,
+      nominalFireTime: "2026-10-17T09:00:00Z",
+      origin: "schedule",
+      outcome: "completed",
+      reason: "",
+      runId: "",
+      recordedAt: "2026-10-17T09:00:01Z",
+      completedAt: "2026-10-17T09:00:05Z",
+    });
+    await deleteAgent("ephemeral-4");
+
+    const err = await refusal(() => query.get({ value: id }));
+    expect(err.code).toBe(Code.NotFound);
+    expect((await server.store.listRoutineFires(id, undefined, 10)).length).toBe(0);
   });
 });
 

@@ -81,7 +81,7 @@ describe("createRoutineListFn", () => {
 
     const request = list.mock.calls[0][0];
     expect(request.org).toBe("acme");
-    // The query never reaches the wire: ListSchedulesRequest has no
+    // The query never reaches the wire: ListRoutinesRequest has no
     // text-search field.
     expect("query" in request && request.query).toBeFalsy();
   });

@@ -50,8 +50,8 @@ export interface UseRoutineFiresReturn {
  * with the run's live phase, so outcomes never lie. The history pages
  * newest first with `next` / `previous`; it carries no total.
  *
- * Pass `null` as `scheduleId` to skip fetching (stable no-op) — the
- * detail view does this while the schedule itself is still loading.
+ * Pass `null` as `routineId` to skip fetching (stable no-op) — the
+ * detail view does this while the routine itself is still loading.
  *
  * @example
  * ```tsx

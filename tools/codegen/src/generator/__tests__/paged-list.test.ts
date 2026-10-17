@@ -127,12 +127,12 @@ describe("SDK method names", () => {
 
 describe("protoFileOfMessage", () => {
   it("finds the file that declares a message, wherever the generator runs", () => {
-    expect(protoFileOfMessage("ai.stigmer.agentic.schedule.v1.ScheduleFire")).toBe(
-      "apis/ai/stigmer/agentic/schedule/v1/io.proto",
+    expect(protoFileOfMessage("ai.stigmer.agentic.routine.v1.RoutineFire")).toBe(
+      "apis/ai/stigmer/agentic/routine/v1/io.proto",
     );
   });
 
   it("refuses a message no file declares", () => {
-    expect(() => protoFileOfMessage("ai.stigmer.agentic.schedule.v1.NoSuchMessage")).toThrow(/declares message/);
+    expect(() => protoFileOfMessage("ai.stigmer.agentic.routine.v1.NoSuchMessage")).toThrow(/declares message/);
   });
 });

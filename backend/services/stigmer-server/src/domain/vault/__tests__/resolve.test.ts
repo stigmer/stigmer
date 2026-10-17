@@ -716,7 +716,7 @@ describe("which vaults a run uses", () => {
       }),
     );
     expect(failure.rawMessage).toBe(
-      "the agent Helper needs A: ask the owner of schedule 'nightly' to attach a vault that holds A",
+      "the agent Helper needs A: ask the owner of routine 'nightly' to attach a vault that holds A",
     );
   });
 

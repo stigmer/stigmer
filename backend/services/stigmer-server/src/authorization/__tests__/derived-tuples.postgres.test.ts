@@ -204,16 +204,23 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
   });
 
   it("kinds with no visibility axis derive no viewer tuple at any level — their audience is the model's own line", () => {
-    for (const type of ["schedule", "session"]) {
+    // A session's routine link is its parent declaration's, not a viewer
+    // tuple: the routine's viewers reach it through the model's line.
+    const links: Readonly<Record<string, ReadonlyArray<string>>> = {
+      routine: [],
+      session: ["session:session-1#routine@routine:routine-1"],
+    };
+    for (const [type, link] of Object.entries(links)) {
       expect(
-        derivedFor(type, {
+        [...derivedFor(type, {
           visibility: ApiResourceVisibility.visibility_org,
-        }),
+        })].sort(),
         type,
       ).toEqual([
         `${type}:${type}-1#organization@organization:acme`,
         `${type}:${type}-1#owner@identity_account:ida_carol`,
-      ]);
+        ...link,
+      ].sort());
     }
   });
 

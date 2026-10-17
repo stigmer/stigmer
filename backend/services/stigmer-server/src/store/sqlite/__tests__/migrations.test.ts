@@ -483,7 +483,7 @@ describe("Go-created v6 database adoption (the Go fixture)", () => {
     expect(bootstrap.value).toBe("1.1.0");
 
     const run = db
-      .prepare(`SELECT outcome, completed_at FROM schedule_runs`)
+      .prepare(`SELECT outcome, completed_at FROM routine_fires`)
       .get() as { outcome: string; completed_at: string };
     expect(run.outcome).toBe("completed");
     expect(run.completed_at).toBe("2026-08-20T00:00:05Z");

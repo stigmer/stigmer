@@ -744,7 +744,7 @@ describe("renames, through a composed server", () => {
       expect(row.metadata?.name).toBe("edited mid-rename");
     });
 
-    it("a schedule update", async () => {
+    it("a routine update", async () => {
       await agents().create(agentInput(ORG, "race-schedule-agent"));
       const input = (name: string, cron: string, id = "", slug = "") => ({
         apiVersion: AGENTIC,
@@ -754,16 +754,13 @@ describe("renames, through a composed server", () => {
           cron,
           timeZone: "UTC",
           enabled: false,
-          target: {
-            case: "agent" as const,
-            value: {
-              agentRef: {
-                kind: ApiResourceKind.agent,
-                org: ORG,
-                slug: "race-schedule-agent",
-              },
-              message: "go",
+          agent: {
+            agentRef: {
+              kind: ApiResourceKind.agent,
+              org: ORG,
+              slug: "race-schedule-agent",
             },
+            message: "go",
           },
         },
       });

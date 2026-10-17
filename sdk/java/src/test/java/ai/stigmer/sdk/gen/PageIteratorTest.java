@@ -1,9 +1,9 @@
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.agentic.schedule.v1.ListSchedulesRequest;
-import ai.stigmer.agentic.schedule.v1.Schedule;
-import ai.stigmer.agentic.schedule.v1.ScheduleList;
-import ai.stigmer.agentic.schedule.v1.ScheduleQueryControllerGrpc;
+import ai.stigmer.agentic.routine.v1.ListRoutinesRequest;
+import ai.stigmer.agentic.routine.v1.Routine;
+import ai.stigmer.agentic.routine.v1.RoutineList;
+import ai.stigmer.agentic.routine.v1.RoutineQueryControllerGrpc;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -25,27 +25,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Pins the page iterator every generated client emits beside a paged list:
- * schedule's listAll walks the next page token to the end from the token its
+ * a routine's listAll walks the next page token to the end from the token its
  * input names, keeps the list's filters on every page, and reads a page only
- * as the iteration reaches it. A real gRPC server serves five schedules two
+ * as the iteration reaches it. A real gRPC server serves five routines two
  * at a time and records each request.
  */
 @DisplayName("Generated page iterator")
 class PageIteratorTest {
 
-    private final List<ListSchedulesRequest> requests = new ArrayList<>();
+    private final List<ListRoutinesRequest> requests = new ArrayList<>();
     private Server grpcServer;
     private ManagedChannel channel;
 
-    private final class PagedSchedules extends ScheduleQueryControllerGrpc.ScheduleQueryControllerImplBase {
+    private final class PagedRoutines extends RoutineQueryControllerGrpc.RoutineQueryControllerImplBase {
         @Override
-        public void list(ListSchedulesRequest request, StreamObserver<ScheduleList> responseObserver) {
+        public void list(ListRoutinesRequest request, StreamObserver<RoutineList> responseObserver) {
             requests.add(request);
             int start = request.getPageToken().isEmpty() ? 0 : Integer.parseInt(request.getPageToken());
             int end = Math.min(start + 2, 5);
-            ScheduleList.Builder page = ScheduleList.newBuilder();
+            RoutineList.Builder page = RoutineList.newBuilder();
             for (int i = start; i < end; i++) {
-                page.addEntries(Schedule.newBuilder().setMetadata(ApiResourceMetadata.newBuilder().setId("sch_" + i)));
+                page.addEntries(Routine.newBuilder().setMetadata(ApiResourceMetadata.newBuilder().setId("rtn_" + i)));
             }
             if (end < 5) {
                 page.setNextPageToken(Integer.toString(end));
@@ -57,7 +57,7 @@ class PageIteratorTest {
 
     @BeforeEach
     void start() throws Exception {
-        grpcServer = NettyServerBuilder.forPort(0).addService(new PagedSchedules()).build().start();
+        grpcServer = NettyServerBuilder.forPort(0).addService(new PagedRoutines()).build().start();
         channel = ManagedChannelBuilder.forTarget("localhost:" + grpcServer.getPort()).usePlaintext().build();
     }
 
@@ -69,10 +69,10 @@ class PageIteratorTest {
         grpcServer.awaitTermination(5, TimeUnit.SECONDS);
     }
 
-    private static List<String> ids(Iterable<Schedule> schedules) {
+    private static List<String> ids(Iterable<Routine> routines) {
         List<String> ids = new ArrayList<>();
-        for (Schedule s : schedules) {
-            ids.add(s.getMetadata().getId());
+        for (Routine r : routines) {
+            ids.add(r.getMetadata().getId());
         }
         return ids;
     }
@@ -80,10 +80,10 @@ class PageIteratorTest {
     @Test
     @DisplayName("walks every page, keeping the list's filters")
     void walksEveryPage() {
-        ListSchedulesRequest input = ListSchedulesRequest.newBuilder()
+        ListRoutinesRequest input = ListRoutinesRequest.newBuilder()
                 .setOrg("acme").putLabels("team", "support").setPageSize(2).build();
-        assertEquals(List.of("sch_0", "sch_1", "sch_2", "sch_3", "sch_4"), ids(new ScheduleClient(channel).listAll(input)));
-        assertEquals(List.of("", "2", "4"), requests.stream().map(ListSchedulesRequest::getPageToken).toList());
+        assertEquals(List.of("rtn_0", "rtn_1", "rtn_2", "rtn_3", "rtn_4"), ids(new RoutineClient(channel).listAll(input)));
+        assertEquals(List.of("", "2", "4"), requests.stream().map(ListRoutinesRequest::getPageToken).toList());
         assertTrue(requests.stream().allMatch(r -> r.getOrg().equals("acme")
                 && r.getLabelsMap().get("team").equals("support") && r.getPageSize() == 2));
     }
@@ -91,14 +91,14 @@ class PageIteratorTest {
     @Test
     @DisplayName("starts from the token its input names")
     void startsFromTheInputToken() {
-        ListSchedulesRequest input = ListSchedulesRequest.newBuilder().setPageToken("4").build();
-        assertEquals(List.of("sch_4"), ids(new ScheduleClient(channel).listAll(input)));
+        ListRoutinesRequest input = ListRoutinesRequest.newBuilder().setPageToken("4").build();
+        assertEquals(List.of("rtn_4"), ids(new RoutineClient(channel).listAll(input)));
     }
 
     @Test
     @DisplayName("reads a page only as the iteration reaches it")
     void readsLazily() {
-        Iterator<Schedule> it = new ScheduleClient(channel).listAll(ListSchedulesRequest.getDefaultInstance()).iterator();
+        Iterator<Routine> it = new RoutineClient(channel).listAll(ListRoutinesRequest.getDefaultInstance()).iterator();
         assertEquals(0, requests.size());
         it.next();
         assertEquals(1, requests.size());

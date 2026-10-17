@@ -46,7 +46,7 @@ export interface RoutineFiresTableProps {
  * "—" while a run is in flight or when no run was created), and the
  * run reference.
  *
- * Owns its data: give it a `scheduleId` and it fetches via
+ * Owns its data: give it a `routineId` and it fetches via
  * {@link useRoutineFires} with internal page state. To force a refresh
  * from outside (e.g. after triggering a manual run), remount with a
  * React `key` — the standard reset idiom; the remount also
@@ -59,7 +59,7 @@ export interface RoutineFiresTableProps {
  * @example
  * ```tsx
  * <RoutineFiresTable
- *   scheduleId={schedule.metadata.id}
+ *   routineId={routine.metadata.id}
  *   onNavigateToRun={(id) => router.push(`/runs/${id}`)}
  * />
  * ```

@@ -6,7 +6,8 @@
  * follow-up turn never silently starts a new conversation; and an empty
  * `session_id` is unset, never a member that claims the oneof. A nested
  * oneof (the workspace source inside a session spec) follows the same
- * rule: `git_repo` wins over `local_path`. Checked on what the Java and
+ * rule: `git_repo` wins over `local_path`, wherever the generator writes the
+ * shared workspace types. Checked on what the Java and
  * Python generators write over the real schemas (the Go generator's output
  * is pinned by go-scalar-oneof-member.test.ts).
  */
@@ -20,9 +21,25 @@ import { runSDKClientPythonGeneration } from "../sdk-client-python.js";
 
 const SCHEMAS = path.resolve(__dirname, "../../../schemas");
 
+/**
+ * The text of the generated file in `dir` that holds `marker`. A type
+ * several kinds share is written once, into the first kind's file that
+ * names it, so a case about such a type finds its file rather than naming it.
+ */
+function holding(dir: string, marker: string): string {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isFile()).sort((a, b) => a.name.localeCompare(b.name))) {
+    const text = fs.readFileSync(path.join(dir, entry.name), "utf8");
+    if (text.includes(marker)) {
+      return text;
+    }
+  }
+  throw new Error(`no generated file in ${dir} holds ${marker}`);
+}
+
 let root: string;
 let java: string;
 let python: string;
+let pythonWorkspace: string;
 
 beforeAll(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), "codegen-oneof-"));
@@ -32,6 +49,7 @@ beforeAll(() => {
   runSDKClientPythonGeneration(SCHEMAS, pythonOut);
   java = fs.readFileSync(path.join(javaOut, "RunInput.java"), "utf8");
   python = fs.readFileSync(path.join(pythonOut, "_run.py"), "utf8");
+  pythonWorkspace = holding(pythonOut, "class WorkspaceSourceInput");
 });
 
 afterAll(() => {
@@ -54,7 +72,7 @@ describe("a nested oneof", () => {
     const javaLocal = javaSource.indexOf("builder.setLocalPath(");
     expect(javaLocal).toBeGreaterThan(-1);
     expect(javaSource.indexOf("builder.setGitRepo(")).toBeGreaterThan(javaLocal);
-    const pySource = python.slice(python.indexOf("class WorkspaceSourceInput"));
+    const pySource = pythonWorkspace.slice(pythonWorkspace.indexOf("class WorkspaceSourceInput"));
     const pyLocal = pySource.indexOf("msg.local_path.CopyFrom(");
     expect(pyLocal).toBeGreaterThan(-1);
     expect(pySource.indexOf("msg.git_repo.CopyFrom(")).toBeGreaterThan(pyLocal);

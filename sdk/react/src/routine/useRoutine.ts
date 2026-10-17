@@ -28,7 +28,7 @@ export interface UseRoutineReturn {
  * (`next_fire_at`, `last_fire_at`, `last_run_id`,
  * `consecutive_failures`, `paused_reason`) — everything the detail view
  * renders, including the disabled-vs-paused distinction (see
- * {@link deriveScheduleState}).
+ * {@link deriveRoutineState}).
  *
  * Pass `null` for either `org` or `slug` to skip fetching (stable
  * no-op).

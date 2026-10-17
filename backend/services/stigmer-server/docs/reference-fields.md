@@ -178,6 +178,7 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.session.v1.SessionSpec.skill_refs` | manifest reference |
 | `ai.stigmer.agentic.session.v1.SessionSpec.vaults` | manifest reference |
 | `ai.stigmer.agentic.session.v1.SessionStatus.agent_id` | stamped id |
+| `ai.stigmer.agentic.session.v1.SessionStatus.routine_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.StreamSessionEventsRequest.session_id` | stamped id |
 
 ## `ai.stigmer.agentic.skill.v1`

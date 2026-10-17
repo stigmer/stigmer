@@ -4,7 +4,7 @@
  * provisioner that record what they are asked.
  *
  * What it pins:
- *   - quiesce: the schedule purge runs first and its `more` ends the call;
+ *   - quiesce: the routine purge runs first and its `more` ends the call;
  *     an organization with no run that may still be live passes with no
  *     engine; a run that may still be live is terminated, a run the engine
  *     no longer holds is fine, and with the engine unreachable the stage
@@ -131,7 +131,7 @@ function recordingEngine(terminated: string[], missing: ReadonlySet<string> = ne
 const noSandboxes: SandboxLane = { enabled: false };
 
 describe("the quiesce stage", () => {
-  it("passes with no engine when nothing may still be running, and ends a call while schedules are left", async () => {
+  it("passes with no engine when nothing may still be running, and ends a call while routines are left", async () => {
     await saveExecution("aex_done", ORG, RunPhase.RUN_COMPLETED);
     const calls: string[] = [];
     const stage = newQuiesceStage({
@@ -143,7 +143,7 @@ describe("the quiesce stage", () => {
     });
     expect(await stage.run(context)).toEqual({ more: true });
     expect(await stage.run(context)).toEqual({ more: false });
-    expect(calls).toEqual(["schedule", "schedule"]);
+    expect(calls).toEqual(["routine", "routine"]);
   });
 
   it("terminates a run that may still be live, tolerates one the engine no longer holds, and faults with the engine unreachable", async () => {

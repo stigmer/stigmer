@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import pytest
 
-from ai.stigmer.agentic.schedule.v1 import api_pb2 as schedule_api_pb2
-from ai.stigmer.agentic.schedule.v1 import io_pb2 as schedule_io_pb2
+from ai.stigmer.agentic.routine.v1 import api_pb2 as routine_api_pb2
+from ai.stigmer.agentic.routine.v1 import io_pb2 as routine_io_pb2
 from ai.stigmer.billing.v1 import io_pb2 as billing_io_pb2
 from ai.stigmer.billing.v1 import model_pricing_baseline_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
@@ -22,21 +22,21 @@ from stigmer import StigmerClient
 from stigmer._search import SearchParams
 
 
-class _PagedScheduleQuery:
-    """Five schedules served two at a time, each request recorded."""
+class _PagedRoutineQuery:
+    """Five routines served two at a time, each request recorded."""
 
     def __init__(self) -> None:
-        self.requests: list[schedule_io_pb2.ListSchedulesRequest] = []
+        self.requests: list[routine_io_pb2.ListRoutinesRequest] = []
 
     def list(self, req):
-        copy = schedule_io_pb2.ListSchedulesRequest()
+        copy = routine_io_pb2.ListRoutinesRequest()
         copy.CopyFrom(req)
         self.requests.append(copy)
         start = int(req.page_token) if req.page_token else 0
         end = min(start + 2, 5)
-        return schedule_io_pb2.ScheduleList(
+        return routine_io_pb2.RoutineList(
             entries=[
-                schedule_api_pb2.Schedule(metadata=metadata_pb2.ApiResourceMetadata(id=f"sch_{i}"))
+                routine_api_pb2.Routine(metadata=metadata_pb2.ApiResourceMetadata(id=f"rtn_{i}"))
                 for i in range(start, end)
             ],
             next_page_token=str(end) if end < 5 else "",
@@ -51,29 +51,29 @@ def client():
 
 class TestGeneratedListAll:
     def test_walks_every_page_keeping_the_filters(self, client: StigmerClient) -> None:
-        fake = _PagedScheduleQuery()
-        client.schedules._query = fake
-        request = schedule_io_pb2.ListSchedulesRequest(org="acme", labels={"team": "support"}, page_size=2)
+        fake = _PagedRoutineQuery()
+        client.routines._query = fake
+        request = routine_io_pb2.ListRoutinesRequest(org="acme", labels={"team": "support"}, page_size=2)
 
-        ids = [s.metadata.id for s in client.schedules.list_all(request)]
+        ids = [s.metadata.id for s in client.routines.list_all(request)]
 
-        assert ids == ["sch_0", "sch_1", "sch_2", "sch_3", "sch_4"]
+        assert ids == ["rtn_0", "rtn_1", "rtn_2", "rtn_3", "rtn_4"]
         assert [r.page_token for r in fake.requests] == ["", "2", "4"]
         assert all(r.org == "acme" and r.labels["team"] == "support" and r.page_size == 2 for r in fake.requests)
         assert request.page_token == ""
 
     def test_starts_from_the_input_token(self, client: StigmerClient) -> None:
-        client.schedules._query = _PagedScheduleQuery()
+        client.routines._query = _PagedRoutineQuery()
 
-        ids = [s.metadata.id for s in client.schedules.list_all(schedule_io_pb2.ListSchedulesRequest(page_token="4"))]
+        ids = [s.metadata.id for s in client.routines.list_all(routine_io_pb2.ListRoutinesRequest(page_token="4"))]
 
-        assert ids == ["sch_4"]
+        assert ids == ["rtn_4"]
 
     def test_stops_reading_when_the_caller_stops(self, client: StigmerClient) -> None:
-        fake = _PagedScheduleQuery()
-        client.schedules._query = fake
+        fake = _PagedRoutineQuery()
+        client.routines._query = fake
 
-        next(iter(client.schedules.list_all(schedule_io_pb2.ListSchedulesRequest())))
+        next(iter(client.routines.list_all(routine_io_pb2.ListRoutinesRequest())))
 
         assert len(fake.requests) == 1
 

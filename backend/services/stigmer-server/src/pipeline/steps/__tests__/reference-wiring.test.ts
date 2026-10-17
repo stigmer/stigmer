@@ -52,8 +52,8 @@ const READERS: ReadonlyArray<{ readonly factory: string; readonly build: Factory
   { factory: "newValidateSubagentNamesStep", build: newValidateSubagentNamesStep, step: "ValidateSubagentNames" },
   { factory: "newPinSubagentsStep", build: newPinSubagentsStep, step: "PinSubagents" },
   { factory: "newValidatePluginListStep", build: newValidatePluginListStep, step: "ValidatePluginList" },
-  { factory: "newResolveScheduleDefaultsStep", build: newResolveRoutineDefaultsStep, step: "ResolveScheduleDefaults" },
-  { factory: "newValidateScheduleUpdateStep", build: newValidateRoutineUpdateStep, step: "ValidateScheduleUpdate" },
+  { factory: "newResolveRoutineDefaultsStep", build: newResolveRoutineDefaultsStep, step: "ResolveRoutineDefaults" },
+  { factory: "newValidateRoutineUpdateStep", build: newValidateRoutineUpdateStep, step: "ValidateRoutineUpdate" },
   { factory: "newResolveChannelDefaultsStep", build: newResolveChannelDefaultsStep, step: "ResolveChannelDefaults" },
   { factory: "newValidateChannelUpdateStep", build: newValidateChannelUpdateStep, step: "ValidateChannelUpdate" },
   { factory: "newVaultAttachmentsStep", build: newVaultAttachmentsStep, step: "VaultAttachments" },
@@ -71,7 +71,7 @@ const WRITE_CHAINS: Readonly<Record<string, ReadonlyArray<string>>> = {
   "domain/organization/controller.ts": ["organization-update-embedding"],
   "domain/eval-run/controller.ts": ["eval-run-create"],
   "domain/run/controller.ts": ["agent-execution-create", "agent-execution-update"],
-  "domain/schedule/controller.ts": ["schedule-create", "schedule-update"],
+  "domain/routine/controller.ts": ["routine-create", "routine-update"],
   "domain/session/controller.ts": ["session-create", "session-update"],
 };
 

@@ -213,7 +213,7 @@ describe("schedule/tick workflow (TestWorkflowEnvironment)", () => {
 
       await runTick();
       expect(script.failureCalls).toEqual([
-        { scheduleId: "sch_tick", reason, kind: FAILURE_START_FAILED },
+        { routineId: "sch_tick", reason, kind: FAILURE_START_FAILED },
       ]);
       expect(script.successCalls).toEqual([]);
       expect(script.pollCount).toBe(0);
@@ -274,7 +274,7 @@ describe("schedule/tick workflow (TestWorkflowEnvironment)", () => {
     await runTick();
     expect(script.failureCalls).toEqual([
       {
-        scheduleId: "sch_tick",
+        routineId: "sch_tick",
         reason: "run aex_tick ended failed",
         kind: FAILURE_RUN_FAILED,
       },
@@ -307,7 +307,7 @@ describe("schedule/tick workflow (TestWorkflowEnvironment)", () => {
     expect(script.pollCount).toBe(1);
     expect(script.failureCalls).toEqual([
       {
-        scheduleId: "sch_tick",
+        routineId: "sch_tick",
         reason: "run aex_tick did not finish within 0 minutes",
         kind: FAILURE_RUN_TIMED_OUT,
       },

@@ -5,7 +5,7 @@ import { ModelRegistryContext } from "../ModelRegistryContext";
 import type { ModelInfo } from "../registry";
 
 // Shim ResizeObserver for Base UI's positioner (the
-// scheduleCreation.test.tsx pattern).
+// routineCreation.test.tsx pattern).
 beforeAll(() => {
   if (!("ResizeObserver" in globalThis)) {
     (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =

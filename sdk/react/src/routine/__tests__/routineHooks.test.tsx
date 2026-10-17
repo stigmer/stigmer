@@ -339,7 +339,7 @@ describe("useRoutineFires", () => {
     expect(result.current.pageNumber).toBe(1);
   });
 
-  it("skips fetching when scheduleId is null", () => {
+  it("skips fetching when routineId is null", () => {
     const listFires = vi.fn();
     const client = { routine: { listFires } };
 

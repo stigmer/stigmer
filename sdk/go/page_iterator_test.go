@@ -59,7 +59,7 @@ func TestGeneratedListAll_WalksEveryPageKeepingFilters(t *testing.T) {
 		}
 		ids = append(ids, s.GetMetadata().GetId())
 	}
-	if fmt.Sprint(ids) != "[sch_0 sch_1 sch_2 sch_3 sch_4]" {
+	if fmt.Sprint(ids) != "[rtn_0 rtn_1 rtn_2 rtn_3 rtn_4]" {
 		t.Errorf("ids = %v", ids)
 	}
 	var tokens []string
@@ -85,7 +85,7 @@ func TestGeneratedListAll_StartsFromTheInputToken(t *testing.T) {
 		}
 		ids = append(ids, s.GetMetadata().GetId())
 	}
-	if fmt.Sprint(ids) != "[sch_4]" {
+	if fmt.Sprint(ids) != "[rtn_4]" {
 		t.Errorf("ids = %v", ids)
 	}
 }

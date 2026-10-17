@@ -20,7 +20,7 @@ const pausedStatus = create(RoutineStatusSchema, {
 });
 const healthyStatus = create(RoutineStatusSchema, {});
 
-describe("deriveScheduleState", () => {
+describe("deriveRoutineState", () => {
   // Every lever combination — the two levers must never collapse.
   const cases = [
     {

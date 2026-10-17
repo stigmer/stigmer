@@ -9,7 +9,7 @@ import type { ModelInfo } from "../../models/registry";
 import { SessionComposer } from "../SessionComposer";
 
 // Shim ResizeObserver for Base UI's positioner (the
-// scheduleCreation.test.tsx pattern).
+// routineCreation.test.tsx pattern).
 beforeAll(() => {
   if (!("ResizeObserver" in globalThis)) {
     (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =

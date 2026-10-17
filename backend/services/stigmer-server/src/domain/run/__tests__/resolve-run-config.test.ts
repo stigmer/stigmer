@@ -462,11 +462,11 @@ describe("ResolveRunConfig over a real store", () => {
     );
     expect(err).toBeInstanceOf(ConnectError);
     expect((err as ConnectError).code).toBe(Code.FailedPrecondition);
-    expect((err as ConnectError).rawMessage).toContain("the schedule's run_config");
+    expect((err as ConnectError).rawMessage).toContain("the routine's run_config");
     expect((err as ConnectError).rawMessage).toContain("stigmer/stigmer#362");
   });
 
-  it("refuses a schedule's saved fast tier with no model of its own, naming the schedule's settings", async () => {
+  it("refuses a routine's saved fast tier with no model of its own, naming the routine's settings", async () => {
     const err = await resolve(
       execution({
         metadata: { labels: { [ROUTINE_ID_LABEL_KEY]: "sch_1" } },
@@ -479,7 +479,7 @@ describe("ResolveRunConfig over a real store", () => {
     );
     expect(err).toBeInstanceOf(ConnectError);
     expect((err as ConnectError).code).toBe(Code.InvalidArgument);
-    expect((err as ConnectError).rawMessage).toContain("the schedule's run_config");
+    expect((err as ConnectError).rawMessage).toContain("the routine's run_config");
   });
 
   it("lets a live message set thinking alone, on the agent's model", async () => {

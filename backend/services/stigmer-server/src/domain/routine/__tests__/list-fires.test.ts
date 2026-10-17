@@ -1,6 +1,6 @@
 /**
  * Pins how the fire ledger reads back on the wire (list-fires.ts): every
- * origin and outcome label the store writes maps to its ScheduleFire enum
+ * origin and outcome label the store writes maps to its RoutineFire enum
  * value, and a label the store never writes reads as UNSPECIFIED rather than
  * failing the page; a row still in flight takes its run's live phase, and
  * keeps its recorded outcome when the run is gone; a store that cannot list
@@ -148,7 +148,7 @@ describe("a fire still in flight on the ledger", () => {
 describe("a ledger the store cannot list", () => {
   it("fails the read as an internal error naming the ledger", async () => {
     const store = {
-      listScheduleFires: () => Promise.reject(new Error("disk on fire")),
+      listRoutineFires: () => Promise.reject(new Error("disk on fire")),
     } as unknown as Store;
     const failure = await Promise.resolve()
       .then(() => newListFiresFromLedgerStep(store).execute(listRequest(10)))
@@ -158,6 +158,6 @@ describe("a ledger the store cannot list", () => {
       );
     expect(failure).toBeInstanceOf(ConnectError);
     expect((failure as ConnectError).code).toBe(Code.Internal);
-    expect((failure as ConnectError).rawMessage).toBe("failed to list schedule fires");
+    expect((failure as ConnectError).rawMessage).toBe("failed to list routine fires");
   });
 });

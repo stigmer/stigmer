@@ -671,6 +671,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             const enumerated = await scope({
               store: {
                 ...opened.store,
+                getResource: (kind, id, schema) => opened.store.getResource(kind, id, schema),
                 listResources: async (kind) => [
                   ...(await opened.store.listResources(kind)),
                   truncated,
@@ -688,8 +689,10 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           it("a list of executions reads each DISTINCT session once and no execution row at all — the candidates' facts are the entries'", async () => {
             await listAs(resolved(FOUNDER), ApiResourceKind.run);
             // Three sessions named across four candidates (one of them
-            // gone); the organization row is not walked for an execution.
-            expect(storeReads).toEqual({ rows: 3, scans: 0 });
+            // gone), and once the routine the fixture links them to, for the
+            // session the founder does not own (`viewer from routine`); the
+            // organization row is not walked for an execution.
+            expect(storeReads).toEqual({ rows: 4, scans: 0 });
           });
 
           it("a list of blueprints reads the organization row once for the userset hop and nothing per candidate; the account once; the person's rows once", async () => {

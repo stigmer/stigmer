@@ -57,7 +57,7 @@ export const CENSUS_TABLES: Readonly<Record<string, CensusClass>> = {
   bootstrap_state: "id-as-value",
   organization_deletions: "org-column",
   search_index: "org-column",
-  schedule_runs: "org-column",
+  routine_fires: "org-column",
   pending_oauth_state: "org-column",
   connect_link: "org-column",
   connect_attempt: "org-column",
