@@ -22,8 +22,8 @@ import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api
 import { ListChannelsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ListChannelAppsInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ListSchedulesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
+import { ListRoutinesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ListSessionsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
@@ -140,7 +140,7 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
     },
   ],
   [
-    ApiResourceKind.schedule,
+    ApiResourceKind.routine,
     async (client, org, limit, labels) => {
       // ListSchedulesRequest requires an org (min_len 1): a server that holds
       // one fills it, and on one that holds several an unset context is
@@ -151,12 +151,12 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
         "stigmer config context set --org <org>",
       ]);
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
-        client.schedule.list(create(ListSchedulesRequestSchema, { org, pageSize, pageToken, labels })),
+        client.routine.list(create(ListRoutinesRequestSchema, { org, pageSize, pageToken, labels })),
       );
       return {
-        schema: ScheduleSchema,
+        schema: RoutineSchema,
         entries,
-        table: SCHEDULE_TABLE,
+        table: ROUTINE_TABLE,
       };
     },
   ],
@@ -446,14 +446,14 @@ const CHANNEL_APP_TABLE: TableShape = {
 // `stigmer schedule resume` — so the table keeps them as two columns. An
 // auto-paused schedule with ENABLED true is exactly the condition this
 // surface exists to make visible (stigmer/stigmer#352).
-const SCHEDULE_TABLE: TableShape = {
+const ROUTINE_TABLE: TableShape = {
   resourceName: "schedules",
   headers: ["ID", "SLUG", "TARGET", "CRON", "TZ", "ENABLED", "STATE"],
-  orgs: (json) => [str(scheduleAgentRef(json), "org")],
+  orgs: (json) => [str(routineAgentRef(json), "org")],
   row: (json, orgLabel) => {
     const metadata = obj(json, "metadata");
     const spec = obj(json, "spec");
-    const agentRef = scheduleAgentRef(json);
+    const agentRef = routineAgentRef(json);
     return [
       str(metadata, "id"),
       str(metadata, "slug"),
@@ -486,7 +486,7 @@ const VAULT_TABLE: TableShape = {
 };
 
 // The schedule's target is the agent it runs.
-function scheduleAgentRef(json: JsonObject): JsonObject {
+function routineAgentRef(json: JsonObject): JsonObject {
   return obj(obj(obj(json, "spec"), "agent"), "agent_ref");
 }
 

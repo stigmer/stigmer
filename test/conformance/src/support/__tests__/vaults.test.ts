@@ -17,7 +17,7 @@ import { describe, expect, it } from "vitest";
 
 import { makeWebChannel } from "../channels";
 import { makeAgentExecution } from "../runs";
-import { makeSchedule } from "../schedules";
+import { makeRoutine } from "../routines";
 import { makeSessionSpec } from "../sessions";
 import {
   makeSharedVault,
@@ -80,7 +80,7 @@ describe("the vaults option of the surface builders", () => {
     });
     expect(makeSessionSpec({}).includeMyVault).toBeUndefined();
 
-    const schedule = makeSchedule("acme", "nightly", "bot", {
+    const schedule = makeRoutine("acme", "nightly", "bot", {
       vaults: slugs,
       repositories: [{ name: "app", url: "https://github.com/acme/app", token: "ghp-1" }],
     });
@@ -92,7 +92,7 @@ describe("the vaults option of the surface builders", () => {
       case: "gitRepo",
       value: { url: "https://github.com/acme/app", token: "ghp-1" },
     });
-    const tokenless = makeSchedule("acme", "n", "bot", {
+    const tokenless = makeRoutine("acme", "n", "bot", {
       repositories: [{ name: "app", url: "https://github.com/acme/app" }],
     }).spec?.target;
     expect(tokenless?.case === "agent" ? tokenless.value.workspaceEntries?.[0]?.source?.source : undefined).toEqual({

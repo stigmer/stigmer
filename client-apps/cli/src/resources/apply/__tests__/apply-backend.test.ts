@@ -187,7 +187,7 @@ const CHANNEL_YAML = [
   "",
 ].join("\n");
 
-const SCHEDULE_YAML = [
+const ROUTINE_YAML = [
   "apiVersion: agentic.stigmer.ai/v1",
   "kind: Schedule",
   "metadata:",
@@ -286,7 +286,7 @@ describe("file-mode apply — channel app (#353)", () => {
       // File names chosen so lexical file order is exactly WRONG — before
       // the registry unification all three kinds fell to a shared default
       // priority and applied in this (broken) file order.
-      writeYaml(dir, "a-schedule.yaml", SCHEDULE_YAML);
+      writeYaml(dir, "a-schedule.yaml", ROUTINE_YAML);
       writeYaml(dir, "b-channel.yaml", CHANNEL_YAML);
       writeYaml(dir, "c-chapp.yaml", CHANNEL_APP_YAML);
       const items = resolveApplyItems(dir);

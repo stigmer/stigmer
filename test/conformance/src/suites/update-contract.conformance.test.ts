@@ -22,7 +22,7 @@ import { Code } from "@connectrpc/connect";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ChannelSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
 import { ChannelAppSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/spec_pb";
-import { ScheduleSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
+import { RoutineSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/spec_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { VaultSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 import { ApiKeySpecSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/spec_pb";
@@ -39,7 +39,7 @@ import { makeSlackChannelApp } from "../support/channelapps";
 import { makeWebChannel } from "../support/channels";
 import { uniqueName } from "../support/naming";
 import { makeOAuthApp } from "../support/oauthapps";
-import { makeSchedule } from "../support/schedules";
+import { makeRoutine } from "../support/routines";
 import { makeSession } from "../support/sessions";
 import { makeSharedVault } from "../support/vaults";
 import { createTarget, type TargetProfile } from "../targets";
@@ -198,13 +198,13 @@ const KINDS: ReadonlyArray<UpdatableKind> = [
     rpc: "ScheduleCommandController.update",
     create: async (org) => {
       const agent = await agentIn(org);
-      const schedule = await clients.scheduleCommand.create(makeSchedule(org, uniqueName("upd-sched"), agent.slug));
-      fixtures.defer(() => clients.scheduleCommand.delete({ value: schedule.metadata!.id }));
-      return schedule.metadata!.id;
+      const routine = await clients.routineCommand.create(makeRoutine(org, uniqueName("upd-sched"), agent.slug));
+      fixtures.defer(() => clients.routineCommand.delete({ value: routine.metadata!.id }));
+      return routine.metadata!.id;
     },
-    read: async (id) => snapshotOf(ScheduleSpecSchema, await clients.scheduleQuery.get({ value: id })),
+    read: async (id) => snapshotOf(RoutineSpecSchema, await clients.routineQuery.get({ value: id })),
     update: async (metadata, paths) =>
-      snapshotOf(ScheduleSpecSchema, await clients.scheduleCommand.update({ resource: { metadata }, updateMask: { paths } })),
+      snapshotOf(RoutineSpecSchema, await clients.routineCommand.update({ resource: { metadata }, updateMask: { paths } })),
   },
   {
     noun: "Channel",

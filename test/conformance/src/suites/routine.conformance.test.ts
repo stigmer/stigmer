@@ -1,0 +1,339 @@
+// Schedule conformance — the CRUD + refusal contract (Class A).
+// Domain: conformance suites.
+//
+// Everything in this file is edition-unconditional: it needs no Temporal, no
+// clock, no runner. The trigger/resume refusal matrix is part of
+// the contract even where nothing can fire yet — the OSS server enforces
+// it ahead of its clock precisely so these negatives hold on both editions.
+// Coverage spans the full CRUD + query surface: create/delete, apply
+// create/update branching, update spec replacement with the immutable
+// agent_ref (repointing would bypass the create-time consent bar on the
+// referenced agent — the Channel rule), getByReference, the
+// agent-id-keyed listByAgent (unknown agent answers an empty list, not an
+// error), and the org-scoped list. The FIRING contract (a trigger records
+// last_fire_at, failed fires accumulate into the platform auto-pause, resume
+// + re-trigger fires again) and the run-history surface (listFires) live in
+// suites-execution/schedule-firing.conformance.test.ts, gated on the
+// scheduleFiring capability.
+import { Code } from "@connectrpc/connect";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { expectGrpcCode } from "../contract/errors";
+import type { ConformanceClients } from "../harness/clients";
+import { FixtureTracker } from "../harness/fixtures";
+import { makeAgent } from "../support/agents";
+import { uniqueName } from "../support/naming";
+import { TRIGGER_DISABLED_MESSAGE, makeRoutine } from "../support/routines";
+import { createTarget, type TargetProfile } from "../targets";
+
+let target: TargetProfile;
+let clients: ConformanceClients;
+const fixtures = new FixtureTracker();
+
+beforeAll(async () => {
+  target = createTarget();
+  await target.setup();
+  clients = target.clients();
+});
+
+afterEach(async () => {
+  await fixtures.cleanup();
+});
+
+afterAll(async () => {
+  await target?.teardown();
+});
+
+// Creates the referenced agent first: the schedule create's consent bar is
+// edit rights on the REFERENCED agent, so the agent must exist and belong to
+// the caller on both editions. Returns both handles a schedule surface uses:
+// the slug (what spec.agent.agent_ref carries) and the id (what listByAgent
+// is keyed on).
+async function createAgentFixture(org: string): Promise<{ id: string; slug: string }> {
+  const agent = await clients.agentCommand.create(
+    makeAgent({ org, name: uniqueName("sched-target") }),
+  );
+  fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+  return { id: agent.metadata!.id, slug: agent.metadata!.slug };
+}
+
+async function createRoutineFixture(
+  org: string,
+  agentSlug: string,
+  options: { enabled?: boolean } = {},
+) {
+  const routine = await clients.routineCommand.create(
+    makeRoutine(org, uniqueName("sched"), agentSlug, { enabled: options.enabled }),
+  );
+  fixtures.defer(() => clients.routineCommand.delete({ value: routine.metadata!.id }));
+  return routine;
+}
+
+describe("Schedule CRUD contract", () => {
+  it("[rpc:ScheduleCommandController.create] [rpc:ScheduleQueryController.get] create round-trips the spec and starts with a clean firing status", async () => {
+    const { org } = await target.provisionTenancy();
+    const { slug: agentSlug } = await createAgentFixture(org);
+
+    const created = await createRoutineFixture(org, agentSlug);
+
+    expect(created.metadata?.id).toMatch(/^sch_/);
+    expect(created.spec?.cron).toBe("0 9 * * *");
+    expect(created.spec?.timeZone).toBe("Asia/Kolkata");
+    expect(created.spec?.enabled).toBe(true);
+    expect(created.status?.pausedReason ?? "").toBe("");
+    expect(created.status?.consecutiveFailures ?? 0).toBe(0);
+
+    const fetched = await clients.routineQuery.get({ value: created.metadata!.id });
+    expect(fetched.metadata?.id).toBe(created.metadata?.id);
+    expect(fetched.spec?.cron).toBe("0 9 * * *");
+    expect(fetched.spec?.target.case).toBe("agent");
+  });
+
+  it("[rpc:ScheduleCommandController.delete] delete removes the schedule", async () => {
+    const { org } = await target.provisionTenancy();
+    const { slug: agentSlug } = await createAgentFixture(org);
+    const created = await createRoutineFixture(org, agentSlug);
+
+    await clients.routineCommand.delete({ value: created.metadata!.id });
+
+    await expectGrpcCode(
+      () => clients.routineQuery.get({ value: created.metadata!.id }),
+      Code.NotFound,
+      "get after delete",
+    );
+  });
+});
+
+describe("Schedule trigger refusal matrix (unconditional on every edition)", () => {
+  it("[rpc:ScheduleCommandController.trigger] triggering a missing schedule is NotFound", async () => {
+    await expectGrpcCode(
+      () => clients.routineCommand.fire({ value: "sch_01conformancemissing" }),
+      Code.NotFound,
+      "trigger a missing schedule",
+    );
+  });
+
+  it("[rpc:ScheduleCommandController.trigger] triggering a disabled schedule refuses with the exact teaching copy", async () => {
+    const { org } = await target.provisionTenancy();
+    const { slug: agentSlug } = await createAgentFixture(org);
+    const disabled = await createRoutineFixture(org, agentSlug, { enabled: false });
+
+    const err = await expectGrpcCode(
+      () => clients.routineCommand.fire({ value: disabled.metadata!.id }),
+      Code.FailedPrecondition,
+      "trigger a disabled schedule",
+    );
+    // Contract copy: pinned in the Java handler test and the Go controller
+    // test; asserted here over the wire so neither edition can drift.
+    expect(err.message, "the disabled refusal copy is contract").toContain(
+      TRIGGER_DISABLED_MESSAGE,
+    );
+  });
+});
+
+describe("Schedule resume contract (unconditional on every edition)", () => {
+  it("[rpc:ScheduleCommandController.resume] resuming an unpaused schedule succeeds and changes nothing", async () => {
+    const { org } = await target.provisionTenancy();
+    const { slug: agentSlug } = await createAgentFixture(org);
+    const created = await createRoutineFixture(org, agentSlug);
+
+    const resumed = await clients.routineCommand.resume({ value: created.metadata!.id });
+
+    expect(resumed.status?.pausedReason ?? "").toBe("");
+    expect(resumed.status?.consecutiveFailures ?? 0).toBe(0);
+  });
+
+  it("[rpc:ScheduleCommandController.resume] a disabled schedule stays disabled through a resume — the latch and the switch are independent levers", async () => {
+    const { org } = await target.provisionTenancy();
+    const { slug: agentSlug } = await createAgentFixture(org);
+    const disabled = await createRoutineFixture(org, agentSlug, { enabled: false });
+
+    const resumed = await clients.routineCommand.resume({ value: disabled.metadata!.id });
+
+    expect(
+      resumed.spec?.enabled,
+      "resume clears the platform's pause, never the owner's enabled switch",
+    ).toBe(false);
+  });
+
+  it("[rpc:ScheduleCommandController.resume] resuming a missing schedule is NotFound", async () => {
+    await expectGrpcCode(
+      () => clients.routineCommand.resume({ value: "sch_01conformancemissing" }),
+      Code.NotFound,
+      "resume a missing schedule",
+    );
+  });
+});
+
+describe("Schedule apply contract", () => {
+  it("[rpc:ScheduleCommandController.apply] apply creates on first call and updates on second (same name + org)", async () => {
+    const { org } = await target.provisionTenancy();
+    const { slug: agentSlug } = await createAgentFixture(org);
+    const name = uniqueName("sched-apply");
+
+    const first = await clients.routineCommand.apply(
+      makeRoutine(org, name, agentSlug, { cron: "0 9 * * *" }),
+    );
+    fixtures.defer(() => clients.routineCommand.delete({ value: first.metadata!.id }));
+    expect(first.metadata?.id).toMatch(/^sch_/);
+
+    const second = await clients.routineCommand.apply(
+      makeRoutine(org, name, agentSlug, { cron: "30 18 * * *" }),
+    );
+
+    expect(second.metadata?.id, "apply must update the same resource").toBe(first.metadata?.id);
+    expect(second.spec?.cron, "apply-as-update replaces the spec").toBe("30 18 * * *");
+  });
+
+  it("[rpc:ScheduleCommandController.apply] apply-as-update cannot repoint the agent target (FailedPrecondition)", async () => {
+    // The agent_ref is immutable on every update path — the create-time
+    // consent bar is edit rights on the REFERENCED agent, and a repoint
+    // would bypass it (the Channel rule). Apply routes through update
+    // when the schedule exists, so the refusal must hold here too.
+    const { org } = await target.provisionTenancy();
+    const { slug: agentSlug } = await createAgentFixture(org);
+    const { slug: otherAgentSlug } = await createAgentFixture(org);
+    const name = uniqueName("sched-repoint");
+
+    const created = await clients.routineCommand.apply(makeRoutine(org, name, agentSlug));
+    fixtures.defer(() => clients.routineCommand.delete({ value: created.metadata!.id }));
+
+    await expectGrpcCode(
+      () => clients.routineCommand.apply(makeRoutine(org, name, otherAgentSlug)),
+      Code.FailedPrecondition,
+      "apply that repoints the schedule's agent",
+    );
+  });
+});
+
+describe("Schedule update contract", () => {
+  it("[rpc:ScheduleCommandController.update] update replaces the spec but preserves id, slug, and org", async () => {
+    const { org } = await target.provisionTenancy();
+    const { slug: agentSlug } = await createAgentFixture(org);
+    const created = await createRoutineFixture(org, agentSlug);
+
+    const updated = await clients.routineCommand.update({ resource: {
+      apiVersion: created.apiVersion,
+      kind: created.kind,
+      metadata: created.metadata,
+      spec: { ...created.spec!, cron: "15 6 * * 1", timeZone: "UTC" },
+    }, updateMask: { paths: ["*"] } });
+
+    expect(updated.metadata?.id).toBe(created.metadata?.id);
+    expect(updated.metadata?.slug).toBe(created.metadata?.slug);
+    expect(updated.metadata?.org).toBe(org);
+    expect(updated.spec?.cron).toBe("15 6 * * 1");
+    expect(updated.spec?.timeZone).toBe("UTC");
+  });
+
+  it("[rpc:ScheduleCommandController.update] update cannot change the agent_ref (FailedPrecondition)", async () => {
+    const { org } = await target.provisionTenancy();
+    const { slug: agentSlug } = await createAgentFixture(org);
+    const { slug: otherAgentSlug } = await createAgentFixture(org);
+    const created = await createRoutineFixture(org, agentSlug);
+
+    // Target the existing row (update loads by metadata.id) but carry a
+    // different agent in the spec.
+    const repointed = makeRoutine(org, created.metadata!.name, otherAgentSlug);
+    await expectGrpcCode(
+      () => clients.routineCommand.update({ resource: { ...repointed, metadata: created.metadata }, updateMask: { paths: ["*"] } }),
+      Code.FailedPrecondition,
+      "update that repoints the schedule's agent",
+    );
+  });
+
+  it("[rpc:ScheduleCommandController.update] update of a missing schedule is NotFound", async () => {
+    const { org } = await target.provisionTenancy();
+    const { slug: agentSlug } = await createAgentFixture(org);
+    const name = uniqueName("sched-missing");
+
+    // A valid schedule shape whose metadata.id points at nothing.
+    const missing = makeRoutine(org, name, agentSlug);
+    missing.metadata = { name, org, id: "sch_01conformancemissing" };
+    await expectGrpcCode(
+      () => clients.routineCommand.update({ resource: missing, updateMask: { paths: ["*"] } }),
+      Code.NotFound,
+      "update a missing schedule",
+    );
+  });
+});
+
+describe("Schedule queries", () => {
+  it("[rpc:ScheduleQueryController.getByReference] getByReference resolves by org and slug", async () => {
+    const { org } = await target.provisionTenancy();
+    const { slug: agentSlug } = await createAgentFixture(org);
+    const created = await createRoutineFixture(org, agentSlug);
+
+    const fetched = await clients.routineQuery.getByReference({
+      org,
+      slug: created.metadata!.slug,
+    });
+    expect(fetched.metadata?.id).toBe(created.metadata?.id);
+  });
+
+  it("[rpc:ScheduleQueryController.getByReference] getByReference of an unknown slug returns NotFound", async () => {
+    const { org } = await target.provisionTenancy();
+    await expectGrpcCode(
+      () => clients.routineQuery.getByReference({ org, slug: "does-not-exist" }),
+      Code.NotFound,
+      "getByReference unknown slug",
+    );
+  });
+
+  it("[rpc:ScheduleQueryController.listByAgent] listByAgent returns only the agent's schedules, keyed by agent id", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgentFixture(org);
+    const otherAgent = await createAgentFixture(org);
+
+    const mine = await createRoutineFixture(org, agent.slug);
+    await createRoutineFixture(org, otherAgent.slug);
+
+    const list = await clients.routineQuery.listByAgent({ agentId: agent.id });
+
+    const ids = list.entries.map((s) => s.metadata?.id);
+    expect(ids, "the agent's schedule is present").toContain(mine.metadata?.id);
+    for (const item of list.entries) {
+      const targetArm = item.spec?.target;
+      expect(targetArm?.case, "every returned schedule targets an agent").toBe("agent");
+      expect(
+        targetArm?.case === "agent" ? targetArm.value.agentRef?.slug : undefined,
+        "listByAgent must not leak another agent's schedules",
+      ).toBe(agent.slug);
+    }
+    expect(list.nextPageToken).toBe("");
+  });
+
+  it("[rpc:ScheduleQueryController.listByAgent] listByAgent of an unknown agent returns an empty list, not an error", async () => {
+    // "No schedules" is the useful answer for an operational surface
+    // whether the agent is unknown or merely schedule-less.
+    const list = await clients.routineQuery.listByAgent({
+      agentId: "agent_01conformancemissing",
+    });
+    expect(list.entries).toHaveLength(0);
+    expect(list.nextPageToken).toBe("");
+  });
+
+  it("[rpc:ScheduleQueryController.listByAgent] listByAgent rejects an empty agent_id with InvalidArgument", () =>
+    expectGrpcCode(
+      () => clients.routineQuery.listByAgent({ agentId: "" }),
+      Code.InvalidArgument,
+      "listByAgent empty agent_id",
+    ));
+
+  it("[rpc:ScheduleQueryController.list] list returns the org's schedules", async () => {
+    const { org } = await target.provisionTenancy();
+    const { slug: agentSlug } = await createAgentFixture(org);
+    const created = await createRoutineFixture(org, agentSlug);
+
+    const list = await clients.routineQuery.list({ org });
+
+    expect(list.entries.map((s) => s.metadata?.id)).toContain(created.metadata?.id);
+    expect(list.nextPageToken).toBe("");
+  });
+
+  it("[rpc:ScheduleQueryController.list] list rejects an empty org with InvalidArgument", () =>
+    expectGrpcCode(
+      () => clients.routineQuery.list({ org: "" }),
+      Code.InvalidArgument,
+      "list empty org",
+    ));
+});

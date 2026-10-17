@@ -37,7 +37,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { AGENT_API_VERSION, AGENT_KIND, agentRefOf, makeAgent, makeAgentSpec } from "../support/agents";
 import { makeSlackChannel, makeWebChannel } from "../support/channels";
 import { uniqueName } from "../support/naming";
-import { makeSchedule } from "../support/schedules";
+import { makeRoutine } from "../support/routines";
 import { makeSession } from "../support/sessions";
 import { makeSkillArtifact } from "../support/skills";
 import { createTarget, type TargetProfile } from "../targets";
@@ -264,12 +264,12 @@ describe("Agent versions — run surfaces", () => {
   it("[rpc:ScheduleCommandController.create] a schedule whose agent reference names a version is accepted and keeps it", async () => {
     const { org } = await target.provisionTenancy();
     const { v1 } = await taggedAgent(org);
-    const schedule = makeSchedule(org, uniqueName("schedule"), v1.metadata!.slug);
+    const schedule = makeRoutine(org, uniqueName("schedule"), v1.metadata!.slug);
     const invocation = schedule.spec!.target!.value as { agentRef: { version?: string } };
     invocation.agentRef.version = v1.status!.versionHash;
 
-    const created = await clients.scheduleCommand.create(schedule);
-    fixtures.defer(() => clients.scheduleCommand.delete({ value: created.metadata!.id }));
+    const created = await clients.routineCommand.create(schedule);
+    fixtures.defer(() => clients.routineCommand.delete({ value: created.metadata!.id }));
 
     const invoked = created.spec?.target;
     expect(invoked?.case).toBe("agent");

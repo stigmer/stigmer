@@ -76,7 +76,7 @@ export function useDeleteResource(
           await stigmer.skill.delete(resourceId);
           break;
         case "schedule":
-          await stigmer.schedule.delete(resourceId);
+          await stigmer.routine.delete(resourceId);
           break;
         case "plugin":
           // The server refuses while an agent of the organization lists it.

@@ -78,7 +78,7 @@ import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js
 import type { ResourceRowReader } from "./resource-row-reader.js";
 import type { GradingCallerMint } from "./grading-caller.js";
 import type { EvalRunCallerMint } from "./eval-run-caller.js";
-import type { ScheduleFireCallerMint } from "./schedule-fire-caller.js";
+import type { RoutineFireCaller } from "./routine-fire-caller.js";
 import type { RunLanes } from "./run-lanes.js";
 import type { VisitorClassifier } from "./visitor-classifier.js";
 
@@ -193,7 +193,7 @@ export interface ExtensionDrivers {
    * (cron tick and manual trigger alike); when absent, fires enter as
    * the `internal` class — OSS behavior byte-identical.
    */
-  readonly scheduleFireCaller?: ScheduleFireCallerMint;
+  readonly routineFireCaller?: RoutineFireCaller;
   /**
    * The grading caller mint (single-instance point): the identity an AI
    * judge run acts as when the grading workflow creates it. When composed,

@@ -635,7 +635,7 @@ describe("EvalRun about an agent — create refusals", () => {
   });
 });
 
-describe.skipIf(capabilities.scheduleFiring)("EvalRun about an agent — without an engine behind the server", () => {
+describe.skipIf(capabilities.routineFiring)("EvalRun about an agent — without an engine behind the server", () => {
   it("[rpc:EvalRunCommandController.create] create stores the eval run failed, naming why it could not start", async () => {
     const agent = await agentWith([await installedWithEvals()]);
     const created = await createEval(agent);

@@ -52,7 +52,7 @@ import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { expectGrpcCode } from "../contract/errors";
-import { ScheduleFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import { RoutineFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
 import { WorkspaceEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { invokeWorkflowIdFor, showWorkflow } from "../benchmark/temporal-history";
 import { TEMPORAL_DEV_NAMESPACE } from "@stigmer/test-support/temporal";
@@ -79,7 +79,7 @@ import {
   runSourcesOf,
   sourcesFor,
 } from "../support/run-values";
-import { makeSchedule } from "../support/schedules";
+import { makeRoutine } from "../support/routines";
 import { makeSession, makeSessionSpec } from "../support/sessions";
 import {
   type EnvVarDeclarationInit,
@@ -98,7 +98,7 @@ const REDACTED_MARKER = "***REDACTED***";
 const HOLD_MS = 30_000;
 
 const collectionTarget = createTarget();
-const firingEnabled = collectionTarget.capabilities.scheduleFiring;
+const firingEnabled = collectionTarget.capabilities.routineFiring;
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -918,25 +918,25 @@ describe("vault resolution — the agent's shell", () => {
 // A schedule's fire has no person: it uses only the vaults the schedule
 // names, never its owner's My vault unless the owner attached it.
 describe.skipIf(!firingEnabled)("vault resolution — a schedule's fire (scheduleFiring targets)", () => {
-  async function scheduleOn(org: string, env: Record<string, EnvVarDeclarationInit>, vaults: string[] = []) {
+  async function routineOn(org: string, env: Record<string, EnvVarDeclarationInit>, vaults: string[] = []) {
     const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("sched-agent"), env }));
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-    const schedule = await clients.scheduleCommand.create(
-      makeSchedule(org, uniqueName("sched-vault"), agent.metadata!.slug, { vaults }),
+    const routine = await clients.routineCommand.create(
+      makeRoutine(org, uniqueName("sched-vault"), agent.metadata!.slug, { vaults }),
     );
-    fixtures.defer(() => clients.scheduleCommand.delete({ value: schedule.metadata!.id }));
-    return schedule;
+    fixtures.defer(() => clients.routineCommand.delete({ value: routine.metadata!.id }));
+    return routine;
   }
 
   it("[rpc:ScheduleCommandController.trigger] a fire never reads its owner's My vault: a key only there refuses the fire, naming the key and the schedule", async () => {
     const { org } = await target.provisionTenancy();
     await saveToMyVault(org, { SCHED_KEY: "owner-value" });
-    const schedule = await scheduleOn(org, { SCHED_KEY: {} });
+    const routine = await routineOn(org, { SCHED_KEY: {} });
 
-    const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
+    const result = await clients.routineCommand.fire({ value: routine.metadata!.id });
 
     expect(result.outcome, "a person-less fire with a key nowhere it may look is refused").not.toBe(
-      ScheduleFireOutcome.STARTED,
+      RoutineFireOutcome.STARTED,
     );
     expect(result.runId).toBe("");
     expect(result.refusalReason).toContain("needs SCHED_KEY");
@@ -947,12 +947,12 @@ describe.skipIf(!firingEnabled)("vault resolution — a schedule's fire (schedul
     const { org } = await target.provisionTenancy();
     await saveToMyVault(org, { SCHED_KEY: "owner-value", OWNER_ONLY_KEY: "owner-only" });
     const team = await sharedVaultWith(org, { SCHED_KEY: "schedule-value" });
-    const schedule = await scheduleOn(org, { SCHED_KEY: {}, OWNER_ONLY_KEY: { optional: true } }, [team.slug]);
-    expect(Object.values(schedule.status?.vaultAttachers ?? {}), "the attacher is recorded").toHaveLength(1);
+    const routine = await routineOn(org, { SCHED_KEY: {}, OWNER_ONLY_KEY: { optional: true } }, [team.slug]);
+    expect(Object.values(routine.status?.vaultAttachers ?? {}), "the attacher is recorded").toHaveLength(1);
 
     mock.enqueue(anthropicText("Scheduled work..."), { delayMs: HOLD_MS });
-    const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
-    expect(result.outcome, `fire refused: ${result.refusalReason}`).toBe(ScheduleFireOutcome.STARTED);
+    const result = await clients.routineCommand.fire({ value: routine.metadata!.id });
+    expect(result.outcome, `fire refused: ${result.refusalReason}`).toBe(RoutineFireOutcome.STARTED);
     fixtures.defer(async () => {
       await interruptRunSession(clients, result.runId).catch(() => {});
       await clients.agentExecutionCommand.delete({ value: result.runId });
@@ -971,11 +971,11 @@ describe.skipIf(!firingEnabled)("vault resolution — a schedule's fire (schedul
     const { org } = await target.provisionTenancy();
     const mineId = await saveToMyVault(org, { OWNERS_KEY: "owners-own" });
     const mine = await clients.vaultQuery.get({ value: mineId });
-    const schedule = await scheduleOn(org, { OWNERS_KEY: {} }, [mine.metadata!.slug]);
+    const routine = await routineOn(org, { OWNERS_KEY: {} }, [mine.metadata!.slug]);
 
     mock.enqueue(anthropicText("Scheduled work..."), { delayMs: HOLD_MS });
-    const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
-    expect(result.outcome, `fire refused: ${result.refusalReason}`).toBe(ScheduleFireOutcome.STARTED);
+    const result = await clients.routineCommand.fire({ value: routine.metadata!.id });
+    expect(result.outcome, `fire refused: ${result.refusalReason}`).toBe(RoutineFireOutcome.STARTED);
     fixtures.defer(async () => {
       await interruptRunSession(clients, result.runId).catch(() => {});
       await clients.agentExecutionCommand.delete({ value: result.runId });
@@ -989,13 +989,13 @@ describe.skipIf(!firingEnabled)("vault resolution — a schedule's fire (schedul
     const { org } = await target.provisionTenancy();
     const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("sched-repo-agent") }));
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-    const input = makeSchedule(org, uniqueName("sched-repo"), agent.metadata!.slug, {
+    const input = makeRoutine(org, uniqueName("sched-repo"), agent.metadata!.slug, {
       repositories: [{ name: "repo", url: "https://github.com/acme/repo", token: "ghp-inline" }],
     });
     let refused: ConnectError | undefined;
     try {
-      const created = await clients.scheduleCommand.create(input);
-      fixtures.defer(() => clients.scheduleCommand.delete({ value: created.metadata!.id }));
+      const created = await clients.routineCommand.create(input);
+      fixtures.defer(() => clients.routineCommand.delete({ value: created.metadata!.id }));
     } catch (error) {
       refused = ConnectError.from(error);
     }

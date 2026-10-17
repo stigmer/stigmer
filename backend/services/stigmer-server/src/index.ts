@@ -433,8 +433,8 @@ export { InternalCallerOfferedError } from "./extensions/list-read-scope.js";
 // RunStarter propagates it through the in-process caller header. A mint that
 // can act as nobody throws the seam's typed refusal, which the RunStarter
 // counts against the schedule instead of retrying.
-export type { ScheduleFireCallerMint } from "./extensions/schedule-fire-caller.js";
-export { ScheduleFireCallerRefusedError } from "./extensions/schedule-fire-caller.js";
+export type { RoutineFireCaller } from "./extensions/routine-fire-caller.js";
+export { RoutineFireRefusedError } from "./extensions/routine-fire-caller.js";
 // The identity an AI judge run acts as (drivers.gradingCaller) — the
 // composition mints it per judge run; the grading workflow propagates it
 // through the in-process caller header. A mint that can act as nobody throws

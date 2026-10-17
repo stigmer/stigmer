@@ -1101,7 +1101,7 @@ export function describeStoreContract(
 
   describe("schedule run ledger", () => {
     const baseRun = {
-      scheduleId: "sch_1",
+      routineId: "sch_1",
       org: "acme",
       nominalFireTime: "2026-08-20T00:00:00Z",
       origin: "cron",
@@ -1113,27 +1113,27 @@ export function describeStoreContract(
     };
 
     it("upsert converges retried writes onto the fire-identity row", async () => {
-      await fx.store.upsertScheduleFire(baseRun);
-      await fx.store.upsertScheduleFire({
+      await fx.store.upsertRoutineFire(baseRun);
+      await fx.store.upsertRoutineFire({
         ...baseRun,
         outcome: "completed",
         completedAt: "2026-08-20T00:00:05Z",
       });
 
-      const runs = await fx.store.listScheduleFires("sch_1", undefined, 10);
+      const runs = await fx.store.listRoutineFires("sch_1", undefined, 10);
       expect(runs).toHaveLength(1);
       expect(runs[0]!.outcome).toBe("completed");
     });
 
     it("terminal rows are never downgraded by a replayed 'started' write", async () => {
-      await fx.store.upsertScheduleFire({
+      await fx.store.upsertRoutineFire({
         ...baseRun,
         outcome: "completed",
         completedAt: "2026-08-20T00:00:05Z",
       });
-      await fx.store.upsertScheduleFire(baseRun); // the replay
+      await fx.store.upsertRoutineFire(baseRun); // the replay
 
-      const runs = await fx.store.listScheduleFires("sch_1", undefined, 10);
+      const runs = await fx.store.listRoutineFires("sch_1", undefined, 10);
       expect(runs[0]!.outcome, "the verdict survives the replay").toBe(
         "completed",
       );
@@ -1141,16 +1141,16 @@ export function describeStoreContract(
     });
 
     it("markLatestScheduleFireTerminal stamps the newest non-terminal row of that origin only", async () => {
-      await fx.store.upsertScheduleFire(baseRun);
+      await fx.store.upsertRoutineFire(baseRun);
       // A newer MANUAL fire must not steal the cron run's verdict — the
       // origin filter is load-bearing (see the interface doc).
-      await fx.store.upsertScheduleFire({
+      await fx.store.upsertRoutineFire({
         ...baseRun,
         nominalFireTime: "2026-08-20T00:05:00Z",
         origin: "manual",
       });
 
-      await fx.store.markLatestScheduleFireTerminal(
+      await fx.store.markLatestRoutineFireTerminal(
         "sch_1",
         "cron",
         "failed",
@@ -1158,7 +1158,7 @@ export function describeStoreContract(
         "2026-08-20T00:01:00Z",
       );
 
-      const runs = await fx.store.listScheduleFires("sch_1", undefined, 10);
+      const runs = await fx.store.listRoutineFires("sch_1", undefined, 10);
       const cron = runs.find((run) => run.origin === "cron")!;
       const manual = runs.find((run) => run.origin === "manual")!;
       expect(cron.outcome).toBe("failed");
@@ -1168,7 +1168,7 @@ export function describeStoreContract(
 
     it("marking with no non-terminal row is a silent no-op", async () => {
       await expect(
-        fx.store.markLatestScheduleFireTerminal(
+        fx.store.markLatestRoutineFireTerminal(
           "sch_ghost",
           "cron",
           "failed",
@@ -1180,26 +1180,26 @@ export function describeStoreContract(
 
     it("lists newest first by key and continues after a cursor; prune and delete report counts", async () => {
       for (const minute of ["00", "01", "02"]) {
-        await fx.store.upsertScheduleFire({
+        await fx.store.upsertRoutineFire({
           ...baseRun,
           nominalFireTime: `2026-08-20T00:${minute}:00Z`,
           recordedAt: `2026-08-20T00:${minute}:01Z`,
         });
       }
       // Two fires at one instant: the origin breaks the tie, as bytes.
-      await fx.store.upsertScheduleFire({
+      await fx.store.upsertRoutineFire({
         ...baseRun,
         nominalFireTime: "2026-08-20T00:01:00Z",
         origin: "manual",
       });
 
-      const first = await fx.store.listScheduleFires("sch_1", undefined, 2);
+      const first = await fx.store.listRoutineFires("sch_1", undefined, 2);
       expect(first.map((run) => [run.nominalFireTime, run.origin])).toEqual([
         ["2026-08-20T00:02:00Z", "cron"],
         ["2026-08-20T00:01:00Z", "manual"],
       ]);
       const last = first[first.length - 1]!;
-      const rest = await fx.store.listScheduleFires(
+      const rest = await fx.store.listRoutineFires(
         "sch_1",
         { nominalFireTime: last.nominalFireTime, origin: last.origin },
         10,
@@ -1209,17 +1209,17 @@ export function describeStoreContract(
         ["2026-08-20T00:00:00Z", "cron"],
       ]);
 
-      await fx.store.deleteScheduleFiresBySchedule("sch_1");
+      await fx.store.deleteRoutineFiresByRoutine("sch_1");
       for (const minute of ["00", "01", "02"]) {
-        await fx.store.upsertScheduleFire({
+        await fx.store.upsertRoutineFire({
           ...baseRun,
           nominalFireTime: `2026-08-20T00:${minute}:00Z`,
           recordedAt: `2026-08-20T00:${minute}:01Z`,
         });
       }
 
-      expect(await fx.store.pruneScheduleFires("2026-08-20T00:01:00Z")).toBe(1);
-      expect(await fx.store.deleteScheduleFiresBySchedule("sch_1")).toBe(2);
+      expect(await fx.store.pruneRoutineFires("2026-08-20T00:01:00Z")).toBe(1);
+      expect(await fx.store.deleteRoutineFiresByRoutine("sch_1")).toBe(2);
     });
   });
 
@@ -2191,8 +2191,8 @@ export function describeStoreContract(
           visibility: "visibility_private",
           createdAt: 1_700_000_000,
         });
-        await fx.store.upsertScheduleFire({
-          scheduleId: `sch_${org}`,
+        await fx.store.upsertRoutineFire({
+          routineId: `sch_${org}`,
           org,
           nominalFireTime: "2026-08-20T00:00:00Z",
           origin: "cron",
@@ -2205,9 +2205,9 @@ export function describeStoreContract(
       }
       expect(await fx.store.deleteSearchIndexByOrg("org_a")).toBe(1);
       expect(await fx.store.deleteSearchIndexByOrg("")).toBe(0);
-      expect(await fx.store.deleteScheduleFiresByOrg("org_a")).toBe(1);
-      expect(await fx.store.listScheduleFires("sch_org_a", undefined, 10)).toHaveLength(0);
-      expect(await fx.store.listScheduleFires("sch_org_b", undefined, 10)).toHaveLength(1);
+      expect(await fx.store.deleteRoutineFiresByOrg("org_a")).toBe(1);
+      expect(await fx.store.listRoutineFires("sch_org_a", undefined, 10)).toHaveLength(0);
+      expect(await fx.store.listRoutineFires("sch_org_b", undefined, 10)).toHaveLength(1);
       const left = await fx.store.querySearchIndex({
         kinds: ["agent"],
         terms: ["kubernetes"],

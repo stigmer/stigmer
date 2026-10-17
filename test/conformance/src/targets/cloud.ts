@@ -105,7 +105,7 @@ export class CloudTarget implements TargetProfile {
     skillArtifactTransferLane: true,
     // The hermetic cloud env boots Temporal and the composition runs the
     // schedule clock — triggers fire for real.
-    scheduleFiring: true,
+    routineFiring: true,
     // The cloud-execution runner is an embedded runner bootstrapped as the
     // primary user and acts as itself, narrowed by its own exchange; the
     // cloud's shared-runner shape (the managed sandbox, provisioned per

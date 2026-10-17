@@ -68,8 +68,8 @@ import type {
   PendingOAuthStateStore,
   RawResourceDocument,
   ResourceReadForWrite,
-  ScheduleFireCursor,
-  ScheduleFireRecord,
+  RoutineFireCursor,
+  RoutineFireRecord,
   SearchIndexEntry,
   SearchIndexHit,
   SearchIndexQuery,
@@ -1365,7 +1365,7 @@ export class PostgresStore implements Store {
   // Schedule runs (fire ledger)
   // ---------------------------------------------------------------------------
 
-  async upsertScheduleFire(record: ScheduleFireRecord): Promise<void> {
+  async upsertRoutineFire(record: RoutineFireRecord): Promise<void> {
     // Default recorded_at is RFC-3339 whole seconds (Go time.RFC3339) —
     // the ledger's house convention for lexicographic comparison.
     const recordedAt =
@@ -1384,7 +1384,7 @@ export class PostgresStore implements Store {
         completed_at = excluded.completed_at
       WHERE schedule_runs.completed_at = ''`,
       [
-        record.scheduleId,
+        record.routineId,
         record.org,
         record.nominalFireTime,
         record.origin,
@@ -1397,8 +1397,8 @@ export class PostgresStore implements Store {
     );
   }
 
-  async markLatestScheduleFireTerminal(
-    scheduleId: string,
+  async markLatestRoutineFireTerminal(
+    routineId: string,
     origin: string,
     outcome: string,
     reason: string,
@@ -1411,15 +1411,15 @@ export class PostgresStore implements Store {
          SELECT MAX(nominal_fire_time) FROM schedule_runs
          WHERE schedule_id = $4 AND origin = $5 AND completed_at = ''
        )`,
-      [outcome, reason, completedAt, scheduleId, origin],
+      [outcome, reason, completedAt, routineId, origin],
     );
   }
 
-  async listScheduleFires(
-    scheduleId: string,
-    after: ScheduleFireCursor | undefined,
+  async listRoutineFires(
+    routineId: string,
+    after: RoutineFireCursor | undefined,
     limit: number,
-  ): Promise<ScheduleFireRecord[]> {
+  ): Promise<RoutineFireRecord[]> {
     // The ledger's key orders the read: COLLATE "C" compares as bytes, so
     // this driver and sqlite (BINARY) agree, and the cursor's row
     // comparison continues exactly where the previous read stopped.
@@ -1431,7 +1431,7 @@ export class PostgresStore implements Store {
               OR (nominal_fire_time COLLATE "C", origin COLLATE "C") < ($2::text COLLATE "C", $3::text COLLATE "C"))
        ORDER BY nominal_fire_time COLLATE "C" DESC, origin COLLATE "C" DESC
        LIMIT $4`,
-      [scheduleId, after?.nominalFireTime ?? null, after?.origin ?? "", limit],
+      [routineId, after?.nominalFireTime ?? null, after?.origin ?? "", limit],
     );
 
     return (
@@ -1448,7 +1448,7 @@ export class PostgresStore implements Store {
           completed_at: string;
         }>
       ).map((row) => ({
-        scheduleId: row.schedule_id,
+        routineId: row.schedule_id,
         org: row.org,
         nominalFireTime: row.nominal_fire_time,
         origin: row.origin,
@@ -1461,15 +1461,15 @@ export class PostgresStore implements Store {
   }
 
 
-  async deleteScheduleFiresBySchedule(scheduleId: string): Promise<number> {
+  async deleteRoutineFiresByRoutine(routineId: string): Promise<number> {
     const result = await this.open().query(
       `DELETE FROM schedule_runs WHERE schedule_id = $1`,
-      [scheduleId],
+      [routineId],
     );
     return result.rowCount ?? 0;
   }
 
-  async deleteScheduleFiresByOrg(org: string): Promise<number> {
+  async deleteRoutineFiresByOrg(org: string): Promise<number> {
     const result = await this.open().query(
       `DELETE FROM schedule_runs WHERE org = $1`,
       [org],
@@ -1477,7 +1477,7 @@ export class PostgresStore implements Store {
     return result.rowCount ?? 0;
   }
 
-  async pruneScheduleFires(recordedBefore: string): Promise<number> {
+  async pruneRoutineFires(recordedBefore: string): Promise<number> {
     const result = await this.open().query(
       `DELETE FROM schedule_runs WHERE recorded_at < $1`,
       [recordedBefore],

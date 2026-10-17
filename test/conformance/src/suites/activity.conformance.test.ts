@@ -131,7 +131,7 @@ describe("[rpc:ActivityQueryController.listRecentActivity] Activity conformance 
         subject: "Channel conversation",
         labels: { "stigmer.ai/channel-id": "ach_conformance" },
       });
-      const scheduleSession = await createSession(scope.clients, org, agentRef, {
+      const routineSession = await createSession(scope.clients, org, agentRef, {
         subject: "Schedule run",
         labels: { "stigmer.ai/schedule-id": "sch_conformance" },
       });
@@ -144,7 +144,7 @@ describe("[rpc:ActivityQueryController.listRecentActivity] Activity conformance 
 
       expect(ids).toContain(consoleSession);
       expect(ids, "channel-originated sessions must not appear in recents").not.toContain(channelSession);
-      expect(ids, "schedule-originated sessions must not appear in recents").not.toContain(scheduleSession);
+      expect(ids, "schedule-originated sessions must not appear in recents").not.toContain(routineSession);
     } finally {
       await scope.cleanup();
     }

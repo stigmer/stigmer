@@ -4,7 +4,7 @@ import {
   hasResourceIdPrefix,
   idPrefixesFor,
   isAgentId,
-  isScheduleId,
+  isRoutineId,
   isSessionId,
   parseReference,
   validateResourceId,
@@ -99,8 +99,8 @@ describe("resource-ID classification", () => {
     expect(isAgentId(`agt_${ULID}`)).toBe(true);
     expect(isAgentId(`agt-${ULID}`)).toBe(true);
     expect(isSessionId(`ses_${ULID}`)).toBe(true);
-    expect(isScheduleId(`sch_${ULID}`)).toBe(true);
-    expect(isScheduleId(`ses_${ULID}`)).toBe(false);
+    expect(isRoutineId(`sch_${ULID}`)).toBe(true);
+    expect(isRoutineId(`ses_${ULID}`)).toBe(false);
   });
 
   it("does not classify cross-kind prefixes", () => {

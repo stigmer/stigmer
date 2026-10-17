@@ -32,7 +32,7 @@ import { registerReset } from "./commands/reset.js";
 import { registerResume } from "./commands/resume.js";
 import { registerRun } from "./commands/run.js";
 import { registerRuns } from "./commands/runs/index.js";
-import { registerSchedule } from "./commands/schedule.js";
+import { registerRoutine } from "./commands/routine.js";
 import { registerServiceAccount } from "./commands/service-account/index.js";
 import { registerAccessHistory } from "./commands/access-history/index.js";
 import { registerSearch } from "./commands/search.js";
@@ -181,7 +181,7 @@ export function buildProgram(): Command {
   registerDelete(program);
   registerTag(program);
   registerChannel(program);
-  registerSchedule(program);
+  registerRoutine(program);
   registerVault(program);
   registerUsage(program);
   registerPush(program);

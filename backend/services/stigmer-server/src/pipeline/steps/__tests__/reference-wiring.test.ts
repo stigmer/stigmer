@@ -33,9 +33,9 @@ import {
 } from "../../../domain/channel/steps.js";
 import { newResolveRunAgentStep } from "../../../domain/run/resolve-run-agent.js";
 import {
-  newResolveScheduleDefaultsStep,
-  newValidateScheduleUpdateStep,
-} from "../../../domain/schedule/steps.js";
+  newResolveRoutineDefaultsStep,
+  newValidateRoutineUpdateStep,
+} from "../../../domain/routine/steps.js";
 import { newResolveSessionAgentStep } from "../../../domain/session/resolve-session-agent.js";
 import { newVaultAttachmentsStep } from "../../../domain/vault/attachments.js";
 import { newNormalizeReferencesStep, newValidateReferencesStep } from "../references.js";
@@ -52,8 +52,8 @@ const READERS: ReadonlyArray<{ readonly factory: string; readonly build: Factory
   { factory: "newValidateSubagentNamesStep", build: newValidateSubagentNamesStep, step: "ValidateSubagentNames" },
   { factory: "newPinSubagentsStep", build: newPinSubagentsStep, step: "PinSubagents" },
   { factory: "newValidatePluginListStep", build: newValidatePluginListStep, step: "ValidatePluginList" },
-  { factory: "newResolveScheduleDefaultsStep", build: newResolveScheduleDefaultsStep, step: "ResolveScheduleDefaults" },
-  { factory: "newValidateScheduleUpdateStep", build: newValidateScheduleUpdateStep, step: "ValidateScheduleUpdate" },
+  { factory: "newResolveScheduleDefaultsStep", build: newResolveRoutineDefaultsStep, step: "ResolveScheduleDefaults" },
+  { factory: "newValidateScheduleUpdateStep", build: newValidateRoutineUpdateStep, step: "ValidateScheduleUpdate" },
   { factory: "newResolveChannelDefaultsStep", build: newResolveChannelDefaultsStep, step: "ResolveChannelDefaults" },
   { factory: "newValidateChannelUpdateStep", build: newValidateChannelUpdateStep, step: "ValidateChannelUpdate" },
   { factory: "newVaultAttachmentsStep", build: newVaultAttachmentsStep, step: "VaultAttachments" },

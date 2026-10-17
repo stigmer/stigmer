@@ -48,7 +48,7 @@ import type {
   ScoreRecorder,
 } from "../domain/score/ports.js";
 import type { ExecutionStatusWriter } from "../temporal/agentexecution/activities.js";
-import type { ScheduleExecutionCreator } from "../temporal/schedule/run-starter.js";
+import type { RoutineExecutionCreator } from "../temporal/routine/run-starter.js";
 import type { EvalRunTryLane } from "../temporal/evals/ports.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import type { SharedChainInterceptors } from "../pipeline/chain.js";
@@ -120,7 +120,7 @@ export interface InProcessClients {
    * auto-create, the value plan, launch gates, and workflow start all
    * run exactly as for an external create.
    */
-  readonly scheduleExecutionCreator: ScheduleExecutionCreator;
+  readonly routineExecutionCreator: RoutineExecutionCreator;
   /**
    * The agent-execution worker's own-behalf status edge (stigmer#979): the
    * invoke workflow's fallback writes — FAILED when a runner fails without
@@ -287,7 +287,7 @@ export function createInProcessClients(
     // propagates instead — the RunStarter mints it per
     // fire, so the created execution and its auto-created session carry
     // the edition's schedule identity (the asCaller lane).
-    scheduleExecutionCreator: {
+    routineExecutionCreator: {
       create: (execution, fireCaller) =>
         agentExecutionCommand.create(
           execution,

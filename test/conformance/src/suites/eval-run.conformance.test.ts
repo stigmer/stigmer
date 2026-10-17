@@ -428,7 +428,7 @@ describe("EvalRun — what an eval run is about", () => {
   });
 });
 
-describe.skipIf(capabilities.scheduleFiring)("EvalRun about a plugin — without an engine behind the server", () => {
+describe.skipIf(capabilities.routineFiring)("EvalRun about a plugin — without an engine behind the server", () => {
   it("[rpc:EvalRunCommandController.create] create stores the eval run failed, naming why it could not start", async () => {
     const plugin = await installedWithEvals();
     const created = await createEval(plugin);

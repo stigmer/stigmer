@@ -78,7 +78,7 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
     { name: "ChannelApp", displayName: "Channel App", idPrefix: "chapp" },
   ],
   [
-    ApiResourceKind.schedule,
+    ApiResourceKind.routine,
     { name: "Schedule", displayName: "Schedule", idPrefix: "sch" },
   ],
   [
@@ -125,7 +125,7 @@ export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [
   ApiResourceKind.vault,
   ApiResourceKind.channel,
   ApiResourceKind.channel_app,
-  ApiResourceKind.schedule,
+  ApiResourceKind.routine,
   ApiResourceKind.session,
   ApiResourceKind.score,
   ApiResourceKind.scoring_rule,

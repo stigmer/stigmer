@@ -136,10 +136,10 @@ describe("registry — verb support matrix", () => {
 
   it("schedule supports the full declarative verb set", () => {
     for (const v of [Verb.Apply, Verb.Get, Verb.List, Verb.Delete]) {
-      expect(registry.supportsVerb(ApiResourceKind.schedule, v)).toBe(true);
+      expect(registry.supportsVerb(ApiResourceKind.routine, v)).toBe(true);
     }
     // Firing rides `stigmer schedule trigger`, never the generic run verb.
-    expect(registry.supportsVerb(ApiResourceKind.schedule, Verb.Run)).toBe(
+    expect(registry.supportsVerb(ApiResourceKind.routine, Verb.Run)).toBe(
       false,
     );
   });

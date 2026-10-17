@@ -89,7 +89,7 @@ export const VERB_SUPPORT: ReadonlyMap<
   // `stigmer schedule` commands act on — spec.enabled (the owner's switch)
   // versus status.paused_reason (the platform's failure latch).
   [
-    ApiResourceKind.schedule,
+    ApiResourceKind.routine,
     new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),
   ],
   // Session list is served by its dedicated query RPC (a LIST_HANDLERS

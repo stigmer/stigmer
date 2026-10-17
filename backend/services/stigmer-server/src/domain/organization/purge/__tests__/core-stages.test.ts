@@ -137,7 +137,7 @@ describe("the quiesce stage", () => {
     const stage = newQuiesceStage({
       store,
       logger: silentLogger,
-      schedulePurge: kindPurge(ApiResourceKind.schedule, calls, [true, false]),
+      routinePurge: kindPurge(ApiResourceKind.routine, calls, [true, false]),
       agentEngine: () => ENGINE_DISCONNECTED,
       sandboxLane: noSandboxes,
     });
@@ -154,7 +154,7 @@ describe("the quiesce stage", () => {
     const deps = {
       store,
       logger: silentLogger,
-      schedulePurge: kindPurge(ApiResourceKind.schedule, []),
+      routinePurge: kindPurge(ApiResourceKind.routine, []),
       sandboxLane: noSandboxes,
     };
     await newQuiesceStage({
@@ -208,7 +208,7 @@ describe("the quiesce stage", () => {
     await newQuiesceStage({
       store,
       logger: silentLogger,
-      schedulePurge: kindPurge(ApiResourceKind.schedule, []),
+      routinePurge: kindPurge(ApiResourceKind.routine, []),
       agentEngine: () => ENGINE_DISCONNECTED,
       sandboxLane: {
         enabled: true,
@@ -226,7 +226,7 @@ describe("the quiesce stage's other runs", () => {
   const base = () => ({
     store,
     logger: silentLogger,
-    schedulePurge: kindPurge(ApiResourceKind.schedule, []),
+    routinePurge: kindPurge(ApiResourceKind.routine, []),
     agentEngine: () => ENGINE_DISCONNECTED,
     sandboxLane: noSandboxes,
   });
@@ -370,8 +370,8 @@ describe("the final stage", () => {
       visibility: "visibility_private",
       createdAt: 1_700_000_000,
     });
-    await store.upsertScheduleFire({
-      scheduleId: "sch_left",
+    await store.upsertRoutineFire({
+      routineId: "sch_left",
       org: ORG,
       nominalFireTime: "2026-08-20T00:00:00Z",
       origin: "cron",
@@ -384,7 +384,7 @@ describe("the final stage", () => {
     const { stage } = rig();
     await stage.run(context);
     expect(await store.deleteSearchIndexByOrg(ORG)).toBe(0);
-    expect((await store.listScheduleFires("sch_left", undefined, 10)).length).toBe(0);
+    expect((await store.listRoutineFires("sch_left", undefined, 10)).length).toBe(0);
   });
 
   it("sweeps the session events left behind (a run created into a session while it was deleted)", async () => {

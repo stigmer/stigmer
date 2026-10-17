@@ -48,8 +48,8 @@ import { newOAuthAppPurge } from "../domain/oauthapp/purge.js";
 import type { KindPurge, KindPurgeDeps } from "../domain/organization/purge/kind-purge.js";
 import { newPluginPurge } from "../domain/plugin/purge.js";
 import { newEvalPurge } from "../domain/eval/purge.js";
-import type { ClockProvider } from "../domain/schedule/clock.js";
-import { newSchedulePurge } from "../domain/schedule/purge.js";
+import type { ClockProvider } from "../domain/routine/clock.js";
+import { newRoutinePurge } from "../domain/routine/purge.js";
 import type { RunScoreCascade } from "../domain/score/cascade.js";
 import { newScorePurge } from "../domain/score/purge.js";
 import { newSessionPurge } from "../domain/session/purge.js";
@@ -74,7 +74,7 @@ export interface CoreKindPurgeDeps extends KindPurgeDeps {
   /** The composition's one secret facade (sealed values' backing state). */
   readonly secretService: SecretService;
   /** The schedule clock the schedule controller tears artifacts down through. */
-  readonly scheduleClock: ClockProvider;
+  readonly routineClock: ClockProvider;
   /** The composed channel runtime; undefined when no unit composes one. */
   readonly channelRuntime: ChannelRuntime | undefined;
   /** The identity-account port the composition bound. */
@@ -97,7 +97,7 @@ export interface CoreKindPurges {
 
 export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
   return {
-    quiesce: newSchedulePurge(deps),
+    quiesce: newRoutinePurge(deps),
     content: [
       // Scores before the runs they grade, runs before the sessions they
       // belong to: each row's access is cleaned while its parent still
@@ -138,7 +138,7 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
  * naming it, and the final stage the organization's).
  */
 export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
-  ApiResourceKind.schedule,
+  ApiResourceKind.routine,
   ApiResourceKind.score,
   ApiResourceKind.run,
   ApiResourceKind.session,

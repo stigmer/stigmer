@@ -92,7 +92,7 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { ScheduleFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import { RoutineFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { expectGrpcCode } from "../contract/errors";
@@ -113,7 +113,7 @@ import {
   sessionIdOf,
 } from "../support/runs";
 import { makeApiKey, plaintextKeyOf } from "../support/apikeys";
-import { makeSchedule } from "../support/schedules";
+import { makeRoutine } from "../support/routines";
 import { makeSessionSpec } from "../support/sessions";
 import { organizationRole } from "../support/grants";
 import {
@@ -1034,28 +1034,28 @@ describe.skipIf(!runnerActsAsRunCreator)(
       fixtures.defer(() =>
         lane.clients.agentCommand.delete({ value: agent.metadata!.id }),
       );
-      const schedule = await admin.scheduleCommand.create(
-        makeSchedule(org, uniqueName("ras-sched"), agent.metadata!.slug, {
+      const routine = await admin.routineCommand.create(
+        makeRoutine(org, uniqueName("ras-sched"), agent.metadata!.slug, {
           vaults: [team.metadata!.slug],
         }),
       );
       fixtures.defer(() =>
-        lane.clients.scheduleCommand
-          .delete({ value: schedule.metadata!.id })
+        lane.clients.routineCommand
+          .delete({ value: routine.metadata!.id })
           .catch(() => undefined),
       );
-      expect(schedule.status?.vaultAttachers?.[team.metadata!.id]).toBe(
+      expect(routine.status?.vaultAttachers?.[team.metadata!.id]).toBe(
         adminId,
       );
 
       mock.enqueue(anthropicText("Scheduled work."));
-      const allowed = await lane.clients.scheduleCommand.trigger({
-        value: schedule.metadata!.id,
+      const allowed = await lane.clients.routineCommand.fire({
+        value: routine.metadata!.id,
       });
       expect(
         allowed.outcome,
         `the attacher may use the vault: ${allowed.refusalReason}`,
-      ).toBe(ScheduleFireOutcome.STARTED);
+      ).toBe(RoutineFireOutcome.STARTED);
       fixtures.defer(async () => {
         await awaitTerminal(lane.clients, allowed.runId).catch(() => undefined);
         await lane.clients.agentExecutionCommand
@@ -1073,10 +1073,10 @@ describe.skipIf(!runnerActsAsRunCreator)(
       );
       const refused = await pollUntil(
         () =>
-          lane.clients.scheduleCommand.trigger({
-            value: schedule.metadata!.id,
+          lane.clients.routineCommand.fire({
+            value: routine.metadata!.id,
           }),
-        (result) => result.outcome !== ScheduleFireOutcome.STARTED,
+        (result) => result.outcome !== RoutineFireOutcome.STARTED,
         (last, timeoutMs) =>
           `the schedule still fired ${timeoutMs}ms after its attacher lost use of the vault (outcome ${last?.outcome})`,
       );

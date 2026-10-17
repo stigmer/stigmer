@@ -115,7 +115,7 @@ export interface QuiesceStageDeps {
   readonly store: Store;
   readonly logger: Logger;
   /** The schedule purge: schedules go before anything else. */
-  readonly schedulePurge: KindPurge;
+  readonly routinePurge: KindPurge;
   readonly agentEngine: ExecutionEngineStateProvider;
   readonly sandboxLane: SandboxLane;
 }
@@ -124,11 +124,11 @@ export function newQuiesceStage(deps: QuiesceStageDeps): OrganizationPurgeStage 
   return {
     name: QUIESCE_STAGE,
     async run(context) {
-      const schedules = await deps.schedulePurge.purge(
+      const routines = await deps.routinePurge.purge(
         context.org,
         context.caller,
       );
-      if (schedules.more) {
+      if (routines.more) {
         return MORE;
       }
       await terminateAgentExecutions(deps, context);
@@ -346,7 +346,7 @@ export function newFinalStage(deps: FinalStageDeps): OrganizationPurgeStage {
       // takes the events of a run created into a session while it was
       // being deleted.
       await deps.store.deleteSearchIndexByOrg(id);
-      await deps.store.deleteScheduleFiresByOrg(id);
+      await deps.store.deleteRoutineFiresByOrg(id);
       await deps.store.sessionEvents.deleteByOrg(id);
       await newPipeline<DeleteInput>("organization-purge-final", deps.logger)
         .addStep(newRevokeOrganizationGrantsStep<DeleteInput>(deps.grantPath))

@@ -17,7 +17,7 @@ import { Code } from "@connectrpc/connect";
 import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -25,7 +25,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
 import { makeSlackChannel, makeWebChannel } from "../support/channels";
 import { uniqueName } from "../support/naming";
-import { makeSchedule } from "../support/schedules";
+import { makeRoutine } from "../support/routines";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -60,13 +60,13 @@ describe("Saved run settings name the model their tier or thinking is for", () =
     const { org } = await target.provisionTenancy();
     const slug = await agentIn(org);
     for (const runConfig of [FAST_ALONE, THINKING_ALONE]) {
-      const input = create(ScheduleSchema, makeSchedule(org, uniqueName("sched-saved"), slug));
+      const input = create(RoutineSchema, makeRoutine(org, uniqueName("sched-saved"), slug));
       if (input.spec?.target.case !== "agent") {
         throw new Error("makeSchedule builds an agent target");
       }
       input.spec.target.value.runConfig = runConfig;
       const err = await expectGrpcCode(
-        () => clients.scheduleCommand.create(input),
+        () => clients.routineCommand.create(input),
         Code.InvalidArgument,
         "schedule saving a tier or thinking with no model",
       );
@@ -117,15 +117,15 @@ describe("Saved run settings name the model their tier or thinking is for", () =
     const onNative = create(RunConfigSchema, { modelName: "claude-haiku-4.5", thinkingMode: ThinkingMode.ENABLED });
     const onCursor = create(RunConfigSchema, { modelName: "claude-haiku-4-5", thinkingMode: ThinkingMode.ENABLED });
 
-    const schedule = create(ScheduleSchema, makeSchedule(org, uniqueName("sched-saved-ok"), slug));
-    if (schedule.spec?.target.case !== "agent") {
+    const routine = create(RoutineSchema, makeRoutine(org, uniqueName("sched-saved-ok"), slug));
+    if (routine.spec?.target.case !== "agent") {
       throw new Error("makeSchedule builds an agent target");
     }
-    schedule.spec.target.value.runConfig = onNative;
-    const savedSchedule = await clients.scheduleCommand.create(schedule);
-    fixtures.defer(() => clients.scheduleCommand.delete({ value: savedSchedule.metadata!.id }));
+    routine.spec.target.value.runConfig = onNative;
+    const savedRoutine = await clients.routineCommand.create(routine);
+    fixtures.defer(() => clients.routineCommand.delete({ value: savedRoutine.metadata!.id }));
     expect(
-      savedSchedule.spec?.target.case === "agent" ? savedSchedule.spec.target.value.runConfig?.thinkingMode : undefined,
+      savedRoutine.spec?.target.case === "agent" ? savedRoutine.spec.target.value.runConfig?.thinkingMode : undefined,
     ).toBe(ThinkingMode.ENABLED);
 
     const web = create(ChannelSchema, makeWebChannel(org, slug, { name: uniqueName("web-saved-ok") }));

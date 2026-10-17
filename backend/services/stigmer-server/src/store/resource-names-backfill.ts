@@ -43,7 +43,7 @@ import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/
 import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
@@ -94,7 +94,7 @@ export const NAMED_KINDS_AT_BACKFILL: ReadonlyArray<NamedKindAtBackfill> = [
   { kind: "platform_client", schema: FrozenPlatformClientEnvelopeSchema },
   { kind: "plugin", schema: PluginSchema },
   { kind: "plugin_eval", schema: FrozenPluginEvalEnvelopeSchema },
-  { kind: "schedule", schema: ScheduleSchema },
+  { kind: "schedule", schema: RoutineSchema },
   { kind: "score", schema: ScoreSchema },
   { kind: "session", schema: SessionSchema },
   { kind: "skill", schema: SkillSchema },

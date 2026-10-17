@@ -26,9 +26,9 @@ import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/ch
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
-import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
+import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineCommandController } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/command_pb";
+import { RoutineQueryController } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/query_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -64,7 +64,7 @@ const knownChannelApp = create(ChannelAppSchema, {
   metadata: { name: "clinic-meta-app", slug: "clinic-meta-app", org: "acme", id: "chapp_1" },
 });
 
-const knownSchedule = create(ScheduleSchema, {
+const knownRoutine = create(RoutineSchema, {
   metadata: { name: "daily-fee-reminders", slug: "daily-fee-reminders", org: "acme", id: "sch_1" },
 });
 
@@ -100,7 +100,7 @@ let channelAppDeletes: { resourceId: string; force: boolean }[] = [];
 // channel and schedule delete by typed ID — no force field exists on
 // their wire contracts.
 let channelDeleteIds: string[] = [];
-let scheduleDeleteIds: string[] = [];
+let routineDeleteIds: string[] = [];
 
 beforeEach(() => {
   cancelCalls = [];
@@ -108,7 +108,7 @@ beforeEach(() => {
   vaultDeletes = [];
   channelAppDeletes = [];
   channelDeleteIds = [];
-  scheduleDeleteIds = [];
+  routineDeleteIds = [];
   organizationDeleteIds = [];
 });
 
@@ -171,16 +171,16 @@ beforeAll(async () => {
       },
     });
 
-    router.service(ScheduleQueryController, {
+    router.service(RoutineQueryController, {
       getByReference: (req) => {
         if (req.slug !== "daily-fee-reminders") throw new ConnectError("schedule not found", Code.NotFound);
-        return knownSchedule;
+        return knownRoutine;
       },
     });
-    router.service(ScheduleCommandController, {
+    router.service(RoutineCommandController, {
       delete: (req) => {
-        scheduleDeleteIds.push(req.value);
-        return knownSchedule;
+        routineDeleteIds.push(req.value);
+        return knownRoutine;
       },
     });
 
@@ -279,7 +279,7 @@ describe("delete (standard kinds)", () => {
     const result = await plan.perform();
     expect(result.status).toBe("success");
     expect(result.message).toBe("Schedule deleted successfully");
-    expect(scheduleDeleteIds).toEqual(["sch_1"]);
+    expect(routineDeleteIds).toEqual(["sch_1"]);
   });
 
   it("refuses workflow-instance as a type the CLI does not know", async () => {

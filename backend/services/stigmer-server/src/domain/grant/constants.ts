@@ -138,7 +138,7 @@ export function grantIdFor(spec: GrantSpec): string {
 export const BLUEPRINT_KINDS: ReadonlyArray<ApiResourceKind> = [
   ApiResourceKind.agent,
   ApiResourceKind.skill,
-  ApiResourceKind.schedule,
+  ApiResourceKind.routine,
 ];
 
 /**

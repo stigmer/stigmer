@@ -36,7 +36,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import { declareListIndex, field, fieldWhen, label } from "../../store/list-index.js";
 import { EVAL_RUN_LABEL } from "../eval-run/constants.js";
-import { SCHEDULE_ID_LABEL_KEY } from "../schedule/labels.js";
+import { ROUTINE_ID_LABEL_KEY } from "../routine/labels.js";
 import { GRADES_RUN_LABEL } from "../score/judge/judge-run.js";
 import { WAITING_PHASES, WORKING_PHASES } from "./phases.js";
 
@@ -48,7 +48,7 @@ export const agentExecutionListIndex = declareListIndex({
     session: field("spec.session_id"),
     grades: label(GRADES_RUN_LABEL),
     eval_run: label(EVAL_RUN_LABEL),
-    schedule: label(SCHEDULE_ID_LABEL_KEY),
+    schedule: label(ROUTINE_ID_LABEL_KEY),
     working_session: fieldWhen("spec.session_id", "status.phase", WORKING_PHASES),
     waiting_session: fieldWhen("spec.session_id", "status.phase", WAITING_PHASES),
     agent: field("status.agent_id"),

@@ -47,7 +47,7 @@ import {
 import { newStoredResources } from "../authorization/stored-resources.js";
 import { newBuiltInGradingCaller } from "../authorization/grading-caller.js";
 import { newBuiltInEvalRunCaller } from "../authorization/eval-run-caller.js";
-import { newBuiltInScheduleFireCaller } from "../authorization/schedule-fire-caller.js";
+import { newBuiltInRoutineFireCaller } from "../authorization/routine-fire-caller.js";
 import { newTrustedLocalAuthorizer } from "../authorization/trusted-local-authorizer.js";
 import type { Authorizer } from "../extensions/authorizer.js";
 import type { ComposedServices } from "../extensions/composed-services.js";
@@ -57,7 +57,7 @@ import type { ListReadScope } from "../extensions/list-read-scope.js";
 import type { OrganizationDirectory } from "../extensions/organization-directory.js";
 import type { GradingCallerMint } from "../extensions/grading-caller.js";
 import type { EvalRunCallerMint } from "../extensions/eval-run-caller.js";
-import type { ScheduleFireCallerMint } from "../extensions/schedule-fire-caller.js";
+import type { RoutineFireCaller } from "../extensions/routine-fire-caller.js";
 import { registerAgentServices } from "../domain/agent/controller.js";
 import {
   newConfigFromEnv,
@@ -77,18 +77,18 @@ import { TemporalManager } from "../temporal/manager.js";
 import { loadServerPayloadCodecs } from "../temporal/payload-codec.js";
 import type { Client as TemporalClient } from "@temporalio/client";
 
-import { ScheduleArtifact } from "../temporal/schedule/artifact.js";
-import { newScheduleConfigFromEnv } from "../temporal/schedule/config.js";
-import { ScheduleReconciler } from "../temporal/schedule/reconciler.js";
-import { RunStarter } from "../temporal/schedule/run-starter.js";
-import { ScheduleSyncer } from "../temporal/schedule/syncer.js";
-import { newScheduleWorkerFactory } from "../temporal/schedule/worker.js";
+import { RoutineArtifact } from "../temporal/routine/artifact.js";
+import { newRoutineConfigFromEnv } from "../temporal/routine/config.js";
+import { RoutineReconciler } from "../temporal/routine/reconciler.js";
+import { RunStarter } from "../temporal/routine/run-starter.js";
+import { RoutineSyncer } from "../temporal/routine/syncer.js";
+import { newRoutineWorkerFactory } from "../temporal/routine/worker.js";
 import { newGradingConfigFromEnv } from "../temporal/grading/config.js";
 import { newGradingWorkerFactory } from "../temporal/grading/worker.js";
 import { newEvalsConfigFromEnv } from "../temporal/evals/config.js";
 import { newEvalsWorkerFactory } from "../temporal/evals/worker.js";
 import { evalModelCatalogOf } from "../domain/eval-run/matrix.js";
-import { registerScheduleServices } from "../domain/schedule/controller.js";
+import { registerRoutineServices } from "../domain/routine/controller.js";
 import { registerChannelServices } from "../domain/channel/controller.js";
 import { registerChannelConversationServices } from "../domain/channel/conversation.js";
 import { registerChannelMessageServices } from "../domain/channel/message.js";
@@ -715,10 +715,10 @@ export async function composeServer(
           rowReaders: extensions.drivers.resourceRowReaders,
         })
       : undefined);
-  const scheduleFireCaller: ScheduleFireCallerMint | undefined =
-    extensions.drivers.scheduleFireCaller ??
+  const routineFireCaller: RoutineFireCaller | undefined =
+    extensions.drivers.routineFireCaller ??
     (authorizationPosture === "built-in"
-      ? newBuiltInScheduleFireCaller({ store, accounts: identityAccounts })
+      ? newBuiltInRoutineFireCaller({ store, accounts: identityAccounts })
       : undefined);
   // The ONE list read scope (the seam's single-instance point), bound
   // here under the same posture and handed to every list-shaped consumer
@@ -1084,10 +1084,10 @@ export async function composeServer(
   // must include the schedule worker at construction, while the syncer and
   // reconciler only READ the client at call time, long after boot (a call
   // before initialization would throw loudly, the composition-root idiom).
-  const scheduleTemporalConfig = newScheduleConfigFromEnv();
+  const routineTemporalConfig = newRoutineConfigFromEnv();
   const scheduleClientProvider = (): TemporalClient | undefined =>
     temporalManager.getClient();
-  const scheduleArtifact = new ScheduleArtifact(scheduleTemporalConfig);
+  const routineArtifact = new RoutineArtifact(routineTemporalConfig);
   // Grading: a completed run's run-health score, written by the grading
   // workflow on its own queue (temporal/grading/). The observer starts it
   // and runs after every extension's observer, so the hosted edition's
@@ -1129,10 +1129,10 @@ export async function composeServer(
   });
   /* v8 ignore next -- @preserve: called only by an eval run's delete, after boot */
   const evalRunTrySessions = () => requireInProcess().judgeSessionDeleter;
-  const scheduleSyncer = new ScheduleSyncer(
+  const routineSyncer = new RoutineSyncer(
     scheduleClientProvider,
     store,
-    scheduleArtifact,
+    routineArtifact,
     logger,
   );
   // Every fire enters the FULL execution create pipeline through the
@@ -1141,24 +1141,24 @@ export async function composeServer(
   // identity stage (a unit's, or open source's under
   // the built-in posture), when present, gives each fire its identity —
   // propagated by the creator's asCaller lane.
-  const scheduleRunStarter = new RunStarter({
+  const routineRunStarter = new RunStarter({
     store,
-    config: scheduleTemporalConfig,
+    config: routineTemporalConfig,
     executions: {
       create: (execution, fireCaller) =>
-        requireInProcess().scheduleExecutionCreator.create(
+        requireInProcess().routineExecutionCreator.create(
           execution,
           fireCaller,
         ),
     },
-    fireCallerMint: scheduleFireCaller,
+    fireCallerMint: routineFireCaller,
     logger,
   });
-  const scheduleReconciler = new ScheduleReconciler(
+  const routineReconciler = new RoutineReconciler(
     scheduleClientProvider,
     store,
-    scheduleSyncer,
-    scheduleTemporalConfig,
+    routineSyncer,
+    routineTemporalConfig,
     logger,
   );
   // The manager owns the connection lifecycle; one factory per domain
@@ -1193,11 +1193,11 @@ export async function composeServer(
         sessionEventBroker,
         temporalConfig,
       }),
-      newScheduleWorkerFactory({
+      newRoutineWorkerFactory({
         store,
-        config: scheduleTemporalConfig,
-        syncer: scheduleSyncer,
-        runStarter: scheduleRunStarter,
+        config: routineTemporalConfig,
+        syncer: routineSyncer,
+        runStarter: routineRunStarter,
         logger,
       }),
       newGradingWorkerFactory({
@@ -1615,7 +1615,7 @@ export async function composeServer(
     grantPath,
     authorizationLifecycle,
     secretService,
-    scheduleClock: () => scheduleSyncer,
+    routineClock: () => routineSyncer,
     channelRuntime: extensions.drivers.channelRuntime,
     accounts: identityAccounts,
     accountLifecycle: roleLifecycle,
@@ -1625,7 +1625,7 @@ export async function composeServer(
   const purgeQuiesce = newQuiesceStage({
     store,
     logger,
-    schedulePurge: corePurges.quiesce,
+    routinePurge: corePurges.quiesce,
     agentEngine: executionEngineState,
     sandboxLane,
   });
@@ -1931,14 +1931,14 @@ export async function composeServer(
     // manager); the provider SHAPE exists for embedded/test assemblies
     // that skip Temporal wiring, where undefined degrades to the refusal
     // the provider models.
-    registerScheduleServices(router, {
+    registerRoutineServices(router, {
       store,
       logger,
       authorizer,
       credentialBinding,
       modelRegistry: modelCatalog,
-      clock: () => scheduleSyncer,
-      runner: () => scheduleRunStarter,
+      clock: () => routineSyncer,
+      runner: () => routineRunStarter,
       authorizationLifecycle,
       listReadScope,
     });
@@ -1989,7 +1989,7 @@ export async function composeServer(
       personAccounts,
       visitorClassifier: extensions.drivers.visitorClassifier,
       runLanes: extensions.drivers.runLanes,
-      scheduleRunProfile: scheduleTemporalConfig.executionProfile(),
+      routineRunProfile: routineTemporalConfig.executionProfile(),
       sessionEventBroker,
       recoverSerializer: agentExecutionRecoverSerializer,
       engineState: executionEngineState,
@@ -2428,8 +2428,8 @@ export async function composeServer(
       // Schedule reconciliation: an immediate boot pass (the dev server may
       // have restarted with empty state while the daemon was down), the
       // periodic loop, and the reconnect kick — Go server.go 763–764.
-      const kickScheduleReconcile = scheduleReconciler.startReconciliation();
-      temporalManager.addReconnectHook(kickScheduleReconcile);
+      const kickRoutineReconcile = routineReconciler.startReconciliation();
+      temporalManager.addReconnectHook(kickRoutineReconcile);
       // The organization purge: a first pass over the deletion table now
       // (a purge a stopped server left unfinished resumes), then its loop.
       organizationPurge.start();
@@ -2533,7 +2533,7 @@ export async function composeServer(
       // The reconciler stops before the manager: a pass mid-flight may
       // still call through the manager's client, and nothing may fire
       // after shutdown.
-      await scheduleReconciler.stop();
+      await routineReconciler.stop();
       // The purge stops before the manager and the store: a stage in
       // flight may still terminate a run or write through the store.
       await organizationPurge.stop();

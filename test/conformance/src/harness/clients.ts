@@ -37,8 +37,8 @@ import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { MemoryCommandController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/command_pb";
 import { MemoryQueryController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/query_pb";
-import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
-import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
+import { RoutineCommandController } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/command_pb";
+import { RoutineQueryController } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/query_pb";
 import { ScoringRuleCommandController } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/command_pb";
 import { ScoringRuleQueryController } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/query_pb";
 import { ScoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/command_pb";
@@ -134,8 +134,8 @@ export interface ConformanceClients {
   vaultValue: Client<typeof VaultValueController>;
   memoryCommand: Client<typeof MemoryCommandController>;
   memoryQuery: Client<typeof MemoryQueryController>;
-  scheduleCommand: Client<typeof ScheduleCommandController>;
-  scheduleQuery: Client<typeof ScheduleQueryController>;
+  routineCommand: Client<typeof RoutineCommandController>;
+  routineQuery: Client<typeof RoutineQueryController>;
   scoreCommand: Client<typeof ScoreCommandController>;
   scoreQuery: Client<typeof ScoreQueryController>;
   scoringRuleCommand: Client<typeof ScoringRuleCommandController>;
@@ -270,8 +270,8 @@ export function makeClients(transport: Transport): ConformanceClients {
     vaultValue: createClient(VaultValueController, transport),
     memoryCommand: createClient(MemoryCommandController, transport),
     memoryQuery: createClient(MemoryQueryController, transport),
-    scheduleCommand: createClient(ScheduleCommandController, transport),
-    scheduleQuery: createClient(ScheduleQueryController, transport),
+    routineCommand: createClient(RoutineCommandController, transport),
+    routineQuery: createClient(RoutineQueryController, transport),
     scoreCommand: createClient(ScoreCommandController, transport),
     scoreQuery: createClient(ScoreQueryController, transport),
     scoringRuleCommand: createClient(ScoringRuleCommandController, transport),

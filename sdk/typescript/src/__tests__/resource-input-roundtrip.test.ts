@@ -49,8 +49,8 @@ import {
 } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationSpecSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
+import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -70,7 +70,7 @@ import { buildIdentityAccountProto, toIdentityAccountInput } from "../gen/identi
 import { buildFederationIssuerProto, toFederationIssuerInput } from "../gen/federationissuer";
 import { buildOAuthAppProto, toOAuthAppInput } from "../gen/oauthapp";
 import { buildOrganizationProto, toOrganizationInput } from "../gen/organization";
-import { buildScheduleProto, toScheduleInput } from "../gen/schedule";
+import { buildRoutineProto, toRoutineInput } from "../gen/routine";
 import { buildSessionProto, toSessionInput } from "../gen/session";
 import { buildVaultProto, toVaultInput } from "../gen/vault";
 
@@ -717,7 +717,7 @@ describe("toOrganizationInput (tripwire)", () => {
 
 describe("toScheduleInput", () => {
   const fixture = () =>
-    create(ScheduleSchema, {
+    create(RoutineSchema, {
       metadata: META,
       spec: {
         cron: "0 9 * * 1",
@@ -740,15 +740,15 @@ describe("toScheduleInput", () => {
     });
 
   it("fixture covers every ScheduleSpec field (schema tripwire)", () => {
-    assertFixtureCoversSpec(ScheduleSpecSchema, fixture().spec!);
+    assertFixtureCoversSpec(RoutineSpecSchema, fixture().spec!);
   });
 
   it("round-trips the full spec and metadata through the builder", () => {
     const original = fixture();
     assertSpecRoundTrip(
-      ScheduleSpecSchema,
+      RoutineSpecSchema,
       original,
-      buildScheduleProto(toScheduleInput(original)),
+      buildRoutineProto(toRoutineInput(original)),
     );
   });
 });

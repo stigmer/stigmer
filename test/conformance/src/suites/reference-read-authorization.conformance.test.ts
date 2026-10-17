@@ -34,7 +34,7 @@ import { makeSharedVault } from "../support/vaults";
 import { openPlugin, pluginArchive } from "../support/plugins";
 import { uniqueName } from "../support/naming";
 import { makeOAuthApp } from "../support/oauthapps";
-import { makeSchedule } from "../support/schedules";
+import { makeRoutine } from "../support/routines";
 import { makeSkillArtifact } from "../support/skills";
 import {
   createTarget,
@@ -266,17 +266,17 @@ const KINDS: ReadonlyArray<ReferenceKind> = [
     memberReads: false,
     async seed(using, org) {
       const agent = await seedAgent(using, org);
-      const created = await using.scheduleCommand.create(
-        makeSchedule(org, uniqueName("ref-sched"), agent.metadata!.slug, {
+      const created = await using.routineCommand.create(
+        makeRoutine(org, uniqueName("ref-sched"), agent.metadata!.slug, {
           enabled: false,
         }),
       );
       return { id: created.metadata!.id, slug: created.metadata!.slug };
     },
-    getById: (using, id) => using.scheduleQuery.get({ value: id }),
+    getById: (using, id) => using.routineQuery.get({ value: id }),
     getByReference: (using, org, slug) =>
-      using.scheduleQuery.getByReference({ org, slug }),
-    cleanup: (using, id) => using.scheduleCommand.delete({ value: id }),
+      using.routineQuery.getByReference({ org, slug }),
+    cleanup: (using, id) => using.routineCommand.delete({ value: id }),
     deniedCopy: "unauthorized to get schedule",
   },
 ];

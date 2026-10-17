@@ -72,7 +72,7 @@ import type { MeteredUsageProvider } from "./metered-usage.js";
 import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
 import type { GradingCallerMint } from "./grading-caller.js";
 import type { EvalRunCallerMint } from "./eval-run-caller.js";
-import type { ScheduleFireCallerMint } from "./schedule-fire-caller.js";
+import type { RoutineFireCaller } from "./routine-fire-caller.js";
 import type { VisitorClassifier } from "./visitor-classifier.js";
 import type { RunLanes } from "./run-lanes.js";
 import { BUILT_IN_SANDBOX_PROVISIONER_TYPES } from "../sandbox/provisioner.js";
@@ -333,7 +333,7 @@ export interface ResolvedExtensionDrivers {
    * schedule fires enter the create pipeline as the `internal` class,
    * OSS behavior byte-identical.
    */
-  readonly scheduleFireCaller: ScheduleFireCallerMint | undefined;
+  readonly routineFireCaller: RoutineFireCaller | undefined;
   /**
    * The grading caller mint — undefined = judge runs enter the create
    * pipeline as the `internal` class, or as the scoring rule's creator under
@@ -476,8 +476,8 @@ export function resolveExtensions(
   let listReadScopeDeclaredBy: string | undefined;
   let visitorErrorPolicy: VisitorErrorPolicy | undefined;
   let visitorErrorPolicyDeclaredBy: string | undefined;
-  let scheduleFireCaller: ScheduleFireCallerMint | undefined;
-  let scheduleFireCallerDeclaredBy: string | undefined;
+  let routineFireCaller: RoutineFireCaller | undefined;
+  let routineFireCallerDeclaredBy: string | undefined;
   let gradingCaller: GradingCallerMint | undefined;
   let gradingCallerDeclaredBy: string | undefined;
   let evalRunCaller: EvalRunCallerMint | undefined;
@@ -682,14 +682,14 @@ export function resolveExtensions(
       visitorErrorPolicyDeclaredBy = unit.name;
     }
 
-    if (unit.drivers?.scheduleFireCaller !== undefined) {
-      if (scheduleFireCallerDeclaredBy !== undefined) {
+    if (unit.drivers?.routineFireCaller !== undefined) {
+      if (routineFireCallerDeclaredBy !== undefined) {
         throw new Error(
-          `extension '${unit.name}' registers a ScheduleFireCallerMint, but '${scheduleFireCallerDeclaredBy}' already did — exactly one may be composed`,
+          `extension '${unit.name}' registers a ScheduleFireCallerMint, but '${routineFireCallerDeclaredBy}' already did — exactly one may be composed`,
         );
       }
-      scheduleFireCaller = unit.drivers.scheduleFireCaller;
-      scheduleFireCallerDeclaredBy = unit.name;
+      routineFireCaller = unit.drivers.routineFireCaller;
+      routineFireCallerDeclaredBy = unit.name;
     }
 
     if (unit.drivers?.gradingCaller !== undefined) {
@@ -1035,7 +1035,7 @@ export function resolveExtensions(
       listReadScope,
       visitorErrorPolicy,
       secretCodecs,
-      scheduleFireCaller,
+      routineFireCaller,
       gradingCaller,
       evalRunCaller,
       identityAccountStore,

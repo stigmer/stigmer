@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { clone, create, equals } from "@bufbuild/protobuf";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelAppSchema, type ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { RoutineSchema, type Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { parse as parseYaml } from "yaml";
@@ -378,7 +378,7 @@ describe("manifestDocumentForResource", () => {
   // Shaped like a server-returned schedule: full metadata (including
   // fields the curated ScheduleInput cannot express, like tags) and a
   // populated status — the exact input of a lossless partial edit.
-  const schedule = create(ScheduleSchema, {
+  const routine = create(RoutineSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Schedule",
     metadata: {
@@ -405,7 +405,7 @@ describe("manifestDocumentForResource", () => {
   });
 
   it("wraps a fetched proto untouched — the lossless edit contract", () => {
-    const flipped = clone(ScheduleSchema, schedule);
+    const flipped = clone(RoutineSchema, routine);
     flipped.spec!.enabled = false;
 
     const doc = manifestDocumentForResource(flipped);
@@ -418,9 +418,9 @@ describe("manifestDocumentForResource", () => {
     // so every field survives (the ScheduleInput path would drop tags).
     expect(doc.message).toBe(flipped);
 
-    const expected = clone(ScheduleSchema, schedule);
+    const expected = clone(RoutineSchema, routine);
     expected.spec!.enabled = false;
-    expect(equals(ScheduleSchema, doc.message as Schedule, expected)).toBe(true);
+    expect(equals(RoutineSchema, doc.message as Routine, expected)).toBe(true);
   });
 
   it("falls back to name when the proto has no slug", () => {
@@ -437,7 +437,7 @@ describe("manifestDocumentForResource", () => {
   });
 
   it("rejects a resource without metadata.name", () => {
-    const nameless = create(ScheduleSchema, { metadata: { org: "acme" } });
+    const nameless = create(RoutineSchema, { metadata: { org: "acme" } });
     expect(() => manifestDocumentForResource(nameless)).toThrow(
       /metadata\.name/,
     );

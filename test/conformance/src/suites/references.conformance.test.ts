@@ -15,7 +15,7 @@
 // Edition-unconditional: no Temporal, no runner.
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { ScheduleFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import { RoutineFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -23,7 +23,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { makeSlackChannel } from "../support/channels";
 import { makeAgent } from "../support/agents";
 import { uniqueName } from "../support/naming";
-import { makeSchedule, targetMissingReason } from "../support/schedules";
+import { makeRoutine, targetMissingReason } from "../support/routines";
 import { makeSession } from "../support/sessions";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -121,16 +121,16 @@ describe("delete and remake: a reference never moves to a newcomer that takes a 
     const { org } = await target.provisionTenancy();
     const slug = uniqueName("remade-sched");
     const before = await createAgent(org, slug);
-    const schedule = await clients.scheduleCommand.create(makeSchedule(org, uniqueName("sched"), slug));
-    fixtures.defer(() => clients.scheduleCommand.delete({ value: schedule.metadata!.id }));
+    const routine = await clients.routineCommand.create(makeRoutine(org, uniqueName("sched"), slug));
+    fixtures.defer(() => clients.routineCommand.delete({ value: routine.metadata!.id }));
 
     await clients.agentCommand.delete({ value: before.id });
     await createAgent(org, slug);
 
-    const fired = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
-    expect(fired.outcome).toBe(ScheduleFireOutcome.TARGET_MISSING);
+    const fired = await clients.routineCommand.fire({ value: routine.metadata!.id });
+    expect(fired.outcome).toBe(RoutineFireOutcome.TARGET_MISSING);
     // The reason names the organization by the id the reference holds.
-    expect(fired.refusalReason).toBe(targetMissingReason(schedule.metadata!.org, before.id));
+    expect(fired.refusalReason).toBe(targetMissingReason(routine.metadata!.org, before.id));
     expect(fired.runId).toBe("");
   });
 
@@ -140,22 +140,22 @@ describe("delete and remake: a reference never moves to a newcomer that takes a 
     const before = await createAgent(org, slug);
     const channel = await clients.channelCommand.create(makeSlackChannel(org, uniqueName("chan"), slug));
     fixtures.defer(() => clients.channelCommand.delete({ value: channel.metadata!.id }));
-    const schedule = await clients.scheduleCommand.create(makeSchedule(org, uniqueName("sched"), slug));
-    fixtures.defer(() => clients.scheduleCommand.delete({ value: schedule.metadata!.id }));
+    const routine = await clients.routineCommand.create(makeRoutine(org, uniqueName("sched"), slug));
+    fixtures.defer(() => clients.routineCommand.delete({ value: routine.metadata!.id }));
 
     await clients.agentCommand.delete({ value: before.id });
     const after = await createAgent(org, slug);
 
     const newcomerChannels = await clients.channelQuery.listByAgent({ agentId: after.id, org });
-    const newcomerSchedules = await clients.scheduleQuery.listByAgent({ agentId: after.id, org });
+    const newcomerRoutines = await clients.routineQuery.listByAgent({ agentId: after.id, org });
     expect(newcomerChannels.entries.map((c) => c.metadata?.id)).toEqual([]);
-    expect(newcomerSchedules.entries.map((s) => s.metadata?.id)).toEqual([]);
+    expect(newcomerRoutines.entries.map((s) => s.metadata?.id)).toEqual([]);
 
     const keptChannels = await clients.channelQuery.listByAgent({ agentId: before.id, org });
-    const keptSchedules = await clients.scheduleQuery.listByAgent({ agentId: before.id, org });
+    const keptRoutines = await clients.routineQuery.listByAgent({ agentId: before.id, org });
     // A channel goes with its agent (channel.conformance.test.ts), so the
     // deleted agent's list is empty too: neither id lists the old channel.
     expect(keptChannels.entries.map((c) => c.metadata?.id)).toEqual([]);
-    expect(keptSchedules.entries.map((s) => s.metadata?.id)).toEqual([schedule.metadata!.id]);
+    expect(keptRoutines.entries.map((s) => s.metadata?.id)).toEqual([routine.metadata!.id]);
   });
 });

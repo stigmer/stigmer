@@ -40,8 +40,8 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
+import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineCommandController } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/command_pb";
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
@@ -118,7 +118,7 @@ describe("renames, through a composed server", () => {
   const agentQuery = () => createClient(AgentQueryController, wire);
   const vaults = () => createClient(VaultCommandController, wire);
   const vaultQuery = () => createClient(VaultQueryController, wire);
-  const schedules = () => createClient(ScheduleCommandController, wire);
+  const routines = () => createClient(RoutineCommandController, wire);
   const channelApps = () => createClient(ChannelAppCommandController, wire);
   const oauthApps = () => createClient(OAuthAppCommandController, wire);
   const orgId = (slug: string) => orgs.get(slug) ?? "";
@@ -767,23 +767,23 @@ describe("renames, through a composed server", () => {
           },
         },
       });
-      const created = await schedules().create(
+      const created = await routines().create(
         input("race-schedule", "0 9 * * *"),
       );
       const id = created.metadata!.id;
       await renameMidWrite(
-        ApiResourceKind.schedule,
+        ApiResourceKind.routine,
         id,
         () =>
-          schedules().rename({ resourceId: id, slug: "race-schedule-renamed" }),
+          routines().rename({ resourceId: id, slug: "race-schedule-renamed" }),
         () =>
-          schedules().update(
+          routines().update(
             { resource: input("race-schedule", "0 10 * * *", id, "race-schedule"), updateMask: { paths: ["*"] } },
           ),
       );
       const row = await expectSlugKept(
-        ApiResourceKind.schedule,
-        ScheduleSchema,
+        ApiResourceKind.routine,
+        RoutineSchema,
         id,
         "race-schedule-renamed",
       );

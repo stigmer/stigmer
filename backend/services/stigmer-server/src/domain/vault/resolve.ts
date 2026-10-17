@@ -150,7 +150,7 @@ import {
   RunValueDeclarerKind,
   RunValueOrigin,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
@@ -194,7 +194,7 @@ import { runServers } from "../run/run-servers.js";
 import type { RunServer } from "../run/run-servers.js";
 import type { RunSubagent } from "../run/run-subagents.js";
 import { evalRunOfRun } from "../eval-run/run-label.js";
-import { SCHEDULE_ID_LABEL_KEY } from "../schedule/labels.js";
+import { ROUTINE_ID_LABEL_KEY } from "../routine/labels.js";
 import type { IdentityAccountStore } from "../identityaccount/store.js";
 import { sessionIdOf } from "../run/target.js";
 
@@ -212,7 +212,7 @@ import { openSessionValues, repositoryTokenKey } from "./session-values.js";
 import type { SessionOwnValues } from "./session-values.js";
 
 /** The audit link a schedule stamps on every run it starts (temporal/schedule/run-starter.ts). */
-export { SCHEDULE_ID_LABEL_KEY };
+export { ROUTINE_ID_LABEL_KEY };
 
 /**
  * The lineage every conversation a channel serves carries, whatever its
@@ -1086,19 +1086,19 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
       });
       return false;
     };
-    const scheduleId = execution.metadata?.labels[SCHEDULE_ID_LABEL_KEY] ?? "";
-    if (scheduleId !== "") {
-      const schedule = await loadOptional(ApiResourceKind.schedule, scheduleId, ScheduleSchema);
-      const target = schedule?.spec?.target;
+    const routineId = execution.metadata?.labels[ROUTINE_ID_LABEL_KEY] ?? "";
+    if (routineId !== "") {
+      const routine = await loadOptional(ApiResourceKind.routine, routineId, RoutineSchema);
+      const target = routine?.spec?.target;
       if (
-        schedule !== undefined &&
+        routine !== undefined &&
         target?.case === "agent" &&
-        sameOrganization("schedule", scheduleId, schedule.metadata?.org ?? "")
+        sameOrganization("schedule", routineId, routine.metadata?.org ?? "")
       ) {
         surfaces.push({
-          what: `schedule '${schedule.metadata?.name ?? scheduleId}'`,
+          what: `schedule '${routine.metadata?.name ?? routineId}'`,
           refs: target.value.vaults,
-          attachers: schedule.status?.vaultAttachers ?? {},
+          attachers: routine.status?.vaultAttachers ?? {},
           org: executionOrg,
         });
       }

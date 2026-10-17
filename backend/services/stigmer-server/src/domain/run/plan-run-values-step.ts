@@ -69,7 +69,7 @@ import { runSubagents } from "./run-subagents.js";
 import { storedSessionOf } from "./session-binding.js";
 import { sessionIdOf } from "./target.js";
 
-export { SCHEDULE_ID_LABEL_KEY } from "../vault/resolve.js";
+export { ROUTINE_ID_LABEL_KEY } from "../vault/resolve.js";
 
 // ---------------------------------------------------------------------------
 // The narrow in-process edges the planner consumes (lazy providers).

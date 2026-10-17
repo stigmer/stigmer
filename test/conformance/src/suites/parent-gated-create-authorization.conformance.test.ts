@@ -43,7 +43,7 @@ import {
   makeMemory,
 } from "../support/memories";
 import { uniqueName } from "../support/naming";
-import { makeSchedule } from "../support/schedules";
+import { makeRoutine } from "../support/routines";
 import {
   createTarget,
   enforcingLaneOf,
@@ -102,7 +102,7 @@ async function castOf(lane: EnforcingLane): Promise<Cast> {
 // the annotation family's where the check is new.
 const PLUGIN_ORG_DENIED =
   "unauthorized to install plugin in this organization";
-const SCHEDULE_DENIED = "You don't have permission to schedule this agent";
+const ROUTINE_DENIED = "You don't have permission to schedule this agent";
 const CHANNEL_DENIED =
   "You don't have permission to make a channel for this agent";
 const MEMORY_ORG_DENIED = "unauthorized to capture memory in this organization";
@@ -176,11 +176,11 @@ describe("Schedule and Channel ask their bar on the referenced agent", () => {
     const agent = await seedAgent(c, ORG_VISIBLE);
     const slug = agent.metadata!.slug;
 
-    const schedule = await c.admin.scheduleCommand.create(
-      makeSchedule(c.org, uniqueName("gate-sched"), slug, { enabled: false }),
+    const routine = await c.admin.routineCommand.create(
+      makeRoutine(c.org, uniqueName("gate-sched"), slug, { enabled: false }),
     );
     fixtures.defer(() =>
-      c.owner.scheduleCommand.delete({ value: schedule.metadata!.id }),
+      c.owner.routineCommand.delete({ value: routine.metadata!.id }),
     );
     const web = await c.admin.channelCommand.create(
       makeWebChannel(c.org, slug, { name: uniqueName("gate-web") }),
@@ -201,12 +201,12 @@ describe("Schedule and Channel ask their bar on the referenced agent", () => {
     ] as const) {
       await expectDenied(
         () =>
-          using.scheduleCommand.create(
-            makeSchedule(c.org, uniqueName("gate-sched"), slug, {
+          using.routineCommand.create(
+            makeRoutine(c.org, uniqueName("gate-sched"), slug, {
               enabled: false,
             }),
           ),
-        SCHEDULE_DENIED,
+        ROUTINE_DENIED,
         `${who} schedules the agent`,
       );
       await expectDenied(

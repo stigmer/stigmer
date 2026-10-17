@@ -33,7 +33,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { ApiResourceKindSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { config as rpcAuthorizationConfig } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
-import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
+import { RoutineCommandController } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/command_pb";
 import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
 
 import { everyService } from "../../../authorization/__tests__/contract-support.js";
@@ -157,8 +157,8 @@ describe("the check bites (mutation proofs over the same function)", () => {
   });
 
   it("a path through a oneof member is reported: the step cannot read it", () => {
-    const scheduleCreate = ScheduleCommandController.method.create;
-    expect(unresolvedPaths(scheduleCreate, { fieldPath: "spec.agent.message", resourceKindPath: "" })).toEqual([
+    const routineCreate = RoutineCommandController.method.create;
+    expect(unresolvedPaths(routineCreate, { fieldPath: "spec.agent.message", resourceKindPath: "" })).toEqual([
       `ai.stigmer.agentic.schedule.v1.ScheduleCommandController/create field_path "spec.agent.message" names "agent" of ai.stigmer.agentic.schedule.v1.ScheduleSpec, a member of oneof target, which the Authorize step reads as absent`,
     ]);
   });

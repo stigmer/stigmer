@@ -3,7 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { parse as parseYaml } from "yaml";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
 import { serializeManifest } from "@stigmer/sdk";
 import { toast } from "../feedback/toast.js";
 import { downloadTextFile } from "../internal/download.js";
@@ -16,7 +16,7 @@ import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 /** Options for {@link useExportResource}. */
 export interface UseExportResourceOptions {
   /** The proto resource to export, or `null` when not yet loaded. */
-  readonly resource: Agent | Schedule | null;
+  readonly resource: Agent | Routine | null;
 }
 
 /** Return value of {@link useExportResource}. */

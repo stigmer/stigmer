@@ -1,0 +1,194 @@
+/**
+ * Pins the syncer against Go's syncer.go: the create-or-update convergence
+ * on ScheduleAlreadyRunning, next_fire_at stamped from Temporal's OWN
+ * answer through the atomic row write (undefined while paused), teardown's
+ * not-found-is-success idempotence, and the unavailable posture when no
+ * client exists (this machinery once shipped untested).
+ */
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+import { create } from "@bufbuild/protobuf";
+import type { Client } from "@temporalio/client";
+import { ScheduleAlreadyRunning, ScheduleNotFoundError } from "@temporalio/client";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+
+import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+
+import { createLogger } from "../../../boot/logger.js";
+import { SqliteStore } from "../../../store/sqlite/store.js";
+import { RoutineArtifact } from "../artifact.js";
+import { RoutineTemporalConfig } from "../config.js";
+import { RoutineSyncer, TemporalUnavailableError } from "../syncer.js";
+
+const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
+
+const config = new RoutineTemporalConfig("schedule_stigmer", 60, 24, 5, 60, true, 5, 20, 1.0, 90);
+
+let dir: string;
+let store: SqliteStore;
+
+/**
+ * A scriptable ScheduleClient double. Narrowed through unknown at the ONE
+ * seam the syncer touches (client.schedule) — a full Client fake would be
+ * machinery without a beneficiary; the script object keeps the calls
+ * observable.
+ */
+interface FakeScheduleApi {
+  createError?: Error;
+  updateError?: Error;
+  deleteError?: Error;
+  describeNextActionTimes: Date[];
+  createCalls: number;
+  updateCalls: number;
+  deleteCalls: string[];
+}
+
+let fake: FakeScheduleApi;
+
+function fakeClient(): Client {
+  const schedule = {
+    create: async () => {
+      fake.createCalls++;
+      if (fake.createError) throw fake.createError;
+    },
+    getHandle: (routineId: string) => ({
+      describe: async () => ({ info: { nextActionTimes: fake.describeNextActionTimes } }),
+      update: async () => {
+        fake.updateCalls++;
+        if (fake.updateError) throw fake.updateError;
+      },
+      delete: async () => {
+        fake.deleteCalls.push(routineId);
+        if (fake.deleteError) throw fake.deleteError;
+      },
+    }),
+  };
+  return { schedule } as unknown as Client;
+}
+
+function routineRow(overrides?: { enabled?: boolean; pausedReason?: string }) {
+  return create(RoutineSchema, {
+    metadata: { id: "sch_01sync", org: "acme", slug: "daily" },
+    spec: {
+      cron: "0 9 * * *",
+      timeZone: "UTC",
+      enabled: overrides?.enabled ?? true,
+      target: { case: "agent", value: { agentRef: { slug: "helper" } } },
+    },
+    status: { pausedReason: overrides?.pausedReason ?? "" },
+  });
+}
+
+function syncer(client: Client | undefined): RoutineSyncer {
+  return new RoutineSyncer(
+    () => client,
+    store,
+    new RoutineArtifact(config),
+    silentLogger,
+  );
+}
+
+beforeAll(() => {
+  dir = mkdtempSync(path.join(tmpdir(), "schedule-syncer-test-"));
+  store = SqliteStore.open(path.join(dir, "test.db"));
+});
+
+afterAll(async () => {
+  await store.close();
+  rmSync(dir, { recursive: true, force: true });
+});
+
+beforeEach(async () => {
+  fake = {
+    describeNextActionTimes: [new Date("2026-08-26T09:00:00Z")],
+    createCalls: 0,
+    updateCalls: 0,
+    deleteCalls: [],
+  };
+  await store.saveResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema, routineRow());
+});
+
+describe("ensureAndRecord — create-or-update convergence", () => {
+  it("creates a missing artifact and stamps next_fire_at from Temporal's answer", async () => {
+    const next = await syncer(fakeClient()).ensureAndRecord(routineRow());
+    expect(fake.createCalls).toBe(1);
+    expect(fake.updateCalls).toBe(0);
+    expect(next).toEqual(new Date("2026-08-26T09:00:00Z"));
+
+    const row = await store.getResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema);
+    expect(row.status?.nextFireAt?.seconds).toBe(
+      BigInt(Date.parse("2026-08-26T09:00:00Z") / 1000),
+    );
+    expect(row.status?.audit?.statusAudit?.event).toBe("updated");
+  });
+
+  it("falls to the update path on ScheduleAlreadyRunning (benign lost race)", async () => {
+    fake.createError = new ScheduleAlreadyRunning("exists", "schedule/tick/sch_01sync");
+    const next = await syncer(fakeClient()).ensureAndRecord(routineRow());
+    expect(fake.updateCalls).toBe(1);
+    expect(next).toEqual(new Date("2026-08-26T09:00:00Z"));
+  });
+
+  it("wraps a non-AlreadyRunning create failure with the artifact id", async () => {
+    fake.createError = new Error("frontend hiccup");
+    await expect(syncer(fakeClient()).ensureAndRecord(routineRow())).rejects.toThrow(
+      "create schedule artifact schedule/tick/sch_01sync: frontend hiccup",
+    );
+  });
+
+  it("a paused schedule stamps next_fire_at ABSENT (never describes)", async () => {
+    const paused = routineRow({ enabled: false });
+    await store.saveResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema, paused);
+    const next = await syncer(fakeClient()).ensureAndRecord(paused);
+    expect(next).toBeUndefined();
+    const row = await store.getResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema);
+    expect(row.status?.nextFireAt).toBeUndefined();
+  });
+
+  it("a row deleted between arm and stamp is a logged no-op, not an error", async () => {
+    await store.deleteResource(ApiResourceKind.routine, "sch_01sync");
+    const next = await syncer(fakeClient()).ensureAndRecord(routineRow());
+    expect(next).toEqual(new Date("2026-08-26T09:00:00Z"));
+  });
+
+  it("throws TemporalUnavailableError when no client exists (arming degrades upstream)", async () => {
+    await expect(syncer(undefined).ensureAndRecord(routineRow())).rejects.toBeInstanceOf(
+      TemporalUnavailableError,
+    );
+  });
+});
+
+describe("teardown — idempotent from the platform's view", () => {
+  it("deletes the artifact", async () => {
+    await syncer(fakeClient()).teardown("sch_01sync");
+    expect(fake.deleteCalls).toEqual(["schedule/tick/sch_01sync"]);
+  });
+
+  it("not-found is success (Temporal's delete is not idempotent; ours is)", async () => {
+    fake.deleteError = new ScheduleNotFoundError("gone", "schedule/tick/sch_01sync");
+    await expect(syncer(fakeClient()).teardown("sch_01sync")).resolves.toBeUndefined();
+  });
+
+  it("other delete failures propagate with the artifact id", async () => {
+    fake.deleteError = new Error("boom");
+    await expect(syncer(fakeClient()).teardown("sch_01sync")).rejects.toThrow(
+      "delete schedule artifact schedule/tick/sch_01sync: boom",
+    );
+  });
+});
+
+describe("peekNextFireAt", () => {
+  it("answers undefined while paused without touching Temporal", async () => {
+    const result = await syncer(undefined).peekNextFireAt(routineRow({ pausedReason: "Paused" }));
+    expect(result).toBeUndefined();
+  });
+
+  it("answers undefined when Temporal reports no upcoming action", async () => {
+    fake.describeNextActionTimes = [];
+    const result = await syncer(fakeClient()).peekNextFireAt(routineRow());
+    expect(result).toBeUndefined();
+  });
+});

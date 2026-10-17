@@ -108,7 +108,7 @@ function renameOf(
     case "vault":
       return stigmer.vault.rename(input);
     case "schedule":
-      return stigmer.schedule.rename(input);
+      return stigmer.routine.rename(input);
     case "channel_app":
       return stigmer.channelapp.rename(input);
     case "oauth_app":

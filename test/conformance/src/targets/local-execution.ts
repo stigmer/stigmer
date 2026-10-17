@@ -65,7 +65,7 @@ export class LocalExecutionTarget implements TargetProfile {
     skillArtifactTransferLane: true,
     // The schedule clock runs here (tick workflow + reconciler on the
     // schedule_stigmer queue).
-    scheduleFiring: true,
+    routineFiring: true,
     // The open-source runner presents each run's own credential and the
     // built-in verifier admits its bearer as the run's human; proven on
     // this target's enforcing lane, whose runner is keyed with the

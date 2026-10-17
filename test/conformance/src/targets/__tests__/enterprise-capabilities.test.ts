@@ -19,7 +19,7 @@ const ENTERPRISE_MATRIX: CapabilityFlags = {
   enforcingAuthorizer: true,
   versionTagging: true,
   skillArtifactTransferLane: true,
-  scheduleFiring: false,
+  routineFiring: false,
   runnerActsAsRunCreator: false,
   clientReservedLabelWrites: false,
   firstPartyMemoryCapture: true,

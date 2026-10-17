@@ -40,7 +40,7 @@ import { channelListIndex } from "../domain/channel/list-index.js";
 import { apiKeyListIndex } from "../domain/apikey/list-index.js";
 import { channelAppListIndex } from "../domain/channelapp/list-index.js";
 import { pluginListIndex } from "../domain/plugin/list-index.js";
-import { scheduleListIndex } from "../domain/schedule/list-index.js";
+import { routineListIndex } from "../domain/routine/list-index.js";
 import { skillListIndex } from "../domain/skill/list-index.js";
 import { agentExecutionListIndex } from "../domain/run/list-index.js";
 import { scoringRuleListIndex } from "../domain/scoring-rule/list-index.js";
@@ -63,7 +63,7 @@ export const LIST_INDEXES: ReadonlyArray<ListIndexDeclaration> = [
   channelAppListIndex,
   oauthAppListIndex,
   pluginListIndex,
-  scheduleListIndex,
+  routineListIndex,
   skillListIndex,
   scoringRuleListIndex,
   evalListIndex,

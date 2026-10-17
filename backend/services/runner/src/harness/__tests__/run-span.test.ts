@@ -26,7 +26,7 @@ import { TELEMETRY_OFF, adoptTelemetrySettings, resetTelemetrySettingsForTests }
 import { RunTraceIdGenerator, traceIdOfRun } from "../../run-trace-id.js";
 import type { ResolvedBlueprint } from "../../shared/blueprint-resolver.js";
 import { runWithExecutionContext } from "../../shared/execution-context.js";
-import { EVAL_RUN_LABEL, SCHEDULE_ID_LABEL, agentNameOf, runKindOf, withRunSpan, type RunFacts } from "../run-span.js";
+import { EVAL_RUN_LABEL, ROUTINE_ID_LABEL, agentNameOf, runKindOf, withRunSpan, type RunFacts } from "../run-span.js";
 
 const exporter = new InMemorySpanExporter();
 let provider: NodeTracerProvider;
@@ -176,7 +176,7 @@ describe("withRunSpan", () => {
 
   it.each([
     ["conversation", {}],
-    ["schedule", { [SCHEDULE_ID_LABEL]: "sch_1" }],
+    ["schedule", { [ROUTINE_ID_LABEL]: "sch_1" }],
     ["judge", { "stigmer.ai/grades-run": "run_x" }],
     ["eval-try", { [EVAL_RUN_LABEL]: "evr_1" }],
   ] as const)("carries no text and no asker with content off, for a %s run", async (kind, labels) => {

@@ -103,8 +103,8 @@ export interface AuditRecord {
  * ("started", "refused", "cron", "manual", …); timestamps are RFC-3339 UTC
  * strings compared lexicographically (the house convention).
  */
-export interface ScheduleFireRecord {
-  readonly scheduleId: string;
+export interface RoutineFireRecord {
+  readonly routineId: string;
   readonly org: string;
   /**
    * The fire's identity instant (cron: the scheduled time; manual: the
@@ -133,7 +133,7 @@ export interface ScheduleFireRecord {
 }
 
 /** A fire's place in the ledger's newest-first order: its key within its schedule. */
-export interface ScheduleFireCursor {
+export interface RoutineFireCursor {
   readonly nominalFireTime: string;
   readonly origin: string;
 }
@@ -1070,7 +1070,7 @@ export interface Store {
    * is set is never downgraded — a replayed "started" write after the
    * verdict landed is a no-op by construction (the ON CONFLICT guard).
    */
-  upsertScheduleFire(record: ScheduleFireRecord): Promise<void>;
+  upsertRoutineFire(record: RoutineFireRecord): Promise<void>;
 
   /**
    * Stamps the terminal verdict on the schedule's NEWEST non-terminal row
@@ -1082,8 +1082,8 @@ export interface Store {
    * untracked, so without it a newer manual row would steal a cron run's
    * verdict. Silent no-op when no matching non-terminal row exists.
    */
-  markLatestScheduleFireTerminal(
-    scheduleId: string,
+  markLatestRoutineFireTerminal(
+    routineId: string,
     origin: string,
     outcome: string,
     reason: string,
@@ -1095,23 +1095,23 @@ export interface Store {
    * compared as bytes (the ledger's key, so the order is total). `after`
    * reads the fires strictly past that one; `limit` caps the count.
    */
-  listScheduleFires(
-    scheduleId: string,
-    after: ScheduleFireCursor | undefined,
+  listRoutineFires(
+    routineId: string,
+    after: RoutineFireCursor | undefined,
     limit: number,
-  ): Promise<ScheduleFireRecord[]>;
+  ): Promise<RoutineFireRecord[]>;
 
   /** Delete-cascade twin, called after the resource row delete succeeds. */
-  deleteScheduleFiresBySchedule(scheduleId: string): Promise<number>;
+  deleteRoutineFiresByRoutine(routineId: string): Promise<number>;
 
   /** Removes every ledger row of an organization's schedules (its purge's sweep); returns the count. */
-  deleteScheduleFiresByOrg(org: string): Promise<number>;
+  deleteRoutineFiresByOrg(org: string): Promise<number>;
 
   /**
    * Removes ledger rows recorded before the cutoff (RFC-3339, compared
    * lexicographically) — the retention policy the table was born with.
    */
-  pruneScheduleFires(recordedBefore: string): Promise<number>;
+  pruneRoutineFires(recordedBefore: string): Promise<number>;
 
   // ---------------------------------------------------------------------------
   // Search index

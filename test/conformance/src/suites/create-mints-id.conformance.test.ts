@@ -72,7 +72,7 @@ import {
 import { enableOrganizationMemory, makeMemory } from "../support/memories";
 import { foreignId, uniqueName, uniqueOrg } from "../support/naming";
 import { makeOAuthApp } from "../support/oauthapps";
-import { makeSchedule } from "../support/schedules";
+import { makeRoutine } from "../support/routines";
 import { makeSession } from "../support/sessions";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -372,37 +372,37 @@ const ROWS: readonly Row[] = [
   {
     title: "[rpc:ScheduleCommandController.create] Schedule",
     key: "ScheduleCommandController.create",
-    kind: ApiResourceKind.schedule,
+    kind: ApiResourceKind.routine,
     async send({ org }, chosenId) {
       const agent = await agentIn(org);
       const name = uniqueName("mint-sched");
-      const created = await clients.scheduleCommand.create({
-        ...makeSchedule(org, name, agent.slug),
+      const created = await clients.routineCommand.create({
+        ...makeRoutine(org, name, agent.slug),
         metadata: { id: chosenId, name, org },
       });
-      fixtures.defer(() => clients.scheduleCommand.delete({ value: created.metadata!.id }));
+      fixtures.defer(() => clients.routineCommand.delete({ value: created.metadata!.id }));
       return answerOf(this.key, created.metadata);
     },
     async read(id) {
-      return (await clients.scheduleQuery.get({ value: id })).metadata?.id;
+      return (await clients.routineQuery.get({ value: id })).metadata?.id;
     },
   },
   {
     title: "[rpc:ScheduleCommandController.apply] Schedule (apply as a create)",
     key: "ScheduleCommandController.apply",
-    kind: ApiResourceKind.schedule,
+    kind: ApiResourceKind.routine,
     async send({ org }, chosenId) {
       const agent = await agentIn(org);
       const name = uniqueName("mint-sched");
-      const applied = await clients.scheduleCommand.apply({
-        ...makeSchedule(org, name, agent.slug),
+      const applied = await clients.routineCommand.apply({
+        ...makeRoutine(org, name, agent.slug),
         metadata: { id: chosenId, name, org },
       });
-      fixtures.defer(() => clients.scheduleCommand.delete({ value: applied.metadata!.id }));
+      fixtures.defer(() => clients.routineCommand.delete({ value: applied.metadata!.id }));
       return answerOf(this.key, applied.metadata);
     },
     async read(id) {
-      return (await clients.scheduleQuery.get({ value: id })).metadata?.id;
+      return (await clients.routineQuery.get({ value: id })).metadata?.id;
     },
   },
   {
@@ -569,7 +569,7 @@ describe("A create never keeps the id the caller sent", () => {
   // An execution create needs a Temporal engine behind the server: the plain
   // local targets refuse it Unavailable before an id is minted, and the
   // execution class pins the rule there instead.
-  describe.skipIf(!capabilities.scheduleFiring)("with an engine behind the server", () => {
+  describe.skipIf(!capabilities.routineFiring)("with an engine behind the server", () => {
     it.for(casesFor("engine"))(CASE_TITLE, async ([, row]) => {
       await assertMintsItsOwnId(row);
     });

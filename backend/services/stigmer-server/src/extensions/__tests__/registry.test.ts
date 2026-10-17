@@ -309,11 +309,11 @@ describe("resolveExtensions — merge semantics", () => {
         }),
     };
     const resolved = resolveExtensions([
-      { name: "iam", drivers: { scheduleFireCaller: mint } },
+      { name: "iam", drivers: { routineFireCaller: mint } },
     ]);
-    expect(resolved.drivers.scheduleFireCaller).toBe(mint);
+    expect(resolved.drivers.routineFireCaller).toBe(mint);
     // The empty state resolves explicitly, never a missing key.
-    expect(resolveExtensions([]).drivers.scheduleFireCaller).toBeUndefined();
+    expect(resolveExtensions([]).drivers.routineFireCaller).toBeUndefined();
   });
 
   it("throws on a second ScheduleFireCallerMint, naming both units", () => {
@@ -328,8 +328,8 @@ describe("resolveExtensions — merge semantics", () => {
     };
     expect(() =>
       resolveExtensions([
-        { name: "mint-a", drivers: { scheduleFireCaller: mint } },
-        { name: "mint-b", drivers: { scheduleFireCaller: mint } },
+        { name: "mint-a", drivers: { routineFireCaller: mint } },
+        { name: "mint-b", drivers: { routineFireCaller: mint } },
       ]),
     ).toThrowError(
       /extension 'mint-b' registers a ScheduleFireCallerMint, but 'mint-a' already did/,

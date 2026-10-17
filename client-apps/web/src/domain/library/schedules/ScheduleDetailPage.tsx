@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleDetailView, useBreadcrumbOverride } from "@stigmer/react";
+import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineDetailView, useBreadcrumbOverride } from "@stigmer/react";
 import {
   useLibraryNavigation,
   useRouteDetailYieldsToOverlay,
@@ -54,7 +54,7 @@ export function ScheduleDetailPageInner({
   useEffect(() => () => setLabel(null), [setLabel]);
 
   const handleResourceLoad = useCallback(
-    (loaded: Schedule) => {
+    (loaded: Routine) => {
       setLabel(loaded.metadata?.name || loaded.metadata?.slug || "Schedule");
       // The read answers the schedule's current slug: a URL naming one it
       // was renamed away from (which still leads to it) moves to it in place.
@@ -64,7 +64,7 @@ export function ScheduleDetailPageInner({
   );
 
   return (
-    <ScheduleDetailView
+    <RoutineDetailView
       org={org}
       slug={slug}
       editable

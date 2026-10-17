@@ -418,7 +418,7 @@ describe("the renamable manifest kinds' handlers", () => {
     for (const kind of [
       ApiResourceKind.organization,
       ApiResourceKind.agent,
-      ApiResourceKind.schedule,
+      ApiResourceKind.routine,
       ApiResourceKind.channel_app,
       ApiResourceKind.channel,
       ApiResourceKind.oauth_app,

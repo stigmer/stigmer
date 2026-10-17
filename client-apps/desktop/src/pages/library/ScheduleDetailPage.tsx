@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
 import {
-  ScheduleDetailView,
+  RoutineDetailView,
   useBreadcrumbOverride,
   useResolveRunSession,
   useOrgSlugForId,
@@ -41,7 +41,7 @@ export default function ScheduleDetailPage() {
   const moveToSlug = useCanonicalDetailSlug("schedules", org, slug, loadedSlug);
 
   const handleResourceLoad = useCallback(
-    (loaded: Schedule) => {
+    (loaded: Routine) => {
       setLabel(loaded.metadata?.name || loaded.metadata?.slug || "Schedule");
       setLoadedSlug(loaded.metadata?.slug);
     },
@@ -51,7 +51,7 @@ export default function ScheduleDetailPage() {
   if (!org || !slug) return null;
 
   return (
-    <ScheduleDetailView
+    <RoutineDetailView
       org={org}
       slug={slug}
       editable

@@ -1036,9 +1036,9 @@ export const consumerAccountSlugs: {
  * derived id of the lane's own subject (`accountIdFor`), as an edition's
  * per-org system accounts take it.
  */
-const consumerScheduleFireCaller: ScheduleFireCallerMint = {
-  mintFireCaller: (org: string, scheduleId: string) => {
-    void scheduleId;
+const consumerRoutineFireCaller: ScheduleFireCallerMint = {
+  mintFireCaller: (org: string, routineId: string) => {
+    void routineId;
     return Promise.resolve({
       identityId: accountIdFor(`stgm_schedule|${org}`),
       callerClass: "schedule",
@@ -1495,7 +1495,7 @@ export const fakeExtension: ServerExtension = {
     // by version token ("v1" is the reserved built-in).
     secretCodecs: new Map([["v2", consumerVaultCodec]]),
     // The schedule-fire caller seam: who a schedule fire acts as.
-    scheduleFireCaller: consumerScheduleFireCaller,
+    scheduleFireCaller: consumerRoutineFireCaller,
     // The run-lanes seam: which lane a visitor's turn comes through, and
     // that lane's settings, operator profile and approval mode.
     runLanes: consumerRunLanes,

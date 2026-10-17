@@ -348,12 +348,12 @@ export {
   type LicenseCustomerInput,
 } from "./gen/license.js";
 export {
-  ScheduleClient,
-  buildScheduleProto,
-  type ScheduleInput,
+  RoutineClient,
+  buildRoutineProto,
+  type RoutineInput,
   type AgentInvocationInput,
   type RunConfigInput,
-} from "./gen/schedule.js";
+} from "./gen/routine.js";
 export {
   SessionClient,
   buildSessionProto,
@@ -515,7 +515,7 @@ export { toMemoryInput } from "./gen/memory.js";
 export { toOAuthAppInput } from "./gen/oauthapp.js";
 export { toOrganizationInput } from "./gen/organization.js";
 export { toRunInput } from "./gen/run.js";
-export { toScheduleInput } from "./gen/schedule.js";
+export { toRoutineInput } from "./gen/routine.js";
 export { toScoreInput } from "./gen/score.js";
 export { toSessionInput } from "./gen/session.js";
 export { toTeamInput } from "./gen/team.js";

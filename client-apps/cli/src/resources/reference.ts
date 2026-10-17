@@ -103,8 +103,8 @@ export function isSessionId(ref: string): boolean {
 }
 
 /** True if `ref` carries the schedule ID prefix (`sch_…`/`sch-…`). */
-export function isScheduleId(ref: string): boolean {
-  return hasPrefixOf(ref, ApiResourceKind.schedule);
+export function isRoutineId(ref: string): boolean {
+  return hasPrefixOf(ref, ApiResourceKind.routine);
 }
 
 /**

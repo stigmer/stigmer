@@ -31,7 +31,7 @@ const session = vi.hoisted(() => ({ openSession: vi.fn() }));
 vi.mock("../../resources/run/resume.js", () => session);
 
 const AGENT_ID = "agt_01abc123xyz456789012345678";
-const SCHEDULE_ID = "sch_01abc123xyz456789012345678";
+const ROUTINE_ID = "sch_01abc123xyz456789012345678";
 
 /** Runs `stigmer ...` against the stubbed backend with the context org acme. */
 async function stigmer(...args: string[]): Promise<void> {
@@ -72,9 +72,9 @@ describe("stigmer resume", () => {
 
 describe("stigmer run", () => {
   it("refuses a full id of a kind that is not an agent: only agents run", async () => {
-    await expect(stigmer("run", SCHEDULE_ID)).rejects.toThrow(
+    await expect(stigmer("run", ROUTINE_ID)).rejects.toThrow(
       new UsageError(
-        `Cannot run resource ID "${SCHEDULE_ID}": only agents run\n\nTo run an agent:\n  stigmer run <agent-id>`,
+        `Cannot run resource ID "${ROUTINE_ID}": only agents run\n\nTo run an agent:\n  stigmer run <agent-id>`,
       ),
     );
     expect(resolve.resolveAgentRef).not.toHaveBeenCalled();

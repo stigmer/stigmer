@@ -216,7 +216,7 @@ export interface AgentExecutionControllerDeps {
    * scheduled turn is capped by (ScheduleTemporalConfig's execution
    * profile). Undefined = no schedule ceiling.
    */
-  readonly scheduleRunProfile: RunConfig | undefined;
+  readonly routineRunProfile: RunConfig | undefined;
   /**
    * The fan-out of each session's event log. Every run write that can
    * change whether a run is working appends its session's events in the
@@ -410,7 +410,7 @@ async function createExecution(
       newResolveRunConfigStep({
         store: deps.store,
         runLanes: deps.runLanes,
-        scheduleProfile: deps.scheduleRunProfile,
+        routineProfile: deps.routineRunProfile,
       }),
     )
     .addStep(newValidateServiceTierStep(deps.modelRegistry))

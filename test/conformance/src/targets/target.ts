@@ -89,7 +89,7 @@ export interface CapabilityFlags {
   // deleted target agent, so every fire fails deterministically before any
   // execution is created) — which is what lets this be the first
   // execution-class behavior asserted cross-edition.
-  scheduleFiring: boolean;
+  routineFiring: boolean;
   // The target's runner serves every person's runs AS THE PERSON WHOSE RUN
   // IT IS (the row's created_by stamp), whichever credential the runner
   // process itself holds. Observable only where the server enforces who may

@@ -55,8 +55,8 @@ import {
 import type { CapturedFileChange, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type { StigmerFileReviewReconciledEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -84,7 +84,7 @@ import {
 } from "../support/file-review";
 import { pollUntil } from "../support/run-poll";
 import { uniqueName } from "../support/naming";
-import { makeSchedule } from "../support/schedules";
+import { makeRoutine } from "../support/routines";
 import { makeSession } from "../support/sessions";
 import { toolUsesOf, turnById, turnOfRun } from "../support/turn";
 import { createTarget, type TargetProfile } from "../targets";
@@ -947,7 +947,7 @@ describe("Run file review — the next message closes the review", () => {
 // serve it. The hosted edition serves those turns in the sandbox its
 // composition provisions, proven by that composition's own suites.
 describe.skipIf(
-  !collectionTarget.capabilities.scheduleFiring || !collectionTarget.capabilities.runnerActsAsRunCreator,
+  !collectionTarget.capabilities.routineFiring || !collectionTarget.capabilities.runnerActsAsRunCreator,
 )(
   "Run file review — an unattended turn's write (scheduleFiring targets)",
   () => {
@@ -961,16 +961,16 @@ describe.skipIf(
         }),
       );
       fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-      const schedule = await clients.scheduleCommand.create(
-        create(ScheduleSchema, makeSchedule(org, uniqueName("sched-unattended"), agent.metadata!.slug)),
+      const routine = await clients.routineCommand.create(
+        create(RoutineSchema, makeRoutine(org, uniqueName("sched-unattended"), agent.metadata!.slug)),
       );
-      fixtures.defer(() => clients.scheduleCommand.delete({ value: schedule.metadata!.id }));
+      fixtures.defer(() => clients.routineCommand.delete({ value: routine.metadata!.id }));
 
       mock.enqueue(writeFileTurn("toolu_w_unattended", "report.txt", "nightly report\n"));
       mock.enqueue(readFileTurn("toolu_r_unattended", "report.txt"));
       mock.enqueue(anthropicText("Report written."));
-      const fired = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
-      expect(fired.outcome, `the fire's refusal: ${fired.refusalReason}`).toBe(ScheduleFireOutcome.STARTED);
+      const fired = await clients.routineCommand.fire({ value: routine.metadata!.id });
+      expect(fired.outcome, `the fire's refusal: ${fired.refusalReason}`).toBe(RoutineFireOutcome.STARTED);
       fixtures.defer(() => clients.agentExecutionCommand.delete({ value: fired.runId }).then(() => undefined, () => undefined));
 
       const final = await awaitTerminal(clients, fired.runId);

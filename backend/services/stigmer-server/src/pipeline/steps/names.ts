@@ -136,7 +136,7 @@ export const NAMED_KINDS: Readonly<Record<ApiResourceKind, NamedKind>> = {
   [ApiResourceKind.skill]: CLAIMS,
   [ApiResourceKind.channel]: CLAIMS,
   [ApiResourceKind.channel_app]: CLAIMS,
-  [ApiResourceKind.schedule]: CLAIMS,
+  [ApiResourceKind.routine]: CLAIMS,
   [ApiResourceKind.memory]: CLAIMS,
   [ApiResourceKind.plugin]: CLAIMS,
   [ApiResourceKind.vault]: CLAIMS,

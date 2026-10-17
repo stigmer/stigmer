@@ -85,7 +85,7 @@ const REGISTRY = new ModelRegistryStore({
   refreshEnabled: false,
   logger: createLogger({ level: "error", pretty: false, write: () => {} }),
 });
-import { SCHEDULE_ID_LABEL_KEY } from "../../vault/resolve.js";
+import { ROUTINE_ID_LABEL_KEY } from "../../vault/resolve.js";
 
 type RunConfigInit = MessageInitShape<typeof RunConfigSchema>;
 type TargetInit = NonNullable<
@@ -344,7 +344,7 @@ describe("ResolveRunConfig over a real store", () => {
 
   async function resolve(
     exec: Run,
-    options: { runLanes?: RunLanes; scheduleProfile?: RunConfig } = {},
+    options: { runLanes?: RunLanes; routineProfile?: RunConfig } = {},
   ): Promise<RequestContext<typeof RunSchema>> {
     const ctx = new RequestContext(
       RunSchema,
@@ -356,7 +356,7 @@ describe("ResolveRunConfig over a real store", () => {
     await newResolveRunConfigStep({
       store,
       runLanes: options.runLanes,
-      scheduleProfile: options.scheduleProfile,
+      routineProfile: options.routineProfile,
     }).execute(ctx);
     return ctx;
   }
@@ -392,10 +392,10 @@ describe("ResolveRunConfig over a real store", () => {
   it("a schedule's turn is capped by the schedule profile and runs unattended", async () => {
     const ctx = await resolve(
       execution({
-        metadata: { labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_1" } },
+        metadata: { labels: { [ROUTINE_ID_LABEL_KEY]: "sch_1" } },
         spec: { message: "hi", runConfig: { maxToolRounds: 50, maxCostUsd: 0.25 } },
       }),
-      { scheduleProfile: rc({ maxToolRounds: 20, maxCostUsd: 1 }) },
+      { routineProfile: rc({ maxToolRounds: 20, maxCostUsd: 1 }) },
     );
     expect(ctx.newState.status?.runConfig).toEqual(rc({ maxToolRounds: 20, maxCostUsd: 0.25 }));
     expect(ctx.newState.status?.approvalMode).toBe(ApprovalMode.UNATTENDED);
@@ -450,7 +450,7 @@ describe("ResolveRunConfig over a real store", () => {
   it("refuses an unattended Cursor turn that would run with no model, naming where to set one", async () => {
     const err = await resolve(
       execution({
-        metadata: { labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_1" } },
+        metadata: { labels: { [ROUTINE_ID_LABEL_KEY]: "sch_1" } },
         spec: {
           message: "hi",
           target: { case: "sessionSpec", value: { harness: Harness.CURSOR } },
@@ -469,7 +469,7 @@ describe("ResolveRunConfig over a real store", () => {
   it("refuses a schedule's saved fast tier with no model of its own, naming the schedule's settings", async () => {
     const err = await resolve(
       execution({
-        metadata: { labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_1" } },
+        metadata: { labels: { [ROUTINE_ID_LABEL_KEY]: "sch_1" } },
         spec: { message: "hi", runConfig: { serviceTier: ServiceTier.FAST } },
         status: { agentId: AGENT, agentVersionHash: PINNED },
       }),
@@ -656,7 +656,7 @@ describe("ResolveRunConfig over a real store", () => {
     it("refuses an unattended turn the created session leaves on Cursor with no model", async () => {
       const ctx = await resolve(
         execution({
-          metadata: { labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_1" } },
+          metadata: { labels: { [ROUTINE_ID_LABEL_KEY]: "sch_1" } },
           spec: { message: "hi" },
           status: { agentId: AGENT, agentVersionHash: PINNED },
         }),

@@ -75,7 +75,7 @@ async function run(
   await newResolveRunConfigStep({
     store: {} as Store,
     runLanes: undefined,
-    scheduleProfile: undefined,
+    routineProfile: undefined,
   }).execute(ctx);
   await step.execute(ctx);
 }

@@ -73,7 +73,7 @@ import { reflect } from "@bufbuild/protobuf/reflect";
 import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
@@ -108,7 +108,7 @@ export const REFERRING_KINDS_AT_REWRITE: ReadonlyArray<ReferringKindAtRewrite> =
   { kind: "identity_account", schema: IdentityAccountSchema },
   { kind: "platform_client", schema: FrozenPlatformClientEnvelopeSchema },
   { kind: "plugin_eval", schema: FrozenPluginEvalEnvelopeSchema },
-  { kind: "schedule", schema: ScheduleSchema },
+  { kind: "schedule", schema: RoutineSchema },
   { kind: "session", schema: SessionSchema },
 ];
 

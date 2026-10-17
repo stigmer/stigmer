@@ -8,17 +8,17 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, render } from "@testing-library/react";
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
 
 interface ViewProps {
   org: string;
   slug: string;
   activeTab: string;
-  onResourceLoad: (schedule: Schedule) => void;
+  onResourceLoad: (routine: Routine) => void;
   onNavigateToAgent: (org: string, slug: string) => void;
   onNavigateToRun: (id: string) => void;
   onDeleted: () => void;
-  onRenamed?: (schedule: Schedule) => void;
+  onRenamed?: (routine: Routine) => void;
 }
 
 const page = vi.hoisted(() => ({
@@ -109,8 +109,8 @@ describe("web ScheduleDetailPageInner", () => {
   it("names the breadcrumb after the loaded schedule, falling back to its slug", () => {
     render(<ScheduleDetailPageInner org="acme" slug="nightly" />);
 
-    act(() => view()?.onResourceLoad({ metadata: { name: "Nightly digest" } } as Schedule));
-    act(() => view()?.onResourceLoad({ metadata: { name: "", slug: "nightly" } } as Schedule));
+    act(() => view()?.onResourceLoad({ metadata: { name: "Nightly digest" } } as Routine));
+    act(() => view()?.onResourceLoad({ metadata: { name: "", slug: "nightly" } } as Routine));
 
     expect(page.labels.slice(-2)).toEqual(["Nightly digest", "nightly"]);
   });
@@ -118,8 +118,8 @@ describe("web ScheduleDetailPageInner", () => {
   it("moves the address to the slug the schedule answers to now, and to the one a rename gave it", () => {
     render(<ScheduleDetailPageInner org="acme" slug="nightly" />);
 
-    act(() => view()?.onResourceLoad({ metadata: { name: "Nightly", slug: "nightly-digest" } } as Schedule));
-    act(() => view()?.onRenamed?.({ metadata: { name: "Nightly", slug: "digest" } } as Schedule));
+    act(() => view()?.onResourceLoad({ metadata: { name: "Nightly", slug: "nightly-digest" } } as Routine));
+    act(() => view()?.onRenamed?.({ metadata: { name: "Nightly", slug: "digest" } } as Routine));
 
     expect(page.canonical).toEqual(["nightly-digest", "digest"]);
   });

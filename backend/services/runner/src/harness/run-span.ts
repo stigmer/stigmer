@@ -65,7 +65,7 @@ import { markFailed, turnContent } from "../shared/telemetry-content.js";
 /** The label the server sets on an eval run's try (the server's `domain/eval-run/constants.ts`). Wire contract. */
 export const EVAL_RUN_LABEL = "stigmer.ai/eval-run";
 /** The label the server sets on a schedule's run (the server's `domain/schedule/labels.ts`). Wire contract. */
-export const SCHEDULE_ID_LABEL = "stigmer.ai/schedule-id";
+export const ROUTINE_ID_LABEL = "stigmer.ai/schedule-id";
 
 /** The agent name of a turn that runs no saved agent. */
 export const ASSISTANT_AGENT_NAME = "assistant";
@@ -96,7 +96,7 @@ export interface RunSpan {
 export function runKindOf(labels: Readonly<Record<string, string>> | undefined): RunKind {
   if ((labels?.[GRADES_RUN_LABEL] ?? "") !== "") return "judge";
   if ((labels?.[EVAL_RUN_LABEL] ?? "") !== "") return "eval-try";
-  if ((labels?.[SCHEDULE_ID_LABEL] ?? "") !== "") return "schedule";
+  if ((labels?.[ROUTINE_ID_LABEL] ?? "") !== "") return "schedule";
   return "conversation";
 }
 

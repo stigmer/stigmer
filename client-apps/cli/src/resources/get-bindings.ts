@@ -8,7 +8,7 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
 import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
 import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
@@ -60,8 +60,8 @@ export const GET_BINDINGS: ReadonlyMap<ApiResourceKind, Getter> = new Map([
     ),
   ],
   [
-    ApiResourceKind.schedule,
-    refGetter(ApiResourceKind.schedule, ScheduleSchema, (c) => c.schedule),
+    ApiResourceKind.routine,
+    refGetter(ApiResourceKind.routine, RoutineSchema, (c) => c.routine),
   ],
   [
     ApiResourceKind.skill,

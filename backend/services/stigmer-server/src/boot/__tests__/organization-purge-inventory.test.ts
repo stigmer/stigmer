@@ -64,7 +64,7 @@ describe("the core's kind purges", () => {
       grantPath: { cleanupResource: () => Promise.resolve() },
       authorizationLifecycle: undefined,
       secretService: SecretService.create(undefined),
-      scheduleClock: () => undefined,
+      routineClock: () => undefined,
       channelRuntime: undefined,
       accounts: newResourceIdentityAccountStore(fx.store),
       accountLifecycle: undefined,
@@ -72,7 +72,7 @@ describe("the core's kind purges", () => {
     });
     const kinds = [purges.quiesce.kind, ...purges.content.map((p) => p.kind)];
     expect(new Set(kinds).size, "no kind is purged twice").toBe(kinds.length);
-    expect(purges.quiesce.kind).toBe(ApiResourceKind.schedule);
+    expect(purges.quiesce.kind).toBe(ApiResourceKind.routine);
     expect(
       [...new Set([...kinds, ApiResourceKind.grant])].sort(),
     ).toEqual([...CORE_PURGED_KINDS].sort());

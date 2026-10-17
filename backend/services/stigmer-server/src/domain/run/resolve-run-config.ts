@@ -84,7 +84,7 @@ import {
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { Store } from "../../store/interface.js";
-import { CURSOR_AUTO_PRICE_REASON } from "../../temporal/schedule/model-pinning.js";
+import { CURSOR_AUTO_PRICE_REASON } from "../../temporal/routine/model-pinning.js";
 import { readRunAgentSpec } from "../agent/run-defaults.js";
 import {
   HARNESS_NAME_CURSOR,
@@ -92,7 +92,7 @@ import {
 } from "../../modelcatalog/pin-validation.js";
 import { savedChoiceWithoutModelRefusal } from "../../modelcatalog/run-config-checks.js";
 
-import { SCHEDULE_ID_LABEL_KEY } from "../vault/resolve.js";
+import { ROUTINE_ID_LABEL_KEY } from "../vault/resolve.js";
 import { storedSessionOf } from "./session-binding.js";
 import { newSessionSpecOf, sessionIdOf } from "./target.js";
 
@@ -285,7 +285,7 @@ export interface ResolveRunConfigDeps {
   /** The edition's lanes (drivers.runLanes); undefined in open source. */
   readonly runLanes: RunLanes | undefined;
   /** The schedule lane's operator profile (the fire-time bounds), if any. */
-  readonly scheduleProfile: RunConfig | undefined;
+  readonly routineProfile: RunConfig | undefined;
 }
 
 export function newResolveRunConfigStep(
@@ -468,11 +468,11 @@ async function placeLane(
     };
   }
   const turn = execution.spec?.runConfig;
-  if ((execution.metadata?.labels[SCHEDULE_ID_LABEL_KEY] ?? "") !== "") {
+  if ((execution.metadata?.labels[ROUTINE_ID_LABEL_KEY] ?? "") !== "") {
     return {
       turn,
       turnName: "the schedule's run_config",
-      profile: deps.scheduleProfile,
+      profile: deps.routineProfile,
       approvalMode: ApprovalMode.UNATTENDED,
       replacesRequest: false,
       saved: true,

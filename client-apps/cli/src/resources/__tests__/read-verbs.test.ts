@@ -23,8 +23,8 @@ import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
+import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineQueryController } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/query_pb";
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
@@ -207,7 +207,7 @@ const secondChannelApp = create(ChannelAppSchema, {
 // owner's switch is ON (spec.enabled) while the platform's failure latch is
 // SET (status.paused_reason), two different states with two different
 // remedies.
-const pausedSchedule = create(ScheduleSchema, {
+const pausedRoutine = create(RoutineSchema, {
   apiVersion: "agentic.stigmer.ai/v1",
   kind: "Schedule",
   metadata: { name: "daily-fee-reminders", slug: "daily-fee-reminders", org: ACME_ID, id: "sch_1" },
@@ -225,7 +225,7 @@ const pausedSchedule = create(ScheduleSchema, {
 
 // Owner-disabled and never fired: empty status, so the row must derive
 // "active" from an absent paused_reason and print no bogus timestamps.
-const disabledSchedule = create(ScheduleSchema, {
+const disabledRoutine = create(RoutineSchema, {
   apiVersion: "agentic.stigmer.ai/v1",
   kind: "Schedule",
   metadata: { name: "weekly-digest", slug: "weekly-digest", org: ACME_ID, id: "sch_2" },
@@ -242,7 +242,7 @@ const disabledSchedule = create(ScheduleSchema, {
 
 // A schedule whose agent was deleted: the server answers its reference with
 // the agent's id and no slug.
-const orphanedSchedule = create(ScheduleSchema, {
+const orphanedRoutine = create(RoutineSchema, {
   apiVersion: "agentic.stigmer.ai/v1",
   kind: "Schedule",
   metadata: { name: "orphaned", slug: "orphaned", org: ACME_ID, id: "sch_3" },
@@ -358,19 +358,19 @@ beforeAll(async () => {
         return { entries: [knownChannelApp, secondChannelApp] };
       },
     });
-    router.service(ScheduleQueryController, {
+    router.service(RoutineQueryController, {
       get: (req) => {
         if (req.value !== "sch_1") throw new ConnectError("schedule not found", Code.NotFound);
-        return pausedSchedule;
+        return pausedRoutine;
       },
       getByReference: (req) => {
         if (req.slug !== "daily-fee-reminders") throw new ConnectError("schedule not found", Code.NotFound);
-        return pausedSchedule;
+        return pausedRoutine;
       },
       list: (req) => {
-        if (req.org === "orphans") return { entries: [orphanedSchedule] };
+        if (req.org === "orphans") return { entries: [orphanedRoutine] };
         if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
-        return { entries: [pausedSchedule, disabledSchedule] };
+        return { entries: [pausedRoutine, disabledRoutine] };
       },
     });
     // A server that holds several organizations, so an empty org is refused.
@@ -519,20 +519,20 @@ describe("get integration", () => {
   });
 
   it("fetches a schedule by org/slug and renders backend protojson", async () => {
-    const { schema, message } = await fetchResource(client, ApiResourceKind.schedule, {
+    const { schema, message } = await fetchResource(client, ApiResourceKind.routine, {
       kind: "ref",
       org: "acme",
       slug: "daily-fee-reminders",
     });
     const rendered = JSON.parse(renderResource(schema, message, "json"));
-    expect(rendered).toEqual(toJson(ScheduleSchema, pausedSchedule, { useProtoFieldName: true }));
+    expect(rendered).toEqual(toJson(RoutineSchema, pausedRoutine, { useProtoFieldName: true }));
   });
 
   it("fetches a schedule by ID, exposing the pause diagnosis get exists for", async () => {
-    const { message } = await fetchResource(client, ApiResourceKind.schedule, { kind: "id", id: "sch_1" });
+    const { message } = await fetchResource(client, ApiResourceKind.routine, { kind: "id", id: "sch_1" });
     // The full resource is where an operator reads WHY the platform paused
     // a schedule (paused_reason + the streak) — the list table only flags it.
-    expect(JSON.parse(renderResource(ScheduleSchema, message, "json"))).toMatchObject({
+    expect(JSON.parse(renderResource(RoutineSchema, message, "json"))).toMatchObject({
       metadata: { id: "sch_1" },
       spec: { enabled: true },
       status: { paused_reason: "5 consecutive failed runs", consecutive_failures: 5 },
@@ -717,7 +717,7 @@ describe("list integration", () => {
 
   it("lists schedules as a table keeping the owner switch and the platform latch distinct", async () => {
     orgGets.length = 0;
-    const out = await listResources(client, ApiResourceKind.schedule, "acme", 50, "table");
+    const out = await listResources(client, ApiResourceKind.routine, "acme", 50, "table");
     // Both targets name acme by id: one lookup, and the table prints the slug.
     expect(orgGets).toEqual([ACME_ID]);
     expect(out).not.toContain(ACME_ID);
@@ -743,17 +743,17 @@ describe("list integration", () => {
   });
 
   it("shows a schedule whose agent was deleted as targeting a deleted agent, never a name", async () => {
-    const out = await listResources(client, ApiResourceKind.schedule, "orphans", 50, "table");
+    const out = await listResources(client, ApiResourceKind.routine, "orphans", 50, "table");
     const row = out.split("\n").find((line) => line.includes("sch_3"));
     expect(row).toContain("deleted agent");
     expect(row).not.toContain("agt_gone");
   });
 
   it("lists schedules as JSON matching backend protojson", async () => {
-    const out = await listResources(client, ApiResourceKind.schedule, "acme", 50, "json");
+    const out = await listResources(client, ApiResourceKind.routine, "acme", 50, "json");
     expect(JSON.parse(out)).toEqual([
-      toJson(ScheduleSchema, pausedSchedule, { useProtoFieldName: true }),
-      toJson(ScheduleSchema, disabledSchedule, { useProtoFieldName: true }),
+      toJson(RoutineSchema, pausedRoutine, { useProtoFieldName: true }),
+      toJson(RoutineSchema, disabledRoutine, { useProtoFieldName: true }),
     ]);
   });
 
@@ -761,7 +761,7 @@ describe("list integration", () => {
     // ListSchedulesRequest requires org (min_len 1); an unset cloud context
     // resolves to "". The branch refuses with actionable copy instead of
     // relaying the server's raw validation error.
-    const err = await listResources(client, ApiResourceKind.schedule, "", 50, "table").catch((e) => e);
+    const err = await listResources(client, ApiResourceKind.routine, "", 50, "table").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
     expect(String(err.message)).toContain("--org");
   });

@@ -20,9 +20,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelAudience } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
-import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/status_pb";
+import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
+import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/status_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
@@ -39,7 +39,7 @@ import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js"
 
 import { EMBEDDING_VAULT_ATTACHMENTS } from "../../organization/embedding.js";
 import { EVAL_RUN_VAULT_ATTACHMENTS } from "../../eval-run/vault-attachments.js";
-import { SCHEDULE_VAULT_ATTACHMENTS } from "../../schedule/vault-attachments.js";
+import { ROUTINE_VAULT_ATTACHMENTS } from "../../routine/vault-attachments.js";
 import { resolveReferences } from "../../../pipeline/steps/references.js";
 import { myVaultLockRefusal, myVaultRefusal, newVaultAttachmentsStep } from "../attachments.js";
 import type { VaultAttachmentOptions } from "../attachments.js";
@@ -96,11 +96,11 @@ function unrecorded<Desc extends DescMessage>(surface: string): VaultAttachmentO
   return { surface, attachers: { get: () => undefined, set: () => undefined } };
 }
 
-const SCHEDULE: VaultAttachmentOptions<typeof ScheduleSchema> = {
+const SCHEDULE: VaultAttachmentOptions<typeof RoutineSchema> = {
   surface: "a schedule other than its owner's own",
   allowsOwnersMyVault: true,
   rejudgeAllWhen: (existing, next) => {
-    const agentOf = (row: Schedule) => {
+    const agentOf = (row: Routine) => {
       const ref = row.spec?.target.case === "agent" ? row.spec.target.value.agentRef : undefined;
       return `${ref?.id ?? ""}/${ref?.slug ?? ""}`;
     };
@@ -109,7 +109,7 @@ const SCHEDULE: VaultAttachmentOptions<typeof ScheduleSchema> = {
   attachers: {
     get: (row) => row.status?.vaultAttachers,
     set: (row, attachers) => {
-      (row.status ??= create(ScheduleStatusSchema)).vaultAttachers = attachers;
+      (row.status ??= create(RoutineStatusSchema)).vaultAttachers = attachers;
     },
   },
 };
@@ -152,8 +152,8 @@ function session(...slugs: string[]): Session {
   });
 }
 
-function schedule(agent: string, createdBy: string, ...slugs: string[]): Schedule {
-  return create(ScheduleSchema, {
+function schedule(agent: string, createdBy: string, ...slugs: string[]): Routine {
+  return create(RoutineSchema, {
     metadata: { id: "sch_1", org: ORG },
     spec: {
       target: {
@@ -257,8 +257,8 @@ describe("a My vault", () => {
   it("is admitted on its owner's own schedule, and refused on someone else's or by someone else", async () => {
     const mine = (await rig.vaults.findById(anasId))!.metadata!.slug;
     const own = await run(
-      ScheduleSchema,
-      ApiResourceKind.schedule,
+      RoutineSchema,
+      ApiResourceKind.routine,
       schedule("helper", "ida_ana", mine),
       SCHEDULE,
       { writer: "ida_ana" },
@@ -267,8 +267,8 @@ describe("a My vault", () => {
 
     const onBens = await refusalOf(
       run(
-        ScheduleSchema,
-        ApiResourceKind.schedule,
+        RoutineSchema,
+        ApiResourceKind.routine,
         schedule("helper", "ida_ben", mine),
         SCHEDULE,
         { writer: "ida_ana", existing: schedule("helper", "ida_ben") },
@@ -278,8 +278,8 @@ describe("a My vault", () => {
 
     const byBen = await refusalOf(
       run(
-        ScheduleSchema,
-        ApiResourceKind.schedule,
+        RoutineSchema,
+        ApiResourceKind.routine,
         schedule("helper", "ida_ben", mine),
         SCHEDULE,
         { writer: "ida_ben" },
@@ -331,8 +331,8 @@ describe("who attached each vault", () => {
 describe("a schedule whose agent changes", () => {
   it("re-judges every vault it keeps against the updater: admitted with use, refused without", async () => {
     const stored = await run(
-      ScheduleSchema,
-      ApiResourceKind.schedule,
+      RoutineSchema,
+      ApiResourceKind.routine,
       schedule("helper", "ida_admin", "team-keys"),
       SCHEDULE,
       { writer: "ida_admin" },
@@ -341,8 +341,8 @@ describe("a schedule whose agent changes", () => {
     // Same agent, a cron-only edit by Ben: nothing is asked, the attacher stays.
     const asked: string[] = [];
     const cronEdit = await run(
-      ScheduleSchema,
-      ApiResourceKind.schedule,
+      RoutineSchema,
+      ApiResourceKind.routine,
       schedule("helper", "ida_admin", "team-keys"),
       SCHEDULE,
       { writer: "ida_ben", existing: stored, authorizer: useTable(teamId, asked) },
@@ -353,8 +353,8 @@ describe("a schedule whose agent changes", () => {
     // Ben points it at another agent without use of the vault: refused.
     const refused = await refusalOf(
       run(
-        ScheduleSchema,
-        ApiResourceKind.schedule,
+        RoutineSchema,
+        ApiResourceKind.routine,
         schedule("other-agent", "ida_admin", "team-keys"),
         SCHEDULE,
         { writer: "ida_ben", existing: stored, authorizer: useTable(teamId, asked) },
@@ -365,8 +365,8 @@ describe("a schedule whose agent changes", () => {
 
     // With use, the change is admitted and Ben becomes the attacher.
     const moved = await run(
-      ScheduleSchema,
-      ApiResourceKind.schedule,
+      RoutineSchema,
+      ApiResourceKind.routine,
       schedule("other-agent", "ida_admin", "team-keys"),
       SCHEDULE,
       { writer: "ida_ben", existing: stored },
@@ -376,19 +376,19 @@ describe("a schedule whose agent changes", () => {
 });
 
 describe("a schedule that keeps its creator's My vault", () => {
-  async function anasSchedule(): Promise<Schedule> {
+  async function anasRoutine(): Promise<Routine> {
     const mine = (await rig.vaults.findById(anasId))!.metadata!.slug;
     return run(
-      ScheduleSchema,
-      ApiResourceKind.schedule,
+      RoutineSchema,
+      ApiResourceKind.routine,
       schedule("helper", "ida_ana", mine, "team-keys"),
-      SCHEDULE_VAULT_ATTACHMENTS,
+      ROUTINE_VAULT_ATTACHMENTS,
       { writer: "ida_ana" },
     );
   }
 
-  function withAgent(row: Schedule, agent: string): Schedule {
-    const next = clone(ScheduleSchema, row);
+  function withAgent(row: Routine, agent: string): Routine {
+    const next = clone(RoutineSchema, row);
     if (next.spec?.target.case === "agent") {
       next.spec.target.value.agentRef = create(ApiResourceReferenceSchema, {
         kind: ApiResourceKind.agent,
@@ -400,10 +400,10 @@ describe("a schedule that keeps its creator's My vault", () => {
   }
 
   it("refuses anyone else's change with the lock, before any vault is re-judged", async () => {
-    const stored = await anasSchedule();
+    const stored = await anasRoutine();
     const asked: string[] = [];
     const refused = await refusalOf(
-      run(ScheduleSchema, ApiResourceKind.schedule, withAgent(stored, "other-agent"), SCHEDULE_VAULT_ATTACHMENTS, {
+      run(RoutineSchema, ApiResourceKind.routine, withAgent(stored, "other-agent"), ROUTINE_VAULT_ATTACHMENTS, {
         writer: "ida_admin",
         existing: stored,
         authorizer: useTable(teamId, asked),
@@ -415,14 +415,14 @@ describe("a schedule that keeps its creator's My vault", () => {
   });
 
   it("does not lock the platform's own internal writes", async () => {
-    const stored = await anasSchedule();
-    const next = clone(ScheduleSchema, stored);
+    const stored = await anasRoutine();
+    const next = clone(RoutineSchema, stored);
     next.spec!.cron = "0 10 * * *";
     const kept = await run(
-      ScheduleSchema,
-      ApiResourceKind.schedule,
+      RoutineSchema,
+      ApiResourceKind.routine,
       next,
-      SCHEDULE_VAULT_ATTACHMENTS,
+      ROUTINE_VAULT_ATTACHMENTS,
       { writer: "stigmer-system", existing: stored, internal: true },
     );
     expect(kept.status?.vaultAttachers).toEqual({ [anasId]: "ida_ana", [teamId]: "ida_ana" });
@@ -476,8 +476,8 @@ describe("faults and deleted vaults", () => {
 
   it("answers INTERNAL when re-judging a schedule's vault cannot be evaluated", async () => {
     const stored = await run(
-      ScheduleSchema,
-      ApiResourceKind.schedule,
+      RoutineSchema,
+      ApiResourceKind.routine,
       schedule("helper", "ida_admin", "team-keys"),
       SCHEDULE,
       { writer: "ida_admin" },
@@ -487,8 +487,8 @@ describe("faults and deleted vaults", () => {
     };
     const error = await refusalOf(
       run(
-        ScheduleSchema,
-        ApiResourceKind.schedule,
+        RoutineSchema,
+        ApiResourceKind.routine,
         schedule("other-agent", "ida_admin", "team-keys"),
         SCHEDULE,
         { writer: "ida_ben", existing: stored, authorizer: unavailable },
