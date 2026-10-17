@@ -16,7 +16,7 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
+import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 
 import { LIST_INDEXES } from "../../../boot/list-indexes.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";

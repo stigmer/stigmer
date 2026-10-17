@@ -32,32 +32,32 @@
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 
-import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/status_pb";
-import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentId, UpdateAgentInput } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
-import { UpdateAgentInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
+import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
+import { ApiResourceAuditSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { AgentId, UpdateAgentInput } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/io_pb";
+import { UpdateAgentInputSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/io_pb";
 import type {
   AgentVersionEntry,
   GetAgentVersionInput,
   ListAgentVersionsInput,
   ListAgentVersionsResponse,
   TagAgentVersionInput,
-} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import type {
   ApiResourceReference,
   RenameInput,
   UpdateVisibilityInput,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { AgentListSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { AgentListSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/io_pb";
 import type {
   AgentList,
   ListAgentsRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/agent/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { CredentialBinding } from "../../extensions/credential-binding.js";

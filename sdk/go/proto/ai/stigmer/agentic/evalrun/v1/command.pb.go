@@ -7,8 +7,8 @@
 package evalrunv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -30,8 +30,8 @@ const file_ai_stigmer_agentic_evalrun_v1_command_proto_rawDesc = "" +
 	"\x18EvalRunCommandController\x12^\n" +
 	"\x06create\x12&.ai.stigmer.agentic.evalrun.v1.EvalRun\x1a&.ai.stigmer.agentic.evalrun.v1.EvalRun\"\x04и\x18\x01\x12\x8c\x01\n" +
 	"\x06cancel\x12(.ai.stigmer.agentic.evalrun.v1.EvalRunId\x1a&.ai.stigmer.agentic.evalrun.v1.EvalRun\"0¸\x18,\b\x02\x10A\"\x05value*\x1funauthorized to cancel eval run\x12\x8c\x01\n" +
-	"\x06delete\x12(.ai.stigmer.agentic.evalrun.v1.EvalRunId\x1a&.ai.stigmer.agentic.evalrun.v1.EvalRun\"0¸\x18,\b\x03\x10A\"\x05value*\x1funauthorized to delete eval run\x1a\x04\xa0\xff+AB\x9e\x02\n" +
-	"!com.ai.stigmer.agentic.evalrun.v1B\fCommandProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/evalrun/v1;evalrunv1\xa2\x02\x04ASAE\xaa\x02\x1dAi.Stigmer.Agentic.Evalrun.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Evalrun\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Evalrun\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Evalrun::V1b\x06proto3"
+	"\x06delete\x12(.ai.stigmer.agentic.evalrun.v1.EvalRunId\x1a&.ai.stigmer.agentic.evalrun.v1.EvalRun\"0¸\x18,\b\x03\x10A\"\x05value*\x1funauthorized to delete eval run\x1a\x04\xa0\xff+AB\x8b\x02\n" +
+	"!com.ai.stigmer.agentic.evalrun.v1B\fCommandProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/evalrun/v1;evalrunv1\xa2\x02\x04ASAE\xaa\x02\x1dAi.Stigmer.Agentic.Evalrun.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Evalrun\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Evalrun\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Evalrun::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_evalrun_v1_command_proto_goTypes = []any{
 	(*EvalRun)(nil),   // 0: ai.stigmer.agentic.evalrun.v1.EvalRun

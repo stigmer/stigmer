@@ -9,8 +9,8 @@ import {
   type ComponentPropsWithRef,
 } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
-import { cn } from "@stigmer/theme";
-import type { ToolUse } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import type { ToolUse } from "@stigmer/client";
 import type { ToolUseAnswer } from "../run/useAnswerToolUse.js";
 import {
   ThreadItemRenderer,

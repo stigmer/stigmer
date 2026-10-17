@@ -4,8 +4,8 @@
 // every token from the one its params name.
 import { describe, expect, it } from "vitest";
 import { createRouterTransport, type Transport } from "@connectrpc/connect";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { SearchService } from "@stigmer/apis/ai/stigmer/search/v1/query_pb";
 import { SearchClient } from "../search.js";
 
 interface Seen {

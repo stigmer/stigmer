@@ -38,8 +38,8 @@ import assert from "node:assert/strict";
 
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
+import { TeamSchema } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import {
   etagOf,
   guardedPortDeclarations,

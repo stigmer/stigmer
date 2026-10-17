@@ -8,11 +8,11 @@ import type { ReactNode } from "react";
 // broadcast only ever exercises the test that sent it.
 afterEach(cleanup);
 import { create } from "@bufbuild/protobuf";
-import { StigmerError } from "@stigmer/sdk";
+import { StigmerError } from "@stigmer/client";
 import {
   ChannelConversationSchema,
   ConversationControl,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useConversation } from "../useConversation";

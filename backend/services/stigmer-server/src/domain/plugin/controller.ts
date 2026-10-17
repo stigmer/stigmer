@@ -27,15 +27,15 @@ import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
-import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginCommandController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/command_pb";
 import {
   GetArtifactResponseSchema,
   PluginArtifactDownloadUrlSchema,
   PluginArtifactUploadUrlSchema,
   PushPluginRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import type {
   CreatePluginArtifactUploadUrlRequest,
   GetArtifactRequest,
@@ -48,20 +48,20 @@ import type {
   PluginArtifactUploadUrl,
   PluginId,
   PushPluginRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
-import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type {
   ApiResourceReference,
   UpdateVisibilityInput,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import { PluginListSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { PluginStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { ApiResourceAuditSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
+import { PluginListSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import type {
   PluginList,
   ListPluginsRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 
 import { ArtifactNotFoundError } from "../../archive/content-store.js";
 import type { ContentAddressedArchiveStore } from "../../archive/content-store.js";

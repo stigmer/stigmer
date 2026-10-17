@@ -1,7 +1,7 @@
 "use client";
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { cn } from "@stigmer/theme";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { useSessionWriteBacks } from "../session/useSessionWriteBacks.js";
 import { WriteBackCard } from "./WriteBackCard.js";

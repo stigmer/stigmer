@@ -100,10 +100,10 @@ import type { Empty } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { config as rpcAuthorizationConfig } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
-import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
-import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { config as rpcAuthorizationConfig } from "@stigmer/apis/ai/stigmer/commons/rpc/method_options_pb";
+import type { Grant } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
+import { GrantCommandController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/command_pb";
 import type {
   CheckAuthorizationInput,
   CheckAuthorizationResult,
@@ -115,7 +115,7 @@ import type {
   ListResourceAccessInput,
   PrincipalResourceInput,
   RevokeOrgAccessInput,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import {
   AuthorizedPrincipalIdsListSchema,
   AuthorizedResourceIdsListSchema,
@@ -124,18 +124,18 @@ import {
   PrincipalsCountSchema,
   ResourceAccessByPrincipalListSchema,
   RevokeOrgAccessInputSchema,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import { GrantQueryController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/query_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
 import type {
   ApiResourceRef,
   GrantSpec,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 import {
   ApiResourceRefSchema,
   GrantSpecSchema,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
+import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import type { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { AuthorizationQueryEngine } from "../../extensions/authorization-queries.js";

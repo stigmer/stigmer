@@ -9,7 +9,7 @@ the components wear your design language, you override tokens; the component
 markup never changes.
 
 Try it below: the conversation is rendered by the real `MessageThread`
-organism from `@stigmer/react`. Switching preset or color mode changes only
+organism from `@stigmer/react-sdk`. Switching preset or color mode changes only
 token values.
 
 <DemoThemingPlayground />
@@ -131,8 +131,8 @@ treatment — shipped as CSS classes. Import the CSS once and select the
 preset on the provider:
 
 ```tsx
-import "@stigmer/theme/tokens.css";
-import "@stigmer/theme/presets/corporate.css";
+import "@stigmer/design-tokens/tokens.css";
+import "@stigmer/design-tokens/presets/corporate.css";
 
 <StigmerProvider client={client} preset="corporate" colorMode="system">
 ```
@@ -247,7 +247,7 @@ import {
   type MessageEntryProps,
   type MessageThreadSlots,
   type TodoRowProps,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 
 // Restyle only user bubbles; every other message keeps the built-in.
 function BrandedMessageEntry(props: MessageEntryProps) {

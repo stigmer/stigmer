@@ -20,10 +20,10 @@ import { cleanup, render, screen } from "@testing-library/react";
 import type { ComponentProps, ComponentType } from "react";
 import { fromJson, type JsonValue } from "@bufbuild/protobuf";
 import { getResponse, type HttpHandler } from "msw";
-import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
-import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
-import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
+import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
+import { PluginCommandController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/command_pb";
+import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
 
 import { MarketplaceConnectTour } from "../marketplace-connect-tour/index";
 import { OAuthConnectFlow } from "../oauth-connect-flow/index";

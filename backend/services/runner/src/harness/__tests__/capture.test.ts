@@ -26,7 +26,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { FileChangeKind, SnapshotKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeKind, SnapshotKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import { initGitWorkspace } from "../../__test-utils__/git-workspace-fixture.js";

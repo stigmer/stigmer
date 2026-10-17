@@ -8,8 +8,8 @@
  */
 import { fromBinary, toBinary } from "@bufbuild/protobuf";
 
-import { ApiResourceAuditActorSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import type { ApiResourceAuditActor } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+import { ApiResourceAuditActorSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
+import type { ApiResourceAuditActor } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 
 /** The column's value for `actor`: its bytes, or null when the fire has none. */
 export function encodeFiredBy(actor: ApiResourceAuditActor | undefined): Uint8Array | null {

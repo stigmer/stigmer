@@ -31,24 +31,24 @@
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 
-import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
-import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
-import { ChannelAppsSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
+import { ChannelAppSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
+import type { ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { ChannelAppCommandController } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/command_pb";
+import { ChannelAppQueryController } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/query_pb";
+import { ChannelAppsSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/io_pb";
 import type {
   ChannelApps,
   ListChannelAppsInput,
-} from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/io_pb";
 import type {
   ApiResourceDeleteInput,
   ApiResourceId,
   ApiResourceReference,
   RenameInput,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { UpdateChannelAppInput } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
-import { UpdateChannelAppInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { UpdateChannelAppInput } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/io_pb";
+import { UpdateChannelAppInputSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { CredentialBinding } from "../../extensions/credential-binding.js";

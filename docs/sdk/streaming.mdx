@@ -29,7 +29,7 @@ events of your run, print what the Agent does, and stop when the run's
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-import { followSession } from "@stigmer/sdk";
+import { followSession } from "@stigmer/client";
 
 const ended = ["completed", "failed", "cancelled", "terminated"];
 for await (const frame of followSession(stigmer, sessionId)) {
@@ -90,7 +90,7 @@ for {
 ```
 
 `sessionv1` is
-`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1`, and
+`go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1`, and
 `proto` is `google.golang.org/protobuf/proto`. `turnEnded` is defined in
 [Detect the end of a run](#detect-the-end-of-a-run).
 </Tab>
@@ -184,7 +184,7 @@ with its items in order, the calls waiting for an answer (`asks`), its to-do
 list, its status, and its final `answer`:
 
 ```typescript
-import { SessionLog, followSession } from "@stigmer/sdk";
+import { SessionLog, followSession } from "@stigmer/client";
 
 const log = new SessionLog();
 for await (const frame of followSession(stigmer, sessionId)) {
@@ -250,7 +250,7 @@ These phases don't:
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-import { TURN_ENDED_PHASES, type TurnPhase } from "@stigmer/sdk";
+import { TURN_ENDED_PHASES, type TurnPhase } from "@stigmer/client";
 
 function isEnded(phase: string): boolean {
   return TURN_ENDED_PHASES.has(phase as TurnPhase);
@@ -299,7 +299,7 @@ answered.
 <Tab value="TypeScript">
 ```typescript
 import { create } from "@bufbuild/protobuf";
-import { ConfirmToolUseInputSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { ConfirmToolUseInputSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
 await stigmer.session.confirmToolUse(
   create(ConfirmToolUseInputSchema, {
@@ -369,7 +369,7 @@ then continues. A stream that falls too far behind the log is ended with
 It throws only when a retry can't help, such as a Session you can't read:
 
 ```typescript
-import { followSession, isNotFound } from "@stigmer/sdk";
+import { followSession, isNotFound } from "@stigmer/client";
 
 try {
   for await (const frame of followSession(stigmer, sessionId)) {
@@ -481,7 +481,7 @@ In TypeScript, pass `previews` to `followSession`, and let `SessionLog` place
 each preview:
 
 ```typescript
-import { ALL_SESSION_PREVIEWS, SessionLog, followSession } from "@stigmer/sdk";
+import { ALL_SESSION_PREVIEWS, SessionLog, followSession } from "@stigmer/client";
 
 const log = new SessionLog();
 for await (const frame of followSession(stigmer, sessionId, {

@@ -1,4 +1,4 @@
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 /**
  * The SDK's canonical in-flight spinner: a three-quarter arc on a 16×16

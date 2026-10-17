@@ -69,7 +69,7 @@ tools/codegen/
 │   └── services/        # service/RPC schemas (sdk-docs)
 ```
 
-The generator reads typed proto metadata (kind_meta options, protovalidate consts) from `@stigmer/protos` — the committed TS stubs — so `npm run build -w @stigmer/protos` must have run for the targets that need it (the Makefile targets handle this).
+The generator reads typed proto metadata (kind_meta options, protovalidate consts) from `@stigmer/apis` — the committed TS stubs — so `npm run build -w @stigmer/apis` must have run for the targets that need it (the Makefile targets handle this).
 
 ## Schema format
 

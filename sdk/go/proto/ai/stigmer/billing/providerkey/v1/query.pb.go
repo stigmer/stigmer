@@ -7,7 +7,7 @@
 package providerkeyv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -27,9 +27,9 @@ const file_ai_stigmer_billing_providerkey_v1_query_proto_rawDesc = "" +
 	"\n" +
 	"-ai/stigmer/billing/providerkey/v1/query.proto\x12!ai.stigmer.billing.providerkey.v1\x1a*ai/stigmer/billing/providerkey/v1/io.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xe3\x01\n" +
 	"\x1aProviderKeyQueryController\x12\xc4\x01\n" +
-	"\x04list\x128.ai.stigmer.billing.providerkey.v1.ListProviderKeysInput\x1a9.ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput\"G¸\x18C\b\x1b\x10\x1e\"\x03org*8unauthorized to view provider keys for this organizationB\xb8\x02\n" +
+	"\x04list\x128.ai.stigmer.billing.providerkey.v1.ListProviderKeysInput\x1a9.ai.stigmer.billing.providerkey.v1.ListProviderKeysOutput\"G¸\x18C\b\x1b\x10\x1e\"\x03org*8unauthorized to view provider keys for this organizationB\xa5\x02\n" +
 	"%com.ai.stigmer.billing.providerkey.v1B\n" +
-	"QueryProtoP\x01ZZgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/providerkey/v1;providerkeyv1\xa2\x02\x04ASBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3"
+	"QueryProtoP\x01ZGgo.stigmer.ai/sdk/proto/ai/stigmer/billing/providerkey/v1;providerkeyv1\xa2\x02\x04ASBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3"
 
 var file_ai_stigmer_billing_providerkey_v1_query_proto_goTypes = []any{
 	(*ListProviderKeysInput)(nil),  // 0: ai.stigmer.billing.providerkey.v1.ListProviderKeysInput

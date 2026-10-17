@@ -15,8 +15,8 @@
 // wins for display — the owner's intent dominates — but callers should
 // keep the paused reason visible alongside (the banner does).
 
-import type { RoutineSpec } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/spec_pb";
-import type { RoutineStatus } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/status_pb";
+import type { RoutineSpec } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/spec_pb";
+import type { RoutineStatus } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/status_pb";
 import type { StatusPhase } from "../resource-workbench/types.js";
 
 /** The three mutually-exclusive display states of a schedule. */

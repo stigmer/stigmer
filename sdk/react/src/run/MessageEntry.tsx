@@ -2,9 +2,9 @@
 
 import { memo, useMemo, useState, type ReactNode } from "react";
 import { Streamdown } from "streamdown";
-import type { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { MessageItem, NoteItem, ThinkingItem } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+import type { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { MessageItem, NoteItem, ThinkingItem } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 import {
   MARKDOWN_COMPONENTS,
   unwrapEnclosingMarkdownFence,

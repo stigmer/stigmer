@@ -29,8 +29,8 @@
  * Pinned by `__tests__/PersonalKeyDisclosure.test.tsx`.
  */
 
-import { cn } from "@stigmer/theme";
-import type { ResourceRef } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import type { ResourceRef } from "@stigmer/client";
 import { useRunAgentSpec } from "../agent/useRunAgentSpec.js";
 import { usePersonalKeys } from "../agent/usePersonalKeys.js";
 

@@ -20,7 +20,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import type { UseGitHubConnectionConfig } from "@stigmer/react";
+import type { UseGitHubConnectionConfig } from "@stigmer/react-sdk";
 import { mockTauri, type TauriMock } from "../../__test-utils__/tauri";
 
 const sdk = vi.hoisted(() => ({
@@ -29,7 +29,7 @@ const sdk = vi.hoisted(() => ({
   handleCallback: vi.fn(async (_code: string, _state: string) => {}),
 }));
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   useDeploymentMode: () => sdk.mode,
   useGitHubConnection: (
     _org: string | null,

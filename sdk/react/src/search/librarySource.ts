@@ -15,16 +15,16 @@
  */
 import { create } from "@bufbuild/protobuf";
 import { type Timestamp, TimestampSchema } from "@bufbuild/protobuf/wkt";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { ListAgentsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { ListPluginsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
-import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { ListSkillsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { type SearchResult, SearchResultSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { ListAgentsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/io_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { ListPluginsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import type { Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import { ListSkillsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceMetadata } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { type SearchResult, SearchResultSchema } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+import type { Stigmer } from "@stigmer/client";
 import type { WorkbenchListFn, WorkbenchPage, WorkbenchPageRequest } from "../resource-workbench/types.js";
 
 /** The kinds the Library lists and searches. */

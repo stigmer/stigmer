@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
-import { BillingSection, type BillingRedirect } from "@stigmer/react";
+import { BillingSection, type BillingRedirect } from "@stigmer/react-sdk";
 import { CONSOLE_URL } from "../../config";
 
 /**

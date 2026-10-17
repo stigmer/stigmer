@@ -29,8 +29,8 @@
  * appends them. Idempotent: a set the log shows decided is passed over,
  * and the event id is the target's, so a repeat appends nothing.
  */
-import type { FileChangeSet, TurnCommandProvenance } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { FileChangeSet, TurnCommandProvenance } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import type { Logger } from "../../../boot/logger.js";
 import { toolUseEventId } from "../../session/events/ids.js";

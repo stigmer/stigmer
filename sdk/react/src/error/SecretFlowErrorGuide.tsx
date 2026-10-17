@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { StigmerError, getUserMessage } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+import { StigmerError, getUserMessage } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 
 /** Props for {@link SecretFlowErrorGuide}. */

@@ -1,6 +1,6 @@
 /**
  * One-shot migration codemod for stigmer/stigmer#454: rewrite every Tailwind
- * utility token authored in @stigmer/react source to carry the `stg:` prefix
+ * utility token authored in @stigmer/react-sdk source to carry the `stg:` prefix
  * (`flex` → `stg:flex`), so the built stylesheet emits `.stg\:flex`-shaped
  * selectors that can never collide with a host application's own Tailwind
  * classes.
@@ -530,7 +530,7 @@ if (checkMode) {
   if (problems.length > 0) {
     console.error(
       `prefix-classnames --check: ${problems.length} problem(s).\n` +
-        `Every Tailwind utility in @stigmer/react source must carry the ` +
+        `Every Tailwind utility in @stigmer/react-sdk source must carry the ` +
         `\`stg:\` prefix (stigmer/stigmer#454 isolation contract).\n` +
         `Fix by hand or run: npx tsx scripts/prefix-classnames.ts --tier2\n`,
     );

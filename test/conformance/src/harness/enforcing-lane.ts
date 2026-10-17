@@ -42,11 +42,11 @@
 // The lane deliberately has no teardown: the target owns its lifetime
 // (LocalTarget memoizes the sibling lane and stops it with the primary).
 import { create } from "@bufbuild/protobuf";
-import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+import type { GrantSpec } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 import {
   ApiResourceRefSchema,
   GrantSpecSchema,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 
 import type {
   EnforcingLane,

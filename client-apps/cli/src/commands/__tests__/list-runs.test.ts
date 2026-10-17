@@ -6,9 +6,9 @@
 // the program, the alias routing and the renderer are real.
 
 import { create } from "@bufbuild/protobuf";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunListSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunListSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Config } from "../../config/index.js";
 import { buildProgram } from "../../program.js";

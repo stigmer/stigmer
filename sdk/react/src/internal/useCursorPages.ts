@@ -25,7 +25,7 @@
  * reads so a press rarely adds nothing; past that the token is kept and
  * `hasMore` stays true, so the next press continues from there.
  *
- * @internal Not part of the public `@stigmer/react` API.
+ * @internal Not part of the public `@stigmer/react-sdk` API.
  */
 import { type DependencyList, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toError } from "./toError.js";

@@ -36,8 +36,8 @@ import type {
 } from "@anthropic-ai/sdk/resources/beta/sessions/sessions";
 import { describe, expect, it } from "vitest";
 
-import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import { StreamSessionEventsResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { StreamSessionEventsResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
 import { SESSION_EVENT_TYPES, isStigmerEventType } from "../catalog.js";
 import { toManagedAgentsJson, toManagedAgentsStreamJson } from "../render.js";

@@ -23,7 +23,7 @@
 
 import { agentFs } from "../agent-fs.js";
 import { join } from "node:path";
-import type { FileCaptureClass } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { FileCaptureClass } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { CasPathCapture } from "./cas-substrate.js";
 import { partitionIgnoredPathsBySecret } from "./secret-paths.js";
 

@@ -10,14 +10,14 @@
 
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { RoutineSchema, type Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineSchema, type Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import {
   type FireRoutineInput,
   RoutineFireOutcome,
   RoutineFireResultSchema,
   type RoutineFireResult,
-} from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
+import type { Stigmer } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { UsageError } from "../../errors/index.js";
 import type { CommandResult } from "../../output/index.js";

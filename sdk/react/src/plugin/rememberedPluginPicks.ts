@@ -13,8 +13,8 @@
  * since is refused there with the server's own message.
  */
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ResourceRef } from "@stigmer/sdk";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ResourceRef } from "@stigmer/client";
 
 /** The `localStorage` key prefix; the organization's id follows it. */
 export const PLUGIN_PICKS_STORAGE_KEY = "stigmer:plugins:last-picks:v1";

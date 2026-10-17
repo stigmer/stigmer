@@ -15,13 +15,13 @@ This post explains the four layers of that system and the single abstraction tha
 
 ## Layer 1: Real components, fake data
 
-Every demo on our site renders the exact same React components that the production web console uses. Session composers, message threads, agent detail views, resource lists — they all come from `@stigmer/react`, our SDK's React package.
+Every demo on our site renders the exact same React components that the production web console uses. Session composers, message threads, agent detail views, resource lists — they all come from `@stigmer/react-sdk`, our SDK's React package.
 
 The trick: the SDK ships a `demo` subpath with a fake API transport.
 
 ```tsx
-import { StigmerProvider } from "@stigmer/react";
-import { createDemoClient, buildScenario, fixtures } from "@stigmer/react/demo";
+import { StigmerProvider } from "@stigmer/react-sdk";
+import { createDemoClient, buildScenario, fixtures } from "@stigmer/react-sdk/demo";
 
 const client = createDemoClient(
   buildScenario(

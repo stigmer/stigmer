@@ -1,7 +1,7 @@
 /**
  * Pins the behaviour of `useIdentityAccountGate` — the console's first-sign-in
  * gate — so the hook can delegate its whoAmI → NOT_FOUND → provisionMyAccount
- * machine to `@stigmer/sdk`'s `ensureMyIdentityAccount`
+ * machine to `@stigmer/client`'s `ensureMyIdentityAccount`
  * without changing what any consumer observes. Written green against the
  * hook as it stood before the delegation; it must stay green after.
  *
@@ -23,8 +23,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   IdentityAccountSchema,
   type IdentityAccount,
-} from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { StigmerError } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { StigmerError } from "@stigmer/client";
 import {
   act,
   cleanup,

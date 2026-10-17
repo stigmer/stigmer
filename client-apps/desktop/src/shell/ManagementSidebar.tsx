@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { SettingsSidebar, useSettingsNavGroups } from "@stigmer/react";
-import type { SidebarLinkRenderProps } from "@stigmer/react";
+import { SettingsSidebar, useSettingsNavGroups } from "@stigmer/react-sdk";
+import type { SidebarLinkRenderProps } from "@stigmer/react-sdk";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
 

@@ -1,5 +1,5 @@
 /**
- * The whole contract as descriptors: every service `@stigmer/protos`
+ * The whole contract as descriptors: every service `@stigmer/apis`
  * exports, whichever edition serves it. Tests that pin a fact about the
  * contract itself (an annotation asks a relation the model defines, an
  * annotation's path names a real field) read it here; a test about what
@@ -20,7 +20,7 @@ import type { DescService } from "@bufbuild/protobuf";
 export async function everyService(): Promise<ReadonlyArray<DescService>> {
   const require = createRequire(import.meta.url);
   const anchor = "ai/stigmer/iam/v1/enum_pb";
-  const resolved = require.resolve(`@stigmer/protos/${anchor}`);
+  const resolved = require.resolve(`@stigmer/apis/${anchor}`);
   const dist = resolved.slice(0, resolved.length - `${anchor}.js`.length);
   const modules = readdirSync(path.join(dist, "ai"), { recursive: true, encoding: "utf8" })
     .filter((file) => file.endsWith("_pb.js"))
@@ -28,7 +28,7 @@ export async function everyService(): Promise<ReadonlyArray<DescService>> {
     .sort();
   const services: DescService[] = [];
   for (const specifier of modules) {
-    const loaded: Record<string, unknown> = await import(`@stigmer/protos/${specifier}`);
+    const loaded: Record<string, unknown> = await import(`@stigmer/apis/${specifier}`);
     for (const value of Object.values(loaded)) {
       if (isService(value)) {
         services.push(value);

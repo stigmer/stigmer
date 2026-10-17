@@ -12,9 +12,9 @@
  * than prefixing every tool with it.
  */
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { toolServerSegment } from "@stigmer/plugin-package";
-import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { Button } from "../button/Button.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { PluginServerSignIn } from "./PluginServerSignIn.js";

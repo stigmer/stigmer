@@ -6,7 +6,7 @@
 // ways to set it.
 
 import { describe, expect, it, vi } from "vitest";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 import { UsageError } from "../../errors/usage-error.js";
 import { holdsOneOrganization, omitsOrganization, requireOrganization } from "../single-org.js";
 

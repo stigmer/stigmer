@@ -58,7 +58,7 @@
  *      lifecycle under the package's own boot script.
  *   4. Consumer typecheck (when declared).
  *
- * The dev-tree `file:` links to the workspace libs (@stigmer/protos,
+ * The dev-tree `file:` links to the workspace libs (@stigmer/apis,
  * @stigmer/temporal-codecs, @stigmer/zip-structure, @stigmer/plugin-package)
  * cannot resolve from
  * inside a packed tarball, so when the manifest still carries them (every
@@ -298,7 +298,7 @@ if (check.typecheckConsumer) {
   });
   // The package under test resolves to ITS tarball; its own @stigmer/* deps
   // resolve exactly as the tarball's manifest says (so the consumer and the
-  // package share one @stigmer/protos); anything else the consumer links
+  // package share one @stigmer/apis); anything else the consumer links
   // locally is packed from its own file: path.
   const packageSpecs = consumerResolvableSpecs(
     readManifest(packageDir).dependencies,

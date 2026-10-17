@@ -7,7 +7,7 @@
 // server composes (targets/enterprise.ts gives the reason beside each).
 // Constructing the target boots nothing, so this runs in the unit arms with
 // no server.
-import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { describe, expect, it } from "vitest";
 
 import { EnterpriseTarget } from "../enterprise";

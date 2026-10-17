@@ -9,7 +9,7 @@
  */
 
 import { useMemo } from "react";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { useOrgUsageReport } from "../usage/useOrgUsageReport.js";
 import { dateRangeFromPreset } from "../usage/date-range.js";
 import {

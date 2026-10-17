@@ -1,11 +1,11 @@
-# @stigmer/react
+# @stigmer/react-sdk
 
 React provider, hooks, and feature components for the Stigmer platform SDK. Ships the same session, run, and resource surfaces the Stigmer Console is built from — style-isolated, theme-aware, and embeddable in any React application. This README covers the foundational wiring (provider, theming, local run); the full hook and component catalog is documented in the [React SDK reference](https://stigmer.ai/docs/sdk/react), and the [Add agent chat to your app](https://stigmer.ai/docs/getting-started/embed-agent) tutorial is the fastest path to a working embed.
 
 ## Install
 
 ```bash
-npm install @stigmer/react @stigmer/sdk @stigmer/protos
+npm install @stigmer/react-sdk @stigmer/client @stigmer/apis
 ```
 
 Peer dependencies (install alongside):
@@ -14,16 +14,16 @@ Peer dependencies (install alongside):
 |---------|---------|
 | `react` | `^19.0.0` |
 | `react-dom` | `^19.0.0` |
-| `@stigmer/sdk` | `*` |
-| `@stigmer/protos` | `*` |
+| `@stigmer/client` | `*` |
+| `@stigmer/apis` | `*` |
 | `@bufbuild/protobuf` | `^2.0.0` |
 
 ## Quick Start
 
 ```tsx
-import { Stigmer } from "@stigmer/sdk";
-import { StigmerProvider } from "@stigmer/react";
-import "@stigmer/react/styles.css";
+import { Stigmer } from "@stigmer/client";
+import { StigmerProvider } from "@stigmer/react-sdk";
+import "@stigmer/react-sdk/styles.css";
 
 const client = new Stigmer({
   baseUrl: "https://api.stigmer.ai",
@@ -41,9 +41,9 @@ function App() {
 
 Three things are required:
 
-1. **A `Stigmer` client** — see [`@stigmer/sdk`](../typescript/README.md) for configuration options.
+1. **A `Stigmer` client** — see [`@stigmer/client`](../typescript/README.md) for configuration options.
 2. **`<StigmerProvider>`** — distributes the client to all descendant components and scopes styles.
-3. **`@stigmer/react/styles.css`** — the compiled stylesheet. Import once at your application root.
+3. **`@stigmer/react-sdk/styles.css`** — the compiled stylesheet. Import once at your application root.
 
 ## Provider
 
@@ -53,7 +53,7 @@ Three things are required:
 
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
-| `client` | `Stigmer` | Yes | A configured `@stigmer/sdk` client instance. |
+| `client` | `Stigmer` | Yes | A configured `@stigmer/client` client instance. |
 | `colorMode` | `"light" \| "dark" \| "system"` | No | Controls light/dark appearance. Defaults to `"light"`. |
 | `deploymentMode` | `"local" \| "cloud"` | No | Backend deployment mode. Defaults to `"cloud"`. |
 | `executionTarget` | `"local" \| "cloud"` | No | Default execution target for sessions created in this provider. Omit to let the server decide. See [Local Execution](#local-execution). |
@@ -67,7 +67,7 @@ Three things are required:
 Access the client from any descendant component:
 
 ```tsx
-import { useStigmer } from "@stigmer/react";
+import { useStigmer } from "@stigmer/react-sdk";
 
 function MyComponent() {
   const stigmer = useStigmer();
@@ -97,7 +97,7 @@ Pass a `preset` prop to apply a complete design language — colors, border radi
 | `"friendly"` | Consumer SaaS | Very rounded, warm coral, cream surfaces, soft shadows |
 | `"fintech"` | Premium financial | Sharp corners, indigo accent, crisp shadows, precise transitions |
 
-Each preset overrides the full token surface. See [`@stigmer/theme` README](../theme/README.md) for the complete token reference and preset details.
+Each preset overrides the full token surface. See [`@stigmer/design-tokens` README](../theme/README.md) for the complete token reference and preset details.
 
 ### Custom Token Overrides
 
@@ -178,7 +178,7 @@ const colorMode = resolvedTheme === "dark" ? "dark" : "light";
 Read the resolved color mode from any descendant component:
 
 ```tsx
-import { useColorMode } from "@stigmer/react";
+import { useColorMode } from "@stigmer/react-sdk";
 
 function MyComponent() {
   const mode = useColorMode(); // "light" | "dark"
@@ -189,7 +189,7 @@ Returns `"light"` or `"dark"` — never `"system"`. The provider resolves `"syst
 
 ## Style Isolation
 
-`@stigmer/react` is designed to embed inside any host application without style conflicts.
+`@stigmer/react-sdk` is designed to embed inside any host application without style conflicts.
 
 - **CSS layer scoping.** All Stigmer styles live inside `@layer stgm`. Host styles in higher-priority layers (or no layer) take precedence over Tailwind's base resets — Stigmer's reset only applies inside the `.stgm` container.
 - **Container scoping.** `StigmerProvider` renders a `<div class="stgm">` wrapper. The CSS reset (`box-sizing`, `border-style`, font smoothing) is scoped to `.stgm` and its descendants. Host elements outside this container are unaffected.
@@ -226,14 +226,14 @@ Sets where sessions created within the provider run:
 | `"cloud"` | The server provisions a cloud sandbox automatically. |
 | `undefined` (default) | The server decides based on deployment context — local for OSS/self-hosted, cloud for managed. |
 
-This is an app-level setting: every session created in the provider tree inherits it. For one-off overrides, `@stigmer/sdk` accepts a per-call `executionTarget` on `session.create()`, which takes precedence over the provider value.
+This is an app-level setting: every session created in the provider tree inherits it. For one-off overrides, `@stigmer/client` accepts a per-call `executionTarget` on `session.create()`, which takes precedence over the provider value.
 
 ### `runnerAdapter`
 
 When `executionTarget` is `"local"`, the SDK must start and stop the client's runner at the right moments. It does this through a `RunnerAdapter` you supply — the SDK never manages runner processes directly.
 
 ```tsx
-import { StigmerProvider } from "@stigmer/react";
+import { StigmerProvider } from "@stigmer/react-sdk";
 import { useTauriRunnerAdapter } from "./useTauriRunnerAdapter";
 
 function App() {
@@ -272,9 +272,9 @@ If your runner backend already exposes `addSession` / `removeSession` (a `Runner
 
 | Import path | Content |
 |-------------|---------|
-| `@stigmer/react` | `StigmerProvider`, `StigmerContext`, `useStigmer`, `useColorMode`, `ColorModeContext`, `useRunnerAdapter`, `createRunnerAdapter` |
-| `@stigmer/react` (types) | `StigmerProviderProps`, `ColorMode`, `ResolvedColorMode`, `RunnerAdapter`, `RunnerWorkerHost` |
-| `@stigmer/react/styles.css` | Compiled stylesheet (import once at app root) |
+| `@stigmer/react-sdk` | `StigmerProvider`, `StigmerContext`, `useStigmer`, `useColorMode`, `ColorModeContext`, `useRunnerAdapter`, `createRunnerAdapter` |
+| `@stigmer/react-sdk` (types) | `StigmerProviderProps`, `ColorMode`, `ResolvedColorMode`, `RunnerAdapter`, `RunnerWorkerHost` |
+| `@stigmer/react-sdk/styles.css` | Compiled stylesheet (import once at app root) |
 
 ## License
 

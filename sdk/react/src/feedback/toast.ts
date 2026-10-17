@@ -3,7 +3,7 @@
  *
  * Platform builders use this as their primary feedback mechanism:
  * ```tsx
- * import { toast } from "@stigmer/react";
+ * import { toast } from "@stigmer/react-sdk";
  *
  * toast.success("Agent created");
  * toast.error("Failed to save");

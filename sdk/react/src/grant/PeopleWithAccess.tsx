@@ -12,9 +12,9 @@
  * Elsewhere the body is exactly the people list it has always been.
  */
 import { useMemo, useState } from "react";
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { cn } from "@stigmer/theme";
-import { getUserMessage, granteeFromView, type Grantee } from "@stigmer/sdk";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage, granteeFromView, type Grantee } from "@stigmer/client";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { useShareFlow, type ShareFlowResource } from "./useShareFlow.js";

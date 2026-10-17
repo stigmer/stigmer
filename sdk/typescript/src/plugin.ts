@@ -1,11 +1,11 @@
 import { create } from "@bufbuild/protobuf";
 import type { Transport } from "@connectrpc/connect";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import {
   CreatePluginArtifactUploadUrlRequestSchema,
   PushPluginRequestSchema,
   type PushPluginRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import { pushRoutedArtifact } from "./artifact-routing.js";
 import type { ArtifactRoute } from "./artifact-routing.js";
 import { PluginClient } from "./gen/plugin.js";

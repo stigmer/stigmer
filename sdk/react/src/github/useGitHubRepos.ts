@@ -6,8 +6,8 @@
  * page never holds the token or calls api.github.com.
  */
 import { useCallback, useEffect, useState } from "react";
-import type { Stigmer } from "@stigmer/sdk";
-import type { GitHubRepository } from "@stigmer/protos/ai/stigmer/platform/github/v1/io_pb";
+import type { Stigmer } from "@stigmer/client";
+import type { GitHubRepository } from "@stigmer/apis/ai/stigmer/platform/github/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 
 /** A GitHub repository from the API. */

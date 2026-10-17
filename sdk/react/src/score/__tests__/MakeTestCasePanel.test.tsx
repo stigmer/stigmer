@@ -15,19 +15,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { ListEvalsRequest } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
+import type { ListEvalsRequest } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
 import { create } from "@bufbuild/protobuf";
-import { EvalSchema, type Eval } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
+import { EvalSchema, type Eval } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
 import {
   EvalCaseArchiveSchema,
   type AddEvalCaseFromRunRequest,
   type BuildEvalCaseFromRunRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
-import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ScoreListSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { Turn } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
+import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { ScoreListSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Turn } from "@stigmer/client";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { MessageThread } from "../../run/MessageThread";

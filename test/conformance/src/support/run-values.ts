@@ -7,13 +7,13 @@
 // from those vaults when the work starts (VaultValueController.fetchValues).
 // The suites read the manifest as any viewer of the run can, and fetch as a
 // runner would, with the run's own credential from the platform exchange.
-import type { Run, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunValueDeclarerKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { ExecutionValues } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
+import type { Run, RunValueSource } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunValueDeclarerKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { ExecutionValues } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
 import type { ConformanceClients } from "../harness/clients";
 
 export { RunValueDeclarerKind };
-export { RunValueOrigin } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+export { RunValueOrigin } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 /** The run's source manifest, as stored. */
 export async function runSourcesOf(clients: ConformanceClients, runId: string): Promise<RunValueSource[]> {

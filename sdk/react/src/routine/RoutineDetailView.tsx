@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { isDeletedReference, type ResourceRef } from "@stigmer/sdk";
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { isDeletedReference, type ResourceRef } from "@stigmer/client";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea.js";
@@ -27,16 +27,16 @@ import type {
 } from "../resource-detail/types.js";
 import type { TabItem } from "../tabs/Tabs.js";
 import { useExportResource } from "../library/useExportResource.js";
-import { RoutineFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
-import type { RoutineSpec } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/spec_pb";
+import { RoutineFireOutcome } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
+import type { RoutineSpec } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/spec_pb";
 import {
   RunConfigSchema,
   type AgentInvocation,
   type RunConfig,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
 import {
   cadenceToCron,
   cronToCadence,

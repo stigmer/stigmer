@@ -15,7 +15,7 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter } from "@connectrpc/connect";
 
-import { TokenService } from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
+import { TokenService } from "@stigmer/apis/ai/stigmer/iam/token/v1/token_pb";
 
 import type { GuestTokenMinting } from "../../extensions/guest-token-minting.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";

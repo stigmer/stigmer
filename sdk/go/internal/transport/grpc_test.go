@@ -6,7 +6,7 @@ import (
 	"net"
 	"testing"
 
-	skillv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1"
+	skillv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/skill/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 )

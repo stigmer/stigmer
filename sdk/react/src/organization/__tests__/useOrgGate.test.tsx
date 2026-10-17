@@ -7,7 +7,7 @@
 // the route bypass — and the arms below fail if a wait ever comes back.
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import type { OrgContextValue } from "../OrgProvider";
 

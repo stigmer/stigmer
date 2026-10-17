@@ -146,7 +146,7 @@ harness, execution target, MCP servers, skills) and dispatches the message in
 the same request:
 
 ```typescript
-import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 const run = await stigmer.run.create({
   name: `run-${Date.now()}`,
@@ -205,7 +205,7 @@ closed.
 In React, pass the adapter and the target to `StigmerProvider`:
 
 ```tsx
-import { StigmerProvider } from "@stigmer/react";
+import { StigmerProvider } from "@stigmer/react-sdk";
 
 <StigmerProvider
   client={stigmer}
@@ -219,9 +219,9 @@ import { StigmerProvider } from "@stigmer/react";
 For cloud execution you provide neither prop. The SDK skips all adapter calls
 when no adapter is configured, so the same components work in both apps.
 
-The interface type ships from `@stigmer/sdk` (framework-agnostic) and is
-re-exported from `@stigmer/react` alongside the `useRunnerAdapter` hook. A Java
-mirror exists too: `ai.stigmer.sdk.RunnerAdapter`, wired through
+The interface type ships from `@stigmer/client` (framework-agnostic) and is
+re-exported from `@stigmer/react-sdk` alongside the `useRunnerAdapter` hook. A
+Java mirror exists too: `ai.stigmer.sdk.RunnerAdapter`, wired through
 `StigmerClient.builder().runnerAdapter(...)`.
 
 Most TypeScript embedders do not write that object by hand. If you already have
@@ -230,7 +230,7 @@ manager (below), the desktop's embedded-runner context, or your own runner API â
 pass it to `createRunnerAdapter` and it wires the lifecycle mapping for you:
 
 ```typescript
-import { createRunnerAdapter } from "@stigmer/sdk";
+import { createRunnerAdapter } from "@stigmer/client";
 
 const runnerAdapter = createRunnerAdapter(myRunnerHost);
 ```

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState, type KeyboardEvent } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { PluginIcon } from "../plugin/PluginIcon.js";
 import { McpServerIcon } from "../plugin/McpServerIcon.js";

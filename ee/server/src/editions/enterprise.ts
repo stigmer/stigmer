@@ -95,7 +95,7 @@ import type { DescMessage } from "@bufbuild/protobuf";
 import type { Pool } from "pg";
 
 import { nodeGuardedFetch } from "@stigmer/outbound/dial";
-import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import type {
   GateSlotName,
   KeyLoaderOptions,

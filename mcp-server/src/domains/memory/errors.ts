@@ -19,7 +19,7 @@
 
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 import { rpcError } from "../rpcerr.js";
 import { errorResult, textResult } from "../toolresult.js";
 

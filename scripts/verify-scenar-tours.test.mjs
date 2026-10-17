@@ -185,7 +185,7 @@ test("findAuthoredInstants ignores the displayed-text cases that exist in the tr
 
 test("findAuthoredInstants accepts derivation from the anchor", () => {
   const source = [
-    'import { sampleInstant, sampleDate } from "@stigmer/react/test";',
+    'import { sampleInstant, sampleDate } from "@stigmer/react-sdk/test";',
     "const RETURN_STARTED_AT = sampleInstant();",
     "const RETURN_COMPLETED_AT = sampleInstant(2_400);",
     "const DISCOVERED = sampleDate();",

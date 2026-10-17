@@ -42,7 +42,7 @@
 // arms, never skips them.
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Code } from "@connectrpc/connect";
-import { HealthCheckResponse_ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
+import { HealthCheckResponse_ServingStatus } from "@stigmer/apis/grpc/health/v1/health_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { expectGrpcCode } from "../contract/errors";

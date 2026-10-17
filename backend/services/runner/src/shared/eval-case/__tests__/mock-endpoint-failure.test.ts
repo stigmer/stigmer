@@ -12,7 +12,7 @@ import {
   EvalMockKind,
   EvalMockServerSchema,
   EvalMockToolSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { caseArchiveOf } from "../case-archive.js";
 

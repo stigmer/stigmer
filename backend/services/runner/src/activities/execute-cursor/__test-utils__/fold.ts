@@ -19,7 +19,7 @@
 
 import { create } from "@bufbuild/protobuf";
 import type { InteractionUpdate, SDKMessage } from "@cursor/sdk";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { TranscriptBuilder, type TranscriptObserver } from "../../../harness/transcript/builder.js";
 import { CursorTranslator, type CursorTranslatorOptions } from "../translator.js";
 import { TurnRowsSchema, type AgentMessage, type ToolCall, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";

@@ -18,17 +18,17 @@ in 5 minutes, then return here for the full reference.
 <SDKTabs>
 <Tab value="TypeScript">
 ```bash
-npm install @stigmer/sdk
+npm install @stigmer/client
 ```
 </Tab>
 <Tab value="Go">
 ```bash
-go get github.com/stigmer/stigmer/sdk/go/v3
+go get go.stigmer.ai/sdk
 ```
 </Tab>
 <Tab value="Python">
 ```bash
-pip install stigmer
+pip install stigmer-sdk
 ```
 </Tab>
 <Tab value="Java">
@@ -38,7 +38,7 @@ Add the dependency to your `pom.xml`:
 ```xml
 <dependency>
   <groupId>ai.stigmer</groupId>
-  <artifactId>stigmer-java</artifactId>
+  <artifactId>stigmer-sdk</artifactId>
 </dependency>
 ```
 
@@ -103,7 +103,7 @@ constructor:
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-import { Stigmer } from "@stigmer/sdk";
+import { Stigmer } from "@stigmer/client";
 
 const stigmer = new Stigmer({
   baseUrl: "https://api.stigmer.ai",
@@ -127,7 +127,7 @@ Provide exactly one of `apiKey` or `getAccessToken`, not both.
 </Tab>
 <Tab value="Go">
 ```go
-import stigmer "github.com/stigmer/stigmer/sdk/go/v3"
+import stigmer "go.stigmer.ai/sdk"
 
 client, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
 if err != nil {
@@ -290,8 +290,8 @@ helpers to check common error conditions without inspecting codes directly.
 
 | Language | Error type | Import |
 |----------|-----------|--------|
-| TypeScript | `StigmerError` | `@stigmer/sdk` |
-| Go | `*stigmer.Error` | `github.com/stigmer/stigmer/sdk/go/v3` |
+| TypeScript | `StigmerError` | `@stigmer/client` |
+| Go | `*stigmer.Error` | `go.stigmer.ai/sdk` |
 | Python | `StigmerError` | `stigmer` |
 | Java | `StigmerException` | `ai.stigmer.sdk.gen` |
 
@@ -307,7 +307,7 @@ helpers to check common error conditions without inspecting codes directly.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-import { StigmerError, isNotFound, isRetryable } from "@stigmer/sdk";
+import { StigmerError, isNotFound, isRetryable } from "@stigmer/client";
 
 try {
   const agent = await stigmer.agent.get(id);
@@ -406,7 +406,7 @@ for reading for 30 days. Renaming needs the permission to delete the resource.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-import { getErrorReason, StigmerError } from "@stigmer/sdk";
+import { getErrorReason, StigmerError } from "@stigmer/client";
 
 const current = await stigmer.agent.get(id);
 try {
@@ -567,7 +567,7 @@ var next = client.session.list(ListSessionsRequest.newBuilder()
 </SDKTabs>
 
 `sessionv1` is
-`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1`.
+`go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1`.
 
 ### Filter by label
 
@@ -627,7 +627,7 @@ the Agent's messages for one run until the run ends.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-import { followSession } from "@stigmer/sdk";
+import { followSession } from "@stigmer/client";
 
 const ended = ["completed", "failed", "cancelled", "terminated"];
 for await (const frame of followSession(stigmer, sessionId)) {
@@ -681,7 +681,7 @@ for {
 ```
 
 `sessionv1` is
-`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1`, and
+`go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1`, and
 `proto` is `google.golang.org/protobuf/proto`.
 </Tab>
 <Tab value="Python">
@@ -744,12 +744,12 @@ resuming a dropped stream, see the [Streaming guide](/docs/sdk/streaming).
   />
   <Card
     title="React SDK"
-    description="Build UIs with @stigmer/react providers and hooks."
+    description="Build UIs with @stigmer/react-sdk providers and hooks."
     href="/docs/sdk/react"
   />
   <Card
     title="Ink SDK"
-    description="Build terminal UIs with @stigmer/ink components for agent sessions."
+    description="Build terminal UIs with @stigmer/ink-ui components for agent sessions."
     href="/docs/sdk/ink"
   />
   <Card

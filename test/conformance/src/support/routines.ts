@@ -15,8 +15,8 @@
 // not a copy edit. The suite deliberately never imports the server's
 // constants: the literal IS the contract a client may match on.
 import type { InitShape } from "./init-shape";
-import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 export const ROUTINE_API_VERSION = "agentic.stigmer.ai/v1";
 export const ROUTINE_KIND = "Routine";

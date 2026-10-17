@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { useBreadcrumbLabel } from "@stigmer/react";
+import { useBreadcrumbLabel } from "@stigmer/react-sdk";
 
 const SEGMENT_LABELS: Record<string, string> = {
   agents: "Agents",

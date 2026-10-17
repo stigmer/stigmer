@@ -14,20 +14,20 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginDialect, PluginSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
+import { PluginSchema, type Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginDialect, PluginSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/spec_pb";
 import {
   HttpMcpServerSchema,
   McpServerEntrySchema,
   McpServerSignInSchema,
   PluginStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import {
   ListPluginToolsOutputSchema,
   PluginToolSchema,
   type ListPluginToolsOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import type { ScenarioStep } from "@scenar/react";
 
 // ---------------------------------------------------------------------------

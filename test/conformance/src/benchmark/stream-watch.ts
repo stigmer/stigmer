@@ -20,7 +20,7 @@
 // here starts at the CREATE CALL's start, the instant the caller hands in:
 // that is the console's own experience, and the runner's `turn_phases` line
 // carries the precise activity-relative instants beside it.
-import type { StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import type { StreamSessionEventsResponse } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionLog, turnOf, type Turn } from "@stigmer/session-log";
 import type { ConformanceClients } from "../harness/clients";
 import { collectStream, type CollectedStream } from "../support/collect-stream";

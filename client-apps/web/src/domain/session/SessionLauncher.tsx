@@ -11,8 +11,8 @@ import {
   useGitHubFileReader,
   useWorkspaceSources,
   useActiveOrgId,
-} from "@stigmer/react";
-import type { ResourceRef } from "@stigmer/sdk";
+} from "@stigmer/react-sdk";
+import type { ResourceRef } from "@stigmer/client";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 
 /**

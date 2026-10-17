@@ -11,8 +11,8 @@
 // last agent message.
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import { finalReply, outcomeOf, statusFacts, visibleRows } from "../status-facts";
 import { said, subAgentThread, thought, turnFrom, userMessage } from "./turn-events";

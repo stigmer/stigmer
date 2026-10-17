@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 
 /** Props for {@link WizardNav}. */

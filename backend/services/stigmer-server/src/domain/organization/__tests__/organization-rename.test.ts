@@ -20,9 +20,9 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it, vi } from "vitest";
 
-import { RenameInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { RenameInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import type { Logger } from "../../../boot/logger.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";

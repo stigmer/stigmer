@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
-import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { deriveRoutineState } from "./routineState.js";

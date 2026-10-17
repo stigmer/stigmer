@@ -1,7 +1,7 @@
 import { useCallback, type ReactNode } from "react";
 import { motion } from "framer-motion";
-import { SETTINGS_NAV_GROUPS, SettingsSidebar, UserMenu } from "@stigmer/react";
-import type { RenderSidebarLink } from "@stigmer/react";
+import { SETTINGS_NAV_GROUPS, SettingsSidebar, UserMenu } from "@stigmer/react-sdk";
+import type { RenderSidebarLink } from "@stigmer/react-sdk";
 // The console's typeface (see fonts/fonts.css). Kept here as well as in
 // stigmer-preview so the shell never renders in a fallback face even if a
 // consumer wires providers differently.
@@ -46,7 +46,7 @@ interface ManagementShellProps {
 /**
  * Management-zone layout — the org-settings counterpart to `AppShell`'s
  * workspace zone, rendered by the console's own `SettingsSidebar` from
- * `@stigmer/react` with the same `SETTINGS_NAV_GROUPS` nav model the real
+ * `@stigmer/react-sdk` with the same `SETTINGS_NAV_GROUPS` nav model the real
  * sidebar consumes, so the depicted chrome cannot drift from the shipped
  * one (stigmer/stigmer#317).
  *

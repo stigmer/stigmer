@@ -13,8 +13,8 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
-import { Stigmer } from "@stigmer/sdk";
-import { GitHubQueryController } from "@stigmer/protos/ai/stigmer/platform/github/v1/query_pb";
+import { Stigmer } from "@stigmer/client";
+import { GitHubQueryController } from "@stigmer/apis/ai/stigmer/platform/github/v1/query_pb";
 import {
   GitHubBranchListSchema,
   GitHubFileContentSchema,
@@ -23,7 +23,7 @@ import {
   GitHubTreeSchema,
   type GetGitHubFileContentInput,
   type GetGitHubTreeInput,
-} from "@stigmer/protos/ai/stigmer/platform/github/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/platform/github/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { WorkspaceFileNotFoundError } from "../../workspace/WorkspaceFileReader";
 import type { WorkspaceEntry } from "../../workspace/useWorkspaceEntries";

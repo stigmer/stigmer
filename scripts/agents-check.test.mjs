@@ -164,8 +164,8 @@ test("path citations: what counts, what is normalised, what is ignored", () => {
   for (const notAPath of [
     "SKILL.md",
     "make check",
-    "npm test -w @stigmer/react",
-    "@stigmer/protos",
+    "npm test -w @stigmer/react-sdk",
+    "@stigmer/apis",
     "https://example.com/x",
     "~/scm/github.com/stigmer",
     "/Users/someone/repo/file.ts",

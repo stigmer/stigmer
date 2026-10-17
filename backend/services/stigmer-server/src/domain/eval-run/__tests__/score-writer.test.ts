@@ -14,11 +14,11 @@ import { describe, expect, it } from "vitest";
 
 import { JUDGE_INSTRUCTION_VERSION } from "@stigmer/eval-runtime/judge";
 import type { EvalGrader, EvalGraderCheck } from "@stigmer/plugin-package";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   CriterionResult,
   ScoreSource,
-} from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
 
 import { EVAL_METRIC } from "../../score/constants.js";
 import {

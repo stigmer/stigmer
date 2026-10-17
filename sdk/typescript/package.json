@@ -1,5 +1,5 @@
 {
-  "name": "@stigmer/sdk",
+  "name": "@stigmer/client",
   "version": "0.0.0-dev",
   "description": "Stigmer TypeScript SDK — typed API client for all Stigmer platform resources",
   "license": "Apache-2.0",
@@ -62,7 +62,7 @@
   "peerDependencies": {
     "@bufbuild/protobuf": "^2.0.0",
     "@connectrpc/connect-node": "^2.0.0",
-    "@stigmer/protos": "*"
+    "@stigmer/apis": "*"
   },
   "peerDependenciesMeta": {
     "@connectrpc/connect-node": {
@@ -70,7 +70,7 @@
     }
   },
   "devDependencies": {
-    "@stigmer/protos": "*",
+    "@stigmer/apis": "*",
     "vitest": "^3.2.4"
   }
 }

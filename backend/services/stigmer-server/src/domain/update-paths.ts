@@ -10,7 +10,7 @@
  * every spec field the contract marks `computed` to its kind's entry: a
  * field the server computes is never an update's to write.
  */
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { RefusedUpdatePath } from "../pipeline/steps/update-mask.js";
 import { API_KEY_REFUSED_UPDATE_PATHS } from "./apikey/controller.js";

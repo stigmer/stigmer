@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { LicenseInput } from "@stigmer/sdk";
-import type { License } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
+import type { LicenseInput } from "@stigmer/client";
+import type { License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

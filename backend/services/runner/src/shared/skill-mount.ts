@@ -37,7 +37,7 @@
 import { agentFs } from "./agent-fs.js";
 import { join, posix, relative, sep } from "node:path";
 import type { StigmerClient } from "../client/stigmer-client.js";
-import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
+import type { Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { extractZipFileEntries } from "./zip-extract.js";
 import { downloadArchive, resetDirectory, writeArchiveEntries } from "./archive-mount.js";
 import { holdsPluginManifest, manifestEvalDir, withoutEvalSuite } from "./plugin-mount.js";

@@ -1,9 +1,9 @@
 "use client";
 
 import { useId } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { useSingleOrg } from "../server-info.js";
 import { useChildOrganizations } from "./useChildOrganizations.js";

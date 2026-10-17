@@ -21,7 +21,7 @@ import { DatabaseSync } from "node:sqlite";
 import { fromBinary } from "@bufbuild/protobuf";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 
 import { readSubAgents } from "../frozen-sub-agent.js";
 import { SCHEMA_VERSION_28, getSchemaVersion, runMigrations } from "../sqlite/migrations.js";

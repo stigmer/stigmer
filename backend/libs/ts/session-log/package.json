@@ -52,12 +52,12 @@
   },
   "peerDependencies": {
     "@bufbuild/protobuf": "^2.8.0",
-    "@stigmer/protos": "*"
+    "@stigmer/apis": "*"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "0.131.0",
     "@bufbuild/protobuf": "2.12.0",
-    "@stigmer/protos": "*",
+    "@stigmer/apis": "*",
     "@types/node": "^22.13.1",
     "typescript": "^5.7.0",
     "vitest": "^3.2.4"

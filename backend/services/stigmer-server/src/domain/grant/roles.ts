@@ -20,14 +20,14 @@
  */
 import { create, getOption, hasOption } from "@bufbuild/protobuf";
 
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { RoleInfo } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import { RoleInfoSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { RoleInfo } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import { RoleInfoSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import {
   IamRole,
   IamRoleSchema,
   role_meta,
-} from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import { roleDescriptionsFor } from "../../pipeline/apiresource-meta.js";
 

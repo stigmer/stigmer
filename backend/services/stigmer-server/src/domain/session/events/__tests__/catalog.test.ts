@@ -22,7 +22,7 @@ import {
   StigmerFileReviewDecidedEventSchema,
   StigmerFileReviewReconciledEventSchema,
   StigmerPermissionAskedEventSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import { SESSION_EVENT_TYPES, isStigmerEventType } from "@stigmer/session-log";
 import { RUNNER_EVENT_TYPES, SESSION_STATUS_TYPES } from "../catalog.js";

@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { ReviewFileChangesInputSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { ReviewFileChangesInputSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

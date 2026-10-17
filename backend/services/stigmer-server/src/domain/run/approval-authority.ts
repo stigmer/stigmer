@@ -11,9 +11,9 @@
  * own and asks nothing more here. Runs right after AuthorizeRunTarget, the
  * session gate, before anything is stored.
  */
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";

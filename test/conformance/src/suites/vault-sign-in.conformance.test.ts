@@ -41,9 +41,9 @@
 // (test/support/src/oauth-authorization-server.ts), which serves the
 // protected-resource documents of the addresses on its own origin.
 import { Code } from "@connectrpc/connect";
-import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
-import { SignInReturn } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
-import { TokenEndpointAuthMethod, VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
+import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
+import { SignInReturn } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
+import { TokenEndpointAuthMethod, VendorApprovalStatus } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import { createHash } from "node:crypto";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";

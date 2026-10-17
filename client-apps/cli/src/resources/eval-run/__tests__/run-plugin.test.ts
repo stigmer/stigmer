@@ -30,11 +30,11 @@
 
 import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
-import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginWarningSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { EvalRunPartialReason, EvalRunPhase } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import { StigmerError, type EvalRunInput, type Stigmer } from "@stigmer/sdk";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginWarningSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunPartialReason, EvalRunPhase } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { StigmerError, type EvalRunInput, type Stigmer } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { CliExitError } from "../../../errors/index.js";
 import type { EvalIo } from "../follow.js";

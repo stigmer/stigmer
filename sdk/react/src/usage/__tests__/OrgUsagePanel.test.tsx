@@ -10,12 +10,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage } from "@stigmer/client";
 import {
   GetOrgUsageReportOutputSchema,
   type GetOrgUsageReportOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { ProviderKeySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { ProviderKeySource } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 
 const state = vi.hoisted(() => ({
   report: null as GetOrgUsageReportOutput | null,

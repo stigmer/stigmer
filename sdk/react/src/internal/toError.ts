@@ -8,7 +8,7 @@
  *
  * Preserves the original error identity — callers can still use
  * `classifyError`, `getUserMessage`, and `getRpcMetadata` from
- * `@stigmer/sdk` on the returned value.
+ * `@stigmer/client` on the returned value.
  *
  * @internal
  */

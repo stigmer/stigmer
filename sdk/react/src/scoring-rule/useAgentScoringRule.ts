@@ -1,9 +1,9 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import type { ScoringRule } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
-import { GetScoringRuleByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/io_pb";
-import { isNotFound } from "@stigmer/sdk";
+import type { ScoringRule } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import { GetScoringRuleByAgentRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/io_pb";
+import { isNotFound } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 

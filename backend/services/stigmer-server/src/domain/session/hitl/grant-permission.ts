@@ -12,13 +12,13 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
+import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
 import {
   GrantPermissionResponseSchema,
   type GrantPermissionInput,
   type GrantPermissionResponse,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import { newPipeline } from "../../../pipeline/pipeline.js";

@@ -7,7 +7,7 @@
 // neither list shows no rows at all. Pinned by
 // `__tests__/AgentDetailView.toolLists.test.tsx`.
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 
 /** Props for {@link AgentToolLists}. */

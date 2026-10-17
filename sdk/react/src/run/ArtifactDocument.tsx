@@ -1,7 +1,7 @@
 "use client";
 
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
-import { cn } from "@stigmer/theme";
+import type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
+import { cn } from "@stigmer/design-tokens";
 import { useArtifactInspection } from "./useArtifactInspection.js";
 import { ArtifactContentBody } from "./ArtifactContentBody.js";
 import { ArtifactApplyButton } from "./ArtifactApplyButton.js";

@@ -12,7 +12,7 @@
  * from the listing — an extra bullet, bolded lead-ins, and a third escalation
  * rule the docs never showed).
  */
-import { samples } from "@stigmer/react/test";
+import { samples } from "@stigmer/react-sdk/test";
 import type { ScenarioStep } from "@scenar/react";
 import { DEMO_ORG } from "../_shared/fixtures";
 

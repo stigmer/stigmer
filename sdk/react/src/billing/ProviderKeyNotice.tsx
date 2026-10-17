@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
-import { getErrorReason, getUserMessage } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { getErrorReason, getUserMessage } from "@stigmer/client";
 
 /**
  * The reason Stigmer Cloud refuses a run that needs a provider the

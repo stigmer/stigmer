@@ -8,7 +8,7 @@
 
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
-import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import { permissionAskedEventId, threadEventId, toolResultEventId, toolUseEventId } from "../../events/ids.js";
 import { NO_RESUME_SEED, RESUME_SEED_EVENT_TYPES, resumeSeedOf, rowIdOf } from "../resume-seed.js";

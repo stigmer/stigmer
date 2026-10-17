@@ -10,8 +10,8 @@
  *   - the display names are the enum's own (`role_meta.display_name`).
  */
 import { describe, expect, it } from "vitest";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import { GRANTABLE_ROLES } from "../gen/authorization-config.js";
 import {

@@ -6,9 +6,9 @@
  * same member list that manages them afterwards, so creation has one job.
  */
 import { useCallback, useState, type FormEvent } from "react";
-import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
 import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { planUpgradeFeature, UpgradeNotice } from "../billing/UpgradeNotice.js";

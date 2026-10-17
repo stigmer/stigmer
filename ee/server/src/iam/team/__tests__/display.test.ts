@@ -4,7 +4,7 @@
  * kind other than team is answered with nothing and reads nothing,
  * because the core asks about every principal kind a list holds.
  */
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { describe, expect, it } from "vitest";
 
 import { newTeamPrincipalDisplay } from "../display.js";

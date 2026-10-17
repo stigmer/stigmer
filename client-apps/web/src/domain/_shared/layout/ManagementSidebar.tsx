@@ -3,8 +3,8 @@
 import { useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { SettingsSidebar, useSettingsNavGroups } from "@stigmer/react";
-import type { SidebarLinkRenderProps } from "@stigmer/react";
+import { SettingsSidebar, useSettingsNavGroups } from "@stigmer/react-sdk";
+import type { SidebarLinkRenderProps } from "@stigmer/react-sdk";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";

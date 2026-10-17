@@ -1,8 +1,8 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { DeploymentMode } from "@stigmer/sdk";
-import { isResourceAvailable, ApiResourceKind } from "@stigmer/sdk";
+import type { DeploymentMode } from "@stigmer/client";
+import { isResourceAvailable, ApiResourceKind } from "@stigmer/client";
 
 /**
  * React context for the current deployment mode.

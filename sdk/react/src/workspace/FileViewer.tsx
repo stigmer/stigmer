@@ -10,8 +10,8 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
-import { cn } from "@stigmer/theme";
-import type { DisplayFileChange } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import type { DisplayFileChange } from "@stigmer/client";
 import { AttachmentImageLightbox } from "../attachment/AttachmentImageLightbox.js";
 import { useObjectUrl } from "../attachment/useObjectUrl.js";
 import { ArtifactContentRenderer } from "../run/ArtifactContentRenderer.js";

@@ -1,10 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
+import type { ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { channelProviderOf } from "../channel/providers.js";
 import { useChannelAppList } from "./useChannelAppList.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";

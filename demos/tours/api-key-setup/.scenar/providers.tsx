@@ -11,8 +11,8 @@
  * are prop-driven and inert.
  */
 import { create } from "@bufbuild/protobuf";
-import { ApiKeysSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
-import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
+import { ApiKeysSchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/io_pb";
+import { ApiKeyQueryController } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/query_pb";
 import { createStigmerPreview } from "../../_shared/stigmer-preview";
 
 export const PreviewProviders = createStigmerPreview((router) => {

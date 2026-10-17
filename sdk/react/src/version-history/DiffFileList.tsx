@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import type { FileDiffEntry } from "./types.js";
 
 /** Props for {@link DiffFileList}. */

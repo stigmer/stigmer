@@ -17,7 +17,7 @@
 //     manages it) and gets no hint: the hours are its parent's to read.
 
 import { Code, ConnectError } from "@connectrpc/connect";
-import { getErrorReason, StigmerError } from "@stigmer/sdk";
+import { getErrorReason, StigmerError } from "@stigmer/client";
 import { CliExitError } from "./cli-exit-error.js";
 import { ExitCode } from "./exit-codes.js";
 

@@ -295,8 +295,8 @@ const file_ai_stigmer_commons_apiresource_enum_proto_rawDesc = "" +
 	"\x12visibility_private\x10\x01\x12\x15\n" +
 	"\x11visibility_public\x10\x02\x12\x12\n" +
 	"\x0evisibility_org\x10\x03\x12\x19\n" +
-	"\x15visibility_child_orgs\x10\x04B\x96\x02\n" +
-	"\"com.ai.stigmer.commons.apiresourceB\tEnumProtoP\x01ZIgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
+	"\x15visibility_child_orgs\x10\x04B\x83\x02\n" +
+	"\"com.ai.stigmer.commons.apiresourceB\tEnumProtoP\x01Z6go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var (
 	file_ai_stigmer_commons_apiresource_enum_proto_rawDescOnce sync.Once

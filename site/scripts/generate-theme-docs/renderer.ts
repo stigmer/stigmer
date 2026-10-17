@@ -139,8 +139,8 @@ falls through to the defaults. Apply one via the \`preset\` prop on
 
   mdx += `
 \`\`\`tsx
-import "@stigmer/theme/tokens.css";
-import "@stigmer/theme/presets/corporate.css";
+import "@stigmer/design-tokens/tokens.css";
+import "@stigmer/design-tokens/presets/corporate.css";
 
 <StigmerProvider client={client} preset="corporate" colorMode="dark">
 \`\`\`
@@ -148,7 +148,7 @@ import "@stigmer/theme/presets/corporate.css";
 
   for (const { meta, tokens } of presets) {
     mdx += `\n## ${meta.name}\n\n`;
-    mdx += `${escapeMdxText(meta.description)} — \`import "@stigmer/theme/presets/${meta.id}.css"\`, class \`${meta.className}\`.\n\n`;
+    mdx += `${escapeMdxText(meta.description)} — \`import "@stigmer/design-tokens/presets/${meta.id}.css"\`, class \`${meta.className}\`.\n\n`;
     mdx += `| Token | Light | Dark |\n`;
     mdx += `|-------|-------|------|\n`;
     const names = new Set([...tokens.light.keys(), ...tokens.dark.keys()]);

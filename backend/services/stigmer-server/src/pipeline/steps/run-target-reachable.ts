@@ -17,7 +17,7 @@
  */
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import type { CredentialBinding } from "../../extensions/credential-binding.js";
 import { getKindName } from "../apiresource-meta.js";

@@ -20,7 +20,7 @@
 # Usage:
 #   scripts/publish-dev-local.sh                 # all targets, auto base version
 #   TARGETS=npm,maven scripts/publish-dev-local.sh
-#   BASE=3.1.0 scripts/publish-dev-local.sh
+#   BASE=0.1.1 scripts/publish-dev-local.sh
 #
 # Prefer the `make publish-dev-local` wrapper.
 
@@ -134,10 +134,10 @@ if [ "$TARGETS" = "all" ]; then TARGETS="npm,maven,python"; fi
 command -v planton >/dev/null 2>&1 || die "planton CLI not found (needed to fetch publish credentials)."
 command -v git >/dev/null 2>&1 || die "git not found."
 
+# The next patch after the newest stable v* tag, or 0.1.0 before the line's
+# first release: the rule release.dev.yaml and `make release` read too.
 if [ -z "$BASE" ]; then
-  LATEST="$(git tag -l "v*" | sort -V | tail -n1)"; [ -z "$LATEST" ] && LATEST="v0.0.0"
-  V="${LATEST#v}"
-  BASE="$(echo "$V" | cut -d. -f1).$(echo "$V" | cut -d. -f2).$(( $(echo "$V" | cut -d. -f3) + 1 ))"
+  BASE="$(node scripts/lib/line-base.mjs)" || die "could not derive the dev base version from the v* tags."
 fi
 git rev-parse "v$BASE" >/dev/null 2>&1 && die "v$BASE already exists as a release tag — pass a higher BASE=X.Y.Z."
 
@@ -228,7 +228,7 @@ publish_npm() {
   # (scripts/publish-standalone.mjs): stamp the dev version, pin EVERY
   # workspace-lib file: link to it, wait until the pinned libs are installable
   # from npm, run the consumer-install smoke (#786) over the stamped manifest,
-  # publish under `dev`. The inline stamp this replaced pinned @stigmer/protos
+  # publish under `dev`. The inline stamp this replaced pinned @stigmer/apis
   # only, so a local dev runner shipped three unresolvable file: links
   # (stigmer/stigmer#1381). The manifest stays stamped for the slim steps
   # below; cleanup restores it from the snapshot.
@@ -242,7 +242,7 @@ publish_npm() {
 
   # The slim embedding artifact (stigmer/stigmer#170): @stigmer/runner-slim plus
   # its per-platform native-bridge packages. Self-contained — its bundle does
-  # not pin @stigmer/protos — so it just needs the version already stamped into
+  # not pin @stigmer/apis — so it just needs the version already stamped into
   # package.json above, which bundle-slim.mjs propagates into every manifest.
   # dist/ was produced by `make build-runner` above and carries no version, so
   # no rebuild is needed before emitting the packages.
@@ -314,11 +314,11 @@ XML
   snapshot "sdk/java/pom.xml"
   ( cd sdk/java \
     && mvn -B -s "$settings" versions:set -DnewVersion="$MAVEN_VERSION" -DgenerateBackupPoms=false \
-    && mvn -B -s "$settings" versions:set-property -Dproperty=stigmer-protos.version -DnewVersion="$MAVEN_VERSION" -DgenerateBackupPoms=false \
+    && mvn -B -s "$settings" versions:set-property -Dproperty=stigmer-apis.version -DnewVersion="$MAVEN_VERSION" -DgenerateBackupPoms=false \
     && mvn -B -s "$settings" deploy -DskipTests )
 
   unset MAVEN_CENTRAL_USERNAME MAVEN_CENTRAL_PASSWORD
-  ok "maven: deployed ai.stigmer:stigmer-java:$MAVEN_VERSION (protos pinned to same)"
+  ok "maven: deployed ai.stigmer:stigmer-sdk:$MAVEN_VERSION (protos pinned to same)"
 }
 
 # ─── Python (TestPyPI) ─────────────────────────────────────────────────────
@@ -338,7 +338,7 @@ publish_python() {
   python3 - "sdk/python/pyproject.toml" "$PY_VERSION" <<'PY'
 import re, sys, pathlib
 p = pathlib.Path(sys.argv[1]); text = p.read_text()
-text = re.sub(r'"stigmer-protos[^"]*"', f'"stigmer-protos=={sys.argv[2]}"', text)
+text = re.sub(r'"stigmer-apis[^"]*"', f'"stigmer-apis=={sys.argv[2]}"', text)
 p.write_text(text)
 PY
 
@@ -364,7 +364,7 @@ PY
       apis/stubs/python/stigmer/dist/* sdk/python/dist/*
   fi
 
-  ok "python: uploaded stigmer-protos and stigmer at $PY_VERSION to TestPyPI"
+  ok "python: uploaded stigmer-apis and stigmer-sdk at $PY_VERSION to TestPyPI"
 }
 
 # ─── Run selected targets ──────────────────────────────────────────────────
@@ -378,16 +378,16 @@ log "Dev build published — consumer coordinates"
 echo "Setup is one-time (see .github/workflows/docs/dev-publishing.md); switching dev<->prod is only a version-string change."
 echo ""
 if want maven; then
-  echo "Maven (Java SDK):  ai.stigmer:stigmer-java:${MAVEN_VERSION}   (mvn -U to refresh)"
+  echo "Maven (Java SDK):  ai.stigmer:stigmer-sdk:${MAVEN_VERSION}   (mvn -U to refresh)"
 fi
 if want npm; then
-  echo "npm (React/TS):    npm install @stigmer/react@dev          # exact: @stigmer/react@${NPM_VERSION}"
+  echo "npm (React/TS):    npm install @stigmer/react-sdk@dev          # exact: @stigmer/react-sdk@${NPM_VERSION}"
   echo "npm (embed runner): npm install @stigmer/runner-slim@dev   # exact: @stigmer/runner-slim@${NPM_VERSION}"
   echo "npm (server lib):   pin @stigmer/server and every other @stigmer/* dependency at exactly ${NPM_VERSION}"
 fi
 if want python; then
-  echo "Python (TestPyPI): pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ --pre 'stigmer==${PY_VERSION}'"
+  echo "Python (TestPyPI): pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ --pre 'stigmer-sdk==${PY_VERSION}'"
 fi
-echo "Go SDK:            go get github.com/stigmer/stigmer/sdk/go/v3@$(git rev-parse --abbrev-ref HEAD)"
+echo "Go SDK:            go get go.stigmer.ai/sdk@$(git rev-parse --abbrev-ref HEAD)"
 echo ""
 ok "Done."

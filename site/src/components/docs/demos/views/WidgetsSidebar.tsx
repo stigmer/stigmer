@@ -7,14 +7,14 @@
  */
 
 import type { ReactNode } from "react";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Todo } from "@stigmer/sdk";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Todo } from "@stigmer/client";
 import {
   ArtifactsWidget,
   RunProgress,
   UsageWidget,
   WriteBacksWidget,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 import { DEMO_ORG, type DemoConversation } from "../fixtures";
 import { DEMO_SIDEBAR_ZOOM } from "../shared/tokens";
 
@@ -32,7 +32,7 @@ interface WidgetsSidebarProps {
  * Compact widget sidebar for demo scenarios.
  *
  * Mirrors the Console's `SessionPageInner` aside layout using real
- * `@stigmer/react` widgets. Widgets that have no data to display
+ * `@stigmer/react-sdk` widgets. Widgets that have no data to display
  * (e.g. `UsageWidget` without `llm_metrics`) return `null`
  * automatically, so the sidebar adapts to what the fixture provides.
  */

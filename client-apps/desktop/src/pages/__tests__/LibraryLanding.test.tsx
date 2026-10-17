@@ -2,7 +2,7 @@
  * Pins the desktop Library landing: one count card per library kind, each
  * opening its list, and the declarative Apply YAML entry point, whose apply
  * recounts every card (it can create any kind). The cards and the dialog
- * are pinned in @stigmer/react.
+ * are pinned in @stigmer/react-sdk.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
@@ -34,7 +34,7 @@ function counter(count: number) {
   };
 }
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   ApplyManifestDialog: (props: DialogProps) => {
     page.dialog.push(props);
     return null;

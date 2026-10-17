@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useId, type ReactNode } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
-import { ApiResourceKind, hasGrantableRoles, hasTeamGrantableRoles } from "@stigmer/sdk";
+import { ApiResourceKind, hasGrantableRoles, hasTeamGrantableRoles } from "@stigmer/client";
 import { useResourceAvailable } from "../deployment-mode.js";
 import { PeopleWithAccess } from "../grant/PeopleWithAccess.js";
 import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl.js";

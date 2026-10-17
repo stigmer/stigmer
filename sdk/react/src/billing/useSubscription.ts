@@ -2,9 +2,9 @@
 
 import { useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
-import { isNotFound } from "@stigmer/sdk";
-import type { Subscription } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/api_pb";
-import { GetSubscriptionForOrgInputSchema } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
+import { isNotFound } from "@stigmer/client";
+import type { Subscription } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/api_pb";
+import { GetSubscriptionForOrgInputSchema } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 

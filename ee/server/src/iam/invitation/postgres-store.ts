@@ -14,12 +14,12 @@ import type { Pool } from "pg";
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { timestampDate, TimestampSchema } from "@bufbuild/protobuf/wkt";
 
-import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
+import type { Invitation } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
 import {
   InvitationRedemptionSchema,
   InvitationSchema,
-} from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
-import { InvitationState } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
+import { InvitationState } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/enum_pb";
 
 import { pageOrgRows } from "../../postgres/keyset.js";
 import { inTransaction } from "../../postgres/transaction.js";

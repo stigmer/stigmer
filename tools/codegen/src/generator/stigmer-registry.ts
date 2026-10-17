@@ -8,31 +8,31 @@
 import type { DescFile, DescMessage, Registry } from "@bufbuild/protobuf";
 import { createRegistry } from "@bufbuild/protobuf";
 
-import { file_ai_stigmer_agentic_agent_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { file_ai_stigmer_agentic_channel_v1_api } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import { file_ai_stigmer_agentic_run_v1_api } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { file_ai_stigmer_agentic_channelapp_v1_api } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { file_ai_stigmer_agentic_eval_v1_api } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
-import { file_ai_stigmer_agentic_evalrun_v1_api } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { file_ai_stigmer_agentic_scoringrule_v1_api } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
-import { file_ai_stigmer_agentic_memory_v1_api } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
-import { file_ai_stigmer_agentic_plugin_v1_api } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { file_ai_stigmer_agentic_routine_v1_api } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
-import { file_ai_stigmer_agentic_score_v1_api } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import { file_ai_stigmer_agentic_session_v1_api } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { file_ai_stigmer_agentic_skill_v1_api } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { file_ai_stigmer_agentic_vault_v1_api } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { file_ai_stigmer_billing_license_v1_api } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
-import { file_ai_stigmer_billing_plan_v1_api } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
-import { file_ai_stigmer_billing_subscription_v1_api } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/api_pb";
-import { file_ai_stigmer_iam_apikey_v1_api } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import { file_ai_stigmer_iam_grant_v1_api } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
-import { file_ai_stigmer_iam_federationissuer_v1_api } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
-import { file_ai_stigmer_iam_identityaccount_v1_api } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import { file_ai_stigmer_iam_invitation_v1_api } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
-import { file_ai_stigmer_iam_oauthapp_v1_api } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
-import { file_ai_stigmer_iam_team_v1_api } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import { file_ai_stigmer_tenancy_organization_v1_api } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { file_ai_stigmer_agentic_agent_v1_api } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { file_ai_stigmer_agentic_channel_v1_api } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import { file_ai_stigmer_agentic_run_v1_api } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { file_ai_stigmer_agentic_channelapp_v1_api } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { file_ai_stigmer_agentic_eval_v1_api } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
+import { file_ai_stigmer_agentic_evalrun_v1_api } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { file_ai_stigmer_agentic_scoringrule_v1_api } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import { file_ai_stigmer_agentic_memory_v1_api } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
+import { file_ai_stigmer_agentic_plugin_v1_api } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { file_ai_stigmer_agentic_routine_v1_api } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { file_ai_stigmer_agentic_score_v1_api } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import { file_ai_stigmer_agentic_session_v1_api } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { file_ai_stigmer_agentic_skill_v1_api } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
+import { file_ai_stigmer_agentic_vault_v1_api } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { file_ai_stigmer_billing_license_v1_api } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
+import { file_ai_stigmer_billing_plan_v1_api } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
+import { file_ai_stigmer_billing_subscription_v1_api } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/api_pb";
+import { file_ai_stigmer_iam_apikey_v1_api } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
+import { file_ai_stigmer_iam_grant_v1_api } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
+import { file_ai_stigmer_iam_federationissuer_v1_api } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { file_ai_stigmer_iam_identityaccount_v1_api } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { file_ai_stigmer_iam_invitation_v1_api } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
+import { file_ai_stigmer_iam_oauthapp_v1_api } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
+import { file_ai_stigmer_iam_team_v1_api } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
+import { file_ai_stigmer_tenancy_organization_v1_api } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 
 const ROOT_FILES: DescFile[] = [
   file_ai_stigmer_agentic_agent_v1_api,

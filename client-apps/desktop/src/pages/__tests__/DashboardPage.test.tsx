@@ -2,7 +2,7 @@
  * Pins the desktop dashboard's navigation wiring: a failed run picked on the
  * SDK's operational dashboard opens that run's page at /runs/<id>; and the
  * dashboard reads the active organization by id. The dashboard is pinned in
- * @stigmer/react; here it is stubbed to capture the props it is given.
+ * @stigmer/react-sdk; here it is stubbed to capture the props it is given.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
@@ -17,7 +17,7 @@ const page = vi.hoisted(() => ({
   dashboard: [] as DashboardProps[],
 }));
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   useOrg: () => ({ activeOrg: { metadata: { id: "org_acme" } } }),
   OperationalDashboard: (props: DashboardProps) => {
     page.dashboard.push(props);

@@ -1,11 +1,11 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import type { RunSummary } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import type { RunSummary } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import {
   RunSummaryTimeWindow,
   GetRunSummaryRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 

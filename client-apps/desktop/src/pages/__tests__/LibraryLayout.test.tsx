@@ -12,7 +12,7 @@ import { MemoryRouter, Route, Routes, useLocation, useNavigationType } from "rea
 
 const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   LibraryBreadcrumbProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   // The SDK's answer for the person's organizations: a segment that is not
   // a current slug answers the slug to replace it with.

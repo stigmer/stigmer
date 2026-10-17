@@ -2,13 +2,13 @@
 
 import * as React from "react";
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { useStigmerPortalContainer } from "../portal-container.js";
 
 // ---------------------------------------------------------------------------
 // SDK-internal styled Tooltip primitives over @base-ui/react.
 //
-// Like ./menu.tsx, these are NOT exported from @stigmer/react. They give SDK
+// Like ./menu.tsx, these are NOT exported from @stigmer/react-sdk. They give SDK
 // styled components (WorkspaceSidebar recents rows, and any future hover
 // hints) one source of truth for tooltip styling, portaled into the Stigmer
 // theme scope so tokens resolve in embeds.

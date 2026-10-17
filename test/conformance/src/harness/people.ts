@@ -22,7 +22,7 @@
 //     outsider needs no revoking and the colleague is one ordinary grant:
 //     `member` on the tenancy's organization, made by the primary as its
 //     owner through Grant create, the Members page's call.
-import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+import type { GrantSpec } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 
 import { createUniqueOrganization } from "../support/organizations";
 import type { TenancyContext } from "../targets/target";

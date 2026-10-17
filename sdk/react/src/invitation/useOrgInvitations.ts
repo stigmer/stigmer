@@ -1,8 +1,8 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
-import { ListInvitationsInputSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/io_pb";
+import type { Invitation } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/api_pb";
+import { ListInvitationsInputSchema } from "@stigmer/apis/ai/stigmer/iam/invitation/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useCursorPages } from "../internal/useCursorPages.js";
 

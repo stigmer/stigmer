@@ -3,15 +3,15 @@ import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ManifestClient } from "@stigmer/sdk";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ManifestClient } from "@stigmer/client";
 import { StigmerContext } from "../../context";
 import { useEditResourceYaml } from "../useEditResourceYaml";
 
 // The hooks run the real manifest engine (serializeManifest/parseManifest
-// from @stigmer/sdk) and the real target resolution
+// from @stigmer/client) and the real target resolution
 // (ManifestClient.resolveTarget) over an in-memory agent query service:
 // `getByReference` answers each read, or null for not-found. Only apply is
 // mocked.

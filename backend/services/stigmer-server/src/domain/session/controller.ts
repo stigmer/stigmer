@@ -39,10 +39,10 @@
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
-import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
+import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type {
   ListSessionsByAgentRequest,
   ListSessionsByChannelRequest,
@@ -50,9 +50,9 @@ import type {
   SessionId,
   SessionList,
   UpdateSessionSubjectRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { create } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../boot/logger.js";
@@ -170,9 +170,9 @@ import { grantPermission } from "./hitl/grant-permission.js";
 import { interrupt } from "./hitl/interrupt.js";
 import type { ExecutionEngineStateProvider } from "../run/engine.js";
 import type { RunStatusObserver } from "../../extensions/status-hooks.js";
-import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
-import type { UpdateSessionInput } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { UpdateSessionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
+import type { UpdateSessionInput } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { UpdateSessionInputSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
 export interface SessionControllerDeps {
   readonly store: Store;

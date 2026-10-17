@@ -26,14 +26,14 @@ vi.mock("@/config/env", () => ({ getApiBaseUrl: () => "https://api.example.test"
 
 const link = vi.hoisted(() => ({ token: null as string | null, state: "st" }));
 const sdkClient = vi.hoisted(() => ({ options: [] as Array<{ getAccessToken: () => unknown }> }));
-vi.mock("@stigmer/sdk", () => ({
+vi.mock("@stigmer/client", () => ({
   Stigmer: class {
     constructor(options: { getAccessToken: () => unknown }) {
       sdkClient.options.push(options);
     }
   },
 }));
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   OAuthCallbackHandler: () => <p>popup handler</p>,
   ConnectLinkCallback: ({ token }: { token: string }) => <p>connect link {token}</p>,
   StigmerProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,

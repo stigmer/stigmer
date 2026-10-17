@@ -5,10 +5,10 @@ Python SDK for the Stigmer platform. Provides typed API clients for all Stigmer 
 ## Installation
 
 ```bash
-pip install stigmer
+pip install stigmer-sdk
 ```
 
-`stigmer-protos` (generated protobuf stubs) is installed automatically as a dependency.
+`stigmer-apis` (generated protobuf stubs) is installed automatically as a dependency.
 
 ## Quick Start
 

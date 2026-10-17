@@ -249,7 +249,7 @@ export type {
 } from "./file-review-status.js";
 
 // The run's file record (its captured change sets) and the display
-// projection of one captured file, re-exported from @stigmer/sdk (pure,
+// projection of one captured file, re-exported from @stigmer/client (pure,
 // shared). What was decided about the files is the session's events.
 export {
   displayFileChangeSets,
@@ -257,7 +257,7 @@ export {
   toDisplayFileChange,
   type DisplayFileChange,
   type DisplayFileChangeType,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 
 export { ApprovalCard, ApprovalCardHeader, ApprovalCardBody } from "./ApprovalCard.js";
 export type {

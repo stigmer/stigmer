@@ -7,7 +7,7 @@
  * else the SDK might request falls through to the router's `unimplemented`
  * response, which the hooks degrade from — so we mock just this one.
  */
-import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
+import { SkillQueryController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/query_pb";
 import { createStigmerPreview } from "../../_shared/stigmer-preview";
 import { buildDemoSkill } from "../steps";
 

@@ -29,18 +29,18 @@ import { describe, expect, it } from "vitest";
 import {
   RunSchema,
   RunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { CapturedFileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { CapturedFileChange, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { CapturedFileChangeSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { CapturedFileChange, FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import { capturedSet } from "../../../run/__tests__/file-review-seed.js";
 
 import {
   EvalCaseContextSchema,
   EvalMockServerSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
 
 import {
   PLUGIN_SKILL_READ_PATH,

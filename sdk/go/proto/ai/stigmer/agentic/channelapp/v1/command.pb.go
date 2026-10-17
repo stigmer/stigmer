@@ -7,8 +7,8 @@
 package channelappv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,8 +32,8 @@ const file_ai_stigmer_agentic_channelapp_v1_command_proto_rawDesc = "" +
 	"\x06create\x12,.ai.stigmer.agentic.channelapp.v1.ChannelApp\x1a,.ai.stigmer.agentic.channelapp.v1.ChannelApp\"O¸\x18K\b\x1f\x10\x1e\"\fmetadata.org*7unauthorized to create channel app in this organization\x12\xb3\x01\n" +
 	"\x06update\x127.ai.stigmer.agentic.channelapp.v1.UpdateChannelAppInput\x1a,.ai.stigmer.agentic.channelapp.v1.ChannelApp\"B¸\x18>\b\x02\x100\"\x14resource.metadata.id*\"unauthorized to update channel app\x12\x9e\x01\n" +
 	"\x06rename\x12+.ai.stigmer.commons.apiresource.RenameInput\x1a,.ai.stigmer.agentic.channelapp.v1.ChannelApp\"9¸\x185\b\x03\x100\"\vresource_id*\"unauthorized to rename channel app\x12\xa9\x01\n" +
-	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a,.ai.stigmer.agentic.channelapp.v1.ChannelApp\"9¸\x185\b\x03\x100\"\vresource_id*\"unauthorized to delete channel app\x1a\x04\xa0\xff+0B\xb3\x02\n" +
-	"$com.ai.stigmer.agentic.channelapp.v1B\fCommandProtoP\x01ZXgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channelapp/v1;channelappv1\xa2\x02\x04ASAC\xaa\x02 Ai.Stigmer.Agentic.Channelapp.V1\xca\x02 Ai\\Stigmer\\Agentic\\Channelapp\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Channelapp\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Channelapp::V1b\x06proto3"
+	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a,.ai.stigmer.agentic.channelapp.v1.ChannelApp\"9¸\x185\b\x03\x100\"\vresource_id*\"unauthorized to delete channel app\x1a\x04\xa0\xff+0B\xa0\x02\n" +
+	"$com.ai.stigmer.agentic.channelapp.v1B\fCommandProtoP\x01ZEgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/channelapp/v1;channelappv1\xa2\x02\x04ASAC\xaa\x02 Ai.Stigmer.Agentic.Channelapp.V1\xca\x02 Ai\\Stigmer\\Agentic\\Channelapp\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Channelapp\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Channelapp::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_channelapp_v1_command_proto_goTypes = []any{
 	(*ChannelApp)(nil),                         // 0: ai.stigmer.agentic.channelapp.v1.ChannelApp

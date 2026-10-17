@@ -19,7 +19,7 @@ import type {
   ToolUse,
   ToolUseState,
   TurnItem,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 
 /** When every fixture tool use starts. */
 export const TOOL_STARTED_AT = "2026-08-13T10:00:00.000Z";

@@ -1,11 +1,11 @@
 "use client";
 
 import { memo, useMemo } from "react";
-import type { Thread, ToolUse, TurnItem } from "@stigmer/sdk";
+import type { Thread, ToolUse, TurnItem } from "@stigmer/client";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
 import { useElapsedSince, formatElapsed } from "../internal/useElapsedSince.js";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { formatHeaderDuration } from "./ToolCallDetail.js";
 import { MessageEntry, type ThreadMessage } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";

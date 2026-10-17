@@ -3,9 +3,9 @@
 
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { LicenseSchema, type License } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
-import type { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
-import { LicenseTerm } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+import { LicenseSchema, type License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
+import type { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
+import { LicenseTerm } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 
 export interface LicenseFixture {
   readonly id: string;

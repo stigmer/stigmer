@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip.js";
 
 // ---------------------------------------------------------------------------
@@ -20,7 +20,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip.js";
 // is a sighted-pointer convenience, and a tab stop per table cell would be
 // noise. Works with or without a `TooltipProvider` in scope (the provider
 // only adds delay grouping); like ./tooltip.tsx, NOT exported from
-// @stigmer/react.
+// @stigmer/react-sdk.
 // ---------------------------------------------------------------------------
 
 interface TruncatedTextProps {

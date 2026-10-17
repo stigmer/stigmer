@@ -11,7 +11,7 @@
 // nothing to run and the guidance names both forms.
 
 import type { Command } from "commander";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
 import { interactiveBrowseEnabled } from "../resources/picker/tty.js";
@@ -115,7 +115,7 @@ async function runSmart(
   // the interactive picker (pre-filled with the typed text) on a TTY, otherwise
   // guide the user.
   const { resolveAgentRef } = await import("../resources/run/resolve.js");
-  let agent: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb").Agent;
+  let agent: import("@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb").Agent;
   try {
     agent = await resolveAgentRef(client.stigmer, value, org);
   } catch {
@@ -144,7 +144,7 @@ async function runAgent(
 // `agent` undefined is the built-in assistant: the run names no agent
 // and the backend creates a session that names none.
 async function runResolvedAgent(
-  agent: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb").Agent | undefined,
+  agent: import("@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb").Agent | undefined,
   options: RunFlags,
   org: string,
   outputMode: "inline" | "json",

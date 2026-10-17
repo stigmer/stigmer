@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { cn } from "@stigmer/theme";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { VersionTimeline } from "../version-history/VersionTimeline.js";
 import { DiffViewer } from "../version-history/DiffViewer.js";
 import { computeDiff } from "../version-history/computeDiff.js";

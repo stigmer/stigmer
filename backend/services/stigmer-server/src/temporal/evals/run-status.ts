@@ -15,10 +15,10 @@
 import { create } from "@bufbuild/protobuf";
 import { timestampNow } from "@bufbuild/protobuf/wkt";
 
-import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { EvalRunPhase, EvalRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import type { EvalRunStatus } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { EvalRunSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunPhase, EvalRunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import type { EvalRunStatus } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { EvalCase } from "@stigmer/plugin-package";
 

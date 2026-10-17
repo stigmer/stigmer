@@ -18,8 +18,8 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import type { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
+import type { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
 
 import { isServerComposedRequest } from "../../extensions/identity.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";

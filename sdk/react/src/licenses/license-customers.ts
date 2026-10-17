@@ -12,8 +12,8 @@
 // that already belongs to a customer is surfaced before the operator mints
 // a second id for it.
 
-import type { License } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
-import type { LicenseCustomer } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+import type { License } from "@stigmer/apis/ai/stigmer/billing/license/v1/api_pb";
+import type { LicenseCustomer } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 import { toDate } from "./license-format.js";
 
 /** One customer as the issued licenses know them. */

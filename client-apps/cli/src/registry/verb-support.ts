@@ -10,7 +10,7 @@
 // verbs deliberately withheld pending a real ops story are recorded in
 // stigmer/stigmer#354, not here.
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { Verb } from "./verbs.js";
 
 export const VERB_SUPPORT: ReadonlyMap<

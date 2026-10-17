@@ -26,7 +26,7 @@ import { createClient } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
+import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 
 import { READY_LINE_KEY } from "../ready-line.js";
 import { nodeProcessHost, runServer } from "../run.js";

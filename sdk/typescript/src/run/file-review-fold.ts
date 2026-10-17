@@ -10,10 +10,10 @@
 // id and file-change id.
 //
 // This module has no React/framework dependency (mirrors tool-view.ts) so it
-// is shared by @stigmer/react and @stigmer/ink.
+// is shared by @stigmer/react-sdk and @stigmer/ink-ui.
 
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 
 /**
  * A run's captured change sets, in the order the run recorded them: its file

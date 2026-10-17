@@ -73,11 +73,11 @@ import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
 
 import { claudeNameOf } from "@stigmer/tool-vocabulary";
 import type { ToolEngine } from "@stigmer/tool-vocabulary";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { EvalFile } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { CapturedFileChange } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { EvalFile } from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { eventIdOf } from "@stigmer/session-log";
 import type { ToolUse } from "@stigmer/session-log";
 

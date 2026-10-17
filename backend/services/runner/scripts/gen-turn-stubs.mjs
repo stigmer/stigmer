@@ -8,7 +8,7 @@
  * The rows import public types from the apis/ tree, which sits outside the
  * runner, so buf runs on a temporary workspace holding both: symlinks to
  * apis/ and to the runner's proto/ directory, with apis/buf.lock for
- * protovalidate. @stigmer/protos maps "./x" to "dist/x.js", so the ".js"
+ * protovalidate. @stigmer/apis maps "./x" to "dist/x.js", so the ".js"
  * the plugin writes on imports of public types is dropped.
  *
  *   node backend/services/runner/scripts/gen-turn-stubs.mjs <out>
@@ -58,7 +58,7 @@ try {
 
   for (const file of stubFiles(join(out, "turn"))) {
     const text = readFileSync(file, "utf8");
-    writeFileSync(file, text.replace(/(from "@stigmer\/protos\/[^"]*)\.js"/g, '$1"'));
+    writeFileSync(file, text.replace(/(from "@stigmer\/apis\/[^"]*)\.js"/g, '$1"'));
   }
 } finally {
   rmSync(ws, { recursive: true, force: true });

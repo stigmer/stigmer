@@ -6,7 +6,7 @@
  * changed in place; the cases, found across the plugins' blocks, their
  * totals and the skeleton go through the view's methods.
  */
-import type { EvalRunCase, EvalRunPhase, EvalRunStatus } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+import type { EvalRunCase, EvalRunPhase, EvalRunStatus } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
 
 import type { Store } from "../../store/interface.js";
 import type { EvalContext } from "./context.js";

@@ -49,11 +49,11 @@ const LANE = ".github/workflows/ci.ts-workspace.yaml";
 /** Lane checks `make check` does not run, each with the reason. */
 const EXEMPT = new Map([
   [
-    "turbo-set workspace test:a11y --only=@stigmer/react",
+    "turbo-set workspace test:a11y --only=@stigmer/react-sdk",
     "the browser-mode suite needs a real Chromium (the playwright-chromium action), which the local gate does not provision",
   ],
   [
-    "turbo-set libs test --only=@stigmer/react",
+    "turbo-set libs test --only=@stigmer/react-sdk",
     "not a separate check: `turbo-set libs test` runs the React suite with the other libs; the lane only gives its coverage run and its vmForks run a job each",
   ],
 ]);

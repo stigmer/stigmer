@@ -14,7 +14,7 @@ import { describe, expect, it } from "vitest";
 import {
   GetArtifactContentRequestSchema,
   GetArtifactDownloadUrlRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 
 import type { ArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
 import { createLogger } from "../../../boot/logger.js";

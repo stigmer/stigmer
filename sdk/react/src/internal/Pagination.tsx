@@ -13,7 +13,7 @@
  * component, not this control.
  */
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 /** Props for {@link Pagination}. */
 export interface PaginationProps {

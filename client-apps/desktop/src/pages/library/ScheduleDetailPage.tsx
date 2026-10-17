@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import {
   RoutineDetailView,
   useBreadcrumbOverride,
   useResolveRunSession,
   useOrgSlugForId,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 import { useCanonicalDetailSlug } from "./canonical-slug";
 
 /**

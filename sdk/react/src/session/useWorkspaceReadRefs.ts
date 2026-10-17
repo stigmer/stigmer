@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
 
 /**

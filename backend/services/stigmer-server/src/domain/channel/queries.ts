@@ -8,8 +8,8 @@
  */
 import { fromBinary } from "@bufbuild/protobuf";
 
-import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Store } from "../../store/interface.js";

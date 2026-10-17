@@ -51,9 +51,9 @@ codegen-stubs: ## Generate proto stubs inside the SDK module
 	@# buf.build network dependency (mirrors the apis go-stubs pipeline).
 	@$(MAKE) -C ../../apis go-stubs-tools
 	@cd ../../apis && buf generate --template buf.gen.sdk-go.yaml
-	@if [ -d "proto/github.com" ]; then \
-		mv proto/github.com/stigmer/stigmer/sdk/go/v3/proto/* proto/ 2>/dev/null || true; \
-		rm -rf proto/github.com; \
+	@if [ -d "proto/go.stigmer.ai" ]; then \
+		mv proto/go.stigmer.ai/sdk/proto/* proto/ 2>/dev/null || true; \
+		rm -rf proto/go.stigmer.ai; \
 	fi
 	@# Scrub @internal comment sections: proto/ is a subpackage of the
 	@# published SDK module, so protoc-copied internal notes would render on
@@ -83,11 +83,11 @@ codegen-clients: ## Generate SDK client code from service schemas (Stage 2)
 	@# The generator runs from TypeScript source via the repo-pinned tsx
 	@# (never bare npx — oss#531). It pipes generated Go through gofmt, so
 	@# the Go toolchain must be on PATH (it already is — the SDK build
-	@# follows), and it reads proto metadata from @stigmer/protos, which
+	@# follows), and it reads proto metadata from @stigmer/apis, which
 	@# must be built first (incremental; a no-op when fresh). A bare CI
 	@# checkout has no dist/ — skipping this fails module resolution.
 	@cd ../.. && test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
-	@cd ../.. && npm run build -w @stigmer/protos --silent
+	@cd ../.. && npm run build -w @stigmer/apis --silent
 	@cd ../.. && node_modules/.bin/tsx tools/codegen/src/generator/main.ts \
 		--schema-dir tools/codegen/schemas \
 		--output-dir sdk/go/internal/gen \

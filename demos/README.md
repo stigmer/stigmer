@@ -7,7 +7,7 @@ the bundles at `https://stigmer.ai/demos/<tour>/`, where the docs embed them via
 `<ScenarEmbed id="<tour>" />`.
 
 Tours live in this repo — not a separate one — because they are
-**product-versioned documentation**: a tour that renders real `@stigmer/react`
+**product-versioned documentation**: a tour that renders real `@stigmer/react-sdk`
 components must depict the components this repo ships *at the same commit*. The
 tours consume the in-repo SDK source through the npm workspace, so a component
 change, the tour that depicts it, and the docs prose around it can land in one
@@ -121,7 +121,7 @@ usage).
 
 **Import discipline:** `scenar narrate` loads `steps.ts` in a plain Node
 process (tsx loader, no bundler), so it may only pull pure modules — protos,
-`@stigmer/react/test` samples, `@scenar/react` *types*, and the `_shared`
+`@stigmer/react-sdk/test` samples, `@scenar/react` *types*, and the `_shared`
 data modules. Anything that imports a component, CSS, or a browser API
 belongs in `index.tsx` (a rendering concern, compiled by Vite); step data
 carries only semantic tags for which snapshot to show.
@@ -132,7 +132,7 @@ every `steps.ts` exactly the way narrate does, so a violation fails fast.
 
 Export a **pure** function `renderStep(data, stepIndex) => ReactNode`. Switch on
 your step data and render Scenar shells (`BrowserView`, `TerminalView`,
-`LoginCardPage`, …), real `@stigmer/react` components, or tour-local views. Emit
+`LoginCardPage`, …), real `@stigmer/react-sdk` components, or tour-local views. Emit
 `data-cursor-target` attributes on the elements your interactions point at. The
 player, cursor, narration, and viewport are all provided by the pack entry —
 keep this file declarative. Steps must stay **pure functions of step data**:
@@ -152,12 +152,12 @@ synthetic events (that breaks scrubbing and video export).
   out with plain CSS or inline styles. Do **not** rely on Tailwind utility
   classes — they silently no-op in the packed bundle. Fixed semantic colors
   (green = pass, red = fail) may be hex.
-- **Real `@stigmer/react` components** get their styles from the package's
-  **compiled** stylesheet. In this workspace the `@stigmer/react/styles.css`
+- **Real `@stigmer/react-sdk` components** get their styles from the package's
+  **compiled** stylesheet. In this workspace the `@stigmer/react-sdk/styles.css`
   export points at the *uncompiled* Tailwind source, so
   `tours/_shared/stigmer-preview.tsx` imports the built artifact
   (`sdk/react/dist/styles.css`) instead — produced by
-  `npm run build:css -w @stigmer/react`, which `pack-all` runs automatically.
+  `npm run build:css -w @stigmer/react-sdk`, which `pack-all` runs automatically.
 
 ---
 
@@ -227,7 +227,7 @@ one-query-param capability for other hosts, just not a docs review gate.
 ## Real-component tours (Path A)
 
 Most tours render Scenar shells and CSS-drawn pages — those need **no**
-providers. A tour only needs providers when it renders **real `@stigmer/react`
+providers. A tour only needs providers when it renders **real `@stigmer/react-sdk`
 components** that fetch through the `Stigmer` SDK. Those components need a
 client, a theme scope, and fixture data — with no backend and no MSW in the
 packed embed.
@@ -240,7 +240,7 @@ and wraps the whole tour in its exported `PreviewProviders`. The repeated wiring
 
 ```tsx
 // tours/<slug>/.scenar/providers.tsx
-import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
+import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
 import { createStigmerPreview } from "../../_shared/stigmer-preview";
 import { buildDemoAgent } from "../steps";
 
@@ -260,7 +260,7 @@ surface. A tour whose beats are entirely prop-driven passes a no-op register.
 
 A packed tour must render identical pixels on every browser replay and every
 video-export frame, so fixtures must never read the live
-clock. The `@stigmer/react/test` `samples.*` factories guarantee this by
+clock. The `@stigmer/react-sdk/test` `samples.*` factories guarantee this by
 construction: every timestamp they stamp is frozen at their exported
 `SAMPLE_INSTANT`, and their own SDK test suite locks it in. Call any of them
 freely.
@@ -279,7 +279,7 @@ seconds later, a specific tool-call duration — **derive it from the anchor**
 rather than writing a literal:
 
 ```ts
-import { samples, sampleInstant } from "@stigmer/react/test";
+import { samples, sampleInstant } from "@stigmer/react-sdk/test";
 
 const later = samples.agentMessageEvent("and one more thing", {
   processedAt: sampleInstant(5_000), // 5s after the anchor
@@ -307,7 +307,7 @@ reader.
 cd demos && npx scenar narrate tours/<slug> --tts edge-tts
 
 # 2. Pack into a static embed bundle (builds the SDK stylesheet first)
-npm run build:css -w @stigmer/react   # from the repo root, or rely on pack-all
+npm run build:css -w @stigmer/react-sdk   # from the repo root, or rely on pack-all
 npx scenar pack tours/<slug> --out .bundles/<slug>
 
 # 3. Preview locally — verify parity in the light theme (what the docs render)

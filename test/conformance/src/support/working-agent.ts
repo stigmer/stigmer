@@ -48,8 +48,8 @@
 import { cp, readdir, readFile, rm } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import type { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import type { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import type { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { FixtureTracker } from "../harness/fixtures";
 import { LOOKUP_ORDER_TOOL_NAME, type FixtureTool } from "../harness/mcp-server";

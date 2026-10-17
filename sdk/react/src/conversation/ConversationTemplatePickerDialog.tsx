@@ -2,13 +2,13 @@
 
 import { useId, useMemo, useState } from "react";
 import { ArrowLeft, LayoutTemplate, Send, X } from "lucide-react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
-import { ChannelSendOutcome } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
+import { ChannelSendOutcome } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
 import type {
   ChannelTemplate,
   SendChannelMessageOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { DialogShell } from "../internal/DialogShell.js";

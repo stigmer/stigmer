@@ -9,7 +9,7 @@
 
 import type { ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
-import type { RecentActivityEntry } from "@stigmer/react";
+import type { RecentActivityEntry } from "@stigmer/react-sdk";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar } from "../Sidebar";
@@ -22,7 +22,7 @@ const shell = vi.hoisted(() => ({
   accessory: undefined as ((entry: RecentActivityEntry) => ReactNode) | undefined,
 }));
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   useActiveOrgId: () => shell.activeOrgId,
   useRecentActivity: () => ({
     entries: [],

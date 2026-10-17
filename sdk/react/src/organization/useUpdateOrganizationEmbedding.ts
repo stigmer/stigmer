@@ -7,12 +7,12 @@
  */
 import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { ResourceRef } from "@stigmer/sdk";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { UpdateOrganizationEmbeddingInputSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
-import { OrganizationEmbeddingSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ResourceRef } from "@stigmer/client";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { UpdateOrganizationEmbeddingInputSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
+import { OrganizationEmbeddingSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/spec_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 

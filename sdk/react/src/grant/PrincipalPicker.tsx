@@ -26,8 +26,8 @@
  * surface.
  */
 import { useCallback, useId, useMemo, useRef, useState } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage, granteeKey, isServiceAccount, type Grantee } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage, granteeKey, isServiceAccount, type Grantee } from "@stigmer/client";
 import { SERVICE_ACCOUNT_LABEL } from "../service-account/copy.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { GranteeAvatar } from "./GranteeAvatar.js";

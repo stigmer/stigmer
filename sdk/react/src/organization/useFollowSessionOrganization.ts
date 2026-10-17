@@ -24,7 +24,7 @@
  * like any switch, and it fires no host `onOrgChanged` navigation.
  */
 import { useEffect, useRef } from "react";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 
 import { useOrg } from "./OrgProvider.js";
 

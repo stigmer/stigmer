@@ -1,7 +1,7 @@
 // Framework-agnostic conversation-assembly rules for every Stigmer surface.
 //
 // A session's conversation is reassembled from its Run list by
-// several independent consumers: the React thread (@stigmer/react
+// several independent consumers: the React thread (@stigmer/react-sdk
 // buildThreadItems / useSessionConversation), the CLI's session replay
 // (snapshotToEvents), and the canonical transcript assembler (transcript.ts).
 // Before this module each consumer carried its own copy of the same small
@@ -11,9 +11,9 @@
 // consumers.
 //
 // This module has no React or framework dependency so it can be shared by
-// @stigmer/react, @stigmer/ink, and the CLI.
+// @stigmer/react-sdk, @stigmer/ink-ui, and the CLI.
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
 /**
  * Returns the runs in chronological (oldest-first) order — the order a

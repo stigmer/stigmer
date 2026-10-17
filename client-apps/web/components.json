@@ -14,7 +14,7 @@
   "rtl": false,
   "aliases": {
     "components": "@/components",
-    "utils": "@stigmer/theme",
+    "utils": "@stigmer/design-tokens",
     "ui": "@/components/ui",
     "lib": "@/lib",
     "hooks": "@/hooks"

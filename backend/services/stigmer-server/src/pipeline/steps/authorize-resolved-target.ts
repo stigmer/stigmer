@@ -57,7 +57,7 @@
  */
 import type { DescMessage, DescMethod, Message } from "@bufbuild/protobuf";
 
-import type { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { PipelineStep } from "../pipeline.js";

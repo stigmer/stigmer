@@ -6,11 +6,11 @@
  * have kept what the old release stored.
  *
  * For --artifact=compose, all-in-one, helm or cli, one pass:
- *   1. installs --from (default: the newest stable release below --to whose
- *      artifacts for this install are all published,
- *      test/install/lib/published-release.mjs) the way its guide says, with the
- *      model a user configures pointed at the fake on this host
- *      (test/install/lib/fake-model.mjs), and checks that the
+ *   1. installs --from (default: the newest stable release below --to that
+ *      npm does not mark deprecated and whose artifacts for this install are
+ *      all published, test/install/lib/published-release.mjs) the way its
+ *      guide says, with the model a user configures pointed at the fake on
+ *      this host (test/install/lib/fake-model.mjs), and checks that the
  *      server reports that release (getServerInfo);
  *   2. records state: an agent run answered by the model, in an
  *      organization of its own, every resource read back; on a base that
@@ -50,6 +50,14 @@
  * with the release's images: the release's packaged chart, before it is
  * pushed. The base is always installed from the published chart.
  *
+ * A deprecated release is not a base: a version line that starts over
+ * deprecates the old line's releases, which are not what a user of the new
+ * line upgrades from. When no release is left below --to, the target is the
+ * line's first release and there is nothing to upgrade: the rehearsal says
+ * so (on stdout, and in the job summary when GITHUB_STEP_SUMMARY is set) and
+ * passes without installing anything. A registry that cannot be read still
+ * fails, so an outage never reads as a first release.
+ *
  * Each install is brought up by the same driver its smoke uses
  * (test/install/lib/install-*.mjs), so the rehearsal and the smoke can never boot
  * an artifact differently.
@@ -65,11 +73,12 @@
  * it is taken; all-in-one publishes random loopback ports.
  *
  * Plain node plus the tools each artifact needs (docker; kind, helm and
- * kubectl for helm; npm for the release list), no dependencies.
+ * kubectl for helm; npm for its configured registry, read for the release
+ * list), no dependencies.
  */
 
-import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
+import { appendFileSync } from "node:fs";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 import { fakeModelEnv, startFakeModel } from "./lib/fake-model.mjs";
@@ -92,6 +101,7 @@ import {
   profileValues,
 } from "./lib/install-helm.mjs";
 import { PUBLISHED_IMAGES, unpublishedArtifact } from "./lib/published-release.mjs";
+import { INSTALL_METADATA_ACCEPT, configuredRegistry } from "../../scripts/publish-standalone.mjs";
 import { sourceBuildVersion } from "../../scripts/lib/source-version.mjs";
 import {
   assertPortFree,
@@ -108,6 +118,11 @@ import {
 const ARTIFACTS = ["compose", "all-in-one", "helm", "cli"];
 const SERVING_TIMEOUT_MS = 300_000;
 const RUN_TIMEOUT_MS = 240_000;
+const REGISTRY_TIMEOUT_MS = 30_000;
+/** The package whose versions are the product's releases. */
+const RELEASE_PACKAGE = "@stigmer/cli";
+/** What the rehearsal states, and passes on, when the target is its line's first release. */
+export const NOTHING_TO_UPGRADE = "no earlier release on this line: nothing to upgrade from";
 const STABLE = /^(\d+)\.(\d+)\.(\d+)$/;
 /** A release a rehearsal can move to: a stable version or a prerelease of one. */
 const RELEASE = /^(\d+)\.(\d+)\.(\d+)(-[0-9A-Za-z][0-9A-Za-z.-]*)?$/;
@@ -164,40 +179,46 @@ export function compareVersions(a, b) {
 }
 
 /**
- * The release an upgrade to `to` starts from: the greatest stable version in
- * `versions` below it (every stable version when `to` is a build; below its
- * X.Y.Z when `to` is a prerelease, so 3.42.0-rc.1 starts from 3.41.x).
- * Prereleases (a `-dev.` build published for testing) are never a base. It is
- * not npm's `latest` tag: in the release lane `latest` may already be the
- * version being rehearsed.
+ * The release an upgrade to `to` starts from, in `releases` (`{ versions,
+ * deprecated }`, as `publishedReleases` reads them): the greatest stable
+ * version below it that is not deprecated (every stable version when `to` is
+ * a build; below its X.Y.Z when `to` is a prerelease, so 3.42.0-rc.1 starts
+ * from 3.41.x), or undefined when there is none. Prereleases (a `-dev.`
+ * build published for testing) are never a base. It is not npm's `latest`
+ * tag: in the release lane `latest` may already be the version being
+ * rehearsed.
  */
-export function pickFromVersion(versions, to) {
-  return releasesBelow(versions, to)[0];
+export function pickFromVersion(releases, to) {
+  return releasesBelow(releases, to)[0];
 }
 
-/** Every stable version in `versions` below `to`, newest first; refuses when there is none. */
-function releasesBelow(versions, to) {
-  const below = versions
-    .filter((version) => STABLE.test(version))
+/** Every stable, undeprecated version in `releases` below `to`, newest first. */
+function releasesBelow({ versions, deprecated = [] }, to) {
+  const passedOver = new Set(deprecated);
+  return versions
+    .filter((version) => STABLE.test(version) && !passedOver.has(version))
     .filter((version) => to.kind === "build" || compareVersions(version, versionCore(to.version)) < 0)
     .sort(compareVersions)
     .reverse();
-  if (below.length === 0) {
-    throw new Error(`no published release below ${to.kind === "build" ? "this build" : to.version} to upgrade from`);
-  }
-  return below;
 }
 
 /**
  * The base an install upgrades from when --from is not given: the newest
  * release `pickFromVersion` would choose whose own artifacts are all
  * published (`unpublishedAt(version)` names the first that is not, or is
- * undefined). npm lists a release before its images and its chart are
- * pushed, and a held push never arrives, so a newer release is passed over,
- * and named, rather than installed half-published.
+ * undefined), or undefined when no undeprecated release is below `to` (the
+ * line's first release). npm lists a release before its images and its
+ * chart are pushed, and a held push never arrives, so a newer release is
+ * passed over, and named, rather than installed half-published; releases
+ * that exist but none of them whole is a refusal, not a first release.
  */
-export async function pickPublishedBase(versions, to, unpublishedAt, log) {
-  const below = releasesBelow(versions, to);
+export async function pickPublishedBase(releases, to, unpublishedAt, log) {
+  const below = releasesBelow(releases, to);
+  const deprecatedBelow = releasesBelow({ versions: releases.deprecated ?? [] }, to);
+  if (deprecatedBelow.length > 0) {
+    log(`${deprecatedBelow.length} deprecated release(s) passed over, the newest ${deprecatedBelow[0]}`);
+  }
+  if (below.length === 0) return undefined;
   for (const version of below) {
     const missing = await unpublishedAt(version);
     if (missing === undefined) return version;
@@ -209,6 +230,64 @@ export async function pickPublishedBase(versions, to, unpublishedAt, log) {
   );
 }
 
+/**
+ * The releases npm lists for `name`, from one read of its install document
+ * (the abbreviated metadata an install resolves against, which carries each
+ * version's `deprecated` message): `{ versions, deprecated }`. A registry
+ * that cannot be read, answers other than a success, or sends a document
+ * with no version map throws: only a document that lists no undeprecated
+ * release reads as a first release.
+ */
+export async function publishedReleases(name = RELEASE_PACKAGE, { registry = configuredRegistry(), fetchImpl = fetch } = {}) {
+  const base = registry.endsWith("/") ? registry : `${registry}/`;
+  let response;
+  try {
+    response = await fetchImpl(`${base}${name.replace("/", "%2f")}`, {
+      headers: { accept: INSTALL_METADATA_ACCEPT },
+      signal: AbortSignal.timeout(REGISTRY_TIMEOUT_MS),
+    });
+  } catch (error) {
+    throw new Error(`npm registry unreachable reading ${name}'s releases: ${faultOf(error)}`);
+  }
+  if (!response.ok) throw new Error(`npm registry answered HTTP ${response.status} for ${name}'s releases`);
+  let document;
+  try {
+    document = await response.json();
+  } catch (error) {
+    throw new Error(`npm registry sent an unreadable document for ${name}'s releases: ${faultOf(error)}`);
+  }
+  const listed = document?.versions;
+  if (listed === null || typeof listed !== "object" || Array.isArray(listed)) {
+    throw new Error(`npm registry's document for ${name} lists no versions`);
+  }
+  const versions = Object.keys(listed);
+  const deprecated = versions.filter((version) => {
+    const message = listed[version]?.deprecated;
+    return typeof message === "string" && message !== "";
+  });
+  return { versions, deprecated };
+}
+
+/** A fetch fault as one line, with the network reason Node's fetch keeps in `cause`. */
+function faultOf(error) {
+  if (!(error instanceof Error)) return String(error);
+  return error.cause instanceof Error ? `${error.message}: ${error.cause.message}` : error.message;
+}
+
+/**
+ * States that `to` is its line's first release, so this install has nothing
+ * to upgrade from: one line on stdout, and the same in the job summary when
+ * `env.GITHUB_STEP_SUMMARY` names one.
+ */
+export function reportNothingToUpgrade(artifact, toLabel, { env = process.env, write = console.log, append = appendFileSync } = {}) {
+  const line = `${artifact} to ${toLabel}: ${NOTHING_TO_UPGRADE}`;
+  write(`rehearse-upgrade: ${line}`);
+  const summary = env.GITHUB_STEP_SUMMARY;
+  if (summary !== undefined && summary !== "") {
+    append(summary, `### Upgrade rehearsal: ${artifact}\n\n${line}\n`);
+  }
+}
+
 /** The version the server must report once `release` runs. */
 export function expectedServerVersion(release) {
   return release.kind === "published" ? release.version : sourceBuildVersion();
@@ -216,10 +295,6 @@ export function expectedServerVersion(release) {
 
 function describe(release) {
   return release.kind === "published" ? release.version : `this checkout (${sourceBuildVersion()})`;
-}
-
-function publishedCliVersions() {
-  return JSON.parse(execFileSync("npm", ["view", "@stigmer/cli", "versions", "--json"], { encoding: "utf8" }));
 }
 
 /**
@@ -403,7 +478,11 @@ async function main() {
     const base =
       args.from !== ""
         ? args.from
-        : await pickPublishedBase(publishedCliVersions(), to, (version) => unpublishedArtifact(args.artifact, version), log);
+        : await pickPublishedBase(await publishedReleases(), to, (version) => unpublishedArtifact(args.artifact, version), log);
+    if (base === undefined) {
+      reportNothingToUpgrade(args.artifact, describe(to));
+      process.exit(0);
+    }
     from = { kind: "published", version: base };
     for (const port of spec.ports) await assertPortFree(port);
   } catch (error) {

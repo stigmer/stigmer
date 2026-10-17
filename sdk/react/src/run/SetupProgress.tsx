@@ -1,8 +1,8 @@
 "use client";
 
 import { memo, useEffect, useMemo, useState } from "react";
-import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import { cn } from "@stigmer/theme";
+import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import { cn } from "@stigmer/design-tokens";
 
 /** Props for {@link SetupProgress}. */
 export interface SetupProgressProps {

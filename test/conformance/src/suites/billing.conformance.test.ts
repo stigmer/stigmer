@@ -30,9 +30,9 @@
 // a reset they do not need.
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { ProviderKeySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
-import { BillingAccountStatus } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
-import { ModelPricingBaselineStatus } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
+import { ProviderKeySource } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
+import { BillingAccountStatus } from "@stigmer/apis/ai/stigmer/billing/v1/enum_pb";
+import { ModelPricingBaselineStatus } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { FixtureTracker } from "../harness/fixtures";
 import { FAKE_CARD, paymentMethodAttached, postStripeWebhook, signStripePayload, signedEvent, stripeEvent } from "../harness/fake-stripe";
 import { expectGrpcCode } from "../contract/errors";

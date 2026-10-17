@@ -10,9 +10,9 @@ import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { Code, ConnectError, createRouterTransport, type Transport } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
-import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
-import { EvalCommandController } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/command_pb";
-import { EvalQueryController } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/query_pb";
+import { EvalSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
+import { EvalCommandController } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/command_pb";
+import { EvalQueryController } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/query_pb";
 import {
   EvalArchiveDownloadUrlSchema,
   EvalArchiveSchema,
@@ -20,7 +20,7 @@ import {
   PushEvalRequestSchema,
   type CreateEvalArtifactUploadUrlRequest,
   type PushEvalRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
 import { RoutedEvalClient, downloadEvalArchive } from "../eval.js";
 import { EvalClient } from "../gen/eval.js";
 import { MAX_INLINE_ARTIFACT_BYTES } from "../skill.js";

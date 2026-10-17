@@ -11,7 +11,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import { composeTurnRecoveryDigest, formatTurnRecoveryText, readTurnRecoveryDigest } from "../turn-recovery.js";
 

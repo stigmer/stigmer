@@ -12,8 +12,8 @@ vi.mock("../../hooks", () => ({
   useStigmer: vi.fn(),
 }));
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { FileChangeSetSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { FileChangeSetSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import { useStigmer } from "../../hooks";
 import { samples } from "../../test/samples";
 import { useChangeSetCapture } from "../useChangeSetCapture";

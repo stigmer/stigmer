@@ -52,7 +52,7 @@
  * reserved (extensions/resource-row-reader.ts). OSS defaults install at the boot/compose.ts
  * consumption sites, never here (a default lives with its consumer).
  */
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { ArtifactStorageDriverFactory } from "../artifactstorage/artifact-storage.js";
 import type { ChannelRuntime } from "../domain/channel/channel-runtime.js";

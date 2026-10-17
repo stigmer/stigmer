@@ -9,7 +9,7 @@ import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { describe, expect, it } from "vitest";
 
-import { LicenseClaimsSchema, LicenseState } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+import { LicenseClaimsSchema, LicenseState } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 
 import { EXPIRING_WINDOW_DAYS, isLapsed, licenseStateAt } from "../state.js";
 

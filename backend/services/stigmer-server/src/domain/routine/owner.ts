@@ -29,9 +29,9 @@
  *
  * Proven by __tests__/owner.postgres.test.ts and the run starter's suite.
  */
-import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
-import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 
 import type { RoutineFireCaller } from "../../extensions/routine-fire-caller.js";
 import { RoutineFireRefusedError } from "../../extensions/routine-fire-caller.js";

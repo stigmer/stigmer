@@ -21,8 +21,8 @@
  * organization has them, so the read would refuse Enterprise its own teams.
  */
 import { useCallback, useId, useState } from "react";
-import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
+import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import { UpgradeNotice } from "../billing/UpgradeNotice.js";
 import { unlockingPlanName } from "../billing/plan-features.js";
 import { useEntitlements } from "../billing/useEntitlements.js";

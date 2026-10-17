@@ -4,13 +4,13 @@ import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { ScoringRuleSchema, type ScoringRule } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
-import { ScoringRuleCommandController } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/command_pb";
-import { ScoringRuleIdSchema, UpdateScoringRuleInputSchema, GetScoringRuleByAgentRequestSchema, type GetScoringRuleByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/io_pb";
-import { ScoringRuleQueryController } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/query_pb";
-import { ScoringRuleSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/spec_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ScoringRuleSchema, type ScoringRule } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import { ScoringRuleCommandController } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/command_pb";
+import { ScoringRuleIdSchema, UpdateScoringRuleInputSchema, GetScoringRuleByAgentRequestSchema, type GetScoringRuleByAgentRequest } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/io_pb";
+import { ScoringRuleQueryController } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/query_pb";
+import { ScoringRuleSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/spec_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on scoringrule resources. */
 export class ScoringRuleClient {

@@ -32,7 +32,7 @@
  *    terminal write (`boundary-rows.ts` `boundaryMayStillRewrite`).
  */
 
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { FileReviewIdentity, HarnessCapabilities } from "../../harness/capabilities.js";
 import { CURSOR_VISION_PROFILE } from "../../shared/attachment-vision.js";

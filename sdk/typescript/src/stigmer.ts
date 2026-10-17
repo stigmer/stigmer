@@ -15,7 +15,7 @@ import {
   type StigmerConfig,
   type TokenProvider,
 } from "./config.js";
-import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 type ExecutionTargetOption = StigmerConfig["executionTarget"];
 

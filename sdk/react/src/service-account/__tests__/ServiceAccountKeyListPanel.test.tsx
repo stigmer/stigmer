@@ -10,8 +10,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { Stigmer } from "@stigmer/sdk";
-import { ApiKeysSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
+import type { Stigmer } from "@stigmer/client";
+import { ApiKeysSchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { ServiceAccountKeyListPanel } from "../ServiceAccountKeyListPanel";
 

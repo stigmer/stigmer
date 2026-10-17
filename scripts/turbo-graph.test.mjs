@@ -3,16 +3,16 @@
 //
 // The regression this guards: Turborepo builds its package graph from
 // dependencies, devDependencies and optionalDependencies, never from
-// peerDependencies (vercel/turborepo#13025). @stigmer/sdk, @stigmer/react and
-// @stigmer/ink name @stigmer/protos (and @stigmer/sdk) as peers, and mirror
+// peerDependencies (vercel/turborepo#13025). @stigmer/client, @stigmer/react-sdk and
+// @stigmer/ink-ui name @stigmer/apis (and @stigmer/client) as peers, and mirror
 // them into devDependencies so the graph has the edge. Drop a mirror and
-// `turbo run build --filter=@stigmer/sdk` schedules sdk without protos, which
+// `turbo run build --filter=@stigmer/client` schedules sdk without protos, which
 // only fails once the two builds race. This test reads turbo's own dry run and
 // asserts that for every publishable package, every @stigmer/* it names in any
 // dependency field is a `#build` it waits on.
 //
 // It also pins the one edge the root's own suites need: `//#test:root` (the
-// suite behind `npm run test:scripts`) waits on @stigmer/protos#build, because
+// suite behind `npm run test:scripts`) waits on @stigmer/apis#build, because
 // verify-docs-tour-parity imports the tour fixtures, which import the protos
 // dist. That edge once lived as a step order in the CI lane, where
 // `npm test` on a fresh clone could not see it.
@@ -79,10 +79,10 @@ test("every workspace @stigmer/* a publishable package declares is a build it de
 
 test("the three peer-only packages of 2026-09-10 wait on protos", () => {
   // Named explicitly so the failure reads as the history it is.
-  for (const name of ["@stigmer/sdk", "@stigmer/react", "@stigmer/ink"]) {
+  for (const name of ["@stigmer/client", "@stigmer/react-sdk", "@stigmer/ink-ui"]) {
     assert.ok(
-      byId.get(`${name}#build`).dependencies.includes("@stigmer/protos#build"),
-      `${name}#build must wait on @stigmer/protos#build`,
+      byId.get(`${name}#build`).dependencies.includes("@stigmer/apis#build"),
+      `${name}#build must wait on @stigmer/apis#build`,
     );
   }
 });
@@ -103,8 +103,8 @@ test("the root suites wait on the protos build they import", () => {
   const suite = root.tasks.find((t) => t.taskId === "//#test:root");
   assert.ok(suite, "//#test:root is registered in turbo.json");
   assert.ok(
-    suite.dependencies.includes("@stigmer/protos#build"),
-    "//#test:root must wait on @stigmer/protos#build (verify-docs-tour-parity imports its dist)",
+    suite.dependencies.includes("@stigmer/apis#build"),
+    "//#test:root must wait on @stigmer/apis#build (verify-docs-tour-parity imports its dist)",
   );
   assert.equal(
     suite.resolvedTaskDefinition.cache,

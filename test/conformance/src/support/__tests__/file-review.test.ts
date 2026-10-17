@@ -20,11 +20,11 @@
 // Pure: hand-built resources and stubbed clients, no target.
 // Domain: conformance support (execution engine).
 import { create } from "@bufbuild/protobuf";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { FileChangeKind, RunPhase, SnapshotKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { FileChangeSetSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { type SessionEvent, SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import { ReviewFileChangesResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { FileChangeKind, RunPhase, SnapshotKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeSetSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import { type SessionEvent, SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { ReviewFileChangesResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { describe, expect, it, vi } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import {

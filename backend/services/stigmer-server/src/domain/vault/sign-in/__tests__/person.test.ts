@@ -40,11 +40,11 @@ import {
   CompleteSignInInputSchema,
   SignInReturn,
   StartSignInInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
-import type { StartSignInOutput } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
-import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
+import type { StartSignInOutput } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { OAuthAppSchema } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
+import { VendorApprovalStatus } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/spec_pb";
 
 import type { CallerIdentity } from "../../../../extensions/identity.js";
 import { testCallerIdentity } from "../../../../pipeline/__tests__/support.js";

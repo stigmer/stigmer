@@ -27,7 +27,7 @@
  * slash, query, a bare host, refusals), a two-tools-one-host case, and a
  * clone URL's host for HTTPS only.
  */
-import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 
 /** Why an address was refused, said once for every caller. */
 export const ADDRESS_RULE =

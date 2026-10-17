@@ -6,7 +6,7 @@
 // that compares the folded tool uses one by one.
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
-import type { ToolUse, ToolUseState } from "@stigmer/sdk";
+import type { ToolUse, ToolUseState } from "@stigmer/client";
 import { ToolRunGroup, toolRunGroupPropsEqual } from "../ToolRunGroup";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
 import { toolUse } from "./__fixtures__/fold-values";

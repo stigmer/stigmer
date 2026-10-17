@@ -41,7 +41,7 @@ import { createValidator, type Validator } from "@bufbuild/protovalidate";
 import {
   LicenseClaimsSchema,
   type LicenseClaims,
-} from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+} from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 
 /** Why a key was refused. */
 export type LicenseRefusalKind =

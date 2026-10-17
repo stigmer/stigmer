@@ -11,9 +11,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { HookConfigSchema, HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { HookConfigSchema, HookFormat } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { RUN_EVENTS } from "@stigmer/plugin-package";
-import { hookEventLabel } from "@stigmer/sdk";
+import { hookEventLabel } from "@stigmer/client";
 import { HookConfigList } from "../HookConfigList.js";
 
 afterEach(cleanup);

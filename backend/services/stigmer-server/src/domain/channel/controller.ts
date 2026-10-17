@@ -43,14 +43,14 @@
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 
-import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import { ChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/command_pb";
-import { ChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/query_pb";
+import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelCommandController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/command_pb";
+import { ChannelQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/query_pb";
 import {
   ChannelListSchema,
   UpdateChannelInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
 import type {
   ChannelAgentProfile,
   ChannelId,
@@ -63,17 +63,17 @@ import type {
   ListChannelsRequest,
   RotateChannelLinkInput,
   UpdateChannelInput,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
 import {
   ChannelStatusSchema,
   WebChannelStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
 import type {
   ApiResourceReference,
   RenameInput,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceAuditSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { CredentialBinding } from "../../extensions/credential-binding.js";

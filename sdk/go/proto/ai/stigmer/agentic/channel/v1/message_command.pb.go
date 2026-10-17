@@ -7,8 +7,8 @@
 package channelv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -28,8 +28,8 @@ const file_ai_stigmer_agentic_channel_v1_message_command_proto_rawDesc = "" +
 	"\n" +
 	"3ai/stigmer/agentic/channel/v1/message_command.proto\x12\x1dai.stigmer.agentic.channel.v1\x1a.ai/stigmer/agentic/channel/v1/message_io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xae\x01\n" +
 	"\x1fChannelMessageCommandController\x12\x84\x01\n" +
-	"\vsendMessage\x126.ai.stigmer.agentic.channel.v1.SendChannelMessageInput\x1a7.ai.stigmer.agentic.channel.v1.SendChannelMessageOutput\"\x04и\x18\x01\x1a\x04\xa0\xff+/B\xa5\x02\n" +
-	"!com.ai.stigmer.agentic.channel.v1B\x13MessageCommandProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
+	"\vsendMessage\x126.ai.stigmer.agentic.channel.v1.SendChannelMessageInput\x1a7.ai.stigmer.agentic.channel.v1.SendChannelMessageOutput\"\x04и\x18\x01\x1a\x04\xa0\xff+/B\x92\x02\n" +
+	"!com.ai.stigmer.agentic.channel.v1B\x13MessageCommandProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_channel_v1_message_command_proto_goTypes = []any{
 	(*SendChannelMessageInput)(nil),  // 0: ai.stigmer.agentic.channel.v1.SendChannelMessageInput

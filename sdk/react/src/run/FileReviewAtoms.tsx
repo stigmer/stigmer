@@ -1,7 +1,7 @@
 "use client";
 
-import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { cn } from "@stigmer/theme";
+import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { cn } from "@stigmer/design-tokens";
 
 /**
  * Shared presentational atoms for the file-review surfaces — the single source

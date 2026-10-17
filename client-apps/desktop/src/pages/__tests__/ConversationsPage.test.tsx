@@ -3,13 +3,13 @@
  * conversation, a selection change navigates the hash router, the header
  * mounts the CHANNEL's access dialog (participant grants are per channel,
  * never per conversation), and a channel links to its agent's Channels tab.
- * The workbench itself is pinned in @stigmer/react.
+ * The workbench itself is pinned in @stigmer/react-sdk.
  */
 import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 interface WorkbenchProps {
   org: string;
@@ -26,7 +26,7 @@ const page = vi.hoisted(() => ({
 
 const CHANNEL = { metadata: { name: "Support line", slug: "support" } };
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   ConversationsWorkbench: (props: WorkbenchProps) => {
     page.workbench.push(props);
     return <>{props.headerAccessory?.({ channel: CHANNEL })}</>;

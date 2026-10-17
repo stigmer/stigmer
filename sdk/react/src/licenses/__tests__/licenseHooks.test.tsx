@@ -8,7 +8,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { StigmerError, type LicenseInput } from "@stigmer/sdk";
+import { StigmerError, type LicenseInput } from "@stigmer/client";
 import { StigmerContext } from "../../context";
 import { FetchCache } from "../../internal/fetch-cache";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";

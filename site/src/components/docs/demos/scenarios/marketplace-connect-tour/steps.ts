@@ -16,23 +16,23 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginDialect, PluginSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
+import { PluginSchema, type Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginDialect, PluginSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/spec_pb";
 import {
   HttpMcpServerSchema,
   McpServerEntrySchema,
   PluginStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import {
   ListPluginToolsOutputSchema,
   PluginToolSchema,
   type ListPluginToolsOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { samples } from "@stigmer/react/test";
-import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { samples } from "@stigmer/react-sdk/test";
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import type { ScenarioStep } from "@scenar/react";
 
 // ---------------------------------------------------------------------------

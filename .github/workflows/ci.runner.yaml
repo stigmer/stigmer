@@ -118,7 +118,7 @@ jobs:
       - name: Install npm workspace dependencies
         run: npm ci
 
-      # The runner file:-links its workspace libs (@stigmer/protos,
+      # The runner file:-links its workspace libs (@stigmer/apis,
       # @stigmer/temporal-codecs) and imports their built dists, not source.
       - name: Build runner-linked workspace libs
         run: npm run build:runner-deps

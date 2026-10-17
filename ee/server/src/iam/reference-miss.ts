@@ -35,9 +35,9 @@ import { getOption } from "@bufbuild/protobuf";
 import type { DescMethod } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { config } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
-import type { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { config } from "@stigmer/apis/ai/stigmer/commons/rpc/method_options_pb";
+import type { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import type { Authorizer, CallerIdentity } from "@stigmer/server";
 import { internalError } from "@stigmer/server";
 

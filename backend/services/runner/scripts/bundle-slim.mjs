@@ -79,7 +79,7 @@ const pkgsDir = join(runnerRoot, "dist-slim-pkgs");
 /**
  * Packages that stay OUTSIDE the bundle and resolve from node_modules at
  * runtime. Everything else — LangChain, OTel, Temporal's JS, openai,
- * deepagents, @stigmer/protos, the lot — is compiled into main.js.
+ * deepagents, @stigmer/apis, the lot — is compiled into main.js.
  *
  * - @cursor/sdk: resolves its per-platform helper binaries (cursorsandbox,
  *   rg) from sibling packages at runtime. (Its SQLite is `node:sqlite` since

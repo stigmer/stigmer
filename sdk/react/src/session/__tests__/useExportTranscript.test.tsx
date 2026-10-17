@@ -1,5 +1,5 @@
 // useExportTranscript (stigmer/stigmer#814): the lazy export actions run the
-// REAL canonical assembly (fetchSessionTranscript from @stigmer/sdk) against
+// REAL canonical assembly (fetchSessionTranscript from @stigmer/client) against
 // a fake client serving the session, its event log and its runs, so these
 // tests pin the hook's end-to-end content, filenames, clipboard strategy,
 // and failure honesty — not a mock of the SDK.
@@ -9,10 +9,10 @@ import { renderHook, act } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
   RunSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunListSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunListSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { samples } from "../../test/samples";
 
 const toastSuccess = vi.fn();

@@ -12,8 +12,8 @@ import { createHash } from "node:crypto";
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import { RunEventsBuilder } from "../../session/events/__tests__/run-events-fixture.js";
 import { actionsOf } from "../checks/actions.js";

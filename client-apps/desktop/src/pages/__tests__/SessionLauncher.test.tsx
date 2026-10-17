@@ -5,7 +5,7 @@
  * an `?agent=org/slug` link preselects the agent, a link that arrives after
  * the launcher is open is read too and the address cleaned once read, and
  * the person's plugin picks are remembered for the next conversation. The viewer is pinned in
- * @stigmer/react.
+ * @stigmer/react-sdk.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
@@ -16,7 +16,7 @@ const page = vi.hoisted(() => ({
   navigate: undefined as NavigateFunction | undefined,
 }));
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   useActiveOrgId: () => "org_acme",
   NewSessionViewer: (props: Record<string, unknown>) => {
     page.viewer.push(props);

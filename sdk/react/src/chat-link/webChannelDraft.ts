@@ -6,18 +6,18 @@
  * `useSaveChannel().update`). Framework-free: no hook lives here.
  */
 
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   ChannelAudience,
   type WebChannelConfig,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
 import type {
   ChannelInput,
   ResourceRef,
   RunConfigInput,
   WebChannelConfigInput,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 
 /**
  * Who can chat with an agent over its hosted chat link.

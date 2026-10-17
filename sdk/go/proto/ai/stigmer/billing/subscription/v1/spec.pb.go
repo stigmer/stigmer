@@ -80,8 +80,8 @@ const file_ai_stigmer_billing_subscription_v1_spec_proto_rawDesc = "" +
 	"\n" +
 	"-ai/stigmer/billing/subscription/v1/spec.proto\x12\"ai.stigmer.billing.subscription.v1\x1a\x1bbuf/validate/validate.proto\"3\n" +
 	"\x10SubscriptionSpec\x12\x1f\n" +
-	"\aplan_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x06planIdB\xbe\x02\n" +
-	"&com.ai.stigmer.billing.subscription.v1B\tSpecProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/subscription/v1;subscriptionv1\xa2\x02\x04ASBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3"
+	"\aplan_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x06planIdB\xab\x02\n" +
+	"&com.ai.stigmer.billing.subscription.v1B\tSpecProtoP\x01ZIgo.stigmer.ai/sdk/proto/ai/stigmer/billing/subscription/v1;subscriptionv1\xa2\x02\x04ASBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_billing_subscription_v1_spec_proto_rawDescOnce sync.Once

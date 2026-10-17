@@ -11,7 +11,7 @@ support over gRPC.
 ## Installation
 
 ```bash
-go get github.com/stigmer/stigmer/sdk/go/v3
+go get go.stigmer.ai/sdk
 ```
 
 ## Create a client
@@ -20,7 +20,7 @@ Authenticate with an API key from an environment variable. Always call
 `defer client.Close()` to release the underlying gRPC connection:
 
 ```go
-import stigmer "github.com/stigmer/stigmer/sdk/go/v3"
+import stigmer "go.stigmer.ai/sdk"
 
 client, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
 if err != nil {

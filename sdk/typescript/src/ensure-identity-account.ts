@@ -4,7 +4,7 @@
  *
  * Every edition serves `IdentityAccount` from one controller,
  * and every surface that greets a signed-in person runs the same two-step
- * flow — the console's `useIdentityAccountGate` (`@stigmer/react`), the
+ * flow — the console's `useIdentityAccountGate` (`@stigmer/react-sdk`), the
  * CLI's `auth login` and `auth whoami`, and any platform builder's own
  * gate. This module is that flow's one home, so the surfaces cannot drift
  * on the question "what does a missing account mean?".
@@ -26,7 +26,7 @@
  * The client parameter is structural: the full `Stigmer` client satisfies
  * it, and a test can hand in two functions.
  */
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { isNotFound } from "./errors.js";
 
 /**

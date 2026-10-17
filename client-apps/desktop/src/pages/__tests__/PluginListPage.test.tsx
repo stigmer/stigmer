@@ -7,7 +7,7 @@
  * refetches the list in place; a refusal is shown as the server words it,
  * and a refusal with no message as a plain failure. Declining removes
  * nothing. Organization links are pinned in library-list-pages.orgs.test.tsx;
- * the workbench, the form and the confirmation in @stigmer/react.
+ * the workbench, the form and the confirmation in @stigmer/react-sdk.
  */
 import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -44,7 +44,7 @@ const page = vi.hoisted(() => ({
   toasts: [] as Array<[string, string]>,
 }));
 
-vi.mock("@stigmer/react", () => {
+vi.mock("@stigmer/react-sdk", () => {
   const Passthrough = ({ children }: { children?: ReactNode }) => <>{children}</>;
   const ActionMenu = Object.assign(Passthrough, {
     Trigger: () => null,

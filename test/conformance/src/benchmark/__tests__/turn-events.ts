@@ -8,7 +8,7 @@ import { create, type JsonObject, type MessageInitShape } from "@bufbuild/protob
 import {
   SessionEventSchema,
   type SessionEvent,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { foldSession, turnOf, type Turn } from "@stigmer/session-log";
 
 type EventInit = MessageInitShape<typeof SessionEventSchema>["event"];

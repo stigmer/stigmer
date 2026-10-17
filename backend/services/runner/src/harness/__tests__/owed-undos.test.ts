@@ -24,8 +24,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { RunSchema, RunStatusSchema, type Run, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { RunSchema, RunStatusSchema, type Run, type RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import { initGitWorkspace } from "../../__test-utils__/git-workspace-fixture.js";
 import { captureBaselineToLedger, captureCandidateToLedger } from "../../shared/filereview/capture.js";

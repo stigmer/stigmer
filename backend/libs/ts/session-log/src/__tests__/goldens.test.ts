@@ -39,7 +39,7 @@ import { fileURLToPath } from "node:url";
 import { fromJson, type JsonValue } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import { foldSession } from "../fold.js";
 import type { Thread, ToolUse, TurnItem } from "../types.js";

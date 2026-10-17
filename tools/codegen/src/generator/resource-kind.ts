@@ -1,4 +1,4 @@
-// ApiResourceKind metadata for the emitters, read from @stigmer/protos'
+// ApiResourceKind metadata for the emitters, read from @stigmer/apis'
 // generated descriptors — the TS analogue of the Go generator's
 // resource_kind.go / sdk_kind_meta_ts.go init-time extension reads (which
 // used the compiled Go stubs). Values derive from api_resource_kind.proto's
@@ -9,12 +9,12 @@ import {
   ApiResourceKindSchema,
   kind_meta,
   ResourceTier,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   AuthorizationScopeType,
   type VisibilityConfig,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
-import { IamRoleSchema, role_meta } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
+import { IamRoleSchema, role_meta } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 /** Enum number → lowercase constant name (e.g. 43 → "skill"). */
 export const apiResourceKindEnumNames = new Map<number, string>();

@@ -12,8 +12,8 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { connectNodeAdapter, createGrpcWebTransport } from "@connectrpc/connect-node";
 import { describe, expect, it } from "vitest";
 
-import { TokenService } from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
-import type { MintUserTokenRequest } from "@stigmer/protos/ai/stigmer/iam/token/v1/token_pb";
+import { TokenService } from "@stigmer/apis/ai/stigmer/iam/token/v1/token_pb";
+import type { MintUserTokenRequest } from "@stigmer/apis/ai/stigmer/iam/token/v1/token_pb";
 
 import { TokenClient } from "../tokens";
 

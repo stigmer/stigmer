@@ -89,8 +89,8 @@ const file_ai_stigmer_billing_v1_enum_proto_rawDesc = "" +
 	"\"billing_account_status_unspecified\x10\x00\x12\x1a\n" +
 	"\x16billing_account_active\x10\x01\x12\x1d\n" +
 	"\x19billing_account_suspended\x10\x02\x12\x1a\n" +
-	"\x16billing_account_closed\x10\x03B\xe9\x01\n" +
-	"\x19com.ai.stigmer.billing.v1B\tEnumProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
+	"\x16billing_account_closed\x10\x03B\xd6\x01\n" +
+	"\x19com.ai.stigmer.billing.v1B\tEnumProtoP\x01Z7go.stigmer.ai/sdk/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_billing_v1_enum_proto_rawDescOnce sync.Once

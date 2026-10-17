@@ -1,12 +1,12 @@
 import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import type { Transport } from "@connectrpc/connect";
-import type { Eval } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
+import type { Eval } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
 import {
   CreateEvalArtifactUploadUrlRequestSchema,
   PushEvalRequestSchema,
   type PushEvalRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
 import { pushRoutedArtifact } from "./artifact-routing.js";
 import type { ArtifactRoute } from "./artifact-routing.js";
 import { StigmerError } from "./gen/errors.js";

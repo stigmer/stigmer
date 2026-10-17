@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   ChannelConversationListFilter,
   ChannelConversationSchema,
@@ -12,12 +12,12 @@ import {
   ConversationItemAuthor,
   ConversationLane,
   ConversationTimelineItemSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import {
   ChannelSendOutcome,
   SendChannelMessageOutputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
-import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/outbound_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
+import { ChannelReceiptState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/outbound_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { advanceInSlices } from "../../internal/__tests__/fake-timer-slices";

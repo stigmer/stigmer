@@ -1,6 +1,6 @@
 "use client";
 
-import { OAuthCallbackHandler } from "@stigmer/react";
+import { OAuthCallbackHandler } from "@stigmer/react-sdk";
 
 /**
  * OAuth callback page for Slack channel installs.

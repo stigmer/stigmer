@@ -76,7 +76,7 @@ jobs:
       # with, which reads the tool vocabulary (dist).
       - name: Build proto stubs and the session-log fold
         run: |
-          npm run build -w @stigmer/protos
+          npm run build -w @stigmer/apis
           npm run build -w @stigmer/tool-vocabulary
           npm run build -w @stigmer/session-log
 

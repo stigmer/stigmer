@@ -3,17 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "next-themes";
 import { create } from "@bufbuild/protobuf";
-import { GetChannelAgentProfileRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
+import { GetChannelAgentProfileRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
 import {
   LINK_TOKEN_PARAM,
   Stigmer,
   createGuestAuth,
   isNotFound,
   isPermissionDenied,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { isEmbedded, notifyParent, resolveParentOrigin } from "@stigmer/embed";
-import { StigmerProvider, VisitorChat } from "@stigmer/react";
-import type { ResolvedColorMode } from "@stigmer/react";
+import { StigmerProvider, VisitorChat } from "@stigmer/react-sdk";
+import type { ResolvedColorMode } from "@stigmer/react-sdk";
 import { useAuth } from "@/auth";
 import { getApiBaseUrl } from "@/config/env";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
@@ -28,14 +28,14 @@ import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam"
  * demand, but nothing forces anonymous visitors to sign in. The page is
  * a thin shell — everything of substance lives in the SDK:
  *
- * - `createGuestAuth` (`@stigmer/sdk`) mints short-lived guest JWTs via
+ * - `createGuestAuth` (`@stigmer/client`) mints short-lived guest JWTs via
  *   the public, credential-free `mintGuestToken` RPC and keeps the
  *   visitor's identity stable across visits (localStorage guest id).
  * - `@stigmer/embed` owns the embed protocol: when the page runs inside
  *   an iframe it discovers the embedding page's origin from
  *   browser-authentic sources and reports `ready`/`refused` to the
  *   loader.
- * - `VisitorChat` (`@stigmer/react`) resolves the profile and
+ * - `VisitorChat` (`@stigmer/react-sdk`) resolves the profile and
  *   renders the pure-chat surface, including the unavailable state.
  *
  * Audience routing (standalone page): the page probes the anonymous

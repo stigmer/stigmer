@@ -24,8 +24,8 @@ import {
   IdentityOriginSchema,
   PrincipalAccessSchema,
   type PrincipalAccess,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const members = vi.hoisted(() => ({ current: [] as PrincipalAccess[] }));

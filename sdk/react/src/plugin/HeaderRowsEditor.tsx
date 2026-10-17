@@ -15,7 +15,7 @@
  * `../agent/__tests__/AgentDetailView.mcpServers.test.tsx`.
  */
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { Button } from "../button/Button.js";
 import { INPUT_CLASS } from "../vault/styles.js";
 

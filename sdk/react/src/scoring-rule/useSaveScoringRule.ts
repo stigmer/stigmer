@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { ScoringRule } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
+import type { ScoringRule } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { useStigmer } from "../hooks.js";
-import { buildScoringRuleProto } from "@stigmer/sdk";
+import { buildScoringRuleProto } from "@stigmer/client";
 import { toError } from "../internal/toError.js";
 import { scoringRuleInputOf, type GradingSettings } from "./grading-settings.js";
 

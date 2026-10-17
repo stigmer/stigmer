@@ -15,7 +15,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
-import type { FileReviewFile, FileReviewSet, Thread, Turn } from "@stigmer/sdk";
+import type { FileReviewFile, FileReviewSet, Thread, Turn } from "@stigmer/client";
 import { SubagentSection } from "../SubagentSection";
 import { FileReviewContext } from "../FileReviewContext";
 import { MessageThread } from "../MessageThread";

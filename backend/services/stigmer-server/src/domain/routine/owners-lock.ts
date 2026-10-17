@@ -26,9 +26,9 @@
  */
 import { clone, create, equals } from "@bufbuild/protobuf";
 
-import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
-import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
-import { RoutineSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/spec_pb";
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/spec_pb";
 
 import { RoutineFireRefusedError } from "../../extensions/routine-fire-caller.js";
 import { internalError, permissionDeniedError } from "../../pipeline/errors.js";

@@ -14,8 +14,8 @@
 import { Stream } from "@anthropic-ai/sdk/core/streaming";
 import type { BetaManagedAgentsStreamSessionEvents } from "@anthropic-ai/sdk/resources/beta/sessions/events";
 import { create } from "@bufbuild/protobuf";
-import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import { SessionEventListSchema, type ListSessionEventsRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionEventListSchema, type ListSessionEventsRequest } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import { collectUntil, isIdleWith, listAll, managedAgentsClient, nativeAsManagedAgents, storedOf } from "../managed-agents";

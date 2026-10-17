@@ -32,11 +32,11 @@
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 
-import { RoutineCommandController } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/command_pb";
-import { RoutineQueryController } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/query_pb";
-import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
-import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
-import { RoutineListSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
+import { RoutineCommandController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/command_pb";
+import { RoutineQueryController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/query_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineListSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
 import type {
   FireRoutineInput,
   ListRoutineFiresRequest,
@@ -46,14 +46,14 @@ import type {
   RoutineList,
   RoutineFireList,
   RoutineFireResult,
-} from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
 import type {
   ApiResourceReference,
   RenameInput,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { UpdateRoutineInput } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
-import { UpdateRoutineInputSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { UpdateRoutineInput } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
+import { UpdateRoutineInputSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { CredentialBinding } from "../../extensions/credential-binding.js";

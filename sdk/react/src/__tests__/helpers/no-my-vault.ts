@@ -6,7 +6,7 @@
  */
 import { vi } from "vitest";
 import { Code } from "@connectrpc/connect";
-import { StigmerError } from "@stigmer/sdk";
+import { StigmerError } from "@stigmer/client";
 
 /** A `vault` client whose `getMine` answers NOT_FOUND. */
 export function noMyVaultClient(): { getMine: ReturnType<typeof vi.fn> } {

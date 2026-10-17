@@ -3,7 +3,7 @@
  * organization by its id, the way the server names every org, and on
  * completion opens the new resource at a URL whose org segment is the
  * org's slug, resolved from the id the created resource names its org by.
- * The wizards, uploaders and forms themselves are pinned in @stigmer/react.
+ * The wizards, uploaders and forms themselves are pinned in @stigmer/react-sdk.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
@@ -17,7 +17,7 @@ const page = vi.hoisted(() => ({
   pushed: [] as string[],
 }));
 
-vi.mock("@stigmer/react", () => {
+vi.mock("@stigmer/react-sdk", () => {
   const capture = (name: string) => (props: Props) => {
     page.props.set(name, props);
     return null;

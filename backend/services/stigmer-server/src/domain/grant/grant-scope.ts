@@ -20,7 +20,7 @@
  * (grant-scope.test.ts pins the equality; grantable-roles-for.test.ts pins
  * the four).
  */
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { GrantScope } from "../../extensions/grant-scope.js";
 import { grantableRolesFor } from "../../pipeline/apiresource-meta.js";

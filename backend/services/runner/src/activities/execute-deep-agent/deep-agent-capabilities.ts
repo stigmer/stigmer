@@ -27,7 +27,7 @@
  *    runtime's CAS observations (`turn.ts`).
  */
 
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { HarnessCapabilities } from "../../harness/capabilities.js";
 import { DEEP_AGENT_VISION_PROFILE } from "../../shared/attachment-vision.js";

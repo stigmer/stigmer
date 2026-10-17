@@ -13,20 +13,20 @@
 
 import { create, equals, fromJson, type JsonValue, type Message } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { UpdateOrganizationPoliciesInputSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
-import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { UpdateVisibilityInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { UpdateOrganizationPoliciesInputSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
+import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import {
   type OrganizationPolicies,
   OrganizationPoliciesSchema,
-} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/spec_pb";
 import {
   type ApiResourceMetadata,
   ApiResourceMetadataSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   type OrganizationReader,
   organizationLabel,
@@ -39,7 +39,7 @@ import {
   SlugChangeRefusedError,
   SlugRenamedError,
   toDesiredState,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { classify, UsageError } from "../../errors/index.js";
 import { CommandResult } from "../../output/index.js";
 import { defaultRegistry, unknownKindError, Verb } from "../../registry/index.js";

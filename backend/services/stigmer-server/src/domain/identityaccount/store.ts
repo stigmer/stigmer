@@ -61,7 +61,7 @@
  *     propagates as the infrastructure fault it is (the store-fault
  *     mapping — an outage must never read as "no account").
  */
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 
 import type { GuardedWritePort } from "../../store/guarded-port.js";
 

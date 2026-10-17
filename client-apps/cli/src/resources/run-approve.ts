@@ -17,7 +17,7 @@
 // retired words approve, reject and approve-all are refused with the word that
 // replaced them.
 
-import { foldSession, turnOf, type Stigmer, type ToolUse } from "@stigmer/sdk";
+import { foldSession, turnOf, type Stigmer, type ToolUse } from "@stigmer/client";
 import { UsageError } from "../errors/index.js";
 import { listSessionEvents, sessionOfRun } from "./session.js";
 import { submitAnswer, type AskAnswer } from "./stream/answer.js";

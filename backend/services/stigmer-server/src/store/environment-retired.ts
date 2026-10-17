@@ -43,7 +43,7 @@
  */
 import { fromBinary } from "@bufbuild/protobuf";
 
-import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { GrantSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
 
 /** The `kind` column value of the rows the step deletes. */
 export const RETIRED_ENVIRONMENT_KIND = "environment";

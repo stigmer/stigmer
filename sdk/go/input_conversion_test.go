@@ -26,7 +26,7 @@ import (
 	"strings"
 	"testing"
 
-	runv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
+	runv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 )

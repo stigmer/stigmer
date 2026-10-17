@@ -13,7 +13,7 @@
  * evidence alone.
  */
 
-import type { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { costCapExceeded } from "../shared/cost-guard.js";
 import type { UsageDelta } from "./types.js";

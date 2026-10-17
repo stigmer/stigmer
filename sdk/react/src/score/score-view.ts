@@ -12,12 +12,12 @@
  * second rating with SCORE_EXISTS and the existing score's id, and the
  * control updates that score instead.
  */
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
 import {
   CriterionResult,
   ScoreSource,
   ScoreState,
-} from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
 
 /** The metric a person's thumbs are recorded under. */
 export const FEEDBACK_METRIC = "feedback";

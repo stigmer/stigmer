@@ -26,18 +26,18 @@ import {
   FileChangeKind,
   FileReviewBlockReason,
   SnapshotKind,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   CasManifestRefSchema,
   GitTreeRefSchema,
   SnapshotRefSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import type {
   CapturedFileChange,
   FileChangeSet,
   SnapshotRef,
   TurnCommandProvenance,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import { utcTimestamp } from "../status.js";
 import {
   appendFileReviewEvents,

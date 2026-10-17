@@ -8,9 +8,9 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
 import { useWhoAmI } from "../grant/useWhoAmI.js";
 import {
   judgeScoreOf,
@@ -33,7 +33,7 @@ import { useSessionScores } from "./useSessionScores.js";
  * the controls, so a refetch re-renders the few rating rows, never the
  * whole thread.
  *
- * @internal Not part of the public `@stigmer/react` API.
+ * @internal Not part of the public `@stigmer/react-sdk` API.
  */
 export interface RunScoresData {
   readonly scoresOf: (runId: string) => readonly Score[];
@@ -82,7 +82,7 @@ export interface RunScoresProviderProps {
  * by `MessageThread` only when its host asked for run scores, so a view
  * that shows none makes no score request at all.
  *
- * @internal Not part of the public `@stigmer/react` API.
+ * @internal Not part of the public `@stigmer/react-sdk` API.
  */
 export function RunScoresProvider({ runs, children }: RunScoresProviderProps) {
   const sessionId = sessionIdOfRuns(runs);

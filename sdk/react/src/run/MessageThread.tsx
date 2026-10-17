@@ -1,16 +1,16 @@
 "use client";
 
 import { lazy, memo, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { RecalledMemoryFact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { RecalledMemoryFact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
+import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
 import {
   InteractionMode,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   deletedReferenceLabel,
   displayFileChangeSets,
@@ -24,8 +24,8 @@ import {
   type ToolUse,
   type Turn,
   type TurnItem,
-} from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+} from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 import { runPhaseOf } from "./run-phases.js";
 import { MessageEntry, type MessageEntryProps, type ThreadMessage } from "./MessageEntry.js";
 import { RunScores } from "../score/RunScores.js";
@@ -800,7 +800,7 @@ export function buildThreadItems(
     }
 
     // The person's message. With the run at hand the shared conversation
-    // rule decides what shows (see syntheticUserPrompt in @stigmer/sdk:
+    // rule decides what shows (see syntheticUserPrompt in @stigmer/client:
     // the empty prompt, the "execute" placeholder and a Build-from-plan
     // turn's label are skipped); before the run is listed, the message
     // the session's events carry.

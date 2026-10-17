@@ -6,7 +6,7 @@
 // answer goes out as confirmToolUse (allow, or deny with its reason) or as
 // grantPermission, naming the session and the tool use.
 
-import type { ConfirmToolUseInput, GrantPermissionInput } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import type { ConfirmToolUseInput, GrantPermissionInput } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { describe, expect, it } from "vitest";
 import { UsageError } from "../../../errors/index.js";
 import { answerFor, answerWord, parseApproveDefault, DENY_REASON, submitAnswer } from "../answer.js";

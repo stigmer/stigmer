@@ -37,13 +37,13 @@
  * in words, never as a bare number. Pinned by `__tests__/eval-view.test.ts`
  * and `__tests__/eval-view.agent.test.ts`.
  */
-import { ALLOW_TOOL_PATTERN } from "@stigmer/sdk";
+import { ALLOW_TOOL_PATTERN } from "@stigmer/client";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
 import {
   EvalRunAblation,
   type EvalRunTarget,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import {
   EvalRunPartialReason,
   EvalRunPhase,
@@ -52,13 +52,13 @@ import {
   type EvalRunCase,
   type EvalRunPlugin,
   type EvalRunTry,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import type { ApiResourceAudit } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import type { ApiResourceAudit } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 import {
   evalRunTargetLabel,
   type EvalRunInput,
   type EvalRunTargetInput,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { toProtoHarness, type HarnessOption } from "../models/harness.js";
 
 /** The most targets an eval run runs on. */

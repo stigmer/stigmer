@@ -31,24 +31,24 @@
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type {
   ApiResourceDeleteInput,
   ApiResourceId,
   ApiResourceReference,
   RenameInput,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
-import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
-import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
-import { OAuthAppsSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { OAuthAppSchema } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
+import type { OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
+import { OAuthAppCommandController } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/command_pb";
+import { OAuthAppsSchema } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/io_pb";
 import type {
   ListOAuthAppsInput,
   OAuthApps,
-} from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/io_pb";
-import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
-import type { UpdateOAuthAppInput } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/io_pb";
-import { UpdateOAuthAppInputSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/io_pb";
+import { OAuthAppQueryController } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/query_pb";
+import type { UpdateOAuthAppInput } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/io_pb";
+import { UpdateOAuthAppInputSchema } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { CredentialBinding } from "../../extensions/credential-binding.js";

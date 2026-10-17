@@ -3,8 +3,8 @@
 package gen
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // DeleteResourceInput provides arguments for deleting a resource.

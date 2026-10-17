@@ -9,9 +9,9 @@
 // every way out. A finished session's events replay through the renderer.
 
 import { Code, ConnectError } from "@connectrpc/connect";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import type { StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { eventTypeOf, type SessionFold, type ToolUse } from "@stigmer/sdk";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import type { StreamSessionEventsResponse } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { eventTypeOf, type SessionFold, type ToolUse } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { asked, frameOf, idle, phase, said, use, user } from "../../__test-utils__/session-events.js";
 import { type ApproveDefault, type AskAnswer, DENY_REASON } from "../answer.js";

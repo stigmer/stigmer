@@ -22,7 +22,7 @@ import {
   TeamsSection,
   UsageSection,
   ProviderKeysSection,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 import { AppShell } from "./shell/AppShell";
 import { SessionLauncher } from "./pages/SessionLauncher";
 

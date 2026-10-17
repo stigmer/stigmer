@@ -9,16 +9,16 @@ const nextConfig: NextConfig = {
   },
   transpilePackages: [
     "@stigmer/embed",
-    "@stigmer/react",
-    "@stigmer/sdk",
-    "@stigmer/theme",
-    "@stigmer/protos",
+    "@stigmer/react-sdk",
+    "@stigmer/client",
+    "@stigmer/design-tokens",
+    "@stigmer/apis",
   ],
   experimental: {
-    // The pricing page, a server component, imports @stigmer/react's plan
+    // The pricing page, a server component, imports @stigmer/react-sdk's plan
     // vocabulary by name. Without this, importing from the package's barrel
     // makes every client component it re-exports part of that page's bundle.
-    optimizePackageImports: ["@stigmer/react"],
+    optimizePackageImports: ["@stigmer/react-sdk"],
   },
   webpack: (config, { isServer }) => {
     config.resolve.extensionAlias = {

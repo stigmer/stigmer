@@ -9,9 +9,9 @@
 
 import { useCallback } from "react";
 import { Copy, MoreHorizontal, Pencil, RotateCcw, Trash2 } from "lucide-react";
-import { cn } from "@stigmer/theme";
-import { appendLinkToken, chatPath, getUserMessage } from "@stigmer/sdk";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import { appendLinkToken, chatPath, getUserMessage } from "@stigmer/client";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { toast } from "../feedback/toast.js";
 import { ActionMenu } from "../action-menu/index.js";
 import { Switch } from "../switch/Switch.js";

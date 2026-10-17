@@ -13,8 +13,8 @@
  * avatar apart from all three surfaces.
  */
 import { UsersRound } from "lucide-react";
-import type { GranteeKind } from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+import type { GranteeKind } from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 
 /** Props for {@link GranteeAvatar}. */
 export interface GranteeAvatarProps {

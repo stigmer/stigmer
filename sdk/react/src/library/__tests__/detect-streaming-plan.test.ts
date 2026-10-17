@@ -8,9 +8,9 @@
  * languages alone.
  */
 import { describe, it, expect } from "vitest";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { SessionLog, type Turn, type TurnPhase } from "@stigmer/sdk";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { SessionLog, type Turn, type TurnPhase } from "@stigmer/client";
 import { findStreamingPlan } from "../detect-streaming-plan";
 import { samples } from "../../test/samples";
 import {

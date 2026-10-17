@@ -367,8 +367,8 @@ const file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDesc = "" +
 	"\x17TokenEndpointAuthMethod\x12*\n" +
 	"&TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED\x10\x00\x122\n" +
 	".TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC\x10\x01\x121\n" +
-	"-TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST\x10\x02B\x8a\x02\n" +
-	"\x1ecom.ai.stigmer.iam.oauthapp.v1B\tSpecProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
+	"-TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST\x10\x02B\xf7\x01\n" +
+	"\x1ecom.ai.stigmer.iam.oauthapp.v1B\tSpecProtoP\x01Z=go.stigmer.ai/sdk/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDescOnce sync.Once

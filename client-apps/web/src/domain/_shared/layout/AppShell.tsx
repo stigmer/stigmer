@@ -3,8 +3,8 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { PanelLeft } from "lucide-react";
-import { cn } from "@stigmer/theme";
-import { useResolveRunSession } from "@stigmer/react";
+import { cn } from "@stigmer/design-tokens";
+import { useResolveRunSession } from "@stigmer/react-sdk";
 import { Button } from "@/domain/_shared/ui/button";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 import { useRunNavigation } from "@/domain/runs/run-navigation";

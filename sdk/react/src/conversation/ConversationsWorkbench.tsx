@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MessagesSquare } from "lucide-react";
-import { cn } from "@stigmer/theme";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   ChannelConversationListFilter,
   type ChannelConversation,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
-import { ChannelSendOutcome } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { ChannelSendOutcome } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
 import { channelProviderOf } from "../channel/providers.js";
 import { useOrgChannelList } from "../channel/useOrgChannelList.js";
 import { EmptyState } from "../empty-state/EmptyState.js";

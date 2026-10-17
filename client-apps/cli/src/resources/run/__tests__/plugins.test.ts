@@ -6,7 +6,7 @@
 // behind both run flags is pinned in full by vaults.test.ts.
 
 import { describe, expect, it } from "vitest";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { UsageError } from "../../../errors/index.js";
 import { type PluginReader, resolveRunPlugins } from "../plugins.js";
 

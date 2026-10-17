@@ -33,12 +33,12 @@
  * All visual properties flow through `--stgm-*` tokens.
  */
 
-import { toResultDocument } from "@stigmer/sdk";
+import { toResultDocument } from "@stigmer/client";
 import {
   EvalRunPartialReason,
   EvalRunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import { cn } from "@stigmer/theme";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import { cn } from "@stigmer/design-tokens";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { useWhoAmI } from "../grant/useWhoAmI.js";

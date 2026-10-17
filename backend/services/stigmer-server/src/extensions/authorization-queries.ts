@@ -58,7 +58,7 @@
 import type {
   ApiResourceRef,
   GrantSpec,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
 
 /** The query-engine contract (single-instance point, ExtensionDrivers.authorizationQueries). */
 export interface AuthorizationQueryEngine {

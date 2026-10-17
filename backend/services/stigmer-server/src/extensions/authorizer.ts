@@ -13,8 +13,8 @@
  * PERMISSION_DENIED; unavailable → INTERNAL), unit-tested on both arms
  * (pipeline/steps/__tests__/authorize.test.ts).
  */
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import type { CallerIdentity } from "./identity.js";
 

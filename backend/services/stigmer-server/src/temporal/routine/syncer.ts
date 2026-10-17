@@ -32,9 +32,9 @@ import type { Client, ScheduleDescription } from "@temporalio/client";
 import { ScheduleAlreadyRunning, ScheduleNotFoundError } from "@temporalio/client";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
-import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
-import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import { bumpStatusAudit } from "../../pipeline/steps/defaults.js";

@@ -15,8 +15,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   GetOrgUsageReportInputSchema,
   type GetOrgUsageReportOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import type { ModelUsage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import type { ModelUsage } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 import type { DateRange } from "./date-range.js";
@@ -24,7 +24,7 @@ import type { DateRange } from "./date-range.js";
 /**
  * Per-model usage row of an org report (tokens and calls per model).
  *
- * Re-exported so consumers don't need to depend on `@stigmer/protos`
+ * Re-exported so consumers don't need to depend on `@stigmer/apis`
  * directly for type-safe rendering.
  */
 export type { ModelUsage };

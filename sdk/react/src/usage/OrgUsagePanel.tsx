@@ -15,13 +15,13 @@
  */
 
 import { useState } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
-import type { ModelUsage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage } from "@stigmer/client";
+import type { ModelUsage } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import type {
   DailyUsage,
   GetOrgUsageReportOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { useOrgUsageReport } from "./useOrgUsageReport.js";
 import {
   DATE_RANGE_PRESETS,

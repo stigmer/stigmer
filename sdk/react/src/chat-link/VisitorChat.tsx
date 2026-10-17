@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { cn } from "@stigmer/theme";
-import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
-import type { ChannelAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage, type ResourceRef } from "@stigmer/client";
+import type { ChannelAgentProfile } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
 import { NewSessionViewer } from "../session/NewSessionViewer.js";
 import { SessionViewer } from "../session/SessionViewer.js";
 import { useChannelAgentProfile } from "./useChannelAgentProfile.js";
@@ -84,7 +84,7 @@ export interface VisitorChatProps {
  *
  * **Auth contract:** requires a `StigmerProvider` whose client can
  * chat with this agent. For public chat links (the default), pair with
- * `createGuestAuth({ baseUrl, channelId })` from `@stigmer/sdk` —
+ * `createGuestAuth({ baseUrl, channelId })` from `@stigmer/client` —
  * the profile fetch is public and sessions use the guest token the
  * provider mints on demand. For org-members-only chat links, pass
  * `linkAudience="org"` and a client carrying the signed-in

@@ -11,12 +11,12 @@
  * Proven by the agentexecution suites on local-execution and by the
  * co-located dispatch tests (ports dispatch_test.go).
  */
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import {
   ExecutionTarget,
   Harness,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import {

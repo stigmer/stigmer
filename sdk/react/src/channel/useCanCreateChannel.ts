@@ -1,6 +1,6 @@
 "use client";
 
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 
 /** Return value of {@link useCanCreateChannel}. */

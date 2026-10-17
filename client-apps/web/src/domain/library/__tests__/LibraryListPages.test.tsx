@@ -8,7 +8,7 @@
  * confirmation for the same act. The plugins list offers "Add MCP server"
  * in the active organization, open on arrival through `?add=mcp-server`
  * (the Library's Add menu), and goes to the new plugin's page. The
- * workbench, OrgSlugText and the form are pinned in @stigmer/react.
+ * workbench, OrgSlugText and the form are pinned in @stigmer/react-sdk.
  */
 import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -46,7 +46,7 @@ const page = vi.hoisted(() => ({
   confirms: [] as Array<{ title: string; description: string }>,
 }));
 
-vi.mock("@stigmer/react", () => {
+vi.mock("@stigmer/react-sdk", () => {
   const Passthrough = ({ children }: { children?: ReactNode }) => (
     <>{children}</>
   );

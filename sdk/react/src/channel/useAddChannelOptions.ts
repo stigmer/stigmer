@@ -14,8 +14,8 @@
 // runtime).
 
 import { useMemo } from "react";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { CHANNEL_TYPES, type ChannelTypeDescriptor } from "./channelTypes.js";
 import { channelInstallsAvailable } from "./providers.js";

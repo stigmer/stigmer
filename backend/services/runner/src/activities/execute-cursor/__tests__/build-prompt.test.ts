@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { appendStructuredOutputDirective, buildPrompt, isHitlReinvocation, primarySendCarriesImages, promptCarriesStandingContext } from "../prompt-builder.js";
 import type { BuildPromptInput } from "../prompt-builder.js";

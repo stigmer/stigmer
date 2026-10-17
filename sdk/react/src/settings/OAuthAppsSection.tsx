@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useId, useRef, useState } from "react";
-import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
+import type { OAuthApp } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { OAuthAppListPanel } from "../oauth-app/OAuthAppListPanel.js";
 import { CreateOAuthAppForm } from "../oauth-app/CreateOAuthAppForm.js";
 import { OAuthAppDetailPanel } from "../oauth-app/OAuthAppDetailPanel.js";

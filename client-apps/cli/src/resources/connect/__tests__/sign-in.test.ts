@@ -13,9 +13,9 @@
 
 import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
-import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { type StartSignInInput, SignInReturn } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
-import { StigmerError } from "@stigmer/sdk";
+import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { type StartSignInInput, SignInReturn } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
+import { StigmerError } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { UsageError } from "../../../errors/index.js";
 import { holdsLoginFor, toolAddress } from "../address.js";

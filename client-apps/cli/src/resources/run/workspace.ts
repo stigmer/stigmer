@@ -17,7 +17,7 @@ import {
   WorkspaceEntrySchema,
   type WorkspaceSource,
   WorkspaceSourceSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
 import { UsageError } from "../../errors/index.js";
 
 /**

@@ -6,7 +6,7 @@ import {
   resolveToolKindByName,
   shellIntentFromArgs,
   type ToolUse,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 
 /** What the presentation helpers read of a tool use: its name, MCP server and input. */
 type ToolIdentity = Pick<ToolUse, "name" | "mcpServerName">;
@@ -15,8 +15,8 @@ type ToolIdentity = Pick<ToolUse, "name" | "mcpServerName">;
  * Discriminated tool categories for type-aware rendering.
  *
  * This is the presentation taxonomy. Classification (name -> kind) lives in
- * `@stigmer/sdk`'s `resolveToolKind` (single source of truth, shared with the
- * runner, @stigmer/ink, and the CLI's headless renderers); this file maps each
+ * `@stigmer/client`'s `resolveToolKind` (single source of truth, shared with the
+ * runner, @stigmer/ink-ui, and the CLI's headless renderers); this file maps each
  * {@link ToolKind} to its presentation metadata (label, primary argument).
  * `"mcp"` covers tools originating from an MCP server, whose names are
  * dynamic.
@@ -226,7 +226,7 @@ interface KindDisplayEntry {
 }
 
 // Presentation metadata per ToolKind. Classification (name -> kind) is owned by
-// @stigmer/sdk; this table only describes how each kind is shown. MCP and
+// @stigmer/client; this table only describes how each kind is shown. MCP and
 // unknown are resolved dynamically (label derived from the tool name).
 const KIND_DISPLAY: Partial<Record<ToolKind, KindDisplayEntry>> = {
   file_read:   { category: "read",      label: "Read",      primaryField: "path", fallbackFields: ["file_path", "file"] },
@@ -288,7 +288,7 @@ export function toolKindToCategoryInfo(
 /**
  * Resolves a tool's presentation category from its name + MCP slug.
  *
- * Classification is delegated to `@stigmer/sdk`'s name-based resolver (the same
+ * Classification is delegated to `@stigmer/client`'s name-based resolver (the same
  * table the runner and Go CLI use), then mapped to presentation metadata. When
  * the caller holds the tool use, prefer {@link resolveToolCategoryFromCall}.
  */
@@ -488,12 +488,12 @@ export function extractIntentFromPreview(
   }
 }
 
-// Intent-title extraction lives in @stigmer/sdk's tool-view module — the
+// Intent-title extraction lives in @stigmer/client's tool-view module — the
 // cross-surface single source of truth the intent-title.json fixture pins —
 // so React, Ink, and the CLI's headless renderers share one implementation.
 // Re-exported here because this module is where React's public tool-view API
 // surfaced them first (#677).
-export { SHELL_INTENT_ARG_FIELD, extractShellIntent } from "@stigmer/sdk";
+export { SHELL_INTENT_ARG_FIELD, extractShellIntent } from "@stigmer/client";
 
 /**
  * Preview-string twin of {@link extractShellIntent} for surfaces that carry an

@@ -6,8 +6,8 @@ import {
   FireRoutineInputSchema,
   RoutineFireOutcome,
   type RoutineFireResult,
-} from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
-import { getUserMessage } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
+import { getUserMessage } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { toast } from "../feedback/toast.js";
 import { toError } from "../internal/toError.js";

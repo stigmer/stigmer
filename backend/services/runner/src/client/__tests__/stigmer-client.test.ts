@@ -21,8 +21,8 @@ vi.mock("@connectrpc/connect", () => ({
 
 import { StigmerClient } from "../stigmer-client.js";
 import { withRunCredential } from "../../shared/run-credential-store.js";
-import { VaultValueController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
-import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { VaultValueController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
+import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
 function makeRequest(
   serviceTypeName = "ai.stigmer.agentic.session.v1.SessionQueryController",

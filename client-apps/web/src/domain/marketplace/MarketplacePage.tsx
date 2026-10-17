@@ -6,7 +6,7 @@ import {
   useActiveOrgId,
   useActiveOrgSlug,
   useOrgSlugForId,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 
 /**
  * The Marketplace: where a user finds and installs plugins.

@@ -132,7 +132,7 @@ From `test/conformance`: `npm run typecheck` (vitest does not typecheck),
 `npm run test:unit` for the harness units, `npm run inventory:check` when a
 cloud suite or `test/conformance/inventory/cloud-capabilities.yaml` changes. In
 a fresh worktree, `make build-ts-stubs` first or the package cannot resolve
-`@stigmer/protos`.
+`@stigmer/apis`.
 
 `npm run inventory:check` also holds the RPC contract: a new test that pins an
 RPC carries its `[rpc:<Service>.<method>]` tag at the front of its title, and a

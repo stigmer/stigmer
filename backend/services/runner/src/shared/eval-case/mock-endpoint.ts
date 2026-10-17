@@ -51,7 +51,7 @@ import {
   type EvalCaseContext,
   type EvalMockServer,
   type EvalMockTool,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
 import type { MockAbort } from "../../harness/stop-controller.js";
 import type { McpServerHome, ResolvedMcpServer } from "../mcp-resolver.js";
 import type { AgentMockExchange, AgentMockModel } from "./agent-mock.js";

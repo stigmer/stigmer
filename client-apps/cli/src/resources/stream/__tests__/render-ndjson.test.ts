@@ -4,7 +4,7 @@
 // --approve-default is noted on the status sink, one answered by the flag is
 // not.
 
-import { foldSession, toManagedAgentsJson, type ToolUse } from "@stigmer/sdk";
+import { foldSession, toManagedAgentsJson, type ToolUse } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { asked, phase, said, use, user } from "../../__test-utils__/session-events.js";
 import type { HeadlessRenderer } from "../headless.js";

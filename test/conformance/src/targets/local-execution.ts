@@ -8,7 +8,7 @@
 // TemporalManager's initial connect flips the engine-state provider to
 // connected), and the server before the runner (which streams status back
 // to it). teardown() reverses it.
-import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import {
   createTransport,

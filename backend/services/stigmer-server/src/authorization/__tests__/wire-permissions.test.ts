@@ -2,9 +2,9 @@
  * Pins the contract to the model over the whole wire: every question an
  * RPC annotation asks the authorization model is a relation the model
  * defines. The model (fga/model) and the contract (apis/, reaching this
- * package as `@stigmer/protos`) are both this repository's, so their
+ * package as `@stigmer/apis`) are both this repository's, so their
  * agreement is this repository's to keep, whichever edition serves the
- * RPC. That is why the scope here is every service in `@stigmer/protos`,
+ * RPC. That is why the scope here is every service in `@stigmer/apis`,
  * where authorize-annotation-completeness.test.ts scopes itself to the
  * methods open source serves: that test governs the Authorize step, and a
  * composition's own services are its own conformance suite's business;
@@ -58,13 +58,13 @@ import { beforeAll, describe, expect, it } from "vitest";
 import {
   ApiResourceKind,
   ApiResourceKindSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   config as rpcAuthorizationConfig,
   is_public,
   is_skip_authorization,
-} from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
-import { IamPermission, IamPermissionSchema } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/commons/rpc/method_options_pb";
+import { IamPermission, IamPermissionSchema } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import { grantableRolesFor, kindEnumName } from "../../pipeline/apiresource-meta.js";
 import { builtInModel } from "../model/index.js";

@@ -1158,8 +1158,8 @@ const file_ai_stigmer_agentic_run_v1_enum_proto_rawDesc = "" +
 	"\x19RUN_VALUE_ORIGIN_MY_VAULT\x10\x02\x12\x1a\n" +
 	"\x16RUN_VALUE_ORIGIN_VAULT\x10\x03\x12\"\n" +
 	"\x1eRUN_VALUE_ORIGIN_SURFACE_VAULT\x10\x04\x12 \n" +
-	"\x1cRUN_VALUE_ORIGIN_DECLARATION\x10\x05B\xff\x01\n" +
-	"\x1dcom.ai.stigmer.agentic.run.v1B\tEnumProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
+	"\x1cRUN_VALUE_ORIGIN_DECLARATION\x10\x05B\xec\x01\n" +
+	"\x1dcom.ai.stigmer.agentic.run.v1B\tEnumProtoP\x01Z7go.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_run_v1_enum_proto_rawDescOnce sync.Once

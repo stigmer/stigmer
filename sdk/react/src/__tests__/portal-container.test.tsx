@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterEach } from "vitest";
 import { render, renderHook, screen, cleanup } from "@testing-library/react";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 import { StigmerProvider } from "../provider";
 import { useStigmerPortalContainer } from "../portal-container";
 import { Menu, MenuTrigger, MenuContent, MenuItem } from "../internal/menu";

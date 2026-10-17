@@ -13,8 +13,8 @@
  * Cursor agent against it.
  */
 
-import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+import { CursorMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
 
 /**
  * Determine the CursorMode for a session.

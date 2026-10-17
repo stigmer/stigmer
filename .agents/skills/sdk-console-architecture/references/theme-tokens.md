@@ -97,5 +97,6 @@ The rules run under the plugin prefix `stigmer` in each package's ESLint config
 `client-apps/desktop/eslint.config.mjs`).
 
 `make check` runs the same rules as part of the full gate. The theme package's
-own audit (`sdk/theme/src/contract/`, run by `npm run test -w @stigmer/theme`)
-proves every preset resolves every token and meets contrast.
+own audit (`sdk/theme/src/contract/`, run by
+`npm run test -w @stigmer/design-tokens`) proves every preset resolves every
+token and meets contrast.

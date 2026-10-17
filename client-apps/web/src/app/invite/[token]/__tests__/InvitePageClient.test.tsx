@@ -2,7 +2,7 @@
 // InvitePageClient — the public invite page finds the visitor's own session
 //
 // The invite page lives outside the authenticated chain, so it detects the
-// session itself. The redemption states belong to @stigmer/react's
+// session itself. The redemption states belong to @stigmer/react-sdk's
 // InvitationRedemption; what this shell owns, and this suite pins, is:
 //
 //   - disabled auth: the visitor counts as signed in, with no token;
@@ -17,7 +17,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, waitFor } from "@testing-library/react";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 import type { AuthConfig } from "@/auth/types";
 import type { OidcConfig } from "@/auth/oidc/types";
 
@@ -79,7 +79,7 @@ const page = vi.hoisted(() => ({
   redemption: [] as RedemptionProps[],
   clients: [] as Stigmer[],
 }));
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   StigmerProvider: ({
     client,
     children,

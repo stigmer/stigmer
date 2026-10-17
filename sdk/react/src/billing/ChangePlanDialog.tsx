@@ -1,8 +1,8 @@
 "use client";
 
 import { useId } from "react";
-import { getErrorReason, getUserMessage } from "@stigmer/sdk";
-import type { Plan } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
+import { getErrorReason, getUserMessage } from "@stigmer/client";
+import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
 import { Button } from "../button/index.js";
 import { DialogShell } from "../internal/DialogShell.js";
 import { formatChildOrgs, formatDay, formatMonthlyFee, type OfferedFeature } from "./plan-features.js";

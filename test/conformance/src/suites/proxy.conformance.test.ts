@@ -34,7 +34,7 @@
 // production posture, so they measure the real edge alongside the
 // authorization arms (FGA 403).
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { ProviderKeySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
+import { ProviderKeySource } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { CLOUD_ENV, provisionConsolePerson, requireDirectLoginTenant } from "../harness/cloud-env";
 import { createTransport, makeClients } from "../harness/clients";

@@ -7,7 +7,7 @@ import {
   ListSkillVersionsInputSchema,
   ListSkillVersionsResponseSchema,
   type SkillVersionEntry as ProtoSkillVersionEntry,
-} from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { isUnimplemented } from "../internal/isUnimplemented.js";
 import { useCursorPages } from "../internal/useCursorPages.js";

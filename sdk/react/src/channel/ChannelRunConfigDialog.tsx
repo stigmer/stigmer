@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useId, useState } from "react";
-import { cn } from "@stigmer/theme";
-import { type RunConfigInput } from "@stigmer/sdk";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { cn } from "@stigmer/design-tokens";
+import { type RunConfigInput } from "@stigmer/client";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import type { RunConfig } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { Button } from "../button/Button.js";
 import { DialogShell } from "../internal/DialogShell.js";
 import { ModelSelector } from "../models/ModelSelector.js";

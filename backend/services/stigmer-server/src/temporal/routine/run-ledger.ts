@@ -17,7 +17,7 @@
  * under the retries that do happen (the fire id is the key, terminal rows
  * immutable).
  */
-import type { ApiResourceAuditActor } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+import type { ApiResourceAuditActor } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { RoutineFireRecord, Store } from "../../store/interface.js";

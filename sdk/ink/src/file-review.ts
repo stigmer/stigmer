@@ -3,10 +3,10 @@
 // stats and its settled outcome. A turn's review — its files and how each
 // was decided — is the session's fold (`FileReviewSet`); the mid-run
 // progress strip reads the run's slim progress entries.
-import type { FileChangeProgressEntry } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { extractPrimaryArg, fileReviewability } from "@stigmer/react";
-import { resolveToolKind, type FileReviewFile, type FileReviewSet, type ToolUse } from "@stigmer/sdk";
+import type { FileChangeProgressEntry } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { extractPrimaryArg, fileReviewability } from "@stigmer/react-sdk";
+import { resolveToolKind, type FileReviewFile, type FileReviewSet, type ToolUse } from "@stigmer/client";
 
 /**
  * Single-letter badge for a file change's kind, matching the web review card:

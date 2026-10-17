@@ -25,10 +25,10 @@ import { Code, ConnectError, createClient, createRouterTransport } from "@connec
 import type { Interceptor } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { VaultSecretSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { GitHubQueryController } from "@stigmer/protos/ai/stigmer/platform/github/v1/query_pb";
+import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultSecretSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { GitHubQueryController } from "@stigmer/apis/ai/stigmer/platform/github/v1/query_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import { EncryptionScope, SecretService } from "../../../encryption/encryption.js";

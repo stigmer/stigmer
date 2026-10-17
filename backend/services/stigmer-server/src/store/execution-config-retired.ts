@@ -47,9 +47,9 @@ import { StructSchema } from "@bufbuild/protobuf/wkt";
 import {
   RunSchema,
   RunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { ApprovalMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 
 /** The `kind` column value of the rows the step rewrites. */
 export const EXECUTION_KIND = "agent_execution";

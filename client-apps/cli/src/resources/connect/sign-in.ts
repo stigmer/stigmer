@@ -23,9 +23,9 @@ import {
   GetMyVaultInputSchema,
   SignInReturn,
   StartSignInInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { type Stigmer, StigmerError } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { type Stigmer, StigmerError } from "@stigmer/client";
 import { UsageError } from "../../errors/index.js";
 import { holdsLoginFor } from "./address.js";
 

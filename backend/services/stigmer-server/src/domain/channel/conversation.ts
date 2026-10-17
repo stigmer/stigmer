@@ -38,19 +38,19 @@ import type { ConnectRouter } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_command_pb";
-import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_query_pb";
+import { ChannelConversationCommandController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_command_pb";
+import { ChannelConversationQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_query_pb";
 import {
   ChannelConversationCountSchema,
   ChannelConversationListSchema,
   ConversationTimelineSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import type {
   ChannelConversationCount,
   ChannelConversationList,
   ConversationTimeline,
   GetChannelConversationInput,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 
 import {
   failedPreconditionError,

@@ -21,7 +21,7 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import { ListSessionEventsRequestSchema, SessionIdSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { ListSessionEventsRequestSchema, SessionIdSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { SESSION_EVENT_TYPES, isStigmerEventType, toManagedAgentsJson } from "@stigmer/session-log";
 
 import type { LaneResponse } from "../lanes.js";

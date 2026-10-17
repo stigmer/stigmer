@@ -24,14 +24,14 @@ import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from "@t
 import { StrictMode, type ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
-import { Stigmer } from "@stigmer/sdk";
+import { Stigmer } from "@stigmer/client";
 import {
   CompleteConnectLinkOutputSchema,
   ConnectLinkController,
   ConnectLinkInfoSchema,
   StartConnectLinkOutputSchema,
   type CompleteConnectLinkInput,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/connect_link_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ConnectLinkCallback } from "../ConnectLinkCallback";

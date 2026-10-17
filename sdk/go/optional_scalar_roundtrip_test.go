@@ -17,8 +17,8 @@ import (
 	"net"
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
-	planv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/plan/v1"
+	"go.stigmer.ai/sdk/internal/gen"
+	planv1 "go.stigmer.ai/sdk/proto/ai/stigmer/billing/plan/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"

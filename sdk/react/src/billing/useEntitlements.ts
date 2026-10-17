@@ -5,8 +5,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   GetEntitlementsInputSchema,
   type GetEntitlementsOutput,
-} from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
-import type { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+} from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
+import type { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 

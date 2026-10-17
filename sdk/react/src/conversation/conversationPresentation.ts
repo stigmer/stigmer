@@ -5,12 +5,12 @@ import {
   ConversationItemAuthor,
   ConversationLane,
   type ConversationTimelineItem,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import {
   ChannelAttemptFailureKind,
   ChannelDeliveryStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/delivery_pb";
-import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/outbound_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/delivery_pb";
+import { ChannelReceiptState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/outbound_pb";
 import type { ChannelProviderId } from "../channel/providers.js";
 
 /**

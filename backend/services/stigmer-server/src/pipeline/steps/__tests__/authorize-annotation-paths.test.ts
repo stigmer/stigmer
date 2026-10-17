@@ -31,10 +31,10 @@ import { getOption, hasOption, ScalarType } from "@bufbuild/protobuf";
 import type { DescField, DescMessage, DescMethod } from "@bufbuild/protobuf";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { ApiResourceKindSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { config as rpcAuthorizationConfig } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
-import { RoutineCommandController } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/command_pb";
-import { GrantCommandController } from "@stigmer/protos/ai/stigmer/iam/grant/v1/command_pb";
+import { ApiResourceKindSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { config as rpcAuthorizationConfig } from "@stigmer/apis/ai/stigmer/commons/rpc/method_options_pb";
+import { RoutineCommandController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/command_pb";
+import { GrantCommandController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/command_pb";
 
 import { everyService } from "../../../authorization/__tests__/contract-support.js";
 

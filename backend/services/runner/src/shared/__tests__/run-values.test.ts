@@ -8,7 +8,7 @@
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { ExecutionValuesSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
+import { ExecutionValuesSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";

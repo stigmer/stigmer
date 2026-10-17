@@ -5,7 +5,7 @@
 // directory. Heavy modules are lazy-imported inside the action so `--help`
 // stays fast.
 import type { Command } from "commander";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
 import { type OutputFlags, renderResult } from "../output/index.js";

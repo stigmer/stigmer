@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useContext, useMemo } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { FilePathContext } from "./FilePathContext.js";

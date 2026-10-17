@@ -17,14 +17,14 @@ import type { Client } from "@temporalio/client";
 import { WorkflowExecutionAlreadyStartedError } from "@temporalio/client";
 import { describe, expect, it, vi } from "vitest";
 
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
 import {
   ScoreSource,
   ScoreState,
-} from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
 
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import { GradingTemporalConfig } from "../../../temporal/grading/config.js";

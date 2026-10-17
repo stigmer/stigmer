@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
-import { RoutineDetailView, useBreadcrumbOverride } from "@stigmer/react";
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineDetailView, useBreadcrumbOverride } from "@stigmer/react-sdk";
 import {
   useLibraryNavigation,
   useRouteDetailYieldsToOverlay,

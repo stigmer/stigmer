@@ -1,6 +1,6 @@
 "use client";
 
-// Renders a normalized ToolResultView (from @stigmer/sdk) with a semantic view
+// Renders a normalized ToolResultView (from @stigmer/client) with a semantic view
 // per result type — diffs, terminals, search lists, file content, MCP content
 // blocks — instead of a raw JSON dump. The json/text variants are the graceful
 // fallbacks, so unknown tools are still readable.
@@ -11,8 +11,8 @@ import type {
   ToolResultView,
   ToolSearchMatch,
   ToolContentBlock,
-} from "@stigmer/sdk";
-import { cn } from "@stigmer/theme";
+} from "@stigmer/client";
+import { cn } from "@stigmer/design-tokens";
 import { computeDiff } from "../version-history/computeDiff.js";
 import { DiffViewer } from "../version-history/DiffViewer.js";
 import { UnifiedDiffView } from "../version-history/UnifiedDiffView.js";
@@ -56,7 +56,7 @@ export interface ResultViewProps {
 /**
  * Renders a {@link ToolResultView} with a type-appropriate treatment.
  *
- * This is the presentation half of the tool-result pipeline: `@stigmer/sdk`'s
+ * This is the presentation half of the tool-result pipeline: `@stigmer/client`'s
  * `normalizeToolResult` turns an opaque result string into a typed view, and
  * this component renders it. Importable on its own by platform builders who
  * compose custom tool UIs.

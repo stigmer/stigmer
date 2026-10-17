@@ -13,8 +13,8 @@
 // Pure: hand-built events and stubbed clients, no target.
 // Domain: conformance support (a turn's transcript is session events).
 import { create, type JsonObject, type MessageInitShape } from "@bufbuild/protobuf";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { type SessionEvent, SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { type SessionEvent, SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { foldSession } from "@stigmer/session-log";
 import { describe, expect, it, vi } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";

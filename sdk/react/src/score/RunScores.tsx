@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import { cn } from "@stigmer/theme";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { MakeTestCasePanel } from "./MakeTestCasePanel.js";
 import { useRunScoresData } from "./RunScoresContext.js";
 import { RATING_COMMENT_MAX_LENGTH } from "./rating-input.js";
-import { CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+import { CriterionResult } from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
 import {
   evalViewOf,
   judgeViewOf,

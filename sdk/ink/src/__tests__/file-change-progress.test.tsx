@@ -8,12 +8,12 @@ import { create } from "@bufbuild/protobuf";
 import {
   FileChangeProgressSchema,
   FileChangeProgressEntrySchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import type {
   FileChangeProgress,
   FileChangeProgressEntry,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { FileChangeProgressBar } from "../components/FileChangeProgressBar.js";
 import { fileDisplayPath, progressEntryDisplayPath } from "../file-review.js";
 

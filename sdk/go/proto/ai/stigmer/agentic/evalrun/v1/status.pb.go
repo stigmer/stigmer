@@ -7,7 +7,7 @@
 package evalrunv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -1330,8 +1330,8 @@ const file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDesc = "" +
 	"\x1aeval_run_try_state_pending\x10\x01\x12\x1e\n" +
 	"\x1aeval_run_try_state_running\x10\x02\x12\x1d\n" +
 	"\x19eval_run_try_state_graded\x10\x03\x12!\n" +
-	"\x1deval_run_try_state_not_graded\x10\x04B\x9d\x02\n" +
-	"!com.ai.stigmer.agentic.evalrun.v1B\vStatusProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/evalrun/v1;evalrunv1\xa2\x02\x04ASAE\xaa\x02\x1dAi.Stigmer.Agentic.Evalrun.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Evalrun\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Evalrun\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Evalrun::V1b\x06proto3"
+	"\x1deval_run_try_state_not_graded\x10\x04B\x8a\x02\n" +
+	"!com.ai.stigmer.agentic.evalrun.v1B\vStatusProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/evalrun/v1;evalrunv1\xa2\x02\x04ASAE\xaa\x02\x1dAi.Stigmer.Agentic.Evalrun.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Evalrun\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Evalrun\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Evalrun::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_evalrun_v1_status_proto_rawDescOnce sync.Once

@@ -8,7 +8,7 @@
  */
 import { create, toBinary } from "@bufbuild/protobuf";
 
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
 export const RUN_RENAME_ORG = "org_01jz0000000000000000000000";
 

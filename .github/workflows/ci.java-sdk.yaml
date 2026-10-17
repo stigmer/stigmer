@@ -1,5 +1,5 @@
 # =============================================================================
-# Java SDK quality gate: stigmer-java
+# Java SDK quality gate: stigmer-sdk
 # =============================================================================
 # This is the only CI that compiles the Java SDK before it ships to Maven
 # Central (elsewhere Java is built solely inside release.maven). It exists
@@ -64,7 +64,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # The SDK pom depends on stigmer-java-protos:0.0.1-SNAPSHOT, so the
+      # The SDK pom depends on stigmer-apis:0.0.1-SNAPSHOT, so the
       # stubs must be in the local repository before the SDK can compile
       # (mirrors release.maven's "Install protos locally" step).
       - name: Install proto stubs locally

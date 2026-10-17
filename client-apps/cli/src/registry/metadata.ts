@@ -8,8 +8,8 @@
 // test (registry/__tests__/kind-meta-parity.test.ts) holds every row to the
 // contract, so a row cannot drift from it unnoticed.
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { MCP_SERVER_WAY_FORWARD } from "@stigmer/sdk";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { MCP_SERVER_WAY_FORWARD } from "@stigmer/client";
 
 export interface KindMeta {
   /** Proto kind_meta.name — also the YAML `kind` value (e.g. "ChannelApp"). */

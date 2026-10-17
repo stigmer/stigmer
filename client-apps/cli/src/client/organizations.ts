@@ -19,7 +19,7 @@
 // Output is the exception: a label falls back to the value as given on any
 // failure, so printing never fails a command whose work already succeeded.
 import { Code } from "@connectrpc/connect";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { classify } from "../errors/classify.js";
 
 /** What these helpers need of a client: the organization get, which resolves an id or any slug. */

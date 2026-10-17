@@ -7,8 +7,8 @@
 package grantv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -37,9 +37,9 @@ const file_ai_stigmer_iam_grant_v1_query_proto_rawDesc = "" +
 	"\x19getPrincipalResourceRoles\x12/.ai.stigmer.iam.grant.v1.PrincipalResourceInput\x1a/.ai.stigmer.iam.grant.v1.PrincipalResourceRoles\"H¸\x18D\b\x05\x1a\rresource.kind\"\vresource.id*$unauthorized to view principal roles\x12\xa6\x01\n" +
 	"\x12getPrincipalsCount\x120.ai.stigmer.iam.grant.v1.GetPrincipalsCountInput\x1a(.ai.stigmer.iam.grant.v1.PrincipalsCount\"4¸\x180\b\x05\x10\x1e\"\x03org*%unauthorized to view principals count\x12\xa8\x01\n" +
 	"\x11listAccessHistory\x12/.ai.stigmer.iam.grant.v1.ListAccessHistoryInput\x1a*.ai.stigmer.iam.grant.v1.AccessHistoryPage\"6¸\x182\b8\x10\x1e\"\x03org*'unauthorized to view the access history\x1a\x04\xa0\xff+\n" +
-	"B\xf6\x01\n" +
+	"B\xe3\x01\n" +
 	"\x1bcom.ai.stigmer.iam.grant.v1B\n" +
-	"QueryProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/grant/v1;grantv1\xa2\x02\x04ASIG\xaa\x02\x17Ai.Stigmer.Iam.Grant.V1\xca\x02\x17Ai\\Stigmer\\Iam\\Grant\\V1\xe2\x02#Ai\\Stigmer\\Iam\\Grant\\V1\\GPBMetadata\xea\x02\x1bAi::Stigmer::Iam::Grant::V1b\x06proto3"
+	"QueryProtoP\x01Z7go.stigmer.ai/sdk/proto/ai/stigmer/iam/grant/v1;grantv1\xa2\x02\x04ASIG\xaa\x02\x17Ai.Stigmer.Iam.Grant.V1\xca\x02\x17Ai\\Stigmer\\Iam\\Grant\\V1\xe2\x02#Ai\\Stigmer\\Iam\\Grant\\V1\\GPBMetadata\xea\x02\x1bAi::Stigmer::Iam::Grant::V1b\x06proto3"
 
 var file_ai_stigmer_iam_grant_v1_query_proto_goTypes = []any{
 	(*GrantId)(nil),                         // 0: ai.stigmer.iam.grant.v1.GrantId

@@ -22,7 +22,7 @@
 
 import { clone, toJson, type DescMessage, type Message, type MessageShape } from "@bufbuild/protobuf";
 import { reflect, type ReflectMessage } from "@bufbuild/protobuf/reflect";
-import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import type { ApiResourceMetadata } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { stringify as stringifyYaml } from "yaml";
 import { manifestHandlerForTypeName, manifestKinds } from "./registry.js";
 
@@ -42,7 +42,7 @@ import { manifestHandlerForTypeName, manifestKinds } from "./registry.js";
  *
  * @example
  * ```ts
- * import { serializeManifest } from "@stigmer/sdk";
+ * import { serializeManifest } from "@stigmer/client";
  *
  * const agent = await stigmer.agent.get(agentId);
  * const yaml = serializeManifest(agent);

@@ -216,8 +216,8 @@ const file_ai_stigmer_agentic_score_v1_enum_proto_rawDesc = "" +
 	"\x1ccriterion_result_unspecified\x10\x00\x12\x1b\n" +
 	"\x17criterion_result_passed\x10\x01\x12\x1b\n" +
 	"\x17criterion_result_failed\x10\x02\x12#\n" +
-	"\x1fcriterion_result_not_applicable\x10\x03B\x8d\x02\n" +
-	"\x1fcom.ai.stigmer.agentic.score.v1B\tEnumProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/score/v1;scorev1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Score.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Score\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Score::V1b\x06proto3"
+	"\x1fcriterion_result_not_applicable\x10\x03B\xfa\x01\n" +
+	"\x1fcom.ai.stigmer.agentic.score.v1B\tEnumProtoP\x01Z;go.stigmer.ai/sdk/proto/ai/stigmer/agentic/score/v1;scorev1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Score.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Score\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Score::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_score_v1_enum_proto_rawDescOnce sync.Once

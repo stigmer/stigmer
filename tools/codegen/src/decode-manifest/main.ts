@@ -6,7 +6,7 @@
 import * as fs from "node:fs";
 
 import { fromBinary, toJson } from "@bufbuild/protobuf";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 
 function main(): void {
   const manifestPath = process.argv[2];

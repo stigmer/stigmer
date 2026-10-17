@@ -9,8 +9,8 @@
  * through the run's full create chain as the grading caller
  * (extensions/grading-caller.ts), and stopped and cleaned up as the server.
  */
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
 
 import type { CallerIdentity } from "../../extensions/identity.js";
 

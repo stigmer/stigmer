@@ -14,23 +14,23 @@
 import { create } from "@bufbuild/protobuf";
 import {
   CapturedFileChangeSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import type {
   CapturedFileChange,
   SnapshotRef,
   TurnCommandProvenance,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   FileContentSchema,
   ToolCallOutputRefSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
+import type { FileContent } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
 import {
   DiffCompleteness,
   FileCaptureClass,
   FileChangeKind,
   FileReviewBlockReason,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { aggregateDigest, fileDigest, sha256Bytes } from "./digest.js";
 import { countLineChanges, type LineChangeCounts } from "./line-counts.js";
 import { looksBinary } from "../file-change.js";

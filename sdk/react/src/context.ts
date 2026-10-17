@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext } from "react";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 
 /**
  * React context for the Stigmer SDK client instance.

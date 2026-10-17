@@ -1,8 +1,8 @@
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
-import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/query_pb";
-import { ListRecentActivityRequestSchema } from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
-import type { RecentActivityEntry } from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
+import { ActivityQueryController } from "@stigmer/apis/ai/stigmer/activity/v1/query_pb";
+import { ListRecentActivityRequestSchema } from "@stigmer/apis/ai/stigmer/activity/v1/io_pb";
+import type { RecentActivityEntry } from "@stigmer/apis/ai/stigmer/activity/v1/io_pb";
 import { wrapError } from "./gen/errors.js";
 
 export type { RecentActivityEntry };

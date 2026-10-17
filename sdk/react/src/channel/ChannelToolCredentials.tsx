@@ -11,8 +11,8 @@
  * the channel names, never anyone's My vault; the picker offers shared
  * vaults only.
  */
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { ResourceRef } from "@stigmer/sdk";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { ResourceRef } from "@stigmer/client";
 import { VaultPicker } from "../vault/VaultPicker.js";
 import { useChannelToolReadiness } from "./useChannelToolReadiness.js";
 

@@ -39,7 +39,7 @@
  * inside an unsigned page token, so it can be any text: one the store would
  * never render continues nothing, an empty page, rather than a fault.
  */
-import type { FederationIssuer } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import type { FederationIssuer } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
 
 import type { IssuerRoute } from "./routes.js";
 import type { GuardedWritePort, ListIndexCursor, ListIndexRow } from "@stigmer/server";

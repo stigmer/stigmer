@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import { grantIdFor } from "../constants.js";
 import { organizationRole, relationOf } from "../specs.js";

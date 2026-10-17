@@ -158,7 +158,7 @@ function buildChatUrl(
   theme: string | null,
 ): string {
   const url = new URL(`/chat/${encodeURIComponent(channel)}`, appOrigin);
-  // `k` is the platform's link-token parameter (see @stigmer/sdk's
+  // `k` is the platform's link-token parameter (see @stigmer/client's
   // LINK_TOKEN_PARAM — not imported: this loader stays dependency-free).
   // Required when the chat link is locked; the hosted page forwards it
   // on its guest mint, where the server validates it.

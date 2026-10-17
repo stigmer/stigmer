@@ -15,12 +15,12 @@
 // and fails nothing. The client is a double recording what it was asked.
 
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
-import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { GetRunUsageReportInput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import type { ListSessionEventsRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { foldSession, type Stigmer, type Turn } from "@stigmer/sdk";
+import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { GetRunUsageReportInput } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import type { ListSessionEventsRequest } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { foldSession, type Stigmer, type Turn } from "@stigmer/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CliExitError, ExitCode } from "../../../errors/index.js";
 import { failure, note, phase, result, said, threadRunning, use, user } from "../../__test-utils__/session-events.js";

@@ -18,9 +18,9 @@ import {
   EvalRunAblation,
   EvalRunSpecSchema,
   EvalRunTargetSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import type { EvalRunSpec } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import type { EvalRunSpec } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import { newModelCatalogProviderFromDocument } from "../../../modelcatalog/document-catalog.js";
 import type { EvalModelCatalog } from "../matrix.js";

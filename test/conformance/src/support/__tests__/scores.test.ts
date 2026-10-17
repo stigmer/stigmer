@@ -6,9 +6,9 @@
 // once its budget is spent. The clients are stubbed; nothing here starts a
 // server.
 import { create } from "@bufbuild/protobuf";
-import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import { ScoreSource } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+import { ScoreSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import { ScoreSource } from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import {

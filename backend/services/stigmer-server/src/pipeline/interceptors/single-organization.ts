@@ -51,11 +51,11 @@ import { reflect } from "@bufbuild/protobuf/reflect";
 import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
 import type { Interceptor } from "@connectrpc/connect";
 
-import { VaultTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { AuthorizationScopeType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { api_resource_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/rpc_service_options_pb";
+import { VaultTargetSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { AuthorizationScopeType } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { api_resource_kind } from "@stigmer/apis/ai/stigmer/commons/apiresource/rpc_service_options_pb";
 
 import { getKindMeta } from "../apiresource-meta.js";
 

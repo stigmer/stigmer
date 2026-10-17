@@ -9,7 +9,7 @@
 // slug and id come from the server's answer, because the name is all the
 // create sends and the slug is derived from it.
 import { Code, ConnectError } from "@connectrpc/connect";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { setTimeout as delay } from "node:timers/promises";
 import type { ConformanceClients } from "../harness/clients";
 import { DEFAULT_POLL_MS, DEFAULT_TIMEOUT_MS } from "./run-poll";

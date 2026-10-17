@@ -2,8 +2,8 @@
 
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
-import { ResourceCards, ResourceList } from "@stigmer/react";
-import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import { ResourceCards, ResourceList } from "@stigmer/react-sdk";
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import { PulseHighlight } from "@scenar/react";
 import { DEMO_CONTENT_ZOOM } from "../shared/tokens";
 
@@ -27,7 +27,7 @@ interface ResourceListPageProps {
 /**
  * Generic resource list page for demo scenarios.
  *
- * Wraps the `ResourceCards`/`ResourceList` from `@stigmer/react` with a page
+ * Wraps the `ResourceCards`/`ResourceList` from `@stigmer/react-sdk` with a page
  * header and create button. The list is fed by fixture data passed as
  * `items` — no live backend required.
  *

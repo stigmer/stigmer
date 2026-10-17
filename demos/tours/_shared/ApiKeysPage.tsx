@@ -2,7 +2,7 @@ import {
   ApiKeyCreatedAlert,
   ApiKeyListPanel,
   CreateApiKeyForm,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 import { DEMO_NOW, DEMO_ORG } from "./fixtures";
 import "./ApiKeysPage.css";
 

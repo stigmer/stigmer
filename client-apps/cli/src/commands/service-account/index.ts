@@ -77,7 +77,7 @@ export function registerServiceAccount(program: Command): void {
         openSession(command),
         import("../../resources/service-account.js"),
         import("../../output/index.js"),
-        import("@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb"),
+        import("@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb"),
       ]);
       const accounts = await resources.listServiceAccounts(session.client, session.org);
       writeList(output, format, IdentityAccountSchema, accounts, {
@@ -97,7 +97,7 @@ export function registerServiceAccount(program: Command): void {
         openSession(command),
         import("../../resources/service-account.js"),
         import("../../output/index.js"),
-        import("@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb"),
+        import("@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb"),
       ]);
       const keys = await resources.listServiceAccountKeys(session.client, session.org, name);
       writeList(output, format, ApiKeySchema, keys, {

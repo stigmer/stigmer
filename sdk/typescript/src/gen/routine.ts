@@ -5,19 +5,19 @@ import { stripUndefined, toResourceRefInput, toResourceRefInputs } from "./proto
 import { type ResourceRef } from "./types.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { RoutineSchema, type Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
-import { RoutineCommandController } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/command_pb";
-import { RoutineIdSchema, UpdateRoutineInputSchema, FireRoutineInputSchema, RoutineFireResultSchema, ListRoutinesByAgentRequestSchema, RoutineListSchema, ListRoutinesRequestSchema, ListRoutineFiresRequestSchema, RoutineFireListSchema, type FireRoutineInput, type RoutineFireResult, type ListRoutinesByAgentRequest, type RoutineList, type ListRoutinesRequest, type ListRoutineFiresRequest, type RoutineFireList } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
-import { RoutineQueryController } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/query_pb";
-import { RoutineSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/spec_pb";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunConfigSchema, AgentInvocationSchema, type RunConfig, type AgentInvocation } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import { Harness, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema, type GitRepoSource, type LocalPathSource, type WorkspaceSource, type WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema, type RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { RoutineSchema, type Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineCommandController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/command_pb";
+import { RoutineIdSchema, UpdateRoutineInputSchema, FireRoutineInputSchema, RoutineFireResultSchema, ListRoutinesByAgentRequestSchema, RoutineListSchema, ListRoutinesRequestSchema, ListRoutineFiresRequestSchema, RoutineFireListSchema, type FireRoutineInput, type RoutineFireResult, type ListRoutinesByAgentRequest, type RoutineList, type ListRoutinesRequest, type ListRoutineFiresRequest, type RoutineFireList } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
+import { RoutineQueryController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/query_pb";
+import { RoutineSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/spec_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunConfigSchema, AgentInvocationSchema, type RunConfig, type AgentInvocation } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
+import { Harness, GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema, type GitRepoSource, type LocalPathSource, type WorkspaceSource, type WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceReferenceSchema, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on routine resources. */
 export class RoutineClient {

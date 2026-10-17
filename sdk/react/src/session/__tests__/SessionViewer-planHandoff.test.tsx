@@ -19,14 +19,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, act, fireEvent, waitFor } from "@testing-library/react";
 import { useImperativeHandle, type ReactElement, type Ref } from "react";
 import { create } from "@bufbuild/protobuf";
-import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
 import {
   InteractionMode,
   RunArtifactKind,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { Turn } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Turn } from "@stigmer/client";
 import { samples } from "../../test/samples";
 import type { SessionComposerHandle } from "../../composer";
 import type { SessionPlan } from "../../library/detect-plan-artifact";

@@ -5,15 +5,15 @@ import { stripUndefined, toResourceRefInputs } from "./proto-utils.js";
 import { type ResourceRef } from "./types.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema, type RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { OrganizationSchema, type Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
-import { OrganizationIdSchema, UpdateOrganizationInputSchema, UpdateOrganizationPoliciesInputSchema, UpdateOrganizationEmbeddingInputSchema, ListMyOrganizationsInputSchema, OrganizationsSchema, OrganizationExternalLookupSchema, ListChildOrgsInputSchema, ChildOrgListSchema, type UpdateOrganizationPoliciesInput, type UpdateOrganizationEmbeddingInput, type ListMyOrganizationsInput, type Organizations, type OrganizationExternalLookup, type ListChildOrgsInput, type ChildOrgList } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
-import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
-import { OrganizationSpecSchema, OrganizationPreferencesSchema, OrganizationPoliciesSchema, OrganizationEmbeddingSchema, type OrganizationPreferences, type OrganizationPolicies, type OrganizationEmbedding } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceReferenceSchema, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import { OrganizationSchema, type Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { OrganizationCommandController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/command_pb";
+import { OrganizationIdSchema, UpdateOrganizationInputSchema, UpdateOrganizationPoliciesInputSchema, UpdateOrganizationEmbeddingInputSchema, ListMyOrganizationsInputSchema, OrganizationsSchema, OrganizationExternalLookupSchema, ListChildOrgsInputSchema, ChildOrgListSchema, type UpdateOrganizationPoliciesInput, type UpdateOrganizationEmbeddingInput, type ListMyOrganizationsInput, type Organizations, type OrganizationExternalLookup, type ListChildOrgsInput, type ChildOrgList } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
+import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
+import { OrganizationSpecSchema, OrganizationPreferencesSchema, OrganizationPoliciesSchema, OrganizationEmbeddingSchema, type OrganizationPreferences, type OrganizationPolicies, type OrganizationEmbedding } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/spec_pb";
 
 /** Provides operations on organization resources. */
 export class OrganizationClient {

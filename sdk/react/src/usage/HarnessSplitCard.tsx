@@ -11,8 +11,8 @@
  * empty case.
  */
 
-import { cn } from "@stigmer/theme";
-import type { HarnessUsage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { cn } from "@stigmer/design-tokens";
+import type { HarnessUsage } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { formatCalls, formatTokens, sharePercent } from "./format.js";
 
 /** Props for {@link HarnessSplitCard}. */

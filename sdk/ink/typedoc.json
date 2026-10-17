@@ -22,11 +22,11 @@
     "TypeAlias"
   ],
   "externalSymbolLinkMappings": {
-    "@stigmer/sdk": {
+    "@stigmer/client": {
       "Stigmer": "/docs/sdk",
       "DeploymentMode": "/docs/sdk/react/core"
     },
-    "@stigmer/react": {
+    "@stigmer/react-sdk": {
       "StigmerContext": "/docs/sdk/react/core",
       "DeploymentModeContext": "/docs/sdk/react/core",
       "useSessionConversation": "/docs/sdk/react/session",
@@ -36,7 +36,7 @@
       "useAgentSearch": "/docs/sdk/react/agent",
       "useSessionList": "/docs/sdk/react/session"
     },
-    "@stigmer/protos": {
+    "@stigmer/apis": {
       "Run": "/docs/sdk/resources/run",
       "RunPhase": "/docs/sdk/resources/run",
       "SearchResult": "/docs/sdk/resources/search",

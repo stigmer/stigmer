@@ -14,11 +14,11 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceRefViewSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
-import { personGrantee, teamGrantee } from "@stigmer/sdk";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceRefViewSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import { TeamSchema } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
+import type { GrantSpec } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
+import { personGrantee, teamGrantee } from "@stigmer/client";
 import type { GranteeCandidate } from "../useGranteeCandidates";
 
 const createGrant = vi.hoisted(() => vi.fn(async (_spec: GrantSpec) => ({})));

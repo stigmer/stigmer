@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { MessageThread, SessionComposer, type MessageThreadProps } from "@stigmer/react";
+import { MessageThread, SessionComposer, type MessageThreadProps } from "@stigmer/react-sdk";
 import { DEMO_ORG, MOCK_WORKSPACE, type DemoConversation } from "../fixtures";
 import { DEMO_CONTENT_ZOOM } from "../shared/tokens";
 

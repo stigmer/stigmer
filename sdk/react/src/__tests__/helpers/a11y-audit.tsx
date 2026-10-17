@@ -29,7 +29,7 @@ import { render, cleanup } from "@testing-library/react";
 import type { ReactElement } from "react";
 import axe from "axe-core";
 import { expect } from "vitest";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 import { StigmerContext } from "../../context.js";
 
 /** The color modes every state is audited under. */

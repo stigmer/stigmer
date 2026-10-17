@@ -10,7 +10,7 @@
 // and every plan runs on the organization's own provider keys), so no
 // surface names them.
 
-import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 
 /** A feature that grants something: every value but the zero value and the ungated ones. */
 export type NamedFeature = Exclude<

@@ -1,7 +1,7 @@
 /**
  * Tests for the Ink SDK reference parser's props tables: a component's
  * `<Name>Props` interface becomes its field list, and a field typed by a
- * message from `@stigmer/protos` links to the run resource page (the
+ * message from `@stigmer/apis` links to the run resource page (the
  * one protos type the Ink components take), while a field typed from any
  * other package, or by a local type, carries no link. The input is a minimal
  * TypeDoc JSON written to a temporary file.
@@ -42,12 +42,12 @@ async function parse(children: Reflection[]) {
   const project: TypeDocProject = {
     schemaVersion: "2.0",
     id: 0,
-    name: "@stigmer/ink",
+    name: "@stigmer/ink-ui",
     variant: "project",
     kind: ReflectionKind.Project,
     children,
     symbolIdMap: {},
-    packageName: "@stigmer/ink",
+    packageName: "@stigmer/ink-ui",
   };
   const file = path.join(dir, "api.json");
   await fs.writeFile(file, JSON.stringify(project));
@@ -73,7 +73,7 @@ describe("parseTypeDocJson — props fields", () => {
         kind: ReflectionKind.Interface,
         flags: {},
         children: [
-          property(3, "run", externalRef("Run", "@stigmer/protos")),
+          property(3, "run", externalRef("Run", "@stigmer/apis")),
           property(4, "node", externalRef("ReactNode", "@types/react"), true),
           property(5, "width", { type: "intrinsic", name: "number" }, true),
         ],

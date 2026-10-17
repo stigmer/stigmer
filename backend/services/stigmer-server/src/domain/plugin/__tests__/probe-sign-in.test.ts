@@ -23,9 +23,9 @@ import {
   McpServerSignInSchema,
   PluginStatusSchema,
   StdioMcpServerSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/declaration_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import { probeSignIns } from "../probe-sign-in.js";

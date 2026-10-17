@@ -13,11 +13,11 @@
 // the turn's events are listed only when the summary needs them.
 
 import { create } from "@bufbuild/protobuf";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { GetRunUsageReportInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import type { UsageReportAggregate } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
-import { foldSession, turnOf, type Stigmer, type NoteItem, type Turn, type TurnItem } from "@stigmer/sdk";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { GetRunUsageReportInputSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import type { UsageReportAggregate } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
+import { foldSession, turnOf, type Stigmer, type NoteItem, type Turn, type TurnItem } from "@stigmer/client";
 import { CliExitError, ExitCode } from "../../errors/index.js";
 import { shouldColorize, styler } from "../../output/style.js";
 import { formatTokenCount } from "../run-format.js";

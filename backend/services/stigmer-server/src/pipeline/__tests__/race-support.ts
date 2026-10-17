@@ -18,8 +18,8 @@
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { vi } from "vitest";
 
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 
 import type { Store } from "../../store/interface.js";
 import { KeyedSerializer } from "../keyed-serializer.js";

@@ -20,8 +20,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
-	tokenv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/token/v1"
+	"go.stigmer.ai/sdk/internal/gen"
+	tokenv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/token/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )

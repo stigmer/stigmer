@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
+	"go.stigmer.ai/sdk/internal/gen"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

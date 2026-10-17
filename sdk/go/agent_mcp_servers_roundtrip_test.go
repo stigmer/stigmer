@@ -13,8 +13,8 @@ import (
 	"net"
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
-	agentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1"
+	"go.stigmer.ai/sdk/internal/gen"
+	agentv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/agent/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"

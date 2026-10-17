@@ -1,5 +1,5 @@
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 
 /** A time-based group of sessions produced by {@link groupSessionsByTime}. */

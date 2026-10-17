@@ -12,7 +12,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { IdentityAccountGateState } from "@stigmer/react";
+import type { IdentityAccountGateState } from "@stigmer/react-sdk";
 import type { AuthUser } from "@/auth";
 import type { RuntimeConfig } from "@/config/runtime-config";
 
@@ -22,7 +22,7 @@ const gate = vi.hoisted(() => ({
   retry: vi.fn(),
 }));
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   useIdentityAccountGate: ({ isEnabled }: { isEnabled: boolean }) => {
     gate.enabledArgs.push(isEnabled);
     return { state: gate.state, retry: gate.retry };

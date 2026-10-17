@@ -11,10 +11,10 @@ import {
   useFollowSessionOrganization,
   useSession,
   ManageAccessButton,
-} from "@stigmer/react";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/react-sdk";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
-import { ThreadSkeleton } from "@stigmer/react";
+import { ThreadSkeleton } from "@stigmer/react-sdk";
 
 export default function SessionPage() {
   const id = useStaticRouteParam("id");

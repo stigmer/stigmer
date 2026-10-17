@@ -25,8 +25,8 @@ import {
   PluginEvalSuiteCaseSchema,
   PluginEvalSuiteSchema,
   PluginWarningSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import type { PluginEvalSuite } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { PluginEvalSuite } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 
 /** The suite the archive carries; `undefined` when it carries none. */
 export function planEvals(files: PluginFiles): EvalSuite | undefined {

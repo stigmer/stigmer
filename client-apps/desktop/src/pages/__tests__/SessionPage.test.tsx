@@ -4,7 +4,7 @@
  * useFollowSessionOrganization, so the shell follows a conversation opened
  * from another organization, and the viewer and the share dialog act in
  * the active organization the hook aligns. The hook's own behaviour is
- * pinned in @stigmer/react.
+ * pinned in @stigmer/react-sdk.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
@@ -18,7 +18,7 @@ const page = vi.hoisted(() => ({
 
 const SESSION = { metadata: { id: "ses_1", org: "org_acme" } };
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   SessionViewer: (props: Record<string, unknown>) => {
     page.viewer.push(props);
     return <>{props.accessSlot as React.ReactNode}</>;

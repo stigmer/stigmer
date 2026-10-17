@@ -18,8 +18,8 @@
  * people and Teams where the edition grants roles on one resource).
  */
 import { useCallback, useId, useRef, useState } from "react";
-import { getUserMessage } from "@stigmer/sdk";
-import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
+import { getUserMessage } from "@stigmer/client";
+import { VaultConnectionSource } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
 import { PermissionGate } from "../grant/PermissionGate.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { useVaultSignIn } from "../vault/useVaultSignIn.js";

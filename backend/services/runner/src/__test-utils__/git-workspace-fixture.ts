@@ -20,7 +20,7 @@ import {
   WorkspaceEntrySchema,
   WorkspaceSourceSchema,
   type WorkspaceEntry,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
 
 /** A git work tree with the given files committed once, on `main`. */
 export function initGitWorkspace(root: string, files: Record<string, string>): void {

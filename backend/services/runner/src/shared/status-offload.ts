@@ -52,12 +52,12 @@ import { create, fromJson, toBinary, toJson } from "@bufbuild/protobuf";
 import type { DescMessage, JsonValue, MessageShape } from "@bufbuild/protobuf";
 import {
   RunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ToolCallOutputRefSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { FileContent, ToolCallOutputRef } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { FileReviewBlockReason } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { ToolCallOutputRefSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
+import type { FileContent, ToolCallOutputRef } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
+import type { CapturedFileChange } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import { FileReviewBlockReason } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ArtifactStorage } from "./artifact-storage.js";
 import { deriveDiffCompleteness } from "./filereview/events.js";
 import type { AgentMessage, ToolCall, TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";

@@ -129,8 +129,8 @@ const file_ai_stigmer_agentic_scoringrule_v1_spec_proto_rawDesc = "" +
 	"sampleRate\x12E\n" +
 	"\x11monthly_limit_usd\x18\x04 \x01(\x01B\x19\xbaH\x16\x12\x14@\x01\x19\x00\x00\x00\x00\x00j\xf8@!\x00\x00\x00\x00\x00\x00\x00\x00R\x0fmonthlyLimitUsd\x12'\n" +
 	"\n" +
-	"model_name\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\tmodelNameB\xb7\x02\n" +
-	"%com.ai.stigmer.agentic.scoringrule.v1B\tSpecProtoP\x01ZZgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/scoringrule/v1;scoringrulev1\xa2\x02\x04ASAS\xaa\x02!Ai.Stigmer.Agentic.Scoringrule.V1\xca\x02!Ai\\Stigmer\\Agentic\\Scoringrule\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Scoringrule\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Scoringrule::V1b\x06proto3"
+	"model_name\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\tmodelNameB\xa4\x02\n" +
+	"%com.ai.stigmer.agentic.scoringrule.v1B\tSpecProtoP\x01ZGgo.stigmer.ai/sdk/proto/ai/stigmer/agentic/scoringrule/v1;scoringrulev1\xa2\x02\x04ASAS\xaa\x02!Ai.Stigmer.Agentic.Scoringrule.V1\xca\x02!Ai\\Stigmer\\Agentic\\Scoringrule\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Scoringrule\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Scoringrule::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_scoringrule_v1_spec_proto_rawDescOnce sync.Once

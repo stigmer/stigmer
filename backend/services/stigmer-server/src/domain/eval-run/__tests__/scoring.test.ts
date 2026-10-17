@@ -20,8 +20,8 @@ import {
   EvalRunStatusSchema,
   EvalRunTryState,
   EvalRunTrySchema,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
-import type { EvalRunTry } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
+import type { EvalRunTry } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
 
 import {
   everyScoredPassed,

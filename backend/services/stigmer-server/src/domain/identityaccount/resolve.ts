@@ -99,7 +99,7 @@
  * carries no issuer and no token, is the posture's own and is admitted.
  * Two primary-key reads; faults propagate as they are.
  */
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { SYSTEM_OPERATOR_IDENTITY_ID } from "../../pipeline/interceptors/auth.js";

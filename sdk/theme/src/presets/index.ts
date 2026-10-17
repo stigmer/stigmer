@@ -67,7 +67,7 @@ export function resolvePresetClass(id: ThemePresetId): string {
   if (!preset) {
     if (process.env.NODE_ENV !== "production") {
       console.warn(
-        `[@stigmer/theme] Unknown preset "${String(id)}". ` +
+        `[@stigmer/design-tokens] Unknown preset "${String(id)}". ` +
           `Available: ${THEME_PRESETS.map((p) => p.id).join(", ")}`,
       );
     }

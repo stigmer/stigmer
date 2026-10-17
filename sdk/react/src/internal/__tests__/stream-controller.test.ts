@@ -8,7 +8,7 @@
  * restarts on every frame and stands down on a drop or an error.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import type { StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import type { StreamSessionEventsResponse } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { samples } from "../../test/samples";
 import { StreamController, type StreamControllerSink } from "../stream-controller";
 import type { StreamState } from "../store/conversation-store";

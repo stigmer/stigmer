@@ -6,7 +6,7 @@ import (
 	"context"
 	"iter"
 
-	providerkeyv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/providerkey/v1"
+	providerkeyv1 "go.stigmer.ai/sdk/proto/ai/stigmer/billing/providerkey/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 )

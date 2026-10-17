@@ -40,8 +40,8 @@
  * and the repository token arms of the vault conformance suite.
  */
 
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import {

@@ -26,14 +26,14 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   CompleteConnectLinkInputSchema,
   ConnectLinkTokenInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/connect_link_pb";
 import {
   CompleteSignInInputSchema,
   CreateConnectLinkInputSchema,
   StartSignInInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { OAuthAppSchema } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
 
 import { SecretService } from "../../../../encryption/encryption.js";
 import { testCallerIdentity } from "../../../../pipeline/__tests__/support.js";

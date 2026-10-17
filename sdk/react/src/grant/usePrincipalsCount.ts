@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import { GetPrincipalsCountInputSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
+import { GetPrincipalsCountInputSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
@@ -30,7 +30,7 @@ export interface UsePrincipalsCountReturn {
  * account granted a role, so it is the size of the access list, not the
  * number of the organization's people. A member count reads the organization's access
  * list ({@link useResourceAccess}) and leaves out the entries
- * `isAppUserAccount` and `isServiceAccount` (from `@stigmer/sdk`)
+ * `isAppUserAccount` and `isServiceAccount` (from `@stigmer/client`)
  * mark, as `OrgMembersPanel` does.
  *
  * Pass `null` as `org` to skip fetching (stable no-op).

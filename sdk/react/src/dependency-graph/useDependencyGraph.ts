@@ -7,8 +7,8 @@ import type {
   UseDependencyGraphOptions,
   UseDependencyGraphReturn,
 } from "./types.js";
-import { deletedReferenceLabel, isDeletedReference } from "@stigmer/sdk";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { deletedReferenceLabel, isDeletedReference } from "@stigmer/client";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 
 /**

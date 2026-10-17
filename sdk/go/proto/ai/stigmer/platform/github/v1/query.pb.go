@@ -7,7 +7,7 @@
 package githubv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -31,9 +31,9 @@ const file_ai_stigmer_platform_github_v1_query_proto_rawDesc = "" +
 	"\x12searchRepositories\x12<.ai.stigmer.platform.github.v1.SearchGitHubRepositoriesInput\x1a3.ai.stigmer.platform.github.v1.GitHubRepositoryList\"?¸\x18;\b3\x10\x1e\"\x03org*0unauthorized to read GitHub in this organization\x12\xb8\x01\n" +
 	"\flistBranches\x126.ai.stigmer.platform.github.v1.ListGitHubBranchesInput\x1a/.ai.stigmer.platform.github.v1.GitHubBranchList\"?¸\x18;\b3\x10\x1e\"\x03org*0unauthorized to read GitHub in this organization\x12\xa8\x01\n" +
 	"\agetTree\x121.ai.stigmer.platform.github.v1.GetGitHubTreeInput\x1a).ai.stigmer.platform.github.v1.GitHubTree\"?¸\x18;\b3\x10\x1e\"\x03org*0unauthorized to read GitHub in this organization\x12\xbd\x01\n" +
-	"\x0egetFileContent\x128.ai.stigmer.platform.github.v1.GetGitHubFileContentInput\x1a0.ai.stigmer.platform.github.v1.GitHubFileContent\"?¸\x18;\b3\x10\x1e\"\x03org*0unauthorized to read GitHub in this organizationB\x9b\x02\n" +
+	"\x0egetFileContent\x128.ai.stigmer.platform.github.v1.GetGitHubFileContentInput\x1a0.ai.stigmer.platform.github.v1.GitHubFileContent\"?¸\x18;\b3\x10\x1e\"\x03org*0unauthorized to read GitHub in this organizationB\x88\x02\n" +
 	"!com.ai.stigmer.platform.github.v1B\n" +
-	"QueryProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/platform/github/v1;githubv1\xa2\x02\x04ASPG\xaa\x02\x1dAi.Stigmer.Platform.Github.V1\xca\x02\x1dAi\\Stigmer\\Platform\\Github\\V1\xe2\x02)Ai\\Stigmer\\Platform\\Github\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Platform::Github::V1b\x06proto3"
+	"QueryProtoP\x01Z>go.stigmer.ai/sdk/proto/ai/stigmer/platform/github/v1;githubv1\xa2\x02\x04ASPG\xaa\x02\x1dAi.Stigmer.Platform.Github.V1\xca\x02\x1dAi\\Stigmer\\Platform\\Github\\V1\xe2\x02)Ai\\Stigmer\\Platform\\Github\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Platform::Github::V1b\x06proto3"
 
 var file_ai_stigmer_platform_github_v1_query_proto_goTypes = []any{
 	(*ListGitHubRepositoriesInput)(nil),   // 0: ai.stigmer.platform.github.v1.ListGitHubRepositoriesInput

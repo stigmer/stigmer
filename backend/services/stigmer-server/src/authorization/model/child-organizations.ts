@@ -21,7 +21,7 @@
  */
 import { isMessage } from "@bufbuild/protobuf";
 
-import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import type { Tuple } from "../tuples.js";
 import type { DerivedRelation } from "./rewrite.js";

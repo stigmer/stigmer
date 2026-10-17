@@ -6,8 +6,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   SessionSchema,
   type Session,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { Stigmer } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { Stigmer } from "@stigmer/client";
 import { StigmerContext } from "../../context";
 import { useSessionConversation } from "../useSessionConversation";
 import { sessionEventStream } from "./session-event-stream";

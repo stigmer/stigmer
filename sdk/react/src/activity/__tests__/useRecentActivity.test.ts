@@ -9,8 +9,8 @@ import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
   RecentActivityEntrySchema,
-} from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
-import type { RecentActivityEntry as ProtoEntry } from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/activity/v1/io_pb";
+import type { RecentActivityEntry as ProtoEntry } from "@stigmer/apis/ai/stigmer/activity/v1/io_pb";
 import { groupRecentActivityByTime } from "../group-activity";
 import { normalizeRecentActivityEntry } from "../useRecentActivity";
 import type { RecentActivityEntry } from "../types";

@@ -3,8 +3,8 @@
 /**
  * Node-ESM regression gate for the published @stigmer/* packages.
  *
- * Regression lock for stigmer/stigmer#209: @stigmer/sdk, @stigmer/react, and
- * @stigmer/theme once shipped `dist` with extension-less relative specifiers
+ * Regression lock for stigmer/stigmer#209: @stigmer/client, @stigmer/react-sdk, and
+ * @stigmer/design-tokens once shipped `dist` with extension-less relative specifiers
  * (`from "./foo"`), which bundlers resolve but plain Node ESM cannot — crashing
  * every Node consumer (the CLI, `npx @stigmer/mcp-server`). Dev/tests never
  * caught it because they run under tsx (esbuild, extension-optional).
@@ -15,13 +15,13 @@
  * static rather than an actual `import()`:
  *
  *   - Deterministic + offline. No `npm pack`/install, no network, no version
- *     stamping. In the workspace, `@stigmer/sdk`'s package `exports` point at
+ *     stamping. In the workspace, `@stigmer/client`'s package `exports` point at
  *     TypeScript source (its dev entry), so a real `import()` of a built module
  *     that depends on another workspace package fails under plain Node for
  *     reasons unrelated to this bug.
  *   - Complete. It scans every shipped module, so lazily-imported chunks
  *     (React.lazy) are covered — an eager `import()` would never reach them.
- *   - No false positives. `@stigmer/react` is browser-oriented; only the
+ *   - No false positives. `@stigmer/react-sdk` is browser-oriented; only the
  *     headless subset the CLI loads is meant to run under Node, so executing its
  *     full module graph would fail for reasons unrelated to specifier
  *     resolution. Static analysis sidesteps that entirely.
@@ -40,7 +40,7 @@
  *
  * Usage:
  *   npm run build:libs && node scripts/verify-esm-node.mjs
- *   node scripts/verify-esm-node.mjs --only=@stigmer/sdk,@stigmer/react
+ *   node scripts/verify-esm-node.mjs --only=@stigmer/client,@stigmer/react-sdk
  */
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";

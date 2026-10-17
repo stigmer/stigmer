@@ -15,7 +15,7 @@
  * vault when each run starts.
  */
 import { useEffect, useMemo, useState } from "react";
-import type { ResourceRef } from "@stigmer/sdk";
+import type { ResourceRef } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 
 /**

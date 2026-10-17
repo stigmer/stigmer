@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { JsonObject } from "@bufbuild/protobuf";
-import { mergeSessionContext, type AttachmentInput, type ResourceRef, type RunConfigInput, type WorkspaceEntryInput } from "@stigmer/sdk";
+import { mergeSessionContext, type AttachmentInput, type ResourceRef, type RunConfigInput, type WorkspaceEntryInput } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { toProtoInteractionMode } from "../composer/interaction-mode.js";

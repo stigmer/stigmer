@@ -9,9 +9,9 @@
  * it is refused, on the saved agents a turn's agent lists and on the
  * plugins' agents alike.
  */
-import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { RunSpec } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { RunSpec } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import { isModelListedFor } from "./model-registry.js";
 import { ToolScope } from "./tool-lists.js";

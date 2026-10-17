@@ -11,9 +11,9 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
-import { RoutineStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/status_pb";
-import type { RoutineStatus } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/status_pb";
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/status_pb";
+import type { RoutineStatus } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/status_pb";
 
 /**
  * Returns the routine's status, materializing the nested message a fresh

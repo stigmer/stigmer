@@ -25,7 +25,7 @@ interface SecretArgsFixture {
   cases: { name: string; args: Record<string, unknown>; redacted: Record<string, unknown> }[];
 }
 
-// The cross-surface contract the @stigmer/sdk reader asserts too
+// The cross-surface contract the @stigmer/client reader asserts too
 // (sdk/typescript/src/execution/__tests__/tool-view.fixtures.test.ts).
 const here = dirname(fileURLToPath(import.meta.url));
 const secretArgs = JSON.parse(

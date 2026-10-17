@@ -10,7 +10,7 @@ import {
   resolvedSubject,
   runPhaseOf,
   PENDING_SUBJECT,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 import { MessageThread } from "../components/MessageThread.js";
 import { TodoList } from "../components/TodoList.js";
 import { FollowUpInput } from "../components/FollowUpInput.js";
@@ -45,7 +45,7 @@ export interface SessionViewProps {
  * Full-featured session conversation view for the terminal.
  *
  * Uses the headless {@link useSessionConversation} hook from
- * `@stigmer/react` to manage the complete conversation lifecycle,
+ * `@stigmer/react-sdk` to manage the complete conversation lifecycle,
  * then renders the thread and input using Ink terminal components.
  *
  * This is the main composition component that platform builders
@@ -53,7 +53,7 @@ export interface SessionViewProps {
  *
  * @example
  * ```tsx
- * import { InkStigmerProvider, createNodeClient, SessionView } from "@stigmer/ink";
+ * import { InkStigmerProvider, createNodeClient, SessionView } from "@stigmer/ink-ui";
  *
  * const client = createNodeClient({ baseUrl: "...", apiKey: "..." });
  *

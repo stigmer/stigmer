@@ -48,7 +48,7 @@ docker build \
 - **Framework**: Next.js 16 (App Router) / React 19
 - **Styling**: Tailwind CSS v4 / shadcn-ui
 - **API**: Connect-RPC (gRPC-Web) via `@connectrpc/connect-web`
-- **Proto stubs**: `@stigmer/protos` — generated TypeScript from `apis/stubs/ts/`
+- **Proto stubs**: `@stigmer/apis` — generated TypeScript from `apis/stubs/ts/`
 
 ## Project structure
 
@@ -70,7 +70,7 @@ src/
 
 ## Workspace dependency
 
-This package consumes `@stigmer/protos` from `apis/stubs/ts/` via npm workspaces. If proto definitions change, regenerate stubs before starting the dev server:
+This package consumes `@stigmer/apis` from `apis/stubs/ts/` via npm workspaces. If proto definitions change, regenerate stubs before starting the dev server:
 
 ```bash
 make -C apis ts-stubs

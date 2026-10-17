@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 import {
   GetAgentUsageReportInputSchema,
   GetOrgUsageReportInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import type { Authorizer } from "../../../extensions/authorizer.js";

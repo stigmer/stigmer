@@ -2,9 +2,9 @@
 
 import { lazy, Suspense, useCallback, useEffect } from "react";
 import type { Message } from "@bufbuild/protobuf";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
-import { getUserMessage, type AppliedManifest } from "@stigmer/sdk";
+import { getUserMessage, type AppliedManifest } from "@stigmer/client";
 import { toast } from "../feedback/toast.js";
 import { RedactedSecretsNotice } from "./RedactedSecretsNotice.js";
 import { useEditResourceYaml } from "./useEditResourceYaml.js";

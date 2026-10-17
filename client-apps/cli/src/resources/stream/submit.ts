@@ -9,7 +9,7 @@
 // hint.
 
 import { Code, ConnectError } from "@connectrpc/connect";
-import { StigmerError } from "@stigmer/sdk";
+import { StigmerError } from "@stigmer/client";
 
 export const APPROVAL_RETRY_MAX_ATTEMPTS = 3;
 export const APPROVAL_RETRY_BASE_DELAY_MS = 1000;

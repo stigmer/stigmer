@@ -55,7 +55,7 @@ export const ORDER_QUESTION = "What's the status of order #ORD-4821?";
  */
 export const PLUGIN_REFS_CODE = [
   "// ask-agent.ts — Add tools alongside the Skill",
-  'import { Stigmer } from "@stigmer/sdk";',
+  'import { Stigmer } from "@stigmer/client";',
   "",
   "const stigmer = new Stigmer({",
   "  apiKey: process.env.STIGMER_API_KEY!,",

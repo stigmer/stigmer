@@ -12,8 +12,8 @@ import {
   GitHubFileContentSchema,
   GitHubRepositoryListSchema,
   GitHubTreeSchema,
-} from "@stigmer/protos/ai/stigmer/platform/github/v1/io_pb";
-import { GitHubQueryController } from "@stigmer/protos/ai/stigmer/platform/github/v1/query_pb";
+} from "@stigmer/apis/ai/stigmer/platform/github/v1/io_pb";
+import { GitHubQueryController } from "@stigmer/apis/ai/stigmer/platform/github/v1/query_pb";
 
 import { GitHubClient } from "../github";
 import { StigmerError } from "../gen/errors";

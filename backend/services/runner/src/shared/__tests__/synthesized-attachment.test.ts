@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import type { MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
+import type { MessagingChannel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
 
 import {
   CHANNEL_ATTACHMENT_SLUG,

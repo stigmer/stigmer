@@ -3,7 +3,7 @@
 import { useMemo, useReducer, useState } from "react";
 import Link from "next/link";
 import { CalendarClock, Plus, Upload } from "lucide-react";
-import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import {
   ResourceWorkbench,
@@ -13,7 +13,7 @@ import {
   createRoutineListFn,
   useStigmer,
   useActiveOrgId,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 
 export function ScheduleListPage() {
   const org = useActiveOrgId();

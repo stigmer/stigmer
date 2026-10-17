@@ -40,8 +40,8 @@ import { createValidator } from "@bufbuild/protovalidate";
 import type { Validator } from "@bufbuild/protovalidate";
 import { reflect } from "@bufbuild/protobuf/reflect";
 import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import type { ApiResourceMetadata } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 import type { StoreLogger } from "./logger.js";
 import { SCHEMAS_AT_STEP } from "./resource-etags-stamped.js";

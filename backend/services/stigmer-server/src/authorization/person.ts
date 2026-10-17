@@ -35,7 +35,7 @@
  * throw is the backstop for a caller built outside those lanes, and the
  * driver folds it to `unavailable`.
  */
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 
 import { isPersonStamp } from "../domain/grant/membership.js";
 import type { AccountsByCaller } from "../domain/identityaccount/resolve.js";

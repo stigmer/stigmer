@@ -21,9 +21,9 @@ import { digestArchive } from "@stigmer/plugin-package/client";
 import {
   AddEvalCaseFromRunRequestSchema,
   BuildEvalCaseFromRunRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { Stigmer } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Stigmer } from "@stigmer/client";
 import { UsageError } from "../errors/index.js";
 import { splitEvalVersion } from "./eval.js";
 import { idPrefixesFor, parseReference } from "./reference.js";

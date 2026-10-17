@@ -7,8 +7,8 @@
  * of the list and answers the whole set.
  */
 import { create } from "@bufbuild/protobuf";
-import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { ListVaultsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+import type { Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { ListVaultsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { LIST_PAGE_MAX, readEveryPage } from "../internal/everyPage.js";
 import { useFetch } from "../internal/useFetch.js";

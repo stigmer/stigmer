@@ -10,10 +10,10 @@
 
 import React from "react";
 import { render } from "ink";
-import { AgentPicker, InkStigmerProvider, SessionPicker } from "@stigmer/ink";
-import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { DeploymentMode, Stigmer } from "@stigmer/sdk";
+import { AgentPicker, InkStigmerProvider, SessionPicker } from "@stigmer/ink-ui";
+import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { DeploymentMode, Stigmer } from "@stigmer/client";
 
 /** Options for {@link pickAgent}. */
 export interface PickAgentOptions {

@@ -116,7 +116,7 @@ the cloud target).
 The suite imports the **built** proto stubs, so build them once first:
 
 ```bash
-npm run build -w @stigmer/protos
+npm run build -w @stigmer/apis
 npm run test -w @stigmer/conformance
 ```
 
@@ -412,9 +412,9 @@ noop sandbox provisioner) is stated in the spike's README beside each override.
 
 ### Raw stubs, not the SDK
 
-Suites drive the server through the generated `@stigmer/protos` controllers via
+Suites drive the server through the generated `@stigmer/apis` controllers via
 `createClient(...)` over a `createGrpcTransport` (h2c). They deliberately do not
-use `@stigmer/sdk`: the SDK is itself an implementation with conveniences that
+use `@stigmer/client`: the SDK is itself an implementation with conveniences that
 can drift from the proto API. Testing the raw contract keeps the suite a true
 black box.
 
@@ -434,15 +434,15 @@ Two things about it are deliberate:
   suites assert against wire data of unknown shape, so the stricter view is
   right here even though the server, runner and SDKs do not carry it.
 - **It compiles other packages' source.** Workspace packages export `./src` in
-  development (only `@stigmer/protos` exports a built `dist`), so anything a
+  development (only `@stigmer/apis` exports a built `dist`), so anything a
   suite imports from another package is compiled under THIS package's options.
   The one such import is `mcp.conformance.test.ts` → `@stigmer/mcp-server`,
-  whose `domains/client.ts` pulls in `@stigmer/sdk`. That is a type-level
+  whose `domains/client.ts` pulls in `@stigmer/client`. That is a type-level
   coupling only — no suite calls the SDK, and the "Raw stubs, not the SDK"
   principle above is intact — but it means a guard-free indexed read in either
   package fails this typecheck while both packages' own typechecks stay green.
   That is why the gate runs from the workspace's task graph: this package
-  declares `@stigmer/mcp-server` (and, through it, `@stigmer/sdk`), so
+  declares `@stigmer/mcp-server` (and, through it, `@stigmer/client`), so
   `ci.ts-workspace` marks it affected when either changes and drift on either
   side of the coupling fails a check.
 
@@ -509,7 +509,7 @@ or a waiver in `inventory/rpc-waivers.yaml`. A waiver is a `gap` (no test pins
 it yet; it names the open issue that owns the test) or `proven-elsewhere` (its
 promise is pinned in another layer; it names that test file, which must carry
 the same tag). The declared set is read from the committed generated sources of
-`@stigmer/protos`, never from a hand list (`src/inventory/rpc-contract.ts`).
+`@stigmer/apis`, never from a hand list (`src/inventory/rpc-contract.ts`).
 
 - **Where a tag goes.** On each test whose own subject is that RPC: its title
   states the RPC's behaviour and its assertions read the RPC's answer or its

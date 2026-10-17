@@ -1,7 +1,7 @@
 // Unit tests for offline validation: the schema each file-based kind resolves
 // to, and the structural decode of a document against it.
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { describe, expect, it } from "vitest";
 import { schemaForValidate, validateDocument } from "../validate.js";
 

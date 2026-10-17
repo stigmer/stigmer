@@ -11,7 +11,7 @@
 // `eval <slug>@<digest>` and progress lines named `<eval>/<case>`, an Eval
 // not run as its heading and reason, and its cases counted in the exit code.
 
-import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { EvalRunAblation } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import { clone, create } from "@bufbuild/protobuf";
 import {
   EvalRunCaseSchema,
@@ -20,7 +20,7 @@ import {
   EvalRunPhase,
   EvalRunTrySchema,
   EvalRunTryState,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
 import { describe, expect, it } from "vitest";
 import { EvalExit, evalExitCode, finishedTries, renderEvalReport, renderEvalTables, renderNotRun } from "../report.js";
 import { finishedEvalRunOnAgent } from "./fixtures.js";

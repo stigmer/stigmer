@@ -9,7 +9,7 @@
 // bordered panel there would be noise. So we emit a compact, aligned key/value
 // block carrying the same fields (Agent, Session, Model, Mode, Workspaces).
 
-import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
 import { shouldColorize, styler } from "../../output/style.js";
 import type { HarnessFlag, RunMode } from "./prepare.js";
 

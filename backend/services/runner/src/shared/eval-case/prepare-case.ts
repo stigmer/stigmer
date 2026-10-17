@@ -39,7 +39,7 @@
  */
 
 import { join, posix } from "node:path";
-import type { EvalCaseContext } from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
+import type { EvalCaseContext } from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
 import { parseTranscript, type TranscriptMessage } from "@stigmer/eval-runtime";
 import { AgentExecError, agentFs, agentPathExists } from "../agent-fs.js";
 import type { ResolvedAttachment } from "../attachment-resolver.js";

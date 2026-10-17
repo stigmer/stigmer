@@ -14,7 +14,7 @@
  *
  * @internal
  */
-import { getErrorReason } from "@stigmer/sdk";
+import { getErrorReason } from "@stigmer/client";
 
 import { toError } from "./toError.js";
 

@@ -5,8 +5,8 @@
 // builder sends whatever an untyped caller passes, so the server's refusal
 // names a wrong org instead of the SDK dropping it.
 import { describe, expect, it } from "vitest";
-import { LicenseTerm } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
-import { PlanInstrument } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
+import { LicenseTerm } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
+import { PlanInstrument } from "@stigmer/apis/ai/stigmer/billing/plan/v1/spec_pb";
 
 import { buildLicenseProto, type LicenseInput } from "../../gen/license";
 import { buildPlanProto, type PlanInput } from "../../gen/plan";

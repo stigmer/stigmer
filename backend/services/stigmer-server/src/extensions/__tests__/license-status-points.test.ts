@@ -12,7 +12,7 @@
  * The controller's use of the resolved provider is pinned in
  * domain/platform/__tests__/platform.test.ts; this file pins the registry.
  */
-import { LicenseState } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
+import { LicenseState } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 import { describe, expect, it } from "vitest";
 
 import type { LicenseStatusProvider } from "../license-status.js";

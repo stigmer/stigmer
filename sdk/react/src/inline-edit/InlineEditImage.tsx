@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import type { InlineEditBaseProps } from "./types.js";
 import { useInlineDraft } from "./useInlineDraft.js";
 

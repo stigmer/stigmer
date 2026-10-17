@@ -59,7 +59,7 @@ vi.mock("@/domain/_shared/org/OrgGate", () => ({
   OrgGate: marker("org-gate"),
 }));
 vi.mock("@/domain/_shared/ui/sonner", () => ({ Toaster: () => null }));
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   FetchCacheProvider: marker("fetch-cache"),
   OrgProvider: marker("org"),
 }));

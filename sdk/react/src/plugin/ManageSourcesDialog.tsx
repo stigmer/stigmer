@@ -24,7 +24,7 @@
  */
 
 import { useId, useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { GITHUB_SOURCE_SHAPE, describeGitHubSource } from "@stigmer/plugin-package/client";
 
 import { Button } from "../button/Button.js";

@@ -27,7 +27,7 @@
  */
 import { fromBinary } from "@bufbuild/protobuf";
 
-import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { GrantSchema } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
 
 /** The `kind` column value of the rows the step removes. */
 export const RETIRED_WORKFLOW_INSTANCE_KIND = "workflow_instance";

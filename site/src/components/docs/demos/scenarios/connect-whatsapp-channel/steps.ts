@@ -21,24 +21,24 @@
 
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   ChannelSpecSchema,
   WhatsAppChannelConfigSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
 import {
   ChannelStatusSchema,
   ChannelInstallState,
   WhatsAppInstallStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
-import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
+import { ChannelAppSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
+import type { ChannelApp } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import {
   ChannelAppSpecSchema,
   WhatsAppChannelAppConfigSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/spec_pb";
-import { samples } from "@stigmer/react/test";
+} from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/spec_pb";
+import { samples } from "@stigmer/react-sdk/test";
 import type { ScenarioStep } from "@scenar/react";
 
 // ---------------------------------------------------------------------------

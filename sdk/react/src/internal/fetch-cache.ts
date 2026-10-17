@@ -11,7 +11,7 @@
  * class only gives it memory across mounts.
  *
  * @internal Consumed by `useFetch` via context; not part of the public
- * `@stigmer/react` API surface. The `FetchCacheProvider` component is
+ * `@stigmer/react-sdk` API surface. The `FetchCacheProvider` component is
  * the public entry point.
  */
 

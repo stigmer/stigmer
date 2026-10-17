@@ -54,17 +54,17 @@ import { timestampNow } from "@bufbuild/protobuf/wkt";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { ulid } from "ulidx";
 
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import {
   ApiResourceAuditSchema,
   ApiResourceAuditActorSchema,
   ApiResourceAuditInfoSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 import type {
   ApiResourceAudit,
   ApiResourceAuditActor,
   ApiResourceAuditInfo,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { defaultVisibilityFor, getIdPrefix } from "../apiresource-meta.js";

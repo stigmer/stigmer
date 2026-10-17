@@ -6,7 +6,7 @@
 // reads from its turn's review by path.
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
-import type { FileReviewSet, ToolUse } from "@stigmer/sdk";
+import type { FileReviewSet, ToolUse } from "@stigmer/client";
 import { ToolCallItem } from "../ToolCallItem";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
 import { FileReviewContext } from "../FileReviewContext";

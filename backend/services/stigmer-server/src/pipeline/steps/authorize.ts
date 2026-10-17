@@ -68,13 +68,13 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type { DescMethod, DescMessage, Message } from "@bufbuild/protobuf";
 import { getOption, hasOption } from "@bufbuild/protobuf";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { RpcAuthorizationConfig } from "@stigmer/protos/ai/stigmer/commons/rpc/authorization_config_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { RpcAuthorizationConfig } from "@stigmer/apis/ai/stigmer/commons/rpc/authorization_config_pb";
 import {
   config as rpcAuthorizationConfig,
   is_public,
   is_skip_authorization,
-} from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
+} from "@stigmer/apis/ai/stigmer/commons/rpc/method_options_pb";
 
 import type {
   Authorizer,

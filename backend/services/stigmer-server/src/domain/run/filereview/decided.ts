@@ -22,7 +22,7 @@ import { createHash } from "node:crypto";
 
 import { create } from "@bufbuild/protobuf";
 
-import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import { SESSION_EVENT_ID_PREFIX } from "../../session/events/catalog.js";
 import type { ActionWord, OriginWord, ScopeWord } from "../../session/filereview/words.js";

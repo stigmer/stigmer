@@ -33,9 +33,9 @@ import {
   WorkspaceWriteBackPhase,
   WorkspaceWriteBackSchema,
   type WorkspaceWriteBack,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
-import { GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
+import { GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { WorkspaceBackend, ProvisionResult } from "./types.js";
 import { gitCommitAsAgent } from "./git-identity.js";
 import { runNetworkGit } from "./git-credential.js";

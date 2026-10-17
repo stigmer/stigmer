@@ -41,9 +41,9 @@
  * Proven by __tests__/matrix.test.ts.
  */
 import { evalCaseUnsupportedOnCursor, type EvalCase, type EvalSuite } from "@stigmer/plugin-package";
-import type { EvalRunSpec, EvalRunTarget } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import { EvalRunAblation } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import type { EvalRunSpec, EvalRunTarget } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { EvalRunAblation } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import { harnessName } from "../../modelcatalog/pin-validation.js";

@@ -43,9 +43,9 @@ import type { Readable } from "node:stream";
 
 import { ConnectError, createClient, type Transport } from "@connectrpc/connect";
 
-import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
-import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
+import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
+import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
+import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import { parseBearerToken } from "../../pipeline/interceptors/auth.js";

@@ -11,14 +11,14 @@
  *   - Sam Okafor   — human-held, quiet past the 24h window (advisory beat)
  *   - Riley Chen   — agent escalated (attention-banner beat)
  *
- * Pure module by design: protos + `@stigmer/react/test` only, importable by
+ * Pure module by design: protos + `@stigmer/react-sdk/test` only, importable by
  * `steps.ts` under plain Node (the narrate/verify loader). Every instant
  * derives from the sample anchor via `sampleDate` — the tour world has one
  * clock (demos/README.md, fixture determinism).
  */
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { ChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import {
   ChannelConversationSchema,
   ConversationControl,
@@ -27,10 +27,10 @@ import {
   ConversationTimelineItemSchema,
   type ChannelConversation,
   type ConversationTimelineItem,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
-import { ChannelDeliveryStatus } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/delivery_pb";
-import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/outbound_pb";
-import { sampleDate } from "@stigmer/react/test";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { ChannelDeliveryStatus } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/delivery_pb";
+import { ChannelReceiptState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/outbound_pb";
+import { sampleDate } from "@stigmer/react-sdk/test";
 import { DEMO_ORG } from "../_shared/fixtures";
 
 /** The depicted channel's id — every conversation and RPC input carries it. */

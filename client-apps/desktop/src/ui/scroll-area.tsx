@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 function ScrollArea({
   className,

@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { DEEP_AGENT_VISION_PROFILE } from "../../shared/attachment-vision.js";

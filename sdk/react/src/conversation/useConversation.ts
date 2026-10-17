@@ -1,12 +1,12 @@
 "use client";
 
 import { create, equals } from "@bufbuild/protobuf";
-import { isNotFound } from "@stigmer/sdk";
-import type { ChannelConversation } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { isNotFound } from "@stigmer/client";
+import type { ChannelConversation } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import {
   ChannelConversationSchema,
   GetChannelConversationInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";

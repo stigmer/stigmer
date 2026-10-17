@@ -13,8 +13,8 @@
  * `__tests__/usage-views-show-no-money.test.tsx` pin what it renders.
  */
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { cn } from "@stigmer/theme";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
 import {
   useSessionUsage,
   type ModelUsageEntry,

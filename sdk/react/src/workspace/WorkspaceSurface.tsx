@@ -8,8 +8,8 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
-import { cn } from "@stigmer/theme";
-import type { DisplayFileChange } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import type { DisplayFileChange } from "@stigmer/client";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
 import {
   Tooltip,

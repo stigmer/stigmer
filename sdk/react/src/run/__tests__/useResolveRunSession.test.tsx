@@ -14,10 +14,10 @@ import { create } from "@bufbuild/protobuf";
 import {
   RunSchema,
   type Run,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { RunSpec } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
-import { StigmerError } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunSpec } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
+import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
+import { StigmerError } from "@stigmer/client";
 
 vi.mock("../../hooks", () => ({
   useStigmer: vi.fn(),

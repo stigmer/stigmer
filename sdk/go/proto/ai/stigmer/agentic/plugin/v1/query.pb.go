@@ -7,8 +7,8 @@
 package pluginv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -33,9 +33,9 @@ const file_ai_stigmer_agentic_plugin_v1_query_proto_rawDesc = "" +
 	"\x04list\x120.ai.stigmer.agentic.plugin.v1.ListPluginsRequest\x1a(.ai.stigmer.agentic.plugin.v1.PluginList\"\x04и\x18\x01\x12x\n" +
 	"\vgetArtifact\x120.ai.stigmer.agentic.plugin.v1.GetArtifactRequest\x1a1.ai.stigmer.agentic.plugin.v1.GetArtifactResponse\"\x04и\x18\x01\x12\x89\x01\n" +
 	"\x16getArtifactDownloadUrl\x120.ai.stigmer.agentic.plugin.v1.GetArtifactRequest\x1a7.ai.stigmer.agentic.plugin.v1.PluginArtifactDownloadUrl\"\x04и\x18\x01\x12\x85\x01\n" +
-	"\flistVersions\x125.ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput\x1a8.ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse\"\x04и\x18\x01\x1a\x04\xa0\xff+:B\x95\x02\n" +
+	"\flistVersions\x125.ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput\x1a8.ai.stigmer.agentic.plugin.v1.ListPluginVersionsResponse\"\x04и\x18\x01\x1a\x04\xa0\xff+:B\x82\x02\n" +
 	" com.ai.stigmer.agentic.plugin.v1B\n" +
-	"QueryProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1;pluginv1\xa2\x02\x04ASAP\xaa\x02\x1cAi.Stigmer.Agentic.Plugin.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3"
+	"QueryProtoP\x01Z=go.stigmer.ai/sdk/proto/ai/stigmer/agentic/plugin/v1;pluginv1\xa2\x02\x04ASAP\xaa\x02\x1cAi.Stigmer.Agentic.Plugin.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_plugin_v1_query_proto_goTypes = []any{
 	(*PluginId)(nil),                         // 0: ai.stigmer.agentic.plugin.v1.PluginId

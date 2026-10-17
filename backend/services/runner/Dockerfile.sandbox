@@ -155,7 +155,7 @@ FROM node-runtime AS libs
 
 WORKDIR /build
 
-# Build @stigmer/protos (file: dependency of the runner).
+# Build @stigmer/apis (file: dependency of the runner).
 # Proto stubs have no lock file — single dependency (@bufbuild/protobuf).
 COPY apis/stubs/ts/package.json apis/stubs/ts/
 RUN cd apis/stubs/ts && npm install --ignore-scripts
@@ -316,7 +316,7 @@ COPY --from=builder /build/slim/RELEASE /runner/RELEASE
 # image's mechanism (deploy/all-in-one/Dockerfile): npm resolves every
 # @stigmer/* edge among the given tarballs and fetches only third-party
 # deps. NOT `npm install -g`: a global install nests each top-level
-# package's tree separately, so the CLI's edge to @stigmer/sdk would be
+# package's tree separately, so the CLI's edge to @stigmer/client would be
 # fetched from the registry — the race, one layer down. The `.bin` of the
 # prefix goes on PATH, which is where the runner's spawn looks.
 #

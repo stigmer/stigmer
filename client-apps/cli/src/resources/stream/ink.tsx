@@ -4,7 +4,7 @@
 // and pipes session config to it. Here the CLI *is* a TS process, so we render
 // Ink in-process and — crucially — reuse the CLI's already-authenticated client
 // via InkStigmerProvider rather than letting SessionApp build its own. SessionView
-// (from @stigmer/ink) owns the live conversation: history, streaming, approvals,
+// (from @stigmer/ink-ui) owns the live conversation: history, streaming, approvals,
 // and a follow-up composer.
 //
 // This module is only ever reached through a dynamic import() in the command
@@ -13,8 +13,8 @@
 
 import React from "react";
 import { render } from "ink";
-import { InkStigmerProvider, SessionView, type InteractionMode } from "@stigmer/ink";
-import type { DeploymentMode, Stigmer } from "@stigmer/sdk";
+import { InkStigmerProvider, SessionView, type InteractionMode } from "@stigmer/ink-ui";
+import type { DeploymentMode, Stigmer } from "@stigmer/client";
 
 export interface InkSessionOptions {
   /** The CLI's configured, refreshing-token client (backend.stigmer). */

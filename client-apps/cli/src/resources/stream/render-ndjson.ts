@@ -8,8 +8,8 @@
 // stigmer.permission.grant). An unset `--approve-default` denies each ask, and
 // says so on stderr.
 
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import { toManagedAgentsJson, type ToolUse } from "@stigmer/sdk";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { toManagedAgentsJson, type ToolUse } from "@stigmer/client";
 import { writeNdjson } from "../../output/ndjson.js";
 import type { ApproveDefault } from "./answer.js";
 import type { HeadlessRenderer } from "./headless.js";

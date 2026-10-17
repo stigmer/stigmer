@@ -8,8 +8,8 @@ import {
   useConversationsWantsHumanCount,
   useRecentActivity,
   WorkspaceSidebar,
-} from "@stigmer/react";
-import type { SidebarLinkRenderProps, WorkspaceNavId } from "@stigmer/react";
+} from "@stigmer/react-sdk";
+import type { SidebarLinkRenderProps, WorkspaceNavId } from "@stigmer/react-sdk";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 import { useRunNavigation } from "@/domain/runs/run-navigation";
 import { UserMenu } from "./UserMenu";

@@ -27,8 +27,8 @@ import { createClient } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { LicenseState } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
-import { PlatformQueryController, ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { LicenseState } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
+import { PlatformQueryController, ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
 import {
   provisionEnterpriseDatabase,

@@ -11,15 +11,15 @@
  * team always reaches the wire as its members.
  */
 import { useCallback, useState, type FormEvent } from "react";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import type { Grant } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import type { Grant } from "@stigmer/apis/ai/stigmer/iam/grant/v1/api_pb";
 import { create } from "@bufbuild/protobuf";
 import {
   ApiResourceRefSchema,
   GrantSpecSchema,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
-import { cn } from "@stigmer/theme";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
+import { cn } from "@stigmer/design-tokens";
 import {
   getUserMessage,
   granteeRef,
@@ -27,7 +27,7 @@ import {
   isRoleGrantable,
   isRoleTeamGrantable,
   type Grantee,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { useCreateGrant } from "./useCreateGrant.js";
 import { RoleSelector } from "./RoleSelector.js";
 import { PrincipalPicker, type SelectedGrantee } from "./PrincipalPicker.js";

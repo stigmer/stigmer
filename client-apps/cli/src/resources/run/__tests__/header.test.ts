@@ -1,7 +1,7 @@
 import { create } from "@bufbuild/protobuf";
 import {
   WorkspaceEntrySchema,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
 import { describe, expect, it } from "vitest";
 import { renderSessionHeader, workspaceNames } from "../header.js";
 

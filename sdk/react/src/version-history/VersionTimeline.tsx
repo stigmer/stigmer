@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import type { VersionTimelineProps } from "./types.js";
 import { VersionTimelineEntry } from "./VersionTimelineEntry.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";

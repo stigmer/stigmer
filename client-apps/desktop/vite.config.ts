@@ -11,10 +11,10 @@ export default defineConfig({
 
   optimizeDeps: {
     exclude: [
-      "@stigmer/react",
-      "@stigmer/sdk",
-      "@stigmer/protos",
-      "@stigmer/theme",
+      "@stigmer/react-sdk",
+      "@stigmer/client",
+      "@stigmer/apis",
+      "@stigmer/design-tokens",
       "@stigmer/plugin-package",
       "@stigmer/session-log",
       "@stigmer/tool-vocabulary",

@@ -4,7 +4,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   ListRoutineFiresRequestSchema,
   type RoutineFire,
-} from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useTokenPages } from "../internal/useTokenPages.js";
 

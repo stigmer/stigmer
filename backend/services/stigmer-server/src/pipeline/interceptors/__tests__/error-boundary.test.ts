@@ -17,8 +17,8 @@ import { Code, ConnectError, createContextValues } from "@connectrpc/connect";
 import type { Interceptor } from "@connectrpc/connect";
 import type { DescMethod } from "@bufbuild/protobuf";
 
-import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
-import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { ApiKeyQueryController } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/query_pb";
+import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import { callerIdentityKey } from "../auth.js";

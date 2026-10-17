@@ -6,7 +6,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import {
   ListPluginVersionsInputSchema,
   type PluginVersionEntry as ProtoPluginVersionEntry,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useCursorPages } from "../internal/useCursorPages.js";
 import type { VersionEntry } from "../version-history/types.js";

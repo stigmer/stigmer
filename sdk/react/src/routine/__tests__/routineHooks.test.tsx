@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { clone, create, equals } from "@bufbuild/protobuf";
-import { RoutineSchema, type Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineSchema, type Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import {
   RoutineListSchema,
   RoutineFireResultSchema,
@@ -13,9 +13,9 @@ import {
   RoutineFireSchema,
   RoutineFireOutcome,
   RoutineFireOrigin,
-} from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { StigmerError } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { StigmerError } from "@stigmer/client";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useRoutine } from "../useRoutine";

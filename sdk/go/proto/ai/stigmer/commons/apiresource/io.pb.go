@@ -8,7 +8,7 @@ package apiresource
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	apiresourcekind "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -500,8 +500,8 @@ const file_ai_stigmer_commons_apiresource_io_proto_rawDesc = "" +
 	"\x04slug\x18\x03 \x01(\tB'\xbaH$\xd8\x01\x01r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\x12M\n" +
 	"\aversion\x18\x04 \x01(\tB3\xbaH0r.2,^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$R\aversion\x12\x17\n" +
 	"\x02id\x18\x05 \x01(\tB\a\xbaH\x04r\x02\x18@R\x02id:n\xbaHk\x1ai\n" +
-	"\x14reference.id_or_slug\x12/a reference names its resource by id or by slug\x1a this.id != '' || this.slug != ''B\x94\x02\n" +
-	"\"com.ai.stigmer.commons.apiresourceB\aIoProtoP\x01ZIgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
+	"\x14reference.id_or_slug\x12/a reference names its resource by id or by slug\x1a this.id != '' || this.slug != ''B\x81\x02\n" +
+	"\"com.ai.stigmer.commons.apiresourceB\aIoProtoP\x01Z6go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var (
 	file_ai_stigmer_commons_apiresource_io_proto_rawDescOnce sync.Once

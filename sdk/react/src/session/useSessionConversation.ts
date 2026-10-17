@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { FileChangeProgress, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { InterruptSessionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import type { ApiResourceReference as ProtoApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { FileChangeProgress, FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { InterruptSessionInputSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { ApiResourceReference as ProtoApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import {
   displayFileChangeSets,
   supersededRunIds,
@@ -20,7 +20,7 @@ import {
   type TurnPhase,
   type SessionInput,
   type WorkspaceEntryInput,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import type { ServiceTierOption } from "../models/service-tier.js";
 import type { ThinkingModeOption } from "../models/thinking-mode.js";
 import { useStigmer } from "../hooks.js";
@@ -630,7 +630,7 @@ export function useSessionConversation(
   }, [liveRunId, refetch]);
 
   // Runs replaced via edit-and-resubmit (the shared conversation rule —
-  // see supersededRunIds in @stigmer/sdk). The extra id is the live run's
+  // see supersededRunIds in @stigmer/client). The extra id is the live run's
   // link: right after a resubmit, its turn shows before the list delivers
   // the new run.
   const liveSupersededId = activeRun?.spec?.supersedesRunId || null;

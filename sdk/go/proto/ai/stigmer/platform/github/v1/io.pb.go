@@ -834,8 +834,8 @@ const file_ai_stigmer_platform_github_v1_io_proto_rawDesc = "" +
 	"\x11GitHubFileContent\x12\x18\n" +
 	"\acontent\x18\x01 \x01(\fR\acontent\x12\x12\n" +
 	"\x04size\x18\x02 \x01(\x03R\x04size\x12\x1b\n" +
-	"\ttoo_large\x18\x03 \x01(\bR\btooLargeB\x98\x02\n" +
-	"!com.ai.stigmer.platform.github.v1B\aIoProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/platform/github/v1;githubv1\xa2\x02\x04ASPG\xaa\x02\x1dAi.Stigmer.Platform.Github.V1\xca\x02\x1dAi\\Stigmer\\Platform\\Github\\V1\xe2\x02)Ai\\Stigmer\\Platform\\Github\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Platform::Github::V1b\x06proto3"
+	"\ttoo_large\x18\x03 \x01(\bR\btooLargeB\x85\x02\n" +
+	"!com.ai.stigmer.platform.github.v1B\aIoProtoP\x01Z>go.stigmer.ai/sdk/proto/ai/stigmer/platform/github/v1;githubv1\xa2\x02\x04ASPG\xaa\x02\x1dAi.Stigmer.Platform.Github.V1\xca\x02\x1dAi\\Stigmer\\Platform\\Github\\V1\xe2\x02)Ai\\Stigmer\\Platform\\Github\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Platform::Github::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_platform_github_v1_io_proto_rawDescOnce sync.Once

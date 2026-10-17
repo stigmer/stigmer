@@ -7,7 +7,7 @@
  * only.
  */
 import { useMemo } from "react";
-import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 

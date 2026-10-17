@@ -19,7 +19,7 @@
 // that cannot fix a broken backend and drops every in-flight request.
 
 import { createClient } from "@connectrpc/connect";
-import { Health, HealthCheckResponse_ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
+import { Health, HealthCheckResponse_ServingStatus } from "@stigmer/apis/grpc/health/v1/health_pb";
 import { transportForToken } from "./domains/client.js";
 
 /**

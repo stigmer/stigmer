@@ -38,7 +38,7 @@
  */
 import { fromBinary, toBinary } from "@bufbuild/protobuf";
 
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 
 /** The `kind` column value of the rows the step rewrites. */
 export const SESSION_VALUES_KIND = "session";

@@ -13,7 +13,7 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { ProviderKeySchema, type ProviderKey } from "@stigmer/protos/ai/stigmer/billing/providerkey/v1/api_pb";
+import { ProviderKeySchema, type ProviderKey } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/api_pb";
 
 vi.mock("../../organization/OrgProvider.js", () => ({
   useOrg: () => ({ activeOrg: { metadata: { id: "acme", slug: "acme", name: "Acme" } } }),

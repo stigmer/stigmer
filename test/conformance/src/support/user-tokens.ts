@@ -10,7 +10,7 @@
 // account and set the settings, and the key's own clients to mint. The
 // founder owns every organization the lane provisions, and an
 // organization's owner is its admin.
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import type { ConformanceClients } from "../harness/clients";
 import { plaintextKeyOf } from "./apikeys";

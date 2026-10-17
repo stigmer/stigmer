@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import type { ResourceTemplate } from "./templates/types.js";
 import { TemplateGallery } from "./TemplateGallery.js";
 

@@ -14,9 +14,9 @@
 
 import { create, toJson } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { ScoreSchema, type Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import { CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { ScoreSchema, type Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import { CriterionResult } from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
 import {
   AgentQualityReportSchema,
   JudgeAgreementSchema,
@@ -25,8 +25,8 @@ import {
   type GetAgentQualityReportRequest,
   type ListFlaggedScoresByAgentRequest,
   type ScoreList,
-} from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
+import type { Stigmer } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import { UsageError } from "../../../errors/index.js";
 import {

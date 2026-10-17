@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
 
 /** Props for {@link SessionViewerLayout}. */

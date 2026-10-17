@@ -8,8 +8,8 @@
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { PlanTermsSchema } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
-import { EntitlementsSchema, Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import { PlanTermsSchema } from "@stigmer/apis/ai/stigmer/billing/plan/v1/spec_pb";
+import { EntitlementsSchema, Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import {
   ENTERPRISE_CLOUD_PLAN,
   buyablePlans,

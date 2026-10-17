@@ -1,7 +1,7 @@
 import { useReducer, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Blocks, Bot, CalendarClock, FileCode2, Sparkles } from "lucide-react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import {
   ApplyManifestDialog,
   useAgentCount,
@@ -10,7 +10,7 @@ import {
   usePluginCount,
   ResourceCountCard,
   useActiveOrgId,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 
 export default function LibraryLanding() {
   const org = useActiveOrgId();

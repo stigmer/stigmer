@@ -14,7 +14,7 @@ import {
 /**
  * Describes a single environment variable that the form should collect.
  *
- * @deprecated Use {@link EnvVarFormVariable} from `@stigmer/react` instead.
+ * @deprecated Use {@link EnvVarFormVariable} from `@stigmer/react-sdk` instead.
  *   This alias is kept for backward compatibility and will be removed in
  *   a future major version.
  */

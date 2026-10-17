@@ -1,18 +1,18 @@
 ---
 title: TypeScript SDK
 description:
-  Install @stigmer/sdk and call the Stigmer API from TypeScript or
+  Install @stigmer/client and call the Stigmer API from TypeScript or
   JavaScript.
 ---
 
-`@stigmer/sdk` is the official TypeScript client for the Stigmer API. It
+`@stigmer/client` is the official TypeScript client for the Stigmer API. It
 provides typed resource clients, structured error handling, and
 server-streaming support, and runs in Node.js and the browser.
 
 ## Installation
 
 ```bash
-npm install @stigmer/sdk
+npm install @stigmer/client
 ```
 
 ## Create a client
@@ -20,7 +20,7 @@ npm install @stigmer/sdk
 On the server, authenticate with an API key from an environment variable:
 
 ```typescript
-import { Stigmer } from "@stigmer/sdk";
+import { Stigmer } from "@stigmer/client";
 
 const stigmer = new Stigmer({
   baseUrl: "https://api.stigmer.ai",
@@ -54,7 +54,7 @@ Every resource has its own client with methods like `get`, `create`, `list`,
 ([Update and apply](/docs/sdk/overview#update-and-apply)). TypeScript uses singular camelCase accessors:
 
 ```typescript
-import { isNotFound } from "@stigmer/sdk";
+import { isNotFound } from "@stigmer/client";
 
 try {
   const agent = await stigmer.agent.get(id);
@@ -88,7 +88,7 @@ try {
   />
   <Card
     title="React SDK"
-    description="Build UIs with @stigmer/react providers and hooks on top of this client."
+    description="Build UIs with @stigmer/react-sdk providers and hooks on top of this client."
     href="/docs/sdk/react"
   />
 </Cards>

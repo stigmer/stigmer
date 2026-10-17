@@ -16,7 +16,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   type ApiResourceMetadata,
   ApiResourceMetadataSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { parseAllDocuments } from "yaml";
 import {
   type ManifestKindHandler,
@@ -138,7 +138,7 @@ export interface ManifestDocument {
  *
  * @example
  * ```ts
- * import { parseManifest } from "@stigmer/sdk";
+ * import { parseManifest } from "@stigmer/client";
  *
  * const docs = parseManifest(yamlText, { org: "acme" });
  * for (const doc of docs) {

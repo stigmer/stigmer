@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
-import { getUserMessage } from "@stigmer/sdk";
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { getUserMessage } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { toast } from "../feedback/toast.js";
 import { toError } from "../internal/toError.js";

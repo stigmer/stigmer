@@ -16,7 +16,7 @@
  * (`evaluate.ts`).
  */
 
-import type { HookGroup, HookHandler } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import type { HookGroup, HookHandler } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 
 /** Claude Code's `${user_config.KEY}`; global, so read it only with `matchAll` or `replace`. */
 export const USER_CONFIG_REFERENCE = /\$\{user_config\.([A-Za-z_][A-Za-z0-9_]*)\}/g;

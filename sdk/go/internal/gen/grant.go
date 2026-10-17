@@ -6,8 +6,8 @@ import (
 	"context"
 	"iter"
 
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	grantv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/grant/v1"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	grantv1 "go.stigmer.ai/sdk/proto/ai/stigmer/iam/grant/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 )

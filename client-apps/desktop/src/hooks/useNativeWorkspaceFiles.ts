@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import type { WorkspaceFileEntry, WorkspaceFileLister } from "@stigmer/react";
-import type { WorkspaceEntry } from "@stigmer/react";
+import type { WorkspaceFileEntry, WorkspaceFileLister } from "@stigmer/react-sdk";
+import type { WorkspaceEntry } from "@stigmer/react-sdk";
 
 interface ListWorkspaceFilesResult {
   files: WorkspaceFileEntry[];

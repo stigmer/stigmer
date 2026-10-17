@@ -25,7 +25,7 @@
  * in Claude Code, because the shell would re-parse the value.
  */
 
-import type { HookHandler } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import type { HookHandler } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { USER_CONFIG_REFERENCE, type ClaudeHookEvent, type HookSource } from "../hook-set.js";
 import { matcherMatches } from "../matcher.js";
 import { DEFAULT_HOOK_TIMEOUT_SECONDS } from "../run.js";

@@ -3,8 +3,8 @@ package stigmer
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
-	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
+	"go.stigmer.ai/sdk/internal/gen"
+	sessionv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1"
 )
 
 func TestNewClient_NoCredentials(t *testing.T) {

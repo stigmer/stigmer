@@ -39,24 +39,24 @@ import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
 import { readEvalFolder, summariseEvalSuite } from "@stigmer/plugin-package";
 import type { EvalSuite } from "@stigmer/plugin-package";
-import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
-import type { Eval } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
-import type { PushEvalRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
-import { EvalSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/spec_pb";
+import { EvalSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
+import type { Eval } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
+import type { PushEvalRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
+import { EvalSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/spec_pb";
 import {
   EvalCaseSummarySchema,
   EvalFindingSchema,
   EvalStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/eval/v1/status_pb";
-import type { EvalStatus } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/status_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/eval/v1/status_pb";
+import type { EvalStatus } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/status_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import {
   ApiResourceMetadataSchema,
   ApiResourceMetadataVersionSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceAuditSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
+import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 
 import type { OpenedArchive } from "../../archive/open-files.js";
 import type { Logger } from "../../boot/logger.js";

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
-import type { OAuthAppInput } from "@stigmer/sdk";
+import { OAuthAppSchema } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/api_pb";
+import type { OAuthAppInput } from "@stigmer/client";
 import { StigmerContext } from "../../context";
 import { CreateOAuthAppForm } from "../CreateOAuthAppForm";
 

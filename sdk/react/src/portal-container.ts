@@ -75,7 +75,7 @@ export const PortalContainerContext = createContext<
  * @example
  * ```tsx
  * import { Popover } from "@base-ui/react/popover";
- * import { useStigmerPortalContainer } from "@stigmer/react";
+ * import { useStigmerPortalContainer } from "@stigmer/react-sdk";
  *
  * function MyPopover() {
  *   const portalContainer = useStigmerPortalContainer();

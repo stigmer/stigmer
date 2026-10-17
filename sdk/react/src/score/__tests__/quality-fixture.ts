@@ -12,12 +12,12 @@
  */
 import { create } from "@bufbuild/protobuf";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
-import { ScoreSchema, type Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import { CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+import { ScoreSchema, type Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import { CriterionResult } from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
 import {
   AgentQualityReportSchema,
   type AgentQualityReport,
-} from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/score/v1/io_pb";
 
 /** The version the agent ran from 2026-10-05. */
 export const VERSION_HASH = "a1b2c3d4e5f6a7b8";

@@ -54,10 +54,10 @@ Same source, same version, same tag. The slim artifact is what you run; the libr
 ## Consuming as a library
 
 ```bash
-npm install @stigmer/server@3.14.0 @stigmer/protos@3.14.0 @stigmer/temporal-codecs@3.14.0
+npm install @stigmer/server@0.1.0 @stigmer/apis@0.1.0 @stigmer/temporal-codecs@0.1.0
 ```
 
-Pin all three to the same exact version. The library's own dependencies on `@stigmer/protos` and `@stigmer/temporal-codecs` are pinned to its release version, so matching pins give you one copy of each and one `@bufbuild/protobuf` registry; a mismatch gives you two, and protobuf-es schemas from two registries do not compare equal.
+Pin all three to the same exact version. The library's own dependencies on `@stigmer/apis` and `@stigmer/temporal-codecs` are pinned to its release version, so matching pins give you one copy of each and one `@bufbuild/protobuf` registry; a mismatch gives you two, and protobuf-es schemas from two registries do not compare equal.
 
 The contract is the barrel, [`src/index.ts`](src/index.ts): the compose entry (`composeServer`, `loadConfig`, `createLogger`), the process body (`runServer`), the extension-point types (`ServerExtension` and the seven registry points), the pipeline primitives extension services and gate steps are built from, the driver interfaces (`Store`, `ArtifactStorage`, `ModelCatalogProvider`, `RunnerCredentialProvider`, `SandboxProvisioner`, `ChannelRuntime`, `OutboundEgressPolicy` with its two exported postures), the worker-factory types, and the Postgres driver constructor. Everything below the barrel is internal and may change between releases without notice; everything on it changes only through a review gate. Deep imports (`@stigmer/server/dist/...`) are unsupported. If your composition needs something that is not exported, that is a seam request — open an issue describing the behaviour you need.
 
@@ -88,7 +88,7 @@ The contract has a compile-time consumer in this repository, [`test/extension-co
 Standalone package (own lockfile, not an npm workspace — the runner's model):
 
 ```bash
-npm install          # after: npm run build -w @stigmer/protos (repo root)
+npm install          # after: npm run build -w @stigmer/apis (repo root)
 npm run typecheck
 npm test
 npm run build && npm run verify:dist    # compiled entry, booted with plain node

@@ -17,7 +17,7 @@ import { create } from "@bufbuild/protobuf";
 import { Transcript, TranscriptState } from "../state.js";
 import { AgentMessageSchema, ToolCallSchema, SubAgentRunSchema, TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { MessageType, SubAgentStatus, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
 function toolCall(id: string, name: string, status = ToolCallStatus.TOOL_CALL_COMPLETED) {
   return create(ToolCallSchema, { id, name, status });

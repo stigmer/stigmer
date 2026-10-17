@@ -6,14 +6,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { createRouterTransport, type Transport } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
-import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
-import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginCommandController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/command_pb";
+import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import {
   PluginArtifactUploadUrlSchema,
   PushPluginRequestSchema,
   type PushPluginRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { RoutedPluginClient } from "../plugin.js";
 import { MAX_INLINE_ARTIFACT_BYTES } from "../skill.js";
 

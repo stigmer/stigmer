@@ -7,8 +7,8 @@
 package channelv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -35,8 +35,8 @@ const file_ai_stigmer_agentic_channel_v1_conversation_query_proto_rawDesc = "" +
 	"\flistTimeline\x12<.ai.stigmer.agentic.channel.v1.ListConversationTimelineInput\x1a3.ai.stigmer.agentic.channel.v1.ConversationTimeline\"H¸\x18D\b\x01\x10/\"\n" +
 	"channel_id*2unauthorized to view conversations on this channel\x12\xe1\x01\n" +
 	"\x13getMediaDownloadUrl\x12C.ai.stigmer.agentic.channel.v1.GetConversationMediaDownloadUrlInput\x1a;.ai.stigmer.agentic.channel.v1.ConversationMediaDownloadUrl\"H¸\x18D\b\x01\x10/\"\n" +
-	"channel_id*2unauthorized to view conversations on this channel\x1a\x04\xa0\xff+/B\xa8\x02\n" +
-	"!com.ai.stigmer.agentic.channel.v1B\x16ConversationQueryProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
+	"channel_id*2unauthorized to view conversations on this channel\x1a\x04\xa0\xff+/B\x95\x02\n" +
+	"!com.ai.stigmer.agentic.channel.v1B\x16ConversationQueryProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1;channelv1\xa2\x02\x04ASAC\xaa\x02\x1dAi.Stigmer.Agentic.Channel.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Channel\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Channel\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Channel::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_channel_v1_conversation_query_proto_goTypes = []any{
 	(*ListChannelConversationsInput)(nil),        // 0: ai.stigmer.agentic.channel.v1.ListChannelConversationsInput

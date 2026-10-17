@@ -12,9 +12,9 @@
     "allowImportingTsExtensions": true,
     "baseUrl": ".",
     "paths": {
-      "@stigmer/sdk": ["../../sdk/typescript/src/index.ts"],
-      "@stigmer/sdk/node": ["../../sdk/typescript/src/node.ts"],
-      "@stigmer/protos/*": ["../../apis/stubs/ts/*"]
+      "@stigmer/client": ["../../sdk/typescript/src/index.ts"],
+      "@stigmer/client/node": ["../../sdk/typescript/src/node.ts"],
+      "@stigmer/apis/*": ["../../apis/stubs/ts/*"]
     }
   },
   "include": [

@@ -4,11 +4,11 @@
  * targets opens as a library detail, a deleted schedule lands on the
  * schedules list, the loaded schedule names the breadcrumb, and a `?tab=`
  * deep link picks the first tab. The detail view itself is pinned in
- * @stigmer/react; here it is stubbed to capture its props.
+ * @stigmer/react-sdk; here it is stubbed to capture its props.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, render } from "@testing-library/react";
-import type { Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 
 interface ViewProps {
   org: string;
@@ -30,7 +30,7 @@ const page = vi.hoisted(() => ({
   canonical: [] as string[],
 }));
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   RoutineDetailView: (props: ViewProps) => {
     page.view.push(props);
     return null;

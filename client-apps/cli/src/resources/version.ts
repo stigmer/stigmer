@@ -7,12 +7,12 @@
 
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import {
   type AgentVersionEntry,
   ListAgentVersionsInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
-import type { Stigmer } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
+import type { Stigmer } from "@stigmer/client";
 import { organizationLabel } from "../client/organizations.js";
 
 // Go caps the history view at 50 entries (RunVersionsList).

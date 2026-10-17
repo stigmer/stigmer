@@ -4,7 +4,7 @@
 // Domain: workspace (mounted by the session viewer).
 
 import { useEffect, useRef } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 
 /** Props for {@link PanelChip}. */

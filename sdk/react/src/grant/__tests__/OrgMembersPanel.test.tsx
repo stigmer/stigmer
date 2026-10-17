@@ -31,10 +31,10 @@ import { create } from "@bufbuild/protobuf";
 import {
   PrincipalAccessSchema,
   type PrincipalAccess,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import type { GrantSpec } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
 const state = vi.hoisted(() => ({
   members: [] as PrincipalAccess[],

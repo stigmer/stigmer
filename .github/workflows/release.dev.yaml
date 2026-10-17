@@ -22,6 +22,10 @@ name: release.dev
 #                   with npm, the sandbox runner images at the npm version,
 #                   `ghcr.io/stigmer/runner:v<npm version>` (and runner-layer,
 #                   runner-base), before the server that launches them.
+#   - X.Y.Z is one base for every channel: the next patch after the newest
+#     stable v* tag, or 0.1.0 while the line has no release yet
+#     (scripts/lib/line-base.mjs). Until v0.1.0 is tagged an npm dev build is
+#     `0.1.0-dev.<14-digit UTC stamp>.g<12-char sha>`; after it, `0.1.1-dev...`.
 #   - Consumers configure each channel ONCE; thereafter switching a dev<->prod
 #     dependency is only a version-string change (see the consumer doc).
 #   - Go SDK and the Rust crate have no dev publish step: their native dev
@@ -37,7 +41,7 @@ on:
   workflow_dispatch:
     inputs:
       base_version:
-        description: 'Base semver to derive the dev build from, e.g. 3.0.1 (default: next patch after the latest v* tag)'
+        description: 'Base semver to derive the dev build from, e.g. 0.1.1 (default: next patch after the latest v* tag, or 0.1.0 before the first release)'
         required: false
         type: string
       targets:
@@ -91,23 +95,19 @@ jobs:
             TARGETS="$TARGETS,npm"
           fi
 
-          # Base semver: explicit input wins; otherwise bump the patch of the
-          # latest v* tag. A dev build always targets the NEXT unreleased version
-          # so it sorts below the eventual real release.
+          # Base semver: explicit input wins; otherwise the next patch after the
+          # newest stable v* tag, or 0.1.0 before the line's first release
+          # (scripts/lib/line-base.mjs, the rule `make release` tags by too). A
+          # dev build always targets the NEXT unreleased version so it sorts
+          # below the eventual real release.
           BASE="${GITHUB_EVENT_INPUTS_BASE_VERSION}"
           if [ -z "$BASE" ]; then
-            LATEST_TAG=$(git tag -l "v*" | sort -V | tail -n1)
-            [ -z "$LATEST_TAG" ] && LATEST_TAG="v0.0.0"
-            V="${LATEST_TAG#v}"
-            MAJOR=$(echo "$V" | cut -d. -f1)
-            MINOR=$(echo "$V" | cut -d. -f2)
-            PATCH=$(echo "$V" | cut -d. -f3)
-            BASE="${MAJOR}.${MINOR}.$((PATCH + 1))"
+            BASE=$(node scripts/lib/line-base.mjs)
           fi
 
           # Reject a base that collides with an existing release tag: a dev build
           # must never share a coordinate with a real release (cf. the published
-          # @stigmer/protos shadowing a workspace stub, issue #156).
+          # @stigmer/apis shadowing a workspace stub, issue #156).
           if git rev-parse "v${BASE}" >/dev/null 2>&1; then
             echo "ERROR: v${BASE} already exists as a release tag. Pass a higher base_version." >&2
             exit 1
@@ -181,7 +181,7 @@ jobs:
           # `deploy` runs through `install`, so the SNAPSHOT is also placed in the
           # local ~/.m2 for the SDK build below to resolve.
           mvn --batch-mode deploy -DskipTests
-          echo "Deployed ai.stigmer:stigmer-java-protos:$VERSION"
+          echo "Deployed ai.stigmer:stigmer-apis:$VERSION"
 
       - name: Generate SDK client code
         run: make -C sdk/java codegen
@@ -195,9 +195,9 @@ jobs:
         run: |
           VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_MAVEN_VERSION}"
           mvn --batch-mode versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
-          mvn --batch-mode versions:set-property -Dproperty=stigmer-protos.version -DnewVersion="$VERSION" -DgenerateBackupPoms=false
+          mvn --batch-mode versions:set-property -Dproperty=stigmer-apis.version -DnewVersion="$VERSION" -DgenerateBackupPoms=false
           mvn --batch-mode deploy -DskipTests
-          echo "Deployed ai.stigmer:stigmer-java:$VERSION (protos: $VERSION)"
+          echo "Deployed ai.stigmer:stigmer-sdk:$VERSION (protos: $VERSION)"
 
   # ---------------------------------------------------------------------------
   # npm: publish all @stigmer/* libs under the `dev` dist-tag.
@@ -242,7 +242,7 @@ jobs:
         run: node scripts/publish-libs.mjs --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION}" --tag dev
 
   # @stigmer/runner is a non-workspace npm package built via `make build-runner`.
-  # It pins @stigmer/protos to the exact dev version, so it must run after the
+  # It pins @stigmer/apis to the exact dev version, so it must run after the
   # libs job has put that version on npm. Mirrors the production publish-runner.
   publish-npm-runner:
     needs: [determine-version, publish-npm]
@@ -299,7 +299,7 @@ jobs:
 
       # The slim embedding artifact (stigmer/stigmer#170), mirroring the
       # production publish in release.npm-libs.yaml. Self-contained — its bundle
-      # does not pin @stigmer/protos — so it just needs the version already
+      # does not pin @stigmer/apis — so it just needs the version already
       # stamped above, which the bundle script propagates into every manifest.
       - name: Build slim artifact packages
         working-directory: backend/services/runner
@@ -519,7 +519,7 @@ jobs:
           text = re.sub(r'version\s*=\s*\"[^\"]*\"', 'version = \"$VERSION\"', text, count=1)
           p.write_text(text)
           "
-          echo "Set stigmer-protos version to $VERSION"
+          echo "Set stigmer-apis version to $VERSION"
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_PY_VERSION: ${{ needs.determine-version.outputs.py_version }}
 
@@ -555,6 +555,19 @@ jobs:
           go-version: '1.25'
           cache: false
 
+      # The client generator runs from TypeScript source via the repo-pinned
+      # tsx, so the root npm install must exist before the codegen step (the
+      # release lane's publish-sdk job does the same).
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
+          node-version-file: ".nvmrc"
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
@@ -572,7 +585,7 @@ jobs:
           p = pathlib.Path('pyproject.toml')
           text = p.read_text()
           text = re.sub(r'version\s*=\s*\"[^\"]*\"', 'version = \"$VERSION\"', text, count=1)
-          text = re.sub(r'\"stigmer-protos[^\"]*\"', '\"stigmer-protos==$VERSION\"', text)
+          text = re.sub(r'\"stigmer-apis[^\"]*\"', '\"stigmer-apis==$VERSION\"', text)
           p.write_text(text)
           "
           echo "Set stigmer version to $VERSION (protos dependency: $VERSION)"
@@ -696,7 +709,7 @@ jobs:
               echo '```xml'
               echo "<dependency>"
               echo "  <groupId>ai.stigmer</groupId>"
-              echo "  <artifactId>stigmer-java</artifactId>"
+              echo "  <artifactId>stigmer-sdk</artifactId>"
               echo "  <version>$MAVEN_VERSION</version>"
               echo "</dependency>"
               echo '```'
@@ -707,7 +720,7 @@ jobs:
             if [[ "$TARGETS" == *npm* ]]; then
               echo "## npm (React / TS SDK)"
               echo '```bash'
-              echo "npm install @stigmer/react@dev   # or pin exactly: @stigmer/react@$NPM_VERSION"
+              echo "npm install @stigmer/react-sdk@dev   # or pin exactly: @stigmer/react-sdk@$NPM_VERSION"
               echo '```'
               echo "The \`dev\` dist-tag always resolves to the newest dev build."
               echo ""
@@ -726,7 +739,7 @@ jobs:
               echo "## npm (@stigmer/server library — a composition's pin)"
               if [ "$SERVER_RESULT" = "success" ]; then
                 echo '```json'
-                echo "\"@stigmer/server\": \"$NPM_VERSION\", \"@stigmer/protos\": \"$NPM_VERSION\", \"@stigmer/temporal-codecs\": \"$NPM_VERSION\", \"@stigmer/outbound\": \"$NPM_VERSION\", \"@stigmer/enterprise\": \"$NPM_VERSION\""
+                echo "\"@stigmer/server\": \"$NPM_VERSION\", \"@stigmer/apis\": \"$NPM_VERSION\", \"@stigmer/temporal-codecs\": \"$NPM_VERSION\", \"@stigmer/outbound\": \"$NPM_VERSION\", \"@stigmer/enterprise\": \"$NPM_VERSION\""
                 echo '```'
                 echo "Exact versions, all equal. Built from \`main\`, this is a build a composition may merge on; built from a branch, its commit is not on \`main\`, so it is for trying, not for merging."
               else
@@ -738,7 +751,7 @@ jobs:
             if [[ "$TARGETS" == *python* ]]; then
               echo "## Python SDK (TestPyPI)"
               echo '```bash'
-              echo "pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ --pre 'stigmer==$PY_VERSION'"
+              echo "pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ --pre 'stigmer-sdk==$PY_VERSION'"
               echo '```'
               echo ""
             fi
@@ -754,7 +767,7 @@ jobs:
             echo "## Go SDK / Rust crate (no publish needed — use a git ref)"
             echo '```bash'
             echo "# Go:"
-            echo "go get github.com/stigmer/stigmer/sdk/go/v3@$REF_NAME"
+            echo "go get go.stigmer.ai/sdk@$REF_NAME"
             echo "# Rust (Cargo.toml):"
             echo "# stigmer-runner-host = { git = \"https://github.com/stigmer/stigmer\", branch = \"$REF_NAME\" }"
             echo '```'

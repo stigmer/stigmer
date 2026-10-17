@@ -1,4 +1,4 @@
-import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { InteractionModeOption } from "./InteractionModePicker.js";
 
 /**

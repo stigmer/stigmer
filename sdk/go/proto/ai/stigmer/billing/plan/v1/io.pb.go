@@ -220,8 +220,8 @@ const file_ai_stigmer_billing_plan_v1_io_proto_rawDesc = "" +
 	"\x06labels\x18\x04 \x03(\v26.ai.stigmer.billing.plan.v1.ListPlansInput.LabelsEntryR\x06labels\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x84\x02\n" +
-	"\x1ecom.ai.stigmer.billing.plan.v1B\aIoProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/plan/v1;planv1\xa2\x02\x04ASBP\xaa\x02\x1aAi.Stigmer.Billing.Plan.V1\xca\x02\x1aAi\\Stigmer\\Billing\\Plan\\V1\xe2\x02&Ai\\Stigmer\\Billing\\Plan\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Billing::Plan::V1b\x06proto3"
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\xf1\x01\n" +
+	"\x1ecom.ai.stigmer.billing.plan.v1B\aIoProtoP\x01Z9go.stigmer.ai/sdk/proto/ai/stigmer/billing/plan/v1;planv1\xa2\x02\x04ASBP\xaa\x02\x1aAi.Stigmer.Billing.Plan.V1\xca\x02\x1aAi\\Stigmer\\Billing\\Plan\\V1\xe2\x02&Ai\\Stigmer\\Billing\\Plan\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Billing::Plan::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_billing_plan_v1_io_proto_rawDescOnce sync.Once

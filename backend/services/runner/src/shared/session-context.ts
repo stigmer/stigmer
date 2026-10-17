@@ -20,7 +20,7 @@
 
 /**
  * `SessionSpec.metadata` key carrying the embedder's session context.
- * Pinned verbatim to `SESSION_CONTEXT_METADATA_KEY` in `@stigmer/sdk`
+ * Pinned verbatim to `SESSION_CONTEXT_METADATA_KEY` in `@stigmer/client`
  * (`sdk/typescript/src/session.ts`), with mirror guard tests on both
  * sides — a drift degrades to the agent simply not receiving the
  * context, never worse.

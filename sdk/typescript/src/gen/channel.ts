@@ -5,23 +5,23 @@ import { stripUndefined, toResourceRefInput, toResourceRefInputs } from "./proto
 import { type ResourceRef } from "./types.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { ChannelSchema, type Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
-import { ChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/command_pb";
-import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_command_pb";
-import { ReplyToConversationInputSchema, ConversationControlInputSchema, ChannelConversationSchema, EscalateConversationInputSchema, ListChannelConversationsInputSchema, ChannelConversationListSchema, CountChannelConversationsInputSchema, ChannelConversationCountSchema, GetChannelConversationInputSchema, ListConversationTimelineInputSchema, ConversationTimelineSchema, GetConversationMediaDownloadUrlInputSchema, ConversationMediaDownloadUrlSchema, type ReplyToConversationInput, type ConversationControlInput, type ChannelConversation, type EscalateConversationInput, type ListChannelConversationsInput, type ChannelConversationList, type CountChannelConversationsInput, type ChannelConversationCount, type GetChannelConversationInput, type ListConversationTimelineInput, type ConversationTimeline, type GetConversationMediaDownloadUrlInput, type ConversationMediaDownloadUrl } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
-import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_query_pb";
-import { ChannelIdSchema, UpdateChannelInputSchema, RotateChannelLinkInputSchema, InitiateChannelInstallInputSchema, InitiateChannelInstallOutputSchema, CompleteChannelInstallInputSchema, ListChannelsByAgentRequestSchema, ChannelListSchema, ListChannelsRequestSchema, GetChannelAgentProfileRequestSchema, ChannelAgentProfileSchema, type RotateChannelLinkInput, type InitiateChannelInstallInput, type InitiateChannelInstallOutput, type CompleteChannelInstallInput, type ListChannelsByAgentRequest, type ChannelList, type ListChannelsRequest, type GetChannelAgentProfileRequest, type ChannelAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/io_pb";
-import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_command_pb";
-import { SendChannelMessageOutputSchema, SendChannelMessageInputSchema, ListChannelTemplatesInputSchema, ChannelTemplatesSchema, ListMessagingChannelsInputSchema, MessagingChannelsSchema, type SendChannelMessageOutput, type SendChannelMessageInput, type ListChannelTemplatesInput, type ChannelTemplates, type ListMessagingChannelsInput, type MessagingChannels } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_io_pb";
-import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/message_query_pb";
-import { ChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/query_pb";
-import { ChannelSpecSchema, ChannelAudience, WebChannelMessagesSchema, WebChannelConfigSchema, SlackChannelConfigSchema, WhatsAppChannelConfigSchema, type WebChannelMessages, type WebChannelConfig, type SlackChannelConfig, type WhatsAppChannelConfig } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema, type RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ChannelSchema, type Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelCommandController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/command_pb";
+import { ChannelConversationCommandController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_command_pb";
+import { ReplyToConversationInputSchema, ConversationControlInputSchema, ChannelConversationSchema, EscalateConversationInputSchema, ListChannelConversationsInputSchema, ChannelConversationListSchema, CountChannelConversationsInputSchema, ChannelConversationCountSchema, GetChannelConversationInputSchema, ListConversationTimelineInputSchema, ConversationTimelineSchema, GetConversationMediaDownloadUrlInputSchema, ConversationMediaDownloadUrlSchema, type ReplyToConversationInput, type ConversationControlInput, type ChannelConversation, type EscalateConversationInput, type ListChannelConversationsInput, type ChannelConversationList, type CountChannelConversationsInput, type ChannelConversationCount, type GetChannelConversationInput, type ListConversationTimelineInput, type ConversationTimeline, type GetConversationMediaDownloadUrlInput, type ConversationMediaDownloadUrl } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+import { ChannelConversationQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_query_pb";
+import { ChannelIdSchema, UpdateChannelInputSchema, RotateChannelLinkInputSchema, InitiateChannelInstallInputSchema, InitiateChannelInstallOutputSchema, CompleteChannelInstallInputSchema, ListChannelsByAgentRequestSchema, ChannelListSchema, ListChannelsRequestSchema, GetChannelAgentProfileRequestSchema, ChannelAgentProfileSchema, type RotateChannelLinkInput, type InitiateChannelInstallInput, type InitiateChannelInstallOutput, type CompleteChannelInstallInput, type ListChannelsByAgentRequest, type ChannelList, type ListChannelsRequest, type GetChannelAgentProfileRequest, type ChannelAgentProfile } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
+import { ChannelMessageCommandController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_command_pb";
+import { SendChannelMessageOutputSchema, SendChannelMessageInputSchema, ListChannelTemplatesInputSchema, ChannelTemplatesSchema, ListMessagingChannelsInputSchema, MessagingChannelsSchema, type SendChannelMessageOutput, type SendChannelMessageInput, type ListChannelTemplatesInput, type ChannelTemplates, type ListMessagingChannelsInput, type MessagingChannels } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
+import { ChannelMessageQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_query_pb";
+import { ChannelQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/query_pb";
+import { ChannelSpecSchema, ChannelAudience, WebChannelMessagesSchema, WebChannelConfigSchema, SlackChannelConfigSchema, WhatsAppChannelConfigSchema, type WebChannelMessages, type WebChannelConfig, type SlackChannelConfig, type WhatsAppChannelConfig } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunConfigSchema, type RunConfig } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceReferenceSchema, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on channel resources. */
 export class ChannelClient {

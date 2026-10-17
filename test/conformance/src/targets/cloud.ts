@@ -16,7 +16,7 @@
 // and OpenAI keys always, and a Cursor key only when the invoking shell
 // supplies a real one in CURSOR_API_KEY.
 
-import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { CLOUD_ENV, requireDirectLoginTenant } from "../harness/cloud-env";
 import {
   createTransport,

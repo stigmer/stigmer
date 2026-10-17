@@ -6,8 +6,8 @@
  * assistant when no session_spec is set either. One place, so no reader
  * spells the oneof's empty-string case its own way.
  */
-import type { RunSpec } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import type { RunSpec } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
+import type { SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 
 /** The existing session a turn continues, or "" for a new conversation. */
 export function sessionIdOf(spec: RunSpec | undefined): string {

@@ -32,9 +32,9 @@
  *   - A throw fails the create (the store-fault posture of every create
  *     step); answering nothing means the turn is the core's to place.
  */
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { ApprovalMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { RunConfig } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 
 import type { CallerIdentity } from "./identity.js";
 

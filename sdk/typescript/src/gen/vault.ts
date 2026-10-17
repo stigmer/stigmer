@@ -6,17 +6,17 @@ import { type DeleteResourceInput, type ResourceRef } from "./types.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { VaultSchema, type Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
-import { ConnectLinkController, ConnectLinkTokenInputSchema, ConnectLinkInfoSchema, StartConnectLinkOutputSchema, CompleteConnectLinkInputSchema, CompleteConnectLinkOutputSchema, type ConnectLinkTokenInput, type ConnectLinkInfo, type StartConnectLinkOutput, type CompleteConnectLinkInput, type CompleteConnectLinkOutput } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
-import { UpdateVaultInputSchema, SetVaultSecretsInputSchema, RemoveVaultSecretsInputSchema, SetVaultConnectionInputSchema, RemoveVaultConnectionsInputSchema, StartSignInInputSchema, StartSignInOutputSchema, CompleteSignInInputSchema, CompleteSignInOutputSchema, CreateConnectLinkInputSchema, ConnectLinkSchema, GetMyVaultInputSchema, GetVaultByExternalIdInputSchema, ListVaultsRequestSchema, VaultListSchema, type SetVaultSecretsInput, type RemoveVaultSecretsInput, type SetVaultConnectionInput, type RemoveVaultConnectionsInput, type StartSignInInput, type StartSignInOutput, type CompleteSignInInput, type CompleteSignInOutput, type CreateConnectLinkInput, type ConnectLink, type GetMyVaultInput, type GetVaultByExternalIdInput, type ListVaultsRequest, type VaultList } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
-import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
-import { VaultSpecSchema, VaultConnectionSource, VaultSecretSchema, VaultConnectionSignInSchema, VaultConnectionSchema, type VaultSecret, type VaultConnectionSignIn, type VaultConnection } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
-import { VaultValueController, FetchExecutionValuesInputSchema, ExecutionValuesSchema, type FetchExecutionValuesInput, type ExecutionValues } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type UpdateVisibilityInput, type RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { VaultSchema, type Vault } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultCommandController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/command_pb";
+import { ConnectLinkController, ConnectLinkTokenInputSchema, ConnectLinkInfoSchema, StartConnectLinkOutputSchema, CompleteConnectLinkInputSchema, CompleteConnectLinkOutputSchema, type ConnectLinkTokenInput, type ConnectLinkInfo, type StartConnectLinkOutput, type CompleteConnectLinkInput, type CompleteConnectLinkOutput } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/connect_link_pb";
+import { UpdateVaultInputSchema, SetVaultSecretsInputSchema, RemoveVaultSecretsInputSchema, SetVaultConnectionInputSchema, RemoveVaultConnectionsInputSchema, StartSignInInputSchema, StartSignInOutputSchema, CompleteSignInInputSchema, CompleteSignInOutputSchema, CreateConnectLinkInputSchema, ConnectLinkSchema, GetMyVaultInputSchema, GetVaultByExternalIdInputSchema, ListVaultsRequestSchema, VaultListSchema, type SetVaultSecretsInput, type RemoveVaultSecretsInput, type SetVaultConnectionInput, type RemoveVaultConnectionsInput, type StartSignInInput, type StartSignInOutput, type CompleteSignInInput, type CompleteSignInOutput, type CreateConnectLinkInput, type ConnectLink, type GetMyVaultInput, type GetVaultByExternalIdInput, type ListVaultsRequest, type VaultList } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/io_pb";
+import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
+import { VaultSpecSchema, VaultConnectionSource, VaultSecretSchema, VaultConnectionSignInSchema, VaultConnectionSchema, type VaultSecret, type VaultConnectionSignIn, type VaultConnection } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
+import { VaultValueController, FetchExecutionValuesInputSchema, ExecutionValuesSchema, type FetchExecutionValuesInput, type ExecutionValues } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type UpdateVisibilityInput, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on vault resources. */
 export class VaultClient {

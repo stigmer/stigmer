@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import type { InlineEditBaseProps, KeyValueRow } from "./types.js";
 
 /** Props for {@link InlineEditKeyValue}. */

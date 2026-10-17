@@ -5,7 +5,7 @@
 // frame has arrived, and a soft slow-stall hint after a quiet stretch.
 // `useSessionEvents` hosts it; the store it writes through is a sink.
 
-import type { StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import type { StreamSessionEventsResponse } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import type { StreamState } from "./store/conversation-store.js";
 
 // ---------------------------------------------------------------------------

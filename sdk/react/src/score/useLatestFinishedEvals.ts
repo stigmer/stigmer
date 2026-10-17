@@ -10,12 +10,12 @@
  * `measuresVersion`), and stops as soon as every version asked about has
  * one, or the list ends. A version with none is simply absent.
  *
- * @internal Not part of the public `@stigmer/react` API.
+ * @internal Not part of the public `@stigmer/react-sdk` API.
  */
 import { create } from "@bufbuild/protobuf";
-import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { ListEvalRunsByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/io_pb";
-import { everyEntry } from "@stigmer/sdk";
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { ListEvalRunsByAgentRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/io_pb";
+import { everyEntry } from "@stigmer/client";
 import { evalRunVersionOf } from "../eval-run/eval-view.js";
 import { useStigmer } from "../hooks.js";
 import { LIST_PAGE_MAX } from "../internal/everyPage.js";

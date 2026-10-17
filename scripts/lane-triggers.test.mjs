@@ -1468,7 +1468,7 @@ test("laneInputs refuses an install or setup it cannot place: a moved or prefixe
   ]) {
     assert.match(refused({ run })[0], /is not a top-level command in the step's working-directory/, run);
   }
-  for (const run of ["npm --prefix svc ci", "npm -w @stigmer/sdk install left-pad"]) {
+  for (const run of ["npm --prefix svc ci", "npm -w @stigmer/client install left-pad"]) {
     assert.match(refused({ run }).join("\n"), /puts a flag before an install/, run);
   }
   assert.match(refused({ run: "npm ci", "working-directory": "${{ inputs.dir }}" })[0], /working-directory is an expression/);
@@ -1487,7 +1487,7 @@ test("laneInputs refuses an install or setup it cannot place: a moved or prefixe
     "npm commands that install nothing are not refused",
   );
   assert.deepEqual(
-    refused({ run: "npm --version && npm -v && npm -w @stigmer/sdk run build" }),
+    refused({ run: "npm --version && npm -v && npm -w @stigmer/client run build" }),
     [],
     "a leading flag on a command that installs nothing is not refused",
   );

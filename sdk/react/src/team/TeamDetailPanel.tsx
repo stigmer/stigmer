@@ -17,9 +17,9 @@
  * confirmation says exactly that, so no one reads it as deleting people.
  */
 import { useCallback, useState, type FormEvent } from "react";
-import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import { cn } from "@stigmer/theme";
-import { buildTeamProto, getUserMessage } from "@stigmer/sdk";
+import type { Team } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
+import { cn } from "@stigmer/design-tokens";
+import { buildTeamProto, getUserMessage } from "@stigmer/client";
 import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
 import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";

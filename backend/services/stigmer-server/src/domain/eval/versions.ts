@@ -10,18 +10,18 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import { EvalSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/api_pb";
+import { EvalSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
 import {
   EvalVersionEntrySchema,
   ListEvalVersionsResponseSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
 import type {
   EvalVersionEntry,
   ListEvalVersionsResponse,
-} from "@stigmer/protos/ai/stigmer/agentic/eval/v1/io_pb";
-import type { EvalQueryController } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/query_pb";
-import { EvalSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/eval/v1/spec_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
+import type { EvalQueryController } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/query_pb";
+import { EvalSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { VersionHistoryBinding } from "../../pipeline/steps/version-history.js";
 import { EVAL_NOUN } from "./constants.js";

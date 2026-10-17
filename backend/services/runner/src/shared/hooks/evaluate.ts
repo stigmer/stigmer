@@ -31,7 +31,7 @@
 
 import { isDeepStrictEqual } from "node:util";
 import { SpanStatusCode, trace } from "@opentelemetry/api";
-import type { HookHandler } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import type { HookHandler } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { hookLeaseKey } from "../approval-policy.js";
 import type { HookDecision, PostToolUseAnswer, PreToolUseAnswer } from "./answer.js";
 import { conditionVerdict } from "./condition.js";

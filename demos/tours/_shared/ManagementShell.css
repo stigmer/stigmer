@@ -2,7 +2,7 @@
  * ManagementShell frame — only what the console's app shell (not its
  * sidebar) owns: the 240px sidebar column (`w-60` + right border), the
  * content pane, and the Scenar seams (engine-driven hover). The sidebar's
- * own chrome is the real `SettingsSidebar` from `@stigmer/react`, styled
+ * own chrome is the real `SettingsSidebar` from `@stigmer/react-sdk`, styled
  * by the compiled SDK stylesheet — there is no replica CSS left to drift
  * (stigmer/stigmer#317).
  *

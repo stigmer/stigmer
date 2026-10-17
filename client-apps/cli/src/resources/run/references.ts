@@ -12,12 +12,12 @@
 // ways (by id and by slug) is sent as given, each time.
 
 import { create } from "@bufbuild/protobuf";
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   type ApiResourceReference,
   ApiResourceReferenceSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import type { ApiResourceMetadata } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { UsageError } from "../../errors/index.js";
 import { idPrefixesFor, parseReference } from "../reference.js";
 

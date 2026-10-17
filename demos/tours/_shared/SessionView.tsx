@@ -16,8 +16,8 @@ import {
   type SessionComposerProps,
   type SetupTabProps,
   type SurfaceVirtualDocument,
-} from "@stigmer/react";
-import type { ResourceRef } from "@stigmer/sdk";
+} from "@stigmer/react-sdk";
+import type { ResourceRef } from "@stigmer/client";
 import { DEMO_ORG, MOCK_WORKSPACE, type DemoConversation } from "./fixtures";
 import "./SessionView.css";
 

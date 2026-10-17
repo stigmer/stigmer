@@ -21,12 +21,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { Stigmer } from "@stigmer/sdk";
-import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import type { CreateServiceAccountKeyInput } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
-import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import type { CreateServiceAccountInput } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import type { Stigmer } from "@stigmer/client";
+import { ApiKeySchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/api_pb";
+import type { CreateServiceAccountKeyInput } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/io_pb";
+import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { CreateServiceAccountInput } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/io_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { CreateServiceAccountForm } from "../CreateServiceAccountForm";
 

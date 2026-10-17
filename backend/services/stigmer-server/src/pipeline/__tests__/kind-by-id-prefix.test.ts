@@ -34,7 +34,7 @@ import {
   ApiResourceKind,
   ApiResourceKindSchema,
   kind_meta,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { getOption, hasOption } from "@bufbuild/protobuf";
 
 import { getIdPrefix, kindByIdPrefix } from "../apiresource-meta.js";

@@ -15,10 +15,10 @@
  */
 
 import { useId } from "react";
-import { cn } from "@stigmer/theme";
-import type { FederationIssuerInput } from "@stigmer/sdk";
-import type { FederationIssuerSpec } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/spec_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { cn } from "@stigmer/design-tokens";
+import type { FederationIssuerInput } from "@stigmer/client";
+import type { FederationIssuerSpec } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/spec_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 
 /** The edit state of an issuer's sign-in settings. */

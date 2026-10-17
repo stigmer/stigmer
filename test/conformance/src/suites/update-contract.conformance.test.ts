@@ -19,16 +19,16 @@
 import { create, toJsonString } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
-import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { ChannelSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/spec_pb";
-import { ChannelAppSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/spec_pb";
-import { RoutineSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/spec_pb";
-import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
-import { VaultSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
-import { ApiKeySpecSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/spec_pb";
-import { OAuthAppSpecSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
-import { OrganizationSpecSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { ChannelSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/spec_pb";
+import { ChannelAppSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/spec_pb";
+import { RoutineSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/spec_pb";
+import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
+import { VaultSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/spec_pb";
+import { ApiKeySpecSchema } from "@stigmer/apis/ai/stigmer/iam/apikey/v1/spec_pb";
+import { OAuthAppSpecSchema } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/spec_pb";
+import { OrganizationSpecSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/spec_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { expectGrpcCode } from "../contract/errors";

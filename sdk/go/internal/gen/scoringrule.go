@@ -5,8 +5,8 @@ package gen
 import (
 	"context"
 
-	scoringrulev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/scoringrule/v1"
-	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	scoringrulev1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/scoringrule/v1"
+	apiresource "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )

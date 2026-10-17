@@ -6,8 +6,8 @@
 // baseline catalog pages by token, and its iterator follows every token.
 import { describe, expect, it } from "vitest";
 import { createRouterTransport, type Transport } from "@connectrpc/connect";
-import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
-import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/query_pb";
+import { BillingCommandController } from "@stigmer/apis/ai/stigmer/billing/v1/command_pb";
+import { BillingQueryController } from "@stigmer/apis/ai/stigmer/billing/v1/query_pb";
 import { BillingClient } from "../billing.js";
 
 describe("BillingClient's organization-scoped calls name the organization as org", () => {

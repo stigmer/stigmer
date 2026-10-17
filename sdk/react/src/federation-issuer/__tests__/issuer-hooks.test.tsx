@@ -12,7 +12,7 @@ import { describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
-import { FederationIssuerSchema } from "@stigmer/protos/ai/stigmer/iam/federationissuer/v1/api_pb";
+import { FederationIssuerSchema } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { useFederationIssuer } from "../useFederationIssuer";
 import { useDeleteFederationIssuer } from "../useDeleteFederationIssuer";

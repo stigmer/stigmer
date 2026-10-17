@@ -8,7 +8,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { ALL_SESSION_PREVIEWS, followSession, type SessionFold } from "@stigmer/sdk";
+import { ALL_SESSION_PREVIEWS, followSession, type SessionFold } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { useStreamRate } from "../internal/dev/index.js";
@@ -113,7 +113,7 @@ const INTERRUPTED_MESSAGE = "The connection to the conversation was interrupted.
  * Behavior hook that follows one session's event log and folds it: the whole
  * stored log first, then each event as it is appended, plus the live
  * previews (a message as it is written, a thinking as it starts, a running
- * tool's output). One `followSession` per session, from `@stigmer/sdk`.
+ * tool's output). One `followSession` per session, from `@stigmer/client`.
  *
  * - Frames fold into the store as they arrive and publish at most once per
  *   animation frame, inside `startTransition`, so a long replay or a burst

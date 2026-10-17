@@ -25,7 +25,7 @@ import {
   EvalFileSchema,
   type EvalFiles,
   EvalFilesSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/eval_case_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
 import { agentFs } from "../agent-fs.js";
 import { bytesLookBinary } from "../file-change.js";
 import { INLINE_FILE_CONTENT_MAX_BYTES, STATUS_PAYLOAD_HARD_LIMIT_BYTES } from "../status-offload.js";

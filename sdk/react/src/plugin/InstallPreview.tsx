@@ -15,8 +15,8 @@
  * sentence, so a refused folder and a refused entry read alike.
  */
 
-import { cn } from "@stigmer/theme";
-import { hooksSummary } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import { hooksSummary } from "@stigmer/client";
 import type { PluginPackage } from "@stigmer/plugin-package";
 import { DIALECT_LABELS } from "@stigmer/plugin-package/client";
 import { ErrorMessage } from "../error/ErrorMessage.js";

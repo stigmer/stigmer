@@ -12,8 +12,8 @@
 // The refusal copy below is the proto's own annotation copy
 // (apis/ai/stigmer/iam/team/v1/command.proto and query.proto) and the
 // Enterprise grant gate's sentence, which a client may match on.
-import type { GrantSpec } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
-import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import type { GrantSpec } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
+import { TeamSchema } from "@stigmer/apis/ai/stigmer/iam/team/v1/api_pb";
 
 import { grantTriple } from "./grants";
 import type { InitShape } from "./init-shape";

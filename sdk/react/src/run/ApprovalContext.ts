@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext } from "react";
-import type { ToolUse } from "@stigmer/sdk";
+import type { ToolUse } from "@stigmer/client";
 import type { ToolUseAnswer } from "./useAnswerToolUse.js";
 
 /**

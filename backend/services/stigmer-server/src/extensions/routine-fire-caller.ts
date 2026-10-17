@@ -32,7 +32,7 @@
  *     person who made it sees why in the console instead of a tick failing
  *     quietly forever.
  */
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 
 import type { CallerIdentity } from "./identity.js";
 

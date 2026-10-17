@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { ToolFullOutput } from "@stigmer/sdk";
+import type { ToolFullOutput } from "@stigmer/client";
 import { useArtifactContent } from "./useArtifactContent.js";
 import { runIdFromStorageKey } from "./useFileChangeContent.js";
 

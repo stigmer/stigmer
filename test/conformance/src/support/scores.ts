@@ -8,9 +8,9 @@
 // cross-edition contract strings, byte-pinned in the server
 // (domain/score/constants.ts) and asserted here over the wire.
 import { clone } from "@bufbuild/protobuf";
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
-import { ScoreSource } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import { ScoreSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
+import { ScoreSource } from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { InitShape } from "./init-shape";
 

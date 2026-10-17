@@ -12,7 +12,7 @@ import type { Client, ConnectError } from "@connectrpc/connect";
 import { Code, createClient, createRouterTransport } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
+import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
 
 import type { ContentAddressedArchiveStore } from "../../../archive/content-store.js";
 import { createLogger } from "../../../boot/logger.js";

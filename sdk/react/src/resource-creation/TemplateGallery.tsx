@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, type ReactNode } from "react";
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import type { ResourceTemplate, TemplateCategory } from "./templates/types.js";
 import { TEMPLATE_CATEGORY_LABELS } from "./templates/types.js";
 import { useTemplateFilter } from "./useTemplateFilter.js";

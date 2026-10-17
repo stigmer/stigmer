@@ -8,17 +8,17 @@ import { create } from "@bufbuild/protobuf";
 import {
   IdentityAccountSchema,
   type IdentityAccount,
-} from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import {
   useIdentityAccountGate,
   type IdentityAccountGateState,
-} from "@stigmer/react";
+} from "@stigmer/react-sdk";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuth, type AuthState } from "../../auth/AuthProvider";
 import { IdentityAccountGate } from "../IdentityAccountGate";
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   useIdentityAccountGate: vi.fn(),
 }));
 

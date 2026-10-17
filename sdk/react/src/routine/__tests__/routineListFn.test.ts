@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { RoutineSchema, type Routine } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
-import { RoutineListSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
+import { RoutineSchema, type Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineListSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
 import { createRoutineListFn, listRoutinesPage } from "../routineListFn";
 
 function routines(count: number): Routine[] {

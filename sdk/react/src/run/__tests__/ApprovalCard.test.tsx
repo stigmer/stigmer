@@ -14,7 +14,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { ToolUse } from "@stigmer/sdk";
+import type { ToolUse } from "@stigmer/client";
 import { samples } from "../../test/samples";
 import { ApprovalCard, ApprovalCardBody } from "../ApprovalCard";
 

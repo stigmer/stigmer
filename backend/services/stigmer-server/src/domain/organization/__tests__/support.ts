@@ -22,7 +22,7 @@
 import { createClient } from "@connectrpc/connect";
 import type { Transport } from "@connectrpc/connect";
 
-import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
+import { OrganizationCommandController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/command_pb";
 
 /** The smallest Organization create: slug, name and description all `slug`. */
 export function organizationInput(slug: string) {

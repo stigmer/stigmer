@@ -11,13 +11,13 @@
  * when its send failed.
  */
 import { describe, it, expect } from "vitest";
-import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   InteractionMode,
   RunArtifactKind,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { TurnPhase } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { TurnPhase } from "@stigmer/client";
 import { buildThreadItems, type BuildThreadItemsOptions, type ThreadItem } from "../MessageThread";
 import { runOf, said, status, turnsOf, user } from "./__fixtures__/thread-events";
 

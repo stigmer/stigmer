@@ -12,7 +12,7 @@
 // If this is green, the deep-pass design holds: the runner reaches the tool
 // fixture and runs a tool without any discovery step. If it is red, stop and
 // confer before building the approval suite on top of it.
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";

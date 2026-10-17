@@ -29,7 +29,7 @@
  */
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 
 import type { ContentAddressedArchiveStore } from "../../archive/content-store.js";
 import { openArchiveFiles } from "../../archive/open-files.js";

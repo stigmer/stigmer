@@ -5,8 +5,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   IdentityAccountSchema,
   type IdentityAccount,
-} from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import type { DeploymentMode } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { DeploymentMode } from "@stigmer/client";
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { useAccountExecutionDefaults } from "../useAccountExecutionDefaults";

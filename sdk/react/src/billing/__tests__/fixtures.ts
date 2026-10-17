@@ -7,11 +7,11 @@
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { StigmerError } from "@stigmer/sdk";
-import { PlanSchema, type Plan } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
-import { PlanInstrument, PlanSpecSchema, PlanTermsSchema } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
-import { PlanLifecycle } from "@stigmer/protos/ai/stigmer/billing/plan/v1/status_pb";
-import { SubscriptionSchema, type Subscription } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/api_pb";
+import { StigmerError } from "@stigmer/client";
+import { PlanSchema, type Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
+import { PlanInstrument, PlanSpecSchema, PlanTermsSchema } from "@stigmer/apis/ai/stigmer/billing/plan/v1/spec_pb";
+import { PlanLifecycle } from "@stigmer/apis/ai/stigmer/billing/plan/v1/status_pb";
+import { SubscriptionSchema, type Subscription } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/api_pb";
 import {
   AgentHoursSchema,
   AgentHoursWindow,
@@ -19,10 +19,10 @@ import {
   PeriodEstimateSchema,
   type AgentHours,
   type PeriodEstimate,
-} from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
-import { SubscriptionState } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/status_pb";
-import { EntitlementsSchema, Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+} from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
+import { SubscriptionState } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/status_pb";
+import { EntitlementsSchema, Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
+import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 
 export const USD = 1_000_000n;
 export const PERIOD_START = new Date("2027-01-31T10:00:00Z");

@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { FileChangeProgress } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { FileChangeProgress } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import { kindLetter, progressEntryDisplayPath } from "../file-review.js";
 import { FileLineStats } from "./FileReviewAtoms.js";
 
@@ -25,7 +25,7 @@ export interface FileChangeProgressBarProps {
 
 /**
  * The terminal analogue of the web's non-interactive "N files changing…" strip
- * (`@stigmer/react` `FileChangeProgressBar`), for a turn that is still running.
+ * (`@stigmer/react-sdk` `FileChangeProgressBar`), for a turn that is still running.
  *
  * WHY IT EXISTS. The transcript streams per-edit tool rows, but a change made by
  * a shell command (a `sed`, a build step) has no tool row, and there is no

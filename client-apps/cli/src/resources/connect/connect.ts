@@ -20,12 +20,12 @@
 // never on this machine.
 
 import { create } from "@bufbuild/protobuf";
-import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { ListPluginToolsInputSchema, type PluginTool } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
-import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
+import { ListPluginToolsInputSchema, type PluginTool } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { PLACEHOLDER_PATTERN } from "@stigmer/plugin-package";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer } from "@stigmer/client";
 import { UsageError } from "../../errors/index.js";
 import { PlaceholderResolutionError } from "../mcp/placeholder-resolver.js";
 import { idPrefixesFor, parseReference } from "../reference.js";

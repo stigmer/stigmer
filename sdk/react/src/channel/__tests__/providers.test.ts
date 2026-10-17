@@ -9,8 +9,8 @@ import {
   channelPresentationOf,
   DEFAULT_CHANNEL_PRESENTATION,
 } from "../providerPresentation";
-import { ChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/status_pb";
-import type { Channel } from "@stigmer/protos/ai/stigmer/agentic/channel/v1/api_pb";
+import { ChannelInstallState } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/status_pb";
+import type { Channel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 
 function makeChannel(overrides: {
   installState?: number;

@@ -15,15 +15,15 @@ import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import {
   EvalRunSchema,
   type EvalRun,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
 import {
   EvalRunAblation,
   type EvalRunTarget,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import {
   EvalRunPhase,
   EvalRunTryState,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/status_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
 import { evalStartOf } from "./eval-fixture";
 
 export { evalStartOf };

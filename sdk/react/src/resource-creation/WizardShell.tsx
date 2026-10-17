@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 import type { WizardShellProps } from "./types.js";
 import { StepIndicator } from "./StepIndicator.js";
 import { WizardNav } from "./WizardNav.js";

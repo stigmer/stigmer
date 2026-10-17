@@ -16,7 +16,7 @@
  * page. `refetchKey` re-reads the current page in place (after an
  * out-of-band mutation) without moving it.
  *
- * @internal Not part of the public `@stigmer/react` API.
+ * @internal Not part of the public `@stigmer/react-sdk` API.
  */
 import { type DependencyList, useCallback, useMemo, useState } from "react";
 import type { CursorPage } from "./useCursorPages.js";

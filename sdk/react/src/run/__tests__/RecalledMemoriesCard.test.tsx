@@ -8,11 +8,11 @@ import { describe, it, expect, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { create } from "@bufbuild/protobuf";
-import type { MemoryRecall } from "@stigmer/sdk";
+import type { MemoryRecall } from "@stigmer/client";
 import {
   RecalledMemoryFactSchema,
   type RecalledMemoryFact,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import {
   RecalledMemoriesCard,
   resolveInjectedFacts,

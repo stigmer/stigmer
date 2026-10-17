@@ -10,7 +10,7 @@
  * (e.g. `listVersions`) fall through to the router's `unimplemented`
  * response, which the SDK hooks degrade from.
  */
-import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
+import { SkillQueryController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/query_pb";
 import { createStigmerPreview } from "../../_shared/stigmer-preview";
 import { buildDemoSkill } from "../steps";
 

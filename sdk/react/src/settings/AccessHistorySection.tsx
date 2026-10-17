@@ -24,28 +24,28 @@
  * "The server, on behalf of …". A resource that has since been deleted
  * reads as its kind and "deleted".
  *
- * The download follows the history oldest first through `@stigmer/sdk`'s
+ * The download follows the history oldest first through `@stigmer/client`'s
  * `exportAccessHistory`, the same JSON Lines the CLI's
  * `stigmer access-history export` writes.
  */
 import { useCallback, useId, useState } from "react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { cn } from "@stigmer/theme";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { cn } from "@stigmer/design-tokens";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   AccessChange,
   AccessChangeCause,
   type AccessHistoryEntry,
   type ApiResourceRefView,
-} from "@stigmer/protos/ai/stigmer/iam/grant/v1/io_pb";
-import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+} from "@stigmer/apis/ai/stigmer/iam/grant/v1/io_pb";
+import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import {
   accessHistoryJsonLine,
   deletedReferenceLabel,
   exportAccessHistory,
   getUserMessage,
   isDeletedReference,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 import { UpgradeNotice, planUpgradeFeature } from "../billing/UpgradeNotice.js";
 import { unlockingPlanName } from "../billing/plan-features.js";
 import { useEntitlements } from "../billing/useEntitlements.js";

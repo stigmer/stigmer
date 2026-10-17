@@ -7,12 +7,12 @@
 // it fails or times out (Cursor's `failClosed`). Verbatim for the reason
 // `AgentToolLists` gives: the exact strings are what runs, and a person
 // deciding whether to trust a plugin reads every command it will run. The
-// words come from `@stigmer/sdk` (`hook-words.ts`), which the CLI prints
+// words come from `@stigmer/client` (`hook-words.ts`), which the CLI prints
 // too. Pinned by `__tests__/HookConfigList.test.tsx`.
 
-import { cn } from "@stigmer/theme";
-import type { HookConfig, HookGroup, HookHandler } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import { HOOK_FORMAT_LABELS, hookEventLabel, hookFormatName, hookMatcherLabel } from "@stigmer/sdk";
+import { cn } from "@stigmer/design-tokens";
+import type { HookConfig, HookGroup, HookHandler } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { HOOK_FORMAT_LABELS, hookEventLabel, hookFormatName, hookMatcherLabel } from "@stigmer/client";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 
 /** Props for {@link HookConfigList}. */

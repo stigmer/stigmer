@@ -206,7 +206,7 @@ function generateTSFile(m: McpGen): void {
   imports.addType(resourceBase + "/api_pb", kind);
   imports.addValue("./apply-runtime.js", "generateSlug");
   imports.addValue("./apply-runtime.js", "enumFromString");
-  imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb", "ApiResourceVisibility");
+  imports.addValue("@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb", "ApiResourceVisibility");
 
   const body: string[] = [];
 
@@ -393,7 +393,7 @@ function genTSTopLevelToProto(m: McpGen, w: string[], kind: string, apiVersion: 
   const specName = protoTypeName(m.spec.protoType);
   const specSuffix = tsProtoFileToSuffix(m.spec.protoFile);
   imports.addValue(resourceBase + "/" + specSuffix, specName + "Schema");
-  imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb", "ApiResourceMetadataSchema");
+  imports.addValue("@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb", "ApiResourceMetadataSchema");
 
   w.push(`/** Build the fully-formed ${kind} proto from the flat MCP apply input. */\n`);
   w.push(`export function ${lowerFirst(kind)}InputToProto(input: ${kind}Input): ${kind} {\n`);
@@ -418,8 +418,8 @@ function genTSTopLevelToProto(m: McpGen, w: string[], kind: string, apiVersion: 
 
 function genTSNestedToProto(m: McpGen, w: string[], it: McpInputType, imports: TsImportSet): void {
   if (it.isReference) {
-    imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
-    imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb", "ApiResourceKind");
+    imports.addValue("@stigmer/apis/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
+    imports.addValue("@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb", "ApiResourceKind");
     const enumName = apiResourceKindEnumNames.get(it.refKindVal) ?? "";
     w.push(`function ${tsToProtoFn(it)}(input: ${it.name}) {\n`);
     w.push("  return create(ApiResourceReferenceSchema, {\n");

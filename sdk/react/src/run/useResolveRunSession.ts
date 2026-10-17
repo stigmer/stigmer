@@ -1,6 +1,6 @@
 "use client";
 
-import { isNotFound, isPermissionDenied } from "@stigmer/sdk";
+import { isNotFound, isPermissionDenied } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useSettingsNavGroups } from "@stigmer/react";
+import { useSettingsNavGroups } from "@stigmer/react-sdk";
 
 export default function SettingsLanding() {
   const navGroups = useSettingsNavGroups();

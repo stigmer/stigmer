@@ -8,7 +8,7 @@
 // non-file-list facets. All visual properties flow through `--stgm-*`
 // tokens.
 
-import { cn } from "@stigmer/theme";
+import { cn } from "@stigmer/design-tokens";
 
 /**
  * A titled facet section: uppercase micro-heading over flush content.

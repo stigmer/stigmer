@@ -7,8 +7,8 @@
 package memoryv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/apiresource"
+	_ "go.stigmer.ai/sdk/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,8 +32,8 @@ const file_ai_stigmer_agentic_memory_v1_command_proto_rawDesc = "" +
 	"\x06update\x12/.ai.stigmer.agentic.memory.v1.UpdateMemoryInput\x1a$.ai.stigmer.agentic.memory.v1.Memory\"=¸\x189\b\x02\x109\"\x14resource.metadata.id*\x1dunauthorized to update memory\x12\x86\x01\n" +
 	"\x06delete\x12&.ai.stigmer.agentic.memory.v1.MemoryId\x1a$.ai.stigmer.agentic.memory.v1.Memory\".¸\x18*\b\x03\x109\"\x05value*\x1dunauthorized to delete memory\x12\x88\x01\n" +
 	"\aconfirm\x12&.ai.stigmer.agentic.memory.v1.MemoryId\x1a$.ai.stigmer.agentic.memory.v1.Memory\"/¸\x18+\b\x02\x109\"\x05value*\x1eunauthorized to confirm memory\x12\x86\x01\n" +
-	"\x06reject\x12&.ai.stigmer.agentic.memory.v1.MemoryId\x1a$.ai.stigmer.agentic.memory.v1.Memory\".¸\x18*\b\x02\x109\"\x05value*\x1dunauthorized to reject memory\x1a\x04\xa0\xff+9B\x97\x02\n" +
-	" com.ai.stigmer.agentic.memory.v1B\fCommandProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/memory/v1;memoryv1\xa2\x02\x04ASAM\xaa\x02\x1cAi.Stigmer.Agentic.Memory.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Memory\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Memory::V1b\x06proto3"
+	"\x06reject\x12&.ai.stigmer.agentic.memory.v1.MemoryId\x1a$.ai.stigmer.agentic.memory.v1.Memory\".¸\x18*\b\x02\x109\"\x05value*\x1dunauthorized to reject memory\x1a\x04\xa0\xff+9B\x84\x02\n" +
+	" com.ai.stigmer.agentic.memory.v1B\fCommandProtoP\x01Z=go.stigmer.ai/sdk/proto/ai/stigmer/agentic/memory/v1;memoryv1\xa2\x02\x04ASAM\xaa\x02\x1cAi.Stigmer.Agentic.Memory.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Memory\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Memory::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_memory_v1_command_proto_goTypes = []any{
 	(*Memory)(nil),            // 0: ai.stigmer.agentic.memory.v1.Memory

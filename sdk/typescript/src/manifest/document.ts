@@ -36,7 +36,7 @@ import { manifestHandlerForTypeName, manifestKinds } from "./registry.js";
  * @example
  * ```ts
  * import { clone } from "@bufbuild/protobuf";
- * import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
+ * import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
  *
  * const routine = await stigmer.routine.getByReference({ org, slug });
  * const updated = clone(RoutineSchema, routine);

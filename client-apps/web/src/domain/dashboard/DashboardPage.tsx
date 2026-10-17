@@ -1,6 +1,6 @@
 "use client";
 
-import { useOrg, OperationalDashboard } from "@stigmer/react";
+import { useOrg, OperationalDashboard } from "@stigmer/react-sdk";
 import { useRunNavigation } from "@/domain/runs/run-navigation";
 
 export function DashboardPage() {

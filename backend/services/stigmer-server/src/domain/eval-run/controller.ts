@@ -23,18 +23,18 @@
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
-import { EvalRunSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import type { EvalRun } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { EvalRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/command_pb";
-import { EvalRunIdSchema } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/io_pb";
+import { EvalRunSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import type { EvalRun } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
+import { EvalRunCommandController } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/command_pb";
+import { EvalRunIdSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/io_pb";
 import type {
   EvalRunId,
   EvalRunList,
   ListEvalRunsByAgentRequest,
   ListEvalRunsByPluginRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/io_pb";
-import { EvalRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/evalrun/v1/query_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/io_pb";
+import { EvalRunQueryController } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/query_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { CredentialBinding } from "../../extensions/credential-binding.js";

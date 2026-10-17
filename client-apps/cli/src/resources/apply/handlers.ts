@@ -1,7 +1,7 @@
 // Apply-handler registry for `apply -f` (file mode).
 //
 // The manifest kinds come from the SDK's manifest registry
-// (`manifestKinds()` in @stigmer/sdk) — the one table binding a kind to its
+// (`manifestKinds()` in @stigmer/client) — the one table binding a kind to its
 // proto schema, its raw command-controller `apply` RPC, and its dependency
 // apply order. The CLI consumes that table instead of keeping a copy: the
 // copy this file used to carry drifted twice (ChannelApp was missing
@@ -28,15 +28,15 @@ import type {
   ApiResourceReference,
   RenameInput,
   UpdateVisibilityInput,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { type Session, SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { type Organization, OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
-import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
-import type { UpdateOrganizationPoliciesInput } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
-import { manifestKinds } from "@stigmer/sdk";
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { type Session, SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { type Organization, OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { OrganizationCommandController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/command_pb";
+import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
+import type { UpdateOrganizationPoliciesInput } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
+import { manifestKinds } from "@stigmer/client";
 
 /** Accessor for a raw Connect client over a generated service controller. */
 export type ControllerFn = <Desc extends DescService>(service: Desc) => Client<Desc>;

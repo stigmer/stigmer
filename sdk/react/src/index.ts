@@ -5,9 +5,9 @@ export { StigmerContext } from "./context.js";
 
 // Runner adapter
 export { type RunnerAdapter, useRunnerAdapter } from "./runner-adapter.js";
-// Construction helper lives in @stigmer/sdk (framework-agnostic); re-exported
+// Construction helper lives in @stigmer/client (framework-agnostic); re-exported
 // here so React embedders import it alongside the adapter interface.
-export { type RunnerWorkerHost, createRunnerAdapter } from "@stigmer/sdk";
+export { type RunnerWorkerHost, createRunnerAdapter } from "@stigmer/client";
 
 // Fetch cache
 export { FetchCacheProvider } from "./internal/FetchCacheProvider.js";
@@ -37,7 +37,7 @@ export {
   type DeploymentMode,
   isResourceAvailable,
   ApiResourceKind,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 export {
   CloudFeatureNotice,
   type CloudFeatureNoticeProps,
@@ -501,8 +501,8 @@ export type {
 } from "./run/index.js";
 
 // Run — proto type re-exports for artifact consumers
-export type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
-export { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+export type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
+export { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 // Attachment — file upload behavior hook, styled chip list, clipboard paste,
 // vision-resolution image preparation, and vision preflight warnings
@@ -1005,7 +1005,7 @@ export {
   type EnsuredIdentityAccount,
   type EnsureMyIdentityAccountOptions,
   type IdentityAccountLane,
-} from "@stigmer/sdk";
+} from "@stigmer/client";
 
 // Memory — agent-proposed, user-confirmed facts: data hook, decision
 // hooks (confirm/reject/delete/edit), grouping helpers, and the list panel
@@ -1813,11 +1813,11 @@ export type {
 export {
   ChannelConversationListFilter,
   ConversationControl,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 export type {
   ChannelConversation,
   ConversationTimelineItem,
-} from "@stigmer/protos/ai/stigmer/agentic/channel/v1/conversation_io_pb";
+} from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 
 // Error — structured error display with classification, retry, and contextual guidance
 export {

@@ -30,8 +30,8 @@
  *     caused it) and its row, failing closed, so an account provisioned
  *     again under the same id finds nothing of the old one alive.
  */
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import type { IdentityAccountSpec } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
+import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccountSpec } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/spec_pb";
 import type { IdentityAccountStore } from "@stigmer/server";
 import { DuplicateAccountError } from "@stigmer/server";
 

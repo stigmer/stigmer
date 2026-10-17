@@ -3,7 +3,7 @@
  * direct query (full protos with live status), so the workbench offers no
  * server text search; a row opens its schedule; and Apply YAML or a row
  * action refetches the list in place. The workbench is pinned in
- * @stigmer/react.
+ * @stigmer/react-sdk.
  */
 import type { ReactElement, ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -40,7 +40,7 @@ const page = vi.hoisted(() => ({
 
 const LIST_FN = vi.hoisted(() => ({ marker: "schedule-list-fn" }));
 
-vi.mock("@stigmer/react", () => ({
+vi.mock("@stigmer/react-sdk", () => ({
   ResourceWorkbench: (props: WorkbenchProps) => {
     page.workbench.push(props);
     return <>{props.headerAction}</>;

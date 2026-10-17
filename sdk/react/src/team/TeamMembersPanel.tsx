@@ -19,11 +19,11 @@
  * here.
  */
 import { useMemo, useState } from "react";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { cn } from "@stigmer/theme";
-import { getUserMessage, granteeFromView, type Grantee } from "@stigmer/sdk";
-import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
+import { cn } from "@stigmer/design-tokens";
+import { getUserMessage, granteeFromView, type Grantee } from "@stigmer/client";
+import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import { planUpgradeFeature, UpgradeNotice } from "../billing/UpgradeNotice.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
