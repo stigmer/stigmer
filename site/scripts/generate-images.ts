@@ -22,6 +22,7 @@ import {
   BRAND_DARK,
   BRAND_LIGHT,
   brandLockupSvg,
+  brandShadedSvg,
   brandSvg,
 } from "../../brand/assets.mjs";
 import pngToIco from "png-to-ico";
@@ -73,8 +74,8 @@ async function generateFavicon(
 
 /**
  * Generates all icon variants.
- * Favicons (16/32) use the tight-cropped favicon.svg for maximum visibility.
- * Larger icons retain standard padding and rounded backgrounds.
+ * Favicons (16/32) use the tight-cropped flat mark for maximum visibility.
+ * Larger icons use the shaded mark with standard padding and rounded backgrounds.
  */
 async function generateAllIcons(): Promise<void> {
   await fs.writeFile(
@@ -99,13 +100,10 @@ async function generateAllIcons(): Promise<void> {
     [192, "icon-192.png", false],
     [512, "icon-512.png", false],
   ] as const) {
-    const svg = await brandSvg({
-      size,
-      color: BRAND_LIGHT,
-      background: BRAND_DARK,
-      tight,
-      rounded: !tight,
-    });
+    const framing = { size, background: BRAND_DARK, tight, rounded: !tight };
+    const svg = tight
+      ? await brandSvg({ ...framing, color: BRAND_LIGHT })
+      : await brandShadedSvg({ ...framing, on: "dark" });
     await sharp(Buffer.from(svg)).png().toFile(path.join(PUBLIC_DIR, filename));
   }
   await generateFavicon(
@@ -209,12 +207,12 @@ function createOgBadges(): Buffer {
 }
 
 /**
- * Renders the raw icon SVG (no background) at the target size for the OG
- * image. The white paths sit directly on the dark gradient background.
+ * Renders the shaded mark (no background) at the target size for the OG
+ * image, lit for the dark gradient it sits on.
  */
 async function prepareLogoForOgImage(): Promise<Buffer> {
   const logoSize = 120;
-  const svgContent = await brandSvg({ size: logoSize, color: BRAND_LIGHT });
+  const svgContent = await brandShadedSvg({ size: logoSize, on: "dark" });
 
   return sharp(Buffer.from(svgContent))
     .resize(logoSize, logoSize, {

@@ -6,9 +6,44 @@ import sharp from "sharp";
 import {
   BRAND_DARK,
   BRAND_LIGHT,
+  SHADED_FACES,
+  SHADED_TONES,
+  type ShadedFace,
   brandLockupSvg,
+  brandShadedSvg,
   brandSvg,
 } from "../assets.mjs";
+
+const flatSource = await readFile(
+  new URL("../logo.svg", import.meta.url),
+  "utf8",
+);
+const shadedSource = await readFile(
+  new URL("../source/shaded.svg", import.meta.url),
+  "utf8",
+);
+
+async function alphaOf(svg: string, size = 512): Promise<Buffer> {
+  return sharp(Buffer.from(svg))
+    .resize(size, size)
+    .ensureAlpha()
+    .extractChannel("alpha")
+    .raw()
+    .toBuffer();
+}
+
+/**
+ * Count pixels whose coverage differs by more than antialiasing can explain. Where a
+ * face's underlap meets the outer edge a few pixels draw twice, so a handful is allowed;
+ * an outline that drifts from brand/logo.svg differs by hundreds.
+ */
+const JOINT_PIXELS = 16;
+function mismatches(actual: Buffer, expected: Buffer): number {
+  let count = 0;
+  for (let i = 0; i < actual.length; i++)
+    if (Math.abs(actual[i] - expected[i]) > 32) count++;
+  return count;
+}
 
 test("the source artwork is drawn in BRAND_DARK, so every recolor takes effect", async () => {
   for (const file of ["../logo.svg", "../source/wordmark.svg"]) {
@@ -23,6 +58,56 @@ test("the source artwork is drawn in BRAND_DARK, so every recolor takes effect",
     !light.includes(BRAND_DARK),
     "a light lockup must keep no dark fill in the mark or the lettering",
   );
+});
+
+test("the shaded ring and bars cover exactly the flat mark", async () => {
+  const ringAndBars = shadedSource.replace(
+    /<path data-face="inner-[a-z]+"[^>]*\/>/g,
+    "",
+  );
+  assert.ok(
+    mismatches(await alphaOf(ringAndBars), await alphaOf(flatSource)) <=
+      JOINT_PIXELS,
+    "brand/source/shaded.svg must follow the outline of brand/logo.svg",
+  );
+});
+
+test("the shaded mark fills the whole hexagon with no seam between faces", async () => {
+  const hexagon = flatSource.replace(/Z[^"]*"/, 'Z"');
+  for (const on of ["dark", "light"] as const) {
+    const actual = await alphaOf(
+      await brandShadedSvg({ on, size: 1024 }),
+      1024,
+    );
+    const expected = await alphaOf(hexagon, 1024);
+    assert.ok(mismatches(actual, expected) <= JOINT_PIXELS * 2);
+    const leak = actual.findIndex(
+      (value, i) => expected[i] === 255 && value < 250,
+    );
+    assert.equal(
+      leak,
+      -1,
+      `the background shows through a face join at pixel ${leak}`,
+    );
+  }
+});
+
+test("each lighting gives every face a tone and leaves no source tone behind", async () => {
+  for (const on of ["dark", "light"] as const) {
+    const svg = await brandShadedSvg({ on });
+    const faces = [
+      ...svg.matchAll(/data-face="([a-z-]+)" fill="(#[0-9a-f]{6})"/g),
+    ];
+    assert.deepEqual(
+      faces.map((match) => match[1]),
+      [...SHADED_FACES],
+    );
+    assert.ok(
+      faces.every(
+        ([, face, fill]) => fill === SHADED_TONES[on][face as ShadedFace],
+      ),
+    );
+  }
 });
 
 for (const size of [16, 24, 32, 1024]) {
@@ -143,15 +228,15 @@ for (const theme of ["light", "dark"]) {
   });
 }
 
-for (const [filename, color, background] of [
-  ["logo.png", BRAND_DARK, undefined],
-  ["logo-white.png", BRAND_LIGHT, undefined],
-  ["avatar.png", BRAND_LIGHT, BRAND_DARK],
+for (const [filename, render] of [
+  ["logo.png", () => brandSvg({ color: BRAND_DARK })],
+  ["logo-white.png", () => brandSvg({ color: BRAND_LIGHT })],
+  ["logo-shaded.png", () => brandShadedSvg({ on: "light" })],
+  ["logo-shaded-white.png", () => brandShadedSvg({ on: "dark" })],
+  ["avatar.png", () => brandShadedSvg({ on: "dark", background: BRAND_DARK })],
 ] as const) {
   test(`${filename} contains the current canonical artwork`, async () => {
-    const expected = await sharp(
-      Buffer.from(await brandSvg({ color, background })),
-    )
+    const expected = await sharp(Buffer.from(await render()))
       .ensureAlpha()
       .raw()
       .toBuffer();

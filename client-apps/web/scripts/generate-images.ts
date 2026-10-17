@@ -3,7 +3,12 @@ import sharp from "sharp";
 import pngToIco from "png-to-ico";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { BRAND_DARK, BRAND_LIGHT, brandSvg } from "../../../brand/assets.mjs";
+import {
+  BRAND_DARK,
+  BRAND_LIGHT,
+  brandShadedSvg,
+  brandSvg,
+} from "../../../brand/assets.mjs";
 
 async function main(): Promise<void> {
   const publicDir = path.join(process.cwd(), "public");
@@ -33,7 +38,15 @@ async function main(): Promise<void> {
       path.join(publicDir, `favicon-${theme}.ico`),
       await pngToIco(pngs),
     );
-    await sharp(Buffer.from(await brandSvg({ ...options, size: 180 })))
+    await sharp(
+      Buffer.from(
+        await brandShadedSvg({
+          on: theme,
+          background: options.background,
+          size: 180,
+        }),
+      ),
+    )
       .png()
       .toFile(path.join(publicDir, `apple-touch-icon-${theme}.png`));
   }
