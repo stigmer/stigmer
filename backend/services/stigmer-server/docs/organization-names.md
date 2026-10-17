@@ -52,6 +52,17 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | ChannelMessageCommandController.sendMessage | `org` |
 | ChannelMessageQueryController.listTemplates | `org` |
 
+## `ai.stigmer.agentic.routine.v1`
+
+| Method | Organization fields |
+|---|---|
+| RoutineCommandController.apply | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.vaults.org` |
+| RoutineCommandController.create | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.vaults.org` |
+| RoutineCommandController.update | `resource.metadata.org`, `resource.spec.agent.agent_ref.org`, `resource.spec.agent.vaults.org` |
+| RoutineQueryController.listByAgent | `org` |
+| RoutineQueryController.getByReference | `org` |
+| RoutineQueryController.list | `org` |
+
 ## `ai.stigmer.agentic.run.v1`
 
 | Method | Organization fields |
@@ -118,17 +129,6 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | PluginQueryController.getByReference | `org` |
 | PluginQueryController.list | `org` |
 | PluginQueryController.listVersions | `org` |
-
-## `ai.stigmer.agentic.schedule.v1`
-
-| Method | Organization fields |
-|---|---|
-| ScheduleCommandController.apply | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.vaults.org` |
-| ScheduleCommandController.create | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.vaults.org` |
-| ScheduleCommandController.update | `resource.metadata.org`, `resource.spec.agent.agent_ref.org`, `resource.spec.agent.vaults.org` |
-| ScheduleQueryController.listByAgent | `org` |
-| ScheduleQueryController.getByReference | `org` |
-| ScheduleQueryController.list | `org` |
 
 ## `ai.stigmer.agentic.score.v1`
 

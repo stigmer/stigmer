@@ -27,7 +27,7 @@ vi.mock("@stigmer/react-sdk", () => {
     CreationPicker: capture("CreationPicker"),
     ApplyManifestDialog: capture("ApplyManifestDialog"),
     PluginUploader: capture("PluginUploader"),
-    ScheduleForm: capture("ScheduleForm"),
+    RoutineForm: capture("RoutineForm"),
     SkillUploader: capture("SkillUploader"),
     AGENT_TEMPLATES: [],
     useActiveOrgId: () => "org_acme",
@@ -94,8 +94,8 @@ describe("web library create pages", () => {
   it("ScheduleNewPage creates in the active org id and opens the schedule under the org slug", () => {
     render(<ScheduleNewPage />);
 
-    expect(propsOf("ScheduleForm").org).toBe("org_acme");
-    call("ScheduleForm", "onComplete", CREATED);
+    expect(propsOf("RoutineForm").org).toBe("org_acme");
+    call("RoutineForm", "onComplete", CREATED);
     expect(page.pushed).toEqual(["/library/schedules/acme/made"]);
   });
 

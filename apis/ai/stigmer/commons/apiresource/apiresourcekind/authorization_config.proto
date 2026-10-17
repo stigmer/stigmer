@@ -183,14 +183,26 @@ message ParentRelationConfig {
   // Example: "session_id" for run, "subject_identity_account_id" for
   // memory.
   // This eliminates hardcoded parent ID extraction logic in the service.
+  // Exactly one of spec_field and status_field is set.
   string spec_field = 3;
 
-  // Whether a row may leave the spec field empty, writing no link.
+  // Whether a row may leave the parent field empty, writing no link.
   //
   // A kind whose rows each link one of several parents (a vault belongs to a
   // person or to its organization) marks each parent optional. A required
   // parent whose field is empty fails the create.
   bool optional = 4;
+
+  // Field name in the resource's status message that contains the parent ID,
+  // for a link only the server may write. Example: "routine_id" for a
+  // session a routine's fire started.
+  //
+  // @internal
+  // A create clears the status a client sent and an update keeps the stored
+  // status whole, so a status field is the server's alone: a link read from
+  // it cannot be forged by a client, as one read from spec could. Exactly
+  // one of spec_field and status_field is set.
+  string status_field = 5;
 }
 
 // FGA authorization tuple configuration for a resource kind.

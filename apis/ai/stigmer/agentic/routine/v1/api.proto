@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.routine.v1;
+
+import "ai/stigmer/agentic/routine/v1/spec.proto";
+import "ai/stigmer/agentic/routine/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// Routine is a saved agent invocation: an agent and the message each run
+// starts from, run on an optional schedule, or fired by Run now or over the
+// API with a short note.
+//
+// A routine is operational configuration, like Channel. Every run acts as
+// the routine's owner (the account that created it), in a fresh
+// conversation the owner owns; only the owner changes what it runs, and only
+// the owner chooses who may fire it (Participants). The platform-observed
+// firing state (next fire time, failure streak, auto-pause) lives in
+// status. Deleting a routine stops it permanently; disabling it keeps the
+// routine and its history.
+//
+// @internal
+// Standalone kind (56, minted as sch_ while the kind was Schedule; those ids
+// still name it). One agent may have many routines with different messages;
+// metadata.org is the billing organization for every run. Calendar
+// semantics live in the Temporal server: the platform parses no cron in
+// either edition. The defaults resolver does NOT default the slug to the
+// agent slug (routines are N-per-agent, the Channel rule); standard
+// derive-from-name applies. Deleting the agent deletes its routines. The
+// overview.md file provides the SDK-facing description and example YAML.
+message Routine {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Routine'];
+
+  // Resource metadata including name, organization, and labels.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // Configurable properties: the agent it runs, an optional cron, the time zone, and enablement.
+  RoutineSpec spec = 4;
+
+  // System-managed state: firing observations, failure streak, auto-pause reason, and audit trail.
+  RoutineStatus status = 5;
+}

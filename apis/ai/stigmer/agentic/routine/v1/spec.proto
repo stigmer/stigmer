@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.routine.v1;
+
+import "ai/stigmer/agentic/run/v1/invocation.proto";
+import "buf/validate/validate.proto";
+
+// RoutineSpec defines what a routine runs and, optionally, when it runs on
+// its own.
+//
+// The spec is deliberately small: the agent and message each run starts
+// from, an optional cron expression, the IANA time zone the routine keeps,
+// and the owner's enablement switch. Everything the platform observes about
+// firing lives in status, so a declarative apply can never clobber it.
+//
+// @internal
+// The agent invocation is the shared AgentInvocation, the owner-settable
+// subset of a run, so a routine speaks the composer's vocabulary instead of
+// a routine-only one. Apply-time cron validation is purely lexical, so no
+// cron parser exists in either edition; the Temporal server owns calendar
+// and DST semantics. Field 4 was the single arm of a `target` oneof while
+// the kind was Schedule: a one-arm oneof and a plain field at the same
+// number are the same bytes, so stored rows read unchanged.
+message RoutineSpec {
+  option (buf.validate.message).cel = {
+    id: "cron_needs_time_zone"
+    message: "time_zone is required when cron is set: a schedule is kept in a time zone"
+    expression: "!has(this.cron) || this.time_zone != ''"
+  };
+
+  // When the routine runs on its own: a cron expression in the classic
+  // 5-field form (minute, hour, day-of-month, month, day-of-week),
+  // evaluated in `time_zone`, for example "0 9 * * *" for daily at 09:00.
+  // The shorthands @hourly, @daily, @weekly, @monthly, and @yearly are also
+  // accepted. Time zone prefixes (CRON_TZ=/TZ=), @every intervals, 6- or
+  // 7-field forms, and trailing comments are rejected. Absent, the routine
+  // runs only when it is fired.
+  //
+  // @internal
+  // Deliberately narrower than the Temporal server's cron grammar.
+  // CRON_TZ=/TZ= would carry a second timezone authority beside
+  // `time_zone` (Temporal itself rejects the combination at schedule-create
+  // time, so accepting it here would store a spec that fails when the clock
+  // lands); @every compiles to an interval spec and bypasses the calendar
+  // model; the 7-field form has a seconds column. The 5-field restriction is
+  // a structural one-minute firing floor with zero cron parsing. An edition
+  // may add a configurable interval floor, checked against Temporal's own
+  // computed fire times; the open-source server enforces none. Widening
+  // this grammar later is additive; narrowing it would break stored specs.
+  // Proto3 `optional` is wire-identical to the plain field it replaced, and
+  // gives the absent case its own meaning.
+  optional string cron = 1 [(buf.validate.field).string.min_len = 1];
+
+  // IANA time zone the routine keeps, e.g. "Asia/Kolkata": its schedule is
+  // evaluated in it, and every run is told the date and time in it. Required
+  // when `cron` is set; empty without one means UTC.
+  //
+  // @internal
+  // The single timezone authority: validation refuses cron strings carrying
+  // their own CRON_TZ=/TZ= prefix. A zone that is set is checked against the
+  // platform tz database whether or not `cron` is, so a mistyped zone is
+  // refused at write instead of dating runs in UTC. DST evaluation semantics
+  // are the Temporal server's concern, identical for both editions.
+  string time_zone = 2;
+
+  // Whether the routine runs. Off stops it from running on its schedule and
+  // refuses fire, without deleting the routine or its history.
+  //
+  // @internal
+  // The owner's switch, "disabled", deliberately distinct from "paused",
+  // the platform's failure-streak latch recorded on status.paused_reason and
+  // never on spec (the two words name two levers with two writers). Sibling
+  // bool shape (ChannelSpec.enabled): manifests set `enabled: true`
+  // explicitly, no edition defaults it, and no status field echoes it
+  // (consoles derive owner-disabled state from spec on read).
+  bool enabled = 3;
+
+  // The agent each run starts, with the message it starts from.
+  //
+  // @internal
+  // Routine invariants enforced in the create, update and apply handlers of
+  // both editions, never on the shared message: agent_ref.org must equal
+  // metadata.org (the routine's organization is the billing organization
+  // for every run; creation requires can_edit on the referenced agent);
+  // workspace sources must be git_repo (no client is connected when a
+  // routine runs to serve a local_path); agent_ref is immutable across
+  // updates while harness, model, workspace, message, and vaults stay
+  // mutable, since every run builds a fresh session. Each run acts as the
+  // routine's owner, so only the owner changes this field. Vaults are
+  // resolved by the run's credential resolver at each run, each asking
+  // can_use again of the account recorded in status.vault_attachers.
+  // run_config is written to the run's turn unchanged; the server resolves
+  // it once, at create (ResolveRunConfig), under the routine run profile as
+  // the lane's ceiling (RunConfig has the rule).
+  ai.stigmer.agentic.run.v1.AgentInvocation agent = 4 [(buf.validate.field).required = true];
+}

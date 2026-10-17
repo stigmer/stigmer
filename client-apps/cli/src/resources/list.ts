@@ -22,8 +22,8 @@ import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_p
 import { ListChannelsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
 import { ChannelAppSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ListChannelAppsInputSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/io_pb";
-import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ListSchedulesRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { ListRoutinesRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { ListSessionsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
@@ -140,23 +140,23 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
     },
   ],
   [
-    ApiResourceKind.schedule,
+    ApiResourceKind.routine,
     async (client, org, limit, labels) => {
-      // ListSchedulesRequest requires an org (min_len 1): a server that holds
+      // ListRoutinesRequest requires an org (min_len 1): a server that holds
       // one fills it, and on one that holds several an unset context is
       // refused with actionable copy instead of the server's raw validation
       // error.
       await requireOrganization(client, org, [
-        "stigmer list schedules --org <org>",
+        "stigmer list routines --org <org>",
         "stigmer config context set --org <org>",
       ]);
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
-        client.schedule.list(create(ListSchedulesRequestSchema, { org, pageSize, pageToken, labels })),
+        client.routine.list(create(ListRoutinesRequestSchema, { org, pageSize, pageToken, labels })),
       );
       return {
-        schema: ScheduleSchema,
+        schema: RoutineSchema,
         entries,
-        table: SCHEDULE_TABLE,
+        table: ROUTINE_TABLE,
       };
     },
   ],
@@ -443,17 +443,18 @@ const CHANNEL_APP_TABLE: TableShape = {
 // ENABLED is the owner's switch (spec.enabled); STATE is the platform's
 // failure latch, derived from status.paused_reason. They are different
 // states with different remedies — re-apply with `enabled: true` versus
-// `stigmer schedule resume` — so the table keeps them as two columns. An
-// auto-paused schedule with ENABLED true is exactly the condition this
-// surface exists to make visible (stigmer/stigmer#352).
-const SCHEDULE_TABLE: TableShape = {
-  resourceName: "schedules",
-  headers: ["ID", "SLUG", "TARGET", "CRON", "TZ", "ENABLED", "STATE"],
-  orgs: (json) => [str(scheduleAgentRef(json), "org")],
+// `stigmer routine resume` — so the table keeps them as two columns. An
+// auto-paused routine with ENABLED true is exactly the condition this
+// surface exists to make visible (stigmer/stigmer#352). CRON is empty for a
+// routine that runs only when fired.
+const ROUTINE_TABLE: TableShape = {
+  resourceName: "routines",
+  headers: ["ID", "SLUG", "AGENT", "CRON", "TZ", "ENABLED", "STATE"],
+  orgs: (json) => [str(routineAgentRef(json), "org")],
   row: (json, orgLabel) => {
     const metadata = obj(json, "metadata");
     const spec = obj(json, "spec");
-    const agentRef = scheduleAgentRef(json);
+    const agentRef = routineAgentRef(json);
     return [
       str(metadata, "id"),
       str(metadata, "slug"),
@@ -485,8 +486,8 @@ const VAULT_TABLE: TableShape = {
   },
 };
 
-// The schedule's target is the agent it runs.
-function scheduleAgentRef(json: JsonObject): JsonObject {
+// The agent the routine runs.
+function routineAgentRef(json: JsonObject): JsonObject {
   return obj(obj(obj(json, "spec"), "agent"), "agent_ref");
 }
 

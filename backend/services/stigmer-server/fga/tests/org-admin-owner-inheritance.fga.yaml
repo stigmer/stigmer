@@ -1,9 +1,16 @@
 # Store tests for org-admin owner inheritance (since 2026-07-13).
 #
-# Blueprint kinds — agent, channel (a chat link and a Slack channel), schedule, skill,
+# Blueprint kinds — agent, channel (a chat link and a Slack channel), skill,
 # plugin — compose org admins into `owner`:
 #
 #   define owner: [identity_account] or admin from organization
+#
+# A routine holds the same trade through its permissions instead of its
+# owner: every run acts as the routine's owner, so `owner` is the account
+# that created it alone, and admins are composed into can_view, can_edit,
+# can_delete and can_grant_access. They manage it; they do not fire it
+# (can_fire is false for them below), and its runs stay the owner's
+# conversations (routine-session-visibility.fga.yaml).
 #
 # This is the GitHub-org-admin model (precedent: mcp_server, grant):
 # every org asset has an operator of last resort, so
@@ -85,10 +92,10 @@ tuples:
     object: channel:carols-bot-slack
   - user: organization:acme
     relation: organization
-    object: schedule:carols-reminders
+    object: routine:carols-reminders
   - user: identity_account:carol
     relation: owner
-    object: schedule:carols-reminders
+    object: routine:carols-reminders
   - user: organization:acme
     relation: organization
     object: skill:carols-notes
@@ -143,12 +150,14 @@ tests:
           can_delete: true
           can_grant_access: true
       - user: identity_account:ana
-        object: schedule:carols-reminders
+        object: routine:carols-reminders
         assertions:
           can_view: true
           can_edit: true
           can_delete: true
           can_grant_access: true
+          can_fire: false
+          can_assign_roles: false
       - user: identity_account:ana
         object: skill:carols-notes
         assertions:
@@ -203,7 +212,7 @@ tests:
           can_view: false
           can_edit: false
       - user: identity_account:dave
-        object: schedule:carols-reminders
+        object: routine:carols-reminders
         assertions:
           can_view: false
           can_edit: false

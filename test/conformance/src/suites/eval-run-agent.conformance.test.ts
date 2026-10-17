@@ -117,7 +117,7 @@ import type { TenancyContext } from "../targets/target";
 let target: TargetProfile;
 // Read at collection time so an edition without an engine (or without a
 // capability) reports its cases SKIPPED, never as passes that returned
-// early. `scheduleFiring` is the engine-backed flag the eval run about a
+// early. `routineFiring` is the engine-backed flag the eval run about a
 // plugin's suite and create-mints-id gate the same boundary on.
 const capabilities = createTarget().capabilities;
 let clients: ConformanceClients;
@@ -635,7 +635,7 @@ describe("EvalRun about an agent — create refusals", () => {
   });
 });
 
-describe.skipIf(capabilities.scheduleFiring)("EvalRun about an agent — without an engine behind the server", () => {
+describe.skipIf(capabilities.routineFiring)("EvalRun about an agent — without an engine behind the server", () => {
   it("[rpc:EvalRunCommandController.create] create stores the eval run failed, naming why it could not start", async () => {
     const agent = await agentWith([await installedWithEvals()]);
     const created = await createEval(agent);

@@ -57,8 +57,8 @@ tuples:
   - {user: team:sre#member, relation: participant, object: channel:support}
   - {user: organization:acme, relation: organization, object: channel:alerts}
   - {user: team:sre#member, relation: viewer, object: channel:alerts}
-  - {user: organization:acme, relation: organization, object: schedule:nightly}
-  - {user: team:sre#member, relation: viewer, object: schedule:nightly}
+  - {user: organization:acme, relation: organization, object: routine:nightly}
+  - {user: team:sre#member, relation: viewer, object: routine:nightly}
 tests:
   - name: team members who are org viewers reach the team's grants; nobody else does
     check:
@@ -80,13 +80,13 @@ tests:
       - user: identity_account:out
         object: agent:triage
         assertions: {viewer: false}
-  - name: a team grant reaches schedules and channels the same way
+  - name: a team grant reaches routines and channels the same way
     check:
       - user: identity_account:vic
-        object: schedule:nightly
+        object: routine:nightly
         assertions: {viewer: true, can_view: true, can_edit: false}
       - user: identity_account:left
-        object: schedule:nightly
+        object: routine:nightly
         assertions: {viewer: false}
       - user: identity_account:vic
         object: channel:support

@@ -74,22 +74,21 @@ export interface CapabilityFlags {
   // to the live execution (cloud: its composed authorizeExecutionValuesRead;
   // OSS: the execution-scoped token), and refuse every other caller; the
   // vault-resolution suite asserts that unconditionally.
-  // Schedules actually FIRE here: a trigger records status.last_fire_at,
-  // repeated failed fires accumulate status.consecutive_failures into the
-  // platform auto-pause, and resume + re-trigger fires again. Requires a
-  // Temporal-backed scheduling clock behind the server.
+  // Routines actually FIRE here: a fire records status.last_fire_at and
+  // starts a run, which needs a Temporal engine behind the server (and the
+  // routine clock runs a schedule's own fires on it).
   //
-  // True for cloud and local-execution, whose server runs its schedule clock
+  // True for cloud and local-execution, whose server runs its routine clock
   // on a live Temporal. False for the plain local target, which runs without
-  // Temporal at all — the Schedule contract, CLI, and trigger/resume refusal
+  // Temporal at all — the Routine contract, CLI, and fire/resume refusal
   // matrix all exist there, but nothing fires.
   //
   // Deliberately a capability flag and not a heavier target: firing needs
-  // the engine but NOT a runner or LLM (the suite fires against a
-  // deleted target agent, so every fire fails deterministically before any
-  // execution is created) — which is what lets this be the first
+  // the engine but NOT a runner or LLM (the suite fires routines the run
+  // create refuses deterministically, an unattended Cursor turn naming no
+  // model, so no run is created) — which is what lets this be the first
   // execution-class behavior asserted cross-edition.
-  scheduleFiring: boolean;
+  routineFiring: boolean;
   // The target's runner serves every person's runs AS THE PERSON WHOSE RUN
   // IT IS (the row's created_by stamp), whichever credential the runner
   // process itself holds. Observable only where the server enforces who may
@@ -101,7 +100,7 @@ export interface CapabilityFlags {
   // own credential (server-minted at dispatch, carried on the workflow
   // input) and the built-in verifier admits its bearer as the run's human
   // (stigmer#1137, stigmer#1138). False for the plain local target, which
-  // spawns no runner (the scheduleFiring precedent). False for the cloud
+  // spawns no runner (the routineFiring precedent). False for the cloud
   // targets: the conformance runner there is an EMBEDDED runner
   // bootstrapped as the primary user (runner-process.ts `cloudBootstrap`),
   // which acts as itself, narrowed by its own exchange — the cloud's
@@ -178,7 +177,7 @@ export interface CapabilityFlags {
   // has no billing engine, no provider keys and no admission gates; every
   // execution runs unmetered on the operator's own provider credentials.
   // There is no refusal contract to pin, so the run-admission suite skips
-  // entirely (the scheduleFiring posture).
+  // entirely (the routineFiring posture).
   billingGates: boolean;
   // The target's ENFORCING lane mints user tokens with a service account's
   // key and enforces the minter's contract at the serving edge: mintUserToken

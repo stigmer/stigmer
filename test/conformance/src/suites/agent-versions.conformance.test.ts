@@ -20,11 +20,11 @@
 //   versionTagging capability);
 // - a deleted agent's history is gone with it;
 // - every surface that starts a conversation honours the version its agent
-//   reference names: a schedule and a channel store it, and a web channel
+//   reference names: a routine and a channel store it, and a web channel
 //   hands it to the hosted page on its profile; a session started on that
 //   reference (what a channel does for each conversation) pins
-//   the version it names, not the current one. A schedule's fire on it is
-//   the execution suite's (schedule-firing);
+//   the version it names, not the current one. A routine's fire on it is
+//   the execution suite's (routine-firing);
 // - a version whose tag moved reports the tag it holds now, for an agent and
 //   a skill alike; an unchanged re-apply naming a new tag moves it to the
 //   head, and a repoint naming no tag shows the tag the version holds
@@ -37,7 +37,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { AGENT_API_VERSION, AGENT_KIND, agentRefOf, makeAgent, makeAgentSpec } from "../support/agents";
 import { makeSlackChannel, makeWebChannel } from "../support/channels";
 import { uniqueName } from "../support/naming";
-import { makeSchedule } from "../support/schedules";
+import { makeRoutine } from "../support/routines";
 import { makeSession } from "../support/sessions";
 import { makeSkillArtifact } from "../support/skills";
 import { createTarget, type TargetProfile } from "../targets";
@@ -261,19 +261,17 @@ describe("Agent versions — run surfaces", () => {
     return session.status?.agentVersionHash;
   }
 
-  it("[rpc:ScheduleCommandController.create] a schedule whose agent reference names a version is accepted and keeps it", async () => {
+  it("[rpc:RoutineCommandController.create] a routine whose agent reference names a version is accepted and keeps it", async () => {
     const { org } = await target.provisionTenancy();
     const { v1 } = await taggedAgent(org);
-    const schedule = makeSchedule(org, uniqueName("schedule"), v1.metadata!.slug);
-    const invocation = schedule.spec!.target!.value as { agentRef: { version?: string } };
+    const routine = makeRoutine(org, uniqueName("routine"), v1.metadata!.slug);
+    const invocation = routine.spec!.agent! as { agentRef: { version?: string } };
     invocation.agentRef.version = v1.status!.versionHash;
 
-    const created = await clients.scheduleCommand.create(schedule);
-    fixtures.defer(() => clients.scheduleCommand.delete({ value: created.metadata!.id }));
+    const created = await clients.routineCommand.create(routine);
+    fixtures.defer(() => clients.routineCommand.delete({ value: created.metadata!.id }));
 
-    const invoked = created.spec?.target;
-    expect(invoked?.case).toBe("agent");
-    expect(invoked?.case === "agent" ? invoked.value.agentRef?.version : undefined).toBe(v1.status?.versionHash);
+    expect(created.spec?.agent?.agentRef?.version).toBe(v1.status?.versionHash);
   });
 
   it("[rpc:ChannelCommandController.create] a channel whose agent reference names a version keeps it, and a conversation started on it pins that version", async () => {

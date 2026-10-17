@@ -1,13 +1,13 @@
 import { useMemo, useReducer, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CalendarClock, Plus, Upload } from "lucide-react";
-import type { Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import {
   ResourceWorkbench,
   ApplyManifestDialog,
-  ScheduleRowActions,
-  createScheduleColumns,
-  createScheduleListFn,
+  RoutineRowActions,
+  createRoutineColumns,
+  createRoutineListFn,
   useStigmer,
   useActiveOrgId,
   useOrgSlugForId,
@@ -24,12 +24,12 @@ export default function ScheduleListPage() {
   // refetches in place and status columns update without a reload.
   const [refetchToken, refreshList] = useReducer((n: number) => n + 1, 0);
 
-  const listFn = useMemo(() => createScheduleListFn(stigmer), [stigmer]);
-  const columns = useMemo(() => createScheduleColumns(), []);
+  const listFn = useMemo(() => createRoutineListFn(stigmer), [stigmer]);
+  const columns = useMemo(() => createRoutineColumns(), []);
 
   // Form-based creation is the primary path; Apply YAML stays as the
   // secondary, declarative/GitOps path.
-  const newScheduleButton = (
+  const newRoutineButton = (
     <Link
       to="/library/schedules/new"
       className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -53,7 +53,7 @@ export default function ScheduleListPage() {
   const headerActions = (
     <div className="flex items-center gap-2">
       {applyYamlButton}
-      {newScheduleButton}
+      {newRoutineButton}
     </div>
   );
 
@@ -72,7 +72,7 @@ export default function ScheduleListPage() {
         searchable={false} (no server text search). Wired identically to
         the web Library.
       */}
-      <ResourceWorkbench<Schedule>
+      <ResourceWorkbench<Routine>
         refetchToken={refetchToken}
         listFn={listFn}
         org={org}
@@ -82,13 +82,13 @@ export default function ScheduleListPage() {
         defaultViewMode="table"
         viewModes={["table"]}
         renderItemAction={(item) => (
-          <ScheduleRowActions schedule={item} onChanged={refreshList} />
+          <RoutineRowActions schedule={item} onChanged={refreshList} />
         )}
         emptyIcon={<CalendarClock className="size-10" aria-hidden="true" />}
         emptyTitle="No schedules yet"
         emptyDescription="Create a schedule to run an agent on a cadence — daily, weekly, or any cron expression."
         headerAction={headerActions}
-        emptyAction={newScheduleButton}
+        emptyAction={newRoutineButton}
         onItemClick={(item) =>
           navigate(
             `/library/schedules/${slugForOrg(item.metadata?.org ?? "")}/${item.metadata?.slug ?? ""}`,

@@ -62,6 +62,8 @@ import { RequestContext } from "../../../pipeline/request-context.js";
 import {
   LAST_OWNER_MESSAGE,
   OWNER_ASSIGNMENT_DENIED_MESSAGE,
+  PARTICIPANT_ASSIGNMENT_DENIED_MESSAGE,
+  VIEWER_ASSIGNMENT_DENIED_MESSAGE,
   PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE,
   noGrantableRolesMessage,
   personQualifierMessage,
@@ -91,8 +93,11 @@ import {
   newRefuseServiceAccountOwnerStep,
   newRevokeStep,
   newValidateGrantableRoleStep,
+  orgAccessOwnerAssignment,
   orgAccessOwnerRoleChange,
+  specOwnerAssignment,
   specOwnerRoleChange,
+  specRoleAssignment,
 } from "../steps.js";
 import {
   NO_STORED_RESOURCES,
@@ -570,7 +575,7 @@ describe("owner is assigned by owners", () => {
   describe("AuthorizeOwnerAssignment", () => {
     it("refuses an admin granting or revoking owner on an organization, with the owner copy", async () => {
       const denied = authorizer(false);
-      const step = newAuthorizeOwnerAssignmentStep(denied, specOwnerRoleChange);
+      const step = newAuthorizeOwnerAssignmentStep(denied, specRoleAssignment);
       const error = await refusal(() => step.execute(specContext(orgRole("ida_bob", "owner", "acme"))));
       expect(error.code).toBe(Code.PermissionDenied);
       expect(error.rawMessage).toBe(OWNER_ASSIGNMENT_DENIED_MESSAGE);
@@ -579,7 +584,7 @@ describe("owner is assigned by owners", () => {
 
     it("lets an owner grant owner", async () => {
       const allowed = authorizer(true);
-      await newAuthorizeOwnerAssignmentStep(allowed, specOwnerRoleChange).execute(
+      await newAuthorizeOwnerAssignmentStep(allowed, specRoleAssignment).execute(
         specContext(orgRole("ida_bob", "owner", "acme")),
       );
       expect(allowed.asked).toEqual([ASSIGN_ROLES_ON_ACME]);
@@ -587,7 +592,7 @@ describe("owner is assigned by owners", () => {
 
     it("asks nothing for a role below owner, for owner on another kind, or for the internal caller", async () => {
       const denied = authorizer(false);
-      const step = newAuthorizeOwnerAssignmentStep(denied, specOwnerRoleChange);
+      const step = newAuthorizeOwnerAssignmentStep(denied, specRoleAssignment);
       await step.execute(specContext(orgRole("ida_bob", "admin", "acme")));
       await step.execute(
         specContext(triple({ kind: "identity_account", id: "ida_bob" }, "owner", { kind: "agent", id: "agt_1" })),
@@ -596,10 +601,49 @@ describe("owner is assigned by owners", () => {
       expect(denied.asked).toEqual([]);
     });
 
+    it("asks can_assign_roles on the routine when a grant gives Participant on it, refusing with the Participant copy", async () => {
+      const denied = authorizer(false);
+      const step = newAuthorizeOwnerAssignmentStep(denied, specRoleAssignment);
+      const participant = triple(
+        { kind: "identity_account", id: "ida_alerts" },
+        "participant",
+        { kind: "routine", id: "rtn_1" },
+      );
+      const error = await refusal(() => step.execute(specContext(participant)));
+      expect(error.code).toBe(Code.PermissionDenied);
+      expect(error.rawMessage).toBe(PARTICIPANT_ASSIGNMENT_DENIED_MESSAGE);
+      expect(denied.asked).toEqual([
+        { permission: IamPermission.can_assign_roles, resourceKind: ApiResourceKind.routine, resourceId: "rtn_1" },
+      ]);
+    });
+
+    it("asks can_assign_roles on the routine when a grant gives Viewer on it, refusing with the Viewer copy: a Viewer reads the runs that acted as the owner", async () => {
+      const denied = authorizer(false);
+      const viewer = triple({ kind: "identity_account", id: "ida_admin" }, "viewer", { kind: "routine", id: "rtn_1" });
+      const error = await refusal(() =>
+        newAuthorizeOwnerAssignmentStep(denied, specRoleAssignment).execute(specContext(viewer)),
+      );
+      expect(error.code).toBe(Code.PermissionDenied);
+      expect(error.rawMessage).toBe(VIEWER_ASSIGNMENT_DENIED_MESSAGE);
+      expect(denied.asked).toEqual([
+        { permission: IamPermission.can_assign_roles, resourceKind: ApiResourceKind.routine, resourceId: "rtn_1" },
+      ]);
+    });
+
+    it("asks nothing for taking Participant or Viewer away: removing access only shrinks it", async () => {
+      const denied = authorizer(false);
+      for (const role of ["participant", "viewer"]) {
+        await newAuthorizeOwnerAssignmentStep(denied, specOwnerAssignment).execute(
+          specContext(triple({ kind: "identity_account", id: "ida_alerts" }, role, { kind: "routine", id: "rtn_1" })),
+        );
+      }
+      expect(denied.asked).toEqual([]);
+    });
+
     it("asks when revokeOrgAccess removes an owner, and not when it removes anyone else", async () => {
       const store = await storeWith([["ida_root", "owner"], ["ida_dave", "member"]]);
       const denied = authorizer(false);
-      const step = newAuthorizeOwnerAssignmentStep(denied, orgAccessOwnerRoleChange(store));
+      const step = newAuthorizeOwnerAssignmentStep(denied, orgAccessOwnerAssignment(store));
 
       await step.execute(removalContext("ida_dave"));
       expect(denied.asked).toEqual([]);
@@ -654,10 +698,9 @@ describe("owner is assigned by owners", () => {
 
   it("reads the organization's owners once for both steps of one request", async () => {
     const store = await storeWith([["ida_root", "owner"], ["ida_rhea", "owner"]]);
-    const change = orgAccessOwnerRoleChange(store);
     const ctx = removalContext("ida_root");
-    await newAuthorizeOwnerAssignmentStep(authorizer(true), change).execute(ctx);
-    await newKeepOneOwnerStep(store, change).execute(ctx);
+    await newAuthorizeOwnerAssignmentStep(authorizer(true), orgAccessOwnerAssignment(store)).execute(ctx);
+    await newKeepOneOwnerStep(store, orgAccessOwnerRoleChange(store)).execute(ctx);
     expect(store.ownerReads()).toBe(1);
   });
 });

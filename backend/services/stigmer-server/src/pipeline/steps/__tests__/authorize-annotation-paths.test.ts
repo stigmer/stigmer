@@ -33,7 +33,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { ApiResourceKindSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { config as rpcAuthorizationConfig } from "@stigmer/apis/ai/stigmer/commons/rpc/method_options_pb";
-import { ScheduleCommandController } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/command_pb";
+import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
 import { GrantCommandController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/command_pb";
 
 import { everyService } from "../../../authorization/__tests__/contract-support.js";
@@ -157,9 +157,9 @@ describe("the check bites (mutation proofs over the same function)", () => {
   });
 
   it("a path through a oneof member is reported: the step cannot read it", () => {
-    const scheduleCreate = ScheduleCommandController.method.create;
-    expect(unresolvedPaths(scheduleCreate, { fieldPath: "spec.agent.message", resourceKindPath: "" })).toEqual([
-      `ai.stigmer.agentic.schedule.v1.ScheduleCommandController/create field_path "spec.agent.message" names "agent" of ai.stigmer.agentic.schedule.v1.ScheduleSpec, a member of oneof target, which the Authorize step reads as absent`,
+    const runCreate = RunCommandController.method.create;
+    expect(unresolvedPaths(runCreate, { fieldPath: "spec.session_spec.subject", resourceKindPath: "" })).toEqual([
+      `ai.stigmer.agentic.run.v1.RunCommandController/create field_path "spec.session_spec.subject" names "session_spec" of ai.stigmer.agentic.run.v1.RunSpec, a member of oneof target, which the Authorize step reads as absent`,
     ]);
   });
 

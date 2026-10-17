@@ -1,0 +1,81 @@
+/**
+ * The schedule-clock worker factory — ports the registration half of
+ * pkg/domain/schedule/temporal/worker_config.go.
+ *
+ * The tick runs on its own queue (schedule_stigmer): since a tick SPANS
+ * its run, a burst of long-tracking ticks must never starve the
+ * agent-execution queue's workers — and vice versa.
+ *
+ * The worker is created by the Temporal manager's factory list, which also
+ * RE-creates it on every reconnect. Components that merely call Temporal
+ * (the syncer, the reconciler) survive reconnects by reading the client
+ * through a provider; the worker is the one piece that must genuinely be
+ * rebuilt, because a worker is bound to the connection it was created
+ * with.
+ *
+ * The tick workflow registers under its byte-pinned slash type via the
+ * barrel's arbitrary export name (workflows/index.ts — Go's explicit
+ * RegisterWorkflowWithOptions{Name: TickWorkflowType} twin); the five
+ * activities register under their slash names as the activities object's
+ * keys.
+ */
+import type { Logger } from "../../boot/logger.js";
+import type { Store } from "../../store/interface.js";
+import type { WorkerFactory } from "../manager.js";
+import { resolveWorkflowSource } from "../workflow-source.js";
+import { createRoutineTickActivities } from "./activities.js";
+import type { RoutineTemporalConfig } from "./config.js";
+import type { RunStarter } from "./run-starter.js";
+import type { RoutineSyncer } from "./syncer.js";
+
+export interface RoutineWorkerDeps {
+  readonly store: Store;
+  readonly config: RoutineTemporalConfig;
+  readonly syncer: RoutineSyncer;
+  readonly runStarter: RunStarter;
+  readonly logger: Logger;
+}
+
+export function newRoutineWorkerFactory(
+  deps: RoutineWorkerDeps,
+): WorkerFactory {
+  return async ({ createWorker }) => {
+    const activities = createRoutineTickActivities({
+      store: deps.store,
+      config: deps.config,
+      syncer: deps.syncer,
+      runStarter: deps.runStarter,
+      logger: deps.logger,
+    });
+
+    const workflowSource = resolveWorkflowSource({
+      workflowsEntryCandidates: [
+        // Compiled dist (how conformance and the CLI boot the server).
+        new URL("./workflows/index.js", import.meta.url),
+        // The tsx dev loop runs from src/ — the SDK bundler compiles TS.
+        new URL("./workflows/index.ts", import.meta.url),
+      ],
+      prebuiltSibling: new URL(
+        "./workflow-bundle-routine.js",
+        import.meta.url,
+      ),
+    });
+
+    deps.logger.info("Creating schedule-clock Temporal worker", {
+      queue: deps.config.stigmerQueue,
+      workflow_source: workflowSource.kind,
+    });
+
+    // Connection, namespace, and the decode-only codec chain are the
+    // capability's concern (manager.ts's choke-point note) — the factory
+    // decides only queue, activities, and workflow source.
+    return createWorker({
+      taskQueue: deps.config.stigmerQueue,
+      activities,
+      workflows:
+        workflowSource.kind === "prebuilt"
+          ? { workflowBundle: { codePath: workflowSource.codePath } }
+          : { workflowsPath: workflowSource.workflowsPath },
+    });
+  };
+}

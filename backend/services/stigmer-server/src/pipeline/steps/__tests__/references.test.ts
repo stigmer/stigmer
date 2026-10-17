@@ -38,7 +38,7 @@ import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_p
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
-import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -103,7 +103,7 @@ async function failureOf(run: () => void | Promise<void>): Promise<unknown> {
 const SCHEMAS_UNDER_THE_RULE: ReadonlyArray<DescMessage> = [
   AgentSchema,
   VaultSchema,
-  ScheduleSchema,
+  RoutineSchema,
   ChannelSchema,
   SessionSchema,
   RunSchema,

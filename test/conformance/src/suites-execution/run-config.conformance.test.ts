@@ -22,8 +22,8 @@
 //   - a client-sent status run_config or approval mode never survives create;
 //     an interactive turn records INTERACTIVE.
 //
-// The schedule lane (its profile and UNATTENDED) is pinned by the
-// schedule-firing suite, and the resolution's full table beside its code
+// The routine lane (its profile and UNATTENDED) is pinned by the
+// routine-firing suite, and the resolution's full table beside its code
 // (resolve-run-config.test.ts).
 import { ApprovalMode, RunPhase, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";

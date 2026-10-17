@@ -44,7 +44,7 @@
  * a second grammar, and the primary key becomes the one home of "one row
  * per natural key" without a secondary index or a scan.
  */
-import { createHash } from "node:crypto";
+import { createHash, randomInt } from "node:crypto";
 
 import { create, clone } from "@bufbuild/protobuf";
 import type { DescMessage, Message } from "@bufbuild/protobuf";
@@ -443,6 +443,19 @@ export function generateId(prefix: string): string {
 
 /** Crockford base32, lowercased — the alphabet every minted ULID id uses. */
 const CROCKFORD_ALPHABET = "0123456789abcdefghjkmnpqrstvwxyz";
+
+/**
+ * `length` random characters of the minted ids' alphabet, slug-safe: the
+ * suffix that makes one name unique among names that share their prefix
+ * (a routine's manual fire, named by its second).
+ */
+export function randomIdSuffix(length: number): string {
+  let suffix = "";
+  for (let i = 0; i < length; i++) {
+    suffix += CROCKFORD_ALPHABET[randomInt(CROCKFORD_ALPHABET.length)];
+  }
+  return suffix;
+}
 const DERIVED_ID_CHARS = 26;
 const DERIVED_ID_BITS = BigInt(DERIVED_ID_CHARS * 5);
 const SHA256_BITS = 256n;

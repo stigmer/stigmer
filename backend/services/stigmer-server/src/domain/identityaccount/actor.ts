@@ -10,9 +10,9 @@
  * `accountAsCaller(account)` — the IN-PROCESS lane: no issuer, no token,
  * class `user`. Two consumers: the trusted-local boot ensure, which
  * grants the operator ownership AS their account
- * (domain/grant/membership.ts), and the built-in schedule fire
- * caller, which makes a fire act as the schedule's creator
- * (authorization/schedule-fire-caller.ts). Both ride the in-process
+ * (domain/grant/membership.ts), and a routine's fire, which acts as the
+ * routine's owner (domain/routine/owner.ts `ownerAsFireCaller`). Both ride
+ * the in-process
  * transport, whose interceptor stamps `origin: "in-process"` on top —
  * the transport-trust marker is never set here.
  *
@@ -73,7 +73,7 @@ import { SERVICE_ACCOUNT_CALLER_CLASS } from "../../extensions/identity.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 
 /**
- * The server acting as the account a row names (a schedule's creator, a
+ * The server acting as the account a row names (a routine's owner, a
  * grading or eval run's). A person is a `user`; an organization's service
  * account keeps its own class and works only in its organization, exactly
  * as its API key does (`serviceAccountCallerOf`), so no lane that acts as

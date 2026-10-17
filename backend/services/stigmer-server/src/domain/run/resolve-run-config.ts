@@ -32,8 +32,8 @@
  * Lanes (placeLane): an edition lane answered by drivers.runLanes first
  * (extensions/run-lanes.ts); then the core's own, each keyed on a fact the
  * chain has already vouched for:
- *   - schedule: the reserved schedule label (guard-reserved-labels.ts lets
- *     only the platform write it). The schedule profile, UNATTENDED: nobody
+ *   - routine: the reserved routine label (guard-reserved-labels.ts lets
+ *     only the platform write it). The routine profile, UNATTENDED: nobody
  *     is present at a fire to approve;
  *   - interactive: everything else. No profile, INTERACTIVE.
  *
@@ -45,8 +45,8 @@
  * saved settings name the model they are for, and only a live message may
  * set either alone. And it refuses an unattended turn that would
  * run Cursor with no model at any layer: the pin-presence rule
- * (temporal/schedule/model-pinning.ts) judged on what will run, closing an
- * agent whose engine is Cursor reached by a schedule that names no engine.
+ * (temporal/routine/model-pinning.ts) judged on what will run, closing an
+ * agent whose engine is Cursor reached by a routine that names no engine.
  * CreateSessionIfNeeded resolves again (reResolveRunConfig) when the
  * session it creates pins another version than the stamp did, and judges
  * the result by the same checks. A new conversation whose turn names a
@@ -84,7 +84,7 @@ import {
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { Store } from "../../store/interface.js";
-import { CURSOR_AUTO_PRICE_REASON } from "../../temporal/schedule/model-pinning.js";
+import { CURSOR_AUTO_PRICE_REASON } from "../../temporal/routine/model-pinning.js";
 import { readRunAgentSpec } from "../agent/run-defaults.js";
 import {
   HARNESS_NAME_CURSOR,
@@ -92,7 +92,7 @@ import {
 } from "../../modelcatalog/pin-validation.js";
 import { savedChoiceWithoutModelRefusal } from "../../modelcatalog/run-config-checks.js";
 
-import { SCHEDULE_ID_LABEL_KEY } from "../vault/resolve.js";
+import { ROUTINE_ID_LABEL_KEY } from "../vault/resolve.js";
 import { storedSessionOf } from "./session-binding.js";
 import { newSessionSpecOf, sessionIdOf } from "./target.js";
 
@@ -284,8 +284,8 @@ export interface ResolveRunConfigDeps {
   readonly store: Store;
   /** The edition's lanes (drivers.runLanes); undefined in open source. */
   readonly runLanes: RunLanes | undefined;
-  /** The schedule lane's operator profile (the fire-time bounds), if any. */
-  readonly scheduleProfile: RunConfig | undefined;
+  /** The routine lane's operator profile (the fire-time bounds), if any. */
+  readonly routineProfile: RunConfig | undefined;
 }
 
 export function newResolveRunConfigStep(
@@ -468,11 +468,11 @@ async function placeLane(
     };
   }
   const turn = execution.spec?.runConfig;
-  if ((execution.metadata?.labels[SCHEDULE_ID_LABEL_KEY] ?? "") !== "") {
+  if ((execution.metadata?.labels[ROUTINE_ID_LABEL_KEY] ?? "") !== "") {
     return {
       turn,
-      turnName: "the schedule's run_config",
-      profile: deps.scheduleProfile,
+      turnName: "the routine's run_config",
+      profile: deps.routineProfile,
       approvalMode: ApprovalMode.UNATTENDED,
       replacesRequest: false,
       saved: true,

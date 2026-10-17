@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Schedule } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleDetailView, useBreadcrumbOverride } from "@stigmer/react-sdk";
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineDetailView, useBreadcrumbOverride } from "@stigmer/react-sdk";
 import {
   useLibraryNavigation,
   useRouteDetailYieldsToOverlay,
@@ -31,7 +31,7 @@ interface ScheduleDetailPageInnerProps {
 }
 
 /**
- * Thin shell around the SDK's `ScheduleDetailView` (which owns the full
+ * Thin shell around the SDK's `RoutineDetailView` (which owns the full
  * action set — trigger, resume, enable/disable, inline editing, YAML,
  * delete): the page contributes only breadcrumb label sync, tab
  * deep-linking, and the navigation seams.
@@ -54,7 +54,7 @@ export function ScheduleDetailPageInner({
   useEffect(() => () => setLabel(null), [setLabel]);
 
   const handleResourceLoad = useCallback(
-    (loaded: Schedule) => {
+    (loaded: Routine) => {
       setLabel(loaded.metadata?.name || loaded.metadata?.slug || "Schedule");
       // The read answers the schedule's current slug: a URL naming one it
       // was renamed away from (which still leads to it) moves to it in place.
@@ -64,7 +64,7 @@ export function ScheduleDetailPageInner({
   );
 
   return (
-    <ScheduleDetailView
+    <RoutineDetailView
       org={org}
       slug={slug}
       editable

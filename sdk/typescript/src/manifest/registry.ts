@@ -29,9 +29,9 @@ import { ChannelQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel
 import { type ChannelApp, ChannelAppSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { ChannelAppQueryController } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/query_pb";
-import { type Schedule, ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleCommandController } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/command_pb";
-import { ScheduleQueryController } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/query_pb";
+import { type Routine, RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineCommandController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/command_pb";
+import { RoutineQueryController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/query_pb";
 import { type FederationIssuer, FederationIssuerSchema } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/api_pb";
 import { FederationIssuerCommandController } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/command_pb";
 import { FederationIssuerQueryController } from "@stigmer/apis/ai/stigmer/iam/federationissuer/v1/query_pb";
@@ -155,18 +155,18 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     getByReference: (c, ref) => c(ChannelQueryController).getByReference(ref),
     rename: (c, i) => c(ChannelCommandController).rename(i),
   },
-  // Last: a Schedule references an Agent — it applies after every kind it
+  // Last: a Routine references an Agent — it applies after every kind it
   // can target.
   {
-    kind: ApiResourceKind.schedule,
-    yamlKind: "Schedule",
-    displayName: "Schedule",
+    kind: ApiResourceKind.routine,
+    yamlKind: "Routine",
+    displayName: "Routine",
     apiVersion: AGENTIC_V1,
-    schema: ScheduleSchema,
+    schema: RoutineSchema,
     applyOrder: 12,
-    apply: (c, m) => c(ScheduleCommandController).apply(m as Schedule),
-    getByReference: (c, ref) => c(ScheduleQueryController).getByReference(ref),
-    rename: (c, i) => c(ScheduleCommandController).rename(i),
+    apply: (c, m) => c(RoutineCommandController).apply(m as Routine),
+    getByReference: (c, ref) => c(RoutineQueryController).getByReference(ref),
+    rename: (c, i) => c(RoutineCommandController).rename(i),
   },
 ];
 

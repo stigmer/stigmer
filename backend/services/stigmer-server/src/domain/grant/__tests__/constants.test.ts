@@ -306,7 +306,7 @@ describe("BLUEPRINT_KINDS — the legacy-creator rule's scan", () => {
     expect([...BLUEPRINT_KINDS]).toEqual([
       ApiResourceKind.agent,
       ApiResourceKind.skill,
-      ApiResourceKind.schedule,
+      ApiResourceKind.routine,
     ]);
   });
 

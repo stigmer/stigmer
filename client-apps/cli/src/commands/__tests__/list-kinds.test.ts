@@ -59,8 +59,8 @@ describe("stigmer list <kind>", () => {
   });
 
   it("passes every --label pair, the limit and the format to the list read", async () => {
-    await list("schedules", "-l", "team=support", "--label", "tier=gold", "--limit", "5", "--output", "json");
-    expect(reads.listResources).toHaveBeenCalledWith(stigmer, ApiResourceKind.schedule, "acme", 5, "json", {
+    await list("routines", "-l", "team=support", "--label", "tier=gold", "--limit", "5", "--output", "json");
+    expect(reads.listResources).toHaveBeenCalledWith(stigmer, ApiResourceKind.routine, "acme", 5, "json", {
       team: "support",
       tier: "gold",
     });

@@ -1,0 +1,1162 @@
+{
+  "resource": "routine",
+  "package": "ai.stigmer.agentic.routine.v1",
+  "goImportPath": "routinev1",
+  "services": [
+    {
+      "name": "RoutineCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/agentic/routine/v1/command.proto",
+      "methods": [
+        {
+          "name": "Apply",
+          "inputType": "Routine",
+          "inputFullType": "ai.stigmer.agentic.routine.v1.Routine",
+          "outputType": "Routine",
+          "outputFullType": "ai.stigmer.agentic.routine.v1.Routine",
+          "description": "Create or update a routine.\n\n A request that carries metadata.id of a routine in its organization\n updates that routine, and its slug changes only through rename. A slug the\n routine was renamed away from, named without the routine's id, is refused\n with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain\n \"stigmer.ai\"), because a write by a name that stops resolving after 30 days\n would later make a second routine:\n\n   - SLUG_RENAMED — the slug was renamed: it still leads to the same\n     routine for reading, but a write names its current slug. Metadata:\n     slug (the one the request named)."
+        },
+        {
+          "name": "Create",
+          "inputType": "Routine",
+          "inputFullType": "ai.stigmer.agentic.routine.v1.Routine",
+          "outputType": "Routine",
+          "outputFullType": "ai.stigmer.agentic.routine.v1.Routine",
+          "description": "Create a routine.\n\n Creating a routine is a spending decision: every run calls models on the\n organization's own provider keys, unattended, and the providers bill the\n organization for them. Every run acts as the routine's creator, its\n owner.\n\n A slug another routine of the organization holds is refused with\n ALREADY_EXISTS. A slug another routine was renamed away from, which still\n leads to it for 30 days, is refused with ALREADY_EXISTS carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"):\n\n   - SLUG_RESERVED — another routine held the slug until a recent rename,\n     and it still leads there. Metadata: slug."
+        },
+        {
+          "name": "Update",
+          "inputType": "UpdateRoutineInput",
+          "inputFullType": "ai.stigmer.agentic.routine.v1.UpdateRoutineInput",
+          "outputType": "Routine",
+          "outputFullType": "ai.stigmer.agentic.routine.v1.Routine",
+          "description": "Update a routine: the fields update_mask names change, every other\n field keeps its stored value.\n\n The referenced agent is immutable; the schedule, time zone, enablement\n and the message may change. Only the routine's owner may change what it\n runs (anything in spec but switching it off); whoever else may manage it\n may switch it off, rename, relabel or delete it, and is refused\n otherwise with PERMISSION_DENIED. Status (firing observations, the\n platform pause) is never touched by updates: use resume to clear a\n platform pause.\n\n resource.metadata.id names the routine; apply finds one by slug. The slug\n changes only through rename, and a mask naming a field another door\n owns, or a path the routine does not have, is refused with\n INVALID_ARGUMENT naming the path.\n\n An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ETAG_MISMATCH — resource.metadata.etag is set and the routine changed\n     since that etag was read: read it again and make the change again.\n     No metadata.\n   - WRITE_CONFLICT — the routine kept changing while the update was\n     being saved: try again. No metadata."
+        },
+        {
+          "name": "Rename",
+          "inputType": "RenameInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.RenameInput",
+          "outputType": "Routine",
+          "outputFullType": "ai.stigmer.agentic.routine.v1.Routine",
+          "description": "Rename a routine: change its slug, the name people type.\n\n The routine keeps its id, so everything that names it keeps working, and\n every answer names it by the new slug. The old slug keeps leading to the\n routine for reading for 30 days, during which no other routine of the\n organization can take it and this one can take it back; then it is\n released. A write that names the old slug is refused with SLUG_RENAMED (see\n apply). A slug another routine holds is refused with ALREADY_EXISTS, and\n one another routine was recently renamed away from with SLUG_RESERVED (see\n create).\n\n Its schedule keeps its times; a conversation an earlier run started keeps\n the name it was given then."
+        },
+        {
+          "name": "Delete",
+          "inputType": "RoutineId",
+          "inputFullType": "ai.stigmer.agentic.routine.v1.RoutineId",
+          "outputType": "Routine",
+          "outputFullType": "ai.stigmer.agentic.routine.v1.Routine",
+          "description": "Delete a routine.\n\n The routine stops permanently. Runs it started are untouched. To stop it\n while keeping the routine and its history, disable it (enabled=false)\n instead. Deleting the routine's agent deletes the routine too."
+        },
+        {
+          "name": "Resume",
+          "inputType": "RoutineId",
+          "inputFullType": "ai.stigmer.agentic.routine.v1.RoutineId",
+          "outputType": "Routine",
+          "outputFullType": "ai.stigmer.agentic.routine.v1.Routine",
+          "description": "Resume a routine the platform paused after repeated run failures.\n\n Clears status.paused_reason, resets status.consecutive_failures,\n and re-arms its schedule. Resuming a routine that is not paused\n succeeds and changes nothing. A disabled routine stays disabled:\n resume clears the platform's pause, not the owner's switch\n (spec.enabled)."
+        },
+        {
+          "name": "Fire",
+          "inputType": "FireRoutineInput",
+          "inputFullType": "ai.stigmer.agentic.routine.v1.FireRoutineInput",
+          "outputType": "RoutineFireResult",
+          "outputFullType": "ai.stigmer.agentic.routine.v1.RoutineFireResult",
+          "description": "Fire a routine once, immediately, and answer with the run's real\n outcome.\n\n The run acts as the routine's owner and starts a new conversation, with\n the routine's message. `text`, when set, is appended inside a block that\n tells the agent it is information from whoever started the run, not\n instructions: the routine's own message decides what to do with it.\n Each call is its own run, even two in one second; a caller that retries\n starts a second run.\n\n The fire runs synchronously through the standard run create pipeline\n (every launch gate runs), and the result names what happened: the\n created run's id, or the refusing gate's own copy verbatim.\n status.last_fire_at and status.last_run_id record a started run. A fire\n does NOT feed the failure streak: the streak is the schedule's\n unattended health signal, and a test fire of a broken routine must not\n race its owner to the pause threshold.\n\n A disabled routine refuses (enable it first). A platform-paused routine\n MAY be fired: a test fire is exactly how an owner verifies a fix before\n resuming; resume remains the one path that clears the pause."
+        }
+      ]
+    },
+    {
+      "name": "RoutineQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/agentic/routine/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "RoutineId",
+          "inputFullType": "ai.stigmer.agentic.routine.v1.RoutineId",
+          "outputType": "Routine",
+          "outputFullType": "ai.stigmer.agentic.routine.v1.Routine",
+          "description": "Get a single routine by ID."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "Routine",
+          "outputFullType": "ai.stigmer.agentic.routine.v1.Routine",
+          "description": "Get a routine by its organization-scoped reference (org/slug)."
+        },
+        {
+          "name": "ListByAgent",
+          "inputType": "ListRoutinesByAgentRequest",
+          "inputFullType": "ai.stigmer.agentic.routine.v1.ListRoutinesByAgentRequest",
+          "outputType": "RoutineList",
+          "outputFullType": "ai.stigmer.agentic.routine.v1.RoutineList",
+          "description": "List the routines of a specific agent, newest first.\n Returns only routines the caller has access to.\n\n This is how the agent's operational surfaces and CLI resolve an\n agent's existing routines regardless of slug."
+        },
+        {
+          "name": "List",
+          "inputType": "ListRoutinesRequest",
+          "inputFullType": "ai.stigmer.agentic.routine.v1.ListRoutinesRequest",
+          "outputType": "RoutineList",
+          "outputFullType": "ai.stigmer.agentic.routine.v1.RoutineList",
+          "description": "List routines with optional label filtering."
+        },
+        {
+          "name": "ListFires",
+          "inputType": "ListRoutineFiresRequest",
+          "inputFullType": "ai.stigmer.agentic.routine.v1.ListRoutineFiresRequest",
+          "outputType": "RoutineFireList",
+          "outputFullType": "ai.stigmer.agentic.routine.v1.RoutineFireList",
+          "description": "List a routine's fire history, newest first.\n\n Every fire leaves a row — including fires that created no run\n (a refused launch gate, a missing target agent) — with the refusing\n gate's copy verbatim. This is the surface that explains\n status.consecutive_failures."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "UpdateRoutineInput",
+      "description": "The changes an update makes to a routine: the fields update_mask names,\n taken from resource.",
+      "protoType": "ai.stigmer.agentic.routine.v1.UpdateRoutineInput",
+      "protoFile": "apis/ai/stigmer/agentic/routine/v1/io.proto",
+      "fields": [
+        {
+          "name": "Resource",
+          "jsonName": "resource",
+          "protoField": "resource",
+          "type": {
+            "kind": "message",
+            "messageType": "Routine"
+          },
+          "description": "The routine carrying the new values, named by metadata.id. Only the fields\n update_mask names are read, so the others may be left empty; the result\n is validated as a whole.",
+          "required": false
+        },
+        {
+          "name": "UpdateMask",
+          "jsonName": "updateMask",
+          "protoField": "update_mask",
+          "type": {
+            "kind": "message",
+            "messageType": "FieldMask"
+          },
+          "description": "The paths the update changes, as proto field names (spec.instructions,\n metadata.labels). A list or map at a named path is replaced whole; \"*\"\n names every path an update may change.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "RenameInput",
+      "description": "Input for renaming any API resource: changing its slug.\n\n Used by resource-specific command controllers whose kind lets a slug\n change. Each controller's rename RPC accepts this shared input and returns\n the full updated resource. A resource's slug never changes through update\n or apply; rename is its only writer.",
+      "protoType": "ai.stigmer.commons.apiresource.RenameInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the resource being renamed.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The new slug. Same format as metadata.slug, at most 63 characters: the\n longest a reference's org takes.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "FireRoutineInput",
+      "description": "Input for firing a routine once.",
+      "protoType": "ai.stigmer.agentic.routine.v1.FireRoutineInput",
+      "protoFile": "apis/ai/stigmer/agentic/routine/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Identifier of the routine to fire.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Text",
+          "jsonName": "text",
+          "protoField": "text",
+          "type": {
+            "kind": "string"
+          },
+          "description": "A short note for this run, such as the alert that prompted it. The run\n receives it after the routine's message, inside a block that says it is\n information from whoever started the run, not instructions.",
+          "required": false,
+          "validation": {
+            "maxLength": 65536
+          }
+        }
+      ]
+    },
+    {
+      "name": "RoutineFireResult",
+      "description": "Result of firing a routine.\n\n A gRPC error means the fire itself was refused (disabled routine,\n missing routine, unauthorized). A successful response means the fire\n happened, and this message names the run's real outcome.",
+      "protoType": "ai.stigmer.agentic.routine.v1.RoutineFireResult",
+      "protoFile": "apis/ai/stigmer/agentic/routine/v1/io.proto",
+      "fields": [
+        {
+          "name": "Routine",
+          "jsonName": "routine",
+          "protoField": "routine",
+          "type": {
+            "kind": "message",
+            "messageType": "Routine"
+          },
+          "description": "The routine after the fire, status freshly stamped.",
+          "required": false
+        },
+        {
+          "name": "Outcome",
+          "jsonName": "outcome",
+          "protoField": "outcome",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.routine.v1.RoutineFireOutcome",
+            "enumValues": [
+              "ROUTINE_FIRE_OUTCOME_STARTED",
+              "ROUTINE_FIRE_OUTCOME_REFUSED",
+              "ROUTINE_FIRE_OUTCOME_TARGET_MISSING",
+              "ROUTINE_FIRE_OUTCOME_SKIPPED",
+              "ROUTINE_FIRE_OUTCOME_COMPLETED",
+              "ROUTINE_FIRE_OUTCOME_FAILED",
+              "ROUTINE_FIRE_OUTCOME_TIMED_OUT"
+            ]
+          },
+          "description": "What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the\n terminal outcomes belong to fire history: a fire answers at run start).",
+          "required": false
+        },
+        {
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the created run. Set only when outcome is STARTED.",
+          "required": false
+        },
+        {
+          "name": "RefusalReason",
+          "jsonName": "refusalReason",
+          "protoField": "refusal_reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The refusing launch gate's copy, verbatim. Set only when outcome is\n REFUSED or TARGET_MISSING.",
+          "required": false
+        },
+        {
+          "name": "FireId",
+          "jsonName": "fireId",
+          "protoField": "fire_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "This fire's id in the routine's fire history (RoutineFire.fire_id).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceReference",
+      "description": "Generic reference to any API resource.\n Used across resources to reference other resources (e.g., Vault, Agent, Skill).\n Canonical written format: \"org/slug\" (e.g., \"acme/web-search\", \"acme/my-agent\").\n\n A reference has three forms:\n - Written: by name (org and slug), by id, or by both. A write that carries\n   both must have them agree, or it is refused naming both. A name is\n   resolved to its resource's id when the referring resource is written.\n - Stored: org (the organization's id), kind, id and version. The slug is\n   not stored, so a reference keeps pointing at the resource it meant when\n   that resource is renamed, and never at a new resource that takes its old\n   name after it is deleted.\n - Returned: as stored, with slug filled with the resource's current name.\n   A reference whose resource was deleted is returned with an empty slug.\n\n The kind a reference names is the kind its field declares\n (reference_kind); a reference that carries another kind is refused.\n\n Every reference in a resource's spec is checked when the resource is\n written: the target must exist, and a target in another organization\n must be one the writing organization's parent shares with its child\n organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be\n more visible than the skills, plugins and agents it references, so\n what a person can run they can also read. A reference that fails the\n check is refused at write, never at run.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the referenced resource, by slug or id.\n\n When non-empty: an organization slug (lowercase alphanumeric with hyphens,\n starts with a letter, 2-63 characters; e.g. \"stigmer\", \"acme-corp\") or an\n organization id (org_\u003culid\u003e). The server stores the id, so a stored\n reference keeps pointing at its organization across a rename.\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form, the id).\n\n Use empty org for same-org references (the common case).\n An explicit other org is accepted only when that organization is your\n organization's parent and shares the resource with its children\n (visibility_child_orgs).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$|^org_[0-9a-z]{26}$"
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+            "enumValues": [
+              "api_resource_version",
+              "grant",
+              "identity_account",
+              "api_key",
+              "invitation",
+              "federation_issuer",
+              "oauth_app",
+              "team",
+              "organization",
+              "platform",
+              "agent",
+              "run",
+              "session",
+              "skill",
+              "channel",
+              "channel_app",
+              "routine",
+              "memory",
+              "plugin",
+              "vault",
+              "score",
+              "scoring_rule",
+              "eval_run",
+              "eval",
+              "plan",
+              "subscription",
+              "license"
+            ]
+          },
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter\n and end with a letter or digit (e.g., \"web-search\", \"code-reviewer\").\n Length: 2-63 characters.\n\n Written to name the resource; never stored; returned filled with the\n resource's current name, empty when the resource was deleted.",
+          "required": false,
+          "validation": {
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Version",
+          "jsonName": "version",
+          "protoField": "version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The version of a skill, a plugin or a subagent the reference asks for;\n every other kind ignores it.\n\n Formats:\n - empty or \"latest\": the latest version;\n - a tag (e.g. \"stable\", \"v1.0\"): the version the tag names;\n - a 64-character hash: that exact version, which never changes.\n\n When it is read: a skill or plugin reference is resolved at the start\n of each turn, so a reference without a hash follows each new push, and\n the run records the version it loaded (RunStatus.loaded_versions). A\n subagent reference is resolved once, when the agent that lists it is\n saved, and the saved reference carries the hash it resolved to.",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
+          }
+        },
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The referenced resource's id: what a stored reference holds. Optional\n on write, where the slug may name the resource instead; an id no\n resource of the kind holds answers as a missing resource. At most 64\n characters.",
+          "required": false,
+          "validation": {
+            "maxLength": 64
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListRoutinesByAgentRequest",
+      "description": "Input for retrieving all routines of a specific agent.",
+      "protoType": "ai.stigmer.agentic.routine.v1.ListRoutinesByAgentRequest",
+      "protoFile": "apis/ai/stigmer/agentic/routine/v1/io.proto",
+      "fields": [
+        {
+          "name": "AgentId",
+          "jsonName": "agentId",
+          "protoField": "agent_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Identifier of the agent whose routines to retrieve.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to scope the results to.\n\n When set, only routines whose metadata.org matches are returned —\n the org-context view a console tab needs. When empty, results are\n bounded only by the caller's view permissions, which for a member of\n several organizations spans all of them.",
+          "required": false
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
+        },
+        {
+          "name": "Labels",
+          "jsonName": "labels",
+          "protoField": "labels",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Only resources carrying every label given, each matched exactly (AND).\n A selective filter may answer short pages, even empty ones, that still\n carry a token.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "RoutineList",
+      "description": "Response containing a paginated list of routines.",
+      "protoType": "ai.stigmer.agentic.routine.v1.RoutineList",
+      "protoFile": "apis/ai/stigmer/agentic/routine/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "Routine"
+            }
+          },
+          "description": "Routines in the current page.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListRoutinesRequest",
+      "description": "Input for listing routines within an organization.",
+      "protoType": "ai.stigmer.agentic.routine.v1.ListRoutinesRequest",
+      "protoFile": "apis/ai/stigmer/agentic/routine/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to scope the listing.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Labels",
+          "jsonName": "labels",
+          "protoField": "labels",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Only resources carrying every label given, each matched exactly (AND).\n A selective filter may answer short pages, even empty ones, that still\n carry a token.",
+          "required": false
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListRoutineFiresRequest",
+      "description": "Input for listing a routine's fire history.",
+      "protoType": "ai.stigmer.agentic.routine.v1.ListRoutineFiresRequest",
+      "protoFile": "apis/ai/stigmer/agentic/routine/v1/io.proto",
+      "fields": [
+        {
+          "name": "RoutineId",
+          "jsonName": "routineId",
+          "protoField": "routine_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Routine whose fires to list.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
+        }
+      ]
+    },
+    {
+      "name": "RoutineFireList",
+      "description": "Response containing a paginated list of routine fires, newest first.",
+      "protoType": "ai.stigmer.agentic.routine.v1.RoutineFireList",
+      "protoFile": "apis/ai/stigmer/agentic/routine/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "RoutineFire"
+            }
+          },
+          "description": "Fires in the current page.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "RoutineFireOutcome",
+      "description": "What one routine fire produced.",
+      "protoType": "ai.stigmer.agentic.routine.v1.RoutineFireOutcome",
+      "values": [
+        {
+          "name": "ROUTINE_FIRE_OUTCOME_STARTED",
+          "number": 1,
+          "description": "A run was created (or idempotently re-found) and is running."
+        },
+        {
+          "name": "ROUTINE_FIRE_OUTCOME_REFUSED",
+          "number": 2,
+          "description": "A launch gate refused the run deterministically; reason carries the\n gate's copy verbatim."
+        },
+        {
+          "name": "ROUTINE_FIRE_OUTCOME_TARGET_MISSING",
+          "number": 3,
+          "description": "The routine's agent_ref no longer resolves."
+        },
+        {
+          "name": "ROUTINE_FIRE_OUTCOME_SKIPPED",
+          "number": 4,
+          "description": "The fire no-opped: the row was deleted, disabled, or paused between\n the fire being recorded and the run starting."
+        },
+        {
+          "name": "ROUTINE_FIRE_OUTCOME_COMPLETED",
+          "number": 5,
+          "description": "The tracked run reached RUN_COMPLETED."
+        },
+        {
+          "name": "ROUTINE_FIRE_OUTCOME_FAILED",
+          "number": 6,
+          "description": "The tracked run ended terminal-but-not-completed (failed, cancelled,\n or terminated); reason names the terminal phase."
+        },
+        {
+          "name": "ROUTINE_FIRE_OUTCOME_TIMED_OUT",
+          "number": 7,
+          "description": "The tracked run outlived the fire's tracking budget."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "grant",
+          "number": 10,
+          "description": "One role given to one principal on one resource. Who holds what on a\n resource is the set of its grants."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "federation_issuer",
+          "number": 21,
+          "description": "An outside issuer whose tokens Stigmer accepts for its own users\n (identity federation): its keys, its audience, and what its tokens get."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "team",
+          "number": 24,
+          "description": "Named group of an organization's people that access is shared with as one."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "The boundary that holds people, Agents, Sessions and secrets\n together; nothing outside it sees them.\n\n Its id is a minted org_\u003culid\u003e that never changes; every organization-scoped\n resource names it by that id (metadata.org). Its slug is unique across the\n server and may change through rename; requests may name the organization\n by either."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "run",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "channel",
+          "number": 47,
+          "description": "A way people reach an agent: a chat link or website widget, a Slack\n workspace, or a WhatsApp number."
+        },
+        {
+          "name": "channel_app",
+          "number": 48,
+          "description": "Customer-owned messaging-platform app (e.g. a Slack app) that\n channels can install through instead of the shared platform app."
+        },
+        {
+          "name": "routine",
+          "number": 56,
+          "description": "A saved agent invocation, run on an optional schedule or fired by Run now\n or over the API, acting as its owner."
+        },
+        {
+          "name": "memory",
+          "number": 57,
+          "description": "Agent-proposed, user-confirmed fact the platform remembers about a person."
+        },
+        {
+          "name": "plugin",
+          "number": 58,
+          "description": "An installed Agent Plugins package: one thing holding skills, agents,\n hooks and MCP servers, which agents and conversations list whole."
+        },
+        {
+          "name": "vault",
+          "number": 59,
+          "description": "A person's or an organization's box of logins (matched by a tool's\n address) and secrets (matched by name) that runs use."
+        },
+        {
+          "name": "score",
+          "number": 61,
+          "description": "One grade of a finished run: a person's thumbs or a free run-health\n check."
+        },
+        {
+          "name": "scoring_rule",
+          "number": 62,
+          "description": "AI grading switched on for one agent: its sample rate, monthly spending\n limit and judge model."
+        },
+        {
+          "name": "eval_run",
+          "number": 65,
+          "description": "One run of test cases on an agent, or on a plugin on the built-in\n assistant, optionally with and without a plugin."
+        },
+        {
+          "name": "eval",
+          "number": 66,
+          "description": "A set of test cases for an agent: an evals/ folder in Claude Code's\n plugin-eval format, pushed whole."
+        },
+        {
+          "name": "plan",
+          "number": 70,
+          "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."
+        },
+        {
+          "name": "subscription",
+          "number": 71,
+          "description": "An organization's binding to a Plan; at most one active per organization.\n\n System-created: the payment system drives its lifecycle, so it has no\n owner and grants no roles. Its reads and writes authorize on the\n organization through the billing permissions."
+        },
+        {
+          "name": "license",
+          "number": 72,
+          "description": "A signed grant of entitlements to a self-hosting customer for a term.\n\n Platform-level: issued by the cloud's operators and verified offline by\n the Enterprise server, so the customer is a value inside the license\n (which may or may not name a cloud organization) and the kind has no\n authorization scope and no owner. Claims are immutable once signed; a\n renewal is a new License."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines which\n users, inside that organization or in its child organizations, can read\n the resource. No level reaches every\n account on the server.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n   (everyone in every child organization of the owning organization)\n - PUBLIC: retired; see the value's own comment.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, channel,\n skill, plugin), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Retired. This level made a resource readable to every account on the\n server; it is refused at create and at updateVisibility for every kind,\n and every stored row that held it has been moved to visibility_org.\n Sharing across organizations happens through plugins (a copy is\n installed and owned) or, from a parent organization to its children,\n through visibility_child_orgs."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role just-in-time provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_run_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
+        },
+        {
+          "name": "visibility_child_orgs",
+          "number": 4,
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and vaults are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+        }
+      ]
+    },
+    {
+      "name": "Harness",
+      "description": "Harness identifies the execution engine that processes agent activities\n for a session.\n\n Each harness corresponds to a different Temporal activity type registered\n by the runner daemon. The harness determines:\n - Which tools the agent has access to\n - How conversation state is managed (Stigmer checkpoints vs engine-native)\n - Which LLM models are available\n - Billing tier and cost structure\n\n HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.",
+      "protoType": "ai.stigmer.agentic.session.v1.Harness",
+      "values": [
+        {
+          "name": "HARNESS_NATIVE",
+          "number": 1,
+          "description": "Stigmer's native execution engine.\n\n Stigmer-managed checkpoints, custom tools, sandbox isolation,\n pause/resume, and full HITL approval flow."
+        },
+        {
+          "name": "HARNESS_CURSOR",
+          "number": 2,
+          "description": "Cursor SDK execution engine.\n\n Cursor-managed conversation state, Cursor built-in tools + MCP,\n both local and cloud runtimes. Premium billing tier."
+        }
+      ]
+    },
+    {
+      "name": "GitWriteBackMode",
+      "description": "GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.",
+      "protoType": "ai.stigmer.agentic.session.v1.GitWriteBackMode",
+      "values": [
+        {
+          "name": "GIT_WRITE_BACK_BRANCH_AND_PR",
+          "number": 1,
+          "description": "Create a branch and pull request from the agent's file changes after the run completes."
+        }
+      ]
+    },
+    {
+      "name": "ServiceTier",
+      "description": "ServiceTier selects the provider-side speed/service tier for a run's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what a run pays (stigmer/stigmer#357).",
+      "protoType": "ai.stigmer.agentic.run.v1.ServiceTier",
+      "values": [
+        {
+          "name": "SERVICE_TIER_STANDARD",
+          "number": 1,
+          "description": "Standard tier: the model's base-priced configuration, requested\n explicitly."
+        },
+        {
+          "name": "SERVICE_TIER_FAST",
+          "number": 2,
+          "description": "Fast tier: the model's fast variant, billed at the registry's fast\n variant rates.\n\n Valid only for models whose registry entry declares a fast pricing\n variant; refused at run create otherwise."
+        }
+      ]
+    },
+    {
+      "name": "ThinkingMode",
+      "description": "ThinkingMode selects the model's extended-reasoning (\"thinking\") variant\n for a run's model calls — the second variant dimension alongside\n ServiceTier (stigmer/stigmer#772).\n\n Unlike the fast tier, thinking is NOT a separately priced dimension:\n Cursor bills thinking variants at the model's base per-token rates\n (verified against the live pricing page and 277 team-ledger events on\n 2026-08-15 — thinking wire ids bill exactly base; thinking+fast bills\n exactly the fast variant rate). Thinking costs more only by generating\n additional reasoning tokens, billed as ordinary output. Selectability is\n therefore CAPABILITY-gated, not pricing-gated: ENABLED is valid only for\n models whose registry entry on the run's harness declares a\n thinking capability (capabilities.thinking or capabilities.adaptive_thinking),\n refused at create time otherwise. ENABLED means \"the model reasons before\n it answers\", in the form its entry declares: a fixed budget or adaptive\n depth.\n\n The load-bearing rule mirrors ServiceTier: UNSPECIFIED resolves to\n THINKING_MODE_DISABLED — never the provider account default. Several\n catalog default variants are thinking=true (claude-haiku-4-5), so an\n unpinned selection would silently follow an out-of-band account setting;\n the runner always sends an explicit thinking pin where the model declares\n the parameter. The one exception is a model whose entry declares\n capabilities.thinking_required: it always thinks, so an explicit DISABLED\n is refused at create and UNSPECIFIED runs with thinking on.",
+      "protoType": "ai.stigmer.agentic.run.v1.ThinkingMode",
+      "values": [
+        {
+          "name": "THINKING_MODE_DISABLED",
+          "number": 1,
+          "description": "Extended reasoning off: the model's base variant, requested explicitly\n (thinking=false pinned where the model declares the parameter).\n Refused at run create for a model that requires thinking."
+        },
+        {
+          "name": "THINKING_MODE_ENABLED",
+          "number": 2,
+          "description": "Extended reasoning on: the model's thinking variant, billed at base\n per-token rates (reasoning tokens bill as output tokens).\n\n Valid only for models whose registry entry on the run's harness\n declares a thinking capability; refused at run create otherwise."
+        }
+      ]
+    },
+    {
+      "name": "RoutineFireOrigin",
+      "description": "How a routine fire was initiated.",
+      "protoType": "ai.stigmer.agentic.routine.v1.RoutineFireOrigin",
+      "values": [
+        {
+          "name": "ROUTINE_FIRE_ORIGIN_SCHEDULE",
+          "number": 1,
+          "description": "The routine's schedule fired it on its cron cadence."
+        },
+        {
+          "name": "ROUTINE_FIRE_ORIGIN_MANUAL",
+          "number": 2,
+          "description": "A caller fired the routine through the fire command (Run now, the API)."
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "Routine is a saved agent invocation: an agent and the message each run\n starts from, run on an optional schedule, or fired by Run now or over the\n API with a short note.\n\n A routine is operational configuration, like Channel. Every run acts as\n the routine's owner (the account that created it), in a fresh\n conversation the owner owns; only the owner changes what it runs, and only\n the owner chooses who may fire it (Participants). The platform-observed\n firing state (next fire time, failure streak, auto-pause) lives in\n status. Deleting a routine stops it permanently; disabling it keeps the\n routine and its history.",
+  "statusType": {
+    "name": "RoutineStatus",
+    "description": "RoutineStatus contains system-managed state for a routine.",
+    "protoType": "ai.stigmer.agentic.routine.v1.RoutineStatus",
+    "protoFile": "apis/ai/stigmer/agentic/routine/v1/status.proto",
+    "fields": [
+      {
+        "name": "NextFireAt",
+        "jsonName": "nextFireAt",
+        "protoField": "next_fire_at",
+        "type": {
+          "kind": "timestamp"
+        },
+        "description": "When the routine's schedule next fires, in UTC. Absent while the\n routine has no schedule, is disabled or auto-paused, or is not yet\n synchronized with the clock.",
+        "required": false
+      },
+      {
+        "name": "LastFireAt",
+        "jsonName": "lastFireAt",
+        "protoField": "last_fire_at",
+        "type": {
+          "kind": "timestamp"
+        },
+        "description": "When the routine last fired, in UTC.",
+        "required": false
+      },
+      {
+        "name": "LastRunId",
+        "jsonName": "lastRunId",
+        "protoField": "last_run_id",
+        "type": {
+          "kind": "string"
+        },
+        "description": "ID of the run created by the most recent fire.",
+        "required": false
+      },
+      {
+        "name": "ConsecutiveFailures",
+        "jsonName": "consecutiveFailures",
+        "protoField": "consecutive_failures",
+        "type": {
+          "kind": "int32"
+        },
+        "description": "Number of consecutive failed runs. A successful run resets it.",
+        "required": false
+      },
+      {
+        "name": "PausedReason",
+        "jsonName": "pausedReason",
+        "protoField": "paused_reason",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Why the platform paused this routine; empty when not paused.\n Cleared only by the resume RPC — the owner's explicit act.",
+        "required": false
+      },
+      {
+        "name": "VaultAttachers",
+        "jsonName": "vaultAttachers",
+        "protoField": "vault_attachers",
+        "type": {
+          "kind": "map",
+          "keyType": {
+            "kind": "string"
+          },
+          "valueType": {
+            "kind": "string"
+          }
+        },
+        "description": "Who attached each of this resource's vaults, by vault id: the account\n whose permission to use the vault each run checks when it has no\n person.",
+        "required": false
+      },
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.)",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.\n\n This is the platform's single actor vocabulary: every \"who did this\"\n reference (created_by / updated_by, version-history applied_by / pushed_by,\n approval resolved_by_actor) uses this message, so actor rendering is\n uniform across all surfaces.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": "displayName",
+          "protoField": "display_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable display name (e.g. \"Ada Lovelace\"). Empty when unknown;\n renderers fall back to email, then id.",
+          "required": false
+        },
+        {
+          "name": "Email",
+          "jsonName": "email",
+          "protoField": "email",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Email address of the actor. Empty when unknown or not applicable\n (e.g. machine accounts).",
+          "required": false
+        },
+        {
+          "name": "MintedBy",
+          "jsonName": "mintedBy",
+          "protoField": "minted_by",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The service account whose key minted the user token the actor acted\n through. Empty for every other credential, and on an actor that records\n no act (an account's profile lookup).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

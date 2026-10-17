@@ -39,7 +39,7 @@ import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/r
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile, type TenancyContext } from "../targets";
 
-// Collection-time capability read (the schedule-firing/forwarder pattern).
+// Collection-time capability read (the routine-firing/forwarder pattern).
 const billingEnabled = createTarget().capabilities.billingGates;
 
 let target: TargetProfile;

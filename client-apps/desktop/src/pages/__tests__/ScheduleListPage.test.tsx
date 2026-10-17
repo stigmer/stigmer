@@ -49,9 +49,9 @@ vi.mock("@stigmer/react-sdk", () => ({
     page.dialog.push(props);
     return null;
   },
-  ScheduleRowActions: () => null,
-  createScheduleColumns: () => [],
-  createScheduleListFn: () => LIST_FN,
+  RoutineRowActions: () => null,
+  createRoutineColumns: () => [],
+  createRoutineListFn: () => LIST_FN,
   useStigmer: () => ({}),
   useActiveOrgId: () => "org_acme",
   // The person's organizations: org_acme reads "acme" in a URL.

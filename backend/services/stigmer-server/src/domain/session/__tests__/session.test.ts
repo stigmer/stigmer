@@ -39,6 +39,9 @@
  *     cloud-default config flips which transitions count as changes;
  *   - harness_state_id_history is server-owned: appended on replace, never
  *     duplicated, client-sent values discarded;
+ *   - a session a routine's fire creates, over the in-process transport with
+ *     the fire's routine on the propagated identity, records that routine in
+ *     status.routine_id; a wire create records none;
  *   - an update keeps a write that lands between its read and its write:
  *     the lost swap runs the chain again from a fresh read, so the stored
  *     row and the answer carry both the landed visibility and the update;
@@ -86,6 +89,11 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import {
+  IN_PROCESS_CALLER_HEADER,
+  encodeInProcessCaller,
+  trustedLocalIdentity,
+} from "../../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { EVAL_RUN_LABEL } from "../../eval-run/constants.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
@@ -367,6 +375,23 @@ describe("session create and update — the agent it names", () => {
     expect(fetched.status?.agentVersionHash).toBe(secondHash);
 
     await command.delete({ value: session.metadata!.id });
+  });
+});
+
+describe("session create — the routine a fire carries", () => {
+  it("records the routine on the session a fire's in-process create makes, and none on a wire create", async () => {
+    const inProcess = createClient(SessionCommandController, server.inProcessTransport);
+    const caller = { ...trustedLocalIdentity(), routineId: "rtn_01fired" };
+    const fired = await inProcess.create(
+      // In-process requests name the organization by id; only the serving
+      // chain resolves a slug.
+      { apiVersion: API_VERSION, kind: "Session", metadata: { name: "Fired", org: orgIds.get(ORG)! }, spec: {} },
+      { headers: { [IN_PROCESS_CALLER_HEADER]: encodeInProcessCaller(caller) } },
+    );
+    expect(fired.status?.routineId).toBe("rtn_01fired");
+
+    const wire = await createSession();
+    expect(wire.status?.routineId ?? "").toBe("");
   });
 });
 

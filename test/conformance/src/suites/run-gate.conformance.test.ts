@@ -43,7 +43,7 @@
 //     subagent an agent the member cannot run (PERMISSION_DENIED with the
 //     field's copy), and may list one they can.
 //
-// Deliberately out of scope: the runtime lanes (guest, channel, schedule),
+// Deliberately out of scope: the runtime lanes (guest, channel, routine),
 // whose admission is decided by their own gate steps and
 // pinned by their own suites.
 //

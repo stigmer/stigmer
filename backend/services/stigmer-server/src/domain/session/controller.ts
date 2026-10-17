@@ -116,6 +116,7 @@ import {
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { newStampSessionRoutineStep } from "./routine-link.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-input.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
@@ -314,6 +315,7 @@ async function createSession(
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
+    .addStep(newStampSessionRoutineStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SESSION_VAULT_ATTACHMENTS))

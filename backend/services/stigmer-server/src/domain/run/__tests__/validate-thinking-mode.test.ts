@@ -43,7 +43,7 @@ import { newValidateThinkingModeStep } from "../validate-thinking-mode.js";
 const unreadStore = {
   store: {} as Store,
   runLanes: undefined,
-  scheduleProfile: undefined,
+  routineProfile: undefined,
 };
 
 const silentLogger = createLogger({

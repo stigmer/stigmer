@@ -8,7 +8,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SessionStatus(_message.Message):
-    __slots__ = ("audit", "agent_id", "agent_version_hash", "vault_attachers", "state", "harness_state_id", "harness_state_id_history")
+    __slots__ = ("audit", "agent_id", "agent_version_hash", "vault_attachers", "state", "harness_state_id", "harness_state_id_history", "routine_id")
     class VaultAttachersEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -23,6 +23,7 @@ class SessionStatus(_message.Message):
     STATE_FIELD_NUMBER: _ClassVar[int]
     HARNESS_STATE_ID_FIELD_NUMBER: _ClassVar[int]
     HARNESS_STATE_ID_HISTORY_FIELD_NUMBER: _ClassVar[int]
+    ROUTINE_ID_FIELD_NUMBER: _ClassVar[int]
     audit: _status_pb2.ApiResourceAudit
     agent_id: str
     agent_version_hash: str
@@ -30,4 +31,5 @@ class SessionStatus(_message.Message):
     state: str
     harness_state_id: str
     harness_state_id_history: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., agent_id: _Optional[str] = ..., agent_version_hash: _Optional[str] = ..., vault_attachers: _Optional[_Mapping[str, str]] = ..., state: _Optional[str] = ..., harness_state_id: _Optional[str] = ..., harness_state_id_history: _Optional[_Iterable[str]] = ...) -> None: ...
+    routine_id: str
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., agent_id: _Optional[str] = ..., agent_version_hash: _Optional[str] = ..., vault_attachers: _Optional[_Mapping[str, str]] = ..., state: _Optional[str] = ..., harness_state_id: _Optional[str] = ..., harness_state_id_history: _Optional[_Iterable[str]] = ..., routine_id: _Optional[str] = ...) -> None: ...

@@ -2,7 +2,7 @@
  * Pins the built-in grading caller on both store drivers: an AI judge run
  * acts as the creator of the scoring rule that asked for it, resolved from the
  * row's creation stamp as the schedule fire's creator is
- * (schedule-fire-caller.postgres.test.ts beside this file), and only for a
+ * (domain/routine/__tests__/owner.postgres.test.ts), and only for a
  * run that creator may see: a judge's session holds the run's
  * conversation, so a creator the authorizer refuses on the run is the
  * seam's DETERMINISTIC refusal, as is a scoring rule whose stamp names no

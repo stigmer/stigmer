@@ -96,7 +96,7 @@ let clients: ConformanceClients;
 let mock: MockLlmProxy;
 const fixtures = new FixtureTracker();
 
-// Collection-time capability read (the schedule-firing/forwarder pattern):
+// Collection-time capability read (the routine-firing/forwarder pattern):
 // Long enough to keep a held execution IN_PROGRESS across the poll-and-act window
 // (tests act within ~1s), well under the runner activity's 2-minute heartbeat and
 // 24-hour start-to-close. A held turn aborts the instant the client disconnects

@@ -24,8 +24,8 @@ contents:
   - agentic/scoring_rule.fga
   - agentic/memory.fga
   - agentic/plugin.fga
+  - agentic/routine.fga
   - agentic/run.fga
-  - agentic/schedule.fga
   - agentic/score.fga
   - agentic/session.fga
   - agentic/skill.fga

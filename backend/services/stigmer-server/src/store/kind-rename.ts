@@ -1,6 +1,6 @@
 /**
  * The data migration a store driver runs each time a kind was renamed: the
- * kind's stored name and the rows that spell it. It has run five times,
+ * kind's stored name and the rows that spell it. It has run six times,
  * with the same transformation and different names:
  *
  *   - SQLite v18, Postgres v13: agent executions became agent runs
@@ -27,6 +27,12 @@
  *     thing that runs evals. Its rows keep their `evl_` ids. It lists no
  *     grantable roles, so no grant and no history entry names it, and the
  *     grant arm finds none.
+ *   - SQLite v42, Postgres v38: the schedule became a routine
+ *     (`schedule`, `Schedule` to `routine`, `Routine`), the word users know
+ *     for a saved agent invocation. Its rows keep their `sch_` ids. Its
+ *     grants are `grt_` rows this module's grant arm does not read, so its
+ *     step re-keys them itself, with its ledger and its runs'
+ *     labels (schedules-become-routines.ts, `ROUTINE_RENAME_V38`).
  *
  * The drivers own the SQL (which rows to read, in what pages, how to write
  * them, the transaction), one helper each that takes a rename; this module
@@ -276,8 +282,12 @@ export function movedGrant(storedId: string, data: Uint8Array): RekeyedGrant | u
   return { id, data: toBinary(GrantSchema, grant) };
 }
 
-/** The id `spec` derives under `prefix`, refusing a triple no grant could hold. */
-function stepGrantId(prefix: string, spec: GrantSpec): string {
+/**
+ * The id `spec` derives under `prefix`, refusing a triple no grant could
+ * hold; a later step that changes a grant's triple derives its id here too
+ * (schedules-become-routines.ts).
+ */
+export function stepGrantId(prefix: string, spec: GrantSpec): string {
   const malformed = malformedTripleField(spec);
   if (malformed !== undefined) {
     throw new Error(malformedTripleMessage(malformed));

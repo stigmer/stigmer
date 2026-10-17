@@ -96,7 +96,7 @@ const CLAIMING_KINDS = [
   ApiResourceKind.skill,
   ApiResourceKind.channel,
   ApiResourceKind.channel_app,
-  ApiResourceKind.schedule,
+  ApiResourceKind.routine,
   ApiResourceKind.memory,
   ApiResourceKind.plugin,
   ApiResourceKind.vault,

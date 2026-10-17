@@ -29,7 +29,7 @@ vi.mock("@stigmer/react-sdk", () => {
   return {
     PluginDetailView: capture("PluginDetailView"),
     SkillDetailView: capture("SkillDetailView"),
-    ScheduleDetailView: capture("ScheduleDetailView"),
+    RoutineDetailView: capture("RoutineDetailView"),
     EditResourceYamlDialog: () => null,
     ConfirmDialog: () => null,
     useCopyResource: () => ({ copyId: noop, copyQualifiedSlug: noop }),
@@ -125,7 +125,7 @@ describe("desktop ScheduleDetailPage — organizations", () => {
     renderDetail(ScheduleDetailPage);
 
     act(() =>
-      last<{ onNavigateToAgent: (org: string, slug: string) => void }>("ScheduleDetailView").onNavigateToAgent(
+      last<{ onNavigateToAgent: (org: string, slug: string) => void }>("RoutineDetailView").onNavigateToAgent(
         "org_shared",
         "linked",
       ),
@@ -136,7 +136,7 @@ describe("desktop ScheduleDetailPage — organizations", () => {
 });
 
 describe("desktop ScheduleDetailPage — its own slug", () => {
-  type ScheduleView = {
+  type RoutineView = {
     onResourceLoad: (schedule: { metadata: { name: string; slug: string } }) => void;
     onRenamed: (schedule: { metadata?: { slug: string } }) => void;
   };
@@ -144,10 +144,10 @@ describe("desktop ScheduleDetailPage — its own slug", () => {
   it("moves the route to the slug the loaded schedule answers to now, and to the one a rename gave it", () => {
     renderDetail(ScheduleDetailPage);
 
-    act(() => last<ScheduleView>("ScheduleDetailView").onResourceLoad({ metadata: { name: "Nightly", slug: "nightly" } }));
+    act(() => last<RoutineView>("RoutineDetailView").onResourceLoad({ metadata: { name: "Nightly", slug: "nightly" } }));
     expect(location()).toBe("/library/schedules/acme/nightly");
 
-    act(() => last<ScheduleView>("ScheduleDetailView").onRenamed({ metadata: { slug: "nightly-digest" } }));
+    act(() => last<RoutineView>("RoutineDetailView").onRenamed({ metadata: { slug: "nightly-digest" } }));
     expect(location()).toBe("/library/schedules/acme/nightly-digest");
   });
 });

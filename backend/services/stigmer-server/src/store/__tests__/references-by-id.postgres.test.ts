@@ -33,7 +33,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
-import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -104,11 +104,11 @@ const SESSION = create(SessionSchema, {
   status: { agentId: "agt_02main", agentVersionHash: OLDER },
 });
 
-const SCHEDULE = create(ScheduleSchema, {
+const SCHEDULE = create(RoutineSchema, {
   metadata: { id: "sch_01nightly", org: ACME, slug: "nightly" },
   spec: {
     cron: "0 9 * * *",
-    target: { case: "agent", value: { agentRef: { org: ACME, slug: "gone-agent" }, vaults: [{ slug: "keys" }] } },
+    agent: { agentRef: { org: ACME, slug: "gone-agent" }, vaults: [{ slug: "keys" }] },
   },
 });
 
@@ -280,7 +280,7 @@ interface SeededRow {
 const ESTATE: ReadonlyArray<SeededRow> = [
   { kind: "agent", id: "agt_02main", data: toBinary(AgentSchema, mainAgent(HEAD, "now")) },
   { kind: "session", id: "ses_01chat", data: toBinary(SessionSchema, SESSION) },
-  { kind: "schedule", id: "sch_01nightly", data: toBinary(ScheduleSchema, SCHEDULE) },
+  { kind: "schedule", id: "sch_01nightly", data: toBinary(RoutineSchema, SCHEDULE) },
 ];
 
 /** The archived version the session pins. */
@@ -328,8 +328,8 @@ function expectRewritten(
   // The session keeps the version it pinned before the upgrade.
   expect(session.status!.agentVersionHash).toBe(OLDER);
 
-  const schedule = fromBinary(ScheduleSchema, read.schedule);
-  const invocation = schedule.spec!.target.case === "agent" ? schedule.spec!.target.value : undefined;
+  const routine = fromBinary(RoutineSchema, read.schedule);
+  const invocation = routine.spec?.agent;
   expect([invocation!.agentRef!.id, invocation!.agentRef!.slug]).toEqual(["", "gone-agent"]);
   expect(invocation!.vaults.map((r) => r.id)).toEqual(["vlt_01keys"]);
 

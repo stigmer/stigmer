@@ -37,7 +37,7 @@ function entry(
 ): ManifestPreviewEntry {
   return {
     document: {
-      handler: { yamlKind: "Schedule", displayName: "Schedule" },
+      handler: { yamlKind: "Routine", displayName: "Routine" },
       name: slug,
       slug,
       org: "acme",
@@ -56,7 +56,7 @@ const applyAllMock = vi.fn(async () => applyAllResult);
 vi.mock("../useApplyManifest", () => ({
   useApplyManifest: (): UseApplyManifestReturn =>
     ({
-      content: "kind: Schedule",
+      content: "kind: Routine",
       setContent: vi.fn(),
       readFile: vi.fn(),
       entries: mockEntries,

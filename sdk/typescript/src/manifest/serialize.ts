@@ -31,7 +31,7 @@ import { manifestHandlerForTypeName, manifestKinds } from "./registry.js";
  *
  * The resource kind is derived from the message's proto type, so any
  * registry-supported resource (an `Agent` from `stigmer.agent.get()`, a
- * `Schedule` from `stigmer.schedule.get()`, …) serializes with the
+ * `Routine` from `stigmer.routine.get()`, …) serializes with the
  * same call. `metadata.id` is preserved — the output is a full-fidelity
  * representation of the stored resource, minus system-managed state and
  * the ids of the resources it references, which it names by slug.

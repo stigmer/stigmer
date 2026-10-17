@@ -104,7 +104,7 @@ export interface SessionOptions extends SessionSpecOptions {
   org: string;
   name: string;
   // Metadata labels. The activity suite uses these to stamp runtime-origin
-  // labels (stigmer.ai/channel-id etc.) the way the channel/schedule runtimes
+  // labels (stigmer.ai/channel-id etc.) the way the channel and routine runtimes
   // do, exercising the recents personal-sessions-only exclusion.
   labels?: Record<string, string>;
 }

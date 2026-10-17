@@ -52,8 +52,8 @@ type AgentInvocation struct {
 	// Vaults whose logins and secrets the runs this invocation creates use, in
 	// order: the first vault holding a match wins. At most 20.
 	//
-	// A schedule's runs have no person, so these vaults are all they use. The
-	// schedule's owner may attach their own My vault; nobody else's.
+	// A routine's runs use these vaults and no others. The routine's owner
+	// may attach their own My vault; nobody else's.
 	Vaults []*apiresource.ApiResourceReference `protobuf:"bytes,7,rep,name=vaults,proto3" json:"vaults,omitempty"`
 	// Per-invocation model choice and run bounds. Unset fields fall to the
 	// agent's defaults, then to the lane's operator profile (RunConfig has the

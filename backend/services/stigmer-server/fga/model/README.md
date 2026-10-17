@@ -22,7 +22,7 @@ Each has its own visibility:
 | Tier | Default Visibility | Supports Child Orgs | Inheritance |
 |------|-------------------|-------------------|-------------|
 | **Blueprint** | Org members | Yes (`child_org_viewer`) | — |
-| **Session** | Owner only, widened by explicit grants or the channel or schedule that runs it | No | — |
+| **Session** | Owner only, widened by explicit grants or the channel or routine that runs it | No | — |
 | **Run** | Whatever its session answers | No | From session |
 
 ## The Visibility Spectrum
@@ -56,12 +56,12 @@ Agent (blueprint) → Session (personal) → Run
 ```
 
 - **An agent's audience is not its conversations' audience.** An org-visible agent lets every member read and run it; each member's conversation with it stays private to that member.
-- **Sessions** are personal: the owner sees one, and nobody else does until an explicit grant shares it. A participant reads the conversation and sends messages (`can_create_run_in: participant`); a viewer only reads it (owner ⊆ participant ⊆ viewer, the `channel` ladder). A session started by a channel or a schedule is also visible to whoever can view that channel or schedule (`viewer from channel`, `viewer from schedule`). The agent a session names is not a relation: the server asks `can_execute` on it when a session names or changes it, and on every turn.
+- **Sessions** are personal: the owner sees one, and nobody else does until an explicit grant shares it. A participant reads the conversation and sends messages (`can_create_run_in: participant`); a viewer only reads it (owner ⊆ participant ⊆ viewer, the `channel` ladder). A session started by a channel is also visible to whoever can view that channel (`viewer from channel`), and one a routine's fire started to the routine's owner, Participants and Viewers (`viewer from routine`; not its organization's admins, who manage a routine but do not read the owner's conversations). The agent a session names is not a relation: the server asks `can_execute` on it when a session names or changes it, and on every turn.
 - **Runs** hold nothing of their own. A run answers exactly what its session answers, so sharing a session shares its whole history, past turns included, with zero per-run tuples.
 
 ## What the model deliberately cannot say: the runtime lanes' blueprint reads
 
-Guest, channel and schedule sessions run as per-org system accounts that hold exactly `organization#guest` (`can_create_session`, `can_create_run_in`) and are no agent's viewer, by design: a viewer tuple for the guest account on an agent with a chat link would let every guest token in the org read that agent's full blueprint (see `channel.fga`). Yet the runner serving such a session must read the session's agent. The model answers `deny`, and the hosted edition's composition refines that denial app-level: its blueprint-read admission admits a session-scoped sandbox credential to exactly its session's graph while the surface that created the session (the channel, the schedule) is still serving the agent, each surface answering through a port its own domain owns. The schedule lane's port reads the `session#schedule` link this model composes for observability, so that link is load-bearing for a scheduled run. This is the read-side twin of the run-gate lane admission (`src/authorizer/lane-admission.ts`); the chain's order lives in `src/authorizer/cloud-authorizer.ts`. An assertion suite cannot pin it — it is not a tuple — so `src/authorizer/__tests__/blueprint-read-admission.openfga.test.ts` runs the composed chain against this model on a real engine instead.
+Guest and channel sessions (and, in the hosted edition, a routine's) run as per-org system accounts that hold exactly `organization#guest` (`can_create_session`, `can_create_run_in`) and are no agent's viewer, by design: a viewer tuple for the guest account on an agent with a chat link would let every guest token in the org read that agent's full blueprint (see `channel.fga`). Yet the runner serving such a session must read the session's agent. The model answers `deny`, and the hosted edition's composition refines that denial app-level: its blueprint-read admission admits a session-scoped sandbox credential to exactly its session's graph while the surface that created the session (the channel, the routine) is still serving the agent, each surface answering through a port its own domain owns. The routine lane's port reads the `session#routine` link this model composes for observability, so that link is load-bearing for a routine's run. This is the read-side twin of the run-gate lane admission (`src/authorizer/lane-admission.ts`); the chain's order lives in `src/authorizer/cloud-authorizer.ts`. An assertion suite cannot pin it — it is not a tuple — so `src/authorizer/__tests__/blueprint-read-admission.openfga.test.ts` runs the composed chain against this model on a real engine instead.
 
 ## Access Patterns
 
@@ -134,7 +134,7 @@ The bound is what makes leaving an organization mean what it says. A person who 
 
 `affiliated` has two halves. The stored half makes the bound cost one read: a computed `viewer or guest` would walk the role chain again for every object a list checks. It is derived, never granted. The tuple stands exactly while the person holds at least one role row on the organization, a guest included. The grant path refuses it as a grant, and announces every change of a person's organization rows through the resource-authorization lifecycle (`onOrganizationAffiliationChanging` before a row goes, `onOrganizationAffiliationChanged` after any write or delete). The hosted edition re-derives the tuple from those announcements; open source derives it from the rows at check time, so it needs no migration. The computed half, `parent_admin`, lets a parent organization's admins inside each child's bound, so what they make in a child is theirs there and stops being theirs the moment they stop being a parent admin; it is walked only when the stored half misses and costs one read of the organization's `parent_org`, empty for an organization with no parent. Storing it instead would mean a tuple per parent admin per child, rewritten whenever either changes.
 
-`affiliated` includes `guest` because the organization's system accounts (the guest, channel and schedule sessions) hold only `guest` and own the sessions they create. The usersets on the same direct list (`organization#viewer`, `team#member`) are already inside the organization, so bounding them changes nothing. Child-organization visibility (`child_org_viewer`) sits outside the bound: it crosses organizations by design, from a parent to its children. The parent's admins cross the other way, inside the bound, through its computed half. A relation that is the kind's structural parent link stays a direct relation, and the bound goes on the permissions that read it instead (`memory.subject_in_organization`).
+`affiliated` includes `guest` because the organization's system accounts (the guest and channel sessions) hold only `guest` and own the sessions they create. The usersets on the same direct list (`organization#viewer`, `team#member`) are already inside the organization, so bounding them changes nothing. Child-organization visibility (`child_org_viewer`) sits outside the bound: it crosses organizations by design, from a parent to its children. The parent's admins cross the other way, inside the bound, through its computed half. A relation that is the kind's structural parent link stays a direct relation, and the bound goes on the permissions that read it instead (`memory.subject_in_organization`).
 
 Resources: every type with an `organization` relation and a direct `identity_account` list
 
@@ -244,7 +244,7 @@ run:turn-7#session@session:chat-123
 
 Whoever can view the session views the run, and nobody else:
 ```
-can_view → can_view from session:chat-123 → owner (bob), a viewer grant, or the session's channel or schedule
+can_view → can_view from session:chat-123 → owner (bob), a viewer grant, or the session's channel or routine
 ```
 
 ### Team (Shared With as One)
@@ -300,8 +300,8 @@ fga/
 │       ├── eval_run.fga            # Eval runs on an agent or a plugin (the subject's editors; its own organization's viewers)
 │       ├── memory.fga              # An identity's memories (subject-only)
 │       ├── plugin.fga              # Installed plugins, the unit of install
+│       ├── routine.fga             # Saved agent invocations (act as their owner)
 │       ├── run.fga                 # Runs (inherits from session)
-│       ├── schedule.fga            # Scheduled runs (owner-scoped)
 │       ├── score.fga               # A finished run's grades (seen through the run)
 │       ├── scoring_rule.fga        # An agent's AI grading settings (the agent's access)
 │       ├── session.fga             # Conversations (personal)

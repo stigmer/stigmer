@@ -7,7 +7,7 @@
 // returned UNIMPLEMENTED), entries are projected sidebar summaries — not full
 // resources — sorted newest-first by last meaningful update, trimmed to
 // page_size, and runtime-originated sessions (channel / share / guest /
-// schedule labels) are excluded for every caller.
+// routine labels) are excluded for every caller.
 //
 // Recents are sessions only. Ordering is asserted on CREATION timestamps
 // only: both editions stamp statusAudit.updatedAt at create, but which later
@@ -131,9 +131,9 @@ describe("[rpc:ActivityQueryController.listRecentActivity] Activity conformance 
         subject: "Channel conversation",
         labels: { "stigmer.ai/channel-id": "ach_conformance" },
       });
-      const scheduleSession = await createSession(scope.clients, org, agentRef, {
-        subject: "Schedule run",
-        labels: { "stigmer.ai/schedule-id": "sch_conformance" },
+      const routineSession = await createSession(scope.clients, org, agentRef, {
+        subject: "Routine run",
+        labels: { "stigmer.ai/routine-id": "rtn_conformance" },
       });
       const consoleSession = await createSession(scope.clients, org, agentRef, {
         subject: "Console session",
@@ -144,7 +144,7 @@ describe("[rpc:ActivityQueryController.listRecentActivity] Activity conformance 
 
       expect(ids).toContain(consoleSession);
       expect(ids, "channel-originated sessions must not appear in recents").not.toContain(channelSession);
-      expect(ids, "schedule-originated sessions must not appear in recents").not.toContain(scheduleSession);
+      expect(ids, "routine-originated sessions must not appear in recents").not.toContain(routineSession);
     } finally {
       await scope.cleanup();
     }

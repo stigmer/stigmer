@@ -68,8 +68,8 @@ import type {
   PendingOAuthStateStore,
   RawResourceDocument,
   ResourceReadForWrite,
-  ScheduleFireCursor,
-  ScheduleFireRecord,
+  RoutineFireCursor,
+  RoutineFireRecord,
   SearchIndexEntry,
   SearchIndexHit,
   SearchIndexQuery,
@@ -136,6 +136,7 @@ import type {
   PermissionHistoryPage,
   PermissionHistoryRecord,
 } from "../permission-history.js";
+import { decodeFiredBy, encodeFiredBy } from "../fired-by.js";
 import { instantNotBefore, rfc3339Seconds } from "../rfc3339.js";
 import { stampEtag } from "../etag.js";
 import { runMigrations } from "./migrations.js";
@@ -1362,128 +1363,134 @@ export class PostgresStore implements Store {
   }
 
   // ---------------------------------------------------------------------------
-  // Schedule runs (fire ledger)
+  // Routine fires (fire ledger)
   // ---------------------------------------------------------------------------
 
-  async upsertScheduleFire(record: ScheduleFireRecord): Promise<void> {
+  async upsertRoutineFire(record: RoutineFireRecord): Promise<void> {
     // Default recorded_at is RFC-3339 whole seconds (Go time.RFC3339) —
     // the ledger's house convention for lexicographic comparison.
     const recordedAt =
       record.recordedAt !== "" ? record.recordedAt : rfc3339Seconds(new Date());
+    const firedBy = encodeFiredBy(record.firedBy);
 
     // The ON CONFLICT WHERE guard is the terminal-immutability contract:
     // rows with a completed_at never get downgraded by a replayed write.
     await this.open().query(
-      `INSERT INTO schedule_runs
-        (schedule_id, org, nominal_fire_time, origin, outcome, reason, execution_id, recorded_at, completed_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      ON CONFLICT (schedule_id, nominal_fire_time, origin) DO UPDATE SET
+      `INSERT INTO routine_fires
+        (routine_id, fire_id, org, nominal_fire_time, origin, outcome, reason, run_id, fired_by, recorded_at, completed_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ON CONFLICT (routine_id, fire_id) DO UPDATE SET
         outcome = excluded.outcome,
         reason = excluded.reason,
-        execution_id = excluded.execution_id,
+        run_id = excluded.run_id,
         completed_at = excluded.completed_at
-      WHERE schedule_runs.completed_at = ''`,
+      WHERE routine_fires.completed_at = ''`,
       [
-        record.scheduleId,
+        record.routineId,
+        record.fireId,
         record.org,
         record.nominalFireTime,
         record.origin,
         record.outcome,
         record.reason,
-        record.executionId,
+        record.runId,
+        firedBy === null ? null : Buffer.from(firedBy),
         recordedAt,
         record.completedAt,
       ],
     );
   }
 
-  async markLatestScheduleFireTerminal(
-    scheduleId: string,
+  async markLatestRoutineFireTerminal(
+    routineId: string,
     origin: string,
     outcome: string,
     reason: string,
     completedAt: string,
   ): Promise<void> {
     await this.open().query(
-      `UPDATE schedule_runs SET outcome = $1, reason = $2, completed_at = $3
-       WHERE schedule_id = $4 AND origin = $5 AND completed_at = ''
+      `UPDATE routine_fires SET outcome = $1, reason = $2, completed_at = $3
+       WHERE routine_id = $4 AND origin = $5 AND completed_at = ''
        AND nominal_fire_time = (
-         SELECT MAX(nominal_fire_time) FROM schedule_runs
-         WHERE schedule_id = $4 AND origin = $5 AND completed_at = ''
+         SELECT MAX(nominal_fire_time) FROM routine_fires
+         WHERE routine_id = $4 AND origin = $5 AND completed_at = ''
        )`,
-      [outcome, reason, completedAt, scheduleId, origin],
+      [outcome, reason, completedAt, routineId, origin],
     );
   }
 
-  async listScheduleFires(
-    scheduleId: string,
-    after: ScheduleFireCursor | undefined,
+  async listRoutineFires(
+    routineId: string,
+    after: RoutineFireCursor | undefined,
     limit: number,
-  ): Promise<ScheduleFireRecord[]> {
-    // The ledger's key orders the read: COLLATE "C" compares as bytes, so
-    // this driver and sqlite (BINARY) agree, and the cursor's row
-    // comparison continues exactly where the previous read stopped.
+  ): Promise<RoutineFireRecord[]> {
+    // Newest first by nominal time, ties by fire id: COLLATE "C" compares
+    // as bytes, so this driver and sqlite (BINARY) agree, and the cursor's
+    // row comparison continues exactly where the previous read stopped.
     const result = await this.open().query(
-      `SELECT schedule_id, org, nominal_fire_time, origin, outcome, reason, execution_id, recorded_at, completed_at
-       FROM schedule_runs
-       WHERE schedule_id = $1
+      `SELECT routine_id, fire_id, org, nominal_fire_time, origin, outcome, reason, run_id, fired_by, recorded_at, completed_at
+       FROM routine_fires
+       WHERE routine_id = $1
          AND ($2::text IS NULL
-              OR (nominal_fire_time COLLATE "C", origin COLLATE "C") < ($2::text COLLATE "C", $3::text COLLATE "C"))
-       ORDER BY nominal_fire_time COLLATE "C" DESC, origin COLLATE "C" DESC
+              OR (nominal_fire_time COLLATE "C", fire_id COLLATE "C") < ($2::text COLLATE "C", $3::text COLLATE "C"))
+       ORDER BY nominal_fire_time COLLATE "C" DESC, fire_id COLLATE "C" DESC
        LIMIT $4`,
-      [scheduleId, after?.nominalFireTime ?? null, after?.origin ?? "", limit],
+      [routineId, after?.nominalFireTime ?? null, after?.fireId ?? "", limit],
     );
 
     return (
-      result.rows as
-        Array<{
-          schedule_id: string;
-          org: string;
-          nominal_fire_time: string;
-          origin: string;
-          outcome: string;
-          reason: string;
-          execution_id: string;
-          recorded_at: string;
-          completed_at: string;
-        }>
-      ).map((row) => ({
-        scheduleId: row.schedule_id,
-        org: row.org,
-        nominalFireTime: row.nominal_fire_time,
-        origin: row.origin,
-        outcome: row.outcome,
-        reason: row.reason,
-        executionId: row.execution_id,
-        recordedAt: row.recorded_at,
-        completedAt: row.completed_at,
-      }));
+      result.rows as Array<{
+        routine_id: string;
+        fire_id: string;
+        org: string;
+        nominal_fire_time: string;
+        origin: string;
+        outcome: string;
+        reason: string;
+        run_id: string;
+        fired_by: Buffer | null;
+        recorded_at: string;
+        completed_at: string;
+      }>
+    ).map((row) => ({
+      routineId: row.routine_id,
+      fireId: row.fire_id,
+      org: row.org,
+      nominalFireTime: row.nominal_fire_time,
+      origin: row.origin,
+      outcome: row.outcome,
+      reason: row.reason,
+      runId: row.run_id,
+      firedBy: decodeFiredBy(row.fired_by === null ? null : new Uint8Array(row.fired_by)),
+      recordedAt: row.recorded_at,
+      completedAt: row.completed_at,
+    }));
   }
 
-
-  async deleteScheduleFiresBySchedule(scheduleId: string): Promise<number> {
+  async deleteRoutineFiresByRoutine(routineId: string): Promise<number> {
     const result = await this.open().query(
-      `DELETE FROM schedule_runs WHERE schedule_id = $1`,
-      [scheduleId],
+      `DELETE FROM routine_fires WHERE routine_id = $1`,
+      [routineId],
     );
     return result.rowCount ?? 0;
   }
 
-  async deleteScheduleFiresByOrg(org: string): Promise<number> {
+  async deleteRoutineFiresByOrg(org: string): Promise<number> {
     const result = await this.open().query(
-      `DELETE FROM schedule_runs WHERE org = $1`,
+      `DELETE FROM routine_fires WHERE org = $1`,
       [org],
     );
     return result.rowCount ?? 0;
   }
 
-  async pruneScheduleFires(recordedBefore: string): Promise<number> {
+  async pruneRoutineFires(recordedBefore: string): Promise<number> {
     const result = await this.open().query(
-      `DELETE FROM schedule_runs WHERE recorded_at < $1`,
+      `DELETE FROM routine_fires WHERE recorded_at < $1`,
       [recordedBefore],
     );
     return result.rowCount ?? 0;
   }
+
 
   // ---------------------------------------------------------------------------
   // Search index (tsvector/tsquery — the search contract's Postgres rendering)

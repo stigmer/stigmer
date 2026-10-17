@@ -462,7 +462,7 @@ individual hooks and view components directly.
     initialFilters: { type: "readonly FilterValue[]", description: "Initial filter values (e.g. restored from URL on mount)." },
     initialQuery: { type: "string", description: "Initial search query (e.g. restored from URL on mount)." },
     initialSort: { type: "SortValue | null", description: "Initial sort (e.g. restored from URL on mount)." },
-    listFn: { type: "WorkbenchListFn<TData> | null", description: "Reads one page of resources (`WorkbenchListFn`): the workbench passes the organization, the search box's text, the page size and the page's token. Pass `null` to disable fetching. `createLibraryListFn` builds one for agents, skills and plugins; `createScheduleListFn` for schedules.", required: true },
+    listFn: { type: "WorkbenchListFn<TData> | null", description: "Reads one page of resources (`WorkbenchListFn`): the workbench passes the organization, the search box's text, the page size and the page's token. Pass `null` to disable fetching. `createLibraryListFn` builds one for agents, skills and plugins; `createRoutineListFn` for schedules.", required: true },
     onItemClick: { type: "(item: TData) => void", description: "Called when an item is clicked (navigates to detail, etc.)." },
     onRetry: { type: "() => void", description: "Called when the user clicks \"Retry\" after an error." },
     onStateChange: { type: "(state: { filters: readonly FilterValue[]; query: string; sort: SortValue | null }) => void", description: "Called when any filter/sort/query state changes (for URL sync)." },

@@ -50,7 +50,7 @@ export class LocalExecutionTarget implements TargetProfile {
   // engine changes no edition. local-postgres-execution inherits it.
   readonly edition: ServerEdition = ServerEdition.oss;
   // The open-source matrix of `local`, with the flags an engine makes true:
-  // scheduleFiring and runnerActsAsRunCreator.
+  // routineFiring and runnerActsAsRunCreator.
   // versionTagging still reads false here although the server implements it
   // (stigmer#1804); the execution class runs no suite that reads it.
   readonly capabilities: CapabilityFlags = {
@@ -63,9 +63,9 @@ export class LocalExecutionTarget implements TargetProfile {
     enforcingAuthorizer: false,
     versionTagging: false,
     skillArtifactTransferLane: true,
-    // The schedule clock runs here (tick workflow + reconciler on the
+    // The routine clock runs here (tick workflow + reconciler on the
     // schedule_stigmer queue).
-    scheduleFiring: true,
+    routineFiring: true,
     // The open-source runner presents each run's own credential and the
     // built-in verifier admits its bearer as the run's human; proven on
     // this target's enforcing lane, whose runner is keyed with the

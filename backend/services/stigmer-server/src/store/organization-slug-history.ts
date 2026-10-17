@@ -52,7 +52,7 @@ import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { MemorySchema } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
-import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { SubscriptionSchema } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/api_pb";
@@ -107,7 +107,7 @@ export const ORGANIZATION_SCOPED_KINDS_AT_LEDGER: ReadonlyArray<OrganizationScop
     { kind: "workflow_execution", schema: FrozenWorkflowExecutionEnvelopeSchema },
     { kind: "environment", schema: FrozenEnvironmentEnvelopeSchema },
     { kind: "artifact", schema: FrozenArtifactEnvelopeSchema },
-    { kind: "schedule", schema: ScheduleSchema },
+    { kind: "schedule", schema: RoutineSchema },
     { kind: "memory", schema: MemorySchema },
     { kind: "plugin", schema: PluginSchema },
     { kind: "subscription", schema: SubscriptionSchema },

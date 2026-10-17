@@ -6,11 +6,11 @@
 // list with page_size 1, following tokens to the end:
 //
 //   - a list scoped to one parent (an agent's Slack and web channels and
-//     its schedules, an agent's sessions, a version history) holds only the
+//     its routines, an agent's sessions, a version history) holds only the
 //     seeded rows, so the walk is exactly three pages of one entry, newest
 //     first, a token on the first two and none after the third;
 //   - a list of an organization or of the caller (agents, skills, plugins,
-//     channels of every type, schedules, vaults, memories, sessions, API keys,
+//     channels of every type, routines, vaults, memories, sessions, API keys,
 //     OAuth apps, channel apps, the caller's
 //     organizations, search) may also hold rows the edition provisions with
 //     an organization, and a page may be short, even empty, under a read
@@ -58,7 +58,7 @@ import { MEMORY_CAP, makeMemory } from "../support/memories";
 import { uniqueName } from "../support/naming";
 import { makeOAuthApp } from "../support/oauthapps";
 import { mcpOnly, pushPlugin } from "../support/plugins";
-import { makeSchedule } from "../support/schedules";
+import { makeRoutine } from "../support/routines";
 import { makeSession } from "../support/sessions";
 import { makeSkillArtifact } from "../support/skills";
 import { makeSharedVault } from "../support/vaults";
@@ -218,10 +218,10 @@ async function createWebChannel(org: string, agentSlug: string): Promise<string>
   return channel.metadata!.id;
 }
 
-async function createSchedule(org: string, agentSlug: string): Promise<string> {
-  const schedule = await clients.scheduleCommand.create(makeSchedule(org, uniqueName("list-sched"), agentSlug));
-  fixtures.defer(() => clients.scheduleCommand.delete({ value: schedule.metadata!.id }));
-  return schedule.metadata!.id;
+async function createRoutine(org: string, agentSlug: string): Promise<string> {
+  const routine = await clients.routineCommand.create(makeRoutine(org, uniqueName("list-sched"), agentSlug));
+  fixtures.defer(() => clients.routineCommand.delete({ value: routine.metadata!.id }));
+  return routine.metadata!.id;
 }
 
 async function createSession(org: string, agent: Awaited<ReturnType<typeof createAgent>>): Promise<string> {
@@ -261,13 +261,13 @@ describe("List conformance — a parent's lists walk exactly three pages", () =>
     expectExactWalk(walked, seeded);
   });
 
-  it("[rpc:ScheduleQueryController.listByAgent] an agent's schedules page one at a time, newest first", async () => {
+  it("[rpc:RoutineQueryController.listByAgent] an agent's routines page one at a time, newest first", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgent(org);
-    const seeded = await seedThree(() => createSchedule(org, agent.metadata!.slug));
+    const seeded = await seedThree(() => createRoutine(org, agent.metadata!.slug));
 
     const walked = await walk(
-      (pageToken) => clients.scheduleQuery.listByAgent({ agentId: agent.metadata!.id, pageSize: 1, pageToken }),
+      (pageToken) => clients.routineQuery.listByAgent({ agentId: agent.metadata!.id, pageSize: 1, pageToken }),
       (entry) => entry.metadata!.id,
     );
     expectExactWalk(walked, seeded);
@@ -398,13 +398,13 @@ describe("List conformance — an organization's lists walk every seeded row onc
     expectSeededWalk(walked, seeded);
   });
 
-  it("[rpc:ScheduleQueryController.list] schedules", async () => {
+  it("[rpc:RoutineQueryController.list] routines", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgent(org);
-    const seeded = await seedThree(() => createSchedule(org, agent.metadata!.slug));
+    const seeded = await seedThree(() => createRoutine(org, agent.metadata!.slug));
 
     const walked = await walk(
-      (pageToken) => clients.scheduleQuery.list({ org, pageSize: 1, pageToken }),
+      (pageToken) => clients.routineQuery.list({ org, pageSize: 1, pageToken }),
       (entry) => entry.metadata!.id,
     );
     expectSeededWalk(walked, seeded);
@@ -657,25 +657,25 @@ describe("List conformance — a label filter walks only the rows carrying every
     );
   });
 
-  it("[rpc:ScheduleQueryController.list] [rpc:ScheduleQueryController.listByAgent] schedules, of the organization and of one agent", async () => {
+  it("[rpc:RoutineQueryController.list] [rpc:RoutineQueryController.listByAgent] routines, of the organization and of one agent", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgent(org);
     const seed = async (labels: Record<string, string>) => {
-      const schedule = await clients.scheduleCommand.create(
-        labelled(makeSchedule(org, uniqueName("lbl-sched"), agent.metadata!.slug), labels),
+      const routine = await clients.routineCommand.create(
+        labelled(makeRoutine(org, uniqueName("lbl-sched"), agent.metadata!.slug), labels),
       );
-      fixtures.defer(() => clients.scheduleCommand.delete({ value: schedule.metadata!.id }));
-      return schedule.metadata!.id;
+      fixtures.defer(() => clients.routineCommand.delete({ value: routine.metadata!.id }));
+      return routine.metadata!.id;
     };
     await expectLabelledWalk(
       seed,
-      (labels, pageToken) => clients.scheduleQuery.list({ org, labels, pageSize: 1, pageToken }),
+      (labels, pageToken) => clients.routineQuery.list({ org, labels, pageSize: 1, pageToken }),
       (entry) => entry.metadata!.id,
     );
     await expectLabelledWalk(
       seed,
       (labels, pageToken) =>
-        clients.scheduleQuery.listByAgent({ agentId: agent.metadata!.id, labels, pageSize: 1, pageToken }),
+        clients.routineQuery.listByAgent({ agentId: agent.metadata!.id, labels, pageSize: 1, pageToken }),
       (entry) => entry.metadata!.id,
     );
   });

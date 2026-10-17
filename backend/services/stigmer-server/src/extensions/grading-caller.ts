@@ -1,7 +1,7 @@
 /**
  * The grading caller seam: WHO an AI judge run acts as when the grading
  * workflow creates it through the in-process run create pipeline. The
- * schedule-fire caller (schedule-fire-caller.ts) met the same question
+ * routine fire caller (routine-fire-caller.ts) met the same question
  * first, and this seam answers it the same way.
  *
  * With no driver composed the judge run enters as the in-process

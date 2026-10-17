@@ -1,0 +1,124 @@
+"use client";
+
+import { cn } from "@stigmer/design-tokens";
+import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
+import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
+import { deriveRoutineState } from "./routineState.js";
+import { useResumeRoutine } from "./useResumeRoutine.js";
+import { useFireRoutine } from "./useFireRoutine.js";
+
+/** Props for {@link RoutineRowActions}. */
+export interface RoutineRowActionsProps {
+  /** The schedule this row represents. */
+  readonly schedule: Routine;
+  /** Called after a successful action so the list can refetch. */
+  readonly onChanged?: () => void;
+}
+
+/**
+ * Compact per-row actions for a schedule list: **Run now** on an active
+ * schedule (confirmation-gated — it starts a real, billable run)
+ * and **Resume** on a platform-paused one. Exactly one action renders
+ * at a time — the one that is currently meaningful; an owner-disabled
+ * schedule renders neither (its remedy lives on the detail page).
+ *
+ * Shared by every console's schedule workbench via `renderItemAction`
+ * so row behavior never diverges between apps.
+ */
+export function RoutineRowActions({
+  schedule: routine,
+  onChanged,
+}: RoutineRowActionsProps) {
+  const { resumeRoutine, isResuming } = useResumeRoutine();
+  const { fireRoutine, isFiring } = useFireRoutine();
+  const { confirmState, confirm, handleConfirm, handleCancel } =
+    useConfirmAction();
+
+  const info = deriveRoutineState(routine.spec, routine.status);
+  const routineId = routine.metadata?.id ?? "";
+  const name = routine.metadata?.name || routine.metadata?.slug || "schedule";
+
+  const handleTrigger = async () => {
+    const confirmed = await confirm({
+      title: "Run this schedule now?",
+      description:
+        `"${name}" starts a real run immediately, outside ` +
+        "the cron cadence.",
+      confirmLabel: "Start run",
+      variant: "default",
+    });
+    if (!confirmed) return;
+    await fireRoutine(routineId);
+    onChanged?.();
+  };
+
+  const handleResume = async () => {
+    await resumeRoutine(routineId);
+    onChanged?.();
+  };
+
+  if (info.state === "disabled") return null;
+
+  return (
+    // Row actions must never bubble into the row's navigate-to-detail
+    // click handler. The span is a non-interactive event fence — the
+    // real interactive element (with keyboard support) is the button.
+    <span onClick={(e) => e.stopPropagation()}>
+      {info.state === "active" ? (
+        <RowActionButton
+          label={`Run ${name} now`}
+          busy={isFiring}
+          onClick={() => void handleTrigger()}
+        >
+          Run now
+        </RowActionButton>
+      ) : (
+        <RowActionButton
+          label={`Resume ${name}`}
+          busy={isResuming}
+          onClick={() => void handleResume()}
+        >
+          Resume
+        </RowActionButton>
+      )}
+
+      {confirmState && (
+        <ConfirmDialog
+          state={confirmState}
+          onConfirm={handleConfirm}
+          onCancel={handleCancel}
+        />
+      )}
+    </span>
+  );
+}
+
+function RowActionButton({
+  label,
+  busy,
+  onClick,
+  children,
+}: {
+  readonly label: string;
+  readonly busy: boolean;
+  readonly onClick: () => void;
+  readonly children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      disabled={busy}
+      className={cn(
+        "stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2 stg:py-1 stg:text-xs stg:font-medium stg:text-foreground",
+        "stg:hover:bg-accent stg:hover:text-accent-foreground",
+        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
+        "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+      )}
+    >
+      {children}
+    </button>
+  );
+}

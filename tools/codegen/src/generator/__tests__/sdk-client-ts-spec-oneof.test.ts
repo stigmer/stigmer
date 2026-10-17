@@ -13,7 +13,7 @@
  * reference, so the generator runs over a copy of the real schemas in which
  * a skill's spec gains one, a `template` reference beside a
  * `template_url` string, into a temporary directory, and these cases read
- * what it wrote. A schedule's spec, whose `target` oneof is real and whose
+ * what it wrote. A channel's spec, whose `type` oneof is real and whose
  * kind is not versioned, is the contrast.
  */
 import * as fs from "node:fs";
@@ -58,7 +58,7 @@ function from(text: string, marker: string): string {
 
 let root: string;
 let skill: string;
-let schedule: string;
+let channel: string;
 
 beforeAll(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), "codegen-ts-spec-oneof-"));
@@ -71,7 +71,7 @@ beforeAll(() => {
   const out = path.join(root, "ts");
   runSDKClientTSGeneration(schemas, out);
   skill = fs.readFileSync(path.join(out, "skill.ts"), "utf8");
-  schedule = fs.readFileSync(path.join(out, "schedule.ts"), "utf8");
+  channel = fs.readFileSync(path.join(out, "channel.ts"), "utf8");
 });
 
 afterAll(() => {
@@ -106,9 +106,9 @@ describe("a spec oneof in the TypeScript SDK's build<Kind>Proto", () => {
   });
 
   it("carries no version message for a kind that is not versioned", () => {
-    const build = from(schedule, "export function buildScheduleProto(");
-    expect(build).toContain("  const spec = Object.assign(create(ScheduleSpecSchema), stripUndefined({\n");
-    expect(build).toContain("spec.target = { case: \"agent\"");
+    const build = from(channel, "export function buildChannelProto(");
+    expect(build).toContain("  const spec = Object.assign(create(ChannelSpecSchema), stripUndefined({\n");
+    expect(build).toContain("spec.type = { case: \"web\"");
     expect(build).not.toContain("versionMessage");
   });
 });

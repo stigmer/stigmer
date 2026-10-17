@@ -6,7 +6,7 @@ import type { ModelInfo } from "../registry";
 import { thinkingLocked, thinkingSelectable } from "../thinking-mode";
 
 // Shim ResizeObserver for Base UI's positioner (the
-// scheduleCreation.test.tsx pattern).
+// routineCreation.test.tsx pattern).
 beforeAll(() => {
   if (!("ResizeObserver" in globalThis)) {
     (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =

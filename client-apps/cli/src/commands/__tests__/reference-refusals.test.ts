@@ -31,7 +31,9 @@ const session = vi.hoisted(() => ({ openSession: vi.fn() }));
 vi.mock("../../resources/run/resume.js", () => session);
 
 const AGENT_ID = "agt_01abc123xyz456789012345678";
-const SCHEDULE_ID = "sch_01abc123xyz456789012345678";
+const ROUTINE_ID = "rtn_01abc123xyz456789012345678";
+// A routine stored while the kind was Schedule keeps its sch_ id.
+const LEGACY_ROUTINE_ID = "sch_01abc123xyz456789012345678";
 
 /** Runs `stigmer ...` against the stubbed backend with the context org acme. */
 async function stigmer(...args: string[]): Promise<void> {
@@ -68,13 +70,22 @@ describe("stigmer resume", () => {
     );
     expect(session.openSession).not.toHaveBeenCalled();
   });
+
+  it.each([ROUTINE_ID, LEGACY_ROUTINE_ID])("refuses routine id %s as not a session and points at routine resume", async (id) => {
+    await expect(stigmer("resume", id)).rejects.toThrow(
+      new UsageError(
+        `Resource IDs like "${id}" are not sessions\n\nTo resume a paused routine:\n  stigmer routine resume ${id}`,
+      ),
+    );
+    expect(session.openSession).not.toHaveBeenCalled();
+  });
 });
 
 describe("stigmer run", () => {
   it("refuses a full id of a kind that is not an agent: only agents run", async () => {
-    await expect(stigmer("run", SCHEDULE_ID)).rejects.toThrow(
+    await expect(stigmer("run", ROUTINE_ID)).rejects.toThrow(
       new UsageError(
-        `Cannot run resource ID "${SCHEDULE_ID}": only agents run\n\nTo run an agent:\n  stigmer run <agent-id>`,
+        `Cannot run resource ID "${ROUTINE_ID}": only agents run\n\nTo run an agent:\n  stigmer run <agent-id>`,
       ),
     );
     expect(resolve.resolveAgentRef).not.toHaveBeenCalled();

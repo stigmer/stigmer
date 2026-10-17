@@ -1,12 +1,15 @@
 /**
  * Attachments: what the reference rule cannot say about a vault a surface
  * names, said once for every surface that names vaults (a session, a
- * schedule, a share, a channel, an organization's embedding settings).
+ * routine, a channel, an organization's embedding settings).
  *
  *   - A My vault serves only its own person's runs. Whatever runs for
  *     someone else (a conversation several people may send turns to, a
- *     channel, an organization's app users) refuses one. A schedule may carry its owner's own My vault: the owner
- *     attaches it, and its runs use it as theirs.
+ *     channel, an organization's app users) refuses one. A routine may
+ *     carry its owner's own My vault: the owner attaches it, and its runs,
+ *     which act as the owner, use it as theirs. Only the owner changes
+ *     what a routine runs (domain/routine/owners-lock.ts), so nobody else
+ *     can point those runs at new work.
  *   - Who attached each vault is recorded, as a server-observed fact in the
  *     surface's status (`vault_attachers`, vault id to account): the
  *     writer for each vault a write introduces, the stored entry for each
@@ -14,13 +17,9 @@
  *     asks `can_use` of that account when it starts, so a revoked grant
  *     stops exactly the surfaces its holder fed, and an editor's unrelated
  *     edit never re-attributes someone else's attachment.
- *   - A schedule whose agent changes re-judges every vault it keeps
+ *   - A routine whose agent changes re-judges every vault it keeps
  *     against the updater: the vaults now feed a different agent, which is
  *     the updater's choice to make with their own permission.
- *   - While a schedule names its creator's My vault, only that person may
- *     change what it runs: its fires use their credentials, checked against
- *     them, so anyone else's change (an organization admin's included) is
- *     refused unless the same update removes that vault.
  *
  * The reference rule (pipeline/steps/references.ts) has already refused a
  * missing vault and a vault the writer may not use among the references
@@ -68,16 +67,10 @@ export interface VaultAttachmentOptions<Desc extends DescMessage> {
   readonly surface: string;
   /** Where the kind records attachers. */
   readonly attachers: AttachersSlot<Desc>;
-  /** Whether the kind may carry its owner's own My vault (a schedule). */
+  /** Whether the kind may carry its owner's own My vault (a routine). */
   readonly allowsOwnersMyVault?: boolean;
-  /** When true, every vault the write keeps counts as introduced (a schedule whose agent changes). */
+  /** When true, every vault the write keeps counts as introduced (a routine whose agent changes). */
   readonly rejudgeAllWhen?: (existing: MessageShape<Desc>, next: MessageShape<Desc>) => boolean;
-  /**
-   * Whether an update changes what the surface's runs do. While the stored
-   * row names a My vault, only that vault's person may make such a change;
-   * anyone else's is refused unless it also removes the vault (a schedule).
-   */
-  readonly changesRuns?: (existing: MessageShape<Desc>, next: MessageShape<Desc>) => boolean;
 }
 
 function sameReference(a: SpecReference, b: SpecReference): boolean {
@@ -105,15 +98,8 @@ export function myVaultRefusal(surface: string): string {
 
 export function rejudgedVaultRefusal(ref: SpecReference): string {
   return (
-    `vault '${ref.org}/${ref.slug}' feeds this schedule's runs, and changing the agent it runs ` +
+    `vault '${ref.org}/${ref.slug}' feeds this routine's runs, and changing the agent it runs ` +
     "needs permission to use every vault it keeps; remove the vault or ask for its use"
-  );
-}
-
-export function myVaultLockRefusal(): string {
-  return (
-    "this schedule runs with its creator's My vault, so only its creator may change what it runs; " +
-    "to change it yourself, remove that vault in the same update"
   );
 }
 
@@ -148,21 +134,6 @@ export function newVaultAttachmentsStep<Desc extends DescMessage>(
         } catch (error) {
           throw internalError(error, "failed to read an attached vault");
         }
-      }
-
-      // A kept My vault locks what the runs do to its own person. Judged
-      // before anything else, so the refusal names the lock, not a
-      // re-judged vault.
-      if (
-        existing !== undefined &&
-        caller.callerClass !== "internal" &&
-        options.changesRuns?.(existing, next) === true &&
-        named.some(({ vault, kept }) => {
-          const owner = personOf(vault);
-          return kept && owner !== undefined && owner !== caller.identityId;
-        })
-      ) {
-        throw permissionDeniedError(myVaultLockRefusal());
       }
 
       const attachers: { [vaultId: string]: string } = {};

@@ -2,8 +2,8 @@
  * The core's purge stages, in the order the runner runs them around the
  * units' stages (extensions/organization-purge.ts draws the whole order):
  *
- *   quiesce  — the organization's schedules go first (their engine
- *              artifacts and fire ledger, through the schedule purge), so
+ *   quiesce  — the organization's routines go first (their engine
+ *              artifacts and fire ledger, through the routine purge), so
  *              nothing fires while the rest is removed; every execution
  *              that may still run is terminated; every sandbox is torn
  *              down; the side-store records keyed by the organization
@@ -114,8 +114,8 @@ const MORE: OrganizationPurgeProgress = { more: true };
 export interface QuiesceStageDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The schedule purge: schedules go before anything else. */
-  readonly schedulePurge: KindPurge;
+  /** The routine purge: routines go before anything else. */
+  readonly routinePurge: KindPurge;
   readonly agentEngine: ExecutionEngineStateProvider;
   readonly sandboxLane: SandboxLane;
 }
@@ -124,11 +124,11 @@ export function newQuiesceStage(deps: QuiesceStageDeps): OrganizationPurgeStage 
   return {
     name: QUIESCE_STAGE,
     async run(context) {
-      const schedules = await deps.schedulePurge.purge(
+      const routines = await deps.routinePurge.purge(
         context.org,
         context.caller,
       );
-      if (schedules.more) {
+      if (routines.more) {
         return MORE;
       }
       await terminateAgentExecutions(deps, context);
@@ -339,14 +339,14 @@ export function newFinalStage(deps: FinalStageDeps): OrganizationPurgeStage {
       );
       ctx.set(RESOURCE_ID_KEY, id);
       ctx.set(EXISTING_RESOURCE_KEY, organization);
-      // The kind purges remove each row's search entry and each schedule's
+      // The kind purges remove each row's search entry and each routine's
       // fire ledger through steps that log a fault and go on; both tables
       // name the organization, so a sweep here leaves neither behind. The
       // session purge removes each session's event log; the sweep also
       // takes the events of a run created into a session while it was
       // being deleted.
       await deps.store.deleteSearchIndexByOrg(id);
-      await deps.store.deleteScheduleFiresByOrg(id);
+      await deps.store.deleteRoutineFiresByOrg(id);
       await deps.store.sessionEvents.deleteByOrg(id);
       await newPipeline<DeleteInput>("organization-purge-final", deps.logger)
         .addStep(newRevokeOrganizationGrantsStep<DeleteInput>(deps.grantPath))

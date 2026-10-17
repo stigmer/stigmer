@@ -1,0 +1,93 @@
+module agentic
+
+# ========================================
+# ROUTINE TYPE (Organization-scoped, acts as its owner)
+# ========================================
+# A routine is a saved agent invocation: the agent and the message each run
+# starts from, an optional schedule, and the owner's enablement switch. It
+# runs on its schedule, or when someone allowed to fire it does (Run now, the
+# API), optionally with a short note.
+#
+# Every run acts as the routine's OWNER, the account that created it, and is
+# that person's conversation. So the owner is that one account and nobody
+# else: Owner is not grantable (a second owner could fire as the first), and
+# organization admins are NOT composed into owner, the session type's rule
+# for a person's conversations. Admins stay the operator of last resort the
+# 2026-07-13 trade made them (org-admin-owner-inheritance.fga.yaml) through
+# the permissions instead: they see a routine, its fire history and its
+# access list, switch it off, rename, relabel, delete or resume it, and
+# revoke access. They do not fire it, grant Participant or Viewer, or read
+# its runs, since the run speaks with the owner's authority and the fire's
+# text reaches it. The server adds the two rules the model cannot state:
+# only the owner changes what a routine runs (an admin's update may switch
+# it off, never change the message), and only the owner grants a role on it
+# (the grant lane asks can_assign_roles for Participant and Viewer alike, so
+# an admin cannot make themselves a Viewer of the owner's runs). A
+# Participant or Viewer the owner grants to a team or a service account is
+# reached by whoever that principal's managers add to it or mint a key for:
+# the owner chooses that principal knowing who manages it.
+#
+# A Participant (a person, an Enterprise team's members, or a service
+# account) fires it and reads its runs; a Viewer reads it and its runs.
+# Plain org members get NO implicit access: every run spends on the
+# organization's own provider keys, unattended. There is deliberately no
+# organization.can_create_routine: creation is gated on can_edit of the
+# referenced agent, checked in-handler.
+#
+# A routine writes NO visitor-facing visibility tuples. Each fired session
+# carries a session#routine@routine:<id> link derived from the session's
+# status.routine_id (a field only the server writes), which composes THIS
+# type's `viewer` relation, not its can_view, into the session's can_view.
+# That is what keeps admins out of the runs while they manage the routine.
+#
+# FGA tuples on creation (config-driven from the routine kind config:
+# ORGANIZATION scope + DIRECT owner):
+# - routine:<id>#organization@organization:<org>
+# - routine:<id>#owner@identity_account:<creator>
+
+type routine
+  relations
+    # ========================================
+    # ORGANIZATION OWNERSHIP
+    # ========================================
+    define organization: [organization]
+
+    # ========================================
+    # OWNERSHIP (the account every run acts as)
+    # ========================================
+    # The creator alone: written from the create's direct owner attribution
+    # and never granted. Org admins explicitly excluded (above).
+    define owner: [identity_account] and affiliated from organization
+
+    # ========================================
+    # PARTICIPANT ACCESS (Explicit Grants, by the owner)
+    # ========================================
+    # Fires the routine, with a note, and reads its runs. Granted only by
+    # the owner (the server asks can_assign_roles on top of
+    # can_grant_access); revoked by anyone who manages the routine.
+    define participant: ([identity_account, team#member] and affiliated from organization) or owner
+
+    # ========================================
+    # VIEWER ACCESS (Explicit Grants)
+    # ========================================
+    # To a person or to an Enterprise team's members (team#member, bounded
+    # by the organization in team.fga). The relation fired sessions compose.
+    define viewer: ([identity_account, team#member] and affiliated from organization) or participant
+
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: viewer or admin from organization
+    define can_fire: participant
+    define can_edit: owner or admin from organization
+    define can_delete: owner or admin from organization
+
+    # ========================================
+    # ACCESS MANAGEMENT
+    # ========================================
+    define can_grant_access: owner or admin from organization
+    # A role that acts with, or sees what was done under, the owner's
+    # authority: Participant fires as the owner and Viewer reads the runs
+    # that acted as them, so only the owner grants either.
+    define can_assign_roles: owner
+    define can_view_access: viewer or admin from organization

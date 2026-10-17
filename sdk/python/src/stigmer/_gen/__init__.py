@@ -19,8 +19,8 @@ from ._organization import OrganizationClient, OrganizationInput, OrganizationPr
 from ._plan import PlanClient, PlanInput, PlanTermsInput
 from ._plugin import PluginClient, PluginInput, PluginAuthorInput
 from ._providerkey import ProviderKeyClient
-from ._run import RunClient, RunInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, AttachmentInput, ConversationCatchupInput, EvalCaseContextInput, EvalMockServerInput, EvalMockToolInput, EvalMockPluginHomeInput, EvalMockAgentHomeInput
-from ._schedule import ScheduleClient, ScheduleInput, AgentInvocationInput
+from ._routine import RoutineClient, RoutineInput, AgentInvocationInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput
+from ._run import RunClient, RunInput, SessionSpecInput, AttachmentInput, ConversationCatchupInput, EvalCaseContextInput, EvalMockServerInput, EvalMockToolInput, EvalMockPluginHomeInput, EvalMockAgentHomeInput
 from ._score import ScoreClient, ScoreInput, ScoreCriterionInput
 from ._scoringrule import ScoringRuleClient, ScoringRuleInput
 from ._session import SessionClient, SessionInput
@@ -104,13 +104,16 @@ __all__ = [
     "PluginInput",
     "PluginAuthorInput",
     "ProviderKeyClient",
-    "RunClient",
-    "RunInput",
-    "SessionSpecInput",
+    "RoutineClient",
+    "RoutineInput",
+    "AgentInvocationInput",
     "WorkspaceEntryInput",
     "WorkspaceSourceInput",
     "GitRepoSourceInput",
     "LocalPathSourceInput",
+    "RunClient",
+    "RunInput",
+    "SessionSpecInput",
     "AttachmentInput",
     "ConversationCatchupInput",
     "EvalCaseContextInput",
@@ -118,9 +121,6 @@ __all__ = [
     "EvalMockToolInput",
     "EvalMockPluginHomeInput",
     "EvalMockAgentHomeInput",
-    "ScheduleClient",
-    "ScheduleInput",
-    "AgentInvocationInput",
     "ScoreClient",
     "ScoreInput",
     "ScoreCriterionInput",

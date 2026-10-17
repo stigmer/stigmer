@@ -12,9 +12,9 @@
  *     authentication posture does not change this.
  *   - `built-in`: no unit Authorizer AND the require-authentication
  *     posture (the OSS OIDC issuer, or a unit's declaration). Open source
- *     composes the built-in Authorizer, the organization directory and
- *     the schedule fire caller — the cloud's model evaluated over derived
- *     tuples — so the role rows are enforced. An edition above
+ *     composes the built-in Authorizer and the organization directory —
+ *     the cloud's model evaluated over derived tuples — so the role rows
+ *     are enforced. An edition above
  *     open source may run it too, once every kind it serves has rows the
  *     derivation can read (`kindsWithoutRows` below).
  *   - `trusted-local`: no unit Authorizer and no authentication posture —

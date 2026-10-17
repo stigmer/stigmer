@@ -4,7 +4,7 @@
  *
  * Its state is the deletion table (`Store.organizationDeletions`), so the
  * runner holds nothing a restart loses. It runs as the schedule reconciler
- * does (temporal/schedule/reconciler.ts): composed with the server, started
+ * does (temporal/routine/reconciler.ts): composed with the server, started
  * with its loops and stopped before the store closes, fed by a kick queue
  * (the delete chain's AcceptPurge kicks the organization it accepted) and
  * by an interval pass that reads the table.

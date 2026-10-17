@@ -43,7 +43,7 @@ const ALL_TABLES = [
   "resource_audit",
   "search_index",
   "bootstrap_state",
-  "schedule_runs",
+  "routine_fires",
   "resource_names",
   "pending_oauth_state",
   "oauth_client_registration",

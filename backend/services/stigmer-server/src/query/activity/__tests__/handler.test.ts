@@ -165,7 +165,7 @@ describe("listRecentActivity (Go handler_test.go)", () => {
     const labeled: Array<[id: string, key: string]> = [
       ["ses_channel", "stigmer.ai/channel-id"],
       ["ses_guest", "stigmer.ai/guest-cookie-id"],
-      ["ses_schedule", "stigmer.ai/schedule-id"],
+      ["ses_routine", "stigmer.ai/routine-id"],
       ["ses_eval_run_try", "stigmer.ai/eval-run"],
     ];
     for (const [id, key] of labeled) {

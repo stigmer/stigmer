@@ -49,8 +49,8 @@ import {
 } from "@stigmer/apis/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationSpecSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/spec_pb";
-import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/spec_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/spec_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
@@ -70,7 +70,7 @@ import { buildIdentityAccountProto, toIdentityAccountInput } from "../gen/identi
 import { buildFederationIssuerProto, toFederationIssuerInput } from "../gen/federationissuer";
 import { buildOAuthAppProto, toOAuthAppInput } from "../gen/oauthapp";
 import { buildOrganizationProto, toOrganizationInput } from "../gen/organization";
-import { buildScheduleProto, toScheduleInput } from "../gen/schedule";
+import { buildRoutineProto, toRoutineInput } from "../gen/routine";
 import { buildSessionProto, toSessionInput } from "../gen/session";
 import { buildVaultProto, toVaultInput } from "../gen/vault";
 
@@ -715,41 +715,46 @@ describe("toOrganizationInput (tripwire)", () => {
   });
 });
 
-describe("toScheduleInput", () => {
+describe("toRoutineInput", () => {
   const fixture = () =>
-    create(ScheduleSchema, {
+    create(RoutineSchema, {
       metadata: META,
       spec: {
         cron: "0 9 * * 1",
         timeZone: "America/New_York",
         enabled: true,
-        target: {
-          case: "agent",
-          value: {
-            agentRef: { org: "acme", slug: "support-bot", kind: ApiResourceKind.agent },
-            message: "Weekly triage.",
-            harness: Harness.NATIVE,
-            workspaceEntries: WORKSPACE_ENTRIES,
-            vaults: [
-              { org: "acme", slug: "prod", kind: ApiResourceKind.vault },
-            ],
-            runConfig: RUN_CONFIG,
-          },
+        agent: {
+          agentRef: { org: "acme", slug: "support-bot", kind: ApiResourceKind.agent },
+          message: "Weekly triage.",
+          harness: Harness.NATIVE,
+          workspaceEntries: WORKSPACE_ENTRIES,
+          vaults: [
+            { org: "acme", slug: "prod", kind: ApiResourceKind.vault },
+          ],
+          runConfig: RUN_CONFIG,
         },
       },
     });
 
-  it("fixture covers every ScheduleSpec field (schema tripwire)", () => {
-    assertFixtureCoversSpec(ScheduleSpecSchema, fixture().spec!);
+  it("fixture covers every RoutineSpec field (schema tripwire)", () => {
+    assertFixtureCoversSpec(RoutineSpecSchema, fixture().spec!);
   });
 
   it("round-trips the full spec and metadata through the builder", () => {
     const original = fixture();
     assertSpecRoundTrip(
-      ScheduleSpecSchema,
+      RoutineSpecSchema,
       original,
-      buildScheduleProto(toScheduleInput(original)),
+      buildRoutineProto(toRoutineInput(original)),
     );
+  });
+
+  it("keeps a routine with no schedule without one: cron stays absent, not empty", () => {
+    const original = fixture();
+    delete original.spec!.cron;
+    const rebuilt = buildRoutineProto(toRoutineInput(original));
+    expect(rebuilt.spec?.cron).toBeUndefined();
+    expect(rebuilt.spec?.timeZone).toBe("America/New_York");
   });
 });
 

@@ -103,6 +103,16 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.plugin.v1.ListPluginVersionsInput.slug` | request reference |
 | `ai.stigmer.agentic.plugin.v1.PluginAgent.skills` | not a resource: the plugin's own skills, parts of its package, by name |
 
+## `ai.stigmer.agentic.routine.v1`
+
+| Field | Class |
+|---|---|
+| `ai.stigmer.agentic.routine.v1.ListRoutineFiresRequest.routine_id` | stamped id |
+| `ai.stigmer.agentic.routine.v1.ListRoutinesByAgentRequest.agent_id` | stamped id |
+| `ai.stigmer.agentic.routine.v1.RoutineFire.routine_id` | stamped id |
+| `ai.stigmer.agentic.routine.v1.RoutineFire.run_id` | stamped id |
+| `ai.stigmer.agentic.routine.v1.RoutineFireResult.run_id` | stamped id |
+
 ## `ai.stigmer.agentic.run.v1`
 
 | Field | Class |
@@ -134,16 +144,6 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.run.v1.RunValueDeclarer.plugin_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RunValueSource.vault_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.SessionUsageSummary.session_id` | stamped id |
-
-## `ai.stigmer.agentic.schedule.v1`
-
-| Field | Class |
-|---|---|
-| `ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest.schedule_id` | stamped id |
-| `ai.stigmer.agentic.schedule.v1.ListSchedulesByAgentRequest.agent_id` | stamped id |
-| `ai.stigmer.agentic.schedule.v1.ScheduleFire.run_id` | stamped id |
-| `ai.stigmer.agentic.schedule.v1.ScheduleFire.schedule_id` | stamped id |
-| `ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult.run_id` | stamped id |
 
 ## `ai.stigmer.agentic.score.v1`
 
@@ -178,6 +178,7 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.session.v1.SessionSpec.skill_refs` | manifest reference |
 | `ai.stigmer.agentic.session.v1.SessionSpec.vaults` | manifest reference |
 | `ai.stigmer.agentic.session.v1.SessionStatus.agent_id` | stamped id |
+| `ai.stigmer.agentic.session.v1.SessionStatus.routine_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.StreamSessionEventsRequest.session_id` | stamped id |
 
 ## `ai.stigmer.agentic.skill.v1`

@@ -86,4 +86,17 @@ message SessionStatus {
   // current + prior ids; dropping a replaced id would orphan the ledger
   // events of every turn that ran under it.
   repeated string harness_state_id_history = 6;
+
+  // The routine whose fire started this conversation; empty for every other
+  // conversation.
+  //
+  // @internal
+  // Server-owned: stamped at create, only on a server-composed request, from
+  // the in-process caller identity the routine runtime propagates
+  // (CallerIdentity.routineId), after a client's status is cleared; updates
+  // keep it. The session kind's parent declaration reads it
+  // (ParentRelationConfig.status_field), so the session#routine link that
+  // shows the run to the routine's viewers is derived from a fact no client
+  // can write. A label would not do: labels carry no authorization.
+  string routine_id = 7;
 }

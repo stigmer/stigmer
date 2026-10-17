@@ -5,7 +5,7 @@ import { cn } from "@stigmer/design-tokens";
 import {
   ApplyManifestDialog,
   useAgentCount,
-  useScheduleCount,
+  useRoutineCount,
   useSkillCount,
   usePluginCount,
   ResourceCountCard,
@@ -19,7 +19,7 @@ export default function LibraryLanding() {
   const [refetchToken, refreshCounts] = useReducer((n: number) => n + 1, 0);
   const agents = useAgentCount(org, { refetchToken });
   const skills = useSkillCount(org, { refetchToken });
-  const schedules = useScheduleCount(org, { refetchToken });
+  const routines = useRoutineCount(org, { refetchToken });
   const plugins = usePluginCount(org, { refetchToken });
   const [applyYamlOpen, setApplyYamlOpen] = useState(false);
 
@@ -44,9 +44,9 @@ export default function LibraryLanding() {
         <ResourceCountCard
           icon={<CalendarClock className="size-5" aria-hidden="true" />}
           label="Schedules"
-          count={schedules.count}
-          countIsLowerBound={schedules.isLowerBound}
-          isLoading={schedules.isLoading}
+          count={routines.count}
+          countIsLowerBound={routines.isLowerBound}
+          isLoading={routines.isLoading}
           onClick={() => navigate("/library/schedules")}
         />
         <ResourceCountCard

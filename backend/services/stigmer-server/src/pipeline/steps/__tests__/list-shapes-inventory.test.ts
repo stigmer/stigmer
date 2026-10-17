@@ -330,7 +330,7 @@ describe("the list-shape inventory (docs/list-shapes.md) is true to the contract
     const resources = lists.find(
       (list) =>
         list.name ===
-        "ai.stigmer.agentic.schedule.v1.ScheduleQueryController.listByAgent",
+        "ai.stigmer.agentic.routine.v1.RoutineQueryController.listByAgent",
     )!;
     const disguised = {
       ...resources.method,

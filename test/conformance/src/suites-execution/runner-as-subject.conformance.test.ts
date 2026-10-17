@@ -55,7 +55,7 @@
 //     token, is no person of their run, so their run reads no My vault,
 //     even their own and even when the conversation includes it: only the
 //     conversation's vaults and the organization's embedding vaults serve
-//     it (an integrator keeps such a user's keys in a vault it names). A schedule's
+//     it (an integrator keeps such a user's keys in a vault it names). A routine's
 //     vault stops serving its fires once the account that attached it may
 //     no longer use it. A member's run with memory
 //     on, whose agent calls `remember`, writes a Memory whose subject is the
@@ -92,7 +92,7 @@ import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
-import { ScheduleFireOutcome } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
+import { RoutineFireOutcome } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { expectGrpcCode } from "../contract/errors";
@@ -113,7 +113,7 @@ import {
   sessionIdOf,
 } from "../support/runs";
 import { makeApiKey, plaintextKeyOf } from "../support/apikeys";
-import { makeSchedule } from "../support/schedules";
+import { makeRoutine } from "../support/routines";
 import { makeSessionSpec } from "../support/sessions";
 import { organizationRole } from "../support/grants";
 import {
@@ -1002,14 +1002,14 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(viaEmbedding?.vaultId).toBe(team.metadata!.id);
     });
 
-    it("[rpc:ScheduleCommandController.trigger] a schedule's vault stops serving its fires once the account that attached it may no longer use it", async (ctx) => {
+    it("[rpc:RoutineCommandController.fire] a routine's vault stops serving its fires once the account that attached it may no longer use it", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const tenancy: TenancyContext = await lane.provisionTenancy();
       fixtures.defer(() => lane.cleanupTenancy(tenancy));
       const org = tenancy.org;
 
       // An admin of the organization (not its owner, so the role can be
-      // taken away) authors an agent and a schedule, and attaches a PRIVATE
+      // taken away) authors an agent and a routine, and attaches a PRIVATE
       // shared vault the founder made: an admin may use it.
       const admin = await lane.provisionWithRole(tenancy, "admin");
       const adminId = await lane.accountIdOf(admin);
@@ -1034,28 +1034,30 @@ describe.skipIf(!runnerActsAsRunCreator)(
       fixtures.defer(() =>
         lane.clients.agentCommand.delete({ value: agent.metadata!.id }),
       );
-      const schedule = await admin.scheduleCommand.create(
-        makeSchedule(org, uniqueName("ras-sched"), agent.metadata!.slug, {
+      const routine = await admin.routineCommand.create(
+        makeRoutine(org, uniqueName("ras-sched"), agent.metadata!.slug, {
           vaults: [team.metadata!.slug],
         }),
       );
       fixtures.defer(() =>
-        lane.clients.scheduleCommand
-          .delete({ value: schedule.metadata!.id })
+        lane.clients.routineCommand
+          .delete({ value: routine.metadata!.id })
           .catch(() => undefined),
       );
-      expect(schedule.status?.vaultAttachers?.[team.metadata!.id]).toBe(
+      expect(routine.status?.vaultAttachers?.[team.metadata!.id]).toBe(
         adminId,
       );
 
+      // The admin fires it: a routine is fired by its owner and the people
+      // they make Participants, never by an organization's other admins.
       mock.enqueue(anthropicText("Scheduled work."));
-      const allowed = await lane.clients.scheduleCommand.trigger({
-        value: schedule.metadata!.id,
+      const allowed = await admin.routineCommand.fire({
+        id: routine.metadata!.id,
       });
       expect(
         allowed.outcome,
         `the attacher may use the vault: ${allowed.refusalReason}`,
-      ).toBe(ScheduleFireOutcome.STARTED);
+      ).toBe(RoutineFireOutcome.STARTED);
       fixtures.defer(async () => {
         await awaitTerminal(lane.clients, allowed.runId).catch(() => undefined);
         await lane.clients.agentExecutionCommand
@@ -1063,8 +1065,9 @@ describe.skipIf(!runnerActsAsRunCreator)(
           .catch(() => undefined);
       });
 
-      // The admin becomes a member: no longer one who may use the private
-      // vault. The next fire refuses, naming the vault.
+      // The admin becomes a member: still the routine's owner, but no longer
+      // one who may use the private vault. The next fire refuses, naming the
+      // vault.
       await lane.clients.grantCommand.create(
         organizationRole(adminId, "member", org),
       );
@@ -1073,12 +1076,12 @@ describe.skipIf(!runnerActsAsRunCreator)(
       );
       const refused = await pollUntil(
         () =>
-          lane.clients.scheduleCommand.trigger({
-            value: schedule.metadata!.id,
+          admin.routineCommand.fire({
+            id: routine.metadata!.id,
           }),
-        (result) => result.outcome !== ScheduleFireOutcome.STARTED,
+        (result) => result.outcome !== RoutineFireOutcome.STARTED,
         (last, timeoutMs) =>
-          `the schedule still fired ${timeoutMs}ms after its attacher lost use of the vault (outcome ${last?.outcome})`,
+          `the routine still fired ${timeoutMs}ms after its attacher lost use of the vault (outcome ${last?.outcome})`,
       );
       expect(refused.runId).toBe("");
       expect(refused.refusalReason).toContain(

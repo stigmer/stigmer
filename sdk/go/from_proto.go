@@ -11,8 +11,8 @@ import (
 	evalrunv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/evalrun/v1"
 	memoryv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/memory/v1"
 	pluginv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/plugin/v1"
+	routinev1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/routine/v1"
 	runv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1"
-	schedulev1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/schedule/v1"
 	scorev1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/score/v1"
 	scoringrulev1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/scoringrule/v1"
 	sessionv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1"
@@ -111,14 +111,14 @@ func PluginInputFromProto(p *pluginv1.Plugin) *PluginInput {
 	return gen.PluginInputFromProto(p)
 }
 
+// RoutineInputFromProto creates a RoutineInput from a proto Routine resource.
+func RoutineInputFromProto(p *routinev1.Routine) *RoutineInput {
+	return gen.RoutineInputFromProto(p)
+}
+
 // RunInputFromProto creates a RunInput from a proto Run resource.
 func RunInputFromProto(p *runv1.Run) *RunInput {
 	return gen.RunInputFromProto(p)
-}
-
-// ScheduleInputFromProto creates a ScheduleInput from a proto Schedule resource.
-func ScheduleInputFromProto(p *schedulev1.Schedule) *ScheduleInput {
-	return gen.ScheduleInputFromProto(p)
 }
 
 // ScoreInputFromProto creates a ScoreInput from a proto Score resource.

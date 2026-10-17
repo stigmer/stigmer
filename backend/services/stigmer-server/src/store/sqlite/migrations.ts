@@ -152,6 +152,22 @@ import {
   unreadableChannelMergeRowError,
 } from "../channel-kinds-merged.js";
 import type { ConvertedChannel } from "../channel-kinds-merged.js";
+import {
+  MANUAL_FIRE_ID_SUFFIX_AT_STEP,
+  MANUAL_ORIGIN_AT_STEP,
+  ROUTINE_OWNER_RELATION_AT_STEP,
+  ROUTINE_PARTICIPANT_RELATION_AT_STEP,
+  ROUTINE_RENAME_GRANT_KIND,
+  ROUTINE_RENAME_PAGE_SIZE,
+  ROUTINE_RENAME_RUN_KIND,
+  ROUTINE_RENAME_V38,
+  SCHEDULE_ORIGIN_AT_STEP,
+  SCHEDULE_ORIGIN_BEFORE_STEP,
+  rekeyedRoutineGrant,
+  relabelledRoutineRun,
+  routineFireIdAtStepSql,
+  unreadableRoutineRenameRowError,
+} from "../schedules-become-routines.js";
 import { rfc3339Seconds } from "../rfc3339.js";
 import {
   AGENT_RUN_KIND,
@@ -296,8 +312,11 @@ export const SCHEMA_VERSION_40 = 40;
 /** v41: the agent share and agent channel kinds merged into the channel kind: rows, names, grants, history, conversations. */
 export const SCHEMA_VERSION_41 = 41;
 
+/** v42: the schedule is a routine: its names, grants and history, fire ledger and runs' labels. */
+export const SCHEMA_VERSION_42 = 42;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_41;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_42;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -364,6 +383,7 @@ export function runMigrations(
     [SCHEMA_VERSION_39, migrateToV39],
     [SCHEMA_VERSION_40, migrateToV40],
     [SCHEMA_VERSION_41, (migrating) => migrateToV41(migrating, logger)],
+    [SCHEMA_VERSION_42, migrateToV42],
   ];
 
   for (const [version, migrate] of chain) {
@@ -2419,4 +2439,163 @@ function migrateToV41(db: DatabaseSync, logger: StoreLogger): void {
     }
   }
   logChannelMerge(logger, converted, changedSlugs);
+}
+
+/**
+ * v42: the schedule is a routine; the Postgres driver's v38 in this
+ * engine's terms (../schedules-become-routines.ts says what each row
+ * becomes and why).
+ *
+ * - The kind's rows, list keys and names (current and previous) move to
+ *   `routine` by the shared rename (`renameKind`), each row's kind string
+ *   rewritten, its `sch_` id kept. Its grant arm reads grants under the
+ *   name they had before v38 and finds none here.
+ * - Every grant naming a schedule is re-keyed to the routine triple's
+ *   `grt_` id, an Owner grant made a Participant grant, its old row
+ *   leaving with its list keys and the new one written unproven; its
+ *   history entries move with it, their relation the grant's.
+ * - `schedule_runs` is rebuilt as `routine_fires`, keyed by the fire's id.
+ * - Every run a schedule started takes the routine label in place of the
+ *   schedule label, written unproven.
+ */
+function migrateToV42(db: DatabaseSync): void {
+  renameKind(db, ROUTINE_RENAME_V38);
+  const [fromKind, toKind] = ROUTINE_RENAME_V38.kind;
+
+  const page = db.prepare(`SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`);
+  const rowsOf = function* (kind: string): Generator<{ id: string; data: Uint8Array }> {
+    for (let after = ""; ; ) {
+      const rows = page.all(kind, after, ROUTINE_RENAME_PAGE_SIZE) as Array<{ id: string; data: Uint8Array }>;
+      yield* rows;
+      if (rows.length < ROUTINE_RENAME_PAGE_SIZE) {
+        return;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  };
+
+  const rekeyed: Array<{ from: string; grant: RekeyedGrant }> = [];
+  for (const row of rowsOf(ROUTINE_RENAME_GRANT_KIND)) {
+    try {
+      const grant = rekeyedRoutineGrant(row.data);
+      if (grant !== undefined) {
+        rekeyed.push({ from: row.id, grant });
+      }
+    } catch (error) {
+      throw unreadableRoutineRenameRowError(ROUTINE_RENAME_GRANT_KIND, row.id, error);
+    }
+  }
+  const deleteRow = ["resource_list_keys", "resources"].map((table) =>
+    db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
+  );
+  const insertRow = db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, datetime('now'))`);
+  for (const { from, grant } of rekeyed) {
+    for (const statement of deleteRow) {
+      statement.run(ROUTINE_RENAME_GRANT_KIND, from);
+    }
+    insertRow.run(ROUTINE_RENAME_GRANT_KIND, grant.id, grant.data);
+  }
+
+  const entries = db.prepare(
+    `SELECT org, sequence, data FROM grant_history
+     WHERE (principal_kind = ? OR resource_kind = ?) AND (org, sequence) > (?, ?)
+     ORDER BY org, sequence
+     LIMIT ?`,
+  );
+  const moveEntry = db.prepare(
+    `UPDATE grant_history
+        SET principal_kind = CASE WHEN principal_kind = ? THEN ? ELSE principal_kind END,
+            resource_kind = CASE WHEN resource_kind = ? THEN ? ELSE resource_kind END,
+            relation = CASE WHEN resource_kind = ? AND relation = ? THEN ? ELSE relation END,
+            grant_id = COALESCE(?, grant_id),
+            data = COALESCE(?, data)
+      WHERE org = ? AND sequence = ?`,
+  );
+  for (let afterOrg = "", afterSequence = 0; ; ) {
+    const rows = entries.all(fromKind, fromKind, afterOrg, afterSequence, ROUTINE_RENAME_PAGE_SIZE) as Array<{
+      org: string;
+      sequence: number;
+      data: Uint8Array;
+    }>;
+    for (const row of rows) {
+      let grant: RekeyedGrant | undefined;
+      try {
+        grant = rekeyedRoutineGrant(row.data);
+      } catch (error) {
+        throw unreadableRoutineRenameRowError("grant_history", `${row.org}/${row.sequence}`, error);
+      }
+      moveEntry.run(
+        fromKind,
+        toKind,
+        fromKind,
+        toKind,
+        fromKind,
+        ROUTINE_OWNER_RELATION_AT_STEP,
+        ROUTINE_PARTICIPANT_RELATION_AT_STEP,
+        grant?.id ?? null,
+        grant?.data ?? null,
+        row.org,
+        row.sequence,
+      );
+    }
+    if (rows.length < ROUTINE_RENAME_PAGE_SIZE) {
+      break;
+    }
+    const last = rows[rows.length - 1]!;
+    afterOrg = last.org;
+    afterSequence = Number(last.sequence);
+  }
+
+  db.exec(`
+    CREATE TABLE routine_fires (
+      routine_id TEXT NOT NULL,
+      fire_id TEXT NOT NULL,
+      org TEXT NOT NULL DEFAULT '',
+      nominal_fire_time TEXT NOT NULL,
+      origin TEXT NOT NULL,
+      outcome TEXT NOT NULL,
+      reason TEXT NOT NULL DEFAULT '',
+      run_id TEXT NOT NULL DEFAULT '',
+      fired_by BLOB,
+      recorded_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      completed_at TEXT NOT NULL DEFAULT '',
+      PRIMARY KEY (routine_id, fire_id)
+    );
+    CREATE INDEX idx_routine_fires_order ON routine_fires(routine_id, nominal_fire_time, fire_id);
+    CREATE INDEX idx_routine_fires_recency ON routine_fires(routine_id, recorded_at DESC);
+  `);
+  db.prepare(
+    `INSERT INTO routine_fires
+       (routine_id, fire_id, org, nominal_fire_time, origin, outcome, reason, run_id, recorded_at, completed_at)
+     SELECT s.schedule_id,
+            ${routineFireIdAtStepSql("s")} ||
+              CASE WHEN s.origin = ? AND EXISTS (
+                SELECT 1 FROM schedule_runs c
+                WHERE c.schedule_id = s.schedule_id AND c.nominal_fire_time = s.nominal_fire_time AND c.origin = ?
+              ) THEN ? ELSE '' END,
+            s.org, s.nominal_fire_time,
+            CASE WHEN s.origin = ? THEN ? ELSE s.origin END,
+            s.outcome, s.reason, s.execution_id, s.recorded_at, s.completed_at
+     FROM schedule_runs s`,
+  ).run(
+    MANUAL_ORIGIN_AT_STEP,
+    SCHEDULE_ORIGIN_BEFORE_STEP,
+    MANUAL_FIRE_ID_SUFFIX_AT_STEP,
+    SCHEDULE_ORIGIN_BEFORE_STEP,
+    SCHEDULE_ORIGIN_AT_STEP,
+  );
+  db.exec(`DROP TABLE schedule_runs`);
+
+  const relabel = db.prepare(`UPDATE resources SET data = ?, updated_at = datetime('now') WHERE kind = ? AND id = ?`);
+  for (const row of rowsOf(ROUTINE_RENAME_RUN_KIND)) {
+    let relabelled: Uint8Array | undefined;
+    try {
+      relabelled = relabelledRoutineRun(row.data);
+    } catch (error) {
+      throw unreadableRoutineRenameRowError(ROUTINE_RENAME_RUN_KIND, row.id, error);
+    }
+    if (relabelled !== undefined) {
+      relabel.run(relabelled, ROUTINE_RENAME_RUN_KIND, row.id);
+    }
+  }
 }

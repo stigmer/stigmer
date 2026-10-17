@@ -6,8 +6,9 @@
  * declaration.
  *
  * A row's parent fields are filled from `kind_meta` itself: for the
- * kind's scope parent and every additional parent, the spec field the
- * config names gets `<parentKind>-1`, resolved to the field's generated
+ * kind's scope parent and every additional parent, the spec field (or,
+ * for a server-written link, the status field) the config names gets
+ * `<parentKind>-1`, resolved to the field's generated
  * name through the schema descriptor (the reflection idiom
  * pipeline/steps/shapes.ts documents) so this file keeps no copy of the
  * config and no name transform of its own. A well-formed row for every
@@ -88,9 +89,10 @@ export function fixtureRow(
       org: facts.org,
       visibility: facts.visibility,
     },
-    spec: { ...parentFieldsOf(declaration), ...facts.spec },
+    spec: { ...parentFieldsOf(declaration, "spec"), ...facts.spec },
     status: {
       audit: { specAudit: { createdBy: { id: facts.createdBy } } },
+      ...parentFieldsOf(declaration, "status"),
       ...facts.status,
     },
   };
@@ -98,26 +100,31 @@ export function fixtureRow(
 }
 
 /**
- * `kind_meta`'s parent spec fields for the kind, by generated name, each
- * naming `<parentKind>-1`; a parent field that is a oneof member is set
- * through its oneof (`{ case, value }`), the shape protobuf-es holds it in.
+ * `kind_meta`'s parent fields for the kind in `part` (its spec or its
+ * status), by generated name, each naming `<parentKind>-1`; a parent field
+ * that is a oneof member is set through its oneof (`{ case, value }`), the
+ * shape protobuf-es holds it in.
  */
-function parentFieldsOf(declaration: StoredKindDeclaration): Record<string, unknown> {
+function parentFieldsOf(
+  declaration: StoredKindDeclaration,
+  part: "spec" | "status",
+): Record<string, unknown> {
   const config = getKindMeta(declaration.kind).authorization;
-  const spec = specSchemaOf(declaration.schema);
+  const message = partSchemaOf(declaration.schema, part);
   const fields: Record<string, unknown> = {};
-  if (config === undefined || spec === undefined) {
+  if (config === undefined || message === undefined) {
     return fields;
   }
   const parents = [
     ...(config.parent === undefined ? [] : [config.parent]),
     ...config.additionalParents,
-  ];
+  ].filter((parent) => (part === "status") === (parent.statusField !== ""));
   for (const parent of parents) {
-    const field = spec.fields.find((f) => f.name === parent.specField);
+    const name = part === "status" ? parent.statusField : parent.specField;
+    const field = message.fields.find((f) => f.name === name);
     if (field === undefined) {
       throw new Error(
-        `${declaration.type}: kind_meta names spec field '${parent.specField}', which ${spec.typeName} does not have`,
+        `${declaration.type}: kind_meta names ${part} field '${name}', which ${message.typeName} does not have`,
       );
     }
     if (field.oneof === undefined) {
@@ -132,9 +139,9 @@ function parentFieldsOf(declaration: StoredKindDeclaration): Record<string, unkn
   return fields;
 }
 
-function specSchemaOf(schema: DescMessage): DescMessage | undefined {
-  const spec = schema.fields.find((f) => f.name === "spec");
-  return spec !== undefined && spec.fieldKind === "message"
-    ? spec.message
+function partSchemaOf(schema: DescMessage, part: "spec" | "status"): DescMessage | undefined {
+  const field = schema.fields.find((f) => f.name === part);
+  return field !== undefined && field.fieldKind === "message"
+    ? field.message
     : undefined;
 }

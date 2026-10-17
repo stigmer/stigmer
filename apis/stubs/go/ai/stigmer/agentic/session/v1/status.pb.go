@@ -65,8 +65,11 @@ type SessionStatus struct {
 	// cursor-runner's resume fails, it creates a fresh Cursor agent and
 	// replaces harness_state_id, and the replaced id lands here.
 	HarnessStateIdHistory []string `protobuf:"bytes,6,rep,name=harness_state_id_history,json=harnessStateIdHistory,proto3" json:"harness_state_id_history,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// The routine whose fire started this conversation; empty for every other
+	// conversation.
+	RoutineId     string `protobuf:"bytes,7,opt,name=routine_id,json=routineId,proto3" json:"routine_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SessionStatus) Reset() {
@@ -148,11 +151,18 @@ func (x *SessionStatus) GetHarnessStateIdHistory() []string {
 	return nil
 }
 
+func (x *SessionStatus) GetRoutineId() string {
+	if x != nil {
+		return x.RoutineId
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_session_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/session/v1/status.proto\x12\x1dai.stigmer.agentic.session.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xc7\x03\n" +
+	"*ai/stigmer/agentic/session/v1/status.proto\x12\x1dai.stigmer.agentic.session.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xe6\x03\n" +
 	"\rSessionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12,\n" +
@@ -160,7 +170,9 @@ const file_ai_stigmer_agentic_session_v1_status_proto_rawDesc = "" +
 	"\x0fvault_attachers\x18\x03 \x03(\v2@.ai.stigmer.agentic.session.v1.SessionStatus.VaultAttachersEntryR\x0evaultAttachers\x12\x14\n" +
 	"\x05state\x18\x04 \x01(\tR\x05state\x12(\n" +
 	"\x10harness_state_id\x18\x05 \x01(\tR\x0eharnessStateId\x127\n" +
-	"\x18harness_state_id_history\x18\x06 \x03(\tR\x15harnessStateIdHistory\x1aA\n" +
+	"\x18harness_state_id_history\x18\x06 \x03(\tR\x15harnessStateIdHistory\x12\x1d\n" +
+	"\n" +
+	"routine_id\x18\a \x01(\tR\troutineId\x1aA\n" +
 	"\x13VaultAttachersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x9b\x02\n" +

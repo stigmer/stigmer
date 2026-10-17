@@ -18,23 +18,29 @@ describe("parentIdOf through a oneof", () => {
     const turn = create(RunSchema, {
       spec: { target: { case: "sessionId", value: "ses_1" } },
     });
-    expect(parentIdOf(turn, "session_id")).toBe("ses_1");
+    expect(parentIdOf(turn, { specField: "session_id", statusField: "" })).toBe("ses_1");
   });
 
   it("reads no parent when the oneof holds a new session's spec", () => {
     const turn = create(RunSchema, {
       spec: { target: { case: "sessionSpec", value: {} } },
     });
-    expect(parentIdOf(turn, "session_id")).toBe("");
+    expect(parentIdOf(turn, { specField: "session_id", statusField: "" })).toBe("");
   });
 
   it("reads no parent when the oneof is unset", () => {
     const turn = create(RunSchema, { spec: {} });
-    expect(parentIdOf(turn, "session_id")).toBe("");
+    expect(parentIdOf(turn, { specField: "session_id", statusField: "" })).toBe("");
+  });
+
+  it("reads a server-written link from the status field a config names, never from spec", () => {
+    const session = { spec: { routineId: "rtn_forged" }, status: { routineId: "rtn_1" } };
+    expect(parentIdOf(session, { specField: "", statusField: "routine_id" })).toBe("rtn_1");
+    expect(parentIdOf({ spec: { routineId: "rtn_forged" } }, { specField: "", statusField: "routine_id" })).toBe("");
   });
 
   it("still reads a plain field by its name", () => {
-    expect(parentIdOf({ spec: { agentId: "agt_1" } }, "agent_id")).toBe(
+    expect(parentIdOf({ spec: { agentId: "agt_1" } }, { specField: "agent_id", statusField: "" })).toBe(
       "agt_1",
     );
   });

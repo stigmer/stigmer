@@ -19,13 +19,13 @@ import { describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
-import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 
 import { AGENT_REF_REQUIRED_MESSAGE as CHANNEL_AGENT_REF_REQUIRED } from "../../../domain/channel/constants.js";
 import { newResolveChannelDefaultsStep } from "../../../domain/channel/steps.js";
-import { newResolveScheduleDefaultsStep } from "../../../domain/schedule/steps.js";
+import { newResolveRoutineDefaultsStep } from "../../../domain/routine/steps.js";
 import type { ModelCatalogProvider } from "../../../modelcatalog/model-catalog-provider.js";
 import type { Store } from "../../../store/interface.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
@@ -75,13 +75,13 @@ const webChannel = (agentRef?: { id?: string; slug?: string }) =>
     spec: { agentRef: agentRef && { org: ORG, ...agentRef }, type: { case: "web", value: {} } },
   });
 
-const schedule = (agentRef?: { id?: string; slug?: string }) =>
-  create(ScheduleSchema, {
+const routine = (agentRef?: { id?: string; slug?: string }) =>
+  create(RoutineSchema, {
     metadata: { org: ORG },
     spec: {
       cron: "0 9 * * *",
       timeZone: "UTC",
-      target: { case: "agent", value: { agentRef: agentRef && { org: ORG, ...agentRef } } },
+      agent: { agentRef: agentRef && { org: ORG, ...agentRef } },
     },
   });
 
@@ -100,10 +100,10 @@ describe("the defaults steps ask for an agent_ref that names its agent", () => {
   });
 
   it("the schedule's refuses one that names nothing, and answers a failed agent read INTERNAL", async () => {
-    const step = (store: Store) => newResolveScheduleDefaultsStep({ store, modelRegistry: noCatalogue });
-    const missing = await refusal(step(empty), ScheduleSchema, schedule(), ApiResourceKind.schedule);
+    const step = (store: Store) => newResolveRoutineDefaultsStep({ store, modelRegistry: noCatalogue });
+    const missing = await refusal(step(empty), RoutineSchema, routine(), ApiResourceKind.routine);
     expect([missing.code, missing.rawMessage]).toEqual([Code.InvalidArgument, "spec.agent.agent_ref is required"]);
-    const fault = await refusal(step(failing), ScheduleSchema, schedule({ id: "agt_1" }), ApiResourceKind.schedule);
+    const fault = await refusal(step(failing), RoutineSchema, routine({ id: "agt_1" }), ApiResourceKind.routine);
     expect(fault.code).toBe(Code.Internal);
   });
 

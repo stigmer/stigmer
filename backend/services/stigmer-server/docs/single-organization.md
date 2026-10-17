@@ -50,6 +50,16 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | ChannelMessageCommandController.sendMessage | org |
 | ChannelMessageQueryController.listTemplates | org |
 
+## `ai.stigmer.agentic.routine.v1`
+
+| Method | Fills |
+|---|---|
+| RoutineCommandController.apply | metadata.org |
+| RoutineCommandController.create | metadata.org |
+| RoutineQueryController.listByAgent | org |
+| RoutineQueryController.getByReference | org |
+| RoutineQueryController.list | org |
+
 ## `ai.stigmer.agentic.run.v1`
 
 | Method | Fills |
@@ -110,16 +120,6 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | PluginQueryController.getByReference | org |
 | PluginQueryController.list | org |
 | PluginQueryController.listVersions | org |
-
-## `ai.stigmer.agentic.schedule.v1`
-
-| Method | Fills |
-|---|---|
-| ScheduleCommandController.apply | metadata.org |
-| ScheduleCommandController.create | metadata.org |
-| ScheduleQueryController.listByAgent | org |
-| ScheduleQueryController.getByReference | org |
-| ScheduleQueryController.list | org |
 
 ## `ai.stigmer.agentic.score.v1`
 

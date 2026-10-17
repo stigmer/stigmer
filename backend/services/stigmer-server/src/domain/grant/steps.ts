@@ -55,15 +55,20 @@
  * Owner is assigned by owners. Every caller of the member lanes holds
  * `can_grant_access` (admin) already, so an admin grants every role up to
  * admin; a change that touches an organization's `owner` role also needs
- * `can_assign_roles` there, which only its owners hold. Two steps carry it,
- * on the caller lanes only (`create`, `delete`, `revokeOrgAccess`; never
- * the bootstrap twins, whose platform-pipeline callers hold no
- * organization role):
- *   - AuthorizeOwnerAssignment asks `can_assign_roles` when the spec grants
- *     or revokes `owner` on an organization, or when the account
- *     `revokeOrgAccess` removes holds it. It is Authorize's own evaluation
- *     (`authorizeResolvedResource`), so the `internal` caller skips it as it
- *     skips position 1;
+ * `can_assign_roles` there, which only its owners hold, and so does a grant
+ * of `participant` or `viewer` on a routine, which only that owner holds:
+ * a Participant fires as the owner, and a Viewer reads the runs that acted
+ * as them, the owner's conversations.
+ * Two steps carry it, on the caller lanes only (`create`, `delete`,
+ * `revokeOrgAccess`; never the bootstrap twins, whose platform-pipeline
+ * callers hold no organization role):
+ *   - AuthorizeOwnerAssignment asks `can_assign_roles` on the resource when
+ *     the spec grants or revokes `owner` on an organization, when the
+ *     account `revokeOrgAccess` removes holds it, or when the spec grants
+ *     `participant` or `viewer` on a routine (revoking either only shrinks
+ *     access, so it asks nothing more than can_grant_access). It is Authorize's own
+ *     evaluation (`authorizeResolvedResource`), so the `internal` caller
+ *     skips it as it skips position 1;
  *   - KeepOneOwner refuses a revoke or a removal that would leave the
  *     organization with no owner. It is a product rule rather than
  *     authorization, so it is its own step. It skips `internal` too. The
@@ -114,6 +119,8 @@ import { authorizeResolvedResource } from "../../pipeline/steps/authorize.js";
 import {
   LAST_OWNER_MESSAGE,
   OWNER_ASSIGNMENT_DENIED_MESSAGE,
+  PARTICIPANT_ASSIGNMENT_DENIED_MESSAGE,
+  VIEWER_ASSIGNMENT_DENIED_MESSAGE,
   PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE,
   TEAM_MEMBERS_RELATION,
   noGrantableRolesMessage,
@@ -324,7 +331,14 @@ export function newCleanupResourceStep(
 /** The wire names the two owner steps compare against. */
 const ORGANIZATION_KIND_NAME = kindEnumName(ApiResourceKind.organization);
 const IDENTITY_ACCOUNT_KIND_NAME = kindEnumName(ApiResourceKind.identity_account);
+const ROUTINE_KIND_NAME = kindEnumName(ApiResourceKind.routine);
 const OWNER_RELATION = IamRole[IamRole.owner];
+
+/** The routine roles only its owner grants, each with its refusal's copy. */
+const ROUTINE_ASSIGNMENT_DENIED_MESSAGES: Readonly<Record<string, string>> = {
+  [IamRole[IamRole.participant]]: PARTICIPANT_ASSIGNMENT_DENIED_MESSAGE,
+  [IamRole[IamRole.viewer]]: VIEWER_ASSIGNMENT_DENIED_MESSAGE,
+};
 
 /** The context key the organization's owner rows are kept under for the rest of the request. */
 const ORGANIZATION_OWNERS_KEY = "organizationOwners";
@@ -333,6 +347,27 @@ const ORGANIZATION_OWNERS_KEY = "organizationOwners";
 export interface OwnerRoleChange {
   readonly organizationId: string;
   readonly accountId: string;
+}
+
+/**
+ * A role assignment only the resource's holder may make: the resource
+ * `can_assign_roles` is asked on, and the copy of its refusal.
+ */
+export interface RoleAssignment {
+  readonly resourceKind: ApiResourceKind;
+  readonly resourceId: string;
+  readonly deniedMessage: string;
+}
+
+/** The assignment an organization owner role change is. */
+function ownerAssignmentOf(change: OwnerRoleChange | undefined): RoleAssignment | undefined {
+  return change === undefined
+    ? undefined
+    : {
+        resourceKind: ApiResourceKind.organization,
+        resourceId: change.organizationId,
+        deniedMessage: OWNER_ASSIGNMENT_DENIED_MESSAGE,
+      };
 }
 
 /**
@@ -378,6 +413,39 @@ export function specOwnerRoleChange(
   });
 }
 
+/** `delete`: the spec revokes an organization's owner role. */
+export async function specOwnerAssignment(
+  ctx: RequestContext<typeof GrantSpecSchema>,
+): Promise<RoleAssignment | undefined> {
+  return ownerAssignmentOf(await specOwnerRoleChange(ctx));
+}
+
+/**
+ * `create`: the spec grants an organization's owner role, or Participant or
+ * Viewer on a routine.
+ */
+export async function specRoleAssignment(
+  ctx: RequestContext<typeof GrantSpecSchema>,
+): Promise<RoleAssignment | undefined> {
+  const { resource, relation } = ctx.input;
+  if (resource?.kind === ROUTINE_KIND_NAME && Object.hasOwn(ROUTINE_ASSIGNMENT_DENIED_MESSAGES, relation)) {
+    return {
+      resourceKind: ApiResourceKind.routine,
+      resourceId: resource.id,
+      deniedMessage: ROUTINE_ASSIGNMENT_DENIED_MESSAGES[relation] ?? "",
+    };
+  }
+  return specOwnerAssignment(ctx);
+}
+
+/** `revokeOrgAccess` as an assignment: the removal of an owner. */
+export function orgAccessOwnerAssignment(
+  grants: GrantStore,
+): (ctx: RequestContext<typeof RevokeOrgAccessInputSchema>) => Promise<RoleAssignment | undefined> {
+  const change = orgAccessOwnerRoleChange(grants);
+  return async (ctx) => ownerAssignmentOf(await change(ctx));
+}
+
 /** `revokeOrgAccess`: the removal touches owner exactly when the account holds it. */
 export function orgAccessOwnerRoleChange(
   grants: GrantStore,
@@ -393,10 +461,14 @@ export function orgAccessOwnerRoleChange(
   };
 }
 
-/** A change touching an organization's owner role needs `can_assign_roles` there; see the module header. */
+/**
+ * A change only the resource's holder may make (an organization's owner
+ * role, a routine's Participant) needs `can_assign_roles` on the resource;
+ * see the module header.
+ */
 export function newAuthorizeOwnerAssignmentStep<Desc extends DescMessage>(
   authorizer: Authorizer,
-  ownerRoleChange: (ctx: RequestContext<Desc>) => Promise<OwnerRoleChange | undefined>,
+  roleAssignment: (ctx: RequestContext<Desc>) => Promise<RoleAssignment | undefined>,
 ): PipelineStep<Desc> {
   return {
     name: "AuthorizeOwnerAssignment",
@@ -404,8 +476,8 @@ export function newAuthorizeOwnerAssignmentStep<Desc extends DescMessage>(
       if (ctx.callerIdentity.callerClass === "internal") {
         return;
       }
-      const change = await ownerRoleChange(ctx);
-      if (change === undefined) {
+      const assignment = await roleAssignment(ctx);
+      if (assignment === undefined) {
         return;
       }
       await authorizeResolvedResource(
@@ -413,10 +485,10 @@ export function newAuthorizeOwnerAssignmentStep<Desc extends DescMessage>(
         ctx.callerIdentity,
         {
           permission: IamPermission.can_assign_roles,
-          resourceKind: ApiResourceKind.organization,
-          resourceId: change.organizationId,
+          resourceKind: assignment.resourceKind,
+          resourceId: assignment.resourceId,
         },
-        OWNER_ASSIGNMENT_DENIED_MESSAGE,
+        assignment.deniedMessage,
       );
     },
   };

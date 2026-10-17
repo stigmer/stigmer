@@ -97,7 +97,7 @@ import type { TenancyContext } from "../targets/target";
 let target: TargetProfile;
 // Read at collection time so an edition without an engine reports its cases
 // SKIPPED (the conformance guide's rule), never as passes that returned early.
-// `scheduleFiring` is the engine-backed flag the run and create-mints-id
+// `routineFiring` is the engine-backed flag the run and create-mints-id
 // suites gate the same boundary on.
 const capabilities = createTarget().capabilities;
 let clients: ConformanceClients;
@@ -428,7 +428,7 @@ describe("EvalRun — what an eval run is about", () => {
   });
 });
 
-describe.skipIf(capabilities.scheduleFiring)("EvalRun about a plugin — without an engine behind the server", () => {
+describe.skipIf(capabilities.routineFiring)("EvalRun about a plugin — without an engine behind the server", () => {
   it("[rpc:EvalRunCommandController.create] create stores the eval run failed, naming why it could not start", async () => {
     const plugin = await installedWithEvals();
     const created = await createEval(plugin);

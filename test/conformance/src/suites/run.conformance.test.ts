@@ -318,10 +318,10 @@ describe("Run conformance — a turn runs the agent its session pinned", () => {
 describe("Run conformance — the engine gate", () => {
   it("[rpc:RunCommandController.create] create refuses Unavailable before any side effect when no engine is connected", async (ctx) => {
     // Only the engineless local CRUD targets observe this boundary —
-    // scheduleFiring doubles as "a Temporal engine backs this target", and
+    // routineFiring doubles as "a Temporal engine backs this target", and
     // the cloud CRUD target serves a live engine (and resolves the agent
     // reference before its gate).
-    if (target.capabilities.scheduleFiring) return ctx.skip();
+    if (target.capabilities.routineFiring) return ctx.skip();
     const { org } = await target.provisionTenancy();
     // A turn with no target is a conversation with the built-in assistant:
     // it names no agent, so every check before the engine gate passes and

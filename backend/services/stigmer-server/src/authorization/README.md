@@ -1,12 +1,12 @@
 # authorization/ — the built-in authorizer
 
-Open source's own `Authorizer`, organization directory, schedule fire caller and
-`ListReadScope`, composed when a server runs under an authentication posture and
+Open source's own `Authorizer`, organization directory and `ListReadScope`,
+composed when a server runs under an authentication posture and
 no unit registers its own — the **built-in posture** (`posture.ts`; the other
 two are the trusted-local laptop's permissive default and a unit's own
 Authorizer). It is not a domain: it drives ports the registry declares
 (`extensions/authorizer.ts`, `extensions/organization-directory.ts`,
-`extensions/schedule-fire-caller.ts`, `extensions/list-read-scope.ts`) by
+`extensions/list-read-scope.ts`) by
 reading aggregates it does not own — resources through the generic `Store`,
 accounts through the `IdentityAccountStore` port, roles through the
 `GrantStore` port — and writes nothing.
@@ -92,10 +92,6 @@ computes.
   (`listObjectIds(can_view, organization)`): the organizations the person's rows
   name, kept when `can_view` holds; the `internal` class sees all (the
   in-process authorization skip); enumeration refused.
-- `schedule-fire-caller.ts` — a fire acts as the schedule's creator, resolved
-  from the row's stamp as an account id or as the 3.14.x raw subject; a stamp
-  that names no person is the seam's deterministic refusal, which the RunStarter
-  counts against the schedule instead of retrying forever.
 - `list-read-scope.ts` — the `ListReadScope` driver, the cloud's twin
   (`stigmer-cloud src/iam/list-read-scope.ts`): every candidate a list lane
   offers is answered by `can_view`, the same question a get asks — one evaluator
@@ -131,9 +127,9 @@ the message `kind_meta` names, and the team grants to `team_grantable_roles`;
 in `@stigmer/apis` asks is a relation the model defines, today's known gaps
 pinned by name. The rest pin the machinery:
 alias matching, the memo, the bounds, the source and the derived rules on
-both store drivers. The four drivers are pinned arm by arm on both store drivers
+both store drivers. The three drivers are pinned arm by arm on both store drivers
 (`__tests__/authorizer.postgres.test.ts`, `organization-directory.postgres.test.ts`,
-`schedule-fire-caller.postgres.test.ts`, `list-read-scope.postgres.test.ts` — the adversarial
+`list-read-scope.postgres.test.ts` — the adversarial
 cells first: the outsider, the viewer rung, the admin who does not read members'
 conversations, the orphaned execution, the memory with no subject), the posture
 at the wire over three real boots

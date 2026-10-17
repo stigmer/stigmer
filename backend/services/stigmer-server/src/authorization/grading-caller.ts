@@ -3,7 +3,7 @@
  * scoring rule that asked for it. Open source's driver for the gradingCaller
  * seam (extensions/grading-caller.ts), composed under the built-in
  * authorization posture, line for line the schedule fire's
- * (schedule-fire-caller.ts beside this file).
+ * (domain/routine/owner.ts, the routine fire's owner).
  *
  * Why the creator: the scoring rule row names one person, the one who
  * switched grading on. The creator is read from the row's creation stamp,

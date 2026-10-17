@@ -37,7 +37,7 @@ import { ScoringRuleSchema } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/
 import { MemorySchema } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { EvalRunSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
-import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { ScoreSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
@@ -105,8 +105,8 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
   [ApiResourceKind.scoring_rule, { schema: ScoringRuleSchema }],
   [ApiResourceKind.memory, { schema: MemorySchema }],
   [ApiResourceKind.plugin, { schema: PluginSchema }],
+  [ApiResourceKind.routine, { schema: RoutineSchema }],
   [ApiResourceKind.run, { schema: RunSchema }],
-  [ApiResourceKind.schedule, { schema: ScheduleSchema }],
   [ApiResourceKind.score, { schema: ScoreSchema }],
   [ApiResourceKind.session, { schema: SessionSchema }],
   [ApiResourceKind.skill, { schema: SkillSchema }],

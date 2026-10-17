@@ -277,4 +277,26 @@ java.lang.String defaultValue);
    */
   com.google.protobuf.ByteString
       getHarnessStateIdHistoryBytes(int index);
+
+  /**
+   * <pre>
+   * The routine whose fire started this conversation; empty for every other
+   * conversation.
+   * </pre>
+   *
+   * <code>string routine_id = 7 [json_name = "routineId"];</code>
+   * @return The routineId.
+   */
+  java.lang.String getRoutineId();
+  /**
+   * <pre>
+   * The routine whose fire started this conversation; empty for every other
+   * conversation.
+   * </pre>
+   *
+   * <code>string routine_id = 7 [json_name = "routineId"];</code>
+   * @return The bytes for routineId.
+   */
+  com.google.protobuf.ByteString
+      getRoutineIdBytes();
 }

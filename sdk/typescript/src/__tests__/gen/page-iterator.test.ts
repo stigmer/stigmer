@@ -5,33 +5,33 @@
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { createRouterTransport } from "@connectrpc/connect";
-import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import {
-  ScheduleListSchema,
-  type ListSchedulesRequest,
-} from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/io_pb";
-import { ScheduleQueryController } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/query_pb";
-import { ScheduleClient } from "../../gen/schedule.js";
+  RoutineListSchema,
+  type ListRoutinesRequest,
+} from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
+import { RoutineQueryController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/query_pb";
+import { RoutineClient } from "../../gen/routine.js";
 
 /** Five schedules served two at a time, each request recorded. */
 function client() {
-  const requests: ListSchedulesRequest[] = [];
+  const requests: ListRoutinesRequest[] = [];
   const transport = createRouterTransport(({ service }) => {
-    service(ScheduleQueryController, {
+    service(RoutineQueryController, {
       list(req) {
         requests.push(req);
         const start = req.pageToken === "" ? 0 : Number(req.pageToken);
         const end = Math.min(start + 2, 5);
-        return create(ScheduleListSchema, {
+        return create(RoutineListSchema, {
           entries: Array.from({ length: end - start }, (_, i) =>
-            create(ScheduleSchema, { metadata: { id: `sch_${start + i}` } }),
+            create(RoutineSchema, { metadata: { id: `sch_${start + i}` } }),
           ),
           nextPageToken: end < 5 ? String(end) : "",
         });
       },
     });
   });
-  return { schedules: new ScheduleClient(transport), requests };
+  return { schedules: new RoutineClient(transport), requests };
 }
 
 describe("a generated page iterator", () => {

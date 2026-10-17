@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ScheduleForm,
+  RoutineForm,
   useBreadcrumbOverride,
   useActiveOrgId,
   useOrgSlugForId,
@@ -21,11 +21,11 @@ export default function ScheduleNewPage() {
   if (!org) return null;
 
   return (
-    <ScheduleForm
+    <RoutineForm
       org={org}
-      onComplete={(schedule) =>
+      onComplete={(routine) =>
         navigate(
-          `/library/schedules/${slugForOrg(schedule.metadata?.org ?? "")}/${schedule.metadata?.slug}`,
+          `/library/schedules/${slugForOrg(routine.metadata?.org ?? "")}/${routine.metadata?.slug}`,
         )
       }
       onCancel={() => navigate("/library/schedules")}

@@ -4,7 +4,7 @@
  * provisioner that record what they are asked.
  *
  * What it pins:
- *   - quiesce: the schedule purge runs first and its `more` ends the call;
+ *   - quiesce: the routine purge runs first and its `more` ends the call;
  *     an organization with no run that may still be live passes with no
  *     engine; a run that may still be live is terminated, a run the engine
  *     no longer holds is fine, and with the engine unreachable the stage
@@ -131,19 +131,19 @@ function recordingEngine(terminated: string[], missing: ReadonlySet<string> = ne
 const noSandboxes: SandboxLane = { enabled: false };
 
 describe("the quiesce stage", () => {
-  it("passes with no engine when nothing may still be running, and ends a call while schedules are left", async () => {
+  it("passes with no engine when nothing may still be running, and ends a call while routines are left", async () => {
     await saveExecution("aex_done", ORG, RunPhase.RUN_COMPLETED);
     const calls: string[] = [];
     const stage = newQuiesceStage({
       store,
       logger: silentLogger,
-      schedulePurge: kindPurge(ApiResourceKind.schedule, calls, [true, false]),
+      routinePurge: kindPurge(ApiResourceKind.routine, calls, [true, false]),
       agentEngine: () => ENGINE_DISCONNECTED,
       sandboxLane: noSandboxes,
     });
     expect(await stage.run(context)).toEqual({ more: true });
     expect(await stage.run(context)).toEqual({ more: false });
-    expect(calls).toEqual(["schedule", "schedule"]);
+    expect(calls).toEqual(["routine", "routine"]);
   });
 
   it("terminates a run that may still be live, tolerates one the engine no longer holds, and faults with the engine unreachable", async () => {
@@ -154,7 +154,7 @@ describe("the quiesce stage", () => {
     const deps = {
       store,
       logger: silentLogger,
-      schedulePurge: kindPurge(ApiResourceKind.schedule, []),
+      routinePurge: kindPurge(ApiResourceKind.routine, []),
       sandboxLane: noSandboxes,
     };
     await newQuiesceStage({
@@ -208,7 +208,7 @@ describe("the quiesce stage", () => {
     await newQuiesceStage({
       store,
       logger: silentLogger,
-      schedulePurge: kindPurge(ApiResourceKind.schedule, []),
+      routinePurge: kindPurge(ApiResourceKind.routine, []),
       agentEngine: () => ENGINE_DISCONNECTED,
       sandboxLane: {
         enabled: true,
@@ -226,7 +226,7 @@ describe("the quiesce stage's other runs", () => {
   const base = () => ({
     store,
     logger: silentLogger,
-    schedulePurge: kindPurge(ApiResourceKind.schedule, []),
+    routinePurge: kindPurge(ApiResourceKind.routine, []),
     agentEngine: () => ENGINE_DISCONNECTED,
     sandboxLane: noSandboxes,
   });
@@ -370,21 +370,22 @@ describe("the final stage", () => {
       visibility: "visibility_private",
       createdAt: 1_700_000_000,
     });
-    await store.upsertScheduleFire({
-      scheduleId: "sch_left",
+    await store.upsertRoutineFire({
+      routineId: "rtn_left",
+      fireId: "rtn-left-20260820t000000z",
       org: ORG,
       nominalFireTime: "2026-08-20T00:00:00Z",
-      origin: "cron",
+      origin: "schedule",
       outcome: "started",
       reason: "",
-      executionId: "",
+      runId: "",
       recordedAt: "2026-08-20T00:00:01Z",
       completedAt: "",
     });
     const { stage } = rig();
     await stage.run(context);
     expect(await store.deleteSearchIndexByOrg(ORG)).toBe(0);
-    expect((await store.listScheduleFires("sch_left", undefined, 10)).length).toBe(0);
+    expect((await store.listRoutineFires("sch_left", undefined, 10)).length).toBe(0);
   });
 
   it("sweeps the session events left behind (a run created into a session while it was deleted)", async () => {

@@ -2258,6 +2258,259 @@
       "metadata": {
         "module": "agentic",
         "relations": {
+          "can_assign_roles": {},
+          "can_delete": {},
+          "can_edit": {},
+          "can_fire": {},
+          "can_grant_access": {},
+          "can_view": {},
+          "can_view_access": {},
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "participant": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "member",
+                "type": "team"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "member",
+                "type": "team"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/routine.fga"
+        }
+      },
+      "relations": {
+        "can_assign_roles": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_delete": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "can_edit": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "can_fire": {
+          "computedUserset": {
+            "relation": "participant"
+          }
+        },
+        "can_grant_access": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "can_view": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "viewer"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "can_view_access": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "viewer"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "intersection": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "participant": {
+          "union": {
+            "child": [
+              {
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              }
+            ]
+          }
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "participant"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "routine"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
           "can_edit": {},
           "can_view": {},
           "owner": {},
@@ -2337,142 +2590,6 @@
         }
       },
       "type": "run"
-    },
-    {
-      "metadata": {
-        "module": "agentic",
-        "relations": {
-          "can_delete": {},
-          "can_edit": {},
-          "can_grant_access": {},
-          "can_view": {},
-          "can_view_access": {},
-          "organization": {
-            "directly_related_user_types": [
-              {
-                "type": "organization"
-              }
-            ]
-          },
-          "owner": {
-            "directly_related_user_types": [
-              {
-                "type": "identity_account"
-              }
-            ]
-          },
-          "viewer": {
-            "directly_related_user_types": [
-              {
-                "type": "identity_account"
-              },
-              {
-                "relation": "member",
-                "type": "team"
-              }
-            ]
-          }
-        },
-        "source_info": {
-          "file": "agentic/schedule.fga"
-        }
-      },
-      "relations": {
-        "can_delete": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_edit": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_grant_access": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_view": {
-          "computedUserset": {
-            "relation": "viewer"
-          }
-        },
-        "can_view_access": {
-          "computedUserset": {
-            "relation": "viewer"
-          }
-        },
-        "organization": {
-          "this": {}
-        },
-        "owner": {
-          "union": {
-            "child": [
-              {
-                "intersection": {
-                  "child": [
-                    {
-                      "this": {}
-                    },
-                    {
-                      "tupleToUserset": {
-                        "computedUserset": {
-                          "relation": "affiliated"
-                        },
-                        "tupleset": {
-                          "relation": "organization"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "tupleToUserset": {
-                  "computedUserset": {
-                    "relation": "admin"
-                  },
-                  "tupleset": {
-                    "relation": "organization"
-                  }
-                }
-              }
-            ]
-          }
-        },
-        "viewer": {
-          "union": {
-            "child": [
-              {
-                "intersection": {
-                  "child": [
-                    {
-                      "this": {}
-                    },
-                    {
-                      "tupleToUserset": {
-                        "computedUserset": {
-                          "relation": "affiliated"
-                        },
-                        "tupleset": {
-                          "relation": "organization"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "computedUserset": {
-                  "relation": "owner"
-                }
-              }
-            ]
-          }
-        }
-      },
-      "type": "schedule"
     },
     {
       "metadata": {
@@ -2613,10 +2730,10 @@
               }
             ]
           },
-          "schedule": {
+          "routine": {
             "directly_related_user_types": [
               {
-                "type": "schedule"
+                "type": "routine"
               }
             ]
           },
@@ -2677,7 +2794,7 @@
                     "relation": "viewer"
                   },
                   "tupleset": {
-                    "relation": "schedule"
+                    "relation": "routine"
                   }
                 }
               },
@@ -2757,7 +2874,7 @@
             ]
           }
         },
-        "schedule": {
+        "routine": {
           "this": {}
         },
         "viewer": {

@@ -38,6 +38,7 @@ private static final long serialVersionUID = 0L;
     harnessStateId_ = "";
     harnessStateIdHistory_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
+    routineId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -509,6 +510,55 @@ java.lang.String defaultValue) {
     return harnessStateIdHistory_.getByteString(index);
   }
 
+  public static final int ROUTINE_ID_FIELD_NUMBER = 7;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object routineId_ = "";
+  /**
+   * <pre>
+   * The routine whose fire started this conversation; empty for every other
+   * conversation.
+   * </pre>
+   *
+   * <code>string routine_id = 7 [json_name = "routineId"];</code>
+   * @return The routineId.
+   */
+  @java.lang.Override
+  public java.lang.String getRoutineId() {
+    java.lang.Object ref = routineId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      routineId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The routine whose fire started this conversation; empty for every other
+   * conversation.
+   * </pre>
+   *
+   * <code>string routine_id = 7 [json_name = "routineId"];</code>
+   * @return The bytes for routineId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getRoutineIdBytes() {
+    java.lang.Object ref = routineId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      routineId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -543,6 +593,9 @@ java.lang.String defaultValue) {
     }
     for (int i = 0; i < harnessStateIdHistory_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 6, harnessStateIdHistory_.getRaw(i));
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(routineId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 7, routineId_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -586,6 +639,9 @@ java.lang.String defaultValue) {
       size += dataSize;
       size += 1 * getHarnessStateIdHistoryList().size();
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(routineId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(7, routineId_);
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -622,6 +678,8 @@ java.lang.String defaultValue) {
         .equals(other.getHarnessStateId())) return false;
     if (!getHarnessStateIdHistoryList()
         .equals(other.getHarnessStateIdHistoryList())) return false;
+    if (!getRoutineId()
+        .equals(other.getRoutineId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -653,6 +711,8 @@ java.lang.String defaultValue) {
       hash = (37 * hash) + HARNESS_STATE_ID_HISTORY_FIELD_NUMBER;
       hash = (53 * hash) + getHarnessStateIdHistoryList().hashCode();
     }
+    hash = (37 * hash) + ROUTINE_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getRoutineId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -828,6 +888,7 @@ java.lang.String defaultValue) {
       harnessStateId_ = "";
       harnessStateIdHistory_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
+      routineId_ = "";
       return this;
     }
 
@@ -888,6 +949,9 @@ java.lang.String defaultValue) {
         harnessStateIdHistory_.makeImmutable();
         result.harnessStateIdHistory_ = harnessStateIdHistory_;
       }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.routineId_ = routineId_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -937,6 +1001,11 @@ java.lang.String defaultValue) {
           ensureHarnessStateIdHistoryIsMutable();
           harnessStateIdHistory_.addAll(other.harnessStateIdHistory_);
         }
+        onChanged();
+      }
+      if (!other.getRoutineId().isEmpty()) {
+        routineId_ = other.routineId_;
+        bitField0_ |= 0x00000080;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -999,6 +1068,11 @@ java.lang.String defaultValue) {
               harnessStateIdHistory_.add(input.readStringRequireUtf8());
               break;
             } // case 50
+            case 58: {
+              routineId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 58
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -1996,6 +2070,103 @@ java.lang.String defaultValue) {
       ensureHarnessStateIdHistoryIsMutable();
       harnessStateIdHistory_.add(value);
       bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object routineId_ = "";
+    /**
+     * <pre>
+     * The routine whose fire started this conversation; empty for every other
+     * conversation.
+     * </pre>
+     *
+     * <code>string routine_id = 7 [json_name = "routineId"];</code>
+     * @return The routineId.
+     */
+    public java.lang.String getRoutineId() {
+      java.lang.Object ref = routineId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        routineId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The routine whose fire started this conversation; empty for every other
+     * conversation.
+     * </pre>
+     *
+     * <code>string routine_id = 7 [json_name = "routineId"];</code>
+     * @return The bytes for routineId.
+     */
+    public com.google.protobuf.ByteString
+        getRoutineIdBytes() {
+      java.lang.Object ref = routineId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        routineId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The routine whose fire started this conversation; empty for every other
+     * conversation.
+     * </pre>
+     *
+     * <code>string routine_id = 7 [json_name = "routineId"];</code>
+     * @param value The routineId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRoutineId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      routineId_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The routine whose fire started this conversation; empty for every other
+     * conversation.
+     * </pre>
+     *
+     * <code>string routine_id = 7 [json_name = "routineId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearRoutineId() {
+      routineId_ = getDefaultInstance().getRoutineId();
+      bitField0_ = (bitField0_ & ~0x00000080);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The routine whose fire started this conversation; empty for every other
+     * conversation.
+     * </pre>
+     *
+     * <code>string routine_id = 7 [json_name = "routineId"];</code>
+     * @param value The bytes for routineId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRoutineIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      routineId_ = value;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }

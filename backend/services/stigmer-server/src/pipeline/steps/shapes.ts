@@ -61,14 +61,15 @@ function camelCaseFieldName(specField: string): string {
 }
 
 /**
- * The parent id a `kind_meta` ParentRelationConfig names by `spec_field`,
- * read from the resource's spec — the ParentIdExtractorRegistry port, with
- * zero hardcoded kind knowledge: the proto config names the field, this
- * reads it structurally (spec messages are plain objects whose properties
- * are the camelCase proto field names, and a oneof member is held under its
- * oneof's property as `{ case, value }`, as an execution's session_id is
- * under `target`). Returns "" for every miss (no
- * spec, no field, non-string value); the caller decides whether that is
+ * The parent id a `kind_meta` ParentRelationConfig names, read from the
+ * resource's spec (`spec_field`) or, for a link only the server may write,
+ * from its status (`status_field`, a session's routine) — the
+ * ParentIdExtractorRegistry port, with zero hardcoded kind knowledge: the
+ * proto config names the field, this reads it structurally (messages are
+ * plain objects whose properties are the camelCase proto field names, and
+ * a oneof member is held under its oneof's property as `{ case, value }`,
+ * as a run's session_id is under `target`). Returns "" for every miss (no
+ * message, no field, non-string value); the caller decides whether that is
  * fatal — the tuple lifecycle throws at create (Java's registry returned
  * null and the service threw), the list scope carries no parent.
  *
@@ -79,17 +80,23 @@ function camelCaseFieldName(specField: string): string {
  * and their unit suite hands it plain objects — the same posture
  * `metadataOf` takes behind its cast.
  */
-export function parentIdOf(resource: object, specField: string): string {
-  const spec = (resource as { spec?: Record<string, unknown> }).spec;
-  if (spec === undefined) {
+export function parentIdOf(
+  resource: object,
+  parent: { readonly specField: string; readonly statusField: string },
+): string {
+  const [holder, field] =
+    parent.statusField !== ""
+      ? [(resource as { status?: Record<string, unknown> }).status, parent.statusField]
+      : [(resource as { spec?: Record<string, unknown> }).spec, parent.specField];
+  if (holder === undefined) {
     return "";
   }
-  const name = camelCaseFieldName(specField);
-  const value = spec[name];
+  const name = camelCaseFieldName(field);
+  const value = holder[name];
   if (typeof value === "string") {
     return value;
   }
-  for (const held of Object.values(spec)) {
+  for (const held of Object.values(holder)) {
     if (
       held !== null &&
       typeof held === "object" &&

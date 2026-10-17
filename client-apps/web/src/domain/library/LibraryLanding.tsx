@@ -10,7 +10,7 @@ import { ADD_MCP_SERVER_HREF } from "@/domain/library/plugins/add-mcp-server";
 import {
   ApplyManifestDialog,
   useAgentCount,
-  useScheduleCount,
+  useRoutineCount,
   useSkillCount,
   usePluginCount,
   ResourceCountCard,
@@ -91,13 +91,13 @@ const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
 function useResourceCounts(org: string | null, refetchToken?: unknown) {
   const agents = useAgentCount(org, { refetchToken });
   const skills = useSkillCount(org, { refetchToken });
-  const schedules = useScheduleCount(org, { refetchToken });
+  const routines = useRoutineCount(org, { refetchToken });
   const plugins = usePluginCount(org, { refetchToken });
 
   return {
     agents,
     skills,
-    schedules,
+    schedules: routines,
     plugins,
   } as const;
 }

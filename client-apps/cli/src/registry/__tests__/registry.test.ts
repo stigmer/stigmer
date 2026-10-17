@@ -88,6 +88,8 @@ describe("registry — YAML kind resolution", () => {
     );
     expect(registry.getByYamlKind("AgentChannel")).toBeUndefined();
     expect(registry.getByYamlKind("AgentShare")).toBeUndefined();
+    expect(registry.getByYamlKind("Routine")?.kind).toBe(ApiResourceKind.routine);
+    expect(registry.getByYamlKind("Schedule")).toBeUndefined();
     expect(registry.getByYamlKind("Agent")?.kind).toBe(
       ApiResourceKind.agent,
     );
@@ -134,12 +136,12 @@ describe("registry — verb support matrix", () => {
     ).toBe(false);
   });
 
-  it("schedule supports the full declarative verb set", () => {
+  it("routine supports the full declarative verb set", () => {
     for (const v of [Verb.Apply, Verb.Get, Verb.List, Verb.Delete]) {
-      expect(registry.supportsVerb(ApiResourceKind.schedule, v)).toBe(true);
+      expect(registry.supportsVerb(ApiResourceKind.routine, v)).toBe(true);
     }
-    // Firing rides `stigmer schedule trigger`, never the generic run verb.
-    expect(registry.supportsVerb(ApiResourceKind.schedule, Verb.Run)).toBe(
+    // Firing rides `stigmer routine fire`, never the generic run verb.
+    expect(registry.supportsVerb(ApiResourceKind.routine, Verb.Run)).toBe(
       false,
     );
   });

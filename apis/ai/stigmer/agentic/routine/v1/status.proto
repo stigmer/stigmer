@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.routine.v1;
+
+import "ai/stigmer/commons/apiresource/status.proto";
+import "google/protobuf/timestamp.proto";
+
+// RoutineStatus contains system-managed state for a routine.
+//
+// @internal
+// Platform-owned; written only by the scheduling runtime (tick +
+// lifecycle sync) and by the explicit resume command.
+// Preserved VERBATIM across apply and update (the Channel
+// posture) — load-bearing for the failure-streak auto-pause,
+// which records on status precisely so the platform never writes spec.
+// A routine manifest apply must never reset the failure streak or
+// un-pause a routine; both editions carry a regression test for this.
+message RoutineStatus {
+  // When the routine's schedule next fires, in UTC. Absent while the
+  // routine has no schedule, is disabled or auto-paused, or is not yet
+  // synchronized with the clock.
+  google.protobuf.Timestamp next_fire_at = 1;
+
+  // When the routine last fired, in UTC.
+  google.protobuf.Timestamp last_fire_at = 2;
+
+  // ID of the run created by the most recent fire.
+  //
+  // @internal
+  // The reverse pointer of the stigmer.ai/routine-id label stamped on
+  // every run a routine starts — the audit link is
+  // queryable from either end.
+  string last_run_id = 3;
+
+  // Number of consecutive failed runs. A successful run resets it.
+  //
+  // @internal
+  // Feeds the failure-streak auto-pause (platform default 5).
+  int32 consecutive_failures = 4;
+
+  // Why the platform paused this routine; empty when not paused.
+  // Cleared only by the resume RPC — the owner's explicit act.
+  //
+  // @internal
+  // "Paused" is the platform's latch, distinct from the owner's switch
+  // (spec.enabled = false is "disabled"). Written
+  // ONLY by the platform auto-pause — never an echo of
+  // spec.enabled (one writer per field;
+  // consoles derive owner-disabled state from spec on read). Updates
+  // and applies preserve it verbatim; resume is deliberately the ONE
+  // clearing path.
+  string paused_reason = 5;
+
+  // Who attached each of this resource's vaults, by vault id: the account
+  // whose permission to use the vault each run checks when it has no
+  // person.
+  //
+  // @internal
+  // Server-owned. The reference rule records the writer for each vault a
+  // write introduces, keeps the entry for each vault a write keeps, and
+  // drops entries for removed vaults, so an editor's unrelated edit never
+  // re-attributes someone else's attachment.
+  map<string, string> vault_attachers = 6;
+
+  // Standard audit information (created_at, updated_at, created_by, etc.)
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+}

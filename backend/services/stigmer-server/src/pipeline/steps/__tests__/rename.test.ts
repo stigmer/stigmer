@@ -40,8 +40,8 @@ import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
 import { ChannelAppSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/command_pb";
-import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleCommandController } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/command_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineCommandController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/command_pb";
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultCommandController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/command_pb";
 import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
@@ -118,7 +118,7 @@ describe("renames, through a composed server", () => {
   const agentQuery = () => createClient(AgentQueryController, wire);
   const vaults = () => createClient(VaultCommandController, wire);
   const vaultQuery = () => createClient(VaultQueryController, wire);
-  const schedules = () => createClient(ScheduleCommandController, wire);
+  const routines = () => createClient(RoutineCommandController, wire);
   const channelApps = () => createClient(ChannelAppCommandController, wire);
   const oauthApps = () => createClient(OAuthAppCommandController, wire);
   const orgId = (slug: string) => orgs.get(slug) ?? "";
@@ -744,46 +744,43 @@ describe("renames, through a composed server", () => {
       expect(row.metadata?.name).toBe("edited mid-rename");
     });
 
-    it("a schedule update", async () => {
+    it("a routine update", async () => {
       await agents().create(agentInput(ORG, "race-schedule-agent"));
       const input = (name: string, cron: string, id = "", slug = "") => ({
         apiVersion: AGENTIC,
-        kind: "Schedule",
+        kind: "Routine",
         metadata: { name, org: ORG, ...(id !== "" ? { id, slug } : {}) },
         spec: {
           cron,
           timeZone: "UTC",
           enabled: false,
-          target: {
-            case: "agent" as const,
-            value: {
-              agentRef: {
-                kind: ApiResourceKind.agent,
-                org: ORG,
-                slug: "race-schedule-agent",
-              },
-              message: "go",
+          agent: {
+            agentRef: {
+              kind: ApiResourceKind.agent,
+              org: ORG,
+              slug: "race-schedule-agent",
             },
+            message: "go",
           },
         },
       });
-      const created = await schedules().create(
+      const created = await routines().create(
         input("race-schedule", "0 9 * * *"),
       );
       const id = created.metadata!.id;
       await renameMidWrite(
-        ApiResourceKind.schedule,
+        ApiResourceKind.routine,
         id,
         () =>
-          schedules().rename({ resourceId: id, slug: "race-schedule-renamed" }),
+          routines().rename({ resourceId: id, slug: "race-schedule-renamed" }),
         () =>
-          schedules().update(
+          routines().update(
             { resource: input("race-schedule", "0 10 * * *", id, "race-schedule"), updateMask: { paths: ["*"] } },
           ),
       );
       const row = await expectSlugKept(
-        ApiResourceKind.schedule,
-        ScheduleSchema,
+        ApiResourceKind.routine,
+        RoutineSchema,
         id,
         "race-schedule-renamed",
       );

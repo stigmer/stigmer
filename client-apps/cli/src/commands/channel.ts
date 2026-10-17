@@ -5,7 +5,7 @@
 // switch (web, Slack or WhatsApp); disabling pauses it and keeps its
 // configuration, where `delete channel` tears it down.
 //
-// A noun group beside the verb-first matrix, as `schedule` is: the
+// A noun group beside the verb-first matrix, as `routine` is: the
 // declarative verbs on channels stay generic (apply/get/list/delete), and
 // this group holds the kind's operational actions, which no generic verb
 // carries.

@@ -26,9 +26,9 @@ import { ChannelAppQueryController } from "@stigmer/apis/ai/stigmer/agentic/chan
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultCommandController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/command_pb";
 import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
-import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleCommandController } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/command_pb";
-import { ScheduleQueryController } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/query_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { RoutineCommandController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/command_pb";
+import { RoutineQueryController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/query_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -64,8 +64,8 @@ const knownChannelApp = create(ChannelAppSchema, {
   metadata: { name: "clinic-meta-app", slug: "clinic-meta-app", org: "acme", id: "chapp_1" },
 });
 
-const knownSchedule = create(ScheduleSchema, {
-  metadata: { name: "daily-fee-reminders", slug: "daily-fee-reminders", org: "acme", id: "sch_1" },
+const knownRoutine = create(RoutineSchema, {
+  metadata: { name: "daily-fee-reminders", slug: "daily-fee-reminders", org: "acme", id: "rtn_1" },
 });
 
 const knownPlugin = create(PluginSchema, {
@@ -97,10 +97,10 @@ let agentTagCalls: { agentId: string; versionHash: string; tag: string }[] = [];
 // Force-carrying deletes record what actually rode the RPC.
 let vaultDeletes: { resourceId: string; force: boolean }[] = [];
 let channelAppDeletes: { resourceId: string; force: boolean }[] = [];
-// channel and schedule delete by typed ID — no force field exists on
+// channel and routine delete by typed ID — no force field exists on
 // their wire contracts.
 let channelDeleteIds: string[] = [];
-let scheduleDeleteIds: string[] = [];
+let routineDeleteIds: string[] = [];
 
 beforeEach(() => {
   cancelCalls = [];
@@ -108,7 +108,7 @@ beforeEach(() => {
   vaultDeletes = [];
   channelAppDeletes = [];
   channelDeleteIds = [];
-  scheduleDeleteIds = [];
+  routineDeleteIds = [];
   organizationDeleteIds = [];
 });
 
@@ -171,16 +171,16 @@ beforeAll(async () => {
       },
     });
 
-    router.service(ScheduleQueryController, {
+    router.service(RoutineQueryController, {
       getByReference: (req) => {
-        if (req.slug !== "daily-fee-reminders") throw new ConnectError("schedule not found", Code.NotFound);
-        return knownSchedule;
+        if (req.slug !== "daily-fee-reminders") throw new ConnectError("routine not found", Code.NotFound);
+        return knownRoutine;
       },
     });
-    router.service(ScheduleCommandController, {
+    router.service(RoutineCommandController, {
       delete: (req) => {
-        scheduleDeleteIds.push(req.value);
-        return knownSchedule;
+        routineDeleteIds.push(req.value);
+        return knownRoutine;
       },
     });
 
@@ -274,12 +274,12 @@ describe("delete (standard kinds)", () => {
     expect(classify(err)?.exitCode).toBe(ExitCode.NotFound);
   });
 
-  it("deletes a schedule via its typed ID (tears down the Temporal artifact server-side)", async () => {
-    const plan = await planDelete(client, "schedule", "daily-fee-reminders", "acme");
+  it("deletes a routine via its typed ID (tears down the Temporal artifact server-side)", async () => {
+    const plan = await planDelete(client, "routine", "daily-fee-reminders", "acme");
     const result = await plan.perform();
     expect(result.status).toBe("success");
-    expect(result.message).toBe("Schedule deleted successfully");
-    expect(scheduleDeleteIds).toEqual(["sch_1"]);
+    expect(result.message).toBe("Routine deleted successfully");
+    expect(routineDeleteIds).toEqual(["rtn_1"]);
   });
 
   it("refuses workflow-instance as a type the CLI does not know", async () => {
@@ -298,7 +298,7 @@ describe("delete (standard kinds)", () => {
       "vault",
       "channel",
       "channelapp",
-      "schedule",
+      "routine",
       "run",
       "organization",
     ]) {

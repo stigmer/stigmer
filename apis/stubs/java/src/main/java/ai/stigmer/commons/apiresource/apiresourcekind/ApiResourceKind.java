@@ -163,12 +163,13 @@ public enum ApiResourceKind
   channel_app(48),
   /**
    * <pre>
-   * Recurring trigger that runs an agent on a cron schedule.
+   * A saved agent invocation, run on an optional schedule or fired by Run now
+   * or over the API, acting as its owner.
    * </pre>
    *
-   * <code>schedule = 56 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   * <code>routine = 56 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
-  schedule(56),
+  routine(56),
   /**
    * <pre>
    * Agent-proposed, user-confirmed fact the platform remembers about a person.
@@ -429,12 +430,13 @@ public enum ApiResourceKind
   public static final int channel_app_VALUE = 48;
   /**
    * <pre>
-   * Recurring trigger that runs an agent on a cron schedule.
+   * A saved agent invocation, run on an optional schedule or fired by Run now
+   * or over the API, acting as its owner.
    * </pre>
    *
-   * <code>schedule = 56 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   * <code>routine = 56 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
-  public static final int schedule_VALUE = 56;
+  public static final int routine_VALUE = 56;
   /**
    * <pre>
    * Agent-proposed, user-confirmed fact the platform remembers about a person.
@@ -578,7 +580,7 @@ public enum ApiResourceKind
       case 43: return skill;
       case 47: return channel;
       case 48: return channel_app;
-      case 56: return schedule;
+      case 56: return routine;
       case 57: return memory;
       case 58: return plugin;
       case 59: return vault;

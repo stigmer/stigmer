@@ -428,13 +428,18 @@ export { restrictListByReadScope } from "./extensions/list-read-scope.js";
 // which that idiom answers before any driver is asked: exported so a
 // composition's driver refuses the class exactly as the built-in one does.
 export { InternalCallerOfferedError } from "./extensions/list-read-scope.js";
-// The identity a schedule fire acts as
-// (drivers.scheduleFireCaller) — the composition mints it per fire; the
-// RunStarter propagates it through the in-process caller header. A mint that
-// can act as nobody throws the seam's typed refusal, which the RunStarter
-// counts against the schedule instead of retrying.
-export type { ScheduleFireCallerMint } from "./extensions/schedule-fire-caller.js";
-export { ScheduleFireCallerRefusedError } from "./extensions/schedule-fire-caller.js";
+// The credential a routine's fire presents for its owner
+// (drivers.routineFireCaller) — core resolves the owner, every edition's
+// fires act as them; the composition turns that owner into its identity per
+// fire, and the RunStarter propagates it through the in-process caller
+// header with the routine on it. A fire that can act as nobody throws the
+// seam's typed refusal, which the RunStarter counts against the routine
+// instead of retrying.
+export type {
+  RoutineFireCaller,
+  RoutineFireCallerInput,
+} from "./extensions/routine-fire-caller.js";
+export { RoutineFireRefusedError } from "./extensions/routine-fire-caller.js";
 // The identity an AI judge run acts as (drivers.gradingCaller) — the
 // composition mints it per judge run; the grading workflow propagates it
 // through the in-process caller header. A mint that can act as nobody throws

@@ -88,7 +88,7 @@ import { EvalRunSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_p
 import { RunCredentialsSchema, RunSchema, RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run, RunValueSource } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { ExecutionValues } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
-import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
@@ -119,7 +119,7 @@ import { newSignInFreshener } from "../sign-in/refresh.js";
 import {
   CHANNEL_ID_LABEL_KEY,
   CLONE_TOKEN_KEY,
-  SCHEDULE_ID_LABEL_KEY,
+  ROUTINE_ID_LABEL_KEY,
   SignInRenewalError,
   loginKeyOf,
   newVaultResolver,
@@ -700,23 +700,23 @@ describe("which vaults a run uses", () => {
   it("a run with no person reads no My vault, whatever the conversation includes: the surface's vaults are all it has", async () => {
     await anasVault({ A: "ana-mine" });
     await rig.store.saveResource(
-      ApiResourceKind.schedule,
+      ApiResourceKind.routine,
       "sch_nightly",
-      ScheduleSchema,
-      create(ScheduleSchema, {
+      RoutineSchema,
+      create(RoutineSchema, {
         metadata: { id: "sch_nightly", name: "nightly", org: ORG },
-        spec: { target: { case: "agent", value: { vaults: [] } } },
+        spec: { agent: { vaults: [] } },
       }),
     );
     const failure = await refusal(
       resolve({
-        run: runOf({ labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_nightly" } }),
+        run: runOf({ labels: { [ROUTINE_ID_LABEL_KEY]: "sch_nightly" } }),
         session: sessionOf({ includeMyVault: true }),
         agentSpec: agent({ A: KEY }),
       }),
     );
     expect(failure.rawMessage).toBe(
-      "the agent Helper needs A: ask the owner of schedule 'nightly' to attach a vault that holds A",
+      "the agent Helper needs A: ask the owner of routine 'nightly' to attach a vault that holds A",
     );
   });
 
@@ -724,19 +724,19 @@ describe("which vaults a run uses", () => {
     const mine = await anasVault({ A: "ana-mine" });
     const slug = (await rig.vaults.findById(mine))!.metadata!.slug;
     await rig.store.saveResource(
-      ApiResourceKind.schedule,
+      ApiResourceKind.routine,
       "sch_own",
-      ScheduleSchema,
-      create(ScheduleSchema, {
+      RoutineSchema,
+      create(RoutineSchema, {
         metadata: { id: "sch_own", name: "own", org: ORG },
-        spec: { target: { case: "agent", value: { vaults: [vaultRef(slug)] } } },
+        spec: { agent: { vaults: [vaultRef(slug)] } },
         status: { vaultAttachers: { [mine]: ANA } },
       }),
     );
     mayUse.add(`${ANA}:${mine}`);
     expect(
       await resolve({
-        run: runOf({ labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_own" } }),
+        run: runOf({ labels: { [ROUTINE_ID_LABEL_KEY]: "sch_own" } }),
         agentSpec: agent({ A: KEY }),
       }),
     ).toEqual({ A: "ana-mine" });
@@ -880,7 +880,7 @@ describe("which vaults a run uses", () => {
 
   it("a schedule that is gone contributes no vaults to its run", async () => {
     const values = await resolve({
-      run: runOf({ labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_gone" } }),
+      run: runOf({ labels: { [ROUTINE_ID_LABEL_KEY]: "sch_gone" } }),
       agentSpec: agent({ API_KEY: { isSecret: true, optional: true } }),
     });
     expect(values).toEqual({});
@@ -1174,12 +1174,12 @@ describe("what reaches an agent or a surface of another organization", () => {
     mayUse.add(`${ADMIN}:${team.metadata!.id}`);
     const attached = { [team.metadata!.id]: ADMIN };
     await rig.store.saveResource(
-      ApiResourceKind.schedule,
+      ApiResourceKind.routine,
       "sch_foreign",
-      ScheduleSchema,
-      create(ScheduleSchema, {
+      RoutineSchema,
+      create(RoutineSchema, {
         metadata: { id: "sch_foreign", name: "foreign", org: "globex" },
-        spec: { target: { case: "agent", value: { vaults: [vaultRef("team")] } } },
+        spec: { agent: { vaults: [vaultRef("team")] } },
         status: { vaultAttachers: attached },
       }),
     );
@@ -1208,7 +1208,7 @@ describe("what reaches an agent or a surface of another organization", () => {
     );
     const nowhere = "the agent Helper needs A: list a vault that holds A on the conversation";
     for (const labelled of [
-      { run: runOf({ labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_foreign" } }) },
+      { run: runOf({ labels: { [ROUTINE_ID_LABEL_KEY]: "sch_foreign" } }) },
       { run: runOf(), session: sessionOf({ labels: { [CHANNEL_ID_LABEL_KEY]: "chn_foreign_web" } }) },
       { run: runOf(), session: sessionOf({ labels: { [CHANNEL_ID_LABEL_KEY]: "ach_foreign" } }) },
     ]) {
@@ -2485,7 +2485,7 @@ describe("edges", () => {
       get(target, prop, receiver) {
         if (prop === "getResource") {
           return async (...args: Parameters<typeof rig.store.getResource>) => {
-            if (args[0] === ApiResourceKind.schedule) {
+            if (args[0] === ApiResourceKind.routine) {
               throw new Error("disk gone");
             }
             return rig.store.getResource(...args);
@@ -2505,7 +2505,7 @@ describe("edges", () => {
       freshener,
     });
     await expect(
-      plan({ run: runOf({ labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_any" } }) }, faulty),
+      plan({ run: runOf({ labels: { [ROUTINE_ID_LABEL_KEY]: "sch_any" } }) }, faulty),
     ).rejects.toThrow("disk gone");
   });
 

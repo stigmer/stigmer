@@ -45,7 +45,7 @@ vi.mock("@stigmer/react-sdk", () => ({
   },
   useAgentCount: counter(3),
   useSkillCount: counter(5),
-  useScheduleCount: counter(4),
+  useRoutineCount: counter(4),
   usePluginCount: counter(0),
   useActiveOrgId: () => "org_acme",
 }));

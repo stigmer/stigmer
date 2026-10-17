@@ -138,7 +138,7 @@ export function grantIdFor(spec: GrantSpec): string {
 export const BLUEPRINT_KINDS: ReadonlyArray<ApiResourceKind> = [
   ApiResourceKind.agent,
   ApiResourceKind.skill,
-  ApiResourceKind.schedule,
+  ApiResourceKind.routine,
 ];
 
 /**
@@ -333,6 +333,25 @@ export function malformedTripleMessage(field: string): string {
  */
 export const OWNER_ASSIGNMENT_DENIED_MESSAGE =
   "only an owner of the organization can grant, revoke or remove the owner role";
+
+/**
+ * A grant of Participant on a routine by anyone but the person who created
+ * it (PERMISSION_DENIED): a Participant fires the routine, and every run
+ * acts as its creator, so only the creator chooses who may. Taking
+ * Participant away is anyone's who manages the routine.
+ */
+export const PARTICIPANT_ASSIGNMENT_DENIED_MESSAGE =
+  "only the person who created this routine may choose who starts it";
+
+/**
+ * A grant of Viewer on a routine by anyone but the person who created it
+ * (PERMISSION_DENIED): a Viewer reads the routine's runs, every one of
+ * which acted as its creator and is that person's conversation, so only the
+ * creator chooses who may. Taking Viewer away is anyone's who manages the
+ * routine.
+ */
+export const VIEWER_ASSIGNMENT_DENIED_MESSAGE =
+  "only the person who created this routine may choose who sees its runs";
 
 /**
  * A grant of the organization's `affiliated` relation (INVALID_ARGUMENT, on

@@ -63,11 +63,11 @@ Rows read `| \`package.Service.method\` | class |`.
 | `ai.stigmer.agentic.plugin.v1.PluginCommandController.listTools` | exempt: computed, the tools one server of a plugin offers, asked of the server through a runner |
 | `ai.stigmer.agentic.plugin.v1.PluginQueryController.list` | paged |
 | `ai.stigmer.agentic.plugin.v1.PluginQueryController.listVersions` | paged |
+| `ai.stigmer.agentic.routine.v1.RoutineQueryController.list` | paged |
+| `ai.stigmer.agentic.routine.v1.RoutineQueryController.listByAgent` | paged |
+| `ai.stigmer.agentic.routine.v1.RoutineQueryController.listFires` | paged |
 | `ai.stigmer.agentic.run.v1.RunQueryController.list` | paged |
 | `ai.stigmer.agentic.run.v1.RunQueryController.listBySession` | paged |
-| `ai.stigmer.agentic.schedule.v1.ScheduleQueryController.list` | paged |
-| `ai.stigmer.agentic.schedule.v1.ScheduleQueryController.listByAgent` | paged |
-| `ai.stigmer.agentic.schedule.v1.ScheduleQueryController.listFires` | paged |
 | `ai.stigmer.agentic.score.v1.ScoreQueryController.listByRun` | paged |
 | `ai.stigmer.agentic.score.v1.ScoreQueryController.listBySession` | paged |
 | `ai.stigmer.agentic.score.v1.ScoreQueryController.listFlaggedByAgent` | paged |

@@ -18,7 +18,7 @@
 // redactions (each kind's own suite), and the create-side bars
 // (parent-gated-create-authorization). A vault is read as a shared vault,
 // the organization's; a person's own My vault is pinned by the vault suite.
-// Kinds that carry no visibility (channels, schedules, apps) are read by
+// Kinds that carry no visibility (channels, routines, apps) are read by
 // their owner and by a member only when the model admits members.
 import { Code } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
@@ -34,7 +34,7 @@ import { makeSharedVault } from "../support/vaults";
 import { openPlugin, pluginArchive } from "../support/plugins";
 import { uniqueName } from "../support/naming";
 import { makeOAuthApp } from "../support/oauthapps";
-import { makeSchedule } from "../support/schedules";
+import { makeRoutine } from "../support/routines";
 import { makeSkillArtifact } from "../support/skills";
 import {
   createTarget,
@@ -261,23 +261,23 @@ const KINDS: ReadonlyArray<ReferenceKind> = [
     deniedCopy: "unauthorized to view oauth app",
   },
   {
-    name: "schedule",
+    name: "routine",
     visible: false,
     memberReads: false,
     async seed(using, org) {
       const agent = await seedAgent(using, org);
-      const created = await using.scheduleCommand.create(
-        makeSchedule(org, uniqueName("ref-sched"), agent.metadata!.slug, {
+      const created = await using.routineCommand.create(
+        makeRoutine(org, uniqueName("ref-routine"), agent.metadata!.slug, {
           enabled: false,
         }),
       );
       return { id: created.metadata!.id, slug: created.metadata!.slug };
     },
-    getById: (using, id) => using.scheduleQuery.get({ value: id }),
+    getById: (using, id) => using.routineQuery.get({ value: id }),
     getByReference: (using, org, slug) =>
-      using.scheduleQuery.getByReference({ org, slug }),
-    cleanup: (using, id) => using.scheduleCommand.delete({ value: id }),
-    deniedCopy: "unauthorized to get schedule",
+      using.routineQuery.getByReference({ org, slug }),
+    cleanup: (using, id) => using.routineCommand.delete({ value: id }),
+    deniedCopy: "unauthorized to get routine",
   },
 ];
 

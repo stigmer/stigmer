@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ScheduleForm,
+  RoutineForm,
   useActiveOrgId,
   useOrgSlugForId,
   useBreadcrumbOverride,
@@ -13,7 +13,7 @@ import {
  * Console page for creating a new schedule.
  *
  * Mounted at `/library/schedules/new`. Renders the SDK's
- * `ScheduleForm` component and handles routing on
+ * `RoutineForm` component and handles routing on
  * completion (navigate to detail) and cancellation (navigate to list).
  */
 export function ScheduleNewPage() {
@@ -29,11 +29,11 @@ export function ScheduleNewPage() {
   if (!org) return null;
 
   return (
-    <ScheduleForm
+    <RoutineForm
       org={org}
-      onComplete={(schedule) =>
+      onComplete={(routine) =>
         router.push(
-          `/library/schedules/${slugForOrg(schedule.metadata?.org ?? "")}/${schedule.metadata?.slug}`,
+          `/library/schedules/${slugForOrg(routine.metadata?.org ?? "")}/${routine.metadata?.slug}`,
         )
       }
       onCancel={() => router.push("/library/schedules")}

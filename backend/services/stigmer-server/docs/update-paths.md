@@ -28,8 +28,8 @@ Rows read `| Kind | refused path | written by |`, or `| Kind | none | |` for a k
 | Organization | `spec.embedding` | updateEmbedding |
 | Organization | `spec.parent_org` | create |
 | Organization | `spec.external_id` | create |
+| Routine | none | |
 | Run | none | |
-| Schedule | none | |
 | Score | none | |
 | ScoringRule | none | |
 | Session | none | |

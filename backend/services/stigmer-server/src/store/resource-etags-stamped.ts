@@ -49,7 +49,7 @@ import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb"
 import { EvalSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
 import { EvalRunSchema } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/api_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { ScoreSchema } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
@@ -95,7 +95,7 @@ export const RESOURCE_SCHEMAS: ReadonlyMap<ApiResourceKind, DescMessage> = new M
   [ApiResourceKind.eval, EvalSchema],
   [ApiResourceKind.eval_run, EvalRunSchema],
   [ApiResourceKind.run, RunSchema],
-  [ApiResourceKind.schedule, ScheduleSchema],
+  [ApiResourceKind.routine, RoutineSchema],
   [ApiResourceKind.score, ScoreSchema],
   [ApiResourceKind.session, SessionSchema],
   [ApiResourceKind.skill, SkillSchema],

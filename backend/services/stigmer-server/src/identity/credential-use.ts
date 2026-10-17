@@ -11,7 +11,7 @@
  * (`Store.updateResource`), the
  * narrow status-audit bump (pipeline/steps/defaults.ts), and best-effort
  * with a loud log, as `stampLastFireAt` records a schedule's manual fire
- * (domain/schedule/trigger.ts). Never a load-then-save of the whole row:
+ * (domain/routine/fire.ts). Never a load-then-save of the whole row:
  * the credential's own update chains replace the row whole, and a stale
  * copy written back by a stamp would undo them (a revoked key's change
  * would be lost).

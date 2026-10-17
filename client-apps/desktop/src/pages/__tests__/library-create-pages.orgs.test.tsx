@@ -26,7 +26,7 @@ vi.mock("@stigmer/react-sdk", () => {
   return {
     AgentCreationWizard: capture("AgentCreationWizard"),
     CreationPicker: capture("CreationPicker"),
-    ScheduleForm: capture("ScheduleForm"),
+    RoutineForm: capture("RoutineForm"),
     SkillUploader: capture("SkillUploader"),
     PluginUploader: capture("PluginUploader"),
     MarketplaceCatalog: capture("MarketplaceCatalog"),
@@ -109,7 +109,7 @@ describe("desktop ScheduleNewPage — organizations", () => {
   it("creates in the active org by id and opens the schedule at its org's slug", () => {
     renderPage(ScheduleNewPage);
 
-    const form = last<Creator<MetadataResult>>("ScheduleForm");
+    const form = last<Creator<MetadataResult>>("RoutineForm");
     expect(form.org).toBe("org_acme");
 
     act(() => form.onComplete({ metadata: SHARED }));

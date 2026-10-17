@@ -2,7 +2,7 @@
 // organization: the field view and the delete warning leave the Org line out
 // (machine output keeps it), an empty version history names no organization
 // (and names one by slug on a server that holds several),
-// and a schedule named by bare slug with no organization resolves on such a
+// and a routine named by bare slug with no organization resolves on such a
 // server and is refused, naming the ways to set one, on a server that holds
 // several.
 
@@ -10,12 +10,12 @@ import { create } from "@bufbuild/protobuf";
 import { describe, expect, it, vi } from "vitest";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
-import { ScheduleSchema } from "@stigmer/apis/ai/stigmer/agentic/schedule/v1/api_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import type { Stigmer } from "@stigmer/client";
 import { UsageError } from "../../errors/usage-error.js";
 import { planDelete } from "../delete.js";
 import { renderResource } from "../render.js";
-import { resumeSchedule } from "../schedule.js";
+import { resumeRoutine } from "../routine.js";
 import { renderAgentVersionHistory } from "../version.js";
 
 const AGENT = create(AgentSchema, {
@@ -100,16 +100,16 @@ describe("renderAgentVersionHistory with no versions", () => {
   });
 });
 
-describe("resumeSchedule by bare slug with no organization", () => {
+describe("resumeRoutine by bare slug with no organization", () => {
   function serverHolding(singleOrg: boolean) {
     const getByReference = vi.fn(async () =>
-      create(ScheduleSchema, { metadata: { id: "sch_1", slug: "nightly" } }),
+      create(RoutineSchema, { metadata: { id: "rtn_1", slug: "nightly" } }),
     );
     const stigmer = {
       platform: { getServerInfo: async () => ({ singleOrg }) },
-      schedule: {
+      routine: {
         getByReference,
-        resume: async () => create(ScheduleSchema, { metadata: { id: "sch_1", slug: "nightly" } }),
+        resume: async () => create(RoutineSchema, { metadata: { id: "rtn_1", slug: "nightly" } }),
       },
     } as unknown as Stigmer;
     return { stigmer, getByReference };
@@ -117,15 +117,15 @@ describe("resumeSchedule by bare slug with no organization", () => {
 
   it("resolves on a server that holds one organization, which fills it", async () => {
     const { stigmer, getByReference } = serverHolding(true);
-    await resumeSchedule(stigmer, "nightly", "");
+    await resumeRoutine(stigmer, "nightly", "");
     expect(getByReference).toHaveBeenCalledWith({ org: "", slug: "nightly" });
   });
 
   it("is refused on a server that holds several, naming the ways to set one", async () => {
     const { stigmer, getByReference } = serverHolding(false);
-    const refusal = resumeSchedule(stigmer, "nightly", "");
+    const refusal = resumeRoutine(stigmer, "nightly", "");
     await expect(refusal).rejects.toBeInstanceOf(UsageError);
-    await expect(refusal).rejects.toThrow(/stigmer schedule resume --org <org>/);
+    await expect(refusal).rejects.toThrow(/stigmer routine resume --org <org>/);
     expect(getByReference).not.toHaveBeenCalled();
   });
 });

@@ -64,8 +64,8 @@ import type {
   PendingOAuthStateStore,
   RawResourceDocument,
   ResourceReadForWrite,
-  ScheduleFireCursor,
-  ScheduleFireRecord,
+  RoutineFireCursor,
+  RoutineFireRecord,
   SearchIndexEntry,
   SearchIndexHit,
   SearchIndexQuery,
@@ -133,6 +133,7 @@ import type {
   PermissionHistoryPage,
   PermissionHistoryRecord,
 } from "../permission-history.js";
+import { decodeFiredBy, encodeFiredBy } from "../fired-by.js";
 import { instantNotBefore, rfc3339Seconds } from "../rfc3339.js";
 import { normalizeBm25Score, renderFts5MatchExpression } from "./fts5.js";
 import { runMigrations } from "./migrations.js";
@@ -1334,10 +1335,10 @@ export class SqliteStore implements Store {
   }
 
   // ---------------------------------------------------------------------------
-  // Schedule runs (fire ledger)
+  // Routine fires (fire ledger)
   // ---------------------------------------------------------------------------
 
-  async upsertScheduleFire(record: ScheduleFireRecord): Promise<void> {
+  async upsertRoutineFire(record: RoutineFireRecord): Promise<void> {
     const db = this.open();
     // Default recorded_at is RFC-3339 whole seconds (Go time.RFC3339) —
     // the ledger's house convention for lexicographic comparison.
@@ -1347,30 +1348,32 @@ export class SqliteStore implements Store {
     // The ON CONFLICT WHERE guard is the terminal-immutability contract:
     // rows with a completed_at never get downgraded by a replayed write.
     db.prepare(
-      `INSERT INTO schedule_runs
-        (schedule_id, org, nominal_fire_time, origin, outcome, reason, execution_id, recorded_at, completed_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT (schedule_id, nominal_fire_time, origin) DO UPDATE SET
+      `INSERT INTO routine_fires
+        (routine_id, fire_id, org, nominal_fire_time, origin, outcome, reason, run_id, fired_by, recorded_at, completed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT (routine_id, fire_id) DO UPDATE SET
         outcome = excluded.outcome,
         reason = excluded.reason,
-        execution_id = excluded.execution_id,
+        run_id = excluded.run_id,
         completed_at = excluded.completed_at
-      WHERE schedule_runs.completed_at = ''`,
+      WHERE routine_fires.completed_at = ''`,
     ).run(
-      record.scheduleId,
+      record.routineId,
+      record.fireId,
       record.org,
       record.nominalFireTime,
       record.origin,
       record.outcome,
       record.reason,
-      record.executionId,
+      record.runId,
+      encodeFiredBy(record.firedBy),
       recordedAt,
       record.completedAt,
     );
   }
 
-  async markLatestScheduleFireTerminal(
-    scheduleId: string,
+  async markLatestRoutineFireTerminal(
+    routineId: string,
     origin: string,
     outcome: string,
     reason: string,
@@ -1378,87 +1381,90 @@ export class SqliteStore implements Store {
   ): Promise<void> {
     const db = this.open();
     db.prepare(
-      `UPDATE schedule_runs SET outcome = ?, reason = ?, completed_at = ?
-       WHERE schedule_id = ? AND origin = ? AND completed_at = ''
+      `UPDATE routine_fires SET outcome = ?, reason = ?, completed_at = ?
+       WHERE routine_id = ? AND origin = ? AND completed_at = ''
        AND nominal_fire_time = (
-         SELECT MAX(nominal_fire_time) FROM schedule_runs
-         WHERE schedule_id = ? AND origin = ? AND completed_at = ''
+         SELECT MAX(nominal_fire_time) FROM routine_fires
+         WHERE routine_id = ? AND origin = ? AND completed_at = ''
        )`,
-    ).run(outcome, reason, completedAt, scheduleId, origin, scheduleId, origin);
+    ).run(outcome, reason, completedAt, routineId, origin, routineId, origin);
   }
 
-  async listScheduleFires(
-    scheduleId: string,
-    after: ScheduleFireCursor | undefined,
+  async listRoutineFires(
+    routineId: string,
+    after: RoutineFireCursor | undefined,
     limit: number,
-  ): Promise<ScheduleFireRecord[]> {
-    // The ledger's key orders the read, compared as bytes (BINARY, as
-    // Postgres's COLLATE "C"), and the cursor continues exactly where the
-    // previous read stopped.
+  ): Promise<RoutineFireRecord[]> {
+    // Newest first by nominal time, ties by fire id, compared as bytes
+    // (BINARY, as Postgres's COLLATE "C"), so the order is total and the
+    // cursor continues exactly where the previous read stopped.
     const rows = this.open()
       .prepare(
-        `SELECT schedule_id, org, nominal_fire_time, origin, outcome, reason, execution_id, recorded_at, completed_at
-         FROM schedule_runs
-         WHERE schedule_id = ?
-           AND (? IS NULL OR (nominal_fire_time, origin) < (?, ?))
-         ORDER BY nominal_fire_time DESC, origin DESC
+        `SELECT routine_id, fire_id, org, nominal_fire_time, origin, outcome, reason, run_id, fired_by, recorded_at, completed_at
+         FROM routine_fires
+         WHERE routine_id = ?
+           AND (? IS NULL OR (nominal_fire_time, fire_id) < (?, ?))
+         ORDER BY nominal_fire_time DESC, fire_id DESC
          LIMIT ?`,
       )
       .all(
-        scheduleId,
+        routineId,
         after?.nominalFireTime ?? null,
         after?.nominalFireTime ?? null,
-        after?.origin ?? "",
+        after?.fireId ?? "",
         limit,
-      ) as
-    Array<{
-          schedule_id: string;
-          org: string;
-          nominal_fire_time: string;
-          origin: string;
-          outcome: string;
-          reason: string;
-          execution_id: string;
-          recorded_at: string;
-          completed_at: string;
-        }>;
+      ) as Array<{
+      routine_id: string;
+      fire_id: string;
+      org: string;
+      nominal_fire_time: string;
+      origin: string;
+      outcome: string;
+      reason: string;
+      run_id: string;
+      fired_by: Uint8Array | null;
+      recorded_at: string;
+      completed_at: string;
+    }>;
 
     return rows.map((row) => ({
-      scheduleId: row.schedule_id,
+      routineId: row.routine_id,
+      fireId: row.fire_id,
       org: row.org,
       nominalFireTime: row.nominal_fire_time,
       origin: row.origin,
       outcome: row.outcome,
       reason: row.reason,
-      executionId: row.execution_id,
+      runId: row.run_id,
+      firedBy: decodeFiredBy(row.fired_by),
       recordedAt: row.recorded_at,
       completedAt: row.completed_at,
     }));
   }
 
-
-  async deleteScheduleFiresBySchedule(scheduleId: string): Promise<number> {
+  async deleteRoutineFiresByRoutine(routineId: string): Promise<number> {
     const db = this.open();
     const result = db
-      .prepare(`DELETE FROM schedule_runs WHERE schedule_id = ?`)
-      .run(scheduleId);
+      .prepare(`DELETE FROM routine_fires WHERE routine_id = ?`)
+      .run(routineId);
     return Number(result.changes);
   }
 
-  async deleteScheduleFiresByOrg(org: string): Promise<number> {
+  async deleteRoutineFiresByOrg(org: string): Promise<number> {
     const result = this.open()
-      .prepare(`DELETE FROM schedule_runs WHERE org = ?`)
+      .prepare(`DELETE FROM routine_fires WHERE org = ?`)
       .run(org);
     return Number(result.changes);
   }
 
-  async pruneScheduleFires(recordedBefore: string): Promise<number> {
+  async pruneRoutineFires(recordedBefore: string): Promise<number> {
     const db = this.open();
     const result = db
-      .prepare(`DELETE FROM schedule_runs WHERE recorded_at < ?`)
+      .prepare(`DELETE FROM routine_fires WHERE recorded_at < ?`)
       .run(recordedBefore);
     return Number(result.changes);
   }
+
 
   // ---------------------------------------------------------------------------
   // Search index (FTS5)

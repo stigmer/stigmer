@@ -4,7 +4,7 @@ import { test, expect } from "../../fixtures";
 import { ensureOrg } from "../../fixtures/seed-helpers";
 
 /** The organization these journeys seed into and point the console at. */
-const SCHEDULES_ORG = "e2e-schedules";
+const ROUTINES_ORG = "e2e-schedules";
 
 /**
  * Schedule Library journeys (stigmer/stigmer#352) against the live OSS
@@ -22,7 +22,7 @@ const SCHEDULES_ORG = "e2e-schedules";
 
 /** Makes the schedules organization the console's active one (stored by id) before the first page loads. */
 async function pinActiveOrg(page: Page, stigmerClient: Stigmer): Promise<void> {
-  const id = await ensureOrg(stigmerClient, SCHEDULES_ORG, "E2E schedules");
+  const id = await ensureOrg(stigmerClient, ROUTINES_ORG, "E2E schedules");
   await page.addInitScript((org) => {
     localStorage.setItem("stigmer:activeOrg", org);
   }, id);
@@ -33,42 +33,42 @@ async function pinActiveOrg(page: Page, stigmerClient: Stigmer): Promise<void> {
  * Seeds the organization too, so a case that calls it never depends on a
  * sibling case having run first.
  */
-async function createTestSchedule(
+async function createTestRoutine(
   stigmerClient: Stigmer,
   options?: { enabled?: boolean },
 ) {
-  await ensureOrg(stigmerClient, SCHEDULES_ORG, "E2E schedules");
+  await ensureOrg(stigmerClient, ROUTINES_ORG, "E2E schedules");
   // Cases run on parallel workers in one organization, so the millisecond
   // alone can repeat; the random suffix keeps two seeds' slugs apart.
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   const agent = await stigmerClient.agent.create({
     name: `e2e-sched-agent-${stamp}`,
-    org: SCHEDULES_ORG,
+    org: ROUTINES_ORG,
     instructions: "You send short reminder messages. Keep responses brief.",
   });
   const agentSlug = agent.metadata!.slug!;
   const agentId = agent.metadata!.id!;
 
-  const schedule = await stigmerClient.schedule.create({
+  const routine = await stigmerClient.routine.create({
     name: `e2e-sched-${stamp}`,
-    org: SCHEDULES_ORG,
+    org: ROUTINES_ORG,
     cron: "0 9 * * *",
     timeZone: "Asia/Kolkata",
     enabled: options?.enabled ?? true,
     agent: {
-      agentRef: { org: SCHEDULES_ORG, slug: agentSlug },
+      agentRef: { org: ROUTINES_ORG, slug: agentSlug },
       message: "Send today's reminders.",
     },
   });
-  const scheduleSlug = schedule.metadata!.slug!;
-  const scheduleId = schedule.metadata!.id!;
+  const routineSlug = routine.metadata!.slug!;
+  const routineId = routine.metadata!.id!;
 
   return {
     agentSlug,
-    scheduleSlug,
-    scheduleId,
+    routineSlug,
+    routineId,
     cleanup: async () => {
-      await stigmerClient.schedule.delete(scheduleId).catch(() => {});
+      await stigmerClient.routine.delete(routineId).catch(() => {});
       await stigmerClient.agent.delete(agentId).catch(() => {});
     },
   };
@@ -83,7 +83,7 @@ test.describe("Schedules list page", () => {
     page,
     stigmerClient,
   }) => {
-    await ensureOrg(stigmerClient, SCHEDULES_ORG, "E2E schedules");
+    await ensureOrg(stigmerClient, ROUTINES_ORG, "E2E schedules");
     await page.goto("/library/schedules");
 
     await expect(
@@ -109,23 +109,23 @@ test.describe("Schedules list page", () => {
     page,
     stigmerClient,
   }) => {
-    const seeded = await createTestSchedule(stigmerClient);
+    const seeded = await createTestRoutine(stigmerClient);
     try {
       await page.goto("/library/schedules");
 
-      const row = page.getByText(seeded.scheduleSlug).first();
+      const row = page.getByText(seeded.routineSlug).first();
       await expect(row).toBeVisible({ timeout: 15_000 });
       // Operational columns straight from the proto.
       await expect(page.getByText("0 9 * * *").first()).toBeVisible();
       await expect(
-        page.getByText(`${SCHEDULES_ORG}/${seeded.agentSlug}`).first(),
+        page.getByText(`${ROUTINES_ORG}/${seeded.agentSlug}`).first(),
       ).toBeVisible();
 
       await row.click();
 
       // Detail: definition + status sections and the header badge.
       await expect(
-        page.getByRole("heading", { name: seeded.scheduleSlug }),
+        page.getByRole("heading", { name: seeded.routineSlug }),
       ).toBeVisible({ timeout: 15_000 });
       // The zone shows in the cadence line; other copies of it (a select's
       // options, a tooltip) are hidden, so match the visible one.
@@ -147,22 +147,22 @@ test.describe("Schedule creation form", () => {
     page,
     stigmerClient,
   }) => {
-    await ensureOrg(stigmerClient, SCHEDULES_ORG, "E2E schedules");
+    await ensureOrg(stigmerClient, ROUTINES_ORG, "E2E schedules");
 
     const stamp = Date.now();
     const agent = await stigmerClient.agent.create({
       name: `e2e-form-agent-${stamp}`,
-      org: SCHEDULES_ORG,
+      org: ROUTINES_ORG,
       instructions: "You send short reminder messages. Keep responses brief.",
     });
     const agentSlug = agent.metadata!.slug!;
-    const scheduleName = `e2e-form-sched-${stamp}`;
-    let scheduleId: string | undefined;
+    const routineName = `e2e-form-sched-${stamp}`;
+    let routineId: string | undefined;
 
     try {
       await page.goto("/library/schedules/new");
 
-      await page.getByLabel("Name").fill(scheduleName);
+      await page.getByLabel("Name").fill(routineName);
 
       // The picker is locked to org scope — pick the seeded agent.
       await page.getByText("Choose an agent…").click();
@@ -182,27 +182,25 @@ test.describe("Schedule creation form", () => {
       // Landed on the detail page: definition renders the generated
       // cron, and the staged-disabled default shows the owner's banner.
       await expect(
-        page.getByRole("heading", { name: scheduleName }),
+        page.getByRole("heading", { name: routineName }),
       ).toBeVisible({ timeout: 15_000 });
       await expect(page.getByText("0 9 * * *").first()).toBeVisible();
       await expect(page.getByText("Schedule is disabled")).toBeVisible();
 
       // Server-side confirmation of what the form submitted.
-      const created = await stigmerClient.schedule.getByReference({
-        org: SCHEDULES_ORG,
-        slug: scheduleName,
+      const created = await stigmerClient.routine.getByReference({
+        org: ROUTINES_ORG,
+        slug: routineName,
       });
-      scheduleId = created.metadata!.id!;
+      routineId = created.metadata!.id!;
       expect(created.spec?.cron).toBe("0 9 * * *");
       expect(created.spec?.enabled).toBe(false);
       expect(
-        created.spec?.target?.case === "agent"
-          ? created.spec.target.value.agentRef?.slug
-          : undefined,
+        created.spec?.agent?.agentRef?.slug,
       ).toBe(agentSlug);
     } finally {
-      if (scheduleId) {
-        await stigmerClient.schedule.delete(scheduleId).catch(() => {});
+      if (routineId) {
+        await stigmerClient.routine.delete(routineId).catch(() => {});
       }
       await stigmerClient.agent.delete(agent.metadata!.id!).catch(() => {});
     }
@@ -218,12 +216,12 @@ test.describe("Schedule detail tabs and inline editing", () => {
     page,
     stigmerClient,
   }) => {
-    const seeded = await createTestSchedule(stigmerClient);
+    const seeded = await createTestRoutine(stigmerClient);
     try {
       // The ?tab= deep link lands directly on the History tab (the
       // AgentDetailPage precedent, wired for schedules too).
       await page.goto(
-        `/library/schedules/${SCHEDULES_ORG}/${seeded.scheduleSlug}?tab=history`,
+        `/library/schedules/${ROUTINES_ORG}/${seeded.routineSlug}?tab=history`,
       );
       await expect(
         page.getByRole("tab", { name: "Overview" }),
@@ -258,14 +256,12 @@ test.describe("Schedule detail tabs and inline editing", () => {
 
       // Server-side confirmation that the save was the lossless
       // full-proto re-apply: the edited field changed, nothing else.
-      const after = await stigmerClient.schedule.getByReference({
-        org: SCHEDULES_ORG,
-        slug: seeded.scheduleSlug,
+      const after = await stigmerClient.routine.getByReference({
+        org: ROUTINES_ORG,
+        slug: seeded.routineSlug,
       });
       expect(
-        after.spec?.target?.case === "agent"
-          ? after.spec.target.value.message
-          : undefined,
+        after.spec?.agent?.message,
       ).toBe("Send this week's reminders.");
       expect(after.spec?.cron).toBe("0 9 * * *");
       expect(after.spec?.enabled).toBe(true);
@@ -284,10 +280,10 @@ test.describe("Schedule rename", () => {
     page,
     stigmerClient,
   }) => {
-    const seeded = await createTestSchedule(stigmerClient);
-    const renamed = `${seeded.scheduleSlug}-renamed`;
+    const seeded = await createTestRoutine(stigmerClient);
+    const renamed = `${seeded.routineSlug}-renamed`;
     try {
-      await page.goto(`/library/schedules/${SCHEDULES_ORG}/${seeded.scheduleSlug}`);
+      await page.goto(`/library/schedules/${ROUTINES_ORG}/${seeded.routineSlug}`);
       await expect(page.getByRole("tab", { name: "Overview" })).toBeVisible({
         timeout: 15_000,
       });
@@ -295,22 +291,22 @@ test.describe("Schedule rename", () => {
       await page.getByLabel("Slug").fill(renamed);
       await page.getByRole("button", { name: "Rename" }).click();
       await expect(page).toHaveURL(
-        new RegExp(`/library/schedules/${SCHEDULES_ORG}/${renamed}$`),
+        new RegExp(`/library/schedules/${ROUTINES_ORG}/${renamed}$`),
         { timeout: 15_000 },
       );
 
       // The old reference reads the same schedule, named by its new slug.
-      const byOld = await stigmerClient.schedule.getByReference({
-        org: SCHEDULES_ORG,
-        slug: seeded.scheduleSlug,
+      const byOld = await stigmerClient.routine.getByReference({
+        org: ROUTINES_ORG,
+        slug: seeded.routineSlug,
       });
-      expect(byOld.metadata?.id).toBe(seeded.scheduleId);
+      expect(byOld.metadata?.id).toBe(seeded.routineId);
       expect(byOld.metadata?.slug).toBe(renamed);
 
       // A bookmark to the old address opens it and moves to the new one.
-      await page.goto(`/library/schedules/${SCHEDULES_ORG}/${seeded.scheduleSlug}`);
+      await page.goto(`/library/schedules/${ROUTINES_ORG}/${seeded.routineSlug}`);
       await expect(page).toHaveURL(
-        new RegExp(`/library/schedules/${SCHEDULES_ORG}/${renamed}$`),
+        new RegExp(`/library/schedules/${ROUTINES_ORG}/${renamed}$`),
         { timeout: 15_000 },
       );
     } finally {
@@ -328,10 +324,10 @@ test.describe("Disabled-vs-paused rendering", () => {
     page,
     stigmerClient,
   }) => {
-    const seeded = await createTestSchedule(stigmerClient, { enabled: false });
+    const seeded = await createTestRoutine(stigmerClient, { enabled: false });
     try {
       await page.goto(
-        `/library/schedules/${SCHEDULES_ORG}/${seeded.scheduleSlug}`,
+        `/library/schedules/${ROUTINES_ORG}/${seeded.routineSlug}`,
       );
 
       // The owner's lever renders distinctly, with its remedy inline.
@@ -341,7 +337,7 @@ test.describe("Disabled-vs-paused rendering", () => {
       await expect(page.getByText("Disabled").first()).toBeVisible();
       // A disabled schedule's primary action is "Enable & run now", the
       // one-click staged-test flow, never a bare "Run now"
-      // (ScheduleDetailView's primaryAction).
+      // (RoutineDetailView's primaryAction).
       await expect(page.getByRole("button", { name: "Enable & run now" })).toBeEnabled();
       await expect(page.getByRole("button", { name: "Run now", exact: true })).toHaveCount(0);
 
@@ -357,9 +353,9 @@ test.describe("Disabled-vs-paused rendering", () => {
       await expect(page.getByRole("button", { name: "Enable & run now" })).toHaveCount(0);
 
       // Server-side confirmation: enabled flipped, nothing else touched.
-      const after = await stigmerClient.schedule.getByReference({
-        org: SCHEDULES_ORG,
-        slug: seeded.scheduleSlug,
+      const after = await stigmerClient.routine.getByReference({
+        org: ROUTINES_ORG,
+        slug: seeded.routineSlug,
       });
       expect(after.spec?.enabled).toBe(true);
     } finally {

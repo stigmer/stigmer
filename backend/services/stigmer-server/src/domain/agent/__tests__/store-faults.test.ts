@@ -60,6 +60,7 @@ function agentCommand(store: Store): Client<typeof AgentCommandController> {
         store,
         logger: silentLogger,
         authorizer: newPermissiveSingleTeamAuthorizer(),
+        routineClock: () => undefined,
         authorizationLifecycle: undefined,
         listReadScope: undefined,
         modelRegistry: {} as ModelCatalogProvider,

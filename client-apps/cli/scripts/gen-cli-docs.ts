@@ -82,7 +82,7 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   connect: "resource",
   tag: "resource",
   channel: "resource",
-  schedule: "resource",
+  routine: "resource",
   vault: "resource",
   // Artifact
   push: "artifact",

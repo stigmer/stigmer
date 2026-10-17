@@ -28,6 +28,7 @@
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
 import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceAuditActor } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 
 import type {
   ListIndexDeclaration,
@@ -98,20 +99,26 @@ export interface AuditRecord {
 }
 
 /**
- * One recorded schedule fire — a fire-ledger row. Outcome and Origin carry
- * the lowercase names of the ai.stigmer.agentic.schedule.v1 enum values
- * ("started", "refused", "cron", "manual", …); timestamps are RFC-3339 UTC
- * strings compared lexicographically (the house convention).
+ * One recorded routine fire — a fire-ledger row. Outcome and Origin carry
+ * the lowercase names of the ai.stigmer.agentic.routine.v1 enum values
+ * ("started", "refused", "schedule", "manual", …); timestamps are RFC-3339
+ * UTC strings compared lexicographically (the house convention).
  */
-export interface ScheduleFireRecord {
-  readonly scheduleId: string;
+export interface RoutineFireRecord {
+  readonly routineId: string;
+  /**
+   * The fire's id, unique within its routine: its run's name. A schedule
+   * fire's is fixed by its nominal time, so a retried tick writes the same
+   * row; a manual fire's carries a random suffix, so each call is its own.
+   */
+  readonly fireId: string;
   readonly org: string;
   /**
-   * The fire's identity instant (cron: the scheduled time; manual: the
-   * trigger time), whole seconds.
+   * The fire's instant (schedule: the scheduled time; manual: the time it
+   * was fired), whole seconds.
    */
   readonly nominalFireTime: string;
-  /** "cron" or "manual". */
+  /** "schedule" or "manual". */
   readonly origin: string;
   /**
    * The fire's current verdict: "started", "refused", "target_missing",
@@ -120,8 +127,10 @@ export interface ScheduleFireRecord {
   readonly outcome: string;
   /** The refusing gate's or terminal verdict's copy verbatim; empty for healthy outcomes. */
   readonly reason: string;
-  /** The created execution, empty when none was created. */
-  readonly executionId: string;
+  /** The created run, empty when none was created. */
+  readonly runId: string;
+  /** Who fired it (the caller of fire); absent for a schedule's own fire. */
+  readonly firedBy?: ApiResourceAuditActor;
   /** When the fire's row was first written ("" lets the driver stamp now). */
   readonly recordedAt: string;
   /**
@@ -132,10 +141,10 @@ export interface ScheduleFireRecord {
   readonly completedAt: string;
 }
 
-/** A fire's place in the ledger's newest-first order: its key within its schedule. */
-export interface ScheduleFireCursor {
+/** A fire's place in the ledger's newest-first order: its nominal time, then its id. */
+export interface RoutineFireCursor {
   readonly nominalFireTime: string;
-  readonly origin: string;
+  readonly fireId: string;
 }
 
 /**
@@ -1059,31 +1068,32 @@ export interface Store {
   ): Promise<AuditRecord>;
 
   // ---------------------------------------------------------------------------
-  // Schedule runs (fire ledger — every fire leaves a row, incl. fires that
-  // created no execution: the only durable trace of a refused launch gate
-  // below the auto-pause threshold)
+  // Routine fires (fire ledger — every fire leaves a row, incl. fires that
+  // created no run: the only durable trace of a refused launch gate below
+  // the auto-pause threshold)
   // ---------------------------------------------------------------------------
 
   /**
-   * Inserts or updates the fire's ledger row, keyed on (scheduleId,
-   * nominalFireTime, origin). Terminal-immutable: a row whose completedAt
-   * is set is never downgraded — a replayed "started" write after the
-   * verdict landed is a no-op by construction (the ON CONFLICT guard).
+   * Inserts or updates the fire's ledger row, keyed on (routineId, fireId).
+   * Terminal-immutable: a row whose completedAt is set is never downgraded
+   * — a replayed "started" write after the verdict landed is a no-op by
+   * construction (the ON CONFLICT guard).
    */
-  upsertScheduleFire(record: ScheduleFireRecord): Promise<void>;
+  upsertRoutineFire(record: RoutineFireRecord): Promise<void>;
 
   /**
-   * Stamps the terminal verdict on the schedule's NEWEST non-terminal row
-   * of the given origin. Keyed on (schedule, origin) by design: the
-   * verdict-writing activities receive only the schedule id (signatures
+   * Stamps the terminal verdict on the routine's NEWEST non-terminal row
+   * of the given origin. Keyed on (routine, origin) by design: the
+   * verdict-writing activities receive only the routine id (signatures
    * pinned by recorded Temporal histories), and the artifact's SKIP
-   * overlap plus the spanning tick guarantee at most one in-flight CRON
-   * run per schedule. The origin filter is load-bearing: manual fires are
-   * untracked, so without it a newer manual row would steal a cron run's
-   * verdict. Silent no-op when no matching non-terminal row exists.
+   * overlap plus the spanning tick guarantee at most one in-flight
+   * schedule run per routine. The origin filter is load-bearing: manual
+   * fires are untracked, so without it a newer manual row would steal a
+   * schedule run's verdict. Silent no-op when no matching non-terminal row
+   * exists.
    */
-  markLatestScheduleFireTerminal(
-    scheduleId: string,
+  markLatestRoutineFireTerminal(
+    routineId: string,
     origin: string,
     outcome: string,
     reason: string,
@@ -1091,27 +1101,28 @@ export interface Store {
   ): Promise<void>;
 
   /**
-   * Recorded fires, newest first: by nominal fire time, then origin, both
-   * compared as bytes (the ledger's key, so the order is total). `after`
-   * reads the fires strictly past that one; `limit` caps the count.
+   * Recorded fires, newest first: by nominal fire time, then fire id, both
+   * compared as bytes (the id is unique within the routine, so the order is
+   * total). `after` reads the fires strictly past that one; `limit` caps
+   * the count.
    */
-  listScheduleFires(
-    scheduleId: string,
-    after: ScheduleFireCursor | undefined,
+  listRoutineFires(
+    routineId: string,
+    after: RoutineFireCursor | undefined,
     limit: number,
-  ): Promise<ScheduleFireRecord[]>;
+  ): Promise<RoutineFireRecord[]>;
 
   /** Delete-cascade twin, called after the resource row delete succeeds. */
-  deleteScheduleFiresBySchedule(scheduleId: string): Promise<number>;
+  deleteRoutineFiresByRoutine(routineId: string): Promise<number>;
 
-  /** Removes every ledger row of an organization's schedules (its purge's sweep); returns the count. */
-  deleteScheduleFiresByOrg(org: string): Promise<number>;
+  /** Removes every ledger row of an organization's routines (its purge's sweep); returns the count. */
+  deleteRoutineFiresByOrg(org: string): Promise<number>;
 
   /**
    * Removes ledger rows recorded before the cutoff (RFC-3339, compared
    * lexicographically) — the retention policy the table was born with.
    */
-  pruneScheduleFires(recordedBefore: string): Promise<number>;
+  pruneRoutineFires(recordedBefore: string): Promise<number>;
 
   // ---------------------------------------------------------------------------
   // Search index

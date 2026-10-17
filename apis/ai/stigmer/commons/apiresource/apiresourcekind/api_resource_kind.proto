@@ -473,6 +473,18 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      // A conversation a routine's fire started links its routine, so the
+      // routine's viewers and Participants read it (the model's
+      // session#routine composes the routine's viewer relation into can_view
+      // only). Read from status, which only the server writes.
+      additional_parents: [
+        {
+          kind: "routine"
+          relation: "routine"
+          status_field: "routine_id"
+          optional: true
+        }
+      ]
       // A participant reads and sends; a viewer only reads. People only:
       // a conversation is never granted to a team.
       grantable_roles: [
@@ -689,37 +701,47 @@ enum ApiResourceKind {
   reserved 55;
   reserved "artifact";
 
-  // Agentic - Scheduling
+  // Agentic - Routines
 
-  // Recurring trigger that runs an agent on a cron schedule.
-  schedule = 56 [(kind_meta) = {
+  // A saved agent invocation, run on an optional schedule or fired by Run now
+  // or over the API, acting as its owner.
+  routine = 56 [(kind_meta) = {
     group: agentic
     version: v1
-    name: "Schedule"
-    display_name: "Schedule"
-    id_prefix: "sch"
+    name: "Routine"
+    display_name: "Routine"
+    id_prefix: "rtn"
+    // Minted as sch_ while the kind was Schedule.
+    retired_id_prefixes: ["sch"]
     is_versioned: false
-    // Not searchable by design: a schedule is operational configuration
-    // reached through its target's surfaces, not a library artifact.
+    // Not searchable by design: a routine is operational configuration
+    // reached through its agent's surfaces, not a library artifact.
     // (Mirrors channel; skips the Go search-extractor.)
     not_search_indexed: true
     tier: open_source
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      // The owner is the account that created it, and nobody else: every
+      // run acts as that account, so Owner is never granted (a second owner
+      // could fire as the first). The organization's admins manage a routine
+      // through its permissions, not through this role.
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       grantable_roles: [
-        owner,
+        participant,
         viewer
       ]
-      team_grantable_roles: [viewer]
+      team_grantable_roles: [
+        participant,
+        viewer
+      ]
       role_descriptions: [
         {
-          role: owner
-          description: "Everything, including deleting it and deciding who has access"
+          role: participant
+          description: "Start it, with a message, and see its runs; cannot change it"
         },
         {
           role: viewer
-          description: "See the schedule and its runs; cannot change it"
+          description: "See the routine and its runs; cannot start or change it"
         }
       ]
     }
@@ -738,7 +760,7 @@ enum ApiResourceKind {
     // Not searchable by design (privacy): memory content is subject-only
     // and must never surface through the global
     // search index, whose results are org-visible. Also skips the Go
-    // search-extractor boot contract, like channel and schedule.
+    // search-extractor boot contract, like channel and routine.
     not_search_indexed: true
     tier: open_source
     authorization: {

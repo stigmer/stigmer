@@ -76,7 +76,7 @@ export const UNTITLED_SESSION_SUBJECT = "Untitled session";
 export const RUNTIME_ORIGIN_LABELS: readonly string[] = [
   "stigmer.ai/channel-id",
   "stigmer.ai/guest-cookie-id",
-  "stigmer.ai/schedule-id",
+  "stigmer.ai/routine-id",
   EVAL_RUN_LABEL,
 ];
 

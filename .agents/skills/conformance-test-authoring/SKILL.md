@@ -41,7 +41,7 @@ repository is in [references/test-discipline.md](references/test-discipline.md).
 
 Extend the existing `<domain>-<facet>.conformance.test.ts` when the facet
 exists; the execution class has one file per facet (`run-approval`,
-`run-file-review`, `schedule-firing`, and the rest), and a new file is a new
+`run-file-review`, `routine-firing`, and the rest), and a new file is a new
 facet, opened with an intent header that states the contract it pins and what is
 deliberately out of scope.
 
@@ -81,8 +81,8 @@ session's `reviewFileChanges` with `reviewFileByPath` or `reviewChangeSet`, read
 the decisions back from the log with `readFileReviewLog` and `reviewSetNow`,
 then read the tree back (`test/conformance/src/support/file-review.ts`).
 
-For a schedule: `makeSchedule` in `test/conformance/src/support/schedules.ts`.
-For anything else that advances on its own: `pollUntil` in
+For a routine: `makeRoutine` in `test/conformance/src/support/routines.ts`. For
+anything else that advances on its own: `pollUntil` in
 `test/conformance/src/support/run-poll.ts`, never a fixed sleep.
 
 ## Reuse the harness

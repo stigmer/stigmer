@@ -6,7 +6,7 @@
  * Lists page by token and carry no total, so the control says where the
  * reader is ("Page 3") and whether a page follows. A view that pages a
  * set it holds in memory knows its page count and passes it ("Page 3 of
- * 7"). Its consumers are `ScheduleFiresTable` (by token) and the
+ * 7"). Its consumers are `RoutineFiresTable` (by token) and the
  * marketplace catalog (in memory).
  *
  * Internal (not barrel-exported): the public contract is each table

@@ -446,9 +446,9 @@
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that\n channels can install through instead of the shared platform app."
         },
         {
-          "name": "schedule",
+          "name": "routine",
           "number": 56,
-          "description": "Recurring trigger that runs an agent on a cron schedule."
+          "description": "A saved agent invocation, run on an optional schedule or fired by Run now\n or over the API, acting as its owner."
         },
         {
           "name": "memory",

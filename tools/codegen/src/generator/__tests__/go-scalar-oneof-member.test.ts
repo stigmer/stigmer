@@ -10,7 +10,8 @@
  * first-declared member wins, as in the TypeScript input: `session_id` is
  * assigned after `session_spec`, so a follow-up turn never silently starts
  * a new conversation (firstMemberWinsOrder). The generator runs over the
- * real schemas and the test reads what it wrote.
+ * real schemas and the test reads what it wrote, the shared workspace types
+ * from whichever file the generator put them in.
  */
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -23,9 +24,25 @@ import { runSDKClientGeneration } from "../sdk-client-go.js";
 
 const SCHEMAS = path.resolve(__dirname, "../../../schemas");
 
+/**
+ * The text of the generated file in `dir` that holds `marker`. A type
+ * several kinds share is written once, into the first kind's file that
+ * names it, so a case about such a type finds its file rather than naming it.
+ */
+function holding(dir: string, marker: string): string {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isFile()).sort((a, b) => a.name.localeCompare(b.name))) {
+    const text = fs.readFileSync(path.join(dir, entry.name), "utf8");
+    if (text.includes(marker)) {
+      return text;
+    }
+  }
+  throw new Error(`no generated file in ${dir} holds ${marker}`);
+}
+
 describe("the Go generator's scalar oneof member", () => {
   let root: string;
   let go: string;
+  let goWorkspace: string;
 
   beforeAll(() => {
     // The generator writes the package's re-export files two levels above
@@ -35,6 +52,7 @@ describe("the Go generator's scalar oneof member", () => {
     const output = path.join(root, "internal", "gen");
     runSDKClientGeneration(SCHEMAS, output);
     go = fs.readFileSync(path.join(output, "run.go"), "utf8");
+    goWorkspace = holding(output, "func (i *WorkspaceSourceInput) toProto()");
   });
 
   afterAll(() => {
@@ -60,7 +78,7 @@ describe("the Go generator's scalar oneof member", () => {
   });
 
   it("orders a nested oneof the same way: the first-declared member, git_repo, wins", () => {
-    const fn = go.slice(go.indexOf("func (i *WorkspaceSourceInput) toProto()"));
+    const fn = goWorkspace.slice(goWorkspace.indexOf("func (i *WorkspaceSourceInput) toProto()"));
     const local = fn.indexOf("p.Source = &sessionv1.WorkspaceSource_LocalPath{");
     const git = fn.indexOf("p.Source = &sessionv1.WorkspaceSource_GitRepo{");
     expect(local).toBeGreaterThan(-1);
