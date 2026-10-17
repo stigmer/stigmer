@@ -170,6 +170,22 @@ import {
   unreadableChannelMergeRowError,
 } from "../channel-kinds-merged.js";
 import type { ConvertedChannel } from "../channel-kinds-merged.js";
+import {
+  MANUAL_FIRE_ID_SUFFIX_AT_STEP,
+  MANUAL_ORIGIN_AT_STEP,
+  ROUTINE_OWNER_RELATION_AT_STEP,
+  ROUTINE_PARTICIPANT_RELATION_AT_STEP,
+  ROUTINE_RENAME_GRANT_KIND,
+  ROUTINE_RENAME_PAGE_SIZE,
+  ROUTINE_RENAME_RUN_KIND,
+  ROUTINE_RENAME_V38,
+  SCHEDULE_ORIGIN_AT_STEP,
+  SCHEDULE_ORIGIN_BEFORE_STEP,
+  rekeyedRoutineGrant,
+  relabelledRoutineRun,
+  routineFireIdAtStepSql,
+  unreadableRoutineRenameRowError,
+} from "../schedules-become-routines.js";
 import { rfc3339Seconds } from "../rfc3339.js";
 import {
   AGENT_RUN_KIND,
@@ -303,8 +319,11 @@ export const SCHEMA_VERSION_36 = 36;
 /** v37: the agent share and agent channel kinds merged into the channel kind: rows, names, grants, history, conversations. */
 export const SCHEMA_VERSION_37 = 37;
 
+/** v38: the schedule is a routine: its names, grants and history, fire ledger and runs' labels. */
+export const SCHEMA_VERSION_38 = 38;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_37;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_38;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -382,6 +401,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_35, migrateToV35],
       [SCHEMA_VERSION_36, migrateToV36],
       [SCHEMA_VERSION_37, (migrating) => migrateToV37(migrating, logger)],
+      [SCHEMA_VERSION_38, migrateToV38],
     ];
 
     for (const [version, migrate] of chain) {
@@ -2610,4 +2630,142 @@ async function migrateToV37(client: PoolClient, logger: StoreLogger): Promise<vo
     });
   }
   logChannelMerge(logger, converted, changedSlugs);
+}
+
+/**
+ * v38: the schedule is a routine (../schedules-become-routines.ts says what
+ * each row becomes and why).
+ *
+ * - The kind's rows, list keys and names (current and previous) move to
+ *   `routine` by the shared rename (`renameKind`), each row's kind string
+ *   rewritten, its `sch_` id kept. Its grant arm reads grants under the
+ *   name they had before v34 and finds none here.
+ * - Every grant naming a schedule is re-keyed to the routine triple's
+ *   `grt_` id, an Owner grant made a Participant grant, its old row
+ *   leaving with its list keys and the new one written unproven; its
+ *   history entries move by v30's loop (`rekeyGrantHistory`), and their
+ *   relation follows the grant's.
+ * - `schedule_runs` is rebuilt as `routine_fires`, keyed by the fire's id.
+ * - Every run a schedule started takes the routine label in place of the
+ *   schedule label, written unproven.
+ *
+ * Each page compares and orders `id` under the column's own collation. The
+ * chain's advisory lock keeps a second instance's boot out of the step,
+ * and the transaction makes it whole or nothing.
+ */
+async function migrateToV38(client: PoolClient): Promise<void> {
+  await renameKind(client, ROUTINE_RENAME_V38);
+  const [fromKind, toKind] = ROUTINE_RENAME_V38.kind;
+
+  const forEachRow = async (
+    kind: string,
+    visit: (row: { id: string; data: Uint8Array }) => Promise<void> | void,
+  ): Promise<void> => {
+    for (let after = ""; ; ) {
+      const rows = (
+        await client.query<{ id: string; data: Buffer }>(
+          `SELECT id, data FROM resources
+           WHERE kind = $1 AND id > $2
+           ORDER BY id
+           LIMIT $3`,
+          [kind, after, ROUTINE_RENAME_PAGE_SIZE],
+        )
+      ).rows;
+      for (const row of rows) {
+        await visit({ id: row.id, data: new Uint8Array(row.data) });
+      }
+      if (rows.length < ROUTINE_RENAME_PAGE_SIZE) {
+        return;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  };
+
+  const rekeyed: Array<{ from: string; grant: RekeyedGrant }> = [];
+  await forEachRow(ROUTINE_RENAME_GRANT_KIND, (row) => {
+    try {
+      const grant = rekeyedRoutineGrant(row.data);
+      if (grant !== undefined) {
+        rekeyed.push({ from: row.id, grant });
+      }
+    } catch (error) {
+      throw unreadableRoutineRenameRowError(ROUTINE_RENAME_GRANT_KIND, row.id, error);
+    }
+  });
+  for (const { from, grant } of rekeyed) {
+    for (const table of ["resource_list_keys", "resources"]) {
+      await client.query(`DELETE FROM ${table} WHERE kind = $1 AND id = $2`, [ROUTINE_RENAME_GRANT_KIND, from]);
+    }
+    await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, now())`, [
+      ROUTINE_RENAME_GRANT_KIND,
+      grant.id,
+      Buffer.from(grant.data),
+    ]);
+  }
+  await rekeyGrantHistory(client, {
+    table: "grant_history",
+    idColumn: "grant_id",
+    fromKinds: [fromKind],
+    toKind,
+    pageSize: ROUTINE_RENAME_PAGE_SIZE,
+    rekey: rekeyedRoutineGrant,
+    unreadable: (entry, error) => unreadableRoutineRenameRowError("grant_history", entry, error),
+  });
+  await client.query(`UPDATE grant_history SET relation = $1 WHERE resource_kind = $2 AND relation = $3`, [
+    ROUTINE_PARTICIPANT_RELATION_AT_STEP,
+    toKind,
+    ROUTINE_OWNER_RELATION_AT_STEP,
+  ]);
+
+  await client.query(`
+    CREATE TABLE routine_fires (
+      routine_id TEXT NOT NULL,
+      fire_id TEXT NOT NULL,
+      org TEXT NOT NULL DEFAULT '',
+      nominal_fire_time TEXT NOT NULL,
+      origin TEXT NOT NULL,
+      outcome TEXT NOT NULL,
+      reason TEXT NOT NULL DEFAULT '',
+      run_id TEXT NOT NULL DEFAULT '',
+      fired_by BYTEA,
+      recorded_at TEXT NOT NULL DEFAULT '',
+      completed_at TEXT NOT NULL DEFAULT '',
+      PRIMARY KEY (routine_id, fire_id)
+    );
+    CREATE INDEX idx_routine_fires_order ON routine_fires (routine_id, nominal_fire_time, fire_id);
+    CREATE INDEX idx_routine_fires_recency ON routine_fires (routine_id, recorded_at DESC);
+    CREATE INDEX idx_routine_fires_prune ON routine_fires (recorded_at);
+  `);
+  await client.query(
+    `INSERT INTO routine_fires
+       (routine_id, fire_id, org, nominal_fire_time, origin, outcome, reason, run_id, recorded_at, completed_at)
+     SELECT s.schedule_id,
+            ${routineFireIdAtStepSql("s")} ||
+              CASE WHEN s.origin = $1 AND EXISTS (
+                SELECT 1 FROM schedule_runs c
+                WHERE c.schedule_id = s.schedule_id AND c.nominal_fire_time = s.nominal_fire_time AND c.origin = $2
+              ) THEN $3 ELSE '' END,
+            s.org, s.nominal_fire_time,
+            CASE WHEN s.origin = $2 THEN $4 ELSE s.origin END,
+            s.outcome, s.reason, s.execution_id, s.recorded_at, s.completed_at
+     FROM schedule_runs s`,
+    [MANUAL_ORIGIN_AT_STEP, SCHEDULE_ORIGIN_BEFORE_STEP, MANUAL_FIRE_ID_SUFFIX_AT_STEP, SCHEDULE_ORIGIN_AT_STEP],
+  );
+  await client.query(`DROP TABLE schedule_runs`);
+
+  await forEachRow(ROUTINE_RENAME_RUN_KIND, async (row) => {
+    let relabelled: Uint8Array | undefined;
+    try {
+      relabelled = relabelledRoutineRun(row.data);
+    } catch (error) {
+      throw unreadableRoutineRenameRowError(ROUTINE_RENAME_RUN_KIND, row.id, error);
+    }
+    if (relabelled !== undefined) {
+      await client.query(`UPDATE resources SET data = $1, updated_at = now() WHERE kind = $2 AND id = $3`, [
+        Buffer.from(relabelled),
+        ROUTINE_RENAME_RUN_KIND,
+        row.id,
+      ]);
+    }
+  });
 }

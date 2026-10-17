@@ -1,0 +1,188 @@
+# A routine's owner is the account that created it, and nobody else: every
+# run acts as that account. Owner is never granted, and organization admins
+# are not composed into it. Admins manage a routine through its
+# permissions (see it, its fires and its access list; edit, delete, grant
+# Viewer, revoke) but do not fire it or grant Participant (can_assign_roles).
+# A Participant fires it and reads it; a Viewer only reads it. Plain org
+# members get NO implicit access: every run spends on the organization's own
+# provider keys, unattended. Creation is gated on can_edit of the referenced
+# agent, checked in-handler, so no organization-level can_create_routine
+# relation exists to test.
+#
+# Run: fga model test --tests routine-owner.fga.yaml
+
+name: routine-owner
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # Org membership for both accounts — proving membership grants nothing.
+  - user: identity_account:alice
+    relation: member
+    object: organization:acme
+  - user: identity_account:alice
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:mallory
+    relation: member
+    object: organization:acme
+  - user: identity_account:mallory
+    relation: affiliated
+    object: organization:acme
+
+  # Org admin and the parent organization's admin: they manage, never act.
+  - user: identity_account:ana
+    relation: admin
+    object: organization:acme
+  - user: identity_account:ana
+    relation: affiliated
+    object: organization:acme
+
+  # The routine, created by alice (the config-driven create tuples).
+  - user: organization:acme
+    relation: organization
+    object: routine:daily-fee-reminders
+  - user: identity_account:alice
+    relation: owner
+    object: routine:daily-fee-reminders
+
+  # An explicit viewer grant to carol, who holds the organization's
+  # lowest role: the role reaches nothing here by itself, the grant does.
+  - user: identity_account:carol
+    relation: viewer
+    object: organization:acme
+  - user: identity_account:carol
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:carol
+    relation: viewer
+    object: routine:daily-fee-reminders
+
+  # A participant grant to the alerting tool's service account.
+  - user: identity_account:alerts-bot
+    relation: viewer
+    object: organization:acme
+  - user: identity_account:alerts-bot
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:alerts-bot
+    relation: participant
+    object: routine:daily-fee-reminders
+
+  # The same viewer grant to dave, who holds no role in the organization
+  # (never joined, or was removed): a direct grant reaches only the
+  # organization's people.
+  - user: identity_account:dave
+    relation: viewer
+    object: routine:daily-fee-reminders
+
+tests:
+  - name: the owner has full control, fires it and alone grants Participant
+    check:
+      - user: identity_account:alice
+        object: routine:daily-fee-reminders
+        assertions:
+          owner: true
+          can_view: true
+          can_fire: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+          can_assign_roles: true
+          can_view_access: true
+
+  - name: an org admin manages the routine but neither fires it nor grants Participant
+    check:
+      - user: identity_account:ana
+        object: routine:daily-fee-reminders
+        assertions:
+          owner: false
+          viewer: false
+          can_view: true
+          can_fire: false
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+          can_assign_roles: false
+          can_view_access: true
+
+  - name: a participant fires and reads, and changes nothing
+    check:
+      - user: identity_account:alerts-bot
+        object: routine:daily-fee-reminders
+        assertions:
+          owner: false
+          viewer: true
+          can_view: true
+          can_fire: true
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_assign_roles: false
+          can_view_access: true
+
+  - name: an explicitly granted viewer can read but neither fire nor mutate
+    check:
+      - user: identity_account:carol
+        object: routine:daily-fee-reminders
+        assertions:
+          can_view: true
+          can_fire: false
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_view_access: true
+
+  - name: a grant to someone outside the organization reaches nothing
+    check:
+      - user: identity_account:dave
+        object: routine:daily-fee-reminders
+        assertions:
+          can_view: false
+          can_fire: false
+          can_view_access: false
+          can_edit: false
+
+  - name: a fellow org member has no implicit access
+    check:
+      - user: identity_account:mallory
+        object: routine:daily-fee-reminders
+        assertions:
+          can_view: false
+          can_fire: false
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_view_access: false
+
+  - name: listing routines reflects ownership and grants, not membership
+    list_objects:
+      - user: identity_account:alice
+        type: routine
+        assertions:
+          can_view:
+            - routine:daily-fee-reminders
+          can_fire:
+            - routine:daily-fee-reminders
+      - user: identity_account:ana
+        type: routine
+        assertions:
+          can_view:
+            - routine:daily-fee-reminders
+          can_fire: []
+      - user: identity_account:alerts-bot
+        type: routine
+        assertions:
+          can_fire:
+            - routine:daily-fee-reminders
+          can_edit: []
+      - user: identity_account:carol
+        type: routine
+        assertions:
+          can_view:
+            - routine:daily-fee-reminders
+          can_fire: []
+          can_edit: []
+      - user: identity_account:mallory
+        type: routine
+        assertions:
+          can_view: []

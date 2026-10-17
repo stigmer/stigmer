@@ -59,7 +59,7 @@ import {
   OrganizationSchema,
   OrganizationStatusSchema,
 } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+import { ApiResourceAuditActorSchema, ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 
 import { AuditNotFoundError, ResourceNotFoundError } from "../interface.js";
 import type {
@@ -1099,20 +1099,21 @@ export function describeStoreContract(
     });
   });
 
-  describe("schedule run ledger", () => {
+  describe("routine fire ledger", () => {
     const baseRun = {
-      routineId: "sch_1",
+      routineId: "rtn_1",
+      fireId: "rtn-1-20260820t000000z",
       org: "acme",
       nominalFireTime: "2026-08-20T00:00:00Z",
-      origin: "cron",
+      origin: "schedule",
       outcome: "started",
       reason: "",
-      executionId: "",
+      runId: "",
       recordedAt: "2026-08-20T00:00:01Z",
       completedAt: "",
     };
 
-    it("upsert converges retried writes onto the fire-identity row", async () => {
+    it("upsert converges retried writes onto the fire's row", async () => {
       await fx.store.upsertRoutineFire(baseRun);
       await fx.store.upsertRoutineFire({
         ...baseRun,
@@ -1120,7 +1121,7 @@ export function describeStoreContract(
         completedAt: "2026-08-20T00:00:05Z",
       });
 
-      const runs = await fx.store.listRoutineFires("sch_1", undefined, 10);
+      const runs = await fx.store.listRoutineFires("rtn_1", undefined, 10);
       expect(runs).toHaveLength(1);
       expect(runs[0]!.outcome).toBe("completed");
     });
@@ -1133,44 +1134,72 @@ export function describeStoreContract(
       });
       await fx.store.upsertRoutineFire(baseRun); // the replay
 
-      const runs = await fx.store.listRoutineFires("sch_1", undefined, 10);
+      const runs = await fx.store.listRoutineFires("rtn_1", undefined, 10);
       expect(runs[0]!.outcome, "the verdict survives the replay").toBe(
         "completed",
       );
       expect(runs[0]!.completedAt).toBe("2026-08-20T00:00:05Z");
     });
 
-    it("markLatestScheduleFireTerminal stamps the newest non-terminal row of that origin only", async () => {
+    it("two fires in one second are two rows, each with its own fire id, and who fired one reads back", async () => {
+      const firedBy = create(ApiResourceAuditActorSchema, {
+        id: "ida_alerts",
+        displayName: "Alerts bot",
+        mintedBy: "ida_minter",
+      });
+      await fx.store.upsertRoutineFire({
+        ...baseRun,
+        fireId: "rtn-1-20260820t000000z-aaaaaa",
+        origin: "manual",
+        firedBy,
+      });
+      await fx.store.upsertRoutineFire({
+        ...baseRun,
+        fireId: "rtn-1-20260820t000000z-bbbbbb",
+        origin: "manual",
+      });
+
+      const runs = await fx.store.listRoutineFires("rtn_1", undefined, 10);
+      expect(runs.map((run) => run.fireId)).toEqual([
+        "rtn-1-20260820t000000z-bbbbbb",
+        "rtn-1-20260820t000000z-aaaaaa",
+      ]);
+      expect(runs[1]!.firedBy).toEqual(firedBy);
+      expect(runs[0]!.firedBy, "a fire nobody named reads back with none").toBeUndefined();
+    });
+
+    it("markLatestRoutineFireTerminal stamps the newest non-terminal row of that origin only", async () => {
       await fx.store.upsertRoutineFire(baseRun);
-      // A newer MANUAL fire must not steal the cron run's verdict — the
+      // A newer MANUAL fire must not steal the schedule run's verdict — the
       // origin filter is load-bearing (see the interface doc).
       await fx.store.upsertRoutineFire({
         ...baseRun,
+        fireId: "rtn-1-20260820t000500z-cccccc",
         nominalFireTime: "2026-08-20T00:05:00Z",
         origin: "manual",
       });
 
       await fx.store.markLatestRoutineFireTerminal(
-        "sch_1",
-        "cron",
+        "rtn_1",
+        "schedule",
         "failed",
         "boom",
         "2026-08-20T00:01:00Z",
       );
 
-      const runs = await fx.store.listRoutineFires("sch_1", undefined, 10);
-      const cron = runs.find((run) => run.origin === "cron")!;
+      const runs = await fx.store.listRoutineFires("rtn_1", undefined, 10);
+      const scheduled = runs.find((run) => run.origin === "schedule")!;
       const manual = runs.find((run) => run.origin === "manual")!;
-      expect(cron.outcome).toBe("failed");
-      expect(cron.reason).toBe("boom");
+      expect(scheduled.outcome).toBe("failed");
+      expect(scheduled.reason).toBe("boom");
       expect(manual.outcome, "the manual row is untouched").toBe("started");
     });
 
     it("marking with no non-terminal row is a silent no-op", async () => {
       await expect(
         fx.store.markLatestRoutineFireTerminal(
-          "sch_ghost",
-          "cron",
+          "rtn_ghost",
+          "schedule",
           "failed",
           "",
           "t",
@@ -1178,48 +1207,51 @@ export function describeStoreContract(
       ).resolves.toBeUndefined();
     });
 
-    it("lists newest first by key and continues after a cursor; prune and delete report counts", async () => {
+    it("lists newest first by nominal time then fire id and continues after a cursor; prune and delete report counts", async () => {
       for (const minute of ["00", "01", "02"]) {
         await fx.store.upsertRoutineFire({
           ...baseRun,
+          fireId: `rtn-1-20260820t00${minute}00z`,
           nominalFireTime: `2026-08-20T00:${minute}:00Z`,
           recordedAt: `2026-08-20T00:${minute}:01Z`,
         });
       }
-      // Two fires at one instant: the origin breaks the tie, as bytes.
+      // Two fires at one instant: the fire id breaks the tie, as bytes.
       await fx.store.upsertRoutineFire({
         ...baseRun,
+        fireId: "rtn-1-20260820t000100z-dddddd",
         nominalFireTime: "2026-08-20T00:01:00Z",
         origin: "manual",
       });
 
-      const first = await fx.store.listRoutineFires("sch_1", undefined, 2);
-      expect(first.map((run) => [run.nominalFireTime, run.origin])).toEqual([
-        ["2026-08-20T00:02:00Z", "cron"],
-        ["2026-08-20T00:01:00Z", "manual"],
+      const first = await fx.store.listRoutineFires("rtn_1", undefined, 2);
+      expect(first.map((run) => [run.nominalFireTime, run.fireId])).toEqual([
+        ["2026-08-20T00:02:00Z", "rtn-1-20260820t000200z"],
+        ["2026-08-20T00:01:00Z", "rtn-1-20260820t000100z-dddddd"],
       ]);
       const last = first[first.length - 1]!;
       const rest = await fx.store.listRoutineFires(
-        "sch_1",
-        { nominalFireTime: last.nominalFireTime, origin: last.origin },
+        "rtn_1",
+        { nominalFireTime: last.nominalFireTime, fireId: last.fireId },
         10,
       );
-      expect(rest.map((run) => [run.nominalFireTime, run.origin])).toEqual([
-        ["2026-08-20T00:01:00Z", "cron"],
-        ["2026-08-20T00:00:00Z", "cron"],
+      expect(rest.map((run) => [run.nominalFireTime, run.fireId])).toEqual([
+        ["2026-08-20T00:01:00Z", "rtn-1-20260820t000100z"],
+        ["2026-08-20T00:00:00Z", "rtn-1-20260820t000000z"],
       ]);
 
-      await fx.store.deleteRoutineFiresByRoutine("sch_1");
+      await fx.store.deleteRoutineFiresByRoutine("rtn_1");
       for (const minute of ["00", "01", "02"]) {
         await fx.store.upsertRoutineFire({
           ...baseRun,
+          fireId: `rtn-1-20260820t00${minute}00z`,
           nominalFireTime: `2026-08-20T00:${minute}:00Z`,
           recordedAt: `2026-08-20T00:${minute}:01Z`,
         });
       }
 
       expect(await fx.store.pruneRoutineFires("2026-08-20T00:01:00Z")).toBe(1);
-      expect(await fx.store.deleteRoutineFiresByRoutine("sch_1")).toBe(2);
+      expect(await fx.store.deleteRoutineFiresByRoutine("rtn_1")).toBe(2);
     });
   });
 
@@ -2192,13 +2224,14 @@ export function describeStoreContract(
           createdAt: 1_700_000_000,
         });
         await fx.store.upsertRoutineFire({
-          routineId: `sch_${org}`,
+          routineId: `rtn_${org}`,
+          fireId: `rtn-${org}-20260820t000000z`,
           org,
           nominalFireTime: "2026-08-20T00:00:00Z",
-          origin: "cron",
+          origin: "schedule",
           outcome: "started",
           reason: "",
-          executionId: "",
+          runId: "",
           recordedAt: "2026-08-20T00:00:01Z",
           completedAt: "",
         });
@@ -2206,8 +2239,8 @@ export function describeStoreContract(
       expect(await fx.store.deleteSearchIndexByOrg("org_a")).toBe(1);
       expect(await fx.store.deleteSearchIndexByOrg("")).toBe(0);
       expect(await fx.store.deleteRoutineFiresByOrg("org_a")).toBe(1);
-      expect(await fx.store.listRoutineFires("sch_org_a", undefined, 10)).toHaveLength(0);
-      expect(await fx.store.listRoutineFires("sch_org_b", undefined, 10)).toHaveLength(1);
+      expect(await fx.store.listRoutineFires("rtn_org_a", undefined, 10)).toHaveLength(0);
+      expect(await fx.store.listRoutineFires("rtn_org_b", undefined, 10)).toHaveLength(1);
       const left = await fx.store.querySearchIndex({
         kinds: ["agent"],
         terms: ["kubernetes"],

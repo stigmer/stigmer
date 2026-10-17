@@ -1,0 +1,171 @@
+# Store tests for a routine's runs (the session `routine` structural link,
+# the channel-session idiom's second application).
+#
+# A routine's fire acts as its owner, so the session it starts is the
+# owner's (the session's creator tuple names them), and carries a single
+#   session#routine@routine:<id>
+# tuple, derived from the session's server-written status.routine_id. It
+# composes the routine's `viewer` relation (owner, Participants, Viewers)
+# into can_view ONLY — deliberately NOT into session.viewer, so a routine's
+# observers never gain can_create_run_in / can_edit / can_delete /
+# can_grant_access on the owner's conversation. And it composes `viewer`,
+# not the routine's can_view, so the org admins who manage a routine do not
+# read the conversations held in its owner's name. Runs follow through
+# run's `can_view: viewer or can_view from session`.
+#
+# The personal-session invariant is untouched: console sessions never carry
+# a routine tuple (pinned below and by session-personal-resource.fga.yaml).
+#
+# Run with:
+#   fga model test --tests routine-session-visibility.fga.yaml
+#
+# Scenario: org "acme" has admin alice, member bob (who created the
+# fee-reminder routine and owns it), member carol (no relation to the
+# routine), member dave (a Viewer grant on the routine), and the alerting
+# tool's service account pat (a Participant grant). "rival" is another
+# org whose admin eve must see nothing. bob also has a normal personal
+# console session to prove the invariant.
+name: routine-session-visibility
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # --- Org roles ---
+  - {user: identity_account:alice, relation: admin, object: organization:acme}
+  - {user: identity_account:alice, relation: affiliated, object: organization:acme}
+  - {user: identity_account:bob, relation: member, object: organization:acme}
+  - {user: identity_account:bob, relation: affiliated, object: organization:acme}
+  - {user: identity_account:carol, relation: member, object: organization:acme}
+  - {user: identity_account:carol, relation: affiliated, object: organization:acme}
+  - {user: identity_account:dave, relation: member, object: organization:acme}
+  - {user: identity_account:dave, relation: affiliated, object: organization:acme}
+  - {user: identity_account:pat, relation: viewer, object: organization:acme}
+  - {user: identity_account:pat, relation: affiliated, object: organization:acme}
+  - {user: identity_account:eve, relation: admin, object: organization:rival}
+  - {user: identity_account:eve, relation: affiliated, object: organization:rival}
+
+  # --- The Routine (tuples written on create: org link + creator owner) ---
+  - {user: organization:acme, relation: organization, object: routine:fee-reminder}
+  - {user: identity_account:bob, relation: owner, object: routine:fee-reminder}
+  # dave's Viewer and pat's Participant grants on the routine (never on the session):
+  - {user: identity_account:dave, relation: viewer, object: routine:fee-reminder}
+  - {user: identity_account:pat, relation: participant, object: routine:fee-reminder}
+
+  # --- A session the routine's fire started: bob's, linked to the routine ---
+  - {user: organization:acme, relation: organization, object: session:fired-run}
+  - {user: identity_account:bob, relation: owner, object: session:fired-run}
+  - {user: routine:fee-reminder, relation: routine, object: session:fired-run}
+
+  # --- A run inside the fired session ---
+  - {user: session:fired-run, relation: session, object: run:fired-run-1}
+
+  # --- bob's ordinary personal console session (NO routine tuple) ---
+  - {user: organization:acme, relation: organization, object: session:bobs-chat}
+  - {user: identity_account:bob, relation: owner, object: session:bobs-chat}
+  - {user: session:bobs-chat, relation: session, object: run:bobs-run-1}
+
+tests:
+  - name: the routine's owner owns the conversation its fire started
+    check:
+      - user: identity_account:bob
+        object: session:fired-run
+        assertions:
+          can_view: true
+          can_create_run_in: true
+          can_edit: true
+          can_delete: true
+
+  - name: a participant reads the run it started, read-only
+    check:
+      - user: identity_account:pat
+        object: session:fired-run
+        assertions:
+          can_view: true
+          can_create_run_in: false
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_view_access: false
+      - user: identity_account:pat
+        object: run:fired-run-1
+        assertions:
+          can_view: true
+          can_edit: false
+
+  - name: a routine viewer reaches the run read-only
+    check:
+      - user: identity_account:dave
+        object: session:fired-run
+        assertions:
+          can_view: true
+          can_create_run_in: false
+          can_edit: false
+      - user: identity_account:dave
+        object: run:fired-run-1
+        assertions:
+          can_view: true
+
+  - name: an org admin who manages the routine does not read the owner's conversation
+    check:
+      - user: identity_account:alice
+        object: routine:fee-reminder
+        assertions:
+          can_view: true
+      - user: identity_account:alice
+        object: session:fired-run
+        assertions:
+          can_view: false
+          can_create_run_in: false
+      - user: identity_account:alice
+        object: run:fired-run-1
+        assertions:
+          can_view: false
+
+  - name: a plain org member without routine access sees nothing
+    check:
+      - user: identity_account:carol
+        object: session:fired-run
+        assertions:
+          can_view: false
+          can_create_run_in: false
+
+  - name: another org's admin sees nothing
+    check:
+      - user: identity_account:eve
+        object: session:fired-run
+        assertions:
+          can_view: false
+
+  - name: the personal-session invariant is untouched by the routine model
+    check:
+      - user: identity_account:pat
+        object: session:bobs-chat
+        assertions:
+          can_view: false
+      - user: identity_account:alice
+        object: run:bobs-run-1
+        assertions:
+          can_view: false
+      - user: identity_account:bob
+        object: session:bobs-chat
+        assertions:
+          can_view: true
+          can_edit: true
+          can_create_run_in: true
+
+  - name: list viewable sessions resolves the routine chain
+    list_objects:
+      - user: identity_account:pat
+        type: session
+        assertions:
+          can_view:
+            - session:fired-run
+      - user: identity_account:bob
+        type: session
+        assertions:
+          can_view:
+            - session:fired-run
+            - session:bobs-chat
+      - user: identity_account:alice
+        type: session
+        assertions:
+          can_view: []

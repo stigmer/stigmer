@@ -108,7 +108,7 @@ const SCHEDULE = create(RoutineSchema, {
   metadata: { id: "sch_01nightly", org: ACME, slug: "nightly" },
   spec: {
     cron: "0 9 * * *",
-    target: { case: "agent", value: { agentRef: { org: ACME, slug: "gone-agent" }, vaults: [{ slug: "keys" }] } },
+    agent: { agentRef: { org: ACME, slug: "gone-agent" }, vaults: [{ slug: "keys" }] },
   },
 });
 
@@ -329,7 +329,7 @@ function expectRewritten(
   expect(session.status!.agentVersionHash).toBe(OLDER);
 
   const routine = fromBinary(RoutineSchema, read.schedule);
-  const invocation = routine.spec!.target.case === "agent" ? routine.spec!.target.value : undefined;
+  const invocation = routine.spec?.agent;
   expect([invocation!.agentRef!.id, invocation!.agentRef!.slug]).toEqual(["", "gone-agent"]);
   expect(invocation!.vaults.map((r) => r.id)).toEqual(["vlt_01keys"]);
 

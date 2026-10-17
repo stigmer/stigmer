@@ -9,10 +9,10 @@
  * reserved eval run label's value (domain/eval-run/constants.ts), which a
  * try's start and the spend read take to find the try's run by the eval
  * run and its run name (temporal/evals/case-activities.ts);
- * `schedule` is the schedule label's value (domain/schedule/labels.ts),
- * which a fire reads to find the run an earlier attempt of the same fire
- * created, by the schedule and the fire's deterministic name
- * (temporal/schedule/run-starter.ts);
+ * `routine` is the routine label's value (domain/routine/labels.ts),
+ * which a schedule fire reads to find the run an earlier attempt of the
+ * same fire created, by the routine and the fire's deterministic name
+ * (temporal/routine/run-starter.ts);
  * `working_session` is the session while the run is working (pending or
  * in progress), which a write that appends session events counts its
  * session's other working runs by, from the key table alone
@@ -25,8 +25,10 @@
  * revision 3 `plugin_eval`, revision 4 `working_session`, revision 5
  * `schedule`, revision 6 took waiting runs out of `working_session` into
  * `waiting_session`, revision 7 added `agent`, and revision 8 renamed
- * `plugin_eval` to `eval_run` with its label (store/eval-kinds-retired.ts):
- * the store derives every existing run's keys again once, at open.
+ * `plugin_eval` to `eval_run` with its label (store/eval-kinds-retired.ts),
+ * and revision 9 renamed `schedule` to `routine` with its label
+ * (store/schedules-become-routines.ts): the store derives every existing
+ * run's keys again once, at open.
  *
  * A change to `keys` bumps `revision` (boot/__tests__/list-indexes.test.ts
  * pins the pair).
@@ -43,12 +45,12 @@ import { WAITING_PHASES, WORKING_PHASES } from "./phases.js";
 export const agentExecutionListIndex = declareListIndex({
   kind: ApiResourceKind.run,
   schema: RunSchema,
-  revision: 8,
+  revision: 9,
   keys: {
     session: field("spec.session_id"),
     grades: label(GRADES_RUN_LABEL),
     eval_run: label(EVAL_RUN_LABEL),
-    schedule: label(ROUTINE_ID_LABEL_KEY),
+    routine: label(ROUTINE_ID_LABEL_KEY),
     working_session: fieldWhen("spec.session_id", "status.phase", WORKING_PHASES),
     waiting_session: fieldWhen("spec.session_id", "status.phase", WAITING_PHASES),
     agent: field("status.agent_id"),

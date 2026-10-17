@@ -119,6 +119,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
+import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ScoringRuleSchema } from "@stigmer/protos/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -161,6 +162,7 @@ import {
   SCHEMA_VERSION_35,
   SCHEMA_VERSION_36,
   SCHEMA_VERSION_37,
+  SCHEMA_VERSION_38,
   runMigrations,
 } from "../migrations.js";
 import { LABEL_TAG_REPORT_PAGE_SIZE } from "../../label-tag-report.js";
@@ -441,7 +443,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           "resource_list_keys",
           "resource_names",
           "resources",
-          "schedule_runs",
+          "routine_fires",
           "schema_version",
           "search_index",
           "session_event_heads",
@@ -4779,6 +4781,146 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           const early = await channelOf(client, "ash_early");
           expect(early.spec?.agentRef?.id, "the reference rewrite read the share's agent_ref through its frozen shape").toBe(AGENT.id);
           expect(await count(client, "resource_names", "channel")).toBe(1);
+        } finally {
+          await client.end();
+        }
+      });
+    });
+    describe("v38: the schedule is a routine", () => {
+      const ORG = "org_01jz0000000000000000000000";
+      const seededAt = new Date("2026-10-17T00:00:00Z");
+      const SCHEDULE_LABEL = "stigmer.ai/schedule-id";
+      const ROUTINE_LABEL = "stigmer.ai/routine-id";
+      const ownerGrant = { principal: "identity_account:ida_bea", relation: "owner", resource: "schedule:sch_daily" };
+      const viewerGrant = { principal: "identity_account:ida_cal", relation: "viewer", resource: "schedule:sch_daily" };
+
+      async function clientAt(target: number): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, target);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        return client;
+      }
+
+      async function version(client: pg.Client): Promise<number> {
+        const result = await client.query(`SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`);
+        return Number(result.rows[0].version);
+      }
+
+      /** A schedule as a release before v38 stored it: its kind string and an sch_ id. */
+      const stored = () =>
+        create(RoutineSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "Schedule",
+          metadata: { id: "sch_daily", org: ORG, name: "Daily", slug: "daily" },
+          spec: {
+            cron: "0 9 * * *",
+            timeZone: "Asia/Kolkata",
+            enabled: true,
+            agent: { agentRef: { org: ORG, id: "agt_helper" }, message: "Send the reminders." },
+          },
+        });
+
+      async function insertRow(client: pg.Client, kind: string, id: string, data: Uint8Array): Promise<void> {
+        await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, $4)`, [
+          kind,
+          id,
+          Buffer.from(data),
+          seededAt,
+        ]);
+      }
+
+      async function ledgerRow(client: pg.Client, nominal: string, origin: string, executionId: string): Promise<void> {
+        await client.query(
+          `INSERT INTO schedule_runs (schedule_id, org, nominal_fire_time, origin, outcome, reason, execution_id, recorded_at, completed_at)
+           VALUES ('sch_daily', $1, $2, $3, 'completed', '', $4, $2, $2)`,
+          [ORG, nominal, origin, executionId],
+        );
+      }
+
+      async function seed(client: pg.Client): Promise<void> {
+        await insertRow(client, "schedule", "sch_daily", toBinary(RoutineSchema, stored()));
+        await client.query(
+          `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ('schedule', $1, 'daily', 'sch_daily', 'current', $2), ('schedule', $1, 'nightly', 'sch_daily', 'previous', $2)`,
+          [ORG, "2026-10-17T00:00:00Z"],
+        );
+        for (const grant of [ownerGrant, viewerGrant]) {
+          await insertRow(client, "grant", grantIdAfterV34(grant), grantRowAfterV34(grant));
+        }
+        await client.query(
+          `INSERT INTO grant_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, grant_id,
+             principal_kind, principal_id, relation, resource_kind, resource_id, data)
+           VALUES ($1, 1, $2, 'granted', 'grant', 'ida_bea', 'user', $3, 'identity_account', 'ida_bea', 'owner', 'schedule', 'sch_daily', $4)`,
+          [ORG, "2026-10-17T00:00:00.000Z", grantIdAfterV34(ownerGrant), Buffer.from(grantRowAfterV34(ownerGrant))],
+        );
+        await client.query(`INSERT INTO grant_history_heads (org, last_sequence, last_occurred_at) VALUES ($1, 1, $2)`, [
+          ORG,
+          "2026-10-17T00:00:00.000Z",
+        ]);
+        await ledgerRow(client, "2026-10-16T09:00:00Z", "cron", "run_shared");
+        await ledgerRow(client, "2026-10-16T09:00:00Z", "manual", "run_shared");
+        await ledgerRow(client, "2026-10-16T10:15:30Z", "manual", "run_press");
+        const fired = create(RunSchema, { metadata: { id: "run_shared", org: ORG, labels: { [SCHEDULE_LABEL]: "sch_daily" } } });
+        stampEtag(RunSchema, fired);
+        await insertRow(client, "run", "run_shared", toBinary(RunSchema, fired));
+      }
+
+      it("moves the kind with its names, re-keys its grants (Owner made Participant) with their history, rebuilds the ledger and relabels its runs", async () => {
+        const client = await clientAt(SCHEMA_VERSION_37);
+        try {
+          await seed(client);
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_38);
+          expect(await version(client)).toBe(SCHEMA_VERSION_38);
+
+          const row = (await client.query<{ data: Buffer }>(`SELECT data FROM resources WHERE kind = 'routine' AND id = 'sch_daily'`)).rows[0];
+          const expected = stored();
+          expected.kind = "Routine";
+          expect(new Uint8Array(row!.data)).toEqual(toBinary(RoutineSchema, expected));
+          expect(
+            (await client.query(`SELECT kind, name, state FROM resource_names WHERE id = 'sch_daily' ORDER BY name`)).rows,
+          ).toEqual([
+            { kind: "routine", name: "daily", state: "current" },
+            { kind: "routine", name: "nightly", state: "previous" },
+          ]);
+
+          const participant = { ...ownerGrant, relation: "participant", resource: "routine:sch_daily" };
+          const viewer = { ...viewerGrant, resource: "routine:sch_daily" };
+          const grants = (await client.query<{ id: string }>(`SELECT id FROM resources WHERE kind = 'grant' ORDER BY id`)).rows;
+          expect(grants.map((grant) => grant.id).sort()).toEqual([grantIdAfterV34(participant), grantIdAfterV34(viewer)].sort());
+          expect(
+            (await client.query(`SELECT grant_id, relation, resource_kind FROM grant_history WHERE org = $1`, [ORG])).rows,
+          ).toEqual([{ grant_id: grantIdAfterV34(participant), relation: "participant", resource_kind: "routine" }]);
+
+          expect(
+            (
+              await client.query(
+                `SELECT routine_id, fire_id, origin, run_id, fired_by FROM routine_fires ORDER BY nominal_fire_time, fire_id COLLATE "C"`,
+              )
+            ).rows,
+          ).toEqual([
+            { routine_id: "sch_daily", fire_id: "sch-daily-20261016t090000z", origin: "schedule", run_id: "run_shared", fired_by: null },
+            { routine_id: "sch_daily", fire_id: "sch-daily-20261016t090000z-manual", origin: "manual", run_id: "run_shared", fired_by: null },
+            { routine_id: "sch_daily", fire_id: "sch-daily-20261016t101530z", origin: "manual", run_id: "run_press", fired_by: null },
+          ]);
+          const tables = (await client.query<{ table_name: string }>(`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`)).rows.map((r) => r.table_name);
+          expect(tables).not.toContain("schedule_runs");
+
+          const fired = (await client.query<{ data: Buffer }>(`SELECT data FROM resources WHERE kind = 'run' AND id = 'run_shared'`)).rows[0];
+          const run = fromBinary(RunSchema, new Uint8Array(fired!.data));
+          expect(run.metadata?.labels).toEqual({ [ROUTINE_LABEL]: "sch_daily" });
+          expect(storedEtagOf(RunSchema, run)).toBe(etagOf(RunSchema, run));
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a grant that does not decode fails the step, names the row, and leaves the database at v37", async () => {
+        const client = await clientAt(SCHEMA_VERSION_37);
+        try {
+          await seed(client);
+          await insertRow(client, "grant", "grt_broken", new Uint8Array([0xff, 0xff, 0xff]));
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_38)).rejects.toThrow(/grt_broken/);
+          expect(await version(client)).toBe(SCHEMA_VERSION_37);
+          expect((await client.query(`SELECT kind FROM resources WHERE id = 'sch_daily'`)).rows).toEqual([{ kind: "schedule" }]);
         } finally {
           await client.end();
         }

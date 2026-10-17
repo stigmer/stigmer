@@ -1,0 +1,76 @@
+# Who may fire a routine: its owner and the Participants the owner grants,
+# to a person, an Enterprise team's members, or a service account. A
+# Participant fires it and reads it (participant ⊆ viewer); it never edits,
+# deletes or decides who else reaches it. A parent organization's admins are
+# a child's admins (organization.fga parent_admin), so they manage a child's
+# routine and, like the child's own admins, never fire it.
+#
+# Run: fga model test --tests routine-participant.fga.yaml
+
+name: routine-participant
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # --- The parent organization and its child ---
+  - {user: identity_account:pam, relation: admin, object: organization:acme}
+  - {user: identity_account:pam, relation: affiliated, object: organization:acme}
+  - {user: organization:acme, relation: parent_org, object: organization:acme-cust}
+  - {user: organization:acme-cust, relation: child_org, object: organization:acme}
+
+  # --- The child's people ---
+  - {user: identity_account:priya, relation: member, object: organization:acme-cust}
+  - {user: identity_account:priya, relation: affiliated, object: organization:acme-cust}
+  - {user: identity_account:oncall-1, relation: member, object: organization:acme-cust}
+  - {user: identity_account:oncall-1, relation: affiliated, object: organization:acme-cust}
+  - {user: identity_account:quinn, relation: member, object: organization:acme-cust}
+  - {user: identity_account:quinn, relation: affiliated, object: organization:acme-cust}
+
+  # --- A team of the child, holding oncall-1 ---
+  - {user: organization:acme-cust, relation: organization, object: team:on-call}
+  - {user: identity_account:oncall-1, relation: member, object: team:on-call}
+
+  # --- The routine, created by priya, Participant granted to the team ---
+  - {user: organization:acme-cust, relation: organization, object: routine:triage-alerts}
+  - {user: identity_account:priya, relation: owner, object: routine:triage-alerts}
+  - {user: team:on-call#member, relation: participant, object: routine:triage-alerts}
+
+tests:
+  - name: a team's member holds the team's Participant grant
+    check:
+      - user: identity_account:oncall-1
+        object: routine:triage-alerts
+        assertions:
+          can_view: true
+          can_fire: true
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_assign_roles: false
+
+  - name: a member outside the team holds nothing
+    check:
+      - user: identity_account:quinn
+        object: routine:triage-alerts
+        assertions:
+          can_view: false
+          can_fire: false
+
+  - name: the parent organization's admin manages the child's routine and never fires it
+    check:
+      - user: identity_account:pam
+        object: routine:triage-alerts
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+          can_fire: false
+          can_assign_roles: false
+
+  - name: only the owner grants Participant
+    check:
+      - user: identity_account:priya
+        object: routine:triage-alerts
+        assertions:
+          can_assign_roles: true
+          can_fire: true

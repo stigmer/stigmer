@@ -36,15 +36,14 @@ module agentic
 # reply never reaches the channel). Console sessions never get a channel
 # tuple, so the personal-resource invariant above is untouched.
 #
-# SCHEDULE SESSIONS (the channel idiom, second application, since
-# 2026-08-02): sessions created by the schedule runtime (a Schedule resource
-# firing, owned by the per-org system-schedule account) carry a single
-# session#schedule@schedule:<id> tuple and inherit the parent schedule's
-# viewer set (creator + org admins + grantees) into can_view ONLY. Without
-# it a scheduled run is invisible to every human, including the schedule's
-# owner. Read-only for the same reason as the channel link: injecting a
-# console message into an unattended run is not observability. Console
-# sessions never get a schedule tuple.
+# ROUTINE SESSIONS (the channel idiom, second application): a session a
+# routine's fire started is owned by the routine's owner, whom every run
+# acts as, and carries a single session#routine@routine:<id> tuple that
+# composes the routine's viewer relation (its owner, Participants and
+# Viewers, never the org admins who manage it: the conversation is the
+# owner's) into can_view ONLY. Read-only for the same reason as the channel
+# link: a routine's observers do not add turns to its run. Console sessions
+# never get a routine tuple.
 #
 # EVAL RUN SESSIONS (the channel idiom, third application): the tries of
 # an eval run (created by the eval run's workflow, owned in the hosted
@@ -64,7 +63,7 @@ module agentic
 # - session:<id>#organization@organization:<org>
 # - session:<id>#owner@identity_account:<creator>
 # - session:<id>#channel@channel:<channel>  (Slack and WhatsApp sessions only)
-# - session:<id>#schedule@schedule:<schedule>     (schedule sessions only)
+# - session:<id>#routine@routine:<routine>        (sessions a routine's fire started)
 # - session:<id>#eval_run@eval_run:<eval_run>     (eval run tries only)
 
 type session
@@ -87,21 +86,23 @@ type session
     define channel: [channel]
 
     # ========================================
-    # SCHEDULE LINK (Structural Read-Only Inheritance)
+    # ROUTINE LINK (Structural Read-Only Inheritance)
     # ========================================
-    # The channel link's twin for the schedule runtime (since 2026-08-02)
-    # — written ONLY by ScheduleSessionLinkStep from the validated schedule
-    # JWT's schedule_id claim, never derived from the client-suppliable
-    # stigmer.ai/schedule-id label. Composes the schedule's viewer set
-    # (creator + org admins + grantees) into can_view below — and ONLY
-    # can_view, so schedule observers cannot inject runs into an
-    # unattended run. Console sessions never carry this tuple.
-    define schedule: [schedule]
+    # The channel link's twin for a routine's fires — derived from the
+    # session's status.routine_id, which only the server writes (the fire
+    # propagates its routine in-process, and a create clears a client's
+    # status), never from the client-suppliable stigmer.ai/routine-id label.
+    # Composes the routine's viewer relation (its owner, Participants and
+    # Viewers; not the org admins who manage it, since the run is the
+    # owner's conversation) into can_view below — and ONLY can_view, so a
+    # routine's observers cannot inject turns into its run. Console
+    # sessions never carry this tuple.
+    define routine: [routine]
 
     # ========================================
     # EVAL RUN LINK (Structural Read-Only Inheritance)
     # ========================================
-    # The schedule link's twin for eval run tries — written ONLY from a
+    # The routine link's twin for eval run tries — written ONLY from a
     # validated eval caller's eval_run claim, never derived from the
     # client-suppliable stigmer.ai/eval-run label. Composes the eval run's
     # viewers into can_view below, and ONLY can_view.
@@ -132,12 +133,12 @@ type session
     # PERMISSIONS
     # ========================================
     # can_view adds `viewer from channel` (channel sessions only),
-    # `viewer from schedule` (schedule sessions only) and
+    # `viewer from routine` (sessions a routine's fire started) and
     # `viewer from eval_run` (eval run tries only) WITHOUT widening
     # `viewer`, because can_view_access derives from viewer and
     # can_create_run_in from participant — runtime-surface observability
     # must stay read-only.
-    define can_view: viewer or viewer from channel or viewer from schedule or viewer from eval_run
+    define can_view: viewer or viewer from channel or viewer from routine or viewer from eval_run
     define can_edit: owner
     define can_delete: owner
     
